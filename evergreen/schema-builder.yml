@@ -370,11 +370,12 @@ buildvariants:
       - name: test-schema-builder
       - name: sign-schema-builder-tool-executables
 
-  - name: dcsb-test
+  - name: dcsb-integration-test
     tags: ["schema-builder-test"]
-    display_name: "MongoDB Schema Builder Test"
+    display_name: "MongoDB Schema Builder Integration Test"
     run_on: [ rhel76 ]
     tasks:
+      - name: compile-dcsb
       - name: test-schema-builder
       - name: test-schema-builder-library-integration
 

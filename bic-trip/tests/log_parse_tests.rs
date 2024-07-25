@@ -2,6 +2,8 @@ use report::html::generate_html_elements;
 use report::log_parser::handle_logs;
 use scraper::{Html, Selector};
 mod common;
+#[cfg(feature = "integration")]
+mod e2e;
 
 // log_parse_counts_test parses various logs and verifies that the counts of the queries, complex
 // fields, and collections are correct.  Optionally, the user list will be verified.

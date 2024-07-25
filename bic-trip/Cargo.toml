@@ -30,9 +30,14 @@ tokio = { version = "1.36.0", features = ["full"] }
 anyhow = "1.0.80"
 sqlformat = "0.2.3"
 base64 = "0.22.0"
-image = "0.24.7"
-zip = "0.6.2"
+image = "0.25.2"
+zip = "2.1.5"
 indicatif = "0.17.8"
 thiserror = "1.0.57"
-serde_yaml = "0.8.26"
+serde_yaml = "0.9.33"
 scraper = "0.19.0"
+assert_cmd = "2.0.14"
+predicates = "3.1.0"
+
+[features]
+integration = []

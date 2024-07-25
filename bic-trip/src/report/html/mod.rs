@@ -10,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use image::{DynamicImage, ImageOutputFormat};
+use image::{DynamicImage, ImageFormat};
 
 use anyhow::Result;
 use chrono::prelude::*;
@@ -24,14 +24,13 @@ use self::schema_html::add_schema_analysis_html;
 /// generate_html takes a file path, a date, and a LogParseResult and writes the HTML report to a file.
 pub fn generate_html(
     file_path: &Path,
-    date: &str,
     log_parse: Option<&crate::log_parser::LogParseResult>,
     schema_analysis: Option<&crate::schema::SchemaAnalysis>,
     verbose: bool,
     file_stem: &str,
     report_name: &str,
 ) -> Result<()> {
-    let mut report_file = File::create(file_path.join(format!("{file_stem}_{date}.html")))?;
+    let mut report_file = File::create(file_path.join(format!("{file_stem}.html")))?;
     if verbose {
         println!("Writing HTML report to {}", file_path.display());
     }
@@ -139,7 +138,7 @@ fn encode_image_to_base64(image_data: &[u8]) -> String {
     DynamicImage::ImageRgba8(img)
         .write_to(
             &mut std::io::Cursor::new(&mut encoded_data),
-            ImageOutputFormat::Png,
+            ImageFormat::Png,
         )
         .unwrap();
 

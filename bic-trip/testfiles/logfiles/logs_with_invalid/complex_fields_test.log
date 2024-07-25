@@ -1,0 +1,979 @@
+2024-03-28T00:13:10.691+0000 W CONTROL    log verbosity level 3 does not exist; using verbosity Dev
+2024-03-28T00:13:10.691+0000 I CONTROL    [initandlisten] mongosqld starting: version=v2.14.12 pid=364 host=1083bd4295c4
+2024-03-28T00:13:10.691+0000 I CONTROL    [initandlisten] git version: 11518eb8459058fcd4ff92e0804c8ae7b0795722
+2024-03-28T00:13:10.691+0000 I CONTROL    [initandlisten] OpenSSL version OpenSSL 3.0.2 15 Mar 2022 (built with OpenSSL 3.0.2 15 Mar 2022)
+2024-03-28T00:13:10.691+0000 I CONTROL    [initandlisten] options: {systemLog: {verbosity: 3}, net: {bindIp: [0.0.0.0], port: 27017, ssl: {mode: "requireSSL", PEMKeyFile: "/root/ssl/mongodb.pem", minimumTLSVersion: "TLS1_1"}}, security: {enabled: true}, mongodb: {net: {uri: "mongodb://0.0.0.0:801", auth: {username: "user_1", password: "<protected>"}}}}
+2024-03-28T00:13:10.692+0000 I NETWORK    [initandlisten] waiting for connections at [::]:27017
+2024-03-28T00:13:10.692+0000 I NETWORK    [initandlisten] waiting for connections at /tmp/mysql.sock
+2024-03-28T00:13:10.692+0000 I SCHEMA     [manager] attempting to initialize schema
+2024-03-28T00:13:10.692+0000 I SCHEMA     [manager] sampling schema
+2024-03-28T00:13:10.695+0000 I SCHEMA     [sampler] sampling MongoDB for schema...
+2024-03-28T00:13:10.695+0000 D SCHEMA     [sampler] wildcard database selector used: running listDatabases
+2024-03-28T00:13:10.696+0000 D SCHEMA     [sampler] finding namespaces in databases: [ReadinessReport admin config db1 db2 db3 db4 local]
+2024-03-28T00:13:10.696+0000 D SCHEMA     [sampler] skipping "admin" database
+2024-03-28T00:13:10.696+0000 D SCHEMA     [sampler] skipping "config" database
+2024-03-28T00:13:10.696+0000 D SCHEMA     [sampler] skipping "local" database
+2024-03-28T00:13:10.696+0000 D SCHEMA     [sampler] mapping schema for database "ReadinessReport"
+2024-03-28T00:13:10.696+0000 D SCHEMA     [sampler] mapping schema for namespace "ReadinessReport"."example"
+2024-03-28T00:13:10.697+0000 W SCHEMA     [mapping] table "example": multiple types at field path "b": ["object", "int"] - using object conflict resolution for "int" and object
+2024-03-28T00:13:10.697+0000 W SCHEMA     [mapping] table "example": multiple types at field path "a": ["array", "int"] - using "array"
+2024-03-28T00:13:10.697+0000 D SCHEMA     [mapping] mapped new table "example_b_field2_c" for array at field path "b.field2.c"
+2024-03-28T00:13:10.697+0000 D SCHEMA     [mapping] mapped new table "example_a" for array at field path "a"
+2024-03-28T00:13:10.697+0000 D SCHEMA     [mapping] mapped new table "example"
+2024-03-28T00:13:10.697+0000 D SCHEMA     [sampler] finished mapping schema for namespace "ReadinessReport"."example"
+2024-03-28T00:13:10.697+0000 D SCHEMA     [sampler] mapping schema for database "db1"
+2024-03-28T00:13:10.697+0000 D SCHEMA     [sampler] mapping schema for namespace "db1"."coll1"
+2024-03-28T00:13:10.697+0000 D SCHEMA     [mapping] mapped new table "coll1_arr" for array at field path "arr"
+2024-03-28T00:13:10.697+0000 D SCHEMA     [mapping] mapped new table "coll1"
+2024-03-28T00:13:10.697+0000 D SCHEMA     [sampler] finished mapping schema for namespace "db1"."coll1"
+2024-03-28T00:13:10.698+0000 D SCHEMA     [sampler] mapping schema for database "db2"
+2024-03-28T00:13:10.698+0000 D SCHEMA     [sampler] mapping schema for namespace "db2"."coll2"
+2024-03-28T00:13:10.698+0000 D SCHEMA     [mapping] mapped new table "coll2_arr" for array at field path "arr"
+2024-03-28T00:13:10.698+0000 D SCHEMA     [mapping] mapped new table "coll2"
+2024-03-28T00:13:10.698+0000 D SCHEMA     [sampler] finished mapping schema for namespace "db2"."coll2"
+2024-03-28T00:13:10.698+0000 D SCHEMA     [sampler] mapping schema for database "db3"
+2024-03-28T00:13:10.698+0000 D SCHEMA     [sampler] mapping schema for namespace "db3"."coll3"
+2024-03-28T00:13:10.698+0000 D SCHEMA     [mapping] mapped new table "coll3_arr" for array at field path "arr"
+2024-03-28T00:13:10.698+0000 D SCHEMA     [mapping] mapped new table "coll3"
+2024-03-28T00:13:10.698+0000 D SCHEMA     [sampler] finished mapping schema for namespace "db3"."coll3"
+2024-03-28T00:13:10.698+0000 D SCHEMA     [sampler] mapping schema for database "db4"
+2024-03-28T00:13:10.698+0000 D SCHEMA     [sampler] mapping schema for namespace "db4"."coll4"
+2024-03-28T00:13:10.699+0000 D SCHEMA     [mapping] mapped new table "coll4_arr" for array at field path "arr"
+2024-03-28T00:13:10.699+0000 D SCHEMA     [mapping] mapped new table "coll4"
+2024-03-28T00:13:10.699+0000 D SCHEMA     [sampler] finished mapping schema for namespace "db4"."coll4"
+2024-03-28T00:13:10.699+0000 I SCHEMA     [sampler] mapped schema for 5 namespaces: "db1" (1): ["coll1"]; "db2" (1): ["coll2"]; "db3" (1): ["coll3"]; "db4" (1): ["coll4"]; "ReadinessReport" (1): ["example"]
+2024-03-28T00:13:10.699+0000 I SCHEMA     [manager] obtained initial schema
+2024-03-28T00:13:10.699+0000 D SCHEMA     [manager] refresh interval set to zero; schema will not be refreshed
+2024-03-28T00:13:34.627+0000 W CONTROL    log verbosity level 3 does not exist; using verbosity Dev
+2024-03-28T00:13:34.627+0000 I NETWORK    [conn1] connection accepted from 0.0.0.0:56834 #1 (1 connection now open)
+2024-03-28T00:13:34.627+0000 I NETWORK    [conn1] writing initial handshake
+2024-03-28T00:13:34.628+0000 I NETWORK    [conn1] reading handshake response
+2024-03-28T00:13:34.632+0000 W NETWORK    [conn1] failed to set collation: ERROR 1273 (HY000): Unknown collation: 'id(255)'
+2024-03-28T00:13:34.632+0000 I NETWORK    [conn1] negotiating ssl
+2024-03-28T00:13:34.632+0000 I CONTROL    Enabling OpenSSL's FIPS mode false
+2024-03-28T00:13:34.649+0000 I NETWORK    [conn1] ssl connection established
+2024-03-28T00:13:34.649+0000 W NETWORK    [conn1] failed to set collation: ERROR 1273 (HY000): Unknown collation: 'id(255)'
+2024-03-28T00:13:34.649+0000 I NETWORK    [conn1] client provided connection attributes _os:macos13.5, _platform:arm64, _client_version:8.2.0, _client_name:libmysql, _pid:52614, os_user:user, program_name:mysql
+2024-03-28T00:13:34.649+0000 I NETWORK    [conn1] configuring client authentication for principal user_1
+2024-03-28T00:13:34.649+0000 I NETWORK    [conn1] sending auth switch request for mysql_clear_password
+2024-03-28T00:13:34.650+0000 I NETWORK    [conn1] reading auth switch response
+2024-03-28T00:13:34.651+0000 I NETWORK    [conn1] authenticating client response with mysql_clear_password
+2024-03-28T00:13:34.655+0000 I NETWORK    [conn1] successfully authenticated as principal user_1 on admin
+2024-03-28T00:13:34.655+0000 I NETWORK    [conn1] loading privilege information for current user
+2024-03-28T00:13:34.656+0000 D NETWORK    [conn1] running listCollections on database 'db2'
+2024-03-28T00:13:34.657+0000 D NETWORK    [conn1] running listCollections on database 'db3'
+2024-03-28T00:13:34.657+0000 D NETWORK    [conn1] running listCollections on database 'db4'
+2024-03-28T00:13:34.657+0000 D NETWORK    [conn1] running listCollections on database 'ReadinessReport'
+2024-03-28T00:13:34.657+0000 D NETWORK    [conn1] running listCollections on database 'db1'
+2024-03-28T00:13:34.657+0000 I NETWORK    [conn1] connected to MongoDB 7.0.5, git version: 7809d71e84e314b497f282ea8aa06d7ded3eb205
+2024-03-28T00:13:34.665+0000 I EVALUATOR  [conn1] parsing "show databases"
+2024-03-28T00:13:34.665+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:13:34.665+0000 D REWRITER   [conn1] rewritten query: `select `Database` from (select SCHEMA_NAME as Database from information_schema.SCHEMATA) order by `Database` asc`
+2024-03-28T00:13:34.665+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:13:34.665+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:13:34.665+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:13:34.665+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:13:34.665+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:13:34.665+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:13:34.665+0000 D OPTIMIZER  [conn1] attempting to optimize inner join in subquery ''
+2024-03-28T00:13:34.665+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:13:34.665+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:13:34.665+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:13:34.665+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:13:34.665+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:13:34.665+0000 D EXECUTOR   [conn1] executing query plan: 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:13:34.665+0000 I NETWORK    [conn1] returned 7 rows (85B)
+2024-03-28T00:13:34.665+0000 D NETWORK    [conn1] 518B peak allocated
+2024-03-28T00:13:34.665+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:13:34.667+0000 I EVALUATOR  [conn1] parsing "show tables"
+2024-03-28T00:13:34.667+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:13:34.667+0000 D REWRITER   [conn1] rewritten query: `select Tables_in_ReadinessReport from (select TABLE_NAME as Tables_in_ReadinessReport, TABLE_TYPE as Table_type, TABLE_SCHEMA as TABLE_SCHEMA from information_schema.TABLES) where TABLE_SCHEMA like 'ReadinessReport' order by Tables_in_ReadinessReport asc`
+2024-03-28T00:13:34.667+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(Tables_in_ReadinessReport):
+	↳ OrderBy(information_schema.Tables_in_ReadinessReport ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like ReadinessReport):
+			↳ Subquery():
+				↳ Project(Tables_in_ReadinessReport, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:13:34.667+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:13:34.667+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(Tables_in_ReadinessReport):
+	↳ OrderBy(information_schema.Tables_in_ReadinessReport ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like ReadinessReport):
+			↳ Subquery():
+				↳ Project(Tables_in_ReadinessReport, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:13:34.667+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:13:34.667+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(Tables_in_ReadinessReport):
+	↳ OrderBy(information_schema.Tables_in_ReadinessReport ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like ReadinessReport):
+			↳ Subquery():
+				↳ Project(Tables_in_ReadinessReport, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:13:34.667+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:13:34.667+0000 D OPTIMIZER  [conn1] attempting to optimize inner join in subquery ''
+2024-03-28T00:13:34.667+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(Tables_in_ReadinessReport):
+	↳ OrderBy(information_schema.Tables_in_ReadinessReport ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like ReadinessReport):
+			↳ Subquery():
+				↳ Project(Tables_in_ReadinessReport, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:13:34.667+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:13:34.667+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(Tables_in_ReadinessReport):
+	↳ OrderBy(information_schema.Tables_in_ReadinessReport ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like ReadinessReport):
+			↳ Subquery():
+				↳ Project(Tables_in_ReadinessReport, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:13:34.667+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ Project(Tables_in_ReadinessReport):
+	↳ OrderBy(information_schema.Tables_in_ReadinessReport ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like ReadinessReport):
+			↳ Subquery():
+				↳ Project(Tables_in_ReadinessReport, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:13:34.667+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ Project(Tables_in_ReadinessReport):
+	↳ OrderBy(information_schema.Tables_in_ReadinessReport ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like ReadinessReport):
+			↳ Subquery():
+				↳ Project(Tables_in_ReadinessReport, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:13:34.667+0000 D EXECUTOR   [conn1] executing query plan: 
+↳ Project(Tables_in_ReadinessReport):
+	↳ OrderBy(information_schema.Tables_in_ReadinessReport ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like ReadinessReport):
+			↳ Subquery():
+				↳ Project(Tables_in_ReadinessReport, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:13:34.668+0000 I NETWORK    [conn1] returned 3 rows (49B)
+2024-03-28T00:13:34.668+0000 D NETWORK    [conn1] 1.4KiB peak allocated
+2024-03-28T00:13:34.668+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:13:34.671+0000 D NETWORK    [conn1] handleFieldList table: example, wildcard: 
+2024-03-28T00:13:34.675+0000 D NETWORK    [conn1] handleFieldList table: example_a, wildcard: 
+2024-03-28T00:13:34.678+0000 D NETWORK    [conn1] handleFieldList table: example_b_field2_c, wildcard: 
+2024-03-28T00:13:43.027+0000 I EVALUATOR  [conn1] parsing "select `b`.`field1` from ReadinessReport.example"
+2024-03-28T00:13:43.027+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:13:43.027+0000 D REWRITER   [conn1] rewritten query: `select b.field1 as b.field1 from ReadinessReport.example`
+2024-03-28T00:13:43.027+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(b.field1):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.027+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:13:43.027+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(b.field1):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.027+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:13:43.027+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(b.field1):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.027+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:13:43.027+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(b.field1):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.027+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:13:43.027+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(b.field1):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.027+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field1": "$b_DOT_field1","_id": NumberInt("0")}}
+2024-03-28T00:13:43.027+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},{"$literal": "object"}]},"then": "$b.field1","else": {"$literal": null}}},"_id": NumberInt("0")}}
+2024-03-28T00:13:43.027+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},{"$literal": "object"}]},"then": "$b.field1","else": {"$literal": null}}},"_id": NumberInt("0")}}
+2024-03-28T00:13:43.028+0000 I NETWORK    [conn1] returned 2 rows (11B)
+2024-03-28T00:13:43.028+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:13:43.028+0000 I NETWORK    [conn1] done executing query in 1ms
+2024-03-28T00:13:43.032+0000 I EVALUATOR  [conn1] parsing "select `b`.`field2`.`d` from ReadinessReport.example"
+2024-03-28T00:13:43.032+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:13:43.032+0000 D REWRITER   [conn1] rewritten query: `select b.field2.d as b.field2.d from ReadinessReport.example`
+2024-03-28T00:13:43.032+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(b.field2.d):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.032+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:13:43.032+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(b.field2.d):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.032+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:13:43.032+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(b.field2.d):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.032+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:13:43.032+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(b.field2.d):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.032+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:13:43.032+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(b.field2.d):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.032+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field2_DOT_d": "$b_DOT_field2.d","_id": NumberInt("0")}}
+2024-03-28T00:13:43.032+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field2_DOT_d": "$b_DOT_field2.d","_id": NumberInt("0")}}
+2024-03-28T00:13:43.032+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field2_DOT_d": "$b_DOT_field2.d","_id": NumberInt("0")}}
+2024-03-28T00:13:43.033+0000 I NETWORK    [conn1] returned 2 rows (13B)
+2024-03-28T00:13:43.033+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:13:43.033+0000 I NETWORK    [conn1] done executing query in 1ms
+2024-03-28T00:13:43.037+0000 I EVALUATOR  [conn1] parsing "select `b`.`field2`.`e`.`f` from ReadinessReport.example"
+2024-03-28T00:13:43.037+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:13:43.037+0000 D REWRITER   [conn1] rewritten query: `select b.field2.e.f as b.field2.e.f from ReadinessReport.example`
+2024-03-28T00:13:43.037+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(b.field2.e.f):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.037+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:13:43.037+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(b.field2.e.f):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.037+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:13:43.037+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(b.field2.e.f):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.037+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:13:43.037+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(b.field2.e.f):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.037+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:13:43.037+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(b.field2.e.f):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.037+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field2_DOT_e_DOT_f": "$b_DOT_field2.e.f","_id": NumberInt("0")}}
+2024-03-28T00:13:43.037+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field2_DOT_e_DOT_f": "$b_DOT_field2.e.f","_id": NumberInt("0")}}
+2024-03-28T00:13:43.037+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field2_DOT_e_DOT_f": "$b_DOT_field2.e.f","_id": NumberInt("0")}}
+2024-03-28T00:13:43.038+0000 I NETWORK    [conn1] returned 2 rows (15B)
+2024-03-28T00:13:43.038+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:13:43.038+0000 I NETWORK    [conn1] done executing query in 1ms
+2024-03-28T00:13:43.041+0000 I EVALUATOR  [conn1] parsing "select `b`.`field1` as f1 from ReadinessReport.example"
+2024-03-28T00:13:43.041+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:13:43.041+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(f1):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.041+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:13:43.041+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(f1):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.041+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:13:43.041+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(f1):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.041+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:13:43.041+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(f1):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.041+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:13:43.041+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(f1):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.041+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field1": "$b_DOT_field1","_id": NumberInt("0")}}
+2024-03-28T00:13:43.041+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},{"$literal": "object"}]},"then": "$b.field1","else": {"$literal": null}}},"_id": NumberInt("0")}}
+2024-03-28T00:13:43.042+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},{"$literal": "object"}]},"then": "$b.field1","else": {"$literal": null}}},"_id": NumberInt("0")}}
+2024-03-28T00:13:43.042+0000 I NETWORK    [conn1] returned 2 rows (11B)
+2024-03-28T00:13:43.042+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:13:43.042+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:13:43.046+0000 I EVALUATOR  [conn1] parsing "select `b`.`field2`.`e`.`f` as f from ReadinessReport.example"
+2024-03-28T00:13:43.046+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:13:43.046+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(f):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.046+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:13:43.046+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(f):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.046+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:13:43.046+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(f):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.046+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:13:43.046+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(f):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.046+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:13:43.046+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(f):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.046+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field2_DOT_e_DOT_f": "$b_DOT_field2.e.f","_id": NumberInt("0")}}
+2024-03-28T00:13:43.046+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field2_DOT_e_DOT_f": "$b_DOT_field2.e.f","_id": NumberInt("0")}}
+2024-03-28T00:13:43.046+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field2_DOT_e_DOT_f": "$b_DOT_field2.e.f","_id": NumberInt("0")}}
+2024-03-28T00:13:43.047+0000 I NETWORK    [conn1] returned 2 rows (15B)
+2024-03-28T00:13:43.047+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:13:43.047+0000 I NETWORK    [conn1] done executing query in 1ms
+2024-03-28T00:13:43.050+0000 I EVALUATOR  [conn1] parsing "select `b`.`field2`.`e`.`f` as bfef from ReadinessReport.example"
+2024-03-28T00:13:43.050+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:13:43.050+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(bfef):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.050+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:13:43.050+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(bfef):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.050+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:13:43.050+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(bfef):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.050+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:13:43.050+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(bfef):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.050+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:13:43.050+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(bfef):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.050+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field2_DOT_e_DOT_f": "$b_DOT_field2.e.f","_id": NumberInt("0")}}
+2024-03-28T00:13:43.051+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field2_DOT_e_DOT_f": "$b_DOT_field2.e.f","_id": NumberInt("0")}}
+2024-03-28T00:13:43.051+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field2_DOT_e_DOT_f": "$b_DOT_field2.e.f","_id": NumberInt("0")}}
+2024-03-28T00:13:43.051+0000 I NETWORK    [conn1] returned 2 rows (15B)
+2024-03-28T00:13:43.051+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:13:43.051+0000 I NETWORK    [conn1] done executing query in 1ms
+2024-03-28T00:13:43.054+0000 I EVALUATOR  [conn1] parsing "select `b`.`field2`.`d` as d from ReadinessReport.example"
+2024-03-28T00:13:43.054+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:13:43.054+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(d):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.054+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:13:43.054+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(d):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.054+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:13:43.054+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(d):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.054+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:13:43.054+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(d):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.054+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:13:43.054+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(d):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.054+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field2_DOT_d": "$b_DOT_field2.d","_id": NumberInt("0")}}
+2024-03-28T00:13:43.055+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field2_DOT_d": "$b_DOT_field2.d","_id": NumberInt("0")}}
+2024-03-28T00:13:43.055+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field2_DOT_d": "$b_DOT_field2.d","_id": NumberInt("0")}}
+2024-03-28T00:13:43.055+0000 I NETWORK    [conn1] returned 2 rows (13B)
+2024-03-28T00:13:43.055+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:13:43.055+0000 I NETWORK    [conn1] done executing query in 1ms
+2024-03-28T00:13:43.060+0000 I EVALUATOR  [conn1] parsing "select `b`.`field2`.`d` as bfd from ReadinessReport.example"
+2024-03-28T00:13:43.060+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:13:43.060+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(bfd):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.060+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:13:43.060+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(bfd):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.060+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:13:43.060+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(bfd):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.060+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:13:43.060+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(bfd):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.060+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:13:43.060+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(bfd):
+	↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}}
+2024-03-28T00:13:43.060+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field2_DOT_d": "$b_DOT_field2.d","_id": NumberInt("0")}}
+2024-03-28T00:13:43.060+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field2_DOT_d": "$b_DOT_field2.d","_id": NumberInt("0")}}
+2024-03-28T00:13:43.060+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[example]' (db: 'ReadinessReport', collection: '[example]') as '[example]':
+	{"$addFields": {"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$project": {"ReadinessReport_DOT_example_DOT_b_DOT_field2_DOT_d": "$b_DOT_field2.d","_id": NumberInt("0")}}
+2024-03-28T00:13:43.061+0000 I NETWORK    [conn1] returned 2 rows (13B)
+2024-03-28T00:13:43.061+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:13:43.061+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:13:43.065+0000 I EVALUATOR  [conn1] parsing "select * from example_a"
+2024-03-28T00:13:43.065+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:13:43.065+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(_id, a, a_idx):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.065+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:13:43.065+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(_id, a, a_idx):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.065+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:13:43.065+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(_id, a, a_idx):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.065+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:13:43.065+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(_id, a, a_idx):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.065+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:13:43.065+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(_id, a, a_idx):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.065+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+	{"$match": {"a": {"$ne": []}}},
+	{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_a_DOT__id": "$_id","ReadinessReport_DOT_example_a_DOT_a": "$a","ReadinessReport_DOT_example_a_DOT_a_idx": "$a_idx","_id": NumberInt("0")}}
+2024-03-28T00:13:43.065+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+	{"$match": {"a": {"$ne": []}}},
+	{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_a_DOT__id": "$_id","ReadinessReport_DOT_example_a_DOT_a": "$a","ReadinessReport_DOT_example_a_DOT_a_idx": "$a_idx","_id": NumberInt("0")}}
+2024-03-28T00:13:43.065+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+	{"$match": {"a": {"$ne": []}}},
+	{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_a_DOT__id": "$_id","ReadinessReport_DOT_example_a_DOT_a": "$a","ReadinessReport_DOT_example_a_DOT_a_idx": "$a_idx","_id": NumberInt("0")}}
+2024-03-28T00:13:43.066+0000 I NETWORK    [conn1] returned 4 rows (131B)
+2024-03-28T00:13:43.066+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:13:43.066+0000 I NETWORK    [conn1] done executing query in 1ms
+2024-03-28T00:13:43.069+0000 I EVALUATOR  [conn1] parsing "select _id from example_a"
+2024-03-28T00:13:43.069+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:13:43.069+0000 D REWRITER   [conn1] rewritten query: `select _id as _id from example_a`
+2024-03-28T00:13:43.069+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(_id):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.069+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:13:43.069+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(_id):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.069+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:13:43.069+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(_id):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.069+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:13:43.069+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(_id):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.070+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:13:43.070+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(_id):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.070+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+	{"$match": {"a": {"$ne": []}}},
+	{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_a_DOT__id": "$_id","_id": NumberInt("0")}}
+2024-03-28T00:13:43.070+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+	{"$match": {"a": {"$ne": []}}},
+	{"$unwind": {"path": "$a","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_a_DOT__id": "$_id","_id": NumberInt("0")}}
+2024-03-28T00:13:43.070+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+	{"$match": {"a": {"$ne": []}}},
+	{"$unwind": {"path": "$a","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_a_DOT__id": "$_id","_id": NumberInt("0")}}
+2024-03-28T00:13:43.070+0000 I NETWORK    [conn1] returned 4 rows (116B)
+2024-03-28T00:13:43.070+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:13:43.070+0000 I NETWORK    [conn1] done executing query in 1ms
+2024-03-28T00:13:43.074+0000 I EVALUATOR  [conn1] parsing "select a from example_a"
+2024-03-28T00:13:43.074+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:13:43.074+0000 D REWRITER   [conn1] rewritten query: `select a as a from example_a`
+2024-03-28T00:13:43.074+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(a):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.074+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:13:43.074+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(a):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.074+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:13:43.074+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(a):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.074+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:13:43.074+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(a):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.074+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:13:43.074+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(a):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.074+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+	{"$match": {"a": {"$ne": []}}},
+	{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_a_DOT_a": "$a","_id": NumberInt("0")}}
+2024-03-28T00:13:43.074+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+	{"$match": {"a": {"$ne": []}}},
+	{"$unwind": {"path": "$a","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_a_DOT_a": "$a","_id": NumberInt("0")}}
+2024-03-28T00:13:43.074+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+	{"$match": {"a": {"$ne": []}}},
+	{"$unwind": {"path": "$a","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_a_DOT_a": "$a","_id": NumberInt("0")}}
+2024-03-28T00:13:43.075+0000 I NETWORK    [conn1] returned 4 rows (24B)
+2024-03-28T00:13:43.075+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:13:43.075+0000 I NETWORK    [conn1] done executing query in 1ms
+2024-03-28T00:13:43.081+0000 I EVALUATOR  [conn1] parsing "select a_idx from example_a"
+2024-03-28T00:13:43.081+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:13:43.081+0000 D REWRITER   [conn1] rewritten query: `select a_idx as a_idx from example_a`
+2024-03-28T00:13:43.081+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(a_idx):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.081+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:13:43.081+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(a_idx):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.081+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:13:43.081+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(a_idx):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.081+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:13:43.081+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(a_idx):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.081+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:13:43.081+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(a_idx):
+	↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"a": {"$ne": []}}},
+		{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.081+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+	{"$match": {"a": {"$ne": []}}},
+	{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_a_DOT_a_idx": "$a_idx","_id": NumberInt("0")}}
+2024-03-28T00:13:43.081+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+	{"$match": {"a": {"$ne": []}}},
+	{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_a_DOT_a_idx": "$a_idx","_id": NumberInt("0")}}
+2024-03-28T00:13:43.081+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[example_a]' (db: 'ReadinessReport', collection: '[example]') as '[example_a]':
+	{"$match": {"a": {"$ne": []}}},
+	{"$unwind": {"path": "$a","includeArrayIndex": "a_idx","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_a_DOT_a_idx": "$a_idx","_id": NumberInt("0")}}
+2024-03-28T00:13:43.082+0000 I NETWORK    [conn1] returned 4 rows (23B)
+2024-03-28T00:13:43.082+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:13:43.082+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:13:43.086+0000 I EVALUATOR  [conn1] parsing "select * from example_b_field2_c"
+2024-03-28T00:13:43.086+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:13:43.086+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(_id, b.field2.c, b.field2.c_idx):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.086+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:13:43.086+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(_id, b.field2.c, b.field2.c_idx):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.086+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:13:43.086+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(_id, b.field2.c, b.field2.c_idx):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.086+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:13:43.087+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(_id, b.field2.c, b.field2.c_idx):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.087+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:13:43.087+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(_id, b.field2.c, b.field2.c_idx):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.087+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+	{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+	{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_b_field2_c_DOT__id": "$_id","ReadinessReport_DOT_example_b_field2_c_DOT_b_DOT_field2_DOT_c": "$b_DOT_field2.c","ReadinessReport_DOT_example_b_field2_c_DOT_b_DOT_field2_DOT_c_idx": "$b.field2.c_idx","_id": NumberInt("0")}}
+2024-03-28T00:13:43.087+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+	{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_b_field2_c_DOT__id": "$_id","ReadinessReport_DOT_example_b_field2_c_DOT_b_DOT_field2_DOT_c": "$b_DOT_field2.c","ReadinessReport_DOT_example_b_field2_c_DOT_b_DOT_field2_DOT_c_idx": "$b.field2.c_idx","_id": NumberInt("0")}}
+2024-03-28T00:13:43.087+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+	{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_b_field2_c_DOT__id": "$_id","ReadinessReport_DOT_example_b_field2_c_DOT_b_DOT_field2_DOT_c": "$b_DOT_field2.c","ReadinessReport_DOT_example_b_field2_c_DOT_b_DOT_field2_DOT_c_idx": "$b.field2.c_idx","_id": NumberInt("0")}}
+2024-03-28T00:13:43.088+0000 I NETWORK    [conn1] returned 4 rows (130B)
+2024-03-28T00:13:43.088+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:13:43.088+0000 I NETWORK    [conn1] done executing query in 1ms
+2024-03-28T00:13:43.091+0000 I EVALUATOR  [conn1] parsing "select _id from example_b_field2_c"
+2024-03-28T00:13:43.091+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:13:43.091+0000 D REWRITER   [conn1] rewritten query: `select _id as _id from example_b_field2_c`
+2024-03-28T00:13:43.091+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(_id):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.091+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:13:43.091+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(_id):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.091+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:13:43.091+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(_id):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.091+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:13:43.091+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(_id):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.091+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:13:43.091+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(_id):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.091+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+	{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+	{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_b_field2_c_DOT__id": "$_id","_id": NumberInt("0")}}
+2024-03-28T00:13:43.092+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+	{"$addFields": {"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+	{"$unwind": {"path": "$b_DOT_field2.c","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_b_field2_c_DOT__id": "$_id","_id": NumberInt("0")}}
+2024-03-28T00:13:43.092+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+	{"$addFields": {"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+	{"$unwind": {"path": "$b_DOT_field2.c","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_b_field2_c_DOT__id": "$_id","_id": NumberInt("0")}}
+2024-03-28T00:13:43.092+0000 I NETWORK    [conn1] returned 4 rows (116B)
+2024-03-28T00:13:43.092+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:13:43.092+0000 I NETWORK    [conn1] done executing query in 1ms
+2024-03-28T00:13:43.097+0000 I EVALUATOR  [conn1] parsing "select `b.field2.c` from example_b_field2_c"
+2024-03-28T00:13:43.097+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:13:43.097+0000 D REWRITER   [conn1] rewritten query: `select b.field2.c as b.field2.c from example_b_field2_c`
+2024-03-28T00:13:43.097+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(b.field2.c):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.097+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:13:43.097+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(b.field2.c):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.097+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:13:43.097+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(b.field2.c):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.097+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:13:43.097+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(b.field2.c):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.097+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:13:43.097+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(b.field2.c):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.097+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+	{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+	{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_b_field2_c_DOT_b_DOT_field2_DOT_c": "$b_DOT_field2.c","_id": NumberInt("0")}}
+2024-03-28T00:13:43.097+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+	{"$addFields": {"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+	{"$unwind": {"path": "$b_DOT_field2.c","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_b_field2_c_DOT_b_DOT_field2_DOT_c": "$b_DOT_field2.c","_id": NumberInt("0")}}
+2024-03-28T00:13:43.097+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+	{"$addFields": {"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+	{"$unwind": {"path": "$b_DOT_field2.c","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_b_field2_c_DOT_b_DOT_field2_DOT_c": "$b_DOT_field2.c","_id": NumberInt("0")}}
+2024-03-28T00:13:43.098+0000 I NETWORK    [conn1] returned 4 rows (23B)
+2024-03-28T00:13:43.098+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:13:43.098+0000 I NETWORK    [conn1] done executing query in 1ms
+2024-03-28T00:13:43.717+0000 I EVALUATOR  [conn1] parsing "select `b.field2.c_idx` from example_b_field2_c"
+2024-03-28T00:13:43.717+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:13:43.717+0000 D REWRITER   [conn1] rewritten query: `select b.field2.c_idx as b.field2.c_idx from example_b_field2_c`
+2024-03-28T00:13:43.717+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(b.field2.c_idx):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.717+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:13:43.717+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(b.field2.c_idx):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.717+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:13:43.717+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(b.field2.c_idx):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.717+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:13:43.718+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(b.field2.c_idx):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.718+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:13:43.718+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(b.field2.c_idx):
+	↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+		{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+		{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+		{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}}
+2024-03-28T00:13:43.718+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}},"b_DOT_field1": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field1","else": null}}}},
+	{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+	{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_b_field2_c_DOT_b_DOT_field2_DOT_c_idx": "$b.field2.c_idx","_id": NumberInt("0")}}
+2024-03-28T00:13:43.720+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+	{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_b_field2_c_DOT_b_DOT_field2_DOT_c_idx": "$b.field2.c_idx","_id": NumberInt("0")}}
+2024-03-28T00:13:43.721+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[example_b_field2_c]' (db: 'ReadinessReport', collection: '[example]') as '[example_b_field2_c]':
+	{"$addFields": {"b": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": null,"else": "$b"}},"b_DOT_field2": {"$cond": {"if": {"$eq": [{"$type": "$b"},"object"]},"then": "$b.field2","else": null}}}},
+	{"$match": {"b_DOT_field2.c": {"$ne": []}}},
+	{"$unwind": {"path": "$b_DOT_field2.c","includeArrayIndex": "b.field2.c_idx","preserveNullAndEmptyArrays": true}},
+	{"$project": {"ReadinessReport_DOT_example_b_field2_c_DOT_b_DOT_field2_DOT_c_idx": "$b.field2.c_idx","_id": NumberInt("0")}}
+2024-03-28T00:13:43.722+0000 I NETWORK    [conn1] returned 4 rows (23B)
+2024-03-28T00:13:43.722+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:13:43.722+0000 I NETWORK    [conn1] done executing query in 6ms
+2024-03-28T00:13:47.674+0000 I CONTROL    [signalProcessingThread] shutting down

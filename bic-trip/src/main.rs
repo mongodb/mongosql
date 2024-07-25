@@ -2,11 +2,12 @@ use clap::Parser;
 use dialoguer::Password;
 
 use chrono::Local;
+use mongodb::bson::doc;
 use mongosql::schema::Schema;
 use report::{
     csv::generate_csv,
     html::{generate_html, generate_index},
-    log_parser::{handle_logs, LogParseResult},
+    log_parser::handle_logs,
     schema::{process_schemata, SchemaAnalysis},
 };
 use std::{collections::HashMap, env, path::PathBuf, process, time::Instant};
@@ -51,7 +52,6 @@ async fn main() -> Result<()> {
         parse_results = handle_logs(input, quiet)?;
         generate_html(
             &output_path.join(LOG_ANALYSIS_DIR),
-            &date,
             parse_results.as_ref(),
             None,
             !quiet,
@@ -73,8 +73,6 @@ async fn main() -> Result<()> {
             include: include.unwrap_or_default(),
             exclude: exclude.unwrap_or_default(),
             file_path: output_path.join("schema_analysis"),
-            date: &date,
-            log_parse: parse_results.as_ref(),
             report_name: REPORT_NAME.to_string(),
         };
 
@@ -106,7 +104,7 @@ fn process_output_path(output: Option<String>) -> Result<PathBuf> {
     }
 }
 
-struct SchemaProcessingArgs<'a> {
+struct SchemaProcessingArgs {
     /// The URI to connect to the MongoDB cluster.
     uri: Option<String>,
     /// The username to use for authentication. Only if --username is set
@@ -121,14 +119,11 @@ struct SchemaProcessingArgs<'a> {
     exclude: Vec<String>,
     /// The path to the output directory.
     file_path: PathBuf,
-    /// The date and time of the report.
-    date: &'a str,
-    /// The log parsing results.
-    log_parse: Option<&'a LogParseResult>,
+    /// The name of the report.
     report_name: String,
 }
 
-async fn handle_schema<'a>(args: SchemaProcessingArgs<'_>) -> Result<Option<SchemaAnalysis>> {
+async fn handle_schema(args: SchemaProcessingArgs) -> Result<Option<SchemaAnalysis>> {
     let SchemaProcessingArgs {
         uri,
         username,
@@ -137,8 +132,6 @@ async fn handle_schema<'a>(args: SchemaProcessingArgs<'_>) -> Result<Option<Sche
         include,
         exclude,
         file_path,
-        date,
-        log_parse,
         report_name,
     } = args;
     if let Some(ref uri) = uri {
@@ -155,11 +148,11 @@ async fn handle_schema<'a>(args: SchemaProcessingArgs<'_>) -> Result<Option<Sche
                                 .expect("Failed to read password"),
                         );
                     } else {
-                        println!("Username is required for authentication with URI");
+                        eprintln!("No username provided for authentication.");
                         process::exit(1);
                     }
                 } else {
-                    println!("No username provided for authentication with URI");
+                    eprintln!("No username provided for authentication.");
                     process::exit(1);
                 }
                 dcsb::client_util::load_password_auth(&mut options, username, password).await;
@@ -185,6 +178,11 @@ async fn handle_schema<'a>(args: SchemaProcessingArgs<'_>) -> Result<Option<Sche
             let start = Instant::now();
             let client = mongodb::Client::with_options(options.clone())
                 .with_context(|| "Failed to create MongoDB client.")?;
+            // Test the connection to the cluster
+            client
+                .database("admin")
+                .run_command(doc! {"hello": 1})
+                .await?;
 
             tokio::spawn(async move {
                 let builder_options = dcsb::options::BuilderOptions {
@@ -233,7 +231,7 @@ async fn handle_schema<'a>(args: SchemaProcessingArgs<'_>) -> Result<Option<Sche
                                 }).or_insert(HashMap::from([(schema_res.namespace_info.coll_or_view_name.clone(), schema_res.namespace_schema.clone())]));
 
                                 let schema_analysis = process_schemata(HashMap::from([(schema_res.namespace_info.db_name.clone(), schemata.get(&schema_res.namespace_info.db_name).unwrap().clone())]));
-                                generate_html(&file_path, date, log_parse, Some(&schema_analysis), !quiet, &schema_res.namespace_info.db_name, &report_name).unwrap();
+                                generate_html(&file_path, None, Some(&schema_analysis), !quiet, &schema_res.namespace_info.db_name, &report_name).unwrap();
                             }
                             Some(dcsb::SchemaResult::NamespaceOnly(schema_res)) => {
                                 if !quiet {

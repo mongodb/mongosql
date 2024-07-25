@@ -720,16 +720,6 @@ functions:
         files:
           - generated_profiler_tasks.json
 
-  "run transition readiness report test":
-    - command: shell.exec
-      type: test
-      params:
-        shell: bash
-        working_dir: mongosql-rs
-        script: |
-          ${prepare_shell}
-          cargo test --package bic-trip --test log_parse_tests
-
   "perform transition readiness report release":
     - command: s3.get
       params:
@@ -930,6 +920,16 @@ functions:
             echo "Memory leaked:   $mem_leak"
             exit 1
           fi
+
+  "run transition readiness report test":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+          cargo test --package bic-trip --test log_parse_tests
 
 pre:
   - func: "fetch source"
@@ -1324,6 +1324,20 @@ tasks:
       - func: "install rust toolchain"
       - func: "run transition readiness report test"
 
+  - name: test-transition-readiness-report-integration
+    depends_on:
+      - name: compile-trr
+    commands:
+      - func: "install rust toolchain"
+      - func: "run rust integration tests"
+        vars:
+          description: "run transition readiness report integration tests"
+          cargo_test_flags: >-
+            --features=integration
+            --package=bic-trip
+            --test log_parse_tests
+            -- --test-threads=1 --show-output
+
   - name: sign-transition-readiness-executables
     depends_on:
       - name: compile-trr
@@ -1446,6 +1460,12 @@ buildvariants:
     activate: true
     tasks:
       - name: mem-usage-profiler-generator
+
+  - name: trr-integration-test
+    display_name: "Transition Readiness Report Integration Test"
+    run_on: [ rhel76 ]
+    tasks:
+      - name: test-transition-readiness-report-integration
 
   - name: trr-macos
     tags: [ "trr-release-variant" ]

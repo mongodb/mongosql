@@ -4,7 +4,7 @@ use anyhow::Result;
 use serde::Serialize;
 use std::io::Write;
 use std::path::Path;
-use zip::write::FileOptions;
+use zip::write::SimpleFileOptions;
 
 use crate::log_parser::LogParseResult;
 
@@ -104,7 +104,7 @@ pub fn generate_csv(
     let zip_file_path = file_path.join(format!("{file_stem}_{date}.zip"));
     let mut zip = zip::ZipWriter::new(std::fs::File::create(zip_file_path)?);
 
-    let options = FileOptions::default()
+    let options = SimpleFileOptions::default()
         .compression_method(zip::CompressionMethod::Deflated)
         .unix_permissions(0o644);
     let mut csv_files = vec![];
@@ -138,7 +138,7 @@ fn write_csv_to_zip(
     date: &str,
     file_name: &str,
     csv_data: &str,
-    options: &FileOptions,
+    options: &SimpleFileOptions,
 ) -> Result<()> {
     let file_name = format!("{file_name}_{date}.csv");
     zip.start_file(file_name, *options)?;
