@@ -73,7 +73,8 @@ pub(crate) async fn get_partitions(collection: &Collection<Document>) -> Result<
 }
 
 /// Utility struct for collection size and count information.
-struct CollectionSizes {
+#[derive(Debug, PartialEq)]
+pub(crate) struct CollectionSizes {
     pub size: i64,
     pub count: i64,
 }
@@ -81,7 +82,7 @@ struct CollectionSizes {
 /// get_size_counts uses the $collStats aggregation stage to get size and count information for the
 /// argued collection.
 #[instrument(level = "trace", skip(collection))]
-async fn get_size_counts(collection: &Collection<Document>) -> Result<CollectionSizes> {
+pub(crate) async fn get_size_counts(collection: &Collection<Document>) -> Result<CollectionSizes> {
     let mut cursor = collection
         .aggregate(vec![doc! {"$collStats": {"storageStats": {}}}])
         .await
