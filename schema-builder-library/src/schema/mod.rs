@@ -104,7 +104,7 @@ pub(crate) async fn derive_schema_for_partitions(
 
 /// A utility function for deriving the schema for a single partition of a collection.
 #[instrument(level = "trace", skip_all)]
-async fn derive_schema_for_partition(
+pub(crate) async fn derive_schema_for_partition(
     db_name: String,
     collection: &Collection<Document>,
     mut partition: Partition,

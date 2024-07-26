@@ -315,8 +315,7 @@ mod jaccard {
             ..Default::default()
         };
         let new_doc = doc.clone().union(doc.clone());
-        dbg!(new_doc.jaccard_index);
-        assert_eq!(new_doc, doc);
+        assert_eq!(new_doc.jaccard_index, doc.jaccard_index);
     }
 
     #[test]
@@ -583,7 +582,7 @@ mod jaccard {
             .union(e_doc)
             .union(f_doc);
 
-        assert_eq!(new_left, a_doc);
+        assert!(new_left.eq_with_jaccard_index(&a_doc));
     }
 
     #[test]
@@ -669,7 +668,7 @@ mod jaccard {
             .union(e_doc)
             .union(f_doc);
 
-        assert_eq!(new_left, a_doc);
+        assert!(new_left.eq_with_jaccard_index(&a_doc));
     }
 
     #[test]
@@ -760,21 +759,18 @@ mod jaccard {
             .union(e_doc)
             .union(f_doc);
 
-        assert_eq!(
-            new_left,
-            Document {
-                keys: map! {
-                    "a".into() => Schema::Document(Document {
-                        keys: map! {
-                            "b".into() => Schema::Document(Document::any()),
-                        },
-                        jaccard_index: JaccardIndex::default().into(),
-                        ..Default::default()
-                    }),
-                },
-                jaccard_index: JaccardIndex::default().into(),
-                ..Default::default()
-            }
-        );
+        assert!(new_left.eq_with_jaccard_index(&Document {
+            keys: map! {
+                "a".into() => Schema::Document(Document {
+                    keys: map! {
+                        "b".into() => Schema::Document(Document::any()),
+                    },
+                    jaccard_index: JaccardIndex::default().into(),
+                    ..Default::default()
+                }),
+            },
+            jaccard_index: JaccardIndex::default().into(),
+            ..Default::default()
+        }));
     }
 }

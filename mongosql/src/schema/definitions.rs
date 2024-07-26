@@ -518,7 +518,7 @@ impl Ord for JaccardIndex {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Default)]
+#[derive(Eq, PartialOrd, Ord, Clone, Default)]
 pub struct Document {
     pub keys: BTreeMap<String, Schema>,
     pub required: BTreeSet<String>,
@@ -527,7 +527,23 @@ pub struct Document {
     pub jaccard_index: Option<JaccardIndex>,
 }
 
+impl PartialEq for Document {
+    fn eq(&self, other: &Self) -> bool {
+        self.keys == other.keys
+            && self.required == other.required
+            && self.additional_properties == other.additional_properties
+    }
+}
+
 impl Document {
+    /// Check equality including jaccard_index.
+    ///
+    /// This exists for easy recursive comparison of documents
+    /// at multiple levels of nesting.
+    pub fn eq_with_jaccard_index(&self, other: &Self) -> bool {
+        self.eq(other) && self.jaccard_index == other.jaccard_index
+    }
+
     /// num_keys returns the min and max number of keys that a document matching
     /// this schema could contain.
     pub fn num_keys(&self) -> (usize, Option<usize>) {

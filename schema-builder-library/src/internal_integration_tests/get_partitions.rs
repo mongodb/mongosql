@@ -1,3 +1,5 @@
+use crate::internal_integration_tests::consts::{LARGE_PARTITIONS, SMALL_PARTITIONS};
+
 macro_rules! test_get_partitions {
     ($test_name:ident, expected = $expected:expr, input_db = $input_db:expr, input_coll = $input_coll:expr) => {
         #[cfg(feature = "integration")]
@@ -5,12 +7,13 @@ macro_rules! test_get_partitions {
         async fn $test_name() {
             use super::create_mdb_client;
             use crate::partitioning::{get_partitions, Partition};
-            use mongodb::bson::{Bson, Document};
+            use mongodb::bson::Document;
             #[allow(unused)]
             use test_utils::schema_builder_library_integration_test_consts::{
                 DATA_DOC_SIZE_IN_BYTES, LARGE_COLL_NAME, LARGE_ID_MIN,
                 NONUNIFORM_DB_NAME, NUM_DOCS_PER_LARGE_PARTITION, NUM_DOCS_IN_SMALL_COLLECTION,
-                SMALL_COLL_NAME, SMALL_COLL_SIZE_IN_MB, SMALL_ID_MIN, UNIFORM_DB_NAME,
+                SMALL_COLL_NAME, SMALL_COLL_SIZE_IN_MB, SMALL_ID_MIN,
+                UNIFORM_DB_NAME,
             };
 
             let client = create_mdb_client().await;
@@ -18,7 +21,7 @@ macro_rules! test_get_partitions {
             let db = client.database($input_db);
             let coll = db.collection::<Document>($input_coll);
 
-            let expected: Vec<Partition> = $expected;
+            let expected: Vec<Partition> = $expected.to_vec();
 
             let actual_res = get_partitions(&coll).await;
             match actual_res {
@@ -43,78 +46,28 @@ macro_rules! test_get_partitions {
 
 test_get_partitions!(
     uniform_small,
-    expected = vec![Partition {
-        min: Bson::Int64(SMALL_ID_MIN),
-        max: Bson::Int64(SMALL_ID_MIN + *NUM_DOCS_IN_SMALL_COLLECTION - 1),
-        is_max_bound_inclusive: true,
-    }],
+    expected = crate::internal_integration_tests::consts::SMALL_PARTITIONS,
     input_db = UNIFORM_DB_NAME,
     input_coll = SMALL_COLL_NAME
 );
 
 test_get_partitions!(
     uniform_large,
-    expected = vec![
-        Partition {
-            min: Bson::Int64(LARGE_ID_MIN),
-            max: Bson::Int64(LARGE_ID_MIN + *NUM_DOCS_PER_LARGE_PARTITION),
-            is_max_bound_inclusive: false,
-        },
-        Partition {
-            min: Bson::Int64(LARGE_ID_MIN + *NUM_DOCS_PER_LARGE_PARTITION),
-            max: Bson::Int64(LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 2)),
-            is_max_bound_inclusive: false,
-        },
-        Partition {
-            min: Bson::Int64(LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 2)),
-            max: Bson::Int64(LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 3)),
-            is_max_bound_inclusive: false,
-        },
-        Partition {
-            min: Bson::Int64(LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 3)),
-            max: Bson::Int64(LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 4) - 1),
-            is_max_bound_inclusive: true,
-        },
-    ],
+    expected = LARGE_PARTITIONS,
     input_db = UNIFORM_DB_NAME,
     input_coll = LARGE_COLL_NAME
 );
 
 test_get_partitions!(
     nonuniform_small,
-    expected = vec![Partition {
-        min: Bson::Int64(SMALL_ID_MIN),
-        max: Bson::Int64(SMALL_ID_MIN + *NUM_DOCS_IN_SMALL_COLLECTION - 1),
-        is_max_bound_inclusive: true,
-    }],
+    expected = SMALL_PARTITIONS,
     input_db = NONUNIFORM_DB_NAME,
     input_coll = SMALL_COLL_NAME
 );
 
 test_get_partitions!(
     nonuniform_large,
-    expected = vec![
-        Partition {
-            min: Bson::Int64(LARGE_ID_MIN),
-            max: Bson::Int64(LARGE_ID_MIN + *NUM_DOCS_PER_LARGE_PARTITION),
-            is_max_bound_inclusive: false,
-        },
-        Partition {
-            min: Bson::Int64(LARGE_ID_MIN + *NUM_DOCS_PER_LARGE_PARTITION),
-            max: Bson::Int64(LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 2)),
-            is_max_bound_inclusive: false,
-        },
-        Partition {
-            min: Bson::Int64(LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 2)),
-            max: Bson::Int64(LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 3)),
-            is_max_bound_inclusive: false,
-        },
-        Partition {
-            min: Bson::Int64(LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 3)),
-            max: Bson::Int64(LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 4) - 1),
-            is_max_bound_inclusive: true,
-        },
-    ],
+    expected = LARGE_PARTITIONS,
     input_db = NONUNIFORM_DB_NAME,
     input_coll = LARGE_COLL_NAME
 );
