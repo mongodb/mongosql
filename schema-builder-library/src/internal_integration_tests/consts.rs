@@ -6,7 +6,8 @@ use mongosql::{
     set,
 };
 use test_utils::schema_builder_library_integration_test_consts::{
-    LARGE_ID_MIN, NUM_DOCS_IN_SMALL_COLLECTION, NUM_DOCS_PER_LARGE_PARTITION, SMALL_ID_MIN,
+    DATA_DOC_SIZE_IN_BYTES, LARGE_COLL_SIZE_IN_MB, LARGE_ID_MIN, NUM_DOCS_PER_LARGE_PARTITION,
+    SMALL_COLL_SIZE_IN_MB, SMALL_ID_MIN,
 };
 
 use crate::partitioning::Partition;
@@ -181,5 +182,20 @@ lazy_static! {
             is_max_bound_inclusive: true,
         },
     ];
+    // Using the same math above, we know that
+    // 90MB / 400B = 235929
+    pub static ref NUM_DOCS_IN_SMALL_COLLECTION: i64 =
+        (SMALL_COLL_SIZE_IN_MB * 1024 * 1024) /* small collection size in bytes */
+        / DATA_DOC_SIZE_IN_BYTES;
+
+    // Partitions are divided equally. They are 100MB at most.
+    pub static ref NUM_DOCS_IN_LARGE_COLLECTION: i64 =
+        (LARGE_COLL_SIZE_IN_MB * 1024 * 1024) /* large collection size in bytes */
+        / DATA_DOC_SIZE_IN_BYTES;
+
+    // these are computed _after_ the number of docs because if the size of the collection in mb
+    // is not perfectly divisible by the doc size, we load slightly fewer bytes in practice
+    pub static ref SMALL_COLL_SIZE_IN_BYTES: i64 = *NUM_DOCS_IN_SMALL_COLLECTION * DATA_DOC_SIZE_IN_BYTES;
+    pub static ref LARGE_COLL_SIZE_IN_BYTES: i64 = *NUM_DOCS_IN_LARGE_COLLECTION * DATA_DOC_SIZE_IN_BYTES;
 
 }

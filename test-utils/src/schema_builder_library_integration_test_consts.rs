@@ -15,13 +15,6 @@ lazy_static! {
         (LARGE_COLL_SIZE_IN_MB * 1024 * 1024) /* large collection size in bytes */
         / (LARGE_COLL_SIZE_IN_MB as f64 / PARTITION_SIZE_IN_MB as f64).ceil() as i64 /* number of partitions in large collection */
         / DATA_DOC_SIZE_IN_BYTES;
-
-    // Using the same math above, we know that
-    // 90MB / 400B = 235
-    pub static ref NUM_DOCS_IN_SMALL_COLLECTION: i64 =
-        (SMALL_COLL_SIZE_IN_MB * 1024 * 1024) /* small collection size in bytes */
-        / DATA_DOC_SIZE_IN_BYTES;
-
 }
 
 pub const UNIFORM_DB_NAME: &str = "uniform";

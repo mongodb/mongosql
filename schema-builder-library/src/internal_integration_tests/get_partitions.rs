@@ -5,21 +5,18 @@ macro_rules! test_get_partitions {
         #[cfg(feature = "integration")]
         #[tokio::test]
         async fn $test_name() {
-            use super::create_mdb_client;
+            use super::get_mdb_collection;
             use crate::partitioning::{get_partitions, Partition};
-            use mongodb::bson::Document;
+
             #[allow(unused)]
             use test_utils::schema_builder_library_integration_test_consts::{
                 DATA_DOC_SIZE_IN_BYTES, LARGE_COLL_NAME, LARGE_ID_MIN,
-                NONUNIFORM_DB_NAME, NUM_DOCS_PER_LARGE_PARTITION, NUM_DOCS_IN_SMALL_COLLECTION,
+                NONUNIFORM_DB_NAME, NUM_DOCS_PER_LARGE_PARTITION,
                 SMALL_COLL_NAME, SMALL_COLL_SIZE_IN_MB, SMALL_ID_MIN,
                 UNIFORM_DB_NAME,
             };
 
-            let client = create_mdb_client().await;
-
-            let db = client.database($input_db);
-            let coll = db.collection::<Document>($input_coll);
+            let coll = get_mdb_collection($input_db, $input_coll).await;
 
             let expected: Vec<Partition> = $expected.to_vec();
 

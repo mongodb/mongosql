@@ -3,19 +3,20 @@ macro_rules! test_get_bounds {
         #[cfg(feature = "integration")]
         #[tokio::test]
         async fn $test_name() {
-            use super::create_mdb_client;
-            use crate::partitioning::get_bounds;
-            use mongodb::bson::{Bson, Document};
+            use super::get_mdb_collection;
+            #[allow(unused)]
+            use crate::{
+                internal_integration_tests::consts::NUM_DOCS_IN_SMALL_COLLECTION,
+                partitioning::get_bounds,
+            };
+            use mongodb::bson::Bson;
             #[allow(unused)]
             use test_utils::schema_builder_library_integration_test_consts::{
-                LARGE_COLL_NAME, LARGE_ID_MIN, NONUNIFORM_DB_NAME, NUM_DOCS_IN_SMALL_COLLECTION,
-                NUM_DOCS_PER_LARGE_PARTITION, SMALL_COLL_NAME, SMALL_ID_MIN, UNIFORM_DB_NAME,
+                LARGE_COLL_NAME, LARGE_ID_MIN, NONUNIFORM_DB_NAME, NUM_DOCS_PER_LARGE_PARTITION,
+                SMALL_COLL_NAME, SMALL_ID_MIN, UNIFORM_DB_NAME,
             };
 
-            let client = create_mdb_client().await;
-
-            let db = client.database($input_db);
-            let coll = db.collection::<Document>($input_coll);
+            let coll = get_mdb_collection($input_db, $input_coll).await;
 
             let actual_res = get_bounds(&coll).await;
             match actual_res {
@@ -70,15 +71,11 @@ test_get_bounds!(
 #[cfg(feature = "integration")]
 #[tokio::test]
 async fn empty_collection() {
-    use super::create_mdb_client;
+    use super::get_mdb_collection;
     use crate::{errors::Error, partitioning::get_bounds};
-    use mongodb::bson::Document;
     use test_utils::schema_builder_library_integration_test_consts::UNIFORM_DB_NAME;
 
-    let client = create_mdb_client().await;
-
-    let db = client.database(UNIFORM_DB_NAME);
-    let coll = db.collection::<Document>("empty");
+    let coll = get_mdb_collection(UNIFORM_DB_NAME, "empty").await;
 
     let actual_res = get_bounds(&coll).await;
     match actual_res {
