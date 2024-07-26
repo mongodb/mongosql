@@ -83,7 +83,7 @@ async fn empty_collection() {
     let actual_res = get_bounds(&coll).await;
     match actual_res {
         Err(Error::NoBounds(_)) => {} // expect the NoBounds errors
-        Err(err) => assert!(false, "unexpected error: {err:?}"),
-        Ok(actual) => assert!(false, "expected error but got: {actual:?}"),
+        Err(err) => panic!("unexpected error: {err:?}"),
+        Ok(actual) => panic!("expected bounds but got: {actual:?}"),
     }
 }

@@ -36,7 +36,7 @@ async fn enabled() {
                     // process any namespaces. Receiving any of those notification types causes this
                     // test to fail. Also, if receiving any errors or warnings causes this test to
                     // fail.
-                    assert!(false, "received a notification during a dry run: {notification:?}");
+                    panic!("received a notification during a dry run: {notification:?}");
                 }
             }
             schema = rx_schemata.recv() => {
@@ -44,8 +44,7 @@ async fn enabled() {
                     Some(crate::SchemaResult::FullSchema(schema_res)) => {
                         // If we receive a FullSchema in dry-run mode, then dry run functionality is
                         // not implemented correctly so the test fails.
-                        assert!(
-                            false,
+                        panic!(
                             "full schema built for {:?} {}.{}",
                             schema_res.namespace_info.namespace_type,
                             schema_res.namespace_info.db_name,

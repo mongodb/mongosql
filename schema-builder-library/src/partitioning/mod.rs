@@ -12,7 +12,7 @@ mod test;
 use crate::{Error, Result, PARTITION_MIN_DOC_COUNT, PARTITION_SIZE_IN_BYTES};
 
 #[derive(Debug, PartialEq, Clone)]
-pub(crate) struct Partition {
+pub struct Partition {
     pub min: Bson,
     pub max: Bson,
     pub is_max_bound_inclusive: bool,
