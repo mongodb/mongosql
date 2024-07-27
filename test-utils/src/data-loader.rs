@@ -71,6 +71,7 @@ async fn main() {
     // Create uniform view.
     create_view(
         &uniform_db,
+        SMALL_COLL_NAME,
         vec![
             doc! { "$project": { "_id": "$_id", "array_field": "$array_field" } },
             doc! { "$unwind": { "path": "$array_field", "includeArrayIndex": "idx" } },
@@ -81,6 +82,7 @@ async fn main() {
     // Create nonuniform view.
     create_view(
         &nonuniform_db,
+        LARGE_COLL_NAME,
         vec![
             doc! { "$match": { "$expr": { "$gt": ["$var", Bson::Null] } } },
             doc! { "$project": {
@@ -315,10 +317,10 @@ fn assert_data_doc_size(doc: Document, desc: String) {
     )
 }
 
-async fn create_view(db: &Database, pipeline: Vec<Document>) {
+async fn create_view(db: &Database, coll_name: &str, pipeline: Vec<Document>) {
     let view_res = db
         .create_collection(VIEW_NAME)
-        .view_on(SMALL_COLL_NAME)
+        .view_on(coll_name)
         .pipeline(pipeline)
         .await;
 

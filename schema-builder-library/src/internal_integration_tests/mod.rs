@@ -14,11 +14,11 @@ mod get_partitions;
 
 #[cfg(feature = "integration")]
 #[cfg(test)]
-mod get_size_counts;
+mod derive_schema;
 
 #[cfg(feature = "integration")]
 #[cfg(test)]
-mod derive_schema_for_partitions;
+mod get_size_counts;
 
 #[cfg(feature = "integration")]
 #[cfg(test)]
@@ -35,6 +35,5 @@ async fn create_mdb_client() -> mongodb::Client {
 async fn get_mdb_collection(db: &str, coll: &str) -> mongodb::Collection<mongodb::bson::Document> {
     let client = create_mdb_client().await;
     let db = client.database(db);
-    let coll = db.collection::<mongodb::bson::Document>(coll);
-    coll
+    db.collection::<mongodb::bson::Document>(coll)
 }
