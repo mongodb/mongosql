@@ -24,8 +24,8 @@ mod test;
 /// and preparing them for processing.
 #[derive(Debug, Default)]
 pub(crate) struct CollectionInfo {
-    views: Vec<CollectionDoc>,
-    collections: Vec<CollectionDoc>,
+    pub views: Vec<CollectionDoc>,
+    pub collections: Vec<CollectionDoc>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]

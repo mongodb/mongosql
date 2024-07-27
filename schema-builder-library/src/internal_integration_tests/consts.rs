@@ -1,3 +1,4 @@
+use crate::partitioning::Partition;
 use lazy_static::lazy_static;
 use mongodb::bson::Bson;
 use mongosql::{
@@ -9,8 +10,6 @@ use test_utils::schema_builder_library_integration_test_consts::{
     DATA_DOC_SIZE_IN_BYTES, LARGE_COLL_SIZE_IN_MB, LARGE_ID_MIN, NUM_DOCS_PER_LARGE_PARTITION,
     SMALL_COLL_SIZE_IN_MB, SMALL_ID_MIN,
 };
-
-use crate::partitioning::Partition;
 
 lazy_static! {
 
@@ -30,8 +29,7 @@ lazy_static! {
             )),
         ),
         required: set! {"_id".to_string(), "padding".to_string(), "var".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     });
 
     pub static ref NONUNIFORM_SMALL_SCHEMA:Schema = Schema::Document(Document {
@@ -49,8 +47,7 @@ lazy_static! {
             )),
         ),
         required: set! {"_id".to_string(), "padding".to_string(), "var".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     });
 
     pub static ref NONUNIFORM_LARGE_PARTITION_SCHEMAS: Vec<Schema> = vec![
@@ -133,13 +130,11 @@ lazy_static! {
                             "sub_sub_int_field".to_string() => Schema::Atomic(Atomic::Integer),
                         ),
                         required: set! {"sub_sub_int_field".to_string()},
-                        additional_properties: false,
-                        jaccard_index: None,
+                        ..Default::default()
                     }),
                 ),
                 required: set! {"sub_bool_field".to_string(), "sub_decimal_field".to_string(), "sub_document_field".to_string()},
-                additional_properties: false,
-                jaccard_index: None,
+                ..Default::default()
             }),
             "double_field".to_string() => Schema::Atomic(Atomic::Double),
             "long_field".to_string() => Schema::Atomic(Atomic::Long),
@@ -148,8 +143,35 @@ lazy_static! {
             "uuid_field".to_string() => Schema::Atomic(Atomic::BinData),
         ),
         required: set! {"_id".to_string(), "array_field".to_string(), "date_field".to_string(), "document_field".to_string(), "double_field".to_string(), "long_field".to_string(), "oid_field".to_string(), "string_field".to_string(), "uuid_field".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
+    });
+
+    pub static ref NONUNIFORM_VIEW_SCHEMA: Schema = Schema::Document(Document {
+        keys: map! {
+            "_id".to_string() => Schema::Atomic(Atomic::Long),
+            "var".to_string() => Schema::AnyOf(set! {
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::String),
+            }),
+            "second".to_string() => Schema::Atomic(Atomic::Long),
+            "third".to_string() => Schema::AnyOf(set! {
+                Schema::Atomic(Atomic::ObjectId),
+                Schema::Atomic(Atomic::String),
+            }),
+            "padding_len".to_string() => Schema::Atomic(Atomic::Integer),
+        },
+        required: set! {"_id".to_string(), "var".to_string(), "second".to_string(), "third".to_string(), "padding_len".to_string()},
+        ..Default::default()
+    });
+
+    pub static ref UNIFORM_VIEW_SCHEMA: Schema = Schema::Document(Document {
+        keys: map! {
+            "_id".to_string() => Schema::Atomic(Atomic::Long),
+            "array_field".to_string() => Schema::Atomic(Atomic::Integer),
+            "idx".to_string() => Schema::Atomic(Atomic::Long),
+        },
+        required: set! {"_id".to_string(), "array_field".to_string(), "idx".to_string()},
+        ..Default::default()
     });
 
     pub static ref LARGE_PARTITIONS: Vec<Partition> = vec![
