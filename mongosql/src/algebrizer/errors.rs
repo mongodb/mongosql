@@ -1,4 +1,5 @@
 use crate::{
+    algebrizer::ClauseType,
     ast::{self},
     mir::{
         self,
@@ -16,8 +17,8 @@ pub enum Error {
     DistinctSelect,
     DistinctUnion,
     NoSuchDatasource(DatasourceName),
-    FieldNotFound(String, Option<Vec<String>>),
-    AmbiguousField(String),
+    FieldNotFound(String, Option<Vec<String>>, ClauseType, u16),
+    AmbiguousField(String, ClauseType, u16),
     StarInNonCount,
     AggregationInPlaceOfScalar(String),
     ScalarInPlaceOfAggregation(String),
@@ -67,8 +68,8 @@ impl UserError for Error {
             Error::DistinctSelect => 3005,
             Error::DistinctUnion => 3006,
             Error::NoSuchDatasource(_) => 3007,
-            Error::FieldNotFound(_, _) => 3008,
-            Error::AmbiguousField(_) => 3009,
+            Error::FieldNotFound(_, _, _, _) => 3008,
+            Error::AmbiguousField(_, _, _) => 3009,
             Error::StarInNonCount => 3010,
             Error::AggregationInPlaceOfScalar(_) => 3011,
             Error::ScalarInPlaceOfAggregation(_) => 3012,
@@ -99,17 +100,22 @@ impl UserError for Error {
             Error::DistinctSelect => None,
             Error::DistinctUnion => None,
             Error::NoSuchDatasource(_) => None,
-            Error::FieldNotFound(field, found_fields) => {
+            Error::FieldNotFound(field, found_fields, clause_type, scope_level) => {
                 if let Some(possible_fields) = found_fields {
                     let suggestions = generate_suggestion(field, possible_fields);
                     match suggestions {
                         Ok(suggested_fields) => {
                             if suggested_fields.is_empty() {
-                                Some(format!("Field `{}` not found.", field))
+                                Some(format!(
+                                    "Field `{}` in the `{}` clause at the {} scope level not found.",
+                                    field, clause_type, scope_level
+                                ))
                             } else {
                                 Some(format!(
-                                    "Field `{}` not found. Did you mean: {}",
+                                    "Field `{}` not found in the `{}` clause at the {} scope level. Did you mean: {}",
                                     field,
+                                    clause_type,
+                                    scope_level,
                                     suggested_fields
                                         .iter()
                                         .map(|x| x.to_string())
@@ -121,12 +127,15 @@ impl UserError for Error {
                         Err(e) => Some(e.to_string()),
                     }
                 } else {
-                    Some(format!("Field `{}` not found.", field))
+                    Some(format!(
+                        "Field `{}` of the `{}` clause at the {} scope level not found.",
+                        field, clause_type, scope_level
+                    ))
                 }
             }
-            Error::AmbiguousField(field) => Some(format!(
-                "Field `{}` exists in multiple datasources and is ambiguous. Please qualify.",
-                field
+            Error::AmbiguousField(field, clause_type, scope_level) => Some(format!(
+                "Field `{}` in the `{}` clause at the {} scope level exists in multiple datasources and is ambiguous. Please qualify.",
+                field, clause_type, scope_level
             )),
             Error::StarInNonCount => None,
             Error::AggregationInPlaceOfScalar(_) => None,
@@ -180,8 +189,8 @@ impl UserError for Error {
             Error::DistinctSelect => "SELECT DISTINCT not allowed".to_string(),
             Error::DistinctUnion => "UNION DISTINCT not allowed".to_string(),
             Error::NoSuchDatasource(datasource_name) => format!("no such datasource: {0:?}", datasource_name),
-            Error::FieldNotFound(field, _) => format!("field `{0}` cannot be resolved to any datasource", field),
-            Error::AmbiguousField(field) => format!("ambiguous field `{0}`", field),
+            Error::FieldNotFound(field, _, clause_type, scope_level) => format!("field `{}` in the `{}` clause at the {} scope level cannot be resolved to any datasource", field, clause_type, scope_level),
+            Error::AmbiguousField(field, clause_type, scope_level) => format!("ambiguous field `{}` in the `{}` clause at the {} scope level", field, clause_type, scope_level),
             Error::StarInNonCount => "* argument only valid in COUNT function".to_string(),
             Error::AggregationInPlaceOfScalar(func) => format!("aggregation function {0} used in scalar position", func),
             Error::ScalarInPlaceOfAggregation(func) => format!("scalar function {0} used in aggregation position", func),

@@ -65,7 +65,13 @@ pub fn translate_sql(
     let select_order = get_select_order(&ast);
 
     // construct the algebrizer and use it to build an mir plan
-    let algebrizer = Algebrizer::new(current_db, catalog, 0u16, sql_options.schema_checking_mode);
+    let algebrizer = Algebrizer::new(
+        current_db,
+        catalog,
+        0u16,
+        sql_options.schema_checking_mode,
+        crate::algebrizer::ClauseType::Unintialized,
+    );
     let plan = algebrizer.algebrize_query(ast)?;
 
     // optimizer runs

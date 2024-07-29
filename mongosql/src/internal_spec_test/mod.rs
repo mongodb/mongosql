@@ -1,5 +1,5 @@
 use crate::{
-    algebrizer::Algebrizer,
+    algebrizer::{Algebrizer, ClauseType},
     ast::{rewrites::rewrite_query, Query},
     catalog::Catalog,
     map, parser,
@@ -256,7 +256,13 @@ fn validate_algebrization(types: Vec<String>, ast: Query, is_valid: bool) -> Res
         })
         .collect::<Result<Vec<Schema>, Error>>()?;
     let catalog = create_catalog(schemas)?;
-    let algebrizer = Algebrizer::new(TEST_DB, &catalog, 0u16, SchemaCheckingMode::Strict);
+    let algebrizer = Algebrizer::new(
+        TEST_DB,
+        &catalog,
+        0u16,
+        SchemaCheckingMode::Strict,
+        ClauseType::Unintialized,
+    );
     let plan = algebrizer
         .algebrize_query(ast.clone())
         .map_err(|e| Error::AlgebrizationFailed(format!("{e:?}")));

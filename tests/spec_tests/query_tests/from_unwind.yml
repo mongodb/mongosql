@@ -260,4 +260,4 @@ tests:
   - description: correlated field references are disallowed for PATH
     current_db: test
     query: "SELECT VALUE {'x': (SELECT `inner`.arr FROM UNWIND([{'arr': 1}] AS `inner` WITH PATH => `outer`.arr) LIMIT 1)} FROM [{'arr': [4, 5, 6]}] AS `outer`"
-    algebrize_error: "field `outer` cannot be resolved to any datasource"
+    algebrize_error: "field `outer` in the `FROM` clause at the 1 scope level cannot be resolved to any datasource"

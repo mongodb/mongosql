@@ -12,8 +12,9 @@ macro_rules! test_algebrize {
     ($func_name:ident, method = $method:ident, $(in_implicit_type_conversion_context = $in_implicit_type_conversion_context:expr,)? $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? $(expected_error_code = $expected_error_code:literal,)? input = $ast:expr, $(source = $source:expr,)? $(env = $env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
         #[test]
         fn $func_name() {
+            #[allow(unused_imports)]
             use crate::{
-                algebrizer::{Algebrizer, Error},
+                algebrizer::{Algebrizer, Error, ClauseType},
                 catalog::Catalog,
                 SchemaCheckingMode,
             };
@@ -27,8 +28,8 @@ macro_rules! test_algebrize {
             $(schema_checking_mode = $schema_checking_mode;)?
 
             #[allow(unused_mut, unused_assignments)]
-            let mut algebrizer = Algebrizer::new("test".into(), &catalog, 0u16, schema_checking_mode);
-            $(algebrizer = Algebrizer::with_schema_env("test".into(), $env, &catalog, 1u16, schema_checking_mode);)?
+            let mut algebrizer = Algebrizer::new("test".into(), &catalog, 0u16, schema_checking_mode, ClauseType::Unintialized);
+            $(algebrizer = Algebrizer::with_schema_env("test".into(), $env, &catalog, 1u16, schema_checking_mode, ClauseType::Unintialized);)?
 
             let res: Result<_, Error> = algebrizer.$method($ast $(, $source)? $(, $in_implicit_type_conversion_context)?);
             $(assert!(matches!(res, $expected_pat));)?
@@ -48,7 +49,7 @@ macro_rules! test_algebrize_expr_and_schema_check {
         fn $func_name() {
             #[allow(unused)]
             use crate::{
-                algebrizer::{Algebrizer, Error},
+                algebrizer::{Algebrizer, Error, ClauseType},
                 catalog::Catalog,
                 SchemaCheckingMode,
                 mir::schema::CachedSchema,
@@ -63,8 +64,8 @@ macro_rules! test_algebrize_expr_and_schema_check {
             $(schema_checking_mode = $schema_checking_mode;)?
 
             #[allow(unused_mut, unused_assignments)]
-            let mut algebrizer = Algebrizer::new("test".into(), &catalog, 0u16, schema_checking_mode);
-            $(algebrizer = Algebrizer::with_schema_env("test".into(), $env, &catalog, 1u16, schema_checking_mode);)?
+            let mut algebrizer = Algebrizer::new("test".into(), &catalog, 0u16, schema_checking_mode, ClauseType::Unintialized);
+            $(algebrizer = Algebrizer::with_schema_env("test".into(), $env, &catalog, 1u16, schema_checking_mode, ClauseType::Unintialized);)?
 
             let res: Result<_, Error> = algebrizer.$method($ast $(, $source)? $(, $in_implicit_type_conversion_context)?);
             let res = res.unwrap().schema(&algebrizer.schema_inference_state()).map_err(|e|Error::SchemaChecking(e));
@@ -82,7 +83,8 @@ macro_rules! test_user_error_messages {
     ($func_name:ident, input = $input:expr, expected = $expected:expr) => {
         #[test]
         fn $func_name() {
-            use crate::{algebrizer::Error, usererror::UserError};
+            #[allow(unused_imports)]
+            use crate::{algebrizer::ClauseType, algebrizer::Error, usererror::UserError};
 
             let user_message = $input.user_message();
 
@@ -750,7 +752,11 @@ mod expression {
             unqualified_ref_may_and_must_exist_in_two_sources,
             method = algebrize_expression,
             in_implicit_type_conversion_context = false,
-            expected = Err(Error::AmbiguousField("a".into())),
+            expected = Err(Error::AmbiguousField(
+                "a".into(),
+                ClauseType::Unintialized,
+                1u16
+            )),
             expected_error_code = 3009,
             input = ast::Expression::Identifier("a".into()),
             env = map! {
@@ -824,7 +830,11 @@ mod expression {
             unqualified_subpath_in_current_and_super_may_exist_is_ambiguous,
             method = algebrize_expression,
             in_implicit_type_conversion_context = false,
-            expected = Err(Error::AmbiguousField("a".into())),
+            expected = Err(Error::AmbiguousField(
+                "a".into(),
+                ClauseType::Unintialized,
+                1u16
+            )),
             expected_error_code = 3009,
             input = ast::Expression::Subpath(ast::SubpathExpr {
                 expr: Box::new(ast::Expression::Identifier("a".into())),
@@ -1025,7 +1035,11 @@ mod expression {
             unqualified_reference_and_may_contain_sub_and_must_contain_outer_is_ambiguous,
             method = algebrize_expression,
             in_implicit_type_conversion_context = false,
-            expected = Err(Error::AmbiguousField("a".into())),
+            expected = Err(Error::AmbiguousField(
+                "a".into(),
+                ClauseType::Unintialized,
+                1u16
+            )),
             expected_error_code = 3009,
             input = ast::Expression::Subpath(ast::SubpathExpr {
                 expr: Box::new(ast::Expression::Identifier("a".into())),
@@ -1065,7 +1079,12 @@ mod expression {
             ref_does_not_exist,
             method = algebrize_expression,
             in_implicit_type_conversion_context = false,
-            expected = Err(Error::FieldNotFound("bar".into(), None)),
+            expected = Err(Error::FieldNotFound(
+                "bar".into(),
+                None,
+                ClauseType::Unintialized,
+                0u16
+            )),
             expected_error_code = 3008,
             input = ast::Expression::Identifier("bar".into()),
         );
@@ -6202,7 +6221,9 @@ mod from_clause {
         method = algebrize_from_clause,
         expected = Err(Error::FieldNotFound(
             "x".into(),
-            Some(vec!["bar".into(), "foo".into()])
+            Some(vec!["bar".into(), "foo".into()]),
+            ClauseType::From,
+            0u16,
         )),
         expected_error_code = 3008,
         input = Some(ast::Datasource::Join(JoinSource {
@@ -7155,7 +7176,12 @@ mod from_clause {
         test_algebrize!(
             correlated_path_disallowed,
             method = algebrize_from_clause,
-            expected = Err(Error::FieldNotFound("bar".into(), Some(vec!["arr".into()]))),
+            expected = Err(Error::FieldNotFound(
+                "bar".into(),
+                Some(vec!["arr".into()]),
+                ClauseType::From,
+                1u16,
+            )),
             expected_error_code = 3008,
             input = Some(ast::Datasource::Unwind(ast::UnwindSource {
                 datasource: Box::new(AST_SOURCE_FOO.clone()),
@@ -8513,7 +8539,12 @@ mod subquery {
         argument_only_evaluated_in_super_scope,
         method = algebrize_expression,
         in_implicit_type_conversion_context = false,
-        expected = Err(Error::FieldNotFound("a".into(), None)),
+        expected = Err(Error::FieldNotFound(
+            "a".into(),
+            None,
+            ClauseType::Unintialized,
+            0u16
+        )),
         expected_error_code = 3008,
         input = ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
             expr: Box::new(ast::Expression::Identifier("a".into())),
@@ -8660,25 +8691,25 @@ mod user_error_messages {
     mod field_not_found {
         test_user_error_messages! {
             no_found_fields,
-            input = Error::FieldNotFound("x".into(), None),
-            expected = "Field `x` not found.".to_string()
+            input = Error::FieldNotFound("x".into(), None, ClauseType::Select, 1u16),
+            expected = "Field `x` of the `SELECT` clause at the 1 scope level not found.".to_string()
         }
 
         test_user_error_messages! {
             suggestions,
-            input = Error::FieldNotFound("foo".into(), Some(vec!["feo".to_string(), "fooo".to_string(), "aaa".to_string(), "bbb".to_string()])),
-            expected =  "Field `foo` not found. Did you mean: feo, fooo".to_string()
+            input = Error::FieldNotFound("foo".into(), Some(vec!["feo".to_string(), "fooo".to_string(), "aaa".to_string(), "bbb".to_string()]), ClauseType::Where, 1u16),
+            expected =  "Field `foo` not found in the `WHERE` clause at the 1 scope level. Did you mean: feo, fooo".to_string()
         }
 
         test_user_error_messages! {
             no_suggestions,
-            input = Error::FieldNotFound("foo".into(), Some(vec!["aaa".to_string(), "bbb".to_string(), "ccc".to_string()])),
-            expected = "Field `foo` not found.".to_string()
+            input = Error::FieldNotFound("foo".into(), Some(vec!["aaa".to_string(), "bbb".to_string(), "ccc".to_string()]), ClauseType::Having, 16u16),
+            expected = "Field `foo` in the `HAVING` clause at the 16 scope level not found.".to_string()
         }
 
         test_user_error_messages! {
             exact_match_found,
-            input = Error::FieldNotFound("foo".into(), Some(vec!["foo".to_string()])),
+            input = Error::FieldNotFound("foo".into(), Some(vec!["foo".to_string()]), ClauseType::GroupBy, 0u16),
             expected = "Unexpected edit distance of 0 found with input: foo and expected: [\"foo\"]"
         }
     }
@@ -8731,9 +8762,8 @@ mod user_error_messages {
     mod ambiguous_field {
         test_user_error_messages! {
             ambiguous_field,
-            input = Error::AmbiguousField("foo".into()),
-            expected = "Field `foo` exists in multiple datasources and is ambiguous. Please qualify."
-
+            input = Error::AmbiguousField("foo".into(), ClauseType::Select, 0u16),
+            expected = "Field `foo` in the `SELECT` clause at the 0 scope level exists in multiple datasources and is ambiguous. Please qualify."
         }
     }
 

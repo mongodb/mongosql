@@ -202,13 +202,30 @@ impl From<crate::ast::ComparisonOp> for mir::SubqueryComparisonOp {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ClauseType {
     From,
-    Filter,
     GroupBy,
+    Having,
     Limit,
     Offset,
     OrderBy,
     Select,
     Unintialized,
+    Where,
+}
+
+impl std::fmt::Display for ClauseType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            ClauseType::From => write!(f, "FROM"),
+            ClauseType::GroupBy => write!(f, "GROUP BY"),
+            ClauseType::Having => write!(f, "HAVING"),
+            ClauseType::Limit => write!(f, "LIMIT"),
+            ClauseType::Offset => write!(f, "OFFSET"),
+            ClauseType::OrderBy => write!(f, "ORDER BY"),
+            ClauseType::Select => write!(f, "SELECT"),
+            ClauseType::Unintialized => write!(f, "UNINITIALIZED"),
+            ClauseType::Where => write!(f, "WHERE"),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -227,6 +244,7 @@ impl<'a> Algebrizer<'a> {
         catalog: &'a Catalog,
         scope_level: u16,
         schema_checking_mode: SchemaCheckingMode,
+        clause_type: ClauseType,
     ) -> Self {
         Self::with_schema_env(
             current_db,
@@ -234,6 +252,7 @@ impl<'a> Algebrizer<'a> {
             catalog,
             scope_level,
             schema_checking_mode,
+            clause_type,
         )
     }
 
@@ -243,6 +262,7 @@ impl<'a> Algebrizer<'a> {
         catalog: &'a Catalog,
         scope_level: u16,
         schema_checking_mode: SchemaCheckingMode,
+        clause_type: ClauseType,
     ) -> Self {
         Self {
             current_db,
@@ -250,7 +270,7 @@ impl<'a> Algebrizer<'a> {
             catalog,
             scope_level,
             schema_checking_mode,
-            clause_type: RefCell::new(ClauseType::Unintialized),
+            clause_type: RefCell::new(clause_type),
         }
     }
 
@@ -320,9 +340,9 @@ impl<'a> Algebrizer<'a> {
 
     pub fn algebrize_select_query(&self, ast_node: ast::SelectQuery) -> Result<mir::Stage> {
         let plan = self.algebrize_from_clause(ast_node.from_clause)?;
-        let plan = self.algebrize_filter_clause(ast_node.where_clause, plan)?;
+        let plan = self.algebrize_where_clause(ast_node.where_clause, plan)?;
         let plan = self.algebrize_group_by_clause(ast_node.group_by_clause, plan)?;
-        let plan = self.algebrize_filter_clause(ast_node.having_clause, plan)?;
+        let plan = self.algebrize_having_clause(ast_node.having_clause, plan)?;
         let plan = self.algebrize_select_clause(ast_node.select_clause, plan)?;
         let plan = self.algebrize_order_by_clause(ast_node.order_by_clause, plan)?;
         let plan = self.algebrize_offset_clause(ast_node.offset, plan)?;
@@ -578,6 +598,7 @@ impl<'a> Algebrizer<'a> {
             self.catalog,
             self.scope_level + 1,
             self.schema_checking_mode,
+            *self.clause_type.borrow(),
         );
         let src = derived_algebrizer.algebrize_query(*d.query)?;
         let src_resultset = src.schema(&derived_algebrizer.schema_inference_state())?;
@@ -702,6 +723,7 @@ impl<'a> Algebrizer<'a> {
                     self.catalog,
                     self.scope_level,
                     self.schema_checking_mode,
+                    *self.clause_type.borrow(),
                 );
                 project_expression
                     .insert_many(field_paths_copy.into_iter().map(|path| {
@@ -754,6 +776,7 @@ impl<'a> Algebrizer<'a> {
             self.catalog,
             self.scope_level,
             self.schema_checking_mode,
+            *self.clause_type.borrow(),
         );
 
         let path = match path {
@@ -802,12 +825,29 @@ impl<'a> Algebrizer<'a> {
         }
     }
 
+    pub fn algebrize_having_clause(
+        &self,
+        ast_node: Option<ast::Expression>,
+        source: mir::Stage,
+    ) -> Result<mir::Stage> {
+        *self.clause_type.borrow_mut() = ClauseType::Having;
+        self.algebrize_filter_clause(ast_node, source)
+    }
+
+    pub fn algebrize_where_clause(
+        &self,
+        ast_node: Option<ast::Expression>,
+        source: mir::Stage,
+    ) -> Result<mir::Stage> {
+        *self.clause_type.borrow_mut() = ClauseType::Where;
+        self.algebrize_filter_clause(ast_node, source)
+    }
+
     pub fn algebrize_filter_clause(
         &self,
         ast_node: Option<ast::Expression>,
         source: mir::Stage,
     ) -> Result<mir::Stage> {
-        *self.clause_type.borrow_mut() = ClauseType::Filter;
         let filtered = match ast_node {
             None => source,
             Some(expr) => {
@@ -1924,7 +1964,7 @@ impl<'a> Algebrizer<'a> {
                     let expr = self.algebrize_unqualified_identifier(q);
                     let expr = match expr {
                         Ok(expr) => expr,
-                        Err(e @ Error::FieldNotFound(_, _)) => {
+                        Err(e @ Error::FieldNotFound(_, _, _, _)) => {
                             // If this is an OrderBy clause, try to find the field in the Bottom Data source
                             // because many dialects of SQL support this. Note: this is a change to
                             // our original spec and outside of SQL92.
@@ -1981,9 +2021,14 @@ impl<'a> Algebrizer<'a> {
                 .collect::<Vec<_>>();
 
             let err = if all_keys.is_empty() {
-                Error::FieldNotFound(i, None)
+                Error::FieldNotFound(i, None, *self.clause_type.borrow(), self.scope_level)
             } else {
-                Error::FieldNotFound(i, Some(all_keys))
+                Error::FieldNotFound(
+                    i,
+                    Some(all_keys),
+                    *self.clause_type.borrow(),
+                    self.scope_level,
+                )
             };
 
             return Err(err);
@@ -2040,7 +2085,11 @@ impl<'a> Algebrizer<'a> {
                     },
                 );
             if musts > 1 || mays > 0 {
-                return Err(Error::AmbiguousField(i));
+                return Err(Error::AmbiguousField(
+                    i,
+                    *self.clause_type.borrow(),
+                    current_scope,
+                ));
             }
             if musts == 1 {
                 return self.construct_field_access_expr(
