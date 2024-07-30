@@ -68,3 +68,20 @@ test_get_partitions!(
     input_db = NONUNIFORM_DB_NAME,
     input_coll = LARGE_COLL_NAME
 );
+
+#[cfg(feature = "integration")]
+#[tokio::test]
+async fn empty_collection() {
+    use super::get_mdb_collection;
+    use crate::{errors::Error, partitioning::get_partitions};
+    use test_utils::schema_builder_library_integration_test_consts::UNIFORM_DB_NAME;
+
+    let coll = get_mdb_collection(UNIFORM_DB_NAME, "empty").await;
+
+    let actual_res = get_partitions(&coll).await;
+    match actual_res {
+        Err(Error::NoCollectionStats(_)) => {} // expect the NoBounds errors
+        Err(err) => panic!("unexpected error: {err:?}"),
+        Ok(actual) => panic!("expected error but got: {actual:?}"),
+    }
+}

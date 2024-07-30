@@ -1,17 +1,19 @@
 use fake::{Fake, Faker};
 use mongodb::{
-    bson::{doc, Bson, Document},
+    bson::{self, datetime, doc, Bson, Document},
     results::InsertManyResult,
     Collection, Database,
 };
+use mongosql::{json_schema, schema::Schema};
 use rand::{rngs::StdRng, SeedableRng};
 use std::{env, str::FromStr};
 
 mod schema_builder_library_integration_test_consts;
 use schema_builder_library_integration_test_consts::{
     DATA_DOC_SIZE_IN_BYTES, LARGE_COLL_NAME, LARGE_COLL_SIZE_IN_MB, LARGE_ID_MIN,
-    NONUNIFORM_DB_NAME, NUM_DOCS_PER_LARGE_PARTITION, SMALL_COLL_NAME, SMALL_COLL_SIZE_IN_MB,
-    SMALL_ID_MIN, UNIFORM_DB_NAME, VIEW_NAME,
+    NONUNIFORM_DB_NAME, NONUNIFORM_LARGE_SCHEMA, NONUNIFORM_SMALL_SCHEMA, NONUNIFORM_VIEW_SCHEMA,
+    NUM_DOCS_PER_LARGE_PARTITION, SMALL_COLL_NAME, SMALL_COLL_SIZE_IN_MB, SMALL_ID_MIN,
+    UNIFORM_COLL_SCHEMA, UNIFORM_DB_NAME, UNIFORM_VIEW_SCHEMA, VIEW_NAME,
 };
 
 const SEED: [u8; 32] = [
@@ -94,6 +96,49 @@ async fn main() {
             }},
         ]
     ).await;
+
+    // Write schemas.
+    write_schema(
+        &uniform_db,
+        SMALL_COLL_NAME,
+        "Collection",
+        UNIFORM_COLL_SCHEMA.clone(),
+    )
+    .await;
+
+    write_schema(
+        &uniform_db,
+        LARGE_COLL_NAME,
+        "Collection",
+        UNIFORM_COLL_SCHEMA.clone(),
+    )
+    .await;
+
+    write_schema(&uniform_db, VIEW_NAME, "View", UNIFORM_VIEW_SCHEMA.clone()).await;
+
+    write_schema(
+        &nonuniform_db,
+        SMALL_COLL_NAME,
+        "Collection",
+        NONUNIFORM_SMALL_SCHEMA.clone(),
+    )
+    .await;
+
+    write_schema(
+        &nonuniform_db,
+        LARGE_COLL_NAME,
+        "Collection",
+        NONUNIFORM_LARGE_SCHEMA.clone(),
+    )
+    .await;
+
+    write_schema(
+        &nonuniform_db,
+        VIEW_NAME,
+        "View",
+        NONUNIFORM_VIEW_SCHEMA.clone(),
+    )
+    .await;
 }
 
 /// create_test_user creates a test user in the admin database
@@ -327,5 +372,46 @@ async fn create_view(db: &Database, coll_name: &str, pipeline: Vec<Document>) {
     match view_res {
         Err(err) => println!("failed to create view in db `{}`: {}", db.name(), err),
         Ok(()) => println!("view created in db `{}`", db.name()),
+    }
+}
+
+async fn write_schema(
+    db: &Database,
+    coll_or_view_name: &str,
+    coll_or_view_type: &str,
+    schema: Schema,
+) {
+    let schema_collection = db.collection::<Document>("__sql_schemas");
+
+    let as_json_schema: json_schema::Schema = schema.try_into().unwrap_or_else(|_| {
+        panic!(
+            "failed to convert Schema to JSON schema for {}.{coll_or_view_name}",
+            db.name()
+        )
+    });
+    let as_bson_schema = bson::to_bson(&as_json_schema).unwrap_or_else(|_| {
+        panic!(
+            "failed to convert JSON schema to BSON for {}.{coll_or_view_name}",
+            db.name()
+        )
+    });
+
+    let schema_doc = doc! {
+        "_id": coll_or_view_name,
+        "type": coll_or_view_type,
+        "schema": as_bson_schema,
+        "lastUpdated": datetime::DateTime::now(),
+    };
+
+    let write_res = schema_collection.insert_one(schema_doc).await;
+    match write_res {
+        Err(err) => println!(
+            "failed to write schema for {}.{coll_or_view_name}: {err}",
+            db.name()
+        ),
+        Ok(res) => println!(
+            "successfully wrote schema for {}.{coll_or_view_name}: {res:?}",
+            db.name()
+        ),
     }
 }

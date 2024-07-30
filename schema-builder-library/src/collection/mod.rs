@@ -195,6 +195,17 @@ impl CollectionInfo {
                                     .and_then(|colls| colls.get(&coll.name().to_string()).cloned())
                             };
 
+                            if initial_schema.is_some() {
+                                notify!(
+                                    &tx_notifications,
+                                    SamplerNotification {
+                                        db: db.name().to_string(),
+                                        collection_or_view: coll.name().to_string(),
+                                        action: SamplerAction::UsingInitialSchema,
+                                    },
+                                );
+                            }
+
                             // The derive_schema_for_partitions function
                             // parallelizes schema derivation per partition.
                             // So here, we await its result and then send it
