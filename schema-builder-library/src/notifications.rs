@@ -11,10 +11,11 @@ macro_rules! notify {
             SamplerAction::Error { .. } => {
                 tracing::error!("{}", $notification);
             }
-            SamplerAction::Querying { .. } => tracing::trace!("{}", $notification),
-            SamplerAction::Processing { .. } => tracing::trace!("{}", $notification),
-            SamplerAction::Partitioning { .. } => tracing::trace!("{}", $notification),
-            SamplerAction::SamplingView => tracing::trace!("{}", $notification),
+            SamplerAction::Querying { .. }
+            | SamplerAction::Processing { .. }
+            | SamplerAction::Partitioning { .. }
+            | SamplerAction::SamplingView
+            | SamplerAction::UsingInitialSchema => tracing::trace!("{}", $notification),
         }
 
         $channel.send($notification).unwrap_or_default();
@@ -26,6 +27,7 @@ pub enum SamplerAction {
     Querying { partition: u16 },
     Processing { partition: u16 },
     Partitioning { partitions: u16 },
+    UsingInitialSchema,
     Warning { message: String },
     Error { message: String },
     SamplingView,
@@ -49,6 +51,9 @@ impl Display for SamplerAction {
             }
             SamplerAction::Partitioning { partitions } => {
                 write!(f, "Partitioning into {} parts for collection", partitions)
+            }
+            SamplerAction::UsingInitialSchema => {
+                write!(f, "Using initial schema for collection")
             }
             SamplerAction::Warning { message } => write!(f, "Warning: {}", message),
             SamplerAction::Error { message } => write!(f, "Error: {}", message),

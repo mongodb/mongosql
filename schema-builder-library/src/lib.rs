@@ -43,7 +43,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// An enum for communicating results of this library to a caller. Results may
 /// be namespace-only, meaning they do not include schema information, or they
 /// may include schema information.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum SchemaResult {
     /// SchemaResult without schema info. Used in dry_run mode.
     NamespaceOnly(NamespaceInfo),
@@ -53,7 +53,7 @@ pub enum SchemaResult {
 }
 
 /// A struct representing namespace information for a view or collection.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct NamespaceInfo {
     /// The name of the database.
     pub db_name: String,
@@ -67,7 +67,7 @@ pub struct NamespaceInfo {
 
 /// A struct representing schema information for a specific namespace (a view
 /// or collection).
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct NamespaceInfoWithSchema {
     pub namespace_info: NamespaceInfo,
 
@@ -77,7 +77,7 @@ pub struct NamespaceInfoWithSchema {
 
 /// An enum representing the two namespace types for which this library
 /// can generate schema: Collection and View.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum NamespaceType {
     Collection,
     View,
