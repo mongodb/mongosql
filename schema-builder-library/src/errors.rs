@@ -22,6 +22,8 @@ pub enum Error {
     NoCollection(String),
     #[error("Execution Error {0}")]
     TokioError(tokio::task::JoinError),
+    #[error("Inital schema for {0} is not valid")]
+    InitialSchemaError(String),
 }
 
 impl From<mongodb::error::Error> for Error {

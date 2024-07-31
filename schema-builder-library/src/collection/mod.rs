@@ -53,10 +53,14 @@ pub(crate) async fn query_for_initial_schemas(
     if let Some(schema_coll) = schema_collection {
         let coll = database.collection::<Document>(schema_coll.as_str());
         let mut cursor = coll.find(doc! {}).await?;
-        while let Some(doc) = cursor.try_next().await.unwrap() {
-            let collection_name = doc.get("_id").unwrap().as_str().unwrap();
-            let collection_schema = doc.get("schema").unwrap().as_document().unwrap().clone();
-            initial_collection_schemas.insert(collection_name.to_string(), collection_schema);
+        while let Some(doc) = cursor.try_next().await? {
+            if let (Some(bson::Bson::String(collection_name)), Some(bson::Bson::Document(schema))) =
+                (doc.get("_id"), doc.get("schema"))
+            {
+                initial_collection_schemas.insert(collection_name.to_string(), schema.clone());
+            } else {
+                return Err(Error::InitialSchemaError(schema_coll));
+            }
         }
     };
     Ok(initial_collection_schemas)
@@ -75,8 +79,8 @@ impl CollectionInfo {
     pub(crate) async fn new(
         db: &Database,
         db_name: &str,
-        include_list: Vec<String>,
-        exclude_list: Vec<String>,
+        include_list: Vec<glob::Pattern>,
+        exclude_list: Vec<glob::Pattern>,
     ) -> Result<Self> {
         let collection_info_cursor = db
             .run_cursor_command(doc! { "listCollections": 1.0, "authorizedCollections": true})
@@ -359,19 +363,15 @@ impl CollectionInfo {
     fn should_consider(
         database: &str,
         collection_or_view: &CollectionDoc,
-        include_list: &[String],
-        exclude_list: &[String],
+        include_list: &[glob::Pattern],
+        exclude_list: &[glob::Pattern],
     ) -> bool {
         (include_list.is_empty()
-            || include_list.iter().any(|i| {
-                glob::Pattern::new(i)
-                    .unwrap()
-                    .matches(&format!("{database}.{}", collection_or_view.name.as_str()))
+            || include_list.iter().any(|pattern| {
+                pattern.matches(&format!("{database}.{}", collection_or_view.name.as_str()))
             }))
-            && !exclude_list.iter().any(|e| {
-                glob::Pattern::new(e)
-                    .unwrap()
-                    .matches(&format!("{database}.{}", collection_or_view.name.as_str()))
+            && !exclude_list.iter().any(|pattern| {
+                pattern.matches(&format!("{database}.{}", collection_or_view.name.as_str()))
             })
             && !DISALLOWED_COLLECTION_NAMES.contains(&collection_or_view.name.as_str())
     }
@@ -379,24 +379,24 @@ impl CollectionInfo {
     #[instrument(level = "trace")]
     async fn separate_views_from_collections(
         database: &str,
-        include_list: &[String],
-        exclude_list: &[String],
+        include_list: &[glob::Pattern],
+        exclude_list: &[glob::Pattern],
         mut collection_doc: Cursor<Document>,
     ) -> Result<CollectionInfo> {
         let mut collection_info = CollectionInfo::default();
-        while let Some(collection_doc) = collection_doc.try_next().await.unwrap() {
-            let collection_doc: CollectionDoc =
-                bson::from_bson(bson::Bson::Document(collection_doc)).unwrap();
-            if CollectionInfo::should_consider(
-                database,
-                &collection_doc,
-                include_list,
-                exclude_list,
-            ) {
-                if collection_doc.type_ == "view" {
-                    collection_info.views.push(collection_doc);
-                } else {
-                    collection_info.collections.push(collection_doc);
+        while let Some(collection_doc) = collection_doc.try_next().await? {
+            if let Ok(collection_doc) = bson::from_bson(bson::Bson::Document(collection_doc)) {
+                if CollectionInfo::should_consider(
+                    database,
+                    &collection_doc,
+                    include_list,
+                    exclude_list,
+                ) {
+                    if collection_doc.type_ == "view" {
+                        collection_info.views.push(collection_doc);
+                    } else {
+                        collection_info.collections.push(collection_doc);
+                    }
                 }
             }
         }

@@ -124,13 +124,6 @@ pub(crate) async fn derive_schema_for_partition(
     )?);
 
     loop {
-        if first_stage.is_none() {
-            first_stage = Some(generate_partition_match(
-                &partition,
-                schema.clone(),
-                &ignored_ids,
-            )?);
-        };
         notify!(
             &tx_notifications,
             SamplerNotification {
@@ -143,8 +136,11 @@ pub(crate) async fn derive_schema_for_partition(
         );
         let mut cursor = collection
             .aggregate(vec![
-                // first_stage must be Some here.
-                first_stage.unwrap(),
+                first_stage.unwrap_or(generate_partition_match(
+                    &partition,
+                    schema.clone(),
+                    &ignored_ids,
+                )?),
                 doc! { "$sort": {"_id": 1}},
                 doc! { "$limit": PARTITION_DOCS_PER_ITERATION },
             ])
@@ -157,7 +153,7 @@ pub(crate) async fn derive_schema_for_partition(
         first_stage = None;
 
         let mut no_result = true;
-        while let Some(doc) = cursor.try_next().await.unwrap() {
+        while let Some(doc) = cursor.try_next().await? {
             notify!(
                 &tx_notifications,
                 SamplerNotification {
@@ -168,14 +164,26 @@ pub(crate) async fn derive_schema_for_partition(
                     },
                 },
             );
-            let id = doc.get("_id").unwrap().clone();
-            partition.min = id.clone();
-            let old_schema = schema.clone();
-            schema = Some(schema_for_document(&doc).union(&schema.unwrap_or(Schema::Unsat)));
-            if old_schema == schema {
-                ignored_ids.push(id);
+            if let Some(id) = doc.get("_id") {
+                partition.min = id.clone();
+                let old_schema = schema.clone();
+                schema = Some(schema_for_document(&doc).union(&schema.unwrap_or(Schema::Unsat)));
+                if old_schema == schema {
+                    ignored_ids.push(id.clone());
+                }
+                no_result = false;
+            } else {
+                notify!(
+                    &tx_notifications,
+                    SamplerNotification {
+                        db: db_name.clone(),
+                        collection_or_view: collection.name().to_string(),
+                        action: SamplerAction::Warning {
+                            message: "Document missing _id field".to_string(),
+                        },
+                    },
+                );
             }
-            no_result = false;
         }
         if no_result {
             break;
@@ -208,7 +216,7 @@ pub(crate) async fn derive_schema_for_view(
     {
         Ok(mut cursor) => {
             let mut iterations = 0;
-            while let Some(doc) = cursor.try_next().await.unwrap() {
+            while let Some(Ok(doc)) = cursor.try_next().await.transpose() {
                 // Notify every 100 iterations, so it isn't too spammy
                 if iterations % 100 == 0 {
                     notify!(
@@ -220,11 +228,9 @@ pub(crate) async fn derive_schema_for_view(
                         },
                     );
                 }
-                if schema.is_none() {
-                    schema = Some(schema_for_document(&doc));
-                } else {
-                    schema = Some(schema.unwrap().union(&schema_for_document(&doc)));
-                }
+                schema = schema.map_or(Some(schema_for_document(&doc)), |s: Schema| {
+                    Some(s.union(&schema_for_document(&doc)))
+                });
                 iterations += 1;
             }
         }

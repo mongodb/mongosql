@@ -1,6 +1,6 @@
 use futures::TryStreamExt;
 use mongodb::{
-    bson::{doc, Bson, Document},
+    bson::{self, doc, Bson, Document},
     Collection,
 };
 use mongosql::schema::Schema;
@@ -51,19 +51,23 @@ pub(crate) async fn get_partitions(collection: &Collection<Document>) -> Result<
         ])
         .await?;
 
-    while let Some(doc) = cursor.try_next().await.unwrap() {
-        let doc = doc.get("_id").unwrap().as_document().unwrap();
-        let max = doc.get("max").cloned().unwrap_or(Bson::MaxKey);
-        let is_bucket_max_equal_to_collection_max = max == max_bound;
-        partitions.push(Partition {
-            min: min_bound.clone(),
-            max: max.clone(),
-            // The max bound of Partition should be considered inclusive only
-            // if it is the final partition.
-            is_max_bound_inclusive: is_bucket_max_equal_to_collection_max,
-        });
-        if max != max_bound {
-            min_bound = max;
+    while let Some(doc) = cursor.try_next().await? {
+        if let Some(bson::Bson::Document(doc)) = doc.get("_id") {
+            min_bound = doc.get("min").cloned().unwrap_or(min_bound);
+            let max = doc.get("max").cloned().unwrap_or(max_bound.clone());
+            let is_bucket_max_equal_to_collection_max = max == max_bound;
+            partitions.push(Partition {
+                min: min_bound.clone(),
+                max: max.clone(),
+                // The max bound of Partition should be considered inclusive only
+                // if it is the final partition.
+                is_max_bound_inclusive: is_bucket_max_equal_to_collection_max,
+            });
+            if max != max_bound {
+                min_bound = max;
+            }
+        } else {
+            return Err(Error::NoBounds(collection.name().to_string()));
         }
     }
 
@@ -87,7 +91,7 @@ pub(crate) async fn get_size_counts(collection: &Collection<Document>) -> Result
         .aggregate(vec![doc! {"$collStats": {"storageStats": {}}}])
         .await
         .map_err(|_| Error::NoCollectionStats(collection.name().to_string()))?;
-    if let Some(stats) = cursor.try_next().await.unwrap() {
+    if let Some(stats) = cursor.try_next().await? {
         let stats = stats
             .get_document("storageStats")
             .map_err(|_| Error::BsonFailure)?;

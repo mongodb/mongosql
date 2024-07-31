@@ -37,6 +37,14 @@ pub async fn get_opts(uri: &str, resolver: Option<ResolverConfig>) -> Result<Cli
     Ok(opts)
 }
 
+/// Returns the optimal pool size for the client.
+/// The pool size is set to the number of available CPUs * 2 + 1, up to 10.
+/// If the number of available CPUs cannot be determined,
+/// the pool size is set to 1.
 fn get_optimal_pool_size() -> u32 {
-    std::thread::available_parallelism().unwrap().get() as u32 * 2 + 1
+    match std::thread::available_parallelism() {
+        // if try_into fails here, it means the number of available CPUs is greater than u32::MAX
+        Ok(parallelism) => usize::from(parallelism).try_into().unwrap_or(10u32) * 2 + 1,
+        Err(_) => 1,
+    }
 }

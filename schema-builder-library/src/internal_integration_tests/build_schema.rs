@@ -195,10 +195,13 @@ test_build_schema!(
         },
     },
     expected_num_init_schemas_used = 0,
-    include = vec![
+    include = [
         format!("{UNIFORM_DB_NAME}.{SMALL_COLL_NAME}"),
         format!("{NONUNIFORM_DB_NAME}.{VIEW_NAME}")
-    ],
+    ]
+    .iter()
+    .map(|s| glob::Pattern::new(s).unwrap())
+    .collect(),
     exclude = vec![],
     schema_collection = None
 );
@@ -232,7 +235,10 @@ test_build_schema!(
         },
     },
     expected_num_init_schemas_used = 0,
-    include = vec![format!("{UNIFORM_DB_NAME}.*")],
+    include = [format!("{UNIFORM_DB_NAME}.*")]
+        .iter()
+        .map(|s| glob::Pattern::new(s).unwrap())
+        .collect(),
     exclude = vec![],
     schema_collection = None
 );
@@ -275,10 +281,13 @@ test_build_schema!(
     },
     expected_num_init_schemas_used = 0,
     include = vec![],
-    exclude = vec![
+    exclude = [
         format!("{UNIFORM_DB_NAME}.{LARGE_COLL_NAME}"),
         format!("{NONUNIFORM_DB_NAME}.{VIEW_NAME}")
-    ],
+    ]
+    .iter()
+    .map(|s| glob::Pattern::new(s).unwrap())
+    .collect(),
     schema_collection = None
 );
 
@@ -312,7 +321,10 @@ test_build_schema!(
     },
     expected_num_init_schemas_used = 0,
     include = vec![],
-    exclude = vec![format!("{UNIFORM_DB_NAME}.*")],
+    exclude = [format!("{UNIFORM_DB_NAME}.*")]
+        .iter()
+        .map(|s| glob::Pattern::new(s).unwrap())
+        .collect(),
     schema_collection = None
 );
 
@@ -361,11 +373,17 @@ test_build_schema!(
         },
     },
     expected_num_init_schemas_used = 0,
-    include = vec![
+    include = [
         format!("{UNIFORM_DB_NAME}.*"),
         format!("{NONUNIFORM_DB_NAME}.*")
-    ],
-    exclude = vec![format!("{UNIFORM_DB_NAME}.{VIEW_NAME}")],
+    ]
+    .iter()
+    .map(|s| glob::Pattern::new(s).unwrap())
+    .collect(),
+    exclude = [format!("{UNIFORM_DB_NAME}.{VIEW_NAME}")]
+        .iter()
+        .map(|s| glob::Pattern::new(s).unwrap())
+        .collect(),
     schema_collection = None
 );
 
