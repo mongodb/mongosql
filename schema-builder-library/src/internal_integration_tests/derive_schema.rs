@@ -166,19 +166,18 @@ mod for_views {
 
                 let db = create_mdb_client().await.database($db_name);
 
+                let (tx_notifications, _rx_notifications) =
+                    tokio::sync::mpsc::unbounded_channel::<crate::SamplerNotification>();
+
                 let CollectionInfo { views, .. } =
-                    match CollectionInfo::new(&db, $db_name, vec![], vec![]).await {
-                        Ok(collection_info) => collection_info,
-                        Err(e) => panic!("Error while creating CollectionInfo: {}", e),
-                    };
+                    CollectionInfo::new(&db, $db_name, vec![], vec![])
+                        .await
+                        .unwrap_or_else(|e| panic!("Error while creating CollectionInfo: {}", e));
 
                 let view = views
                     .into_iter()
                     .find(|view| view.name == $view_name)
                     .expect("View not found");
-
-                let (tx_notifications, _rx_notifications) =
-                    tokio::sync::mpsc::unbounded_channel::<crate::SamplerNotification>();
 
                 match derive_schema_for_view(&view, &db, tx_notifications.clone()).await {
                     None => {

@@ -27,3 +27,7 @@ tracing = "0.1"
 
 [features]
 integration = []
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"

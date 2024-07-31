@@ -116,7 +116,7 @@ impl Display for NamespaceType {
 pub async fn build_schema(options: BuilderOptions) {
     // To start computing the schema for all databases, we need to wait for the
     // list_database_names method to finish.
-    let databases = options
+    match options
         .client
         .list_database_names()
         .with_options(Some(
@@ -124,27 +124,32 @@ pub async fn build_schema(options: BuilderOptions) {
                 .filter(doc! {"name": { "$nin": DISALLOWED_DB_NAMES.to_vec()} })
                 .build(),
         ))
-        .await;
-
-    // If listing the databases fails, there is nothing to do so we report an
-    // error, drop all channels, and return.
-    if let Err(e) = databases {
-        notify!(
-            &options.tx_notifications,
-            SamplerNotification {
-                db: "".to_string(),
-                collection_or_view: "".to_string(),
-                action: SamplerAction::Error {
-                    message: format!("Unable to list databases: {e}"),
+        .await
+    {
+        Ok(databases) => process_databases(options, databases).await,
+        // If listing the databases fails, there is nothing to do so we report an
+        // error, drop all channels, and return.
+        Err(e) => {
+            notify!(
+                &options.tx_notifications,
+                SamplerNotification {
+                    db: "".to_string(),
+                    collection_or_view: "".to_string(),
+                    action: SamplerAction::Error {
+                        message: format!("Unable to list databases: {e}"),
+                    },
                 },
-            },
-        );
-        drop(options.tx_notifications);
-        drop(options.tx_schemata);
-        return;
+            );
+            drop(options.tx_notifications);
+            drop(options.tx_schemata);
+            return;
+        }
     }
+}
+
+#[instrument(level = "debug", skip_all)]
+async fn process_databases(options: BuilderOptions, databases: Vec<String>) {
     // we've checked the error condition above, so this should be safe
-    let databases = databases.unwrap();
 
     let span = span!(Level::DEBUG, "initial_schemas", databases = ?databases);
 
@@ -160,20 +165,35 @@ pub async fn build_schema(options: BuilderOptions) {
             let db = options.client.database(db_name);
             let schema_collection = options.schema_collection.clone();
             let initial_schemas = initial_schemas.clone();
+            let tx_notifications = options.tx_notifications.clone();
             async move {
-                let initial_collection_schemas = query_for_initial_schemas(schema_collection, &db)
-                    .await
-                    .unwrap();
-
-                debug!(
-                    "queried for intial schemas in database {}, found {}",
-                    db_name,
-                    initial_collection_schemas.len()
-                );
-                initial_schemas
-                    .write()
-                    .await
-                    .insert(db_name.clone(), initial_collection_schemas);
+                match query_for_initial_schemas(schema_collection, &db).await {
+                    Ok(initial_collection_schemas) => {
+                        debug!(
+                            "queried for intial schemas in database {}, found {}",
+                            db_name,
+                            initial_collection_schemas.len()
+                        );
+                        initial_schemas
+                            .write()
+                            .await
+                            .insert(db_name.to_string(), initial_collection_schemas);
+                    }
+                    Err(e) => {
+                        notify!(
+                            tx_notifications,
+                            SamplerNotification {
+                                db: db_name.to_string(),
+                                collection_or_view: "".to_string(),
+                                action: SamplerAction::Warning {
+                                    message: format!(
+                                    "failed to query for initial schemas in database with error {e}"
+                                ),
+                                },
+                            },
+                        );
+                    }
+                }
             }
         }))
         .await;

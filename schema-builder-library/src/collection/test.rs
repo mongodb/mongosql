@@ -15,19 +15,27 @@ macro_rules! vec_collection_docs {
     }
 
 macro_rules! actual {
-    ($input:expr, $db:expr, $include_list:expr, $exclude_list:expr $(,)?) => {
+    ($input:expr, $db:expr, $include_list:expr, $exclude_list:expr $(,)?) => {{
         $input
             .iter()
             .filter(|c| CollectionInfo::should_consider($db, c, $include_list, $exclude_list))
             .cloned()
             .collect::<Vec<CollectionDoc>>()
-    };
+    }};
+}
+
+fn glob_it(patterns: Vec<&str>) -> Vec<glob::Pattern> {
+    patterns
+        .into_iter()
+        .map(glob::Pattern::new)
+        .map(Result::unwrap)
+        .collect()
 }
 
 #[test]
 fn test_inclusion_glob() {
-    let include_list = vec!["mydb.*".to_string()];
-    let exclude_list = vec!["mydb.excluded".to_string()];
+    let include_list = glob_it(vec!["mydb.*"]);
+    let exclude_list = glob_it(vec!["mydb.excluded"]);
     let input = vec_collection_docs!("included", "excluded", "excludeded", "subcollection");
     let expected = vec_collection_docs!("included", "excludeded", "subcollection");
     assert_eq!(
@@ -38,8 +46,8 @@ fn test_inclusion_glob() {
 
 #[test]
 fn test_exclusion_glob() {
-    let include_list = vec!["mydb.excluded".to_string()];
-    let exclude_list = vec!["mydb.*".to_string(), "otherdb.*".to_string()];
+    let include_list = glob_it(vec!["mydb.excluded"]);
+    let exclude_list = glob_it(vec!["mydb.*", "otherdb.*"]);
     let input = vec_collection_docs!("included", "excluded", "excludeded", "system.views");
 
     let expected: Vec<CollectionDoc> = vec![];
@@ -64,7 +72,7 @@ fn test_include_empty_exclude_empty() {
 #[test]
 fn test_include_empty_exclude_contents() {
     let include_list = vec![];
-    let exclude_list = vec!["mydb.excluded".to_string()];
+    let exclude_list = glob_it(vec!["mydb.excluded"]);
     let input = vec_collection_docs!("included", "excluded", "excludeded", "subcollection");
     let expected = vec_collection_docs!("included", "excludeded", "subcollection");
 
@@ -76,7 +84,7 @@ fn test_include_empty_exclude_contents() {
 
 #[test]
 fn test_include_contents_exclude_empty() {
-    let include_list = vec!["mydb.included".to_string(), "mydb.excluded".to_string()];
+    let include_list = glob_it(vec!["mydb.included", "mydb.excluded"]);
     let exclude_list = vec![];
     let input = vec_collection_docs!("included", "excluded", "excludeded", "subcollection");
     let expected = vec_collection_docs!("included", "excluded");
@@ -88,8 +96,8 @@ fn test_include_contents_exclude_empty() {
 
 #[test]
 fn test_include_and_exclude_contain_overlap() {
-    let include_list = vec!["mydb.included".to_string(), "mydb.excluded".to_string()];
-    let exclude_list = vec!["mydb.excluded".to_string()];
+    let include_list = glob_it(vec!["mydb.included", "mydb.excluded"]);
+    let exclude_list = glob_it(vec!["mydb.excluded"]);
     let input = vec_collection_docs!("included", "excluded", "excludeded", "subcollection");
     let expected = vec_collection_docs!("included");
     assert_eq!(
@@ -100,8 +108,8 @@ fn test_include_and_exclude_contain_overlap() {
 
 #[test]
 fn test_inclusion_and_exclusion_rules_are_namespace_bound() {
-    let include_list = vec!["mydb.included".to_string()];
-    let exclude_list = vec!["otherdb.*".to_string()];
+    let include_list = glob_it(vec!["mydb.included"]);
+    let exclude_list = glob_it(vec!["otherdb.*"]);
     let input = vec_collection_docs!("included", "excluded", "excludeded", "subcollection",);
 
     assert!(actual!(input, "otherdb", &include_list, &exclude_list).is_empty());
@@ -109,8 +117,8 @@ fn test_inclusion_and_exclusion_rules_are_namespace_bound() {
 
 #[test]
 fn test_disallowed_collection_names() {
-    let include_list = vec!["mydb.*".to_string()];
-    let exclude_list: Vec<String> = vec![];
+    let include_list = glob_it(vec!["mydb.*"]);
+    let exclude_list = vec![];
     let input = vec_collection_docs!(
         "system.namespaces",
         "system.indexes",

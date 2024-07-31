@@ -125,7 +125,7 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
     let pb = ProgressBar::new(1024);
     // spinner style errors are caught at compile time so are safe to unwrap on
     let spinner_style = ProgressStyle::with_template("{prefix:.bold.dim} {spinner} {wide_msg}")
-        .unwrap()
+        .expect("Failed to create spinner style")
         .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
     pb.set_style(spinner_style);
 
@@ -143,11 +143,35 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
     };
 
     let builder_options_client = mdb_client.clone();
+    let include_list: Vec<glob::Pattern> = cfg
+        .ns_include
+        .unwrap_or_default()
+        .iter()
+        .map(|g| match glob::Pattern::new(g) {
+            Ok(p) => p,
+            Err(e) => {
+                eprintln!("Error parsing include glob pattern: {}", e);
+                process::exit(1);
+            }
+        })
+        .collect();
+    let exclude_list: Vec<glob::Pattern> = cfg
+        .ns_exclude
+        .unwrap_or_default()
+        .iter()
+        .map(|g| match glob::Pattern::new(g) {
+            Ok(p) => p,
+            Err(e) => {
+                eprintln!("Error parsing exclude glob pattern: {}", e);
+                process::exit(1);
+            }
+        })
+        .collect();
     tokio::spawn(async move {
         // Create the BuilderOptions
         let builder_options = BuilderOptions {
-            include_list: cfg.ns_include.unwrap_or_default(),
-            exclude_list: cfg.ns_exclude.unwrap_or_default(),
+            include_list,
+            exclude_list,
             schema_collection,
             dry_run: cfg.dry_run,
             client: builder_options_client,
@@ -213,14 +237,24 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
                             Err(e) => Error(e.to_string()),
                         };
 
-                        accessed_namespaces.entry(schema_res.namespace_info.db_name.clone()).and_modify(|coll_vec| {
-                            coll_vec.push(schema_res.namespace_info.coll_or_view_name.clone());
-                        }).or_insert(vec![schema_res.namespace_info.coll_or_view_name.clone()]);
-
                         if !cfg.quiet {
                             // log the schema_builder_result
                             pb.set_message(format!("Schema builder result for namespace `{}.{}`: {}", schema_res.namespace_info.db_name, schema_res.namespace_info.coll_or_view_name, schema_builder_result));
                         }
+                        match schema_builder_result {
+                            Created | Modified => {
+                                accessed_namespaces.entry(schema_res.namespace_info.db_name.clone()).and_modify(|coll_vec| {
+                                    coll_vec.push(schema_res.namespace_info.coll_or_view_name.clone());
+                                }).or_insert(vec![schema_res.namespace_info.coll_or_view_name.clone()]);
+                            }
+                            Unchanged => {},
+                            Error(e) => {
+                                eprintln!("Error updating schema for namespace `{}.{}`: {}", schema_res.namespace_info.db_name, schema_res.namespace_info.coll_or_view_name, e);
+                            }
+                        }
+
+
+
 
                     },
                     Some(SchemaResult::NamespaceOnly(schema_res)) =>{

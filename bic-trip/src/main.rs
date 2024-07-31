@@ -184,10 +184,31 @@ async fn handle_schema(args: SchemaProcessingArgs) -> Result<Option<SchemaAnalys
                 .run_command(doc! {"hello": 1})
                 .await?;
 
+            let include_list: Vec<glob::Pattern> = include
+                .iter()
+                .map(|g| match glob::Pattern::new(g) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        eprintln!("Error parsing include glob pattern: {}", e);
+                        process::exit(1);
+                    }
+                })
+                .collect();
+            let exclude_list: Vec<glob::Pattern> = exclude
+                .iter()
+                .map(|g| match glob::Pattern::new(g) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        eprintln!("Error parsing exclude glob pattern: {}", e);
+                        process::exit(1);
+                    }
+                })
+                .collect();
+
             tokio::spawn(async move {
                 let builder_options = dcsb::options::BuilderOptions {
-                    include_list: include,
-                    exclude_list: exclude,
+                    include_list,
+                    exclude_list,
                     schema_collection: None,
                     dry_run: false,
                     client: client.clone(),
