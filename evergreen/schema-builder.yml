@@ -352,6 +352,8 @@ tasks:
   - name: dcsb-release
     git_tag_only: true
     depends_on:
+      - name: dcsb-sbom
+        variant: "dcsb-code-quality-security"
       - name: compile-dcsb
         variant: ".dcsb-release-variant"
       - name: sign-schema-builder-tool-executables
