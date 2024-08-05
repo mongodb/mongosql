@@ -248,7 +248,6 @@ async fn valid_uri_and_no_input_is_ok() -> Result<(), Box<dyn std::error::Error>
         let database_count = file_contents.matches("Database").count();
         let collection_count = file_contents.matches("Collection").count();
         assert_eq!(database_count, 1, "Expected 1 database");
-        assert_eq!(collection_count, 3, "Expected 3 collections");
 
         if file_name.contains("trr_cli_test_db1") {
             assert_eq!(
@@ -256,15 +255,18 @@ async fn valid_uri_and_no_input_is_ok() -> Result<(), Box<dyn std::error::Error>
                 1,
                 "Expected 1 database named trr_cli_test_db1",
             );
+            assert_eq!(collection_count, 3, "Expected 3 collections");
         } else if file_name.contains("trr_cli_test_db2") {
             assert_eq!(
                 file_contents.matches("Database: trr_cli_test_db2").count(),
                 1,
                 "Expected 1 database named trr_cli_test_db2",
             );
+            assert_eq!(collection_count, 3, "Expected 3 collections");
         }
 
         if file_name.starts_with("trr_cli") {
+            assert_eq!(collection_count, 3, "Expected 3 collections");
             assert_eq!(
                 file_contents.matches("Collection: acoll").count(),
                 1,

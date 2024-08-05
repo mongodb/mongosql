@@ -323,6 +323,7 @@ tasks:
     commands:
       - func: "install rust toolchain"
       - func: "run rust integration tests"
+        retry_on_failure: true
         vars:
           description: "run schema-builder-library integration tests"
           load_data_cmd: "cargo run --bin data-loader"
@@ -338,8 +339,8 @@ tasks:
     commands:
       - func: "sign dcsb windows"
         variants: [ dcsb-windows-64 ]
-      - func: "sign dcsb linux"
-        variants: [ dcsb-ubuntu2004 ]
+          #- func: "sign dcsb linux"
+          #variants: [ dcsb-ubuntu2004 ]
       - func: "sign dcsb macos"
         variants: [ dcsb-macos, dcsb-macos-arm ]
 

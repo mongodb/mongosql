@@ -129,4 +129,5 @@ pub const UNIFORM_DB_NAME: &str = "uniform";
 pub const NONUNIFORM_DB_NAME: &str = "nonuniform";
 pub const SMALL_COLL_NAME: &str = "small";
 pub const LARGE_COLL_NAME: &str = "large";
+pub const UNITARY_COLL_NAME: &str = "unit";
 pub const VIEW_NAME: &str = "test_view";

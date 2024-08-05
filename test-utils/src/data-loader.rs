@@ -13,7 +13,7 @@ use schema_builder_library_integration_test_consts::{
     DATA_DOC_SIZE_IN_BYTES, LARGE_COLL_NAME, LARGE_COLL_SIZE_IN_MB, LARGE_ID_MIN,
     NONUNIFORM_DB_NAME, NONUNIFORM_LARGE_SCHEMA, NONUNIFORM_SMALL_SCHEMA, NONUNIFORM_VIEW_SCHEMA,
     NUM_DOCS_PER_LARGE_PARTITION, SMALL_COLL_NAME, SMALL_COLL_SIZE_IN_MB, SMALL_ID_MIN,
-    UNIFORM_COLL_SCHEMA, UNIFORM_DB_NAME, UNIFORM_VIEW_SCHEMA, VIEW_NAME,
+    UNIFORM_COLL_SCHEMA, UNIFORM_DB_NAME, UNIFORM_VIEW_SCHEMA, UNITARY_COLL_NAME, VIEW_NAME,
 };
 
 const SEED: [u8; 32] = [
@@ -66,6 +66,13 @@ async fn main() {
     let uniform_db = client.database(UNIFORM_DB_NAME);
     generate_db_data(&uniform_db, rng, generate_uniform_data_doc).await;
 
+    // Create unit data.
+    let unit_coll = uniform_db.collection::<Document>(UNITARY_COLL_NAME);
+    let unit_data_res = unit_coll
+        .insert_many(vec![generate_uniform_data_doc(0, rng)])
+        .await;
+    handle_write_result!(UNIFORM_DB_NAME, UNITARY_COLL_NAME, unit_data_res);
+
     // Generate nonuniform data.
     let nonuniform_db = client.database(NONUNIFORM_DB_NAME);
     generate_db_data(&nonuniform_db, rng, generate_nonuniform_data_doc).await;
@@ -109,6 +116,14 @@ async fn main() {
     write_schema(
         &uniform_db,
         LARGE_COLL_NAME,
+        "Collection",
+        UNIFORM_COLL_SCHEMA.clone(),
+    )
+    .await;
+
+    write_schema(
+        &uniform_db,
+        UNITARY_COLL_NAME,
         "Collection",
         UNIFORM_COLL_SCHEMA.clone(),
     )
