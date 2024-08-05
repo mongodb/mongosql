@@ -333,6 +333,31 @@ tasks:
             --lib internal_integration_tests
             -- --test-threads=1
 
+  - name: test-schema-builder-tool-e2e-enterprise
+    commands:
+      - func: "install rust toolchain"
+      - func: "run rust integration tests"
+        vars:
+          mdb: "enterprise"
+          description: "run schema-builder-tool e2e enterprise tests"
+          cargo_test_flags: >-
+            --features=enterprise
+            --package=schema-builder-tool
+            --test e2e
+            -- --test-threads=1
+
+  - name: test-schema-builder-tool-e2e-community
+    commands:
+      - func: "install rust toolchain"
+      - func: "run rust integration tests"
+        vars:
+          description: "run schema-builder-tool e2e community tests"
+          cargo_test_flags: >-
+            --features=community
+            --package=schema-builder-tool
+            --test e2e
+            -- --test-threads=1
+
   - name: sign-schema-builder-tool-executables
     depends_on:
       - name: compile-dcsb
@@ -380,6 +405,15 @@ buildvariants:
       - name: compile-dcsb
       - name: test-schema-builder
       - name: test-schema-builder-library-integration
+
+  - name: dcsb-e2e-test
+    tags: [ "schema-builder-test" ]
+    display_name: "MongoDB Schema Builder Tool End-to-End Test"
+    run_on: [ rhel76 ]
+    tasks:
+      - name: compile-dcsb
+      - name: test-schema-builder-tool-e2e-enterprise
+      - name: test-schema-builder-tool-e2e-community
 
   - name: dcsb-macos-arm
     tags: [ "dcsb-release-variant" ]

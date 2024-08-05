@@ -35,10 +35,13 @@ zip = "2.1.5"
 indicatif = "0.17.8"
 thiserror = "1.0.57"
 serde_yaml = "0.9.33"
-scraper = "0.19.0"
+glob = "0.3.1"
+
+[dev-dependencies]
 assert_cmd = "2.0.14"
 predicates = "3.1.0"
-glob = "0.3.1"
+scraper = "0.19.0"
+test-utils = { path = "../test-utils" }
 
 [features]
 integration = []

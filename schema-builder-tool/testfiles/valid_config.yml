@@ -1,0 +1,7 @@
+uri: mongodb://test:test@localhost:27017/
+ns-include:
+  - config_db.*
+ns-exclude:
+  - config_db.foo
+quiet: false
+dry-run: false

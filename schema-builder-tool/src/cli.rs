@@ -28,13 +28,15 @@ pub struct Cli {
     /// The databases and collections to include (optional). If not provided, all databases and collections are included.
     ///
     /// Glob syntax may be used (i.e. mydb.*).
-    #[clap(long = "nsInclude")]
+    #[clap(long = "ns-include")]
+    #[serde(rename = "ns-include")]
     pub ns_include: Option<Vec<String>>,
 
     /// The databases and collections to exclude (optional). If not provided, no databases or collections are excluded.
     ///
     /// Glob syntax may be used (i.e. mydb.*). This option takes precedence --include.
-    #[clap(long = "nsExclude")]
+    #[clap(long = "ns-exclude")]
+    #[serde(rename = "ns-exclude")]
     pub ns_exclude: Option<Vec<String>>,
 
     /// Enables quiet mode for less output.
@@ -53,12 +55,14 @@ pub struct Cli {
 
     /// Specifies the action to take if a schema already exists.
     #[clap(value_enum, long = "action", short = 'a', default_value = "merge")]
+    #[serde(rename = "action")]
     pub schema_action: Option<SchemaAction>,
 
     /// Perform a dry run without analyzing schema or writing to the database. Useful for testing nsInclude and nsExclude.
     ///
     /// Default: false
-    #[clap(long = "dryRun")]
+    #[clap(long = "dry-run")]
+    #[serde(rename = "dry-run")]
     pub dry_run: bool,
 
     #[clap(long)]

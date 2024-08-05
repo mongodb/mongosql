@@ -24,6 +24,7 @@ pub use index::*;
 pub mod query;
 pub use query::*;
 pub mod build_utils;
+pub mod e2e_db_manager;
 pub mod schema_builder_library_integration_test_consts;
 
 pub use build_utils::*;

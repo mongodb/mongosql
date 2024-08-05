@@ -1,12 +1,12 @@
 uri: mongodb://localhost:27017
 username: user
 password: hunter2
-nsInclude:
+ns-include:
   - mydb.foo
   - mydb.bar
-nsExclude:
+ns-exclude:
   - mydb.baz
 quiet: false
 logpath: C:\Users\user\Documents\schema-builder\logs\schema-builder.log
 verbosity: DEBUG
-schemaAction: overwrite
+action: overwrite

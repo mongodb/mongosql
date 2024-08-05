@@ -21,8 +21,8 @@ timeout:
         ls -la
 
 include:
-   - filename: evergreen/grpc.yml
-   - filename: evergreen/schema-builder.yml
+  - filename: evergreen/grpc.yml
+  - filename: evergreen/schema-builder.yml
 
 functions:
   "fetch source":
@@ -40,6 +40,7 @@ functions:
           export CARGO_NET_GIT_FETCH_WITH_CLI=true
           export MONGODB_TEST_VERSION="6.0.5"
           export MONGODB_TEST_RHEL_VERSION="mongodb-linux-x86_64-rhel70-$MONGODB_TEST_VERSION"
+          export MONGODB_TEST_RHEL_VERSION_ENT="mongodb-linux-x86_64-enterprise-rhel70-$MONGODB_TEST_VERSION"
           export MONGODB_TEST_UBUNTU_VERSION="mongodb-linux-x86_64-ubuntu2204-$MONGODB_TEST_VERSION"
           export DB_TOOLS_VERSION="100.7.2"
           export MONGOSH_VERSION="1.8.0"
@@ -74,6 +75,7 @@ functions:
             export GOCACHE="$GOCACHE"
             export MONGODB_TEST_VERSION="$MONGODB_TEST_VERSION"
             export MONGODB_TEST_RHEL_VERSION="$MONGODB_TEST_RHEL_VERSION"
+            export MONGODB_TEST_RHEL_VERSION_ENT="$MONGODB_TEST_RHEL_VERSION_ENT"
             export MONGODB_TEST_UBUNTU_VERSION="$MONGODB_TEST_UBUNTU_VERSION"
             export DB_TOOLS_VERSION="$DB_TOOLS_VERSION"
             export MONGOSH_VERSION="$MONGOSH_VERSION"
@@ -387,13 +389,21 @@ functions:
         script: |
           ${prepare_shell}
 
+          mdb_version=$MONGODB_TEST_RHEL_VERSION
+          root_url="fastdl.mongodb.org"
+          if [[ "${mdb}" == "enterprise" ]]; then
+            echo "using enterprise MongoDB server"
+            mdb_version=$MONGODB_TEST_RHEL_VERSION_ENT
+            root_url="downloads.mongodb.com"
+          fi
+
           echo "downloading mongodb"
-          curl -O https://fastdl.mongodb.org/linux/$MONGODB_TEST_RHEL_VERSION.tgz
-          tar zxvf $MONGODB_TEST_RHEL_VERSION.tgz
+          curl -O https://$root_url/linux/$mdb_version.tgz
+          tar zxvf $mdb_version.tgz
           mkdir -p data_db
 
           echo "starting mongodb"
-          $MONGODB_TEST_RHEL_VERSION/bin/mongod --dbpath data_db &
+          $mdb_version/bin/mongod --dbpath data_db &
 
           if [[ "${load_data_cmd}" != "" ]]; then
             echo "loading data"

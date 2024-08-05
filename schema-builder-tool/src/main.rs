@@ -12,6 +12,7 @@ use consts::{DEFAULT_APP_NAME, SCHEMA_COLLECTION_NAME, SUPPORT_TEXT};
 use dialoguer::Password;
 use human_panic::{setup_panic, Metadata};
 use indicatif::{ProgressBar, ProgressStyle};
+use itertools::Itertools;
 use mongodb::bson::{self, datetime, doc};
 use mongodb::Client;
 use mongosql::{
@@ -41,8 +42,8 @@ async fn main() -> Result<()> {
     let mut cfg = Cli::parse();
     // command line arguments override configuration file
     if let Some(ref config) = cfg.config_file {
-        let file_cfg: Cli = confy::load_path(config).unwrap_or_else(|_| {
-            eprintln!("Failed to load configuration file: {}", config);
+        let file_cfg: Cli = confy::load_path(config).unwrap_or_else(|e| {
+            eprintln!("Failed to load configuration file '{}': {e}", config);
             process::exit(1);
         });
         cfg = Cli::merge(cfg, file_cfg);
@@ -56,10 +57,9 @@ async fn main() -> Result<()> {
             .with_max_level(verbosity)
             .with_writer(non_blocking)
             .init();
-        run_with_config(cfg).await
-    } else {
-        run_with_config(cfg).await
     }
+
+    run_with_config(cfg).await
 }
 
 #[instrument(skip_all)]
@@ -167,6 +167,7 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
             }
         })
         .collect();
+
     tokio::spawn(async move {
         // Create the BuilderOptions
         let builder_options = BuilderOptions {
@@ -280,7 +281,8 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
     if !cfg.quiet {
         pb.finish_with_message("Schema creation has completed successfully.\nNow printing all namespaces with created or modified schemas:");
 
-        for (db, namespace) in accessed_namespaces.iter() {
+        for (db, namespace) in accessed_namespaces.iter_mut().sorted() {
+            namespace.sort();
             println!("Database: {}. Namespaces: {:?}.", db, namespace);
         }
     }

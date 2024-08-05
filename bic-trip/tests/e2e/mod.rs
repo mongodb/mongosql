@@ -1,75 +1,19 @@
 use assert_cmd::prelude::*;
-use mongodb::{
-    bson::doc,
-    error::{CommandError, ErrorKind},
-};
 use predicates::prelude::*;
-use std::process::Command;
+use std::{cell::LazyCell, process::Command};
+use test_utils::e2e_db_manager::TestDatabaseManager;
 
-struct TestDataBaseManager {
-    client: mongodb::Client,
-}
+const TEST_DBS: LazyCell<Vec<String>> = LazyCell::new(|| {
+    vec![
+        "trr_cli_test_db1".to_string(),
+        "trr_cli_test_db2".to_string(),
+    ]
+});
 
-impl TestDataBaseManager {
-    async fn new() -> Self {
-        let uri = format!(
-            "mongodb://localhost:{}",
-            std::env::var("MDB_TEST_LOCAL_PORT").unwrap_or_else(|_| "27017".to_string())
-        );
-        let databases = ["trr_cli_test_db1", "trr_cli_test_db2"];
-        let collections = ["acoll", "bcoll"];
-        let view_name = "cview";
-        let client = mongodb::Client::with_uri_str(uri)
-            .await
-            .expect("Failed to create client");
-        let database = client.database("admin");
-        match database.run_command(doc! { "createUser": "test", "pwd": "test", "roles": [ { "role": "readWrite", "db": "test" } ] }).await {
-            Ok(_) => {}
-            Err(e) => match *e.kind {
-                ErrorKind::Command(CommandError { code, message, .. }) => {
-                    // 51003 is the error code for user already exists
-                    if code != 51003 {
-                        panic!("Failed to create user with error: {message}");
-                    }
-                }
-                _ => panic!("Failed to create user with error: {e}"),
-            }
+const TEST_COLLS: LazyCell<Vec<String>> =
+    LazyCell::new(|| vec!["acoll".to_string(), "bcoll".to_string()]);
 
-        }
-
-        for db in databases {
-            let db = client.database(db);
-            // drop the database in case it exists
-            db.drop().await.expect("Failed to drop databases");
-            for coll in collections {
-                db.collection(coll)
-                    .insert_one(doc! { "a": 1 })
-                    .await
-                    .expect("Failed to insert document");
-            }
-            db.create_collection(view_name)
-                .view_on(collections[0])
-                .pipeline(vec![doc! { "$match": { "a": 1 } }])
-                .await
-                .expect("Failed to create view");
-        }
-
-        Self { client }
-    }
-
-    async fn cleanup(&self) {
-        let databases = ["trr_cli_test_db1", "trr_cli_test_db2"];
-        for db in databases {
-            let db = self.client.database(db);
-            db.drop().await.expect("Failed to drop databases");
-        }
-        self.client
-            .database("admin")
-            .run_command(doc! { "dropUser": "test" })
-            .await
-            .expect("Failed to drop user");
-    }
-}
+const TEST_VIEW: LazyCell<Option<String>> = LazyCell::new(|| Some("cview".to_string()));
 
 #[test]
 fn no_args_prints_help() -> Result<(), Box<dyn std::error::Error>> {
@@ -212,7 +156,8 @@ fn valid_input_and_no_uri_produces_log_report() -> Result<(), Box<dyn std::error
 // be seeing too many databases, but that is mitigated by the next test.
 #[tokio::test]
 async fn valid_uri_and_no_input_is_ok() -> Result<(), Box<dyn std::error::Error>> {
-    let test_db_manager = TestDataBaseManager::new().await;
+    let test_db_manager =
+        TestDatabaseManager::new(TEST_DBS.clone(), TEST_COLLS.clone(), TEST_VIEW.clone()).await;
     let uri = format!(
         "mongodb://test:test@localhost:{}",
         std::env::var("MDB_TEST_LOCAL_PORT").unwrap_or_else(|_| "27017".to_string())
@@ -321,7 +266,8 @@ async fn valid_uri_and_no_input_is_ok() -> Result<(), Box<dyn std::error::Error>
 // AND the global ignores, we'll see a failure here.
 #[tokio::test]
 async fn include_and_exclude_produces_correct_output() -> Result<(), Box<dyn std::error::Error>> {
-    let test_db_manager = TestDataBaseManager::new().await;
+    let test_db_manager =
+        TestDatabaseManager::new(TEST_DBS.clone(), TEST_COLLS.clone(), TEST_VIEW.clone()).await;
     let cwd = std::env::current_dir()?;
     let out_dir_name = "./excluded";
     // clear the test directory, just in case it exists
