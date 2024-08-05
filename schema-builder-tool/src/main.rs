@@ -15,10 +15,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use itertools::Itertools;
 use mongodb::bson::{self, datetime, doc};
 use mongodb::Client;
-use mongosql::{
-    json_schema,
-    schema::definitions::Error::{BsonFailure, JsonSchemaFailure},
-};
+use mongosql::schema::definitions::Error::BsonFailure;
 use schema_builder_library::{
     build_schema,
     client_util::{get_opts, load_password_auth, needs_auth},
@@ -210,8 +207,7 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
                             "_id": schema_res.namespace_info.coll_or_view_name.clone(),
                         };
 
-                        let namespace_json_schema: json_schema::Schema = schema_res.namespace_schema.try_into().map_err(|_| JsonSchemaFailure)?;
-                        let namespace_bson_schema = bson::to_bson(&namespace_json_schema).map_err(|_| BsonFailure)?;
+                        let namespace_bson_schema: bson::Bson = schema_res.namespace_schema.try_into().map_err(|_| BsonFailure)?;
 
                         let update_doc = doc! {
                             "$set": {

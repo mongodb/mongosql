@@ -319,15 +319,22 @@ pub enum Schema {
 impl TryFrom<Schema> for bson::Document {
     type Error = Error;
     fn try_from(schema: Schema) -> std::result::Result<Self, Self::Error> {
+        Ok(bson::doc! {
+            "$jsonSchema": bson::Bson::try_from(schema)?
+        })
+    }
+}
+
+impl TryFrom<Schema> for bson::Bson {
+    type Error = Error;
+    fn try_from(schema: Schema) -> std::result::Result<Self, Self::Error> {
         let json_schema: json_schema::Schema = schema
             .clone()
             .try_into()
             .map_err(|_| Error::JsonSchemaFailure)?;
         let bson_schema = bson::to_bson(&json_schema).map_err(|_| Error::BsonFailure)?;
-        let ret = bson::doc! {
-            "$jsonSchema": bson_schema
-        };
-        Ok(ret)
+
+        Ok(bson_schema)
     }
 }
 
