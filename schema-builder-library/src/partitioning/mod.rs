@@ -1,6 +1,6 @@
 use futures::TryStreamExt;
 use mongodb::{
-    bson::{self, doc, Bson, Document},
+    bson::{doc, Bson, Document},
     Collection,
 };
 use mongosql::schema::Schema;
@@ -9,7 +9,7 @@ use tracing::{instrument, trace};
 #[cfg(test)]
 mod test;
 
-use crate::{Error, Result, PARTITION_MIN_DOC_COUNT, PARTITION_SIZE_IN_BYTES};
+use crate::{Error, Result, PARTITION_SIZE_IN_BYTES};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Partition {
@@ -34,42 +34,53 @@ pub(crate) async fn get_partitions(collection: &Collection<Document>) -> Result<
     let num_partitions = get_num_partitions(size_info.size, PARTITION_SIZE_IN_BYTES) as usize;
     let (mut min_bound, max_bound) = get_bounds(collection).await?;
     let mut partitions = Vec::with_capacity(num_partitions);
+    let sample_rate = num_partitions as f64 / size_info.count as f64 * 2.0;
 
-    let buckets = if size_info.count >= PARTITION_MIN_DOC_COUNT && num_partitions > 1 {
-        num_partitions
-    } else {
-        1
+    // if the sampling rate is greater than 1.0 or less than or equal to 0.0, we will just use one
+    // partition. This usually happens with very small collections.
+    if sample_rate > 1.0 || sample_rate <= 0.0 {
+        return Ok(vec![Partition {
+            min: min_bound,
+            max: max_bound,
+            is_max_bound_inclusive: true,
+        }]);
+    }
+    let maybe_cursor = collection
+        .aggregate(vec![
+            doc! { "$sort": {"_id": 1} },
+            doc! { "$project": {"_id": 1} },
+            doc! { "$match": { "$sampleRate": sample_rate } },
+        ])
+        .await;
+
+    // If the partitioning query fails, check the entire collection. This is safer than missing a
+    // namespace.
+    let mut cursor = match maybe_cursor {
+        Ok(cursor) => cursor,
+        Err(_) => {
+            return Ok(vec![Partition {
+                min: min_bound,
+                max: max_bound,
+                is_max_bound_inclusive: true,
+            }]);
+        }
     };
 
-    let mut cursor = collection
-        .aggregate(vec![
-            doc! { "$project": {"_id": 1} },
-            doc! { "$bucketAuto": {
-                "groupBy": "$_id",
-                "buckets": buckets as i32
-            }},
-        ])
-        .await?;
-
     while let Some(doc) = cursor.try_next().await? {
-        if let Some(bson::Bson::Document(doc)) = doc.get("_id") {
-            min_bound = doc.get("min").cloned().unwrap_or(min_bound);
-            let max = doc.get("max").cloned().unwrap_or(max_bound.clone());
-            let is_bucket_max_equal_to_collection_max = max == max_bound;
-            partitions.push(Partition {
-                min: min_bound.clone(),
-                max: max.clone(),
-                // The max bound of Partition should be considered inclusive only
-                // if it is the final partition.
-                is_max_bound_inclusive: is_bucket_max_equal_to_collection_max,
-            });
-            if max != max_bound {
-                min_bound = max;
-            }
-        } else {
-            return Err(Error::NoBounds(collection.name().to_string()));
-        }
+        let local_max = doc.get("_id").unwrap_or(&Bson::MaxKey).clone();
+        partitions.push(Partition {
+            min: min_bound.clone(),
+            max: local_max.clone(),
+            is_max_bound_inclusive: false,
+        });
+        min_bound = local_max;
     }
+
+    partitions.push(Partition {
+        min: min_bound,
+        max: max_bound,
+        is_max_bound_inclusive: true,
+    });
 
     trace!("partitions: {:?}", partitions);
 

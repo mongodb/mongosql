@@ -1,7 +1,7 @@
 use test_utils::schema_builder_library_integration_test_consts::{
     LARGE_COLL_NAME, NONUNIFORM_DB_NAME, NONUNIFORM_LARGE_SCHEMA, NONUNIFORM_SMALL_SCHEMA,
     NONUNIFORM_VIEW_SCHEMA, SMALL_COLL_NAME, UNIFORM_COLL_SCHEMA, UNIFORM_DB_NAME,
-    UNIFORM_VIEW_SCHEMA, VIEW_NAME,
+    UNIFORM_VIEW_SCHEMA, UNITARY_COLL_NAME, VIEW_NAME,
 };
 
 macro_rules! test_build_schema {
@@ -76,8 +76,8 @@ macro_rules! test_build_schema {
                                 match expected_schema_results.remove(&actual_namespace) {
                                     None => panic!("unexpected namespace found: {actual_namespace}"),
                                     Some(expected_ns_schema) => assert_eq!(
-                                        actual_ns_schema,
                                         expected_ns_schema,
+                                        actual_ns_schema,
                                         "actual schema result does not match expected schema result for {actual_namespace}",
                                     ),
                                 }
@@ -131,6 +131,14 @@ test_build_schema!(
             namespace_info: NamespaceInfo {
                 db_name: UNIFORM_DB_NAME.to_string(),
                 coll_or_view_name: LARGE_COLL_NAME.to_string(),
+                namespace_type: NamespaceType::Collection,
+            },
+            namespace_schema: UNIFORM_COLL_SCHEMA.clone(),
+        },
+        format!("{UNIFORM_DB_NAME}.{UNITARY_COLL_NAME}") => NamespaceInfoWithSchema {
+            namespace_info: NamespaceInfo {
+                db_name: UNIFORM_DB_NAME.to_string(),
+                coll_or_view_name: UNITARY_COLL_NAME.to_string(),
                 namespace_type: NamespaceType::Collection,
             },
             namespace_schema: UNIFORM_COLL_SCHEMA.clone(),
@@ -225,6 +233,14 @@ test_build_schema!(
             },
             namespace_schema: UNIFORM_COLL_SCHEMA.clone(),
         },
+        format!("{UNIFORM_DB_NAME}.{UNITARY_COLL_NAME}") => NamespaceInfoWithSchema {
+            namespace_info: NamespaceInfo {
+                db_name: UNIFORM_DB_NAME.to_string(),
+                coll_or_view_name: UNITARY_COLL_NAME.to_string(),
+                namespace_type: NamespaceType::Collection,
+            },
+            namespace_schema: UNIFORM_COLL_SCHEMA.clone(),
+        },
         format!("{UNIFORM_DB_NAME}.{VIEW_NAME}") => NamespaceInfoWithSchema {
             namespace_info: NamespaceInfo {
                 db_name: UNIFORM_DB_NAME.to_string(),
@@ -283,7 +299,8 @@ test_build_schema!(
     include = vec![],
     exclude = [
         format!("{UNIFORM_DB_NAME}.{LARGE_COLL_NAME}"),
-        format!("{NONUNIFORM_DB_NAME}.{VIEW_NAME}")
+        format!("{UNIFORM_DB_NAME}.{UNITARY_COLL_NAME}"),
+        format!("{NONUNIFORM_DB_NAME}.{VIEW_NAME}"),
     ]
     .iter()
     .map(|s| glob::Pattern::new(s).unwrap())
@@ -380,10 +397,13 @@ test_build_schema!(
     .iter()
     .map(|s| glob::Pattern::new(s).unwrap())
     .collect(),
-    exclude = [format!("{UNIFORM_DB_NAME}.{VIEW_NAME}")]
-        .iter()
-        .map(|s| glob::Pattern::new(s).unwrap())
-        .collect(),
+    exclude = [
+        format!("{UNIFORM_DB_NAME}.{VIEW_NAME}"),
+        format!("{UNIFORM_DB_NAME}.{UNITARY_COLL_NAME}")
+    ]
+    .iter()
+    .map(|s| glob::Pattern::new(s).unwrap())
+    .collect(),
     schema_collection = None
 );
 
@@ -402,6 +422,14 @@ test_build_schema!(
             namespace_info: NamespaceInfo {
                 db_name: UNIFORM_DB_NAME.to_string(),
                 coll_or_view_name: LARGE_COLL_NAME.to_string(),
+                namespace_type: NamespaceType::Collection,
+            },
+            namespace_schema: UNIFORM_COLL_SCHEMA.clone(),
+        },
+        format!("{UNIFORM_DB_NAME}.{UNITARY_COLL_NAME}") => NamespaceInfoWithSchema {
+            namespace_info: NamespaceInfo {
+                db_name: UNIFORM_DB_NAME.to_string(),
+                coll_or_view_name: UNITARY_COLL_NAME.to_string(),
                 namespace_type: NamespaceType::Collection,
             },
             namespace_schema: UNIFORM_COLL_SCHEMA.clone(),
@@ -439,7 +467,7 @@ test_build_schema!(
             namespace_schema: NONUNIFORM_VIEW_SCHEMA.clone(),
         },
     },
-    expected_num_init_schemas_used = 4, // Only used for collections, not views.
+    expected_num_init_schemas_used = 5, // Only used for collections, not views.
     include = vec![],
     exclude = vec![],
     schema_collection = Some("__sql_schemas".to_string())

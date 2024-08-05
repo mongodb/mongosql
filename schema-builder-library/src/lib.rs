@@ -15,8 +15,7 @@ use tracing::{debug, instrument, span, Level};
 pub mod client_util;
 mod consts;
 use consts::{
-    DISALLOWED_DB_NAMES, PARTITION_DOCS_PER_ITERATION, PARTITION_MIN_DOC_COUNT,
-    PARTITION_SIZE_IN_BYTES, VIEW_SAMPLE_SIZE,
+    DISALLOWED_DB_NAMES, PARTITION_DOCS_PER_ITERATION, PARTITION_SIZE_IN_BYTES, VIEW_SAMPLE_SIZE,
 };
 mod collection;
 use collection::{query_for_initial_schemas, CollectionDoc, CollectionInfo};
