@@ -988,7 +988,7 @@ functions:
           chmod +x ./$SBOM_DIR/jq
           echo "------------------------------------"
           echo "<<<< Done installing SBOM tools"
-  
+
           echo ">>>> Generate SBOM..."
           echo "--  Generating SBOMs with the licenses information --"
           cargo cyclonedx --target all -v -f json
@@ -1063,7 +1063,7 @@ functions:
           echo ">>>> Scan SBOM for vulnerabilities..."
           if [[ "$ALLOW_VULNS" != "" ]]; then
             echo "Vulnerability ids to ignore : $ALLOW_VULNS"
-            
+
             echo "-- Generate .grype.yaml specifying vulnerabilities to ignore --"
             GRYPE_CONF_FILE=".grype.yaml"
             touch $GRYPE_CONF_FILE
@@ -1625,6 +1625,7 @@ buildvariants:
     display_name: "Transition Readiness Report Integration Test"
     run_on: [ rhel76 ]
     tasks:
+      - name: compile-trr
       - name: test-transition-readiness-report-integration
 
   - name: trr-macos
