@@ -364,8 +364,8 @@ tasks:
     commands:
       - func: "sign dcsb windows"
         variants: [ dcsb-windows-64 ]
-          #- func: "sign dcsb linux"
-          #variants: [ dcsb-ubuntu2004 ]
+      - func: "sign dcsb linux"
+        variants: [ dcsb-ubuntu2004 ]
       - func: "sign dcsb macos"
         variants: [ dcsb-macos, dcsb-macos-arm ]
 
