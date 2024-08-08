@@ -137,6 +137,7 @@ test_process_schema!(
             }),
             "i".into() => Schema::Any,
             "j".into() => Schema::Array(Box::new(Schema::Array(Box::new(Schema::Atomic(Atomic::String))))),
+            "".into() => Schema::Atomic(Atomic::String),
         ),
         ..Default::default()
     }),
@@ -148,6 +149,7 @@ test_process_schema!(
         objects: map! { "test.c".to_string() => 1, "test.c.e".to_string() => 2},
         unstable: map! { "test.i".to_string() => 1, "test.c.e.g".to_string() => 3 },
         anyof: map! { "test.h".to_string() => (1, vec!["int".to_string(), "string".to_string()]) },
+        empty_keys: 1,
     }
 );
 

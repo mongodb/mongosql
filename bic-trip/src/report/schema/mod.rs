@@ -81,6 +81,7 @@ pub struct CollectionAnalysis {
     pub objects: FieldTracker,
     pub unstable: FieldTracker,
     pub anyof: FieldTrackerWithTypes,
+    pub empty_keys: u32,
 }
 
 fn append_key(key: &str, k: &str) -> String {
@@ -92,6 +93,9 @@ fn append_key(key: &str, k: &str) -> String {
 }
 
 fn process_schema(key: String, schema: Schema, analysis: &mut CollectionAnalysis, depth: u16) {
+    if key.split('.').any(str::is_empty) {
+        analysis.empty_keys += 1;
+    }
     match schema {
         mongosql::schema::Schema::Unsat | mongosql::schema::Schema::Missing => {
             // we should never see this. If we do, this is an error

@@ -100,6 +100,14 @@ fn collection_summarization(collection_analysis: &CollectionAnalysis) -> String 
                 .join("")
         ))
     };
+    let empty_keys = if collection_analysis.empty_keys > 0 {
+        Some(format!(
+            r#"<li class="callout form-error">Empty keys found: {}. Empty keys do not work with SQL queries.</li>"#,
+            collection_analysis.empty_keys
+        ))
+    } else {
+        None
+    };
     let results = vec![
         arrays,
         arrays_of_arrays,
@@ -107,6 +115,7 @@ fn collection_summarization(collection_analysis: &CollectionAnalysis) -> String 
         objects,
         anyof,
         unstable,
+        empty_keys,
     ]
     .into_iter()
     .flatten()
