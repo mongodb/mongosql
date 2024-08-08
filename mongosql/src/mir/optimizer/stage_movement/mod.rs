@@ -598,7 +598,11 @@ impl<'a> StageMovementVisitor<'a> {
                     | Stage::Group(_)
                     | Stage::MQLIntrinsic(MQLStage::LateralJoin(_))
             ),
-            Stage::Filter(ref n) => matches!(&*n.source, Stage::Collection(_) | Stage::Array(_)),
+            // TODO: SQL-2264
+            Stage::Filter(ref n) => matches!(
+                &*n.source,
+                Stage::Collection(_) | Stage::Array(_) | Stage::Unwind(_)
+            ),
             Stage::MQLIntrinsic(MQLStage::MatchFilter(ref n)) => {
                 matches!(&*n.source, Stage::Collection(_) | Stage::Array(_))
             }

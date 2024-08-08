@@ -323,6 +323,7 @@ tests:
       - { "v": ["[nan.0, inf.0]"] }
 
   - description: Unwound collection with filter on array field uses index
+    skip_reason: SQL-2264 - rethink unwind prefiltering
     current_db: test_db
     query: "SELECT * FROM UNWIND(arrays WITH PATH => v) WHERE v = 6"
     expected_utilization: IX_SCAN
@@ -337,6 +338,7 @@ tests:
       - { "a": ["(100, MaxKey]"] }
 
   - description: Optimizer correctly runs to fixed point
+    skip_reason: SQL-2264 - rethink unwind prefiltering
     current_db: test_db
     query: "SELECT * FROM FLATTEN(UNWIND(arrays WITH PATH => v)) WHERE _id = 1"
     expected_utilization: IX_SCAN

@@ -39,7 +39,8 @@ static OPTIMIZERS: fn() -> Vec<Box<dyn Optimizer>> = || {
         Box::new(stage_movement::StageMovementOptimizer {}),
         Box::new(determine_join_semantics::JoinSemanticsOptimizer {}),
         Box::new(lower_joins::LowerJoinsOptimizer {}),
-        Box::new(prefilter_unwinds::PrefilterUnwindsOptimizer {}),
+        // TODO: SQL-2264 - rethink prefilter unwind
+        // Box::new(prefilter_unwinds::PrefilterUnwindsOptimizer {}),
         Box::new(dead_code_elimination::DeadCodeEliminator {}),
     ]
 };

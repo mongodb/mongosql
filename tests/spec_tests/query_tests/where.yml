@@ -6,6 +6,26 @@ catalog_data:
     baz:
       - {'_id': 0, 'foo': true}
 
+    biz:
+      - {'_id': 0, 'foo': [1, 2, 3]}
+      - {'_id': 1, 'foo': [4, 5, 6]}
+      - {'_id': 2, 'foo': [1, 3, 5]}
+      - {'_id': 3, 'foo': [2, 4, 6]}
+
+    nested:
+      - {'_id': 0, 'foo': {'bar': [1, 2, 3]}}
+      - {'_id': 1, 'foo': {'bar': [4, 5, 6]}}
+      - {'_id': 2, 'foo': {'bar': [1, 3, 5]}}
+      - {'_id': 3, 'foo': {'bar': [2, 4, 6]}}
+
+    items:
+      - {'_id': 0, 'foo': [{'bar': 1}, {'bar': 2}]}
+      - {'_id': 1, 'foo': [{'bar': 3}, {'bar': 4}]}
+      - {'_id': 2, 'foo': [{'bar': 5}, {'bar': 6}]}
+      - {'_id': 3, 'foo': [{'bar': 1}, {'bar': 3}]}
+      - {'_id': 4, 'foo': [{'bar': 2}, {'bar': 5}]}
+      - {'_id': 5, 'foo': [{'bar': 4}, {'bar': 6}]}
+
 catalog_schema:
     {
         "foo": {
@@ -26,9 +46,54 @@ catalog_schema:
                 "_id": { "bsonType": "int" },
                 "foo": { "bsonType": "bool" }
               }
+            },
+            "biz": {
+              "bsonType": "object",
+              "required": [ "_id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": { "bsonType": "array", "items": { "bsonType": "int" } }
+              }
+            },
+            "nested": {
+              "bsonType": "object",
+              "required": [ "_id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": {
+                  "bsonType": "object",
+                  "required": [ "bar" ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "bar": { "bsonType": "array", "items": { "bsonType": "int" } }
+                  }
+                }
+              }
+            },
+            "items": {
+              "bsonType": "object",
+              "required": [ "_id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": {
+                  "bsonType": "array",
+                  "items": {
+                    "bsonType": "object",
+                    "required": [ "bar" ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "bar": { "bsonType": "int" }
+                    }
+                  }
+                }
+              }
             }
         }
     }
+
 tests:
   - description: WHERE with BOOLEAN returning expression
     query: "SELECT * FROM [{'a': 1}, {'a': 2}, {'a': 3}] AS arr WHERE a >= 2"
@@ -50,3 +115,24 @@ tests:
     current_db: test
     result:
       - {'arr': {'a': true}}
+
+  - description: WHERE after unwind returns expected results
+    query: "SELECT * FROM UNWIND(foo.biz WITH PATH => foo) WHERE foo = 2"
+    current_db: test
+    result:
+      - {'bar': {'_id': 0, 'foo': 2}}
+      - {'bar': {'_id': 3, 'foo': 2}}
+
+  - description: WHERE after FLATTEN UNWIND returns expected results
+    query: "SELECT * FROM FLATTEN(UNWIND(foo.nested WITH PATH => foo.bar)) WHERE foo_bar = 2"
+    current_db: test
+    result:
+      - {'nested': {'_id': 0, 'foo_bar': 2}}
+      - {'nested': {'_id': 3, 'foo_bar': 2}}
+
+  - description: WHERE after FLATTEN UNWIND an array of objects returns expected results
+    query: "SELECT * FROM FLATTEN(UNWIND(foo.items WITH PATH => foo)) WHERE foo_bar = 2"
+    current_db: test
+    result:
+      - {'items': {'_id': 0, 'foo_bar': 2}}
+      - {'items': {'_id': 4, 'foo_bar': 2}}
