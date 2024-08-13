@@ -6,19 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-itertools = "0.10.5"
-lazy_static = "1"
 mongosql = { path = "../mongosql" }
-serde = { version = "1", features = ["derive"] }
-serde_yaml = "0.9.21"
 test-utils = { path = "../test-utils" }
+mongodb = "3.0.1"
 
 [build-dependencies]
 test-utils = { path = "../test-utils" }
-
-[dependencies.mongodb]
-version = "3.0.1"
-features = ["sync"]
 
 [features]
 index = []

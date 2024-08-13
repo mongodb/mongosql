@@ -163,6 +163,26 @@ functions:
           ${prepare_shell}
           gofmt -s -d .
 
+  "check unused dependencies":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+          cargo install cargo-machete
+          cargo build --all-features
+          set +e
+          cargo machete
+          RETURN=$?
+          set -e
+          if [ $RETURN -ne 0 ]; then
+            >&2 echo "Unused dependencies found"
+            >&2 cargo machete
+            exit 1
+          fi
+
   "check goimports":
     - command: shell.exec
       type: test
@@ -232,7 +252,7 @@ functions:
     - command: s3.get
       params:
         build_variants:
-          [ "macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64" ]
+          ["macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64"]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         remote_file: mongosql-rs/artifacts/test/${version_id}/${build_variant}/libmongosql.a
@@ -240,7 +260,7 @@ functions:
         bucket: mciuploads
     - command: s3.get
       params:
-        build_variants: [ "windows" ]
+        build_variants: ["windows"]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         remote_file: mongosql-rs/artifacts/test/${version_id}/${build_variant}/mongosql.dll
@@ -446,7 +466,7 @@ functions:
     - command: s3.put
       params:
         build_variants:
-          [ "macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64" ]
+          ["macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64"]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/target/release/libmongosql.a
@@ -456,7 +476,7 @@ functions:
         content_type: application/octet-stream
     - command: s3.put
       params:
-        build_variants: [ "windows" ]
+        build_variants: ["windows"]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/target/release/mongosql.dll
@@ -467,7 +487,7 @@ functions:
     - command: s3.put
       params:
         build_variants:
-          [ "macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64" ]
+          ["macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64"]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/test_target/release/libmongosql.a
@@ -477,7 +497,7 @@ functions:
         content_type: application/octet-stream
     - command: s3.put
       params:
-        build_variants: [ "windows" ]
+        build_variants: ["windows"]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/test_target/release/mongosql.dll
@@ -507,8 +527,7 @@ functions:
   "upload transition readiness report executable":
     - command: s3.put
       params:
-        build_variants:
-          [ "trr-macos", "trr-macos-arm","trr-ubuntu2004" ]
+        build_variants: ["trr-macos", "trr-macos-arm", "trr-ubuntu2004"]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/target/release/mongosql-transition-tool
@@ -641,7 +660,7 @@ functions:
         add_expansions_to_env: true
     - command: s3.put
       params:
-        build_variants: [ "trr-macos" ]
+        build_variants: ["trr-macos"]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/AtlasSQLReadinessReport-macos
@@ -652,7 +671,7 @@ functions:
         display_name: AtlasSQLReadinessReport-macos-signed
     - command: s3.put
       params:
-        build_variants: [ "trr-macos-arm" ]
+        build_variants: ["trr-macos-arm"]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/AtlasSQLReadinessReport-macos
@@ -1000,13 +1019,13 @@ functions:
           echo "------------------------------------"
 
           echo "-- Merging the SBOMs with the licenses information and the SBOM with the  vulnerabilities information in $SBOM_FINAL --"
-          
+
           temp_output="temp_output.json"
           if [[ -f "$temp_output" ]] ; then
               rm "$temp_output"
           fi
           touch $temp_output
-          
+
           while IFS= read -r line
           do
             if [[ "$line" == *"purl"* ]]; then
@@ -1024,12 +1043,12 @@ functions:
 
           done < $SBOM_VULN
           echo "------------------------------------"
-          
+
           echo "--  Adding the name of the team responsible for each dependency as required by Silk and format the json file --"
           echo "./$SBOM_DIR/jq '.components[].properties += [{\"name\": \"internal:team_responsible\", \"value\": \"Atlas SQL\"}]' $temp_output > $SBOM_FINAL"
           ./$SBOM_DIR/jq '.components[].properties += [{"name": "internal:team_responsible", "value": "Atlas SQL"}]' $temp_output > $SBOM_FINAL
           echo "------------------------------------"
-          
+
           echo "-- Adding VEX info for vulnerabilities still present in SBOM--"
           IFS=','; for vuln_id in $ALLOW_VULNS; do
             echo "-- Updating SBOM with VEX info for vulnerability with id $vuln_id--"
@@ -1059,7 +1078,7 @@ functions:
         working_dir: mongosql-rs
         script: |
           ${prepare_shell}
-          
+
           echo ">>>> Scan SBOM for vulnerabilities..."
           if [[ "$ALLOW_VULNS" != "" ]]; then
             echo "Vulnerability ids to ignore : $ALLOW_VULNS"
@@ -1075,7 +1094,7 @@ functions:
             done
             echo "------------------------------------"
           fi
-          
+
           echo "-- Scanning dependency for vulnerabilities --"
           ./$SBOM_DIR/grype sbom:./${project_folder}/${project_folder}.cdx.json --fail-on low
           echo "---------------------------------------------"
@@ -1085,7 +1104,7 @@ pre:
   - func: "fetch source"
   - func: "generate expansions"
 
-post: [ ]
+post: []
 
 tasks:
   - name: clippy
@@ -1097,6 +1116,11 @@ tasks:
     commands:
       - func: "install rust toolchain"
       - func: "check rustfmt"
+
+  - name: unused-dependencies
+    commands:
+      - func: "install rust toolchain"
+      - func: "check unused dependencies"
 
   - name: gofmt
     commands:
@@ -1147,7 +1171,7 @@ tasks:
             -- --skip fuzz_test
 
   - name: test-rust-fuzz
-    tags: [ "fuzz" ]
+    tags: ["fuzz"]
     commands:
       - func: "install rust toolchain"
       - func: "run rust tests"
@@ -1493,11 +1517,11 @@ tasks:
       - name: compile-trr
     commands:
       - func: "sign trr windows"
-        variants: [ trr-windows-64 ]
+        variants: [trr-windows-64]
       - func: "sign trr linux"
-        variants: [ trr-ubuntu2004 ]
+        variants: [trr-ubuntu2004]
       - func: "sign trr macos"
-        variants: [ trr-macos, trr-macos-arm ]
+        variants: [trr-macos, trr-macos-arm]
 
   - name: dcsb-sbom
     commands:
@@ -1512,17 +1536,18 @@ tasks:
 buildvariants:
   - name: static-analysis
     display_name: "* Static Analysis"
-    run_on: [ ubuntu1804-test ]
+    run_on: [ubuntu1804-test]
     tasks:
       - name: clippy
       - name: rustfmt
+      - name: unused-dependencies
       - name: gofmt
       - name: goimports
       - name: gomodtidy
 
   - name: ubuntu1804
     display_name: "Ubuntu 18.04"
-    run_on: [ ubuntu1804-large ]
+    run_on: [ubuntu1804-large]
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1532,7 +1557,7 @@ buildvariants:
 
   - name: rhel76
     display_name: "RHEL 7.6"
-    run_on: [ rhel76-large ]
+    run_on: [rhel76-large]
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1547,7 +1572,7 @@ buildvariants:
 
   - name: macos
     display_name: "macOS 11"
-    run_on: [ macos-1100 ]
+    run_on: [macos-1100]
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1557,7 +1582,7 @@ buildvariants:
 
   - name: macos-arm64
     display_name: "macOS 11.0 arm64"
-    run_on: [ macos-1100-arm64 ]
+    run_on: [macos-1100-arm64]
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1567,7 +1592,7 @@ buildvariants:
 
   - name: amazon2-arm64
     display_name: "Amazon2 arm64"
-    run_on: [ amazon2-arm64-large ]
+    run_on: [amazon2-arm64-large]
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1577,7 +1602,7 @@ buildvariants:
 
   - name: windows
     display_name: "Windows"
-    run_on: [ windows-64-vs2019-large ]
+    run_on: [windows-64-vs2019-large]
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1587,14 +1612,14 @@ buildvariants:
 
   - name: benchmark
     display_name: "Benchmark"
-    run_on: [ ubuntu2004-medium ]
+    run_on: [ubuntu2004-medium]
     tasks:
       - name: criterion
 
   - name: tpch
     display_name: "TPC-H"
     cron: "0 0 * * 1,3,5" # M,W,F at 00:00
-    run_on: [ ubuntu2204-large ]
+    run_on: [ubuntu2204-large]
     tasks:
       - name: tpch-0.001-normalized-atlas-sql
       - name: tpch-0.01-normalized-atlas-sql
@@ -1603,53 +1628,53 @@ buildvariants:
   - name: tpch-monthly
     display_name: "TPC-H Monthly"
     activate: false
-    run_on: [ ubuntu2204-large ]
+    run_on: [ubuntu2204-large]
     tasks:
       - name: tpch-0.1-normalized-atlas-sql
       - name: tpch-0.001-normalized-validation
 
   - name: tpch-validation
     display_name: "TPC-H Validation"
-    run_on: [ ubuntu2204-large ]
+    run_on: [ubuntu2204-large]
     tasks:
       - name: tpch-0.001-normalized-validation
 
   - name: mem-usage
     display_name: "Memory Usage Profiler"
-    run_on: [ amazon2-large ]
+    run_on: [amazon2-large]
     activate: true
     tasks:
       - name: mem-usage-profiler-generator
 
   - name: trr-integration-test
     display_name: "Transition Readiness Report Integration Test"
-    run_on: [ rhel76 ]
+    run_on: [rhel76]
     tasks:
       - name: compile-trr
       - name: test-transition-readiness-report-integration
 
   - name: trr-macos
-    tags: [ "trr-release-variant" ]
+    tags: ["trr-release-variant"]
     display_name: "Transition Readiness Report - macOS"
-    run_on: [ macos-1100 ]
+    run_on: [macos-1100]
     tasks:
       - name: compile-trr
       - name: test-transition-readiness-report
       - name: sign-transition-readiness-executables
 
   - name: trr-macos-arm
-    tags: [ "trr-release-variant" ]
+    tags: ["trr-release-variant"]
     display_name: "Transition Readiness Report - macOS arm"
-    run_on: [ macos-1100-arm64 ]
+    run_on: [macos-1100-arm64]
     tasks:
       - name: compile-trr
       - name: test-transition-readiness-report
       - name: sign-transition-readiness-executables
 
   - name: trr-windows-64
-    tags: [ "trr-release-variant" ]
+    tags: ["trr-release-variant"]
     display_name: "Transition Readiness Report - windows"
-    run_on: [ windows-64-vs2019-large ]
+    run_on: [windows-64-vs2019-large]
     tasks:
       - name: compile-trr
       - name: test-transition-readiness-report
@@ -1657,9 +1682,9 @@ buildvariants:
         run_on: ubuntu2204-large
 
   - name: trr-ubuntu2004
-    tags: [ "trr-release-variant" ]
+    tags: ["trr-release-variant"]
     display_name: "Transition Readiness Report - linux"
-    run_on: [ ubuntu2004-large ]
+    run_on: [ubuntu2004-large]
     tasks:
       - name: compile-trr
       - name: test-transition-readiness-report
@@ -1667,18 +1692,18 @@ buildvariants:
 
   - name: trr-release
     display_name: "Transition Readiness Report Release"
-    run_on: [ ubuntu2004-large ]
+    run_on: [ubuntu2004-large]
     tasks:
       - name: trr-release
 
   - name: release
     display_name: "Release"
-    run_on: [ ubuntu1804-large ]
+    run_on: [ubuntu1804-large]
     tasks:
       - name: release
 
   - name: dcsb-code-quality-security
     display_name: "MongoDB Schema Builder Code Quality and Security"
-    run_on: [ ubuntu2204-small ]
+    run_on: [ubuntu2204-small]
     tasks:
       - name: dcsb-sbom
