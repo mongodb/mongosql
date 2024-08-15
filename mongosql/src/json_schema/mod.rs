@@ -1,9 +1,21 @@
 #[cfg(test)]
 mod test;
 
+use bson::{Bson, Document};
 use enum_iterator::IntoEnumIterator;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use thiserror::Error;
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
+pub enum Error {
+    #[error("failed to serialize JSON Schema to BSON")]
+    BsonSerializationFailure,
+    #[error("failed to deserialize JSON Schema from BSON")]
+    BsonDeserializationFailure,
+}
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
@@ -62,4 +74,20 @@ pub enum BsonTypeName {
 pub enum Items {
     Single(Box<Schema>),
     Multiple(Vec<Schema>),
+}
+
+impl Schema {
+    pub fn to_bson(&self) -> Result<Bson> {
+        let serializer = bson::Serializer::new();
+        let serializer = serde_stacker::Serializer::new(serializer);
+        self.serialize(serializer)
+            .map_err(|_| Error::BsonSerializationFailure)
+    }
+
+    pub fn from_document(doc: &Document) -> Result<Self> {
+        let as_bson = Bson::Document(doc.clone());
+        let deserializer = bson::Deserializer::new(as_bson);
+        let deserializer = serde_stacker::Deserializer::new(deserializer);
+        Deserialize::deserialize(deserializer).map_err(|_| Error::BsonDeserializationFailure)
+    }
 }

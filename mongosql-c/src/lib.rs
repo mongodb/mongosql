@@ -107,7 +107,7 @@ fn translation_success_payload(t: mongosql::Translation) -> String {
         "target_db": t.target_db,
         "target_collection": t.target_collection.unwrap_or_default(),
         "pipeline": t.pipeline,
-        "result_set_schema": &bson::to_bson(&t.result_set_schema).expect("failed to convert result_set_schema to bson"),
+        "result_set_schema": &t.result_set_schema.to_bson().expect("failed to convert result_set_schema to bson"),
         "select_order": &bson::to_bson(&t.select_order).expect("failed to convert select_order to bson"),
     };
 

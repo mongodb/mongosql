@@ -35,7 +35,7 @@ impl From<mongodb::error::Error> for Error {
 impl From<mongosql::schema::Error> for Error {
     fn from(value: mongosql::schema::Error) -> Self {
         match value {
-            mongosql::schema::Error::BsonFailure => Self::BsonFailure,
+            mongosql::schema::Error::BsonFailure(_) => Self::BsonFailure,
             mongosql::schema::Error::JsonSchemaFailure => Self::JsonSchemaFailure,
             _ => Self::SchemaError(value),
         }

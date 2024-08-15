@@ -177,3 +177,41 @@ validate_json_schema!(
     },
     input = r#"{"bsonType":"array","items":[{}]}"#,
 );
+
+mod no_stack_overflows {
+    use super::*;
+
+    #[test]
+    fn when_serializing() {
+        let mut schema = Schema {
+            bson_type: Some(BsonType::Single(BsonTypeName::Int)),
+            ..Default::default()
+        };
+        for _ in 0..1000 {
+            schema = Schema {
+                any_of: Some(vec![schema]),
+                ..Default::default()
+            };
+        }
+
+        let _ = schema.to_bson();
+    }
+
+    #[test]
+    fn when_deserializing() {
+        let mut doc = bson::doc! { "bsonType": "int" };
+        // This uses a smaller limit than the serialization test
+        // since the mongodb::bson::Deserializer does not support
+        // the disable_recursion_limit method required by serde_stacker
+        // to handle greater depths. At 250 nesting depth, the standard
+        // bson::from_document encounters a stack overflow, whereas the
+        // manual serde_stacker deserialization technique does not.
+        for _ in 0..250 {
+            doc = bson::doc! { "anyOf": [doc] }
+        }
+
+        println!("start");
+
+        let _ = Schema::from_document(&doc);
+    }
+}

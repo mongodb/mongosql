@@ -1,6 +1,6 @@
 use fake::{Fake, Faker};
 use mongodb::{
-    bson::{self, datetime, doc, Bson, Document},
+    bson::{datetime, doc, Bson, Document},
     results::InsertManyResult,
     Collection, Database,
 };
@@ -404,7 +404,7 @@ async fn write_schema(
             db.name()
         )
     });
-    let as_bson_schema = bson::to_bson(&as_json_schema).unwrap_or_else(|_| {
+    let as_bson_schema = as_json_schema.to_bson().unwrap_or_else(|_| {
         panic!(
             "failed to convert JSON schema to BSON for {}.{coll_or_view_name}",
             db.name()

@@ -253,10 +253,10 @@ mod to_bson {
         ($func_name:ident, expected = $bson_doc:expr, input = $resultset_schema:expr) => {
             #[test]
             fn $func_name() {
-                let b = bson::to_bson(
-                    &crate::json_schema::Schema::try_from($resultset_schema).unwrap(),
-                )
-                .unwrap();
+                let b = crate::json_schema::Schema::try_from($resultset_schema)
+                    .unwrap()
+                    .to_bson()
+                    .unwrap();
                 assert_eq!($bson_doc, b);
             }
         };

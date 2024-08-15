@@ -38,8 +38,8 @@ pub enum Error {
     UnsupportedBsonType(String),
     #[error("JsonSchemaFailure")]
     JsonSchemaFailure,
-    #[error("BsonFailure")]
-    BsonFailure,
+    #[error("bson failure: {0}")]
+    BsonFailure(#[from] json_schema::Error),
 }
 
 impl From<user_schema_error::Error> for Error {
@@ -332,7 +332,7 @@ impl TryFrom<Schema> for bson::Bson {
             .clone()
             .try_into()
             .map_err(|_| Error::JsonSchemaFailure)?;
-        let bson_schema = bson::to_bson(&json_schema).map_err(|_| Error::BsonFailure)?;
+        let bson_schema = json_schema.to_bson().map_err(Error::BsonFailure)?;
 
         Ok(bson_schema)
     }
@@ -342,8 +342,8 @@ impl TryFrom<bson::Document> for Schema {
     type Error = Error;
     fn try_from(schema_doc: bson::Document) -> std::result::Result<Self, Self::Error> {
         let json_schema: json_schema::Schema = match schema_doc.get_document("$jsonSchema") {
-            Ok(doc) => bson::from_document(doc.clone()).map_err(|_| Error::BsonFailure),
-            Err(_) => bson::from_document(schema_doc.clone()).map_err(|_| Error::BsonFailure),
+            Ok(doc) => json_schema::Schema::from_document(doc).map_err(Error::BsonFailure),
+            Err(_) => json_schema::Schema::from_document(&schema_doc).map_err(Error::BsonFailure),
         }?;
         let sampler_schema: Schema = json_schema
             .try_into()
