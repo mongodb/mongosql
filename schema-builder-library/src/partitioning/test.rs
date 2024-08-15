@@ -1,4 +1,4 @@
-use mongodb::bson::{self, doc, oid::ObjectId, Bson};
+use mongodb::bson::{doc, oid::ObjectId, Bson};
 use mongosql::json_schema;
 
 use crate::{
@@ -72,7 +72,10 @@ fn test_generate_partition_match_with_schema_doc_max_bound_inclusive() {
     let ignored_ids = vec![Bson::ObjectId(ObjectId::new())];
     let match_stage =
         generate_partition_match(&partition, Some(schema.clone()), &ignored_ids).unwrap();
-    let bson_schema = bson::to_bson(&json_schema::Schema::try_from(schema).unwrap()).unwrap();
+    let bson_schema = json_schema::Schema::try_from(schema)
+        .unwrap()
+        .to_bson()
+        .unwrap();
     assert_eq!(
         match_stage,
         doc! {
@@ -106,7 +109,10 @@ fn test_generate_partition_match_with_schema_doc_max_bound_exclusive() {
     let ignored_ids = vec![Bson::ObjectId(ObjectId::new())];
     let match_stage =
         generate_partition_match(&partition, Some(schema.clone()), &ignored_ids).unwrap();
-    let bson_schema = bson::to_bson(&json_schema::Schema::try_from(schema).unwrap()).unwrap();
+    let bson_schema = json_schema::Schema::try_from(schema)
+        .unwrap()
+        .to_bson()
+        .unwrap();
     assert_eq!(
         match_stage,
         doc! {
