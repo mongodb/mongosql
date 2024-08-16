@@ -830,6 +830,70 @@ test_move_stage!(
     }),
 );
 
+test_move_stage_no_op!(
+    do_not_move_filter_under_left_join_into_on_when_filter_uses_rhs,
+    Stage::Filter(Filter {
+        source: Stage::Join(Join {
+            left: mir_collection("foo", "bar"),
+            right: mir_collection("foo", "bar2"),
+            condition: None,
+            join_type: JoinType::Left,
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        condition: Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Lt,
+            vec![
+                mir::Expression::Reference(Key::named("bar", 0u16).into()),
+                mir::Expression::Reference(Key::named("bar2", 0u16).into()),
+            ],
+        )),
+        cache: SchemaCache::new(),
+    })
+);
+
+test_move_stage!(
+    move_filter_under_left_join_into_lhs_when_filter_does_not_use_rhs,
+    expected = Stage::Join(Join {
+        left: Stage::Filter(Filter {
+            source: mir_collection("foo", "bar"),
+            condition: Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Lt,
+                args: vec![
+                    mir::Expression::Reference(Key::named("bar", 0u16).into()),
+                    mir::Expression::Reference(Key::named("bar", 0u16).into()),
+                ],
+                is_nullable: true,
+            }),
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        right: mir_collection("foo", "bar2"),
+        condition: None,
+        join_type: JoinType::Left,
+        cache: SchemaCache::new(),
+    }),
+    expected_changed = true,
+    input = Stage::Filter(Filter {
+        source: Stage::Join(Join {
+            left: mir_collection("foo", "bar"),
+            right: mir_collection("foo", "bar2"),
+            condition: None,
+            join_type: JoinType::Left,
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        condition: Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Lt,
+            vec![
+                mir::Expression::Reference(Key::named("bar", 0u16).into()),
+                mir::Expression::Reference(Key::named("bar", 0u16).into()),
+            ],
+        )),
+        cache: SchemaCache::new(),
+    }),
+);
+
 test_move_stage!(
     move_filter_under_join_into_some_on,
     expected = Stage::Join(Join {

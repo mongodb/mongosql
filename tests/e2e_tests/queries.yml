@@ -838,6 +838,3 @@ tests:
       - {
           "ITBL": {"ofoo": 1, "ifoo": 42, "baz": 63}
         }
-      - {
-          "ITBL": {"ofoo": 42}
-        }

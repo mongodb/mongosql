@@ -20,8 +20,8 @@ use crate::mir::optimizer::util::ContainsSubqueryVisitor;
 use crate::{
     mir::{
         binding_tuple::Key, schema::SchemaInferenceState, visitor::Visitor, Derived, EquiJoin,
-        Expression, Filter, Group, Join, LateralJoin, Limit, MQLStage, MatchFilter, Offset,
-        Project, ScalarFunction, ScalarFunctionApplication, Set, Sort, Stage, Unwind,
+        Expression, Filter, Group, Join, JoinType, LateralJoin, Limit, MQLStage, MatchFilter,
+        Offset, Project, ScalarFunction, ScalarFunctionApplication, Set, Sort, Stage, Unwind,
     },
     schema::ResultSet,
     SchemaCheckingMode,
@@ -489,11 +489,22 @@ impl<'a> StageMovementVisitor<'a> {
             // Specifically the *defines* method is only for what is defined by a specific stage not what is defined in the
             // entire pipeline, so we cannot just use *defines* on the left and right source here.
             Stage::Join(ref n) => {
+                let right_schema = n.right.schema(self.schema_state).unwrap();
+                // If this is a filter, we cannot move it, if the Join's JoinType is Left and any use is in the RHS because
+                // merging a WHERE or HAVING into a LEFT JOIN ON or into the Right datasource is semantically incorrect when the
+                // filter depends on the RHS values due to how $unwind with
+                // preserveNullAndEmptyArrays works.
+                if node.is_filter() && n.join_type == JoinType::Left {
+                    for u in datasource_uses.iter() {
+                        if right_schema.has_datasource(u) {
+                            return (node, false);
+                        }
+                    }
+                }
                 // We have to compute the schema outside of the dual_source call
                 // because passing references to the left, right sources to dual_sources
                 // upsets the borrow checker since we also pass *node* by value.
                 let left_schema = n.left.schema(self.schema_state).unwrap();
-                let right_schema = n.right.schema(self.schema_state).unwrap();
                 let (stage, changed) =
                     self.dual_source(node, datasource_uses, left_schema, right_schema, false);
                 if changed {

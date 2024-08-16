@@ -205,3 +205,16 @@ tests:
           "coll": { "_id": 0, "bar": 53, "car": 42 },
           "foo": { "_id": 0, "x": 1 },
         }
+
+  - description: left join with static value comparison to rhs field in ON clause still results in left hand side doc when condition fails
+    current_db: mydb
+    query: "SELECT * FROM bar LEFT JOIN bar2 ON bar._id = bar2._id AND bar2.baz = 63"
+    result:
+      - { "bar": {"_id": 0, "foo": 1}, "bar2": {"_id": 0, "foo": 42, "baz": 63}}
+      - { "bar": {"_id": 1, "foo": 42}}
+
+  - description: left join followed by WHERE with static comparison on rhs value filters out left hand side docs that do not match the WHERE
+    current_db: mydb
+    query: "SELECT * FROM bar LEFT JOIN bar2 ON bar._id = bar2._id WHERE bar2.baz = 63"
+    result:
+      - { "bar": {"_id": 0, "foo": 1}, "bar2": {"_id": 0, "foo": 42, "baz": 63}}

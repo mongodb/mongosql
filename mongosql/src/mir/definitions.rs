@@ -33,6 +33,12 @@ pub enum Stage {
     Sentinel,
 }
 
+impl Stage {
+    pub fn is_filter(&self) -> bool {
+        matches!(self, Stage::Filter(_))
+    }
+}
+
 #[derive(PartialEq, Debug, Clone)]
 pub struct Filter {
     pub source: Box<Stage>,
