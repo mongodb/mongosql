@@ -23,3 +23,20 @@ cargo run --bin generate_proto
 ```
 3. Verify that both `service/src/translator.rs` and `service/src/translator_descriptor.bin` have been updated.
 4. Commit these changes along with the `translator.proto` changes.
+
+## OpenTelemetry Collector Setup
+
+To test distributed tracing with the OpenTelemetry Collector, 
+you need to download a config used in the docker command. You can download the config
+[here](https://raw.githubusercontent.com/open-telemetry/opentelemetry-rust/main/opentelemetry-otlp/examples/basic-otlp-http/otel-collector-config.yaml).  
+
+To run the OpenTelemetry collector for tracing:
+```
+docker run --rm -it -p 4317:4317 -v $(pwd):/cfg otel/opentelemetry-collector:latest --config=/cfg/otel-collector-config.yaml
+```
+
+Set endpoint for your tracing exporter:
+```
+export COLLECTOR_ENDPOINT="http://localhost:4317"
+```
+If `COLLECTOR_ENDPOINT` is not set, the trace spans will be written to stdout.

@@ -5,14 +5,38 @@ use service::translator::{
 use std::env;
 use std::path::PathBuf;
 
+static TRANSLATE_SQL_OP: &str = "translate_sql";
+static GET_NAMESPACES_OP: &str = "get_namespaces";
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args: Vec<String> = env::args().collect();
+    let operation = args.get(1).map(|s| s.as_str());
     let hostname = env::var("SERVER_HOSTNAME").unwrap_or("localhost".into());
     let port = env::var("SERVER_PORT").unwrap_or("9001".into());
 
     let mut client = TranslatorServiceClient::connect(format!("http://{hostname}:{port}")).await?;
-    let file_name = "tpch.json";
+    match operation {
+        Some(op) if op == TRANSLATE_SQL_OP => run_translate_sql(&mut client).await?,
+        Some(op) if op == GET_NAMESPACES_OP => run_get_namespaces(&mut client).await?,
+        None => {
+            // Run both by default
+            run_translate_sql(&mut client).await?;
+            run_get_namespaces(&mut client).await?;
+        }
+        _ => println!(
+            "Invalid operation. Use '{}', '{}', or no argument to run both.",
+            TRANSLATE_SQL_OP, GET_NAMESPACES_OP
+        ),
+    }
+    Ok(())
+}
 
+async fn run_translate_sql(
+    client: &mut TranslatorServiceClient<tonic::transport::Channel>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    println!("Running Translate SQL operation:");
+    let file_name = "tpch.json";
     // Test translate_sql
     let catalog_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("src")
@@ -39,7 +63,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // TODO SQL-2218: Implement Logging
     println!("Translate SQL Response:");
     println!("{:#?}", translate_response);
+    Ok(())
+}
 
+async fn run_get_namespaces(
+    client: &mut TranslatorServiceClient<tonic::transport::Channel>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    println!("Running Get Namespaces operation:");
     // Test get_namespaces
     let namespaces_request = GetNamespacesRequest {
         db: "tpch".to_string(),

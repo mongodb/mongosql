@@ -7,7 +7,10 @@ use tonic::service::Interceptor;
 use tonic::transport::Server;
 pub mod version;
 use hyper::Error as HyperError;
+use opentelemetry::global;
+use opentelemetry::trace::Span;
 use prometheus::TextEncoder;
+use service::trace::distributed_tracing::{init_tracer_provider, start_span};
 use std::env;
 use std::error::Error;
 use std::net::AddrParseError;
@@ -15,6 +18,9 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use thiserror::Error;
 use tonic::transport::Error as TonicError;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::EnvFilter;
 
 #[derive(Debug, Error)]
 pub enum MainError {
@@ -36,6 +42,23 @@ mod mongosql_proto {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let tracer_provider = init_tracer_provider().expect("Failed to initialize tracer provider");
+    global::set_tracer_provider(tracer_provider.clone());
+
+    let log_level = env::var("RUST_LOG").unwrap_or_else(|_| "info".to_string());
+
+    tracing_subscriber::registry()
+        .with(EnvFilter::new(log_level))
+        .with(tracing_opentelemetry::layer())
+        .init();
+
+    let mut server_start_span = start_span(
+        "main".to_string(),
+        opentelemetry::trace::SpanKind::Internal,
+        &opentelemetry::Context::current(),
+    );
+    server_start_span.add_event("Starting SQL Translation Service".to_string(), vec![]);
+
     let grpc_host = env::var("SQL_TRANSLATION_SERVER_HOST").unwrap_or_else(|_| {
         eprintln!("SQL_TRANSLATION_SERVER_HOST not set, using default 0.0.0.0");
         "0.0.0.0".to_string()
@@ -46,7 +69,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     });
     let grpc_addr: SocketAddr = format!("{}:{}", grpc_host, grpc_port)
         .parse()
-        .map_err(MainError::GrpcAddrParse)?;
+        .map_err(|e| Box::new(MainError::GrpcAddrParse(e)) as Box<dyn Error>)?;
 
     let metrics_host = env::var("METRICS_SERVER_HOST").unwrap_or_else(|_| {
         eprintln!("METRICS_SERVER_HOST not set, using default 0.0.0.0");
@@ -58,7 +81,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     });
     let metrics_addr: SocketAddr = format!("{}:{}", metrics_host, metrics_port)
         .parse()
-        .map_err(MainError::MetricsAddrParse)?;
+        .map_err(|e| Box::new(MainError::MetricsAddrParse(e)) as Box<dyn Error>)?;
 
     let registry = Arc::new(Registry::new());
     register_metrics(&registry);
@@ -69,7 +92,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let reflection_service = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(mongosql_proto::FILE_DESCRIPTOR_SET)
         .build()
-        .map_err(MainError::ReflectionServiceBuild)?;
+        .map_err(|e| Box::new(MainError::ReflectionServiceBuild(e)) as Box<dyn Error>)?;
 
     // TODO SQL-2218: Implement Logging
     println!("SQL translation server listening on {}", grpc_addr);
@@ -110,11 +133,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
             eprintln!("Metrics server error: {}", e);
         }
     });
+    server_start_span.add_event("SQL Translation Service Started".to_string(), vec![]);
+    server_start_span.end();
 
     server
         .serve(grpc_addr)
         .await
-        .map_err(MainError::GrpcServer)?;
+        .map_err(|e| Box::new(MainError::GrpcServer(e)) as Box<dyn Error>)?;
+
+    global::shutdown_tracer_provider();
 
     Ok(())
 }

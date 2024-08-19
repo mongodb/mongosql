@@ -1,34 +1,57 @@
-use lazy_static::lazy_static;
 use prometheus::{register_int_counter, register_int_counter_vec};
 use prometheus::{HistogramVec, IntCounter, IntCounterVec, Registry};
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use tonic::service::Interceptor;
 use tonic::{Request, Status};
 
 // Metrics for gRPC server using Prometheus
-lazy_static! {
-    pub static ref SERVER_STARTED_COUNTER: IntCounterVec = IntCounterVec::new(
-        prometheus::opts!("grpc_server_started_total", "Total number of RPCs started on the server."),
-        &["grpc_service", "grpc_method"]
-    ).expect("Failed to create SERVER_STARTED_COUNTER");
-    pub static ref SERVER_HANDLED_COUNTER: IntCounterVec = IntCounterVec::new(
-        prometheus::opts!("grpc_server_handled_total", "Total number of RPCs completed on the server, regardless of success or failure."),
-        &["grpc_service", "grpc_method", "grpc_code"]
-    ).expect("Failed to create SERVER_HANDLED_COUNTER");
-    pub static ref SERVER_HANDLED_HISTOGRAM: HistogramVec = HistogramVec::new(
-        prometheus::histogram_opts!("grpc_server_handling_seconds", "Histogram of response latency (seconds) of gRPC that had been application-level handled by the server."),
-        &["grpc_service", "grpc_method"]
-    ).expect("Failed to create SERVER_HANDLED_HISTOGRAM");
-    pub static ref SERVER_ERRORS_TOTAL: IntCounterVec = register_int_counter_vec!(
+pub static SERVER_STARTED_COUNTER: LazyLock<IntCounterVec> = LazyLock::new(|| {
+    IntCounterVec::new(
+        prometheus::opts!(
+            "grpc_server_started_total",
+            "Total number of RPCs started on the server."
+        ),
+        &["grpc_service", "grpc_method"],
+    )
+    .expect("Failed to create SERVER_STARTED_COUNTER")
+});
+
+pub static SERVER_HANDLED_COUNTER: LazyLock<IntCounterVec> = LazyLock::new(|| {
+    IntCounterVec::new(
+        prometheus::opts!(
+            "grpc_server_handled_total",
+            "Total number of RPCs completed on the server, regardless of success or failure."
+        ),
+        &["grpc_service", "grpc_method", "grpc_code"],
+    )
+    .expect("Failed to create SERVER_HANDLED_COUNTER")
+});
+
+pub static SERVER_HANDLED_HISTOGRAM: LazyLock<HistogramVec> = LazyLock::new(|| {
+    HistogramVec::new(
+        prometheus::histogram_opts!(
+            "grpc_server_handling_seconds",
+            "Histogram of response latency (seconds) of gRPC that had been application-level \
+            handled by the server."
+        ),
+        &["grpc_service", "grpc_method"],
+    )
+    .expect("Failed to create SERVER_HANDLED_HISTOGRAM")
+});
+
+pub static SERVER_ERRORS_TOTAL: LazyLock<IntCounterVec> = LazyLock::new(|| {
+    register_int_counter_vec!(
         "grpc_errors_total",
         "Total number of gRPC errors",
         &["code"]
-    ).expect("Failed to create SERVER_ERRORS_TOTAL");
-    pub static ref SERVER_PANICS_TOTAL: IntCounter = register_int_counter!(
-        "grpc_panics_total",
-        "Total number of panics in gRPC calls"
-    ).expect("Failed to create SERVER_PANICS_TOTAL");
-}
+    )
+    .expect("Failed to create SERVER_ERRORS_TOTAL")
+});
+
+pub static SERVER_PANICS_TOTAL: LazyLock<IntCounter> = LazyLock::new(|| {
+    register_int_counter!("grpc_panics_total", "Total number of panics in gRPC calls")
+        .expect("Failed to create SERVER_PANICS_TOTAL")
+});
 
 pub fn register_metrics(registry: &Registry) {
     registry

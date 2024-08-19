@@ -19,6 +19,8 @@ use std::panic::AssertUnwindSafe;
 use std::time::Instant;
 use thiserror::Error;
 
+use crate::trace::distributed_tracing::{add_event, extract_parent_context, start_span};
+use opentelemetry::trace::SpanKind;
 use std::panic;
 
 #[cfg(test)]
@@ -144,17 +146,19 @@ impl TranslatorService for TranslateSqlService {
         &self,
         request: Request<TranslateSqlRequest>,
     ) -> Result<Response<TranslateSqlResponse>, Status> {
+        let parent_cx = extract_parent_context(request.metadata());
+        let mut span = start_span("translate_sql".to_string(), SpanKind::Server, &parent_cx);
         let start = Instant::now();
         SERVER_STARTED_COUNTER
             .with_label_values(&["TranslatorService", "TranslateSql"])
             .inc();
-
         let req = request.into_inner();
-
         // TODO SQL-2218: Implement Logging
         println!("Received a request to db: {}", req.db);
+        add_event(&mut span, &format!("Received request for db: {}", req.db));
 
         if req.schema_catalog.is_empty() {
+            add_event(&mut span, "Error: schema_catalog is empty");
             SERVER_HANDLED_COUNTER
                 .with_label_values(&["TranslatorService", "TranslateSql", "INVALID_ARGUMENT"])
                 .inc();
@@ -167,43 +171,38 @@ impl TranslatorService for TranslateSqlService {
             trigger_panic();
         }
 
-        let catalog = catalog::build_catalog_from_bytes(&req.schema_catalog)
-            .map_err(|e| Error::CatalogBuildError(e.to_string()))?;
-
-        let options = SqlOptions {
-            exclude_namespaces: translator::ExcludeNamespacesOption::try_from(
-                req.exclude_namespaces,
-            )
-            .map_err(|_| Error::InvalidExcludeNamespacesOption)
-            .map(|option| match option {
-                translator::ExcludeNamespacesOption::ExcludeNamespacesUnspecified => {
-                    mongosql::options::ExcludeNamespacesOption::ExcludeNamespaces
-                }
-                translator::ExcludeNamespacesOption::IncludeNamespaces => {
-                    mongosql::options::ExcludeNamespacesOption::IncludeNamespaces
-                }
-            })?,
-            schema_checking_mode: SchemaCheckingMode::try_from(req.schema_checking_mode)
-                .map_err(|_| Error::InvalidSchemaCheckingMode)
-                .map(|mode| match mode {
-                    SchemaCheckingMode::StrictUnspecified => mongosql::SchemaCheckingMode::Strict,
-                    SchemaCheckingMode::Relaxed => mongosql::SchemaCheckingMode::Relaxed,
-                })?,
+        let catalog = match catalog::build_catalog_from_bytes(&req.schema_catalog) {
+            Ok(cat) => cat,
+            Err(e) => {
+                add_event(&mut span, &format!("Error building catalog: {}", e));
+                return Err(Error::CatalogBuildError(e.to_string()).into());
+            }
         };
 
-        let response = mongosql::translate_sql(&req.db, &req.query, &catalog, options)
-            .map(Self::create_translate_sql_response)
-            .map_err(|e| Error::SqlTranslationError(e.to_string()))?;
+        let options = match self.build_sql_options(&req) {
+            Ok(opts) => opts,
+            Err(e) => {
+                add_event(&mut span, &format!("Error building SQL options: {}", e));
+                return Err(e);
+            }
+        };
+
+        let response = match mongosql::translate_sql(&req.db, &req.query, &catalog, options) {
+            Ok(translation) => Self::create_translate_sql_response(translation),
+            Err(e) => {
+                add_event(&mut span, &format!("Error translating SQL: {}", e));
+                return Err(Error::SqlTranslationError(e.to_string()).into());
+            }
+        };
 
         let duration = start.elapsed();
         SERVER_HANDLED_HISTOGRAM
             .with_label_values(&["TranslatorService", "TranslateSql"])
             .observe(duration.as_secs_f64());
-
         SERVER_HANDLED_COUNTER
             .with_label_values(&["TranslatorService", "TranslateSql", "OK"])
             .inc();
-
+        add_event(&mut span, "SQL translation completed");
         Ok(Response::new(response))
     }
 
@@ -211,6 +210,9 @@ impl TranslatorService for TranslateSqlService {
         &self,
         request: Request<GetNamespacesRequest>,
     ) -> Result<Response<GetNamespacesResponse>, Status> {
+        let parent_cx = extract_parent_context(request.metadata());
+        let mut span = start_span("get_namespaces".to_string(), SpanKind::Server, &parent_cx);
+
         let start = Instant::now();
         SERVER_STARTED_COUNTER
             .with_label_values(&["TranslatorService", "GetNamespaces"])
@@ -218,8 +220,17 @@ impl TranslatorService for TranslateSqlService {
 
         let req = request.into_inner();
 
-        let namespaces = mongosql::get_namespaces(&req.db, &req.query)
-            .map_err(|e| Error::GetNamespacesError(e.to_string()))?;
+        let namespaces = match mongosql::get_namespaces(&req.db, &req.query) {
+            Ok(ns) => ns,
+            Err(e) => {
+                let error_msg = e.to_string();
+                add_event(
+                    &mut span,
+                    &format!("Error getting namespaces: {}", error_msg),
+                );
+                return Err(Error::GetNamespacesError(error_msg).into());
+            }
+        };
 
         let response = Self::create_get_namespaces_response(namespaces);
 
@@ -232,6 +243,34 @@ impl TranslatorService for TranslateSqlService {
             .with_label_values(&["TranslatorService", "GetNamespaces", "OK"])
             .inc();
 
+        add_event(&mut span, "Get namespaces completed");
+
         Ok(Response::new(response))
+    }
+}
+
+impl TranslateSqlService {
+    fn build_sql_options(&self, req: &TranslateSqlRequest) -> Result<SqlOptions, Status> {
+        let exclude_namespaces =
+            translator::ExcludeNamespacesOption::try_from(req.exclude_namespaces)
+                .map_err(|_| Status::invalid_argument("Invalid exclude_namespaces option"))?;
+
+        let schema_checking_mode = SchemaCheckingMode::try_from(req.schema_checking_mode)
+            .map_err(|_| Status::invalid_argument("Invalid schema_checking_mode"))?;
+
+        Ok(SqlOptions {
+            exclude_namespaces: match exclude_namespaces {
+                translator::ExcludeNamespacesOption::ExcludeNamespacesUnspecified => {
+                    mongosql::options::ExcludeNamespacesOption::ExcludeNamespaces
+                }
+                translator::ExcludeNamespacesOption::IncludeNamespaces => {
+                    mongosql::options::ExcludeNamespacesOption::IncludeNamespaces
+                }
+            },
+            schema_checking_mode: match schema_checking_mode {
+                SchemaCheckingMode::StrictUnspecified => mongosql::SchemaCheckingMode::Strict,
+                SchemaCheckingMode::Relaxed => mongosql::SchemaCheckingMode::Relaxed,
+            },
+        })
     }
 }
