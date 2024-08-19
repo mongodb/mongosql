@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime};
 use std::collections::HashMap;
 
 use crate::log_parser::{LogEntry, QueryRepresentation};
@@ -41,8 +41,6 @@ pub fn process_summary_html(log_parse: &crate::log_parser::LogParseResult) -> St
     }
 
     // Process complex types for subpath_fields
-    // allowing deprecated for the timestap function
-    #[allow(deprecated)]
     if let Some(subpath_fields) = &log_parse.subpath_fields {
         for (field, _, _) in subpath_fields {
             let db = field.db.clone();
@@ -51,13 +49,11 @@ pub fn process_summary_html(log_parse: &crate::log_parser::LogParseResult) -> St
                 .and_modify(|entry| {
                     entry.2 += 1;
                 })
-                .or_insert((0, NaiveDateTime::from_timestamp_opt(0, 0).unwrap(), 1, 0));
+                .or_insert((0, DateTime::from_timestamp(0, 0).unwrap().naive_utc(), 1, 0));
         }
     }
 
     // Process complex types for array_datasources
-    #[allow(deprecated)]
-    // allowing deprecated for the timestap function
     if let Some(array_datasources) = &log_parse.array_datasources {
         for (db, _, _, _) in array_datasources {
             let db = db.clone();
@@ -66,7 +62,7 @@ pub fn process_summary_html(log_parse: &crate::log_parser::LogParseResult) -> St
                 .and_modify(|entry| {
                     entry.3 += 1;
                 })
-                .or_insert((0, NaiveDateTime::from_timestamp_opt(0, 0).unwrap(), 0, 1));
+                .or_insert((0, DateTime::from_timestamp(0, 0).unwrap().naive_utc(), 0, 1));
         }
     }
 
