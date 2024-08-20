@@ -44,6 +44,7 @@ functions:
         bucket: mciuploads
     - command: shell.exec
       type: system
+      retry_on_failure: true
       params:
         silent: true
         script: |
@@ -84,6 +85,7 @@ functions:
         bucket: mciuploads
     - command: shell.exec
       type: system
+      retry_on_failure: true
       params:
         silent: true
         script: |

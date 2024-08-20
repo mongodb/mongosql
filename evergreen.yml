@@ -557,6 +557,7 @@ functions:
         bucket: mciuploads
     - command: shell.exec
       type: system
+      retry_on_failure: true
       params:
         silent: true
         script: |
@@ -597,12 +598,14 @@ functions:
         bucket: mciuploads
     - command: shell.exec
       type: system
+      retry_on_failure: true
       params:
         silent: true
         script: |
           docker login --username ${sql_engines_artifactory_username} --password ${sql_engines_artifactory_auth_token} ${release_tools_container_registry}
     - command: shell.exec
       type: system
+      retry_on_failure: true
       params:
         silent: true
         env:
@@ -619,6 +622,7 @@ functions:
             /bin/bash -c "gpgloader && gpg --yes -v --armor -o mongosql-transition-tool-linux.sig --detach-sign mongosql-transition-tool-linux"
     - command: shell.exec
       type: system
+      retry_on_failure: true
       params:
         silent: false
         env:
