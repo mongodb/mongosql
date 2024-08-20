@@ -1,7 +1,7 @@
 use crate::{
     mir::{self, optimizer::use_def_analysis::FieldPath},
     unchecked_unique_linked_hash_map,
-    util::{mir_collection, mir_field_access, mir_field_path},
+    util::{mir_collection, mir_field_access, mir_field_access_multi_part, mir_field_path},
 };
 
 macro_rules! test_method {
@@ -273,6 +273,32 @@ test_field_uses!(
             SortSpecification::Asc(mir_field_path("foo", vec!["x"])),
             SortSpecification::Desc(mir_field_path("foo", vec!["y"])),
         ],
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_field_uses!(
+    all_ancestors_considered_used_for_nested_field_paths,
+    expected = Some({
+        let expected: HashSet<FieldPath> = set! {
+            mir_field_path("foo", vec!["a"]),
+            mir_field_path("foo", vec!["a", "b"]),
+            mir_field_path("foo", vec!["a", "b", "c"]),
+            mir_field_path("bar", vec!["x"]),
+            mir_field_path("bar", vec!["x", "y"]),
+        };
+        expected
+    }),
+    input = Stage::Filter(Filter {
+        source: mir_collection("db", "coll"),
+        condition: Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Lt,
+            args: vec![
+                *mir_field_access_multi_part("foo", vec!["a", "b", "c"], true),
+                *mir_field_access_multi_part("bar", vec!["x", "y"], true),
+            ],
+            is_nullable: true,
+        }),
         cache: SchemaCache::new(),
     }),
 );

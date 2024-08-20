@@ -38,9 +38,9 @@ catalog_data:
       - { "_id": 5, v: 10.2 }
       - { "_id": 6, v: "" }
     arrays:
-      - { "_id": 1, v: [1, 2, 3] }
-      - { "_id": 2, v: [4, 5, 6] }
-      - { "_id": 3, v: [7, 8, 9] }
+      - { "_id": 1, v: [ 1, 2, 3 ] }
+      - { "_id": 2, v: [ 4, 5, 6 ] }
+      - { "_id": 3, v: [ 7, 8, 9 ] }
 
 catalog_schema:
   test_db:
@@ -49,10 +49,10 @@ catalog_schema:
       properties:
         {
           "_id": { "bsonType": "int" },
-          "a": { "anyOf": [{ "bsonType": "int" }, { "bsonType": "null" }] },
+          "a": { "anyOf": [ { "bsonType": "int" }, { "bsonType": "null" } ] },
           "b": { "bsonType": "int" },
         }
-      required: ["_id"]
+      required: [ "_id" ]
       additionalProperties: false
     non_nullable_fields:
       bsonType: "object"
@@ -62,13 +62,13 @@ catalog_schema:
           "a": { "bsonType": "int" },
           "b": { "bsonType": "int" },
         }
-      required: ["_id", "a", "b"]
+      required: [ "_id", "a", "b" ]
       additionalProperties: false
     strings:
       bsonType: "object"
       properties:
         { "_id": { "bsonType": "int" }, "s": { "bsonType": "string" } }
-      required: ["_id", "s"]
+      required: [ "_id", "s" ]
       additionalProperties: false
     mixed:
       bsonType: "object"
@@ -85,7 +85,7 @@ catalog_schema:
                 ],
             },
         }
-      required: ["_id", "v"]
+      required: [ "_id", "v" ]
       additionalProperties: false
     arrays:
       bsonType: "object"
@@ -94,7 +94,7 @@ catalog_schema:
           "_id": { "bsonType": "int" },
           "v": { "bsonType": "array", "items": { "bsonType": "int" } },
         }
-      required: ["_id", "v"]
+      required: [ "_id", "v" ]
       additionalProperties: false
 
 indexes:
@@ -125,42 +125,42 @@ tests:
     query: "SELECT * FROM nullable_fields WHERE a = 100"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["[100, 100]"] }
+      - { "a": [ "[100, 100]" ] }
 
   - description: simple column EQ scalar filter uses index scan when fields are non-nullable
     current_db: test_db
     query: "SELECT * FROM non_nullable_fields WHERE a = 100"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["[100, 100]"] }
+      - { "a": [ "[100, 100]" ] }
 
   - description: simple column GT scalar filter uses index scan when fields are nullable
     current_db: test_db
     query: "SELECT * FROM nullable_fields WHERE a > 100"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["(100, MaxKey]"] }
+      - { "a": [ "(100, MaxKey]" ] }
 
   - description: simple column GT scalar filter uses index scan when fields are non-nullable
     current_db: test_db
     query: "SELECT * FROM non_nullable_fields WHERE a > 100"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["(100, MaxKey]"] }
+      - { "a": [ "(100, MaxKey]" ] }
 
   - description: simple column GTE scalar filter uses index scan when fields are nullable
     current_db: test_db
     query: "SELECT * FROM nullable_fields WHERE a >= 100"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["[100, MaxKey]"] }
+      - { "a": [ "[100, MaxKey]" ] }
 
   - description: simple column GTE scalar filter uses index scan when fields are non-nullable
     current_db: test_db
     query: "SELECT * FROM non_nullable_fields WHERE a >= 100"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["[100, MaxKey]"] }
+      - { "a": [ "[100, MaxKey]" ] }
 
   - description: simple column LT scalar filter uses index scan when fields are nullable
     current_db: test_db
@@ -168,14 +168,14 @@ tests:
     expected_utilization: IX_SCAN
     # the minimum bound is null (exclusive) since we expect this query to explicitly omit NULL/MISSING fields
     expected_index_bounds:
-      - { "a": ["(null, 100)"] }
+      - { "a": [ "(null, 100)" ] }
 
   - description: simple column LT scalar filter uses index scan when fields are non-nullable
     current_db: test_db
     query: "SELECT * FROM non_nullable_fields WHERE a < 100"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["[MinKey, 100)"] }
+      - { "a": [ "[MinKey, 100)" ] }
 
   - description: simple column LTE scalar filter uses index scan when fields are nullable
     current_db: test_db
@@ -183,14 +183,14 @@ tests:
     expected_utilization: IX_SCAN
     # the minimum bound is null (exclusive) since we expect this query to explicitly omit NULL/MISSING fields
     expected_index_bounds:
-      - { "a": ["(null, 100]"] }
+      - { "a": [ "(null, 100]" ] }
 
   - description: simple column LTE scalar filter uses index scan when fields are non-nullable
     current_db: test_db
     query: "SELECT * FROM non_nullable_fields WHERE a <= 100"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["[MinKey, 100]"] }
+      - { "a": [ "[MinKey, 100]" ] }
 
   - description: simple column NE scalar filter uses index scan when fields are nullable
     current_db: test_db
@@ -198,7 +198,7 @@ tests:
     expected_utilization: IX_SCAN
     # the minimum bound is null (exclusive) since we expect this query to explicitly omit NULL/MISSING fields
     expected_index_bounds:
-      - { "a": ["(null, MaxKey]"] }
+      - { "a": [ "(null, MaxKey]" ] }
 
   - description: simple column NE scalar filter uses collection scan when fields are non-nullable
     current_db: test_db
@@ -211,14 +211,14 @@ tests:
     query: "SELECT * FROM nullable_fields WHERE a BETWEEN 100 AND 300"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["[100, 300]"] }
+      - { "a": [ "[100, 300]" ] }
 
   - description: simple column BETWEEN scalar filter uses collection scan when fields are non-nullable
     current_db: test_db
     query: "SELECT * FROM non_nullable_fields WHERE a BETWEEN 100 AND 300"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["[100, 300]"] }
+      - { "a": [ "[100, 300]" ] }
 
   - description: NOT does not impact index usage when fields are nullable
     current_db: test_db
@@ -226,21 +226,21 @@ tests:
     expected_utilization: IX_SCAN
     # the minimum bound is null (exclusive) since we expect this query to explicitly omit NULL/MISSING fields
     expected_index_bounds:
-      - { "a": ["(null, 100)"] }
+      - { "a": [ "(null, 100)" ] }
 
   - description: NOT does not impact index usage when fields are non-nullable
     current_db: test_db
     query: "SELECT * FROM non_nullable_fields WHERE NOT a >= 100"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["[MinKey, 100)"] }
+      - { "a": [ "[MinKey, 100)" ] }
 
   - description: simple column-column filter uses index scan when fields are nullable
     current_db: test_db
     query: "SELECT * FROM nullable_fields WHERE a = b"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["(null, MaxKey]"] }
+      - { "a": [ "(null, MaxKey]" ] }
 
   - description: simple column-column filter uses collection scan when fields are non-nullable
     current_db: test_db
@@ -254,7 +254,7 @@ tests:
     query: "SELECT * FROM nullable_fields WHERE a > 100 AND b > 3000"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["(100, MaxKey]"] }
+      - { "a": [ "(100, MaxKey]" ] }
 
   - description: AND compound filter uses index scan when fields are non-nullable
     current_db: test_db
@@ -263,29 +263,29 @@ tests:
     # It is unclear exactly why the index b_1 consistently wins here; perhaps it is considered more discerning
     # since there are more values of 'b' excluded by this index than values of 'a' excluded by a_1.
     expected_index_bounds:
-      - { "b": ["(3000, MaxKey]"] }
+      - { "b": [ "(3000, MaxKey]" ] }
 
   - description: OR compound filter uses index scan when fields are nullable
     current_db: test_db
     query: "SELECT * FROM nullable_fields WHERE a > 100 OR b > 3000"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["(null, MaxKey]"] }
+      - { "a": [ "(null, MaxKey]" ] }
 
   - description: OR compound filter uses index scan when fields are non-nullable
     current_db: test_db
     query: "SELECT * FROM non_nullable_fields WHERE a > 100 OR b > 3000"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["(100, MaxKey]"] }
-      - { "b": ["(3000, MaxKey]"] }
+      - { "a": [ "(100, MaxKey]" ] }
+      - { "b": [ "(3000, MaxKey]" ] }
 
   - description: complex filter uses index scan when fields are nullable
     current_db: test_db
     query: "SELECT * FROM nullable_fields WHERE a / b > 4"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["(null, MaxKey]"] }
+      - { "a": [ "(null, MaxKey]" ] }
 
   - description: complex filter uses collection scan when fields are non-nullable
     current_db: test_db
@@ -299,51 +299,49 @@ tests:
     query: "SELECT a FROM nullable_fields WHERE a > 100"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["(100, MaxKey]"] }
+      - { "a": [ "(100, MaxKey]" ] }
 
   - description: SELECT field list does not impede index scan when fields are non-nullable
     current_db: test_db
     query: "SELECT a FROM non_nullable_fields WHERE a > 100"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["(100, MaxKey]"] }
+      - { "a": [ "(100, MaxKey]" ] }
 
   - description: LIKE filter uses index scan
     current_db: test_db
     query: "SELECT * FROM strings WHERE s LIKE 'abc'"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "s": ['["", {})', "[/^abc$/si, /^abc$/si]"] }
+      - { "s": [ '["", {})', "[/^abc$/si, /^abc$/si]" ] }
 
   - description: IS filter uses index scan
     current_db: test_db
     query: "SELECT * FROM mixed WHERE v IS NUMBER"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "v": ["[nan.0, inf.0]"] }
+      - { "v": [ "[nan.0, inf.0]" ] }
 
   - description: Unwound collection with filter on array field uses index
-    skip_reason: SQL-2264 - rethink unwind prefiltering
     current_db: test_db
     query: "SELECT * FROM UNWIND(arrays WITH PATH => v) WHERE v = 6"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "v": ["[6, 6]"] }
+      - { "v": [ "[6, 6]" ] }
 
   - description: Filter can be pushed into derived table and utilize index
     current_db: test_db
     query: "SELECT t1.* FROM (SELECT * FROM nullable_fields AS t1) AS t1 WHERE t1.a > 100"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "a": ["(100, MaxKey]"] }
+      - { "a": [ "(100, MaxKey]" ] }
 
   - description: Optimizer correctly runs to fixed point
-    skip_reason: SQL-2264 - rethink unwind prefiltering
     current_db: test_db
     query: "SELECT * FROM FLATTEN(UNWIND(arrays WITH PATH => v)) WHERE _id = 1"
     expected_utilization: IX_SCAN
     expected_index_bounds:
-      - { "_id": ["[1, 1]"] }
+      - { "_id": [ "[1, 1]" ] }
 
   - description: subquery filter should not prevent index usage
     current_db: test_db

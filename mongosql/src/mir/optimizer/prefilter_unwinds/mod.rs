@@ -33,8 +33,6 @@ use crate::{
     SchemaCheckingMode,
 };
 
-// TODO: SQL-2264
-#[allow(dead_code)]
 pub(crate) struct PrefilterUnwindsOptimizer {}
 
 impl Optimizer for PrefilterUnwindsOptimizer {
@@ -49,8 +47,6 @@ impl Optimizer for PrefilterUnwindsOptimizer {
 }
 
 impl PrefilterUnwindsOptimizer {
-    // TODO: SQL-2264
-    #[allow(dead_code)]
     fn prefilter_unwinds(st: Stage) -> (Stage, bool) {
         let mut visitor = PrefilterUnwindsVisitor::default();
         let new_stage = visitor.visit_stage(st);

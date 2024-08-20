@@ -189,7 +189,14 @@ impl Visitor for SingleStageFieldUseVisitor {
                 Err(_) => self.field_uses = None,
             }
         }
-        node
+        // Walk up this FieldAccess node to indicate that all ancestors are
+        // also considered "used". Importantly, this is an exponential algorithm,
+        // so we should look here in case customers ever see their queries taking
+        // a long time to compile. Realistically, this should never be a problem
+        // for any reasonable SQL queries. Some contrived cases with extremely
+        // deeply nested field references could pose an issue, but these are
+        // unlikely to happen for the overwhelming majority of queries.
+        node.walk(self)
     }
 
     fn visit_field_path(&mut self, node: FieldPath) -> FieldPath {

@@ -1774,7 +1774,6 @@ test_move_stage!(
 );
 
 test_move_stage!(
-    ignore = "SQL-2264 - Rethink unwind prefiltering",
     move_later_filter_above_unwind_that_prohibits_movement_of_earlier_filter,
     expected = Stage::Filter(Filter {
         source: Stage::Unwind(Unwind {

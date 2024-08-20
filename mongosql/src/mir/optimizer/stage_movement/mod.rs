@@ -12,6 +12,13 @@
 /// Limit and Offset are moved as highly as possible to reduce the number of computations on
 /// documents that are eventually thrown away.
 ///
+/// Note that this optimization uses the `field_uses` function which is an exponential algorithm.
+/// There is an extremely miniscule chance that this could cause long-running query compilation
+/// times. In case we ever see a customer query stuck in the optimization phase for a long time,
+/// this is likely a prime candidate to investigate first. The telltale sign for this would be
+/// one or more extremely deeply nested field paths in a query (specifically in WHERE, HAVING, or
+/// ORDER BY clauses). For example, `... WHERE a.b.c.d....x.y.z.even.further....extreme.nesting`.
+///
 #[cfg(test)]
 mod test;
 
@@ -609,11 +616,7 @@ impl<'a> StageMovementVisitor<'a> {
                     | Stage::Group(_)
                     | Stage::MQLIntrinsic(MQLStage::LateralJoin(_))
             ),
-            // TODO: SQL-2264
-            Stage::Filter(ref n) => matches!(
-                &*n.source,
-                Stage::Collection(_) | Stage::Array(_) | Stage::Unwind(_)
-            ),
+            Stage::Filter(ref n) => matches!(&*n.source, Stage::Collection(_) | Stage::Array(_)),
             Stage::MQLIntrinsic(MQLStage::MatchFilter(ref n)) => {
                 matches!(&*n.source, Stage::Collection(_) | Stage::Array(_))
             }
