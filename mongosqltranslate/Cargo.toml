@@ -1,0 +1,10 @@
+[package]
+name = "mongosqltranslate"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = "1.0.208"
+mongosql = { path = "../mongosql" }
+mongodb = "3.0.1"
+serde_stacker = "0.1"

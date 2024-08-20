@@ -16,6 +16,7 @@ members = [
     "usererrordisplay-impl",
     "visitgen",
     "visitgen-test",
+    "mongosqltranslate",
 ]
 
 [profile.release]
