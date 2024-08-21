@@ -2,7 +2,11 @@ macro_rules! test_user_error_messages {
     ($func_name:ident, input = $input:expr, expected = $expected:expr) => {
         #[test]
         fn $func_name() {
-            use crate::{mir::schema::Error, usererror::UserError};
+            #[allow(unused_imports)]
+            use crate::{
+                mir::schema::{Error, ANY_SCHEMA_ADDENDUM},
+                usererror::UserError,
+            };
 
             let user_message = $input.user_message();
 
@@ -60,6 +64,16 @@ mod schema_checking {
             found: Schema::Atomic(Atomic::Integer),
         },
         expected = "Incorrect argument type for `Second`. Required: nullable date. Found: int."
+    }
+
+    test_user_error_messages! {
+        operation_uses_any_schema,
+        input = Error::SchemaChecking{
+            name: "Add",
+            required: NUMERIC_OR_NULLISH.clone(),
+            found: Schema::Any,
+        },
+        expected = "Incorrect argument type for `Add`. Required: nullable numeric type. Found: any type. An `any type` schema may indicate that schema is not set for the relevant collection or field. Please verify that the schema is set as expected."
     }
 
     test_user_error_messages! {
@@ -141,7 +155,7 @@ mod cannot_merge_objects {
 }
 
 mod aggregation_argument_must_be_self_comparable {
-    use crate::schema::ANY_DOCUMENT;
+    use crate::schema::{Schema, ANY_DOCUMENT};
 
     test_user_error_messages! {
         max,
@@ -160,6 +174,15 @@ mod aggregation_argument_must_be_self_comparable {
         ),
         expected = "Cannot perform `Max DISTINCT` aggregation over the type `object type` as it is not comparable to itself."
     }
+
+    test_user_error_messages! {
+        aggregation_uses_any_schema,
+        input = Error::AggregationArgumentMustBeSelfComparable(
+            "Max".into(),
+            Schema::Any
+        ),
+        expected = "Cannot perform `Max` aggregation over the type `any type` as it is not comparable to itself. An `any type` schema may indicate that schema is not set for the relevant collection or field. Please verify that the schema is set as expected."
+    }
 }
 
 mod invalid_comparison {
@@ -174,6 +197,26 @@ mod invalid_comparison {
         ),
         expected = "Invalid use of `Lte` due to incomparable types: `int` cannot be compared to `string`."
     }
+
+    test_user_error_messages! {
+        invalid_comparison_one_any,
+        input = Error::InvalidComparison(
+            "Lte",
+            Schema::Atomic(Atomic::Integer),
+            Schema::Any,
+        ),
+        expected = format!("Invalid use of `Lte` due to incomparable types: `int` cannot be compared to `any type`. {ANY_SCHEMA_ADDENDUM}")
+    }
+
+    test_user_error_messages! {
+        invalid_comparison_both_any,
+        input = Error::InvalidComparison(
+            "Lte",
+            Schema::Any,
+            Schema::Any,
+        ),
+        expected = format!("Invalid use of `Lte` due to incomparable types: `any type` cannot be compared to `any type`. {ANY_SCHEMA_ADDENDUM}")
+    }
 }
 
 mod sort_key_comparable {
@@ -185,7 +228,7 @@ mod sort_key_comparable {
     test_user_error_messages! {
         sort_key_not_comparable_any,
         input = Error::SortKeyNotSelfComparable(0, Schema::Any),
-        expected = "Cannot sort by key because `any type` can't be compared against itself."
+        expected = format!("Cannot sort by key because `any type` can't be compared against itself. {ANY_SCHEMA_ADDENDUM}")
     }
 
     test_user_error_messages! {
@@ -209,7 +252,7 @@ mod group_key_comparable {
     test_user_error_messages! {
         group_key_not_comparable_any,
         input = Error::GroupKeyNotSelfComparable(0, Schema::Any),
-        expected = "Cannot group by key because `any type` can't be compared against itself."
+        expected = format!("Cannot group by key because `any type` can't be compared against itself. {ANY_SCHEMA_ADDENDUM}")
     }
 
     test_user_error_messages! {

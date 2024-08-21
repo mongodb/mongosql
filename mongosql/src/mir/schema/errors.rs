@@ -75,7 +75,12 @@ impl UserError for Error {
                 {
                     Some(message)
                 } else {
-                    Some(format!("Incorrect argument type for `{name}`. Required: {simplified_required}. Found: {simplified_found}."))
+                    let error_msg = format!("Incorrect argument type for `{name}`. Required: {simplified_required}. Found: {simplified_found}.");
+                    let error_msg = Self::error_message_with_any_schema_addendum(
+                        error_msg,
+                        vec![simplified_found],
+                    );
+                    Some(error_msg)
                 }
             }
             Error::AggregationArgumentMustBeSelfComparable(agg, schema) => {
@@ -84,7 +89,12 @@ impl UserError for Error {
                 if let Some(message) = unsat_check(vec![simplified_schema.clone()]) {
                     Some(message)
                 } else {
-                    Some(format!("Cannot perform `{agg}` aggregation over the type `{simplified_schema}` as it is not comparable to itself."))
+                    let error_msg = format!("Cannot perform `{agg}` aggregation over the type `{simplified_schema}` as it is not comparable to itself.");
+                    let error_msg = Self::error_message_with_any_schema_addendum(
+                        error_msg,
+                        vec![simplified_schema],
+                    );
+                    Some(error_msg)
                 }
             }
             Error::CountDistinctStarNotSupported => None,
@@ -97,7 +107,12 @@ impl UserError for Error {
                 {
                     Some(message)
                 } else {
-                    Some(format ! ("Invalid use of `{func}` due to incomparable types: `{simplified_s1}` cannot be compared to `{simplified_s2}`."))
+                    let error_msg = format!("Invalid use of `{func}` due to incomparable types: `{simplified_s1}` cannot be compared to `{simplified_s2}`.");
+                    let error_msg = Self::error_message_with_any_schema_addendum(
+                        error_msg,
+                        vec![simplified_s1, simplified_s2],
+                    );
+                    Some(error_msg)
                 }
             }
             Error::AccessMissingField(field, found_fields) => {
@@ -145,9 +160,14 @@ impl UserError for Error {
                 if let Some(message) = unsat_check(vec![simplified_schema.clone()]) {
                     Some(message)
                 } else {
-                    Some(format!(
+                    let error_msg = format!(
                         "Cannot sort by key because `{simplified_schema}` can't be compared against itself."
-                    ))
+                    );
+                    let error_msg = Self::error_message_with_any_schema_addendum(
+                        error_msg,
+                        vec![simplified_schema],
+                    );
+                    Some(error_msg)
                 }
             }
             Error::GroupKeyNotSelfComparable(_, schema) => {
@@ -156,9 +176,14 @@ impl UserError for Error {
                 if let Some(message) = unsat_check(vec![simplified_schema.clone()]) {
                     Some(message)
                 } else {
-                    Some(format!(
+                    let error_msg = format!(
                         "Cannot group by key because `{simplified_schema}` can't be compared against itself.",
-                    ))
+                    );
+                    let error_msg = Self::error_message_with_any_schema_addendum(
+                        error_msg,
+                        vec![simplified_schema],
+                    );
+                    Some(error_msg)
                 }
             }
             Error::UnwindIndexNameConflict(_) => None,
@@ -183,6 +208,23 @@ impl UserError for Error {
             Error::UnwindIndexNameConflict(name) => format!("UNWIND INDEX name '{0}' conflicts with existing field name", name),
             Error::CollectionNotFound(database, coll) => format!("unknown collection '{1}' in database '{0}'", database, coll),
             Error::InvalidBinaryDataType => "Binary data with subtype 3 found in schema".to_string(),
+        }
+    }
+}
+
+pub(crate) const ANY_SCHEMA_ADDENDUM: &str = "An `any type` schema may indicate that schema is not set for the relevant collection or field. Please verify that the schema is set as expected.";
+
+impl Error {
+    /// error_message_with_any_schema_addendum checks if any of the provided schemas are Any and, if
+    /// so, returns the provided error message with an addendum; otherwise, it returns the provided
+    /// error message unaltered. This is useful for customers since they often get confused when
+    /// they see something like "Any cannot be compared to Any", etc. This addendum should help them
+    /// realize the potential root cause of the issue (missing schema info).
+    fn error_message_with_any_schema_addendum(error_msg: String, schemas: Vec<Schema>) -> String {
+        if schemas.iter().any(|s| matches!(s, Schema::Any)) {
+            format!("{error_msg} {ANY_SCHEMA_ADDENDUM}")
+        } else {
+            error_msg
         }
     }
 }

@@ -25,6 +25,8 @@ use std::{
 mod errors;
 use bson::spec::BinarySubtype;
 pub use errors::Error;
+#[cfg(test)]
+pub(crate) use errors::ANY_SCHEMA_ADDENDUM;
 mod util;
 
 #[cfg(test)]
