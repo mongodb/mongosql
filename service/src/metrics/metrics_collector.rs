@@ -1,3 +1,4 @@
+use log::debug;
 use prometheus::{register_int_counter, register_int_counter_vec};
 use prometheus::{HistogramVec, IntCounter, IntCounterVec, Registry};
 use std::sync::{Arc, LazyLock};
@@ -92,6 +93,11 @@ impl ErrorInterceptor {
 
     // Records an error with the given gRPC status
     pub fn record_error(&self, status: &Status) {
+        debug!(
+            "Recording gRPC error metric: code={}, message='{}'",
+            status.code().to_string(),
+            status.message()
+        );
         self.error_counter
             .with_label_values(&[status.code().to_string().as_str()])
             .inc();

@@ -1,3 +1,5 @@
+use log::info;
+use service::logger::init_logger;
 use service::translator::{
     translator_service_client::TranslatorServiceClient, ExcludeNamespacesOption,
     GetNamespacesRequest, SchemaCheckingMode, TranslateSqlRequest,
@@ -16,6 +18,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let port = env::var("SERVER_PORT").unwrap_or("9001".into());
 
     let mut client = TranslatorServiceClient::connect(format!("http://{hostname}:{port}")).await?;
+
+    init_logger();
+
     match operation {
         Some(op) if op == TRANSLATE_SQL_OP => run_translate_sql(&mut client).await?,
         Some(op) if op == GET_NAMESPACES_OP => run_get_namespaces(&mut client).await?,
@@ -60,9 +65,9 @@ async fn run_translate_sql(
     };
     let translate_response = client.translate_sql(translate_request).await?;
 
-    // TODO SQL-2218: Implement Logging
-    println!("Translate SQL Response:");
-    println!("{:#?}", translate_response);
+    info!("Translate SQL Response:");
+    info!("{:#?}", translate_response);
+
     Ok(())
 }
 
@@ -78,9 +83,8 @@ async fn run_get_namespaces(
     };
     let namespaces_response = client.get_namespaces(namespaces_request).await?;
 
-    // TODO SQL-2218: Implement Logging
-    println!("Get Namespaces Response:");
-    println!("{:#?}", namespaces_response);
+    info!("Get Namespaces Response:");
+    info!("{:#?}", namespaces_response);
 
     Ok(())
 }

@@ -15,6 +15,8 @@ use std::collections::BTreeSet;
 use tonic::{Request, Response, Status};
 
 use futures::future::FutureExt;
+use log::{error, info, warn};
+use std::any::Any;
 use std::panic::AssertUnwindSafe;
 use std::time::Instant;
 use thiserror::Error;
@@ -26,6 +28,28 @@ use std::panic;
 #[cfg(test)]
 fn trigger_panic() {
     panic!("This is a test panic");
+}
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("failed to build catalog: {0}")]
+    CatalogBuildError(String),
+    #[error("invalid exclude_namespaces option")]
+    InvalidExcludeNamespacesOption,
+    #[error("invalid schema_checking_mode")]
+    InvalidSchemaCheckingMode,
+    #[error("failed to translate SQL: {0}")]
+    SqlTranslationError(String),
+    #[error("failed to get namespaces: {0}")]
+    GetNamespacesError(String),
+}
+
+fn extract_panic_message(panic_info: &Box<dyn Any + Send>) -> String {
+    panic_info
+        .downcast_ref::<String>()
+        .map(|s| s.to_string())
+        .or_else(|| panic_info.downcast_ref::<&str>().map(|s| s.to_string()))
+        .unwrap_or_else(|| "Unknown panic".to_string())
 }
 
 // A wrapper service that handles panics in the `TranslateSqlService`.  It will catch and handle
@@ -43,13 +67,20 @@ impl TranslatorService for PanicHandlingTranslateSqlService {
         request: Request<TranslateSqlRequest>,
     ) -> Result<Response<TranslateSqlResponse>, Status> {
         let fut = self.0.translate_sql(request);
-
-        panic::AssertUnwindSafe(fut)
+        AssertUnwindSafe(fut)
             .catch_unwind()
             .await
-            .unwrap_or_else(|_| {
+            .unwrap_or_else(|panic_info| {
                 SERVER_PANICS_TOTAL.inc();
-                Err(Status::internal(INTERNAL_SERVER_ERROR))
+                let panic_message = extract_panic_message(&panic_info);
+                error!(
+                    "Panic occurred while translating SQL query: {}",
+                    panic_message
+                );
+                Err(Status::internal(format!(
+                    "{}: {}",
+                    INTERNAL_SERVER_ERROR, panic_message
+                )))
             })
     }
 
@@ -59,26 +90,17 @@ impl TranslatorService for PanicHandlingTranslateSqlService {
     ) -> Result<Response<GetNamespacesResponse>, Status> {
         match panic::catch_unwind(AssertUnwindSafe(|| self.0.get_namespaces(request))) {
             Ok(result) => result.await,
-            Err(_) => {
+            Err(panic_info) => {
                 SERVER_PANICS_TOTAL.inc();
-                Err(Status::internal(INTERNAL_SERVER_ERROR))
+                let panic_message = extract_panic_message(&panic_info);
+                error!("Panic occurred while getting namespaces: {}", panic_message);
+                Err(Status::internal(format!(
+                    "{}: {}",
+                    INTERNAL_SERVER_ERROR, panic_message
+                )))
             }
         }
     }
-}
-
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error("failed to build catalog: {0}")]
-    CatalogBuildError(String),
-    #[error("invalid exclude_namespaces option")]
-    InvalidExcludeNamespacesOption,
-    #[error("invalid schema_checking_mode")]
-    InvalidSchemaCheckingMode,
-    #[error("failed to translate SQL: {0}")]
-    SqlTranslationError(String),
-    #[error("failed to get namespaces: {0}")]
-    GetNamespacesError(String),
 }
 
 impl From<Error> for Status {
@@ -153,16 +175,18 @@ impl TranslatorService for TranslateSqlService {
             .with_label_values(&["TranslatorService", "TranslateSql"])
             .inc();
         let req = request.into_inner();
-        // TODO SQL-2218: Implement Logging
-        println!("Received a request to db: {}", req.db);
+
+        info!("Received a translate_sql() request to db: {}", req.db);
         add_event(&mut span, &format!("Received request for db: {}", req.db));
 
         if req.schema_catalog.is_empty() {
+            let err = Status::invalid_argument("schema_catalog is empty");
+            warn!("Invalid argument: {}", err.message());
             add_event(&mut span, "Error: schema_catalog is empty");
             SERVER_HANDLED_COUNTER
                 .with_label_values(&["TranslatorService", "TranslateSql", "INVALID_ARGUMENT"])
                 .inc();
-            return Err(Status::invalid_argument("schema_catalog is empty"));
+            return Err(err);
         }
 
         // Trigger a panic for testing purposes
@@ -219,6 +243,8 @@ impl TranslatorService for TranslateSqlService {
             .inc();
 
         let req = request.into_inner();
+
+        info!("Received a get_namespaces() request to db: {}", req.db);
 
         let namespaces = match mongosql::get_namespaces(&req.db, &req.query) {
             Ok(ns) => ns,
