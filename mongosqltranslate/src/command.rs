@@ -1,8 +1,10 @@
-use mongodb::bson::{Bson, Deserializer, Document};
+use mongodb::bson::{doc, Bson, Deserializer, Document};
 use mongosql::json_schema;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use CommandType::*;
+
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub(crate) struct Command {
@@ -20,6 +22,8 @@ pub(crate) enum CommandType {
     GetMongosqlTranslateVersion,
     #[serde(rename = "checkDriverVersion")]
     CheckDriverVersion,
+    #[serde(rename = "test")]
+    Test,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
@@ -37,9 +41,12 @@ pub(crate) struct CommandOptions {
     pub(crate) schema_catalog: Option<BTreeMap<String, BTreeMap<String, json_schema::Schema>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) driver_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) test: Option<bool>,
 }
 
 #[allow(dead_code)]
+/// Command represents the command that is sent to the mongosqltranslate service.
 impl Command {
     pub(crate) fn new(bson_bytes_slice: &[u8]) -> Self {
         let reader = std::io::Cursor::new(bson_bytes_slice);
@@ -53,34 +60,44 @@ impl Command {
             .expect("Deserializing the provided Bson::Document into `Command` data type failed.")
     }
 
-    pub(crate) fn run(&self) -> Document {
-        let command: fn(&Self) -> Document = match self.command {
+    pub(crate) fn run(&self) -> Result<Document> {
+        let command: fn(&Self) -> Result<Document> = match self.command {
             Translate => Self::translate,
             GetNamespaces => Self::get_namespaces,
             GetMongosqlTranslateVersion => Self::get_mongosqltranslate_version,
             CheckDriverVersion => Self::check_driver_version,
+            Test => Self::test,
         };
         command(self)
     }
 
     // Placeholder for CommandType::Translate
-    fn translate(&self) -> Document {
+    fn translate(&self) -> Result<Document> {
         unimplemented!()
     }
 
     // Placeholder for CommandType::GetNamespaces
-    fn get_namespaces(&self) -> Document {
+    fn get_namespaces(&self) -> Result<Document> {
         unimplemented!()
     }
 
     // Placeholder for CommandType::GetMongosqltranslateVersion
-    fn get_mongosqltranslate_version(&self) -> Document {
+    fn get_mongosqltranslate_version(&self) -> Result<Document> {
         unimplemented!()
     }
 
     // Placeholder for CommandType::CheckDriverVersion
-    fn check_driver_version(&self) -> Document {
+    fn check_driver_version(&self) -> Result<Document> {
         unimplemented!()
+    }
+
+    // For testing purposes
+    fn test(&self) -> Result<Document> {
+        match self.options.test {
+            Some(true) => Ok(doc! {"success": true}),
+            Some(false) => Err("Test errored".into()),
+            None => panic!("Test success value not provided"),
+        }
     }
 }
 
@@ -147,7 +164,7 @@ mod command_tests {
                         }
                     )
                 )),
-                driver_version: None,
+                ..Default::default()
             },
         },
         input = doc! {
