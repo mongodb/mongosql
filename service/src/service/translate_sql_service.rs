@@ -1,6 +1,7 @@
 use crate::catalog;
 use crate::metrics::{
-    SERVER_HANDLED_COUNTER, SERVER_HANDLED_HISTOGRAM, SERVER_PANICS_TOTAL, SERVER_STARTED_COUNTER,
+    ErrorInterceptor, SERVER_HANDLED_COUNTER, SERVER_HANDLED_HISTOGRAM, SERVER_PANICS_TOTAL,
+    SERVER_STARTED_COUNTER,
 };
 use crate::translator::translator_service_server::TranslatorService;
 use crate::translator::{
@@ -24,11 +25,6 @@ use thiserror::Error;
 use crate::trace::distributed_tracing::{add_event, extract_parent_context, start_span};
 use opentelemetry::trace::SpanKind;
 use std::panic;
-
-#[cfg(test)]
-fn trigger_panic() {
-    panic!("This is a test panic");
-}
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -59,6 +55,7 @@ fn extract_panic_message(panic_info: &Box<dyn Any + Send>) -> String {
 pub struct PanicHandlingTranslateSqlService(pub TranslateSqlService);
 
 const INTERNAL_SERVER_ERROR: &str = "Internal server error";
+const TRIGGER_PANIC: &str = "__test_panic";
 
 #[tonic::async_trait]
 impl TranslatorService for PanicHandlingTranslateSqlService {
@@ -168,44 +165,58 @@ impl TranslatorService for TranslateSqlService {
         &self,
         request: Request<TranslateSqlRequest>,
     ) -> Result<Response<TranslateSqlResponse>, Status> {
-        let parent_cx = extract_parent_context(request.metadata());
+        let interceptor = request
+            .extensions()
+            .get::<ErrorInterceptor>()
+            .cloned()
+            .unwrap_or_else(ErrorInterceptor::new);
+
+        let metadata = request.metadata().clone();
+        let req = request.into_inner();
+
+        let parent_cx = extract_parent_context(&metadata);
         let mut span = start_span("translate_sql".to_string(), SpanKind::Server, &parent_cx);
         let start = Instant::now();
         SERVER_STARTED_COUNTER
             .with_label_values(&["TranslatorService", "TranslateSql"])
             .inc();
-        let req = request.into_inner();
 
         info!("Received a translate_sql() request to db: {}", req.db);
         add_event(&mut span, &format!("Received request for db: {}", req.db));
 
         if req.schema_catalog.is_empty() {
-            let err = Status::invalid_argument("schema_catalog is empty");
-            warn!("Invalid argument: {}", err.message());
-            add_event(&mut span, "Error: schema_catalog is empty");
+            let error_message = "schema_catalog is empty";
+            add_event(&mut span, &format!("Error: {}", error_message));
+            let status = Status::invalid_argument(error_message);
+            interceptor.record_error(&status);
+            warn!("Invalid argument: {}", status.message());
+
             SERVER_HANDLED_COUNTER
                 .with_label_values(&["TranslatorService", "TranslateSql", "INVALID_ARGUMENT"])
                 .inc();
-            return Err(err);
+            return Err(status);
         }
 
         // Trigger a panic for testing purposes
-        #[cfg(test)]
-        if req.query == "TRIGGER_PANIC" {
-            trigger_panic();
+        if req.query == TRIGGER_PANIC && req.db == TRIGGER_PANIC {
+            panic!("This is a test panic");
         }
 
         let catalog = match catalog::build_catalog_from_bytes(&req.schema_catalog) {
             Ok(cat) => cat,
             Err(e) => {
-                add_event(&mut span, &format!("Error building catalog: {}", e));
-                return Err(Error::CatalogBuildError(e.to_string()).into());
+                let error_message = format!("Error building catalog: {}", e);
+                add_event(&mut span, &error_message);
+                let status = Status::internal(error_message);
+                interceptor.record_error(&status);
+                return Err(status);
             }
         };
 
         let options = match self.build_sql_options(&req) {
             Ok(opts) => opts,
             Err(e) => {
+                interceptor.record_error(&e);
                 add_event(&mut span, &format!("Error building SQL options: {}", e));
                 return Err(e);
             }
@@ -214,7 +225,11 @@ impl TranslatorService for TranslateSqlService {
         let response = match mongosql::translate_sql(&req.db, &req.query, &catalog, options) {
             Ok(translation) => Self::create_translate_sql_response(translation),
             Err(e) => {
-                add_event(&mut span, &format!("Error translating SQL: {}", e));
+                let error_message = format!("Error translating SQL: {}", e);
+                add_event(&mut span, &error_message);
+                let status = Status::invalid_argument(error_message);
+                interceptor.record_error(&status);
+
                 return Err(Error::SqlTranslationError(e.to_string()).into());
             }
         };
@@ -234,15 +249,21 @@ impl TranslatorService for TranslateSqlService {
         &self,
         request: Request<GetNamespacesRequest>,
     ) -> Result<Response<GetNamespacesResponse>, Status> {
-        let parent_cx = extract_parent_context(request.metadata());
+        let interceptor = request
+            .extensions()
+            .get::<ErrorInterceptor>()
+            .cloned()
+            .unwrap_or_else(ErrorInterceptor::new);
+        let metadata = request.metadata().clone();
+        let req = request.into_inner();
+
+        let parent_cx = extract_parent_context(&metadata);
         let mut span = start_span("get_namespaces".to_string(), SpanKind::Server, &parent_cx);
 
         let start = Instant::now();
         SERVER_STARTED_COUNTER
             .with_label_values(&["TranslatorService", "GetNamespaces"])
             .inc();
-
-        let req = request.into_inner();
 
         info!("Received a get_namespaces() request to db: {}", req.db);
 
@@ -254,7 +275,10 @@ impl TranslatorService for TranslateSqlService {
                     &mut span,
                     &format!("Error getting namespaces: {}", error_msg),
                 );
-                return Err(Error::GetNamespacesError(error_msg).into());
+                let error = Error::GetNamespacesError(error_msg.clone());
+                let status = Status::internal(format!("Failed to get namespaces: {}", error_msg));
+                interceptor.record_error(&status);
+                return Err(error.into());
             }
         };
 

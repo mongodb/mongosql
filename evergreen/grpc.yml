@@ -1,4 +1,29 @@
 tasks:
+  - name: test-grpc-service-integration
+    commands:
+      - func: "install rust toolchain"
+      - command: shell.exec
+        params:
+          working_dir: mongosql-rs
+          script: |
+            ${prepare_shell}
+            echo "Starting gRPC server..."
+            cargo build --bin server --package service
+            ./target/debug/server &
+            SERVER_PID=$!
+                  
+            cargo test --features=integration --package=service -- --test-threads=1
+            TEST_EXIT_CODE=$?
+            
+            echo "Stopping gRPC server..."
+            kill $SERVER_PID || true
+            wait $SERVER_PID 2>/dev/null || true
+
+            echo "Tests completed with exit code: $TEST_EXIT_CODE"
+            
+            exit $TEST_EXIT_CODE
+
+
   - name: buf-lint
     commands:
       - func: "fetch source"
@@ -40,10 +65,12 @@ buildvariants:
     run_on: [ ubuntu2204-large ]
     tasks:
       - name: buf-lint
+      - name: test-grpc-service-integration
       - name: build-and-upload-container
 
   - name: grpc-linux-arm64
     display_name: "gRPC Linux ARM64"
     run_on: [ ubuntu2204-arm64-large ]
     tasks:
+      - name: test-grpc-service-integration
       - name: build-and-upload-container

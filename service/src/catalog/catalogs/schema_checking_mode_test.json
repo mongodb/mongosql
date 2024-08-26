@@ -1,0 +1,10 @@
+{
+  "catalog_schema":{
+    "test":{
+      "grades":{
+        "bsonType": "object",
+        "additionalProperties": true
+      }
+    }
+  }
+}

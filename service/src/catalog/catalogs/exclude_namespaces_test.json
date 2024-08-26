@@ -1,0 +1,15 @@
+{
+  "catalog_schema": {
+    "bar": {
+      "foo": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "double"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

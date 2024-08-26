@@ -5,11 +5,17 @@ use std::sync::{Arc, LazyLock};
 use tonic::service::Interceptor;
 use tonic::{Request, Status};
 
+pub const METRIC_SERVER_STARTED_TOTAL: &str = "grpc_server_started_total";
+pub const METRIC_SERVER_HANDLED_TOTAL: &str = "grpc_server_handled_total";
+pub const METRIC_SERVER_HANDLING_SECONDS: &str = "grpc_server_handling_seconds";
+pub const METRIC_ERRORS_TOTAL: &str = "grpc_errors_total";
+pub const METRIC_PANICS_TOTAL: &str = "grpc_panics_total";
+
 // Metrics for gRPC server using Prometheus
 pub static SERVER_STARTED_COUNTER: LazyLock<IntCounterVec> = LazyLock::new(|| {
     IntCounterVec::new(
         prometheus::opts!(
-            "grpc_server_started_total",
+            METRIC_SERVER_STARTED_TOTAL,
             "Total number of RPCs started on the server."
         ),
         &["grpc_service", "grpc_method"],
@@ -20,7 +26,7 @@ pub static SERVER_STARTED_COUNTER: LazyLock<IntCounterVec> = LazyLock::new(|| {
 pub static SERVER_HANDLED_COUNTER: LazyLock<IntCounterVec> = LazyLock::new(|| {
     IntCounterVec::new(
         prometheus::opts!(
-            "grpc_server_handled_total",
+            METRIC_SERVER_HANDLED_TOTAL,
             "Total number of RPCs completed on the server, regardless of success or failure."
         ),
         &["grpc_service", "grpc_method", "grpc_code"],
@@ -31,7 +37,7 @@ pub static SERVER_HANDLED_COUNTER: LazyLock<IntCounterVec> = LazyLock::new(|| {
 pub static SERVER_HANDLED_HISTOGRAM: LazyLock<HistogramVec> = LazyLock::new(|| {
     HistogramVec::new(
         prometheus::histogram_opts!(
-            "grpc_server_handling_seconds",
+            METRIC_SERVER_HANDLING_SECONDS,
             "Histogram of response latency (seconds) of gRPC that had been application-level \
             handled by the server."
         ),
@@ -42,7 +48,7 @@ pub static SERVER_HANDLED_HISTOGRAM: LazyLock<HistogramVec> = LazyLock::new(|| {
 
 pub static SERVER_ERRORS_TOTAL: LazyLock<IntCounterVec> = LazyLock::new(|| {
     register_int_counter_vec!(
-        "grpc_errors_total",
+        METRIC_ERRORS_TOTAL,
         "Total number of gRPC errors",
         &["code"]
     )
@@ -50,7 +56,7 @@ pub static SERVER_ERRORS_TOTAL: LazyLock<IntCounterVec> = LazyLock::new(|| {
 });
 
 pub static SERVER_PANICS_TOTAL: LazyLock<IntCounter> = LazyLock::new(|| {
-    register_int_counter!("grpc_panics_total", "Total number of panics in gRPC calls")
+    register_int_counter!(METRIC_PANICS_TOTAL, "Total number of panics in gRPC calls")
         .expect("Failed to create SERVER_PANICS_TOTAL")
 });
 
@@ -87,7 +93,7 @@ impl Default for ErrorInterceptor {
 impl ErrorInterceptor {
     pub fn new() -> Self {
         ErrorInterceptor {
-            error_counter: Arc::new(SERVER_ERRORS_TOTAL.clone()),
+            error_counter: Arc::from(SERVER_ERRORS_TOTAL.clone()),
         }
     }
 

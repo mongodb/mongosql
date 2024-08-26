@@ -1,0 +1,35 @@
+{
+  "catalog_schema": {
+    "bar": {
+      "foo": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "double"
+          }
+        },
+        "additionalProperties": true
+      },
+      "baz": {
+        "bsonType": "object",
+        "properties": {
+          "b": {
+            "bsonType": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "qux": {
+      "foo": {
+        "bsonType": "object",
+        "properties": {
+          "c": {
+            "bsonType": "int"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}
