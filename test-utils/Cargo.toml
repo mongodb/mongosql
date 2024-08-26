@@ -19,6 +19,7 @@ serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9.21"
 thiserror = "1"
 tokio = "1.38.0"
+serde_stacker = "0.1"
 
 [dependencies.mongodb]
 version = "3.0.1"

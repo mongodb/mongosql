@@ -1,6 +1,6 @@
 use crate::Result;
 use mongodb::{
-    bson::{self, doc},
+    bson::{self, doc, Bson},
     Client,
 };
 use serde::{Deserialize, Serialize};
@@ -22,10 +22,13 @@ async fn get_cluster_type(client: &Client) -> Result<ClusterType> {
         .database("admin")
         .run_command(doc! { "buildInfo": 1 })
         .await?;
-    Ok(bson::from_document::<BuildInfo>(cmd_res)?.into())
+    let deserializer = bson::Deserializer::new(Bson::Document(cmd_res));
+    let deserializer = serde_stacker::Deserializer::new(deserializer);
+    let bi: Result<BuildInfo> = Deserialize::deserialize(deserializer).map_err(|e| e.into());
+    Ok(bi?.into())
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 enum ClusterType {
     AtlasDataFederation,
     Community,

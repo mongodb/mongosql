@@ -103,12 +103,19 @@ fn translate_helper(
 /// Returns a base64-encoded BSON document representing the payload
 /// returned for a successful translation.
 fn translation_success_payload(t: mongosql::Translation) -> String {
+    use serde::ser::Serialize;
+    let serializer = bson::Serializer::new();
+    let serializer = serde_stacker::Serializer::new(serializer);
+    let so = t
+        .select_order
+        .serialize(serializer)
+        .expect("failed to convert select_order to bson");
     let translation = bson::doc! {
         "target_db": t.target_db,
         "target_collection": t.target_collection.unwrap_or_default(),
         "pipeline": t.pipeline,
         "result_set_schema": &t.result_set_schema.to_bson().expect("failed to convert result_set_schema to bson"),
-        "select_order": &bson::to_bson(&t.select_order).expect("failed to convert select_order to bson"),
+        "select_order": &so,
     };
 
     base64::encode(bson::to_vec(&translation).expect("serializing bson to bytes failed"))
@@ -175,8 +182,14 @@ fn get_namespaces_helper(
 /// Returns a base64-encoded BSON document representing the payload
 /// returned for a successful get_namespaces call.
 fn get_namespaces_success_payload(namespaces: BTreeSet<mongosql::Namespace>) -> String {
+    use serde::ser::Serialize;
+    let serializer = bson::Serializer::new();
+    let serializer = serde_stacker::Serializer::new(serializer);
+    let ns = namespaces
+        .serialize(serializer)
+        .expect("failed to convert namespaces to bson");
     let result = bson::doc! {
-        "namespaces": &bson::to_bson(&namespaces).expect("failed to convert namespaces to bson"),
+        "namespaces": &ns,
     };
 
     base64::encode(bson::to_vec(&result).expect("serializing bson to bytes failed"))

@@ -2967,6 +2967,8 @@ dependencies = [
  "lazy_static",
  "libc",
  "mongosql",
+ "serde",
+ "serde_stacker",
 ]
 
 [[package]]
@@ -4372,6 +4374,7 @@ dependencies = [
  "predicates",
  "schema-builder-library",
  "serde",
+ "serde_stacker",
  "test-utils",
  "tokio",
  "tracing",
@@ -5065,6 +5068,7 @@ dependencies = [
  "mongosql",
  "rand",
  "serde",
+ "serde_stacker",
  "serde_yaml 0.9.34+deprecated",
  "thiserror",
  "tokio",

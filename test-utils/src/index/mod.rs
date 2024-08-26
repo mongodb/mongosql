@@ -1,6 +1,6 @@
 use super::Error;
 use mongodb::{
-    bson::{doc, Bson},
+    bson::{self, doc, Bson, Document},
     sync::Client,
     IndexModel,
 };
@@ -168,7 +168,13 @@ pub fn run_explain_aggregate(
         .map_err(Error::MongoDBAggregation)?;
 
     // Deserialize the `explain` result
-    mongodb::bson::from_document(result).map_err(Error::ExplainDeserialization)
+    deserialize_explain_result(result)
+}
+
+pub(crate) fn deserialize_explain_result(d: Document) -> Result<ExplainResult, Error> {
+    let deserializer = bson::Deserializer::new(bson::Bson::Document(d));
+    let deserializer = serde_stacker::Deserializer::new(deserializer);
+    Deserialize::deserialize(deserializer).map_err(Error::ExplainDeserialization)
 }
 
 impl ExplainResult {
@@ -245,5 +251,42 @@ pub fn as_index_utilization(stage_type: String) -> Result<IndexUtilization, Erro
         "DISTINCT_SCAN" => Ok(IndexUtilization::DistinctScan),
         "IXSCAN" => Ok(IndexUtilization::IxScan),
         _ => Err(Error::InvalidRootStage(stage_type)),
+    }
+}
+
+#[cfg(test)]
+mod no_stack_overflows {
+    #[test]
+    fn when_deserializing() {
+        use super::*;
+        let mut input_stage =
+            bson::doc! {"stage": "COLLSCAN", "filter": {"x": {"$eq": 1}, "direction": "forward"}};
+        // This uses a smaller limit than the serialization test
+        // since the mongodb::bson::Deserializer does not support
+        // the disable_recursion_limit method required by serde_stacker
+        // to handle greater depths. At 250 nesting depth, the standard
+        // bson::from_document encounters a stack overflow, whereas the
+        // manual serde_stacker deserialization technique does not. We get_root_stages
+        // with 400 here just to be extra sure.
+        for _ in 0..400 {
+            input_stage = bson::doc! { "stage": "COLLSCAN", "filter": {"x": {"$eq": 1}}, "direction": "forward", "inputStage": input_stage };
+        }
+
+        println!("start");
+
+        let _ = deserialize_explain_result(bson::doc! {
+            "queryPlanner": {
+                "namespace": "test.mycollection",
+                "indexFilterSet": false,
+                "parsedQuery": { "x": { "$eq": 1 } },
+                "queryHash": "DF77A253",
+                "planCacheKey": "DF77A253",
+                "optimizedPipeline": true,
+                "maxIndexedOrSolutionsReached": false,
+                "maxIndexedAndSolutionsReached": false,
+                "maxScansToExplodeReached": false,
+                "winningPlan": input_stage,
+            },
+        });
     }
 }
