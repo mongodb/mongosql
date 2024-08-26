@@ -8,3 +8,8 @@ serde = "1.0.208"
 mongosql = { path = "../mongosql" }
 mongodb = "3.0.1"
 serde_stacker = "0.1"
+jni = "0.21.1"
+
+[lib]
+name = "mongosqltranslate"
+crate-type = ["cdylib"]

@@ -15,8 +15,6 @@ use mongodb::bson::{self, doc, Document};
 ///
 /// This function also converts the resulting bson payload from either success or
 /// failure into a Vec<u8> for ease of return.
-// TODO: SQL-2280: Remove this dead_code
-#[allow(dead_code)]
 pub(crate) fn panic_safe_exec<
     F: FnOnce() -> Result<Document, Box<dyn std::error::Error>> + UnwindSafe,
 >(
