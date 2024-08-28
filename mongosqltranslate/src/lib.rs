@@ -7,6 +7,8 @@ use jni::{
 use panic_safe::panic_safe_exec;
 
 mod command;
+#[cfg(test)]
+mod command_tests;
 mod panic_safe;
 
 #[repr(C)]

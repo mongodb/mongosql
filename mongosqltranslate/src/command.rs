@@ -1,5 +1,9 @@
-use mongodb::bson::{doc, Bson, Deserializer, Document};
-use mongosql::json_schema;
+use mongodb::bson::{doc, Bson, Deserializer, Document, Serializer};
+use mongosql::{
+    build_catalog_from_catalog_schema, json_schema,
+    options::{ExcludeNamespacesOption, SqlOptions},
+    SchemaCheckingMode,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use CommandType::*;
@@ -71,9 +75,69 @@ impl Command {
         command(self)
     }
 
-    // Placeholder for CommandType::Translate
+    /// This is the handler function for the Translate Command. The necessary CommandOptions includes `sql`,
+    /// `exclude_namespaces`, `relax_schema_checking`, `db`, and `schema_catalog`. Extra CommandOptions will be ignored.
+    /// This function returns a Result<bson::Document> representing a mongosql::Translation.
     fn translate(&self) -> Result<Document> {
-        unimplemented!()
+        use serde::ser::Serialize;
+
+        let schema_checking_mode = if self
+            .options
+            .relax_schema_checking
+            .expect("`relax_schema_checking` parameter missing for Translate CommandType")
+        {
+            SchemaCheckingMode::Relaxed
+        } else {
+            SchemaCheckingMode::Strict
+        };
+
+        let exclude_namespaces_mode = if self
+            .options
+            .exclude_namespaces
+            .expect("`exclude_namespaces` parameter missing for Translate CommandType")
+        {
+            ExcludeNamespacesOption::ExcludeNamespaces
+        } else {
+            ExcludeNamespacesOption::IncludeNamespaces
+        };
+
+        let catalog = build_catalog_from_catalog_schema(
+            self.options
+                .schema_catalog
+                .as_ref()
+                .expect("`schema_catalog` parameter missing for Translate CommandType")
+                .clone(),
+        )
+        .map_err(|e| e.to_string())?;
+
+        let translation = mongosql::translate_sql(
+            self.options
+                .db
+                .as_ref()
+                .expect("`db` parameter missing for Translate CommandType"),
+            self.options
+                .sql
+                .as_ref()
+                .expect("`sql` parameter missing for Translate CommandType"),
+            &catalog,
+            SqlOptions::new(exclude_namespaces_mode, schema_checking_mode),
+        )
+        .map_err(|e| e.to_string())?;
+
+        let serializer = Serializer::new();
+        let serializer = serde_stacker::Serializer::new(serializer);
+        let so = translation
+            .select_order
+            .serialize(serializer)
+            .expect("failed to convert select_order to bson");
+
+        Ok(doc! {
+            "target_db": translation.target_db,
+            "target_collection": translation.target_collection.unwrap_or_default(),
+            "pipeline": translation.pipeline,
+            "result_set_schema": &translation.result_set_schema.to_bson().expect("failed to convert result_set_schema to bson"),
+            "select_order": &so,
+        })
     }
 
     // Placeholder for CommandType::GetNamespaces
@@ -98,165 +162,5 @@ impl Command {
             Some(false) => Err("Test errored".into()),
             None => panic!("Test success value not provided"),
         }
-    }
-}
-
-#[cfg(test)]
-mod command_tests {
-    use super::*;
-    use mongodb::bson::doc;
-    use mongosql::{
-        json_schema::{BsonType, BsonTypeName},
-        map,
-    };
-    use std::collections::HashMap;
-
-    macro_rules! test_deserializing_into_command {
-        ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
-            #[test]
-            fn $func_name() {
-                let expected_command = $expected;
-
-                // convert command to bytes
-                let mut v: Vec<u8> = Vec::new();
-                $input.to_writer(&mut v).unwrap();
-                let bytes = v.as_slice();
-
-                let actual_command = Command::new(bytes);
-
-                assert_eq!(actual_command, expected_command)
-            }
-        };
-    }
-
-    macro_rules! hashmap(
-    { $($key:expr => $value:expr),+ } => {
-            {
-                let mut m = HashMap::new();
-                $(
-                  m.insert($key, $value);
-                )+
-                m
-            }
-        };
-    );
-
-    test_deserializing_into_command!(
-        deserialize_translate_command,
-        expected = Command {
-            command: Translate,
-            options: CommandOptions {
-                sql: Some("SELECT * FROM db1.coll1".to_string()),
-                exclude_namespaces: Some(true),
-                relax_schema_checking: Some(true),
-                db: Some("db1".to_string()),
-                schema_catalog: Some(map!(
-                    "db1".to_string() => map!(
-                        "coll1".to_string() => json_schema::Schema{
-                            bson_type: Some(BsonType::Single(BsonTypeName::Object)),
-                            properties: Some(hashmap!(
-                                "field1".to_string() => json_schema::Schema{
-                                    bson_type: Some(BsonType::Single(BsonTypeName::String)),
-                                    ..json_schema::Schema::default()
-                                }
-                            )),
-                            ..Default::default()
-                        }
-                    )
-                )),
-                ..Default::default()
-            },
-        },
-        input = doc! {
-            "command": "translate",
-            "options": {
-                "sql": "SELECT * FROM db1.coll1",
-                "db": "db1",
-                "excludeNamespaces": true,
-                "relaxSchemaChecking": true,
-                "schemaCatalog": {
-                    "db1": {
-                        "coll1": {
-                            "bsonType": "object",
-                            "properties": {
-                                "field1": {
-                                    "bsonType": "string"
-                                }
-                            }
-                        }
-                    }
-                },
-            },
-        }
-    );
-
-    test_deserializing_into_command!(
-        deserialize_get_namespaces_command,
-        expected = Command {
-            command: GetNamespaces,
-            options: CommandOptions {
-                sql: Some("SELECT * FROM db1.coll1".to_string()),
-                db: Some("db1".to_string()),
-                ..Default::default()
-            },
-        },
-        input = doc! {
-            "command": "getNamespaces",
-            "options": {
-                "sql": "SELECT * FROM db1.coll1",
-                "db": "db1",
-            },
-        }
-    );
-
-    test_deserializing_into_command!(
-        deserialize_get_mongosqltranslate_version_command,
-        expected = Command {
-            command: GetMongosqlTranslateVersion,
-            options: CommandOptions {
-                ..Default::default()
-            },
-        },
-        input = doc! {
-            "command": "getMongosqlTranslateVersion",
-            "options": {},
-        }
-    );
-
-    test_deserializing_into_command!(
-        deserialize_check_driver_version_command,
-        expected = Command {
-            command: CheckDriverVersion,
-            options: CommandOptions {
-                driver_version: Some("0.0.0".to_string()),
-                ..Default::default()
-            },
-        },
-        input = doc! {
-            "command": "checkDriverVersion",
-            "options": {
-                "driverVersion": "0.0.0"
-            },
-        }
-    );
-
-    #[test]
-    #[should_panic(
-        expected = "Deserializing the provided Bson::Document into `Command` data type failed."
-    )]
-    fn invalid_command_should_panic() {
-        let command = doc! {
-            "command": "checkDriver",
-            "options": {
-                "driverVersion": "0.0.0"
-            },
-        };
-
-        // convert command to bytes
-        let mut v: Vec<u8> = Vec::new();
-        command.to_writer(&mut v).unwrap();
-        let bytes = v.as_slice();
-
-        let _actual_command = Command::new(bytes);
     }
 }
