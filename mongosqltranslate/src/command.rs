@@ -4,19 +4,19 @@ use mongosql::{
     options::{ExcludeNamespacesOption, SqlOptions},
     SchemaCheckingMode,
 };
-use serde::{Deserialize, Serialize};
+use serde::{ser::Serialize, Deserialize};
 use std::collections::BTreeMap;
 use CommandType::*;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(serde::Serialize, Deserialize, Debug, PartialEq)]
 pub(crate) struct Command {
     pub(crate) command: CommandType,
     pub(crate) options: CommandOptions,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(serde::Serialize, Deserialize, Debug, PartialEq)]
 pub(crate) enum CommandType {
     #[serde(rename = "translate")]
     Translate,
@@ -30,7 +30,7 @@ pub(crate) enum CommandType {
     Test,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
+#[derive(serde::Serialize, Deserialize, Debug, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct CommandOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -47,6 +47,18 @@ pub(crate) struct CommandOptions {
     pub(crate) driver_version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) test: Option<bool>,
+}
+
+macro_rules! serialize_expr_to_bson {
+    ($input:expr) => {{
+        let serializer = Serializer::new();
+        let serializer = serde_stacker::Serializer::new(serializer);
+        let serialized_expr = $input
+            .serialize(serializer)
+            .expect("Failed to serialize input expression to bson");
+
+        serialized_expr
+    }};
 }
 
 #[allow(dead_code)]
@@ -79,8 +91,6 @@ impl Command {
     /// `exclude_namespaces`, `relax_schema_checking`, `db`, and `schema_catalog`. Extra CommandOptions will be ignored.
     /// This function returns a Result<bson::Document> representing a mongosql::Translation.
     fn translate(&self) -> Result<Document> {
-        use serde::ser::Serialize;
-
         let schema_checking_mode = if self
             .options
             .relax_schema_checking
@@ -124,12 +134,7 @@ impl Command {
         )
         .map_err(|e| e.to_string())?;
 
-        let serializer = Serializer::new();
-        let serializer = serde_stacker::Serializer::new(serializer);
-        let so = translation
-            .select_order
-            .serialize(serializer)
-            .expect("failed to convert select_order to bson");
+        let so = serialize_expr_to_bson!(translation.select_order);
 
         Ok(doc! {
             "target_db": translation.target_db,
@@ -140,9 +145,28 @@ impl Command {
         })
     }
 
-    // Placeholder for CommandType::GetNamespaces
+    /// This is the handler function for the GetNamespaces Command. It returns a Result<bson::Document>
+    /// containing the namespaces referenced by the the provided SQL query when executed in the provided database.
+    /// The necessary CommandOptions includes `sql` and `db`. Extra CommandOptions will be ignored.
     fn get_namespaces(&self) -> Result<Document> {
-        unimplemented!()
+        let current_db = self
+            .options
+            .db
+            .as_ref()
+            .expect("`db` parameter missing for GetNamespaces CommandType");
+        let sql = self
+            .options
+            .sql
+            .as_ref()
+            .expect("`sql` parameter missing for GetNamespaces CommandType");
+
+        let namespaces = mongosql::get_namespaces(current_db, sql).map_err(|e| e.to_string())?;
+
+        let ns = serialize_expr_to_bson!(namespaces);
+
+        Ok(doc! {
+            "namespaces": &ns
+        })
     }
 
     // Placeholder for CommandType::GetMongosqltranslateVersion

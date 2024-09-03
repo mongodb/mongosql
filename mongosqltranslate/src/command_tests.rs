@@ -190,7 +190,7 @@ mod translate_tests {
                     doc! {
                         "$replaceWith": "$coll1".to_string()
                     },
-                ]).expect("failed to convert expected_pipeline to bson"),
+                ]).expect("failed to convert expected pipeline to bson"),
             "result_set_schema": &json_schema::Schema {
                     bson_type: Some(BsonType::Single(BsonTypeName::Object)),
                     properties: Some(hashmap!(
@@ -202,8 +202,8 @@ mod translate_tests {
                     additional_properties: Some(false),
                     required: Some(vec!["field1".to_string()]),
                     ..Default::default()
-                }.to_bson().expect("failed to convert expected_result_set_schema to bson"),
-            "select_order": &bson::to_bson(&vec![vec!["field1".to_string()]]).expect("failed to convert expected_select_order to bson"),
+                }.to_bson().expect("failed to convert expected result_set_schema to bson"),
+            "select_order": &bson::to_bson(&vec![vec!["field1".to_string()]]).expect("failed to convert expected select_order to bson"),
         },
         input = Command {
             command: Translate,
@@ -247,7 +247,7 @@ mod translate_tests {
                     doc! {
                         "$replaceWith": "$coll1".to_string()
                     },
-                ]).expect("failed to convert expected_pipeline to bson"),
+                ]).expect("failed to convert expected pipeline to bson"),
             "result_set_schema": &json_schema::Schema {
                     bson_type: Some(BsonType::Single(BsonTypeName::Object)),
                     properties: Some(hashmap!(
@@ -259,8 +259,8 @@ mod translate_tests {
                     additional_properties: Some(false),
                     required: Some(vec!["field1".to_string()]),
                     ..Default::default()
-                }.to_bson().expect("failed to convert expected_result_set_schema to bson"),
-            "select_order": &bson::to_bson(&vec![vec!["field1".to_string()]]).expect("failed to convert expected_select_order to bson"),
+                }.to_bson().expect("failed to convert expected result_set_schema to bson"),
+            "select_order": &bson::to_bson(&vec![vec!["field1".to_string()]]).expect("failed to convert expected select_order to bson"),
         },
         input = Command {
             command: Translate,
@@ -314,6 +314,79 @@ mod translate_tests {
                         }
                     )
                 )),
+                ..Default::default()
+            },
+        };
+
+        let _actual = command.run();
+    }
+}
+
+mod get_namespaces_tests {
+    use super::*;
+
+    test_command_handler!(
+        valid_get_namespaces_command_should_succeed,
+        expected = doc! {
+            "namespaces": &bson::to_bson(&vec![
+                doc! {
+                    "database": "db1".to_string(),
+                    "collection": "bar".to_string(),
+                },
+                doc! {
+                    "database": "db1".to_string(),
+                    "collection": "bar2".to_string()
+                },
+            ]).expect("failed to convert expected namespaces to bson"),
+        },
+        input = Command {
+            command: GetNamespaces,
+            options: CommandOptions {
+                sql: Some(
+                    "SELECT * from bar2 AS bar2 LEFT JOIN bar AS bar on bar2.foo = bar.foo"
+                        .to_string()
+                ),
+                db: Some("db1".to_string()),
+                ..Default::default()
+            },
+        }
+    );
+
+    test_command_handler!(
+        valid_get_namespaces_command_with_extra_parameter_should_succeed,
+        expected = doc! {
+            "namespaces": &bson::to_bson(&vec![
+                doc! {
+                    "database": "db1".to_string(),
+                    "collection": "bar".to_string(),
+                },
+                doc! {
+                    "database": "db1".to_string(),
+                    "collection": "bar2".to_string()
+                },
+            ]).expect("failed to convert expected namespaces to bson"),
+        },
+        input = Command {
+            command: GetNamespaces,
+            options: CommandOptions {
+                sql: Some(
+                    "SELECT * from bar2 AS bar2 LEFT JOIN bar AS bar on bar2.foo = bar.foo"
+                        .to_string()
+                ),
+                db: Some("db1".to_string()),
+                driver_version: Some("extra_parameter".to_string()),
+                ..Default::default()
+            },
+        }
+    );
+
+    #[test]
+    #[should_panic(expected = "`db` parameter missing for GetNamespaces CommandType")]
+    fn get_namespaces_command_with_missing_parameter_should_panic() {
+        let command = Command {
+            command: GetNamespaces,
+            options: CommandOptions {
+                sql: Some("SELECT * FROM db1.coll1".to_string()),
                 ..Default::default()
             },
         };
