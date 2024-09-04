@@ -1,6 +1,12 @@
-use std::{panic, panic::UnwindSafe, sync::mpsc};
+use std::{
+    panic,
+    panic::UnwindSafe,
+    sync::{mpsc, Once},
+};
 
 use mongodb::bson::{self, doc, Document};
+
+static INIT: Once = Once::new();
 
 /// Executes function `f` such that any panics do not crash the runtime. The
 /// function `f` returns a `Result<Document, Box<dyn std::error::Error>>`.
@@ -20,16 +26,17 @@ pub(crate) fn panic_safe_exec<
 >(
     f: F,
 ) -> Vec<u8> {
-    let previous_hook = panic::take_hook();
     let (s, r) = mpsc::channel();
-    panic::set_hook(Box::new(move |i| {
-        if let Some(location) = i.location() {
-            let info = format!("in file '{}' at line {}", location.file(), location.line());
-            let _ = s.send(info);
-        }
-    }));
+    INIT.call_once(|| {
+        panic::set_hook(Box::new(move |i| {
+            if let Some(location) = i.location() {
+                let info = format!("in file '{}' at line {}", location.file(), location.line());
+                let _ = s.send(info);
+            }
+        }));
+    });
+
     let result = panic::catch_unwind(f);
-    panic::set_hook(previous_hook);
 
     let payload = match result {
         Ok(Ok(success)) => success,
@@ -111,31 +118,30 @@ mod test {
         );
     }
 
-    // SQL-2298: Test hangs until timeout causing code merge to fail
-    // #[test]
-    // fn test_panic_safe_exec_panic_unknown_command() {
-    //     let command = bson::to_vec(&doc! {
-    //         "command": "unknown",
-    //         "options": {
-    //             "test": false,
-    //         },
-    //     })
-    //     .expect("failed to serialize bson");
-    //     let result = panic_safe_exec(|| Command::new(&command).run());
-    //     let result = bson::from_slice::<Document>(&result).expect("failed to deserialize in test");
-    //     assert!(result.get("error").is_some());
-    //     assert!(result
-    //         .get("error_is_internal")
-    //         .expect("error_is_internal is missing")
-    //         .as_bool()
-    //         .expect("error_is_internal is not a bool"));
-    //     assert!(
-    //         result
-    //             .get("error")
-    //             .expect("error is missing")
-    //             .as_str()
-    //             .expect("error is not a string").contains("Internal Error: report this to MongoDB: Deserializing the provided Bson::Document into `Command` data type failed."),
-    //         "Unknown command"
-    //     );
-    // }
+    #[test]
+    fn test_panic_safe_exec_panic_unknown_command() {
+        let command = bson::to_vec(&doc! {
+            "command": "unknown",
+            "options": {
+                "test": false,
+            },
+        })
+        .expect("failed to serialize bson");
+        let result = panic_safe_exec(|| Command::new(&command).run());
+        let result = bson::from_slice::<Document>(&result).expect("failed to deserialize in test");
+        assert!(result.get("error").is_some());
+        assert!(result
+            .get("error_is_internal")
+            .expect("error_is_internal is missing")
+            .as_bool()
+            .expect("error_is_internal is not a bool"));
+        assert!(
+            result
+                .get("error")
+                .expect("error is missing")
+                .as_str()
+                .expect("error is not a string").contains("Internal Error: report this to MongoDB: Deserializing the provided Bson::Document into `Command` data type failed."),
+            "Unknown command"
+        );
+    }
 }
