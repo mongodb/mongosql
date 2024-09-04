@@ -11,7 +11,7 @@ path = "src/lib.rs"
 
 [dependencies]
 futures = "0.3.28"
-mongodb = "3.0.1"
+mongodb = "3.1.0"
 serde = "1.0.189"
 tokio = { version = "1.32.0", features = ["full"] }
 mongosql = { path = "../mongosql" }
