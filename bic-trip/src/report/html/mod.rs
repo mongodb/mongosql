@@ -68,7 +68,7 @@ fn generate_index_elements(
     // Add MongoDB logo and title
     body.add_raw(get_mongodb_icon_html(report_name));
 
-    body.add_raw(&format!(
+    body.add_raw(format!(
         r#"<h2>Schema Reports</h2><ul>{}</ul>"#,
         find_html_files(&file_path.join(schema_analysis_dir_name))
             .unwrap_or_default()
@@ -83,7 +83,7 @@ fn generate_index_elements(
                 )
             })
     ));
-    body.add_raw(&format!(
+    body.add_raw(format!(
         r#"<h2>Log Reports</h2><ul>{}</ul>"#,
         find_html_files(&file_path.join(log_analysis_dir_name))
             .unwrap_or_default()
@@ -297,7 +297,7 @@ pub fn generate_html_elements(
             "".to_string()
         };
 
-        body.add_raw(&format!(
+        body.add_raw(format!(
             "<div id=\"Queries\" class=\"tabcontent\"><h2>Queries</h2><a href=\"#invalid-queries\"> \
             Jump to Invalid Queries</a><br><br>{}{}{}</div>",
             process_query_html("Valid", &log_parse.valid_queries),
@@ -305,16 +305,16 @@ pub fn generate_html_elements(
             collapsible_unsupported_queries_html
         ));
 
-        body.add_raw(&format!(
+        body.add_raw(format!(
             r#"<div id="Collections" class="tabcontent"><h2>Collections</h2>{}</div>"#,
             process_collections_html("Found Collections", &log_parse.collections)
         ));
 
-        body.add_raw(&format!(
+        body.add_raw(format!(
             r#"<div id="ComplexTypes" class="tabcontent"><h2>Complex Types</h2>{}</div>"#,
             process_complex_types_html(&log_parse.subpath_fields, &log_parse.array_datasources)
         ));
-        body.add_raw(&format!(
+        body.add_raw(format!(
             r#"<div id="Summary" class="tabcontent"><h2>Summary</h2>{}</div>"#,
             process_summary_html(log_parse)
         ));
@@ -327,7 +327,7 @@ pub fn generate_html_elements(
         ));
     }
     page.add_container(body);
-    page.add_raw(&format!(r#"<script>{}</script>"#, get_tab_js()));
+    page.add_raw(format!(r#"<script>{}</script>"#, get_tab_js()));
 
     page.to_html_string()
 }

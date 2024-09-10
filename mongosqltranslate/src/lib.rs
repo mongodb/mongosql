@@ -5,11 +5,21 @@ use jni::{
     JNIEnv,
 };
 use panic_safe::panic_safe_exec;
+use std::sync::LazyLock;
 
 mod command;
 #[cfg(test)]
 mod command_tests;
 mod panic_safe;
+
+static MONGOSQLTRANSLATE_VERSION: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "v{}.{}.{}",
+        env!("CARGO_PKG_VERSION_MAJOR"),
+        env!("CARGO_PKG_VERSION_MINOR"),
+        env!("CARGO_PKG_VERSION_PATCH")
+    )
+});
 
 #[repr(C)]
 pub struct OdbcCommand {

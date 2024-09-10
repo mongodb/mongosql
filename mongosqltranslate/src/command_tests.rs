@@ -394,3 +394,35 @@ mod get_namespaces_tests {
         let _actual = command.run();
     }
 }
+
+mod get_mongosqltranslateversion_tests {
+    use super::*;
+    use crate::MONGOSQLTRANSLATE_VERSION;
+
+    test_command_handler!(
+        valid_get_mongosqltranslateversion_command_should_succeed,
+        expected = doc! {
+            "version": &*MONGOSQLTRANSLATE_VERSION,
+        },
+        input = Command {
+            command: GetMongosqlTranslateVersion,
+            options: CommandOptions {
+                ..Default::default()
+            },
+        }
+    );
+
+    test_command_handler!(
+        valid_get_mongosqltranslateversion_command_with_extra_parameter_should_succeed,
+        expected = doc! {
+            "version": &*MONGOSQLTRANSLATE_VERSION,
+        },
+        input = Command {
+            command: GetMongosqlTranslateVersion,
+            options: CommandOptions {
+                driver_version: Some("extra_parameter".to_string()),
+                ..Default::default()
+            },
+        }
+    );
+}

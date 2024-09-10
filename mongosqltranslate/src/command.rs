@@ -1,3 +1,4 @@
+use crate::MONGOSQLTRANSLATE_VERSION;
 use mongodb::bson::{doc, Bson, Deserializer, Document, Serializer};
 use mongosql::{
     build_catalog_from_catalog_schema, json_schema,
@@ -169,9 +170,13 @@ impl Command {
         })
     }
 
-    // Placeholder for CommandType::GetMongosqltranslateVersion
+    /// This is the handler function for the GetMongosqlTranslateVersion Command. It returns a
+    /// Result<bson::Document> containing the version of the mongosqltranslate library.
+    /// There are NO necessary CommandOptions. Extra CommandOptions will be ignored.
     fn get_mongosqltranslate_version(&self) -> Result<Document> {
-        unimplemented!()
+        Ok(doc! {
+            "version": &*MONGOSQLTRANSLATE_VERSION,
+        })
     }
 
     // Placeholder for CommandType::CheckDriverVersion

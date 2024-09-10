@@ -696,7 +696,7 @@ impl<'a> Algebrizer<'a> {
                                 Ok(())
                             })
                         })
-                        .collect::<Result<_>>()?;
+                        .collect::<Result<Vec<_>>>()?;
                 }
 
                 // Check to see if any field path is a prefix of another field path. If there is a prefix, remove it.
@@ -1728,11 +1728,10 @@ impl<'a> Algebrizer<'a> {
             .else_branch
             .map(|e| self.algebrize_expression(*e, false))
             .transpose()?
-            .map(|expr| {
+            .inspect(|expr| {
                 is_nullable = is_nullable
                     || (NULLISH.satisfies(&expr.schema(&self.schema_inference_state()).unwrap())
                         != Satisfaction::Not);
-                expr
             })
             .map(Box::new)
             .unwrap_or_else(|| Box::new(mir::Expression::Literal(mir::LiteralValue::Null)));
