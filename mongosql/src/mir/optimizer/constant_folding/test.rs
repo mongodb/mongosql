@@ -3151,6 +3151,7 @@ mod constant_folding {
     test_constant_fold!(
         multi_level_field_access_from_literal_document_is_constant_folded,
         expected = Stage::Project(Project {
+            is_add_fields: false,
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![Expression::Document(DocumentExpr {
                     document: unchecked_unique_linked_hash_map! {},
@@ -3170,6 +3171,7 @@ mod constant_folding {
         }),
         expected_changed = true,
         input = Stage::Project(Project {
+            is_add_fields: false,
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![Expression::Document(DocumentExpr {
                     document: unchecked_unique_linked_hash_map! {},

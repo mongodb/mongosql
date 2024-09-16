@@ -3,9 +3,9 @@ use bson::{oid::ObjectId, DateTime, Decimal128};
 
 visitgen::generate_visitors! {
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub enum Stage {
+    AddFields(AddFields),
     Project(Project),
     Group(Group),
     Limit(Limit),
@@ -28,6 +28,12 @@ pub enum Stage {
 pub struct Project {
     pub source: Box<Stage>,
     pub specifications: UniqueLinkedHashMap<String, ProjectItem>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct AddFields {
+    pub source: Box<Stage>,
+    pub specifications: UniqueLinkedHashMap<String, Expression>,
 }
 
 #[derive(PartialEq, Debug, Clone)]

@@ -287,6 +287,11 @@ impl CachedSchema for Stage {
                         Err(e) => Err(e),
                     })
                     .collect::<Result<SchemaEnvironment, _>>()?;
+                let schema_env = if p.is_add_fields {
+                    state.env.union(schema_env)
+                } else {
+                    schema_env
+                };
                 Ok(ResultSet {
                     schema_env,
                     min_size,

@@ -143,7 +143,9 @@ macro_rules! test_move_stage_no_op {
 test_move_stage!(
     move_offsets_above_projects,
     expected = Stage::Project(Project {
+                            is_add_fields: false,
         source: Stage::Project(Project {
+                            is_add_fields: false,
             source: Stage::Offset(Offset {
                 source: Stage::Offset(Offset {
                     source: mir_collection("foo", "bar"),
@@ -175,7 +177,9 @@ test_move_stage!(
     input = Stage::Offset(Offset {
         source: Stage::Offset(Offset {
             source: Stage::Project(Project {
+                            is_add_fields: false,
                 source: Stage::Project(Project {
+                            is_add_fields: false,
                     source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
                         Key::bot(0) => mir::Expression::Document(
@@ -208,7 +212,9 @@ test_move_stage!(
     move_filter_above_projects,
     expected = Stage::Limit(Limit {
         source: Stage::Project(Project {
+                            is_add_fields: false,
             source: Stage::Project(Project {
+                            is_add_fields: false,
                 source: Stage::Filter(Filter {
                     source: mir_collection("foo", "bar"),
                     condition: Expression::ScalarFunction(
@@ -249,7 +255,9 @@ test_move_stage!(
     input = Stage::Limit(Limit {
         source: Stage::Filter(Filter {
             source: Stage::Project(Project {
+                            is_add_fields: false,
                 source: Stage::Project(Project {
+                            is_add_fields: false,
                     source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
                         Key::named("bar", 0u16) => mir::Expression::Document(
@@ -289,6 +297,7 @@ test_move_stage_no_op!(
         source: Stage::Filter(Filter {
             source: Stage::Unwind(Unwind {
                 source: Stage::Project(Project {
+                            is_add_fields: false,
                     source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
                         Key::named("bar", 0u16) => mir::Expression::Document(
@@ -328,6 +337,7 @@ test_move_stage_no_op!(
     Stage::Limit(Limit {
         source: Stage::Sort(Sort {
             source: Stage::Project(Project {
+                            is_add_fields: false,
                 source: mir_collection("foo", "bar"),
                 expression: BindingTuple(map! {
                     Key::bot(0u16) => mir::Expression::Document(
@@ -356,6 +366,7 @@ test_move_stage!(
     move_sort_above_project_when_substitutable_complex_expression_is_used,
     expected = Stage::Limit(Limit {
         source: Stage::Project(Project {
+            is_add_fields: false,
             source: Stage::Sort(Sort {
                 source: mir_collection("foo", "bar"),
                 specs: vec![SortSpecification::Asc(mir_field_path("bar", vec!["y"]))],
@@ -379,6 +390,7 @@ test_move_stage!(
     input = Stage::Limit(Limit {
         source: Stage::Sort(Sort {
             source: Stage::Project(Project {
+                is_add_fields: false,
                 source: mir_collection("foo", "bar"),
                 expression: BindingTuple(map! {
                      Key::bot(0u16) => mir::Expression::Document(
@@ -403,6 +415,7 @@ test_move_stage!(
     move_match_filter_above_project_when_substitutable_complex_expression_is_used,
     expected = Stage::Limit(Limit {
         source: Stage::Project(Project {
+            is_add_fields: false,
             source: Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
                 source: mir_collection("foo", "bar"),
                 condition: MatchQuery::Comparison(MatchLanguageComparison {
@@ -431,6 +444,7 @@ test_move_stage!(
     input = Stage::Limit(Limit {
         source: Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
             source: Stage::Project(Project {
+                is_add_fields: false,
                 source: mir_collection("foo", "bar"),
                 expression: BindingTuple(map! {
                      Key::bot(0u16) => mir::Expression::Document(
@@ -460,6 +474,7 @@ test_move_stage!(
     move_sorts_above_project_will_not_reorder_sort_to_sort,
     expected = Stage::Limit(Limit {
         source: Stage::Project(Project {
+            is_add_fields: false,
             source: Stage::Sort(Sort {
                 source: Stage::Sort(Sort {
                     source: mir_collection("foo", "bar"),
@@ -491,6 +506,7 @@ test_move_stage!(
         source: Stage::Sort(Sort {
             source: Stage::Sort(Sort {
                 source: Stage::Project(Project {
+                    is_add_fields: false,
                     source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
                         Key::named("bar", 0u16) => *mir_field_access("bar", "x", true),
@@ -515,6 +531,7 @@ test_move_stage!(
     move_sorts_above_project_but_not_above_group,
     expected = Stage::Limit(Limit {
         source: Stage::Project(Project {
+            is_add_fields: false,
             source: Stage::Sort(Sort {
                 source: Stage::Group(Group {
                     source: mir_collection("foo", "bar"),
@@ -544,6 +561,7 @@ test_move_stage!(
     input = Stage::Limit(Limit {
         source: Stage::Sort(Sort {
             source: Stage::Project(Project {
+                is_add_fields: false,
                 source: Stage::Group(Group {
                     source: mir_collection("foo", "bar"),
                     cache: SchemaCache::new(),
@@ -571,6 +589,7 @@ test_move_stage!(
     move_filters_above_project_will_reorder_filter_to_filter,
     expected = Stage::Limit(Limit {
         source: Stage::Project(Project {
+                            is_add_fields: false,
             source: Stage::Filter(Filter {
                 source: Stage::Filter(Filter {
                     source: mir_collection("foo", "bar"),
@@ -623,6 +642,7 @@ test_move_stage!(
         source: Stage::Filter(Filter {
             source: Stage::Filter(Filter {
                 source: Stage::Project(Project {
+                            is_add_fields: false,
                     source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
                         Key::named("bar", 0u16) => mir::Expression::Document(
@@ -691,6 +711,7 @@ test_move_stage!(
     expected = Stage::Limit(Limit {
         source: Stage::Join( Join {
             left: Stage::Project(Project {
+                            is_add_fields: false,
                 source: mir_collection("foo", "bar"),
                 expression: BindingTuple(map! {
                     // In any real query, "bar" will be bound to a Document, but we just use a
@@ -704,6 +725,7 @@ test_move_stage!(
                 cache: SchemaCache::new(),
             }).into(),
             right: Stage::Project(Project {
+                            is_add_fields: false,
                 source: Stage::Filter(Filter {
                     source: mir_collection("foo", "bar2"),
                     condition: Expression::ScalarFunction(
@@ -746,6 +768,7 @@ test_move_stage!(
         source: Stage::Filter(Filter {
             source: Stage::Join( Join {
                 left: Stage::Project(Project {
+                            is_add_fields: false,
                     source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
                         // In any real query, "bar" will be bound to a Document, but we just use a
@@ -759,6 +782,7 @@ test_move_stage!(
                     cache: SchemaCache::new(),
                 }).into(),
                 right: Stage::Project(Project {
+                            is_add_fields: false,
                     source: mir_collection("foo", "bar2"),
                     expression: BindingTuple(map! {
                         // In any real query, "bar" will be bound to a Document, but we just use a
@@ -944,6 +968,7 @@ test_move_stage!(
     expected = Stage::Limit(Limit {
         source: Stage::Join( Join {
             left: Stage::Project(Project {
+                            is_add_fields: false,
                 source: Stage::Filter(Filter {
                     source: mir_collection("foo", "bar"),
                     condition: Expression::ScalarFunction(
@@ -976,6 +1001,7 @@ test_move_stage!(
                 cache: SchemaCache::new(),
             }).into(),
             right: Stage::Project(Project {
+                            is_add_fields: false,
                 source: mir_collection("foo", "bar2"),
                 expression: BindingTuple(map! {
                     // In any real query, "bar" will be bound to a Document, but we just use a
@@ -1000,6 +1026,7 @@ test_move_stage!(
         source: Stage::Filter(Filter {
             source: Stage::Join( Join {
                 left: Stage::Project(Project {
+                            is_add_fields: false,
                     source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
                         Key::named("bar", 0u16) => mir::Expression::Document(
@@ -1011,6 +1038,7 @@ test_move_stage!(
                     cache: SchemaCache::new(),
                 }).into(),
                 right: Stage::Project(Project {
+                            is_add_fields: false,
                     source: mir_collection("foo", "bar2"),
                     expression: BindingTuple(map! {
                         // In any real query, "bar" will be bound to a Document, but we just use a
@@ -1050,6 +1078,7 @@ test_move_stage!(
     expected = Stage::Limit(Limit {
         source: Stage::Set( Set {
             left: Stage::Project(Project {
+                            is_add_fields: false,
                 source: mir_collection("foo", "bar"),
                 expression: BindingTuple(map! {
                     // In any real query, "bar" will be bound to a Document, but we just use a
@@ -1063,6 +1092,7 @@ test_move_stage!(
                 cache: SchemaCache::new(),
             }).into(),
             right: Stage::Project(Project {
+                            is_add_fields: false,
                 source: Stage::Filter(Filter {
                     source: mir_collection("foo", "bar2"),
                     condition: Expression::ScalarFunction(
@@ -1104,6 +1134,7 @@ test_move_stage!(
         source: Stage::Filter(Filter {
             source: Stage::Set( Set {
                 left: Stage::Project(Project {
+                            is_add_fields: false,
                     source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
                         // In any real query, "bar" will be bound to a Document, but we just use a
@@ -1116,6 +1147,7 @@ test_move_stage!(
                     cache: SchemaCache::new(),
                 }).into(),
                 right: Stage::Project(Project {
+                            is_add_fields: false,
                     source: mir_collection("foo", "bar2"),
                     expression: BindingTuple(map! {
                         // In any real query, "bar" will be bound to a Document, but we just use a
@@ -1152,6 +1184,7 @@ test_move_stage!(
     expected = Stage::Limit(Limit {
         source: Stage::Set( Set {
             left: Stage::Project(Project {
+                            is_add_fields: false,
                 source: Stage::Filter(Filter {
                     source: mir_collection("foo", "bar"),
                     condition: Expression::ScalarFunction(
@@ -1181,6 +1214,7 @@ test_move_stage!(
                 cache: SchemaCache::new(),
             }).into(),
             right: Stage::Project(Project {
+                            is_add_fields: false,
                 source: mir_collection("foo", "bar2"),
                 expression: BindingTuple(map! {
                     // In any real query, "bar" will be bound to a Document, but we just use a
@@ -1205,6 +1239,7 @@ test_move_stage!(
         source: Stage::Filter(Filter {
             source: Stage::Set(Set {
                 left: Stage::Project(Project {
+                            is_add_fields: false,
                     source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
                         Key::named("bar", 0u16) => mir::Expression::Document(
@@ -1216,6 +1251,7 @@ test_move_stage!(
                     cache: SchemaCache::new(),
                 }).into(),
                 right: Stage::Project(Project {
+                            is_add_fields: false,
                     source: mir_collection("foo", "bar2"),
                     expression: BindingTuple(map! {
                         // In any real query, "bar" will be bound to a Document, but we just use a
@@ -1249,7 +1285,9 @@ test_move_stage!(
     move_filter_into_derived_query,
     expected = Stage::Derived(Derived {
         source: Box::new(Stage::Project(Project {
+            is_add_fields: false,
             source: Box::new(Stage::Project(Project {
+                is_add_fields: false,
                 source: Box::new(Stage::Filter(Filter {
                     source: mir_collection("foo", "bar"),
                     condition: Expression::ScalarFunction(mir::ScalarFunctionApplication {
@@ -1282,7 +1320,9 @@ test_move_stage!(
     input = Stage::Filter(Filter {
         source: Box::new(Stage::Derived(Derived {
             source: Box::new(Stage::Project(Project {
+                is_add_fields: false,
                 source: Box::new(Stage::Project(Project {
+                    is_add_fields: false,
                     source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
                         Key::named("bar", 1u16) => Expression::Reference(("bar", 1u16).into()),
@@ -1778,6 +1818,7 @@ test_move_stage!(
     expected = Stage::Filter(Filter {
         source: Stage::Unwind(Unwind {
             source: Stage::Project(Project {
+                            is_add_fields: false,
                 source: Stage::Filter(Filter {
                     source: mir_collection("foo", "bar"),
                     condition: Expression::ScalarFunction(
@@ -1821,6 +1862,7 @@ test_move_stage!(
         source: Stage::Filter(Filter {
             source: Stage::Unwind(Unwind {
                 source: Stage::Project(Project {
+                            is_add_fields: false,
                     source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
                         Key::named("bar", 0u16) => mir::Expression::Document(
@@ -1863,8 +1905,10 @@ test_move_stage!(
 test_move_stage!(
     filter_with_subquery_does_not_move_to_start_of_pipeline,
     expected = Stage::Project(Project {
+        is_add_fields: false,
         source: Stage::Filter(Filter {
             source: Stage::Project(Project {
+                is_add_fields: false,
                 source: mir_collection("db", "foo"),
                 expression: BindingTuple(map! {
                     Key::bot(0) => Document(
@@ -1923,7 +1967,9 @@ test_move_stage!(
     expected_changed = true,
     input = Stage::Filter(Filter {
         source: Stage::Project(Project {
+            is_add_fields: false,
             source: Stage::Project(Project {
+                is_add_fields: false,
                 source: mir_collection("db", "foo"),
                 expression: BindingTuple(map! {
                     Key::bot(0) => Document(
@@ -1979,6 +2025,7 @@ test_move_stage!(
                     subquery_expr: SubqueryExpr {
                         output_expr: mir_field_access("__bot__", "b", false),
                         subquery: Box::new(Stage::Project(Project {
+                            is_add_fields: false,
                             source: Box::new(Stage::Filter(Filter {
                                 source: mir_collection("test_db", "non_nullable_fields"),
                                 condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -2037,6 +2084,7 @@ test_move_stage!(
                     subquery_expr: SubqueryExpr {
                         output_expr: mir_field_access("__bot__", "b", false),
                         subquery: Box::new(Stage::Project(Project {
+                            is_add_fields: false,
                             source: Box::new(Stage::Filter(Filter {
                                 source: mir_collection("test_db", "non_nullable_fields"),
                                 condition: Expression::ScalarFunction(ScalarFunctionApplication {

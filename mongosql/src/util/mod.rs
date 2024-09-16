@@ -74,6 +74,7 @@ pub(crate) fn mir_project_collection(
     let expected_name = expected_name.unwrap_or(collection_name);
     let scope = scope.unwrap_or(0u16);
     Box::new(mir::Stage::Project(mir::Project {
+        is_add_fields: false,
         source: Box::new(mir::Stage::Collection(mir::Collection {
             db: db_name.into(),
             collection: collection_name.into(),
@@ -102,6 +103,7 @@ pub(crate) fn mir_collection(db_name: &str, collection_name: &str) -> Box<mir::S
 #[cfg(test)]
 pub(crate) fn mir_project_bot_collection(collection_name: &str) -> Box<mir::Stage> {
     Box::new(mir::Stage::Project(mir::Project {
+        is_add_fields: false,
         source: Box::new(mir::Stage::Collection(mir::Collection {
             db: "test_db".into(),
             collection: collection_name.into(),

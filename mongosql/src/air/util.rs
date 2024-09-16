@@ -4,6 +4,7 @@ use std::fmt;
 impl Stage {
     pub(crate) fn get_source(&self) -> Box<Stage> {
         match self {
+            Stage::AddFields(a) => a.source.clone(),
             Stage::Project(p) => p.source.clone(),
             Stage::Group(g) => g.source.clone(),
             Stage::Limit(l) => l.source.clone(),
@@ -25,6 +26,7 @@ impl Stage {
 
     pub(crate) fn set_source(&mut self, new_source: Box<Stage>) {
         match self {
+            Stage::AddFields(a) => a.source = new_source,
             Stage::Project(p) => p.source = new_source,
             Stage::Group(g) => g.source = new_source,
             Stage::Limit(l) => l.source = new_source,

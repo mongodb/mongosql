@@ -50,6 +50,10 @@ pub struct Filter {
 pub struct Project {
     pub source: Box<Stage>,
     pub expression: BindingTuple<Expression>,
+    // is_add_fields is true if the project stage is adding fields to the schema without
+    // removing any. This is currently used only to allow ordering by a column not in the select
+    // list.
+    pub is_add_fields: bool,
     pub cache: SchemaCache<ResultSet>,
 }
 

@@ -153,6 +153,7 @@ test_method!(
         expected
     },
     input = Project {
+        is_add_fields: false,
         source: mir_collection("foo", "bar"),
         expression: map! {
             Key::named("x", 0) => Literal(Integer(0),),

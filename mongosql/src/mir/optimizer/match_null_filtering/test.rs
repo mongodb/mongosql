@@ -370,6 +370,7 @@ mod all_fields_always_nullable {
     test_match_null_filtering!(
         nested_filter_stage,
         expected = Stage::Project(Project {
+            is_add_fields: false,
             source: mir_collection("db", "foo"),
             expression: map! {
                 ("foo", 0u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
@@ -399,6 +400,7 @@ mod all_fields_always_nullable {
         }),
         expected_changed = true,
         input = Stage::Project(Project {
+            is_add_fields: false,
             source: mir_collection("db", "foo"),
             expression: map! {
                 ("foo", 0u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {

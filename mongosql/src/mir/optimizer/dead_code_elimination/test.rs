@@ -74,7 +74,9 @@ test_dead_code_elimination_no_op!(
 test_dead_code_elimination!(
     swap_group_and_project,
     expected = Stage::Project(Project {
+        is_add_fields: false,
         source: Box::new(Stage::Project(Project {
+            is_add_fields: false,
             source: Box::new(Stage::Group(Group {
                 source: mir_collection("db", "bar"),
                 keys: vec![
@@ -117,8 +119,10 @@ test_dead_code_elimination!(
     }),
     expected_changed = true,
     input = Stage::Project(Project {
+        is_add_fields: false,
         source: Box::new(Stage::Group(Group {
             source: Box::new(Stage::Project(Project {
+                is_add_fields: false,
                 source: mir_collection("db", "bar"),
                 expression: map! {
                     ("foo", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
@@ -162,7 +166,9 @@ test_dead_code_elimination!(
 test_dead_code_elimination!(
     swap_group_and_project_outer_project_agg_only,
     expected = Stage::Project(Project {
+        is_add_fields: false,
         source: Box::new(Stage::Project(Project {
+            is_add_fields: false,
             source: Box::new(Stage::Group(Group {
                 source: mir_collection("db", "bar"),
                 keys: vec![
@@ -215,8 +221,10 @@ test_dead_code_elimination!(
     }),
     expected_changed = true,
     input = Stage::Project(Project {
+        is_add_fields: false,
         source: Box::new(Stage::Group(Group {
             source: Box::new(Stage::Project(Project {
+                is_add_fields: false,
                 source: mir_collection("db", "bar"),
                 expression: map! {
                     ("foo", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
@@ -271,6 +279,7 @@ test_dead_code_elimination_no_op!(
     cannot_eliminate_project_source_for_group_if_not_all_sources_are_substitutable,
     Stage::Group(Group {
         source: Box::new(Stage::Project(Project {
+            is_add_fields: false,
             source: mir_collection("db", "bar"),
             expression: map! {
                 ("foo", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),

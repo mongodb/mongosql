@@ -155,6 +155,7 @@ mod merge_neighboring_matches_tests {
         non_adjacent_filters_not_merged,
         expected = Stage::Filter(Filter {
             source: Box::new(Stage::Project(Project {
+                is_add_fields: false,
                 source: Box::new(Stage::Filter(Filter {
                     source: Box::new(Stage::Array(ArraySource {
                         array: vec![],
@@ -179,6 +180,7 @@ mod merge_neighboring_matches_tests {
         }),
         input = Stage::Filter(Filter {
             source: Box::new(Stage::Project(Project {
+                is_add_fields: false,
                 source: Box::new(Stage::Filter(Filter {
                     source: Box::new(Stage::Array(ArraySource {
                         array: vec![],

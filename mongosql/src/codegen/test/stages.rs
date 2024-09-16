@@ -305,6 +305,27 @@ mod project {
     );
 }
 
+mod add_fields {
+    use crate::{air::*, unchecked_unique_linked_hash_map, util::air_collection_stage};
+    use bson::doc;
+
+    test_codegen_stage!(
+        assignments,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![doc!{"$addFields": {"foo": "$col", "bar": {"$literal": 19}}}],
+        }),
+        input = Stage::AddFields(AddFields {
+            source: air_collection_stage("mydb", "col"),
+            specifications: unchecked_unique_linked_hash_map! {
+                "foo".to_string() => Expression::FieldRef("col".into()),
+                "bar".to_string() => Expression::Literal(LiteralValue::Integer(19)),
+            },
+        }),
+    );
+}
+
 mod group {
     use crate::{air::*, util::air_collection_stage};
     use bson::doc;

@@ -9,7 +9,7 @@ use crate::{
 use lazy_static::lazy_static;
 
 macro_rules! test_algebrize {
-    ($func_name:ident, method = $method:ident, $(in_implicit_type_conversion_context = $in_implicit_type_conversion_context:expr,)? $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? $(expected_error_code = $expected_error_code:literal,)? input = $ast:expr, $(source = $source:expr,)? $(env = $env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
+    ($func_name:ident, method = $method:ident, $(in_implicit_type_conversion_context = $in_implicit_type_conversion_context:expr,)? $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? $(expected_error_code = $expected_error_code:literal,)? input = $ast:expr, $(source = $source:expr,)? $(env = $env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)? $(is_add_fields = $is_add_fields:expr, )?) => {
         #[test]
         fn $func_name() {
             #[allow(unused_imports)]
@@ -28,10 +28,10 @@ macro_rules! test_algebrize {
             $(schema_checking_mode = $schema_checking_mode;)?
 
             #[allow(unused_mut, unused_assignments)]
-            let mut algebrizer = Algebrizer::new("test".into(), &catalog, 0u16, schema_checking_mode, ClauseType::Unintialized);
-            $(algebrizer = Algebrizer::with_schema_env("test".into(), $env, &catalog, 1u16, schema_checking_mode, ClauseType::Unintialized);)?
+            let mut algebrizer = Algebrizer::new("test".into(), &catalog, 0u16, schema_checking_mode, false, ClauseType::Unintialized);
+            $(algebrizer = Algebrizer::with_schema_env("test".into(), $env, &catalog, 1u16, schema_checking_mode, false, ClauseType::Unintialized);)?
 
-            let res: Result<_, Error> = algebrizer.$method($ast $(, $source)? $(, $in_implicit_type_conversion_context)?);
+            let res: Result<_, Error> = algebrizer.$method($ast $(, $source)? $(, $in_implicit_type_conversion_context)? $(, $is_add_fields)?);
             $(assert!(matches!(res, $expected_pat));)?
             $(assert_eq!($expected, res);)?
 
@@ -64,8 +64,8 @@ macro_rules! test_algebrize_expr_and_schema_check {
             $(schema_checking_mode = $schema_checking_mode;)?
 
             #[allow(unused_mut, unused_assignments)]
-            let mut algebrizer = Algebrizer::new("test".into(), &catalog, 0u16, schema_checking_mode, ClauseType::Unintialized);
-            $(algebrizer = Algebrizer::with_schema_env("test".into(), $env, &catalog, 1u16, schema_checking_mode, ClauseType::Unintialized);)?
+            let mut algebrizer = Algebrizer::new("test".into(), &catalog, 0u16, schema_checking_mode, false, ClauseType::Unintialized);
+            $(algebrizer = Algebrizer::with_schema_env("test".into(), $env, &catalog, 1u16, schema_checking_mode, false, ClauseType::Unintialized);)?
 
             let res: Result<_, Error> = algebrizer.$method($ast $(, $source)? $(, $in_implicit_type_conversion_context)?);
             let res = res.unwrap().schema(&algebrizer.schema_inference_state()).map_err(|e|Error::SchemaChecking(e));
@@ -97,6 +97,7 @@ macro_rules! test_user_error_messages {
 
 fn mir_source_foo() -> Stage {
     Stage::Project(Project {
+        is_add_fields: false,
         source: Box::new(Stage::Collection(Collection {
             db: "test".into(),
             collection: "foo".into(),
@@ -111,6 +112,7 @@ fn mir_source_foo() -> Stage {
 
 fn mir_source_bar() -> Stage {
     Stage::Project(Project {
+        is_add_fields: false,
         source: Box::new(Stage::Collection(Collection {
             db: "test".into(),
             collection: "bar".into(),
@@ -749,7 +751,37 @@ mod expression {
         );
 
         test_algebrize!(
-            unqualified_ref_may_and_must_exist_in_two_sources,
+            unqualified_ref_may_and_must_exist_in_two_sources_one_of_which_is_bot,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::Reference(Key::bot(1u16).into())),
+                field: "a".into(),
+                is_nullable: false
+            })),
+            input = ast::Expression::Identifier("a".into()),
+            env = map! {
+                ("foo", 1u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set!{"a".into()},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+                Key::bot(1u16) => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set!{"a".into()},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+        );
+
+        test_algebrize!(
+            unqualified_ref_must_exist_in_two_non_bot_sources,
             method = algebrize_expression,
             in_implicit_type_conversion_context = false,
             expected = Err(Error::AmbiguousField(
@@ -768,7 +800,7 @@ mod expression {
                     additional_properties: false,
                     ..Default::default()
                 }),
-                Key::bot(1u16) => Schema::Document( Document {
+                ("bar", 1u16).into() => Schema::Document( Document {
                     keys: map! {
                         "a".into() => Schema::Atomic(Atomic::Integer),
                     },
@@ -5649,11 +5681,13 @@ mod select_clause {
         env = map! {
             ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
         },
+        is_add_fields = false,
     );
     test_algebrize!(
         select_duplicate_bot,
         method = algebrize_select_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(source()),
             expression: map! {
                 Key::bot(1u16) => mir::Expression::Document(mir::DocumentExpr {
@@ -5672,6 +5706,7 @@ mod select_clause {
         source = source(),
         env = map! {},
         catalog = catalog(vec![("test", "baz")]),
+        is_add_fields = false,
     );
     test_algebrize!(
         select_duplicate_doc_key_a,
@@ -5690,11 +5725,13 @@ mod select_clause {
         source = source(),
         env = map! {},
         catalog = catalog(vec![("test", "baz")]),
+        is_add_fields = false,
     );
     test_algebrize!(
         select_bot_and_double_substar,
         method = algebrize_select_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(source()),
             expression: map! {
                 Key::bot(1u16) => mir::Expression::Document(unchecked_unique_linked_hash_map!{}.into()),
@@ -5717,6 +5754,7 @@ mod select_clause {
             ("bar", 1u16).into() => ANY_DOCUMENT.clone(),
         },
         catalog = catalog(vec![("test", "baz")]),
+        is_add_fields = false,
     );
     test_algebrize!(
         select_value_expression_must_be_document,
@@ -5738,6 +5776,7 @@ mod select_clause {
         source = source(),
         env = map! {},
         catalog = catalog(vec![("test", "baz")]),
+        is_add_fields = false,
     );
     test_algebrize!(
         select_duplicate_substar,
@@ -5756,11 +5795,13 @@ mod select_clause {
             ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
         },
         catalog = catalog(vec![("test", "baz")]),
+        is_add_fields = false,
     );
     test_algebrize!(
         select_substar_body,
         method = algebrize_select_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(source()),
             expression: map! {
                 ("foo", 1u16).into() => mir::Expression::Reference(("foo", 0u16).into()),
@@ -5778,6 +5819,7 @@ mod select_clause {
             ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
         },
         catalog = catalog(vec![("test", "baz")]),
+        is_add_fields = false,
     );
 }
 
@@ -5796,6 +5838,7 @@ mod from_clause {
 
     fn mir_array_source() -> mir::Stage {
         mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir::Stage::Array(mir::ArraySource {
                 array: vec![mir::Expression::Document(mir::DocumentExpr {
                     document: unchecked_unique_linked_hash_map! {"a".to_string() => mir::Expression::Document(mir::DocumentExpr {
@@ -5829,6 +5872,7 @@ mod from_clause {
         basic_collection,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir::Stage::Collection(mir::Collection {
                 db: "test".into(),
                 collection: "foo".into(),
@@ -5851,6 +5895,7 @@ mod from_clause {
         qualified_collection,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir::Stage::Collection(mir::Collection {
                 db: "test2".into(),
                 collection: "foo".into(),
@@ -5873,6 +5918,7 @@ mod from_clause {
         collection_and_alias_contains_dot,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir::Stage::Collection(mir::Collection {
                 db: "test2".into(),
                 collection: "foo.bar".into(),
@@ -5895,6 +5941,7 @@ mod from_clause {
         collection_and_alias_starts_with_dollar,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir::Stage::Collection(mir::Collection {
                 db: "test2".into(),
                 collection: "$foo".into(),
@@ -5917,6 +5964,7 @@ mod from_clause {
         empty_array,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir::Stage::Array(mir::ArraySource {
                 array: vec![],
                 alias: "bar".into(),
@@ -5936,6 +5984,7 @@ mod from_clause {
         dual,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir::Stage::Array(mir::ArraySource {
                 array: vec![mir::Expression::Document(
                     unchecked_unique_linked_hash_map! {}.into()
@@ -5998,6 +6047,7 @@ mod from_clause {
         single_document_array,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir::Stage::Array(mir::ArraySource {
                 array: vec![mir::Expression::Document(
                     unchecked_unique_linked_hash_map! {
@@ -6026,6 +6076,7 @@ mod from_clause {
         two_document_array,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir::Stage::Array(mir::ArraySource {
                 array: vec![
                     mir::Expression::Document(unchecked_unique_linked_hash_map! {
@@ -6063,6 +6114,7 @@ mod from_clause {
         two_document_with_nested_document_array,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
+                            is_add_fields: false,
             source: Box::new(mir::Stage::Array(mir::ArraySource {
                 array: vec![
                     mir::Expression::Document(unchecked_unique_linked_hash_map! {
@@ -6270,7 +6322,9 @@ mod from_clause {
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Derived(mir::Derived {
             source: Box::new(mir::Stage::Project(mir::Project {
+                            is_add_fields: false,
                 source: Box::new(mir::Stage::Project(mir::Project {
+                            is_add_fields: false,
                     source: Box::new(mir::Stage::Array(mir::ArraySource {
                         array: vec![mir::Expression::Document(
                             unchecked_unique_linked_hash_map! {
@@ -6321,8 +6375,11 @@ mod from_clause {
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Derived(mir::Derived {
             source: Box::new(mir::Stage::Project(mir::Project {
+                            is_add_fields: false,
                 source: Box::new(mir::Stage::Project(mir::Project {
+                            is_add_fields: false,
                     source: Box::new(mir::Stage::Project(mir::Project {
+                            is_add_fields: false,
                         source: Box::new(mir::Stage::Array(mir::ArraySource {
                             array: vec![mir::Expression::Document(
                                 unchecked_unique_linked_hash_map! {
@@ -6399,9 +6456,11 @@ mod from_clause {
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Derived(mir::Derived {
             source: Box::new(mir::Stage::Project(mir::Project {
+                            is_add_fields: false,
                 source: mir::Stage::Join(mir::Join {
                     join_type: mir::JoinType::Inner,
                     left: mir::Stage::Project(mir::Project {
+                            is_add_fields: false,
                         source: Box::new(mir::Stage::Array(mir::ArraySource {
                             array: vec![mir::Expression::Document(
                                 unchecked_unique_linked_hash_map! {
@@ -6419,6 +6478,7 @@ mod from_clause {
                     })
                     .into(),
                     right: mir::Stage::Project(mir::Project {
+                            is_add_fields: false,
                         source: Box::new(mir::Stage::Array(mir::ArraySource {
                             array: vec![mir::Expression::Document(
                                 unchecked_unique_linked_hash_map! {
@@ -6495,6 +6555,7 @@ mod from_clause {
         expected = Ok(mir::Stage::Join(mir::Join {
             join_type: mir::JoinType::Left,
             left: Box::new(mir::Stage::Project(mir::Project {
+                            is_add_fields: false,
                 source: Box::new(mir::Stage::Array(mir::ArraySource {
                     array: vec![mir::Expression::Document(
                         unchecked_unique_linked_hash_map! {"a".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1))}
@@ -6508,6 +6569,7 @@ mod from_clause {
                 cache: SchemaCache::new(),
             })),
             right: Box::new(mir::Stage::Project(mir::Project {
+                            is_add_fields: false,
                 source: Box::new(mir::Stage::Array(mir::ArraySource {
                     array: vec![mir::Expression::Document(
                         unchecked_unique_linked_hash_map! {"b".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(4))}
@@ -6633,6 +6695,7 @@ mod from_clause {
         flatten_simple,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir_array_source()),
             expression: map! {
                 ("arr", 0u16).into() => mir::Expression::Document(mir::DocumentExpr {
@@ -6660,7 +6723,9 @@ mod from_clause {
         flatten_array_source_multiple_docs,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir::Stage::Project(mir::Project {
+                is_add_fields: false,
                 source: Box::new(mir::Stage::Array(mir::ArraySource {
                     array: vec![mir::Expression::Document(mir::DocumentExpr {
                         document: unchecked_unique_linked_hash_map! {
@@ -6744,7 +6809,9 @@ mod from_clause {
         flatten_polymorphic_non_document_schema_array_source,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir::Stage::Project(mir::Project {
+                is_add_fields: false,
                 source: Box::new(mir::Stage::Array(mir::ArraySource {
                     array: vec![
                         mir::Expression::Document(mir::DocumentExpr {
@@ -6872,6 +6939,7 @@ mod from_clause {
         flattening_polymorphic_objects_with_just_null_polymorphism_works,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir_source_foo()),
             expression: map! {("foo", 0u16).into() => mir::Expression::Document(
                 mir::DocumentExpr {
@@ -6919,6 +6987,7 @@ mod from_clause {
         flattening_polymorphic_objects_with_just_missing_polymorphism_works,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir_source_foo()),
             expression: map! {("foo", 0u16).into() => mir::Expression::Document(
                 mir::DocumentExpr {
@@ -6966,6 +7035,7 @@ mod from_clause {
         flattening_polymorphic_objects_with_just_null_and_missing_polymorphism_works,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir_source_foo()),
             expression: map! {("foo", 0u16).into() => mir::Expression::Document(
                 mir::DocumentExpr {
@@ -7763,6 +7833,7 @@ mod subquery {
 
     fn mir_array(scope: u16) -> Stage {
         Stage::Project(Project {
+            is_add_fields: false,
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![Expression::Document(
                     unchecked_unique_linked_hash_map! {
@@ -7792,6 +7863,7 @@ mod subquery {
         method = algebrize_expression,
         in_implicit_type_conversion_context = false,
         expected = Ok(Expression::Exists(Box::new(Stage::Project(Project {
+                            is_add_fields: false,
             source: Box::new(mir_array(1u16)),
             expression: map! {
                 (DatasourceName::Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
@@ -7823,6 +7895,7 @@ mod subquery {
         method = algebrize_expression,
         in_implicit_type_conversion_context = false,
         expected = Ok(Expression::Exists(Box::new(Stage::Project(Project {
+                            is_add_fields: false,
             source: Box::new(mir_array(2u16)),
             expression: map! {
                 (DatasourceName::Bottom, 2u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
@@ -7868,6 +7941,7 @@ mod subquery {
         method = algebrize_expression,
         in_implicit_type_conversion_context = false,
         expected = Ok(Expression::Exists(Box::new(Stage::Project(Project {
+                            is_add_fields: false,
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![
                     Expression::Document(
@@ -7915,6 +7989,7 @@ mod subquery {
         in_implicit_type_conversion_context = false,
         expected = Ok(Expression::Exists(
             Box::new(Stage::Project(Project {
+                is_add_fields: false,
                 source: Box::new(Stage::Array(ArraySource {
                     array: vec![Expression::Document(
                         unchecked_unique_linked_hash_map! {
@@ -7964,6 +8039,7 @@ mod subquery {
                 is_nullable: false,
             })),
             subquery: Box::new(Stage::Project(Project {
+                is_add_fields: false,
                 source: Box::new(mir_array(1u16)),
                 expression: map! {
                     (DatasourceName::Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
@@ -8007,6 +8083,7 @@ mod subquery {
                 is_nullable: false,
             })),
             subquery: Box::new(Stage::Project(Project {
+                is_add_fields: false,
                 source: Box::new(mir_array(2u16)),
                 expression: map! {
                     (DatasourceName::Bottom, 2u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
@@ -8083,6 +8160,7 @@ mod subquery {
                 is_nullable: false,
             })),
             subquery: Box::new(Stage::Project(Project {
+                is_add_fields: false,
                 source: Box::new(mir_array(1u16)),
                 expression: map! {
                     ("arr", 1u16).into() => Expression::Reference(("arr", 1u16).into())
@@ -8242,6 +8320,7 @@ mod subquery {
                     is_nullable: false,
                 })),
                 subquery: Box::new(Stage::Project(Project {
+                    is_add_fields: false,
                     source: Box::new(mir_array(1u16)),
                     expression: map! {
                     (DatasourceName::Bottom,1u16).into() =>
@@ -8298,6 +8377,7 @@ mod subquery {
                     is_nullable: false,
                 })),
                 subquery: Box::new(Stage::Project(Project {
+                    is_add_fields: false,
                     source: Box::new(mir_array(1u16)),
                     expression: map! {
                         (DatasourceName::Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
@@ -8352,6 +8432,7 @@ mod subquery {
                     is_nullable: false,
                 })),
                 subquery: Box::new(Stage::Project(Project {
+                    is_add_fields: false,
                     source: Box::new(mir_array(1u16)),
                     expression: map! {
                         (DatasourceName::Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
@@ -8408,7 +8489,9 @@ mod subquery {
                     is_nullable: false,
                 })),
                 subquery: Box::new(Stage::Project(Project {
+                            is_add_fields: false,
                     source: Box::new(Stage::Project(Project {
+                            is_add_fields: false,
                         source: Box::new(Stage::Array(ArraySource {
                             array: vec![Expression::Document(
                                 unchecked_unique_linked_hash_map! {
@@ -8486,6 +8569,7 @@ mod subquery {
                     is_nullable: false,
                 })),
                 subquery: Box::new(Stage::Project(Project {
+                    is_add_fields: false,
                     source: Box::new(mir_array(2u16)),
                     expression: map! {
                         (DatasourceName::Bottom, 2u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
@@ -8581,7 +8665,9 @@ mod subquery {
             })),
             subquery: Box::new(Stage::Limit(Limit {
                 source: Box::new(Stage::Project(Project {
+                    is_add_fields: false,
                     source: Box::new(Stage::Project(Project {
+                        is_add_fields: false,
                         source: Box::new(Stage::Collection(Collection {
                             db: "test".to_string(),
                             collection: "bar".to_string(),
@@ -8773,5 +8859,175 @@ mod user_error_messages {
             input = Error::CannotEnumerateAllFieldPaths(crate::schema::Schema::Any),
             expected = "Insufficient schema information."
         }
+    }
+}
+
+mod select_and_order_by {
+    use crate::mir;
+
+    #[test]
+    fn select_and_order_by_column_not_in_select() {
+        use crate::{
+            algebrizer::{Algebrizer, ClauseType},
+            ast,
+            catalog::{Catalog, Namespace},
+            map,
+            mir::{
+                binding_tuple::Key, schema::SchemaCache, Collection, Expression, FieldAccess,
+                Project, Sort, Stage,
+            },
+            schema, set, unchecked_unique_linked_hash_map, SchemaCheckingMode,
+        };
+        let select = ast::SelectClause {
+            set_quantifier: ast::SetQuantifier::All,
+            body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
+                ast::Expression::Document(vec![
+                    ast::DocumentPair {
+                        key: "_id".into(),
+                        value: ast::Expression::Identifier("_id".into()),
+                    },
+                    ast::DocumentPair {
+                        key: "a".into(),
+                        value: ast::Expression::Identifier("a".into()),
+                    },
+                    ast::DocumentPair {
+                        key: "c".into(),
+                        value: ast::Expression::Binary(ast::BinaryExpr {
+                            left: ast::Expression::Identifier("b".into()).into(),
+                            op: ast::BinaryOp::Add,
+                            right: ast::Expression::Literal(ast::Literal::Integer(42)).into(),
+                        }),
+                    },
+                ]),
+            )]),
+        };
+
+        let order_by = Some(ast::OrderByClause {
+            sort_specs: vec![
+                ast::SortSpec {
+                    key: ast::SortKey::Simple(ast::Expression::Identifier("b".into())),
+                    direction: ast::SortDirection::Asc,
+                },
+                ast::SortSpec {
+                    key: ast::SortKey::Simple(ast::Expression::Identifier("c".into())),
+                    direction: ast::SortDirection::Asc,
+                },
+            ],
+        });
+
+        let source = Stage::Project(Project {
+            source: Stage::Collection(Collection {
+                db: "testquerydb".into(),
+                collection: "foo".into(),
+                cache: SchemaCache::new(),
+            })
+            .into(),
+            expression: map! {
+                ("foo", 0u16).into() => Expression::Reference(("foo", 0u16).into()),
+            },
+            is_add_fields: false,
+            cache: SchemaCache::new(),
+        });
+
+        let expected =
+            Ok(Stage::Project(Project {
+                source: Stage::Sort(Sort {
+                    source: Stage::Project(Project {
+                        source: Stage::Project(Project {
+                            source: Stage::Collection(Collection {
+                                db: "testquerydb".into(),
+                                collection: "foo".into(),
+                                cache: SchemaCache::new(),
+                            }).into(),
+                            expression: map! {
+                                ("foo", 0u16).into() => Expression::Reference(("foo", 0u16).into()),
+                            },
+                            is_add_fields: false,
+                            cache: SchemaCache::new(),
+                        }).into(),
+                        expression: map! {
+                            Key::bot(0) => Expression::Document(unchecked_unique_linked_hash_map! {
+                                "_id".into() => Expression::FieldAccess(FieldAccess {
+                                    expr: Expression::Reference(("foo", 0u16).into()).into(),
+                                    field: "_id".into(),
+                                    is_nullable: false,
+                                }),
+                                "a".into() => Expression::FieldAccess(FieldAccess {
+                                    expr: Expression::Reference(("foo", 0u16).into()).into(),
+                                    field: "a".into(),
+                                    is_nullable: false,
+                                }),
+                                "c".into() => Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                                    function: mir::ScalarFunction::Add,
+                                    args: vec![
+                                        Expression::FieldAccess(FieldAccess {
+                                            expr: Expression::Reference(("foo", 0u16).into()).into(),
+                                            field: "b".into(),
+                                            is_nullable: false,
+                                        }),
+                                        Expression::Literal(mir::LiteralValue::Integer(42)),
+                                    ],
+                                    is_nullable: false,
+                                }),
+                            }.into())
+                        },
+                        is_add_fields: true,
+                        cache: SchemaCache::new(),
+                    }).into(),
+                    specs: vec![
+                        mir::SortSpecification::Asc(mir::FieldPath {
+                            key: ("foo", 0u16).into(),
+                            fields: vec!["b".into()],
+                            is_nullable: false,
+                        }),
+                        mir::SortSpecification::Asc(mir::FieldPath {
+                            key: Key::bot(0u16),
+                            fields: vec!["c".into()],
+                            is_nullable: false,
+                        }),
+                    ],
+                    cache: SchemaCache::new(),
+                }).into(),
+                expression: map! {
+                    Key::bot(0) => Expression::Reference(Key::bot(0).into()),
+                },
+                is_add_fields: false,
+                cache: SchemaCache::new(),
+            }));
+
+        let catalog = vec![("testquerydb", "foo")]
+            .into_iter()
+            .map(|(db, c)| {
+                (
+                    Namespace {
+                        db: db.into(),
+                        collection: c.into(),
+                    },
+                    schema::Schema::Document(schema::Document {
+                        keys: map! {
+                            "_id".into() => schema::Schema::Atomic(schema::Atomic::ObjectId),
+                            "a".into() => schema::Schema::Atomic(schema::Atomic::Integer),
+                            "b".into() => schema::Schema::Atomic(schema::Atomic::Integer),
+                        },
+                        required: set! {"_id".into(), "a".into(), "b".into()},
+                        additional_properties: false,
+                        jaccard_index: None,
+                    }),
+                )
+            })
+            .collect::<Catalog>();
+
+        let algebrizer = Algebrizer::new(
+            "test",
+            &catalog,
+            0u16,
+            SchemaCheckingMode::Strict,
+            false,
+            ClauseType::Unintialized,
+        );
+        assert_eq!(
+            expected,
+            algebrizer.algebrize_select_and_order_by_clause(select, order_by, source,),
+        );
     }
 }

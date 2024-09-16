@@ -70,6 +70,7 @@ pub fn translate_sql(
         catalog,
         0u16,
         sql_options.schema_checking_mode,
+        sql_options.allow_order_by_missing_columns,
         crate::algebrizer::ClauseType::Unintialized,
     );
     let plan = algebrizer.algebrize_query(ast)?;

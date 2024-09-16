@@ -200,6 +200,7 @@ impl Processor {
                     } else {
                         "error"
                     },
+                    allow_order_by_missing = test.allow_order_by_missing.unwrap_or(false),
                 )
                 .unwrap();
             }

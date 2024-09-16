@@ -321,6 +321,7 @@ impl TranslateSqlService {
                 SchemaCheckingMode::StrictUnspecified => mongosql::SchemaCheckingMode::Strict,
                 SchemaCheckingMode::Relaxed => mongosql::SchemaCheckingMode::Relaxed,
             },
+            allow_order_by_missing_columns: false,
         })
     }
 }

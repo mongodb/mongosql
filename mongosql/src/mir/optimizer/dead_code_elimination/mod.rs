@@ -94,6 +94,7 @@ impl Visitor for DeadCodeEliminationVisitor {
                                             ..g
                                         })),
                                         expression: new_expr,
+                                        is_add_fields: false,
                                         cache: SchemaCache::new(),
                                     })
                                 }

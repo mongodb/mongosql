@@ -235,6 +235,7 @@ pub struct Algebrizer<'a> {
     catalog: &'a Catalog,
     scope_level: u16,
     schema_checking_mode: SchemaCheckingMode,
+    allow_order_by_missing_columns: bool,
     clause_type: RefCell<ClauseType>,
 }
 
@@ -244,6 +245,7 @@ impl<'a> Algebrizer<'a> {
         catalog: &'a Catalog,
         scope_level: u16,
         schema_checking_mode: SchemaCheckingMode,
+        allow_order_by_missing_columns: bool,
         clause_type: ClauseType,
     ) -> Self {
         Self::with_schema_env(
@@ -252,6 +254,7 @@ impl<'a> Algebrizer<'a> {
             catalog,
             scope_level,
             schema_checking_mode,
+            allow_order_by_missing_columns,
             clause_type,
         )
     }
@@ -262,6 +265,7 @@ impl<'a> Algebrizer<'a> {
         catalog: &'a Catalog,
         scope_level: u16,
         schema_checking_mode: SchemaCheckingMode,
+        allow_order_by_missing_columns: bool,
         clause_type: ClauseType,
     ) -> Self {
         Self {
@@ -270,6 +274,7 @@ impl<'a> Algebrizer<'a> {
             catalog,
             scope_level,
             schema_checking_mode,
+            allow_order_by_missing_columns,
             clause_type: RefCell::new(clause_type),
         }
     }
@@ -293,6 +298,7 @@ impl<'a> Algebrizer<'a> {
             // subquery should use a copy of the current ClauseType, not share a RefCell with the
             // parent. It probably does not matter, but we do not want subqueries to modify parent
             // state.
+            allow_order_by_missing_columns: self.allow_order_by_missing_columns,
             clause_type: RefCell::new(*self.clause_type.borrow()),
         }
     }
@@ -343,8 +349,16 @@ impl<'a> Algebrizer<'a> {
         let plan = self.algebrize_where_clause(ast_node.where_clause, plan)?;
         let plan = self.algebrize_group_by_clause(ast_node.group_by_clause, plan)?;
         let plan = self.algebrize_having_clause(ast_node.having_clause, plan)?;
-        let plan = self.algebrize_select_clause(ast_node.select_clause, plan)?;
-        let plan = self.algebrize_order_by_clause(ast_node.order_by_clause, plan)?;
+        let plan = if self.allow_order_by_missing_columns {
+            self.algebrize_select_and_order_by_clause(
+                ast_node.select_clause,
+                ast_node.order_by_clause,
+                plan,
+            )?
+        } else {
+            let plan = self.algebrize_select_clause(ast_node.select_clause, plan, false)?;
+            self.algebrize_order_by_clause(ast_node.order_by_clause, plan)?
+        };
         let plan = self.algebrize_offset_clause(ast_node.offset, plan)?;
         let plan = self.algebrize_limit_clause(ast_node.limit, plan)?;
         Ok(plan)
@@ -369,6 +383,7 @@ impl<'a> Algebrizer<'a> {
         &self,
         exprs: Vec<ast::SelectValuesExpression>,
         source: mir::Stage,
+        is_add_fields: bool,
     ) -> Result<mir::Stage> {
         let expression_algebrizer = self.clone();
         // Algebrization for every node that has a source should get the schema for the source.
@@ -463,6 +478,7 @@ impl<'a> Algebrizer<'a> {
         let stage = mir::Stage::Project(mir::Project {
             source: Box::new(source),
             expression,
+            is_add_fields,
             cache: SchemaCache::new(),
         });
         stage.schema(&self.schema_inference_state())?;
@@ -507,6 +523,7 @@ impl<'a> Algebrizer<'a> {
         let stage = mir::Stage::Project(mir::Project {
             source: Box::new(src),
             expression: expr_map,
+            is_add_fields: false,
             cache: SchemaCache::new(),
         });
         stage.schema(&self.schema_inference_state())?;
@@ -529,6 +546,7 @@ impl<'a> Algebrizer<'a> {
                 mir::Stage::Project(mir::Project {
                     source: Box::new(src),
                     expression: expr_map,
+                    is_add_fields: false,
                     cache: SchemaCache::new(),
                 })
             }
@@ -598,6 +616,7 @@ impl<'a> Algebrizer<'a> {
             self.catalog,
             self.scope_level + 1,
             self.schema_checking_mode,
+            self.allow_order_by_missing_columns,
             *self.clause_type.borrow(),
         );
         let src = derived_algebrizer.algebrize_query(*d.query)?;
@@ -622,6 +641,7 @@ impl<'a> Algebrizer<'a> {
         let stage = mir::Stage::Project(mir::Project {
             source: Box::new(src),
             expression,
+            is_add_fields: false,
             cache: SchemaCache::new(),
         });
         stage
@@ -723,6 +743,7 @@ impl<'a> Algebrizer<'a> {
                     self.catalog,
                     self.scope_level,
                     self.schema_checking_mode,
+                    self.allow_order_by_missing_columns,
                     *self.clause_type.borrow(),
                 );
                 project_expression
@@ -741,6 +762,7 @@ impl<'a> Algebrizer<'a> {
         let stage = mir::Stage::Project(mir::Project {
             source: Box::new(source),
             expression,
+            is_add_fields: false,
             cache: SchemaCache::new(),
         });
         stage.schema(&self.schema_inference_state())?;
@@ -776,6 +798,7 @@ impl<'a> Algebrizer<'a> {
             self.catalog,
             self.scope_level,
             self.schema_checking_mode,
+            self.allow_order_by_missing_columns,
             *self.clause_type.borrow(),
         );
 
@@ -871,6 +894,7 @@ impl<'a> Algebrizer<'a> {
         &self,
         ast_node: ast::SelectClause,
         source: mir::Stage,
+        is_add_fields: bool,
     ) -> Result<mir::Stage> {
         *self.clause_type.borrow_mut() = ClauseType::Select;
         match ast_node.set_quantifier {
@@ -893,8 +917,45 @@ impl<'a> Algebrizer<'a> {
             //
             // All normal Expressions will be mapped as Datasource Bottom, and all Substars will be mapped
             // as their name as a Datasource.
-            ast::SelectBody::Values(exprs) => self.algebrize_select_values_body(exprs, source),
+            ast::SelectBody::Values(exprs) => {
+                self.algebrize_select_values_body(exprs, source, is_add_fields)
+            }
         }
+    }
+
+    // This function is used to algebrize a Select and Order By clause together. This is necessary
+    // because the Order By clause can reference keys that are defined in the Select clause, but
+    // also columns from before the Select clause. Because of this, we algebrized the Select using
+    // a mir Project stage with is_add_fields set to true, so that we can still access the fields
+    // defined before the Select in the Order By.
+    pub fn algebrize_select_and_order_by_clause(
+        &self,
+        select_node: ast::SelectClause,
+        order_by_node: Option<ast::OrderByClause>,
+        source: mir::Stage,
+    ) -> Result<mir::Stage> {
+        // If there is no Order By, we can just treat this as a normal Select Clause when
+        // allow_order_by_missing_columns is not set.
+        if order_by_node.is_none() {
+            return self.algebrize_select_clause(select_node, source, false);
+        }
+        let select = self.algebrize_select_clause(select_node, source, true)?;
+        // the project_body will just maintain all the keys defined in the $addFields.
+        let project_body = match select {
+            mir::Stage::Project(ref p) => p
+                .expression
+                .iter()
+                .map(|(k, _)| (k.clone(), mir::Expression::Reference(k.clone().into())))
+                .collect(),
+            _ => unreachable!(),
+        };
+        let ordered = self.algebrize_order_by_clause(order_by_node, select)?;
+        Ok(mir::Stage::Project(mir::Project {
+            source: Box::new(ordered),
+            expression: project_body,
+            is_add_fields: false,
+            cache: SchemaCache::new(),
+        }))
     }
 
     pub fn algebrize_order_by_clause(
@@ -2054,12 +2115,19 @@ impl<'a> Algebrizer<'a> {
         // When checking variables by scope, if a variable may exist, we treat that as ambiguous,
         // and only accept a single Must exist reference.
         let mut current_scope = scope_level;
+        let mut found_bot = false;
         loop {
             let current_bot = Key::bot(current_scope);
             // Attempt to find a datasource for this reference in the current_scope.
             // If we find exactly one datasource Must contain the field `i`, we return
             // `datasource.i`. If there is more than one, it is an ambiguous error. As mentioned,
             // if there is a May exists, it is also an ambiguous variable error.
+            // There is one caveat, if exactly two datasources Must satisfy, and one is bot, we return
+            // bot as the datasource. For optimization we would prefer to return the non-bot source
+            // since it would allow for more Sort movement, but it's possible the bot datasource
+            // has updated the value or is otherwise completely indepenedent, and it is more recent
+            // and shadows the non-bot datasource. This currently only happens when we allow
+            // for ordering by columns not in the select list, but is safe in all contexts.
             let (datasource, mays, musts) = self
                 .schema_env
                 .iter()
@@ -2077,13 +2145,18 @@ impl<'a> Algebrizer<'a> {
                     |(found_datasource, mays, musts), (curr_datasource, schema)| {
                         let sat = schema.contains_field(i.as_ref());
                         match sat {
-                            Satisfaction::Must => (curr_datasource, mays, musts + 1),
+                            Satisfaction::Must => {
+                                if curr_datasource == &current_bot {
+                                    found_bot = true;
+                                }
+                                (curr_datasource, mays, musts + 1)
+                            }
                             Satisfaction::May => (found_datasource, mays + 1, musts),
                             Satisfaction::Not => (found_datasource, mays, musts),
                         }
                     },
                 );
-            if musts > 1 || mays > 0 {
+            if mays > 0 {
                 return Err(Error::AmbiguousField(
                     i,
                     *self.clause_type.borrow(),
@@ -2095,6 +2168,20 @@ impl<'a> Algebrizer<'a> {
                     mir::Expression::Reference(datasource.clone().into()),
                     i,
                 );
+            }
+            if musts == 2 {
+                if found_bot {
+                    return self.construct_field_access_expr(
+                        mir::Expression::Reference(current_bot.into()),
+                        i,
+                    );
+                }
+                // if we have two Must datasources, and neither is bot, we return an ambiguous error
+                return Err(Error::AmbiguousField(
+                    i,
+                    *self.clause_type.borrow(),
+                    current_scope,
+                ));
             }
 
             // Otherwise, the field does not exist in datasource of the current_scope.

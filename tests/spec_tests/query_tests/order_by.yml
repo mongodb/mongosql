@@ -203,7 +203,7 @@ tests:
 
   - description: ordering by ambiguous column reference is an error
     current_db: mydb
-    query: "SELECT VALUES {'a': 1}, bar.* FROM bar AS bar ORDER BY a ASC"
+    query: "SELECT * FROM bar AS b1 JOIN bar AS b2 ORDER BY a ASC"
     should_compile: false
     algebrize_error: "ambiguous field `a`"
 

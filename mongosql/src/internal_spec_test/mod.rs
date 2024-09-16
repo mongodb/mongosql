@@ -261,6 +261,7 @@ fn validate_algebrization(types: Vec<String>, ast: Query, is_valid: bool) -> Res
         &catalog,
         0u16,
         SchemaCheckingMode::Strict,
+        false,
         ClauseType::Unintialized,
     );
     let plan = algebrizer

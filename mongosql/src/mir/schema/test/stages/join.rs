@@ -469,6 +469,7 @@ mod standard {
                 "a".into(),
             ))),
             subquery: Box::new(Stage::Project(Project {
+                is_add_fields: false,
                 source: Box::new(Stage::Join(Join {
                     join_type: JoinType::Left,
                     left: Box::new(Stage::Array(ArraySource {

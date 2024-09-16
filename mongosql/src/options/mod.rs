@@ -5,6 +5,7 @@ use crate::mir::schema::SchemaCheckingMode;
 pub struct SqlOptions {
     pub exclude_namespaces: ExcludeNamespacesOption,
     pub schema_checking_mode: SchemaCheckingMode,
+    pub allow_order_by_missing_columns: bool,
 }
 
 impl SqlOptions {
@@ -16,6 +17,7 @@ impl SqlOptions {
         SqlOptions {
             exclude_namespaces,
             schema_checking_mode,
+            allow_order_by_missing_columns: false,
         }
     }
 }

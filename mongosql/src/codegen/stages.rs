@@ -7,6 +7,7 @@ use bson::{bson, doc, Bson};
 impl MqlCodeGenerator {
     pub fn codegen_stage(&self, stage: air::Stage) -> Result<MqlTranslation> {
         match stage {
+            air::Stage::AddFields(a) => self.codegen_add_fields(a),
             air::Stage::Project(p) => self.codegen_project(p),
             air::Stage::Group(g) => self.codegen_group(g),
             air::Stage::Limit(l) => self.codegen_limit(l),
@@ -203,6 +204,25 @@ impl MqlCodeGenerator {
             ProjectItem::Inclusion => Ok(Bson::Int32(1)),
             ProjectItem::Assignment(e) => self.codegen_expression(e),
         }
+    }
+
+    fn codegen_add_fields(&self, air_add_fields: air::AddFields) -> Result<MqlTranslation> {
+        let source_translation = self.codegen_stage(*air_add_fields.source)?;
+        let mut pipeline = source_translation.pipeline;
+        let add_fields_doc = air_add_fields
+            .specifications
+            .into_iter()
+            .map(|(k, v)| {
+                let it = self.codegen_expression(v)?;
+                Ok((k, it))
+            })
+            .collect::<Result<bson::Document>>()?;
+        pipeline.push(doc! {"$addFields": add_fields_doc});
+        Ok(MqlTranslation {
+            database: source_translation.database,
+            collection: source_translation.collection,
+            pipeline,
+        })
     }
 
     fn codegen_group(&self, air_group: air::Group) -> Result<MqlTranslation> {

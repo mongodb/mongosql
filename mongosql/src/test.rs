@@ -397,6 +397,7 @@ mod select_list_order {
                     SqlOptions {
                         schema_checking_mode: SchemaCheckingMode::default(),
                         exclude_namespaces: $exclude_namespaces,
+                        allow_order_by_missing_columns: false,
                     },
                 );
                 assert!(translation.is_ok());

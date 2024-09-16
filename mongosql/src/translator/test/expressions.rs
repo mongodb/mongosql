@@ -3752,6 +3752,7 @@ mod subquery {
         input = mir::Expression::Subquery(mir::SubqueryExpr {
             output_expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
             subquery: Box::new(mir::Stage::Project(mir::Project {
+                is_add_fields: false,
                 source: Box::new(mir::Stage::Collection(mir::Collection {
                     db: "test".to_string(),
                     collection: "foo".to_string(),
@@ -3794,6 +3795,7 @@ mod subquery {
                 is_nullable: true,
             })),
             subquery: Box::new(mir::Stage::Project(mir::Project {
+                is_add_fields: false,
                 source: Box::new(mir::Stage::Collection(mir::Collection {
                     db: "test".to_string(),
                     collection: "bar".to_string(),
@@ -3861,6 +3863,7 @@ mod subquery {
                 is_nullable: false,
             })),
             subquery: Box::new(mir::Stage::Project(mir::Project {
+                is_add_fields: false,
                 source: Box::new(mir::Stage::Collection(mir::Collection {
                     db: "test".to_string(),
                     collection: "bar".to_string(),
@@ -3924,6 +3927,7 @@ mod subquery {
         input = mir::Expression::Subquery(mir::SubqueryExpr {
             output_expr: Box::new(mir::Expression::Reference((Bottom, 1u16).into())),
             subquery: Box::new(mir::Stage::Project(mir::Project {
+                is_add_fields: false,
                 source: Box::new(mir::Stage::Collection(mir::Collection {
                     db: "test".to_string(),
                     collection: "__bot".to_string(),
@@ -3962,6 +3966,7 @@ mod subquery {
                 is_nullable: false,
             })),
             subquery: Box::new(mir::Stage::Project(mir::Project {
+                is_add_fields: false,
                 source: Box::new(mir::Stage::Collection(mir::Collection {
                     db: "test".to_string(),
                     collection: "foo".to_string(),
@@ -4040,6 +4045,7 @@ mod subquery_comparison {
                     is_nullable: true,
                 })),
                 subquery: Box::new(mir::Stage::Project(mir::Project {
+                    is_add_fields: false,
                     source: Box::new(mir::Stage::Collection(mir::Collection {
                         db: "test".to_string(),
                         collection: "foo".to_string(),
@@ -4112,6 +4118,7 @@ mod subquery_comparison {
                     is_nullable: false,
                 })),
                 subquery: Box::new(mir::Stage::Project(mir::Project {
+                    is_add_fields: false,
                     source: Box::new(mir::Stage::Collection(mir::Collection {
                         db: "test".to_string(),
                         collection: "foo".to_string(),
@@ -4188,6 +4195,7 @@ mod subquery_comparison {
                     is_nullable: false,
                 })),
                 subquery: Box::new(mir::Stage::Project(mir::Project {
+                    is_add_fields: false,
                     source: Box::new(mir::Stage::Collection(mir::Collection {
                         db: "test".to_string(),
                         collection: "bar".to_string(),
@@ -4255,6 +4263,7 @@ mod subquery_exists {
         })),
         input = mir::Expression::Exists(
             Box::new(mir::Stage::Project(mir::Project {
+                is_add_fields: false,
                 source: Box::new(mir::Stage::Collection(mir::Collection {
                     db: "test".into(),
                     collection: "foo".into(),
@@ -4288,6 +4297,7 @@ mod subquery_exists {
             })),
         })),
         input = mir::Expression::Exists(Box::new(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir::Stage::Collection(mir::Collection {
                 db: "test".into(),
                 collection: "bar".into(),

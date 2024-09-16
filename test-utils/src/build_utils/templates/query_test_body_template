@@ -47,14 +47,16 @@ pub fn {name}() {{
         ExcludeNamespacesOption::IncludeNamespaces
     }};
 
+    let mut opts = SqlOptions::new(
+            exclude_namespaces_option,
+            mongosql::SchemaCheckingMode::Strict,
+        );
+    opts.allow_order_by_missing_columns = {allow_order_by_missing};
     let translation = mongosql::translate_sql(
         db.as_str(),
         test.query.as_str(),
         &catalog,
-        SqlOptions::new(
-            exclude_namespaces_option,
-            mongosql::SchemaCheckingMode::Strict,
-        ),
+        opts,
     )
     .map_err(Error::Translation);
 

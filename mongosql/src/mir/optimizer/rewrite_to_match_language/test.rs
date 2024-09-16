@@ -59,6 +59,7 @@ macro_rules! test_rewrite_to_match_language_no_op {
 
 fn singleton_project(expr: Expression) -> Stage {
     Stage::Project(Project {
+        is_add_fields: false,
         source: mir_collection("db", "foo"),
         expression: map! {
             ("foo", 0u16).into() => Expression::Document(DocumentExpr {

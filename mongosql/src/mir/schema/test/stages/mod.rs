@@ -134,6 +134,41 @@ mod project {
             max_size: None,
         }),
         input = Stage::Project(Project {
+            is_add_fields: false,
+            source: Box::new(Stage::Collection(Collection {
+                db: "test2".into(),
+                collection: "foo".into(),
+                cache: SchemaCache::new(),
+            })),
+            expression: map! {
+                ("bar1", 0u16).into() =>
+                    Expression::Reference(("foo", 0u16).into()),
+                ("bar2", 0u16).into() =>
+                    Expression::Reference(("foo", 0u16).into()),
+                ("bar3", 0u16).into() =>
+                    Expression::Reference(("foo", 0u16).into()),
+            },
+            cache: SchemaCache::new(),
+        }),
+        catalog = Catalog::new(map! {
+            Namespace {db: "test2".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+        }),
+    );
+
+    test_schema!(
+        project_is_add_fields_schema,
+        expected = Ok(ResultSet {
+            schema_env: map! {
+                ("bar1", 0u16).into() => ANY_DOCUMENT.clone(),
+                ("bar2", 0u16).into() => ANY_DOCUMENT.clone(),
+                ("bar3", 0u16).into() => ANY_DOCUMENT.clone(),
+                ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
+            },
+            min_size: 0,
+            max_size: None,
+        }),
+        input = Stage::Project(Project {
+            is_add_fields: true,
             source: Box::new(Stage::Collection(Collection {
                 db: "test2".into(),
                 collection: "foo".into(),

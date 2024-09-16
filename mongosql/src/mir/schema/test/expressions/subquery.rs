@@ -36,6 +36,7 @@ mod exists {
         expected = Ok(Schema::Atomic(Atomic::Boolean)),
         input = Expression::Exists(
             Box::new(Stage::Project(Project {
+                is_add_fields: false,
                 source: Box::new(Stage::Collection(Collection {
                     db: "test".into(),
                     collection: "foo".into(),
@@ -79,6 +80,7 @@ mod exists {
         }),
         input = Expression::Exists(
             Box::new(Stage::Project(Project {
+                is_add_fields: false,
                 source: Box::new(Stage::Collection(Collection {
                     db: "test".into(),
                     collection: "foo".into(),
@@ -118,6 +120,7 @@ mod subquery_expr {
                 "_2".into(),
             ))),
             Box::new(Stage::Project(Project {
+                is_add_fields: false,
                 source: Box::new(Stage::Collection(Collection {
                     db: "test".into(),
                     collection: "foo".into(),
@@ -149,6 +152,7 @@ mod subquery_expr {
                 "a".into(),
             ))),
             subquery: Box::new(Stage::Project(Project {
+                is_add_fields: false,
                 source: Box::new(Stage::Array(ArraySource {
                     array: vec![],
                     alias: "bar".into(),
@@ -191,6 +195,7 @@ mod subquery_expr {
                 "a".into(),
             ))),
             subquery: Box::new(Stage::Project(Project {
+                is_add_fields: false,
                 source: Box::new(Stage::Collection(Collection {
                     db: "test".into(),
                     collection: "bar".into(),

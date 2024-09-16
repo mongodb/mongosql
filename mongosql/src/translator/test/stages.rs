@@ -63,6 +63,27 @@ mod project {
             }
         })),
         input = mir::Stage::Project(mir::Project {
+            is_add_fields: false,
+            source: util::mir_collection("test_db", "foo"),
+            expression: BindingTuple(map! {
+                Key::bot(0) => mir::Expression::Reference(("foo", 0u16).into()),
+                Key::named("bar", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+            }),
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
+
+    test_translate_stage!(
+        add_fields,
+        expected = Ok(air::Stage::AddFields(air::AddFields {
+            source: util::air_collection_stage("test_db", "foo"),
+            specifications: unchecked_unique_linked_hash_map! {
+                "__bot".to_string() => ROOT.clone(),
+                "bar".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
+            }
+        })),
+        input = mir::Stage::Project(mir::Project {
+            is_add_fields: true,
             source: util::mir_collection("test_db", "foo"),
             expression: BindingTuple(map! {
                 Key::bot(0) => mir::Expression::Reference(("foo", 0u16).into()),
@@ -104,6 +125,7 @@ mod project {
             }
         })),
         input = mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: util::mir_collection("test_db", "$foo.bar"),
             expression: BindingTuple(map! {
                 Key::named("$foo.bar", 0u16) => mir::Expression::Reference(("$foo.bar", 0u16).into()),
@@ -126,6 +148,7 @@ mod project {
             }
         })),
         input = mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: util::mir_collection("test_db", "foo"),
             expression: BindingTuple(map! {
                 Key::bot(0) => mir::Expression::Reference(("foo", 0u16).into()),
@@ -146,6 +169,7 @@ mod project {
             ),
         })),
         input = mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: util::mir_project_collection(Some("mydb"), "foo", Some("t1"), None),
             expression: BindingTuple(map! {
                 Key::bot(0) => mir::Expression::TypeAssertion(mir::TypeAssertionExpr {
@@ -467,6 +491,7 @@ mod sort {
         })),
         input = mir::Stage::Sort(mir::Sort {
             source: mir::Stage::Project(mir::Project {
+            is_add_fields: false,
                 source: util::mir_collection("test_db", "foo"),
                 expression: BindingTuple(map! {
                     Key::bot(0) => mir::Expression::Reference(("foo", 0u16).into()),
@@ -778,6 +803,7 @@ mod join {
             )
         })),
         input = mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir::Stage::Join(mir::Join {
                 join_type: mir::JoinType::Inner,
                 left: util::mir_project_collection(None, "foo", Some("t1"), None),
@@ -954,11 +980,13 @@ mod lateral_join {
             )
         })),
         input = mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir::Stage::MQLIntrinsic(mir::MQLStage::LateralJoin(
                 mir::LateralJoin {
                     join_type: mir::JoinType::Left,
                     source: util::mir_project_collection(None, "foo", Some("t1"), None),
                     subquery: mir::Stage::Project(mir::Project {
+                        is_add_fields: false,
                         source: util::mir_collection("test_db", "bar"),
                         expression: map! {},
                         cache: mir::schema::SchemaCache::new(),
@@ -1006,6 +1034,7 @@ mod derived {
         })),
         input = mir::Stage::Derived(mir::Derived {
             source: Box::new(mir::Stage::Project(mir::Project {
+                is_add_fields: false,
                 source: util::mir_collection("test_db", "foo"),
                 expression: BindingTuple(map! {
                     Key::bot(0) => mir::Expression::Reference(("foo", 1u16).into()),
@@ -1033,8 +1062,10 @@ mod derived {
         })),
         input = mir::Stage::Derived(mir::Derived {
             source: Box::new(mir::Stage::Project(mir::Project {
+                is_add_fields: false,
                 source: Box::new(mir::Stage::Derived(mir::Derived {
                     source: Box::new(mir::Stage::Project(mir::Project {
+                        is_add_fields: false,
                         source: util::mir_collection("foo", "bar"),
                         expression: BindingTuple(map! {
                             Key::bot(1) => mir::Expression::Reference(mir::ReferenceExpr {
@@ -1142,6 +1173,7 @@ mod unwind {
             },
         })),
         input = mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: Box::new(mir::Stage::Filter(mir::Filter {
                 source: Box::new(mir::Stage::Unwind(mir::Unwind {
                     source: util::mir_collection("test_db", "foo"),
@@ -1229,6 +1261,7 @@ mod translate_plan {
                 }).into()
             })),
         input = mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: util::mir_collection("test_db", "foo"),
             expression: BindingTuple(map! {
                 Key::bot(0) => mir::Expression::Reference(("foo", 0u16).into()),
@@ -1430,6 +1463,7 @@ mod subquery_expr {
             },
         })),
         input = mir::Stage::Project(mir::Project {
+            is_add_fields: false,
             source: util::mir_project_collection(Some("foo"), "schema_coll", Some("q"), None),
             expression: map! {
                 (Bottom, 0u16).into() => mir::Expression::Document(mir::DocumentExpr {
@@ -1442,6 +1476,7 @@ mod subquery_expr {
                             })),
                             subquery: Box::new(mir::Stage::Limit(mir::Limit {
                                 source: Box::new(mir::Stage::Project(mir::Project {
+            is_add_fields: false,
                                     source: util::mir_project_collection(Some("foo"), "schema_foo", Some("q"), Some(1)),
                                     expression: map! {
                                         (Bottom, 1u16).into() => mir::Expression::Document(mir::DocumentExpr {

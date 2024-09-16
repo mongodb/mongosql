@@ -75,33 +75,62 @@ impl MqlTranslator {
         // translated because Project kills all its inputs.
         let unique_bot_name =
             self.ensure_unique_datasource_name("__bot".to_string(), &mir_project.expression);
-        let mut project_body = UniqueLinkedHashMap::new();
-        let mut output_registry = MqlMappingRegistry::new();
-        for (k, e) in mir_project.expression.clone().into_iter() {
-            let mapped_k = self.get_mapped_project_name(
-                &k.datasource,
-                &unique_bot_name,
-                &mir_project.expression,
-            )?;
-            project_body.insert(
-                mapped_k.clone(),
-                air::ProjectItem::Assignment(expr_translator.translate_expression(e)?),
-            )?;
-            output_registry.insert(
-                k,
-                MqlMappingRegistryValue::new(mapped_k, MqlReferenceType::FieldRef),
-            );
+        // if this is addFields, we want to keep the existing mappings
+        if mir_project.is_add_fields {
+            let mut output_registry = self.mapping_registry.clone();
+            let mut add_fields_body = UniqueLinkedHashMap::new();
+            for (k, e) in mir_project.expression.clone().into_iter() {
+                let mapped_k = self.get_mapped_project_name(
+                    &k.datasource,
+                    &unique_bot_name,
+                    &mir_project.expression,
+                )?;
+                add_fields_body
+                    .insert(mapped_k.clone(), expr_translator.translate_expression(e)?)?;
+                output_registry.insert(
+                    k,
+                    MqlMappingRegistryValue::new(mapped_k, MqlReferenceType::FieldRef),
+                );
+            }
+
+            // Extend the outer_scope_mr with the output mappings for this stage's
+            // translation.
+            outer_scope_mr.merge(output_registry);
+
+            self.mapping_registry = outer_scope_mr;
+            Ok(air::Stage::AddFields(air::AddFields {
+                source: Box::new(source_translation),
+                specifications: add_fields_body,
+            }))
+        } else {
+            let mut output_registry = MqlMappingRegistry::new();
+            let mut project_body = UniqueLinkedHashMap::new();
+            for (k, e) in mir_project.expression.clone().into_iter() {
+                let mapped_k = self.get_mapped_project_name(
+                    &k.datasource,
+                    &unique_bot_name,
+                    &mir_project.expression,
+                )?;
+                project_body.insert(
+                    mapped_k.clone(),
+                    air::ProjectItem::Assignment(expr_translator.translate_expression(e)?),
+                )?;
+                output_registry.insert(
+                    k,
+                    MqlMappingRegistryValue::new(mapped_k, MqlReferenceType::FieldRef),
+                );
+            }
+
+            // Extend the outer_scope_mr with the output mappings for this stage's
+            // translation.
+            outer_scope_mr.merge(output_registry);
+
+            self.mapping_registry = outer_scope_mr;
+            Ok(air::Stage::Project(air::Project {
+                source: Box::new(source_translation),
+                specifications: project_body,
+            }))
         }
-
-        // Extend the outer_scope_mr with the output mappings for this stage's
-        // translation.
-        outer_scope_mr.merge(output_registry);
-
-        self.mapping_registry = outer_scope_mr;
-        Ok(air::Stage::Project(air::Project {
-            source: Box::new(source_translation),
-            specifications: project_body,
-        }))
     }
 
     fn translate_group(&mut self, mir_group: mir::Group) -> Result<air::Stage> {
