@@ -1,6 +1,6 @@
 [package]
 name = "mongosqltranslate"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2021"
 
 [dependencies]
@@ -13,4 +13,4 @@ semver = "1.0.23"
 
 [lib]
 name = "mongosqltranslate"
-crate-type = ["cdylib"]
+crate-type = ["staticlib"]

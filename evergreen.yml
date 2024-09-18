@@ -23,6 +23,7 @@ timeout:
 include:
   - filename: evergreen/grpc.yml
   - filename: evergreen/schema-builder.yml
+  - filename: evergreen/mongosqltranslate.yml
 
 functions:
   "fetch source":
@@ -58,7 +59,7 @@ functions:
           fi
           export PATH="$GOROOT/bin:$PATH"
           if [[ "${triggered_by_git_tag}" != "" ]]; then
-            export release_version=$(echo ${triggered_by_git_tag} | sed -E 's/^(v|trr|dcsb)//')
+            export release_version=$(echo ${triggered_by_git_tag} | sed -E 's/^(v|trr|dcsb|msql)//')
           else
             export release_version=test_release
           fi
@@ -133,13 +134,14 @@ functions:
           MONGOSQL_CARGO_PKGS_VERSION=$(cargo get --entry="mongosql/Cargo.toml" package.version)
           TRR_CARGO_PKGS_VERSION=$(cargo get --entry="bic-trip/Cargo.toml" package.version)
           DCSB_CARGO_PKGS_VERSION=$(cargo get --entry="schema-builder-tool/Cargo.toml" package.version)
+          MONGOSQLTRANSLATE_CARGO_PKGS_VERSION=$(cargo get --entry="mongosqltranslate/Cargo.toml" package.version)
           if [[ "${triggered_by_git_tag}" == "" ]]; then
             EXPECTED_RELEASE_VERSION="0.0.0"
           else
             EXPECTED_RELEASE_VERSION="$release_version"
           fi
-          if [[ "$MONGOSQL_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" || "$TRR_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" || "$DCSB_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" ]]; then
-            >&2 echo "Expected version $EXPECTED_RELEASE_VERSION doesn't match for at least one package ; mongosql version $MONGOSQL_CARGO_PKGS_VERSION, trr version $TRR_CARGO_PKGS_VERSION, dcsb version $DCSB_CARGO_PKGS_VERSION"
+          if [[ "$MONGOSQL_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" || "$TRR_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" || "$DCSB_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" || "$MONGOSQLTRANSLATE_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" ]]; then
+            >&2 echo "Expected version $EXPECTED_RELEASE_VERSION doesn't match for at least one package ; mongosql version $MONGOSQL_CARGO_PKGS_VERSION, trr version $TRR_CARGO_PKGS_VERSION, dcsb version $DCSB_CARGO_PKGS_VERSION, mongosqltranslate version $MONGOSQLTRANSLATE_CARGO_PKGS_VERSION"
             exit 1
           fi
 
