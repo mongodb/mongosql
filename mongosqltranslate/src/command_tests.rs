@@ -140,13 +140,15 @@ mod deserializing_tests {
             command: CheckDriverVersion,
             options: CommandOptions {
                 driver_version: Some("0.0.0".to_string()),
+                odbc_driver: Some(true),
                 ..Default::default()
             },
         },
         input = doc! {
             "command": "checkDriverVersion",
             "options": {
-                "driverVersion": "0.0.0"
+                "driverVersion": "0.0.0",
+                "odbcDriver": true
             },
         }
     );
@@ -425,4 +427,87 @@ mod get_mongosqltranslateversion_tests {
             },
         }
     );
+}
+
+mod check_driver_version_tests {
+    use super::*;
+
+    test_command_handler!(
+        valid_check_driver_version_command_for_odbc_should_succeed,
+        expected = doc! {
+            "compatible": false
+        },
+        input = Command {
+            command: CheckDriverVersion,
+            options: CommandOptions {
+                driver_version: Some("0.0.0".to_string()),
+                odbc_driver: Some(true),
+                ..Default::default()
+            },
+        }
+    );
+
+    test_command_handler!(
+        valid_check_driver_version_command_for_jdbc_should_succeed,
+        expected = doc! {
+            "compatible": false
+        },
+        input = Command {
+            command: CheckDriverVersion,
+            options: CommandOptions {
+                driver_version: Some("0.0.0".to_string()),
+                ..Default::default()
+            },
+        }
+    );
+
+    test_command_handler!(
+        valid_check_driver_version_command_with_extra_parameter_should_succeed,
+        expected = doc! {
+            "compatible": true
+        },
+        input = Command {
+            command: CheckDriverVersion,
+            options: CommandOptions {
+                driver_version: Some("1.0.0".to_string()),
+                db: Some("db1".to_string()),
+                ..Default::default()
+            },
+        }
+    );
+
+    #[test]
+    fn check_driver_version_command_with_invalid_driver_version_should_error() {
+        let command = Command {
+            command: CheckDriverVersion,
+            options: CommandOptions {
+                driver_version: Some("1.2.x".to_string()),
+                ..Default::default()
+            },
+        };
+
+        let actual = command.run();
+
+        assert!(actual.is_err(), "expected error, got {:?}", actual);
+
+        if let Err(error) = actual {
+            let message = error.to_string();
+            assert_eq!("Invalid `driver_version`: \"1.2.x\". The `driver_version` must be a valid SemVer version (https://semver.org/).", message);
+        }
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "`driver_version` parameter missing for CheckDriverVersion CommandType"
+    )]
+    fn check_driver_version_command_with_missing_parameter_should_panic() {
+        let command = Command {
+            command: CheckDriverVersion,
+            options: CommandOptions {
+                ..Default::default()
+            },
+        };
+
+        let _actual = command.run();
+    }
 }

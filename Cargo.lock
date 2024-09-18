@@ -3027,6 +3027,7 @@ dependencies = [
  "jni",
  "mongodb",
  "mongosql",
+ "semver",
  "serde",
  "serde_stacker",
 ]

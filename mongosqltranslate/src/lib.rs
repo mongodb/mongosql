@@ -5,6 +5,7 @@ use jni::{
     JNIEnv,
 };
 use panic_safe::panic_safe_exec;
+use semver::VersionReq;
 use std::sync::LazyLock;
 
 mod command;
@@ -19,6 +20,14 @@ static MONGOSQLTRANSLATE_VERSION: LazyLock<String> = LazyLock::new(|| {
         env!("CARGO_PKG_VERSION_MINOR"),
         env!("CARGO_PKG_VERSION_PATCH")
     )
+});
+
+// TODO: SQL-2309: Update minimum compatible driver versions in mongosqltranslate to the correct versions
+static MINIMUM_COMPATIBLE_JDBC_VERSION: LazyLock<VersionReq> = LazyLock::new(|| {
+    VersionReq::parse(">=0.0.1").expect("Minimum compatible JDBC version could not be parsed.")
+});
+static MINIMUM_COMPATIBLE_ODBC_VERSION: LazyLock<VersionReq> = LazyLock::new(|| {
+    VersionReq::parse(">=0.0.1").expect("Minimum compatible ODBC version could not be parsed.")
 });
 
 #[repr(C)]

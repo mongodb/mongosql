@@ -1,10 +1,13 @@
-use crate::MONGOSQLTRANSLATE_VERSION;
+use crate::{
+    MINIMUM_COMPATIBLE_JDBC_VERSION, MINIMUM_COMPATIBLE_ODBC_VERSION, MONGOSQLTRANSLATE_VERSION,
+};
 use mongodb::bson::{doc, Bson, Deserializer, Document, Serializer};
 use mongosql::{
     build_catalog_from_catalog_schema, json_schema,
     options::{ExcludeNamespacesOption, SqlOptions},
     SchemaCheckingMode,
 };
+use semver::Version;
 use serde::{ser::Serialize, Deserialize};
 use std::collections::BTreeMap;
 use CommandType::*;
@@ -46,6 +49,8 @@ pub(crate) struct CommandOptions {
     pub(crate) schema_catalog: Option<BTreeMap<String, BTreeMap<String, json_schema::Schema>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) driver_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) odbc_driver: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) test: Option<bool>,
 }
@@ -179,9 +184,34 @@ impl Command {
         })
     }
 
-    // Placeholder for CommandType::CheckDriverVersion
+    /// This is the handler function for the CheckDriverVersion Command. It returns a Result<bson::Document>
+    /// containing a boolean value indicating if the driver version is compatible with the mongosqltranslate library.
+    /// The only necessary CommandOption is `driver_version`. The `odbc_driver` CommandOption is not necessary; however,
+    /// if not specified, it will be assumed that the JDBC driver is being used. Extra CommandOptions will be ignored.
+    /// Additionally, the `driver_version` must be a valid SemVer version (https://semver.org/).
     fn check_driver_version(&self) -> Result<Document> {
-        unimplemented!()
+        let driver_version_command_option = self
+            .options
+            .driver_version
+            .as_ref()
+            .expect("`driver_version` parameter missing for CheckDriverVersion CommandType");
+
+        let driver_version =  match Version::parse(driver_version_command_option){
+            Ok(version) => version,
+            Err(_) => return Err(format!("Invalid `driver_version`: \"{}\". The `driver_version` must be a valid SemVer version (https://semver.org/).", driver_version_command_option).into())
+        };
+
+        let minimum_version = if let Some(true) = self.options.odbc_driver {
+            // The ODBC Driver is being used
+            &*MINIMUM_COMPATIBLE_ODBC_VERSION
+        } else {
+            // The JDBC Driver is being used
+            &*MINIMUM_COMPATIBLE_JDBC_VERSION
+        };
+
+        Ok(doc! {
+            "compatible": minimum_version.matches(&driver_version)
+        })
     }
 
     // For testing purposes
