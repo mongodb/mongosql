@@ -31,6 +31,8 @@ catalog_data:
     arrays:
       - {'_id': 0, 'v': []}
       - {'_id': 1, 'v': [1, 2, 3]}
+    bindatum:
+      - {'_id': 0, 'v': {'$binary': {'base64': 'hn3uUsMxSE6S0cVkebjmfg==', 'subType': '04' } } }
     objectIDs:
       - {'_id': 0, 'v': {'$oid': '5ab9c3da31c2ab715d421285'}}
     bools:
@@ -92,6 +94,10 @@ catalog_schema:
         'additionalProperties': true,
       },
       'arrays': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'bindatum': {
         'bsonType': 'object',
         'additionalProperties': true,
       },
@@ -1096,6 +1102,9 @@ tests:
     current_db: foo
     query: "SELECT VALUE {'type': type, 'asString': CAST(v AS STRING)} FROM invalidSourceTypes AS invalidSourceTypes"
     result:
+      # Note that in MongoDB 8.0, casting binData to string is supported.
+      # However, older versions do not support this conversion and the onError
+      # handling is relied upon to return null, so this test remains valid.
       - {'': {'type': 'binData', 'asString': null}}
       - {'': {'type': 'undefined', 'asString': null}}
       - {'': {'type': 'regex', 'asString': null}}
@@ -1106,6 +1115,15 @@ tests:
       - {'': {'type': 'timestamp', 'asString': null}}
       - {'': {'type': 'minKey', 'asString': null}}
       - {'': {'type': 'maxKey', 'asString': null}}
+
+    # This was added in SQL-2001 to demonstrate parity in our handling of casting binData to string for MongoDB 8.0,
+    # and older version of MongoDB. This test should be modified as part of SQL-2314 to include the format option,
+    # which should then change the expected return from null to a valid string value.
+  - description: Cast BINDATA to STRING
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM bindatum as bindatum"
+    result:
+      - {'': {'v': {'$binary': {'base64': 'hn3uUsMxSE6S0cVkebjmfg==', 'subType': '04'}}, 'asString': null}}
 
   - description: Cast DOUBLE to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo

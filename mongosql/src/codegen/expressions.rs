@@ -241,10 +241,27 @@ impl MqlCodeGenerator {
             let input = self.codegen_expression(*convert.input)?;
             let on_error = self.codegen_expression(*convert.on_error)?;
             let on_null = self.codegen_expression(*convert.on_null)?;
+            // Until we support extra CastExpr options, this will ensure we maintain
+            // the same output for all versions of MongoDB. Because format *must* be specified
+            // in 8.0 when converting binData to string, and it is a hard parse error in versions
+            // < 8.0, we can't include it anywhere until users can specify it in their query themselves.
+            let to_type = Self::convert_mql_type(convert.to)?;
+            let to = if convert.to == air::Type::String {
+                bson!({
+                    "$cond": [
+                        { "$eq": [ { "$type": input.clone() }, "binData" ] },
+                        "null",
+                        to_type,
+                    ],
+                })
+            } else {
+                Bson::String(to_type.to_string())
+            };
+
             bson!({
                 "$convert": {
                     "input": input,
-                    "to": Self::convert_mql_type(convert.to)?,
+                    "to": to,
                     "onNull": on_null,
                     "onError": on_error
                 }

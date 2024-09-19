@@ -1688,14 +1688,25 @@ mod convert {
         ($test_name:ident, expected = $expected_ty_str:expr, input = $input:expr) => {
         test_codegen_expression!(
             $test_name,
-            expected = Ok(bson!({ "$convert":
-                {
-                        "input": {"$literal": "foo"},
-                        "to": $expected_ty_str,
-                        "onError": {"$literal": null},
-                        "onNull": {"$literal": null},
-                    }
-                })),
+            expected = Ok(bson!({
+                "$convert": {
+                    "input": {"$literal": "foo"},
+                    "to":
+                        if $expected_ty_str == "string" {
+                            bson!({
+                                "$cond": [
+                                    {"$eq": [{"$type": {"$literal": "foo"}}, "binData"]},
+                                    "null",
+                                    $expected_ty_str
+                                ]
+                            })
+                        } else {
+                            bson!($expected_ty_str)
+                        },
+                    "onError": {"$literal": null},
+                    "onNull": {"$literal": null},
+                }
+            })),
             input = Expression::Convert(Convert {
                     input: Expression::Literal(String("foo".to_string())).into(),
                     to: $input,
