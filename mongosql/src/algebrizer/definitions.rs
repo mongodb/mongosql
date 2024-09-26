@@ -488,6 +488,13 @@ impl<'a> Algebrizer<'a> {
     pub fn algebrize_from_clause(&self, ast_node: Option<ast::Datasource>) -> Result<mir::Stage> {
         *self.clause_type.borrow_mut() = ClauseType::From;
         let ast_node = ast_node.expect("all SELECT queries must have a FROM clause");
+        // Datasource aliases are tracked in the algebrizer's SchemaEnvironment.
+        // Duplicate aliases are invalid.  Under some circumstances, the
+        // SchemaEnvironment with_merged_mappings method allows duplicates
+        // to be inserted, therefore we must catch them explicitly here.
+        ast_node
+            .check_duplicate_aliases()
+            .map_err(|e| Error::DuplicateKey((e, self.scope_level).into()))?;
         self.algebrize_datasource(ast_node)
     }
 
@@ -947,7 +954,11 @@ impl<'a> Algebrizer<'a> {
                 .iter()
                 .map(|(k, _)| (k.clone(), mir::Expression::Reference(k.clone().into())))
                 .collect(),
-            _ => unreachable!(),
+            // We only reach this case when we have SELECT *, so we can just return
+            // algebrize_order_by
+            _ => {
+                return self.algebrize_order_by_clause(order_by_node, select);
+            }
         };
         let ordered = self.algebrize_order_by_clause(order_by_node, select)?;
         Ok(mir::Stage::Project(mir::Project {
@@ -2151,32 +2162,40 @@ impl<'a> Algebrizer<'a> {
                                 }
                                 (curr_datasource, mays, musts + 1)
                             }
-                            Satisfaction::May => (found_datasource, mays + 1, musts),
+                            Satisfaction::May => {
+                                if curr_datasource == &current_bot {
+                                    found_bot = true;
+                                }
+                                (found_datasource, mays + 1, musts)
+                            }
                             Satisfaction::Not => (found_datasource, mays, musts),
                         }
                     },
                 );
-            if mays > 0 {
-                return Err(Error::AmbiguousField(
-                    i,
-                    *self.clause_type.borrow(),
-                    current_scope,
-                ));
-            }
-            if musts == 1 {
+            if musts == 1 && mays == 0 {
                 return self.construct_field_access_expr(
                     mir::Expression::Reference(datasource.clone().into()),
                     i,
                 );
             }
-            if musts == 2 {
+            if musts + mays == 2 {
+                // It's actually impossible for bot to be the may here, since the SELECT
+                // or GROUP BY always define the value. This could change if we ever allow
+                // something like $$REMOVE in our SQL dialect.
                 if found_bot {
                     return self.construct_field_access_expr(
                         mir::Expression::Reference(current_bot.into()),
                         i,
                     );
                 }
-                // if we have two Must datasources, and neither is bot, we return an ambiguous error
+                // if we have two May/Must datasources, and neither is bot, we return an ambiguous error
+                return Err(Error::AmbiguousField(
+                    i,
+                    *self.clause_type.borrow(),
+                    current_scope,
+                ));
+            }
+            if mays > 0 || musts > 1 {
                 return Err(Error::AmbiguousField(
                     i,
                     *self.clause_type.borrow(),

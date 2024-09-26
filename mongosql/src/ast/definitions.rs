@@ -105,6 +105,47 @@ pub enum Datasource {
     Unwind(UnwindSource),
 }
 
+impl Datasource {
+    pub fn check_duplicate_aliases<'a>(&'a self) -> Result<(), String> {
+        let mut aliases = std::collections::HashSet::<&'a str>::new();
+        self.check_duplicate_aliases_aux(&mut aliases)
+    }
+
+    fn check_alias<'a>(&self, alias: &'a str, aliases: &mut std::collections::HashSet<&'a str>) -> Result<(), String> {
+        if !aliases.insert(alias) {
+            return Err(alias.to_owned());
+        }
+        Ok(())
+    }
+
+    fn check_duplicate_aliases_aux<'a>(&'a self, aliases: &mut std::collections::HashSet<&'a str>) -> Result<(), String> {
+        match self {
+            Datasource::Array(ArraySource { array: _, alias }) => {
+                self.check_alias(alias, aliases)?;
+            }
+            Datasource::Collection(CollectionSource { database: _, collection: _, alias }) => {
+
+                if let Some(alias) = alias {
+                    self.check_alias(alias, aliases)?;
+                }
+            }
+            Datasource::Derived(DerivedSource { query: _, alias }) => {
+                self.check_alias(alias, aliases)?;
+            }
+            Datasource::Join(JoinSource { join_type: _, left, right, condition: _ }) => {
+                left.check_duplicate_aliases_aux(aliases)?;
+                right.check_duplicate_aliases_aux(aliases)?;
+            }
+            Datasource::Flatten(FlattenSource { datasource, options: _ }) => {
+                datasource.check_duplicate_aliases_aux(aliases)?;
+            }
+            Datasource::Unwind(UnwindSource { datasource, options: _ }) => {
+                datasource.check_duplicate_aliases_aux(aliases)?;
+            }
+        }
+        Ok(())
+    }
+}
 #[derive(PartialEq, Debug, Clone)]
 pub struct ArraySource {
     pub array: Vec<Expression>,

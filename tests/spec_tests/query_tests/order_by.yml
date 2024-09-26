@@ -16,6 +16,19 @@ catalog_data:
       - {'_id': 0, 'a': null}
       - {'_id': 1, 'a': 1}
       - {'_id': 2, 'a': null}
+    baz:
+      - {
+          "_id": 0,
+          "a": { "$numberInt": "1" },
+          "b": { "$numberInt": "2" },
+          "coll": "foo",
+        }
+      - {
+          "_id": 1,
+          "a": { "$numberInt": "2" },
+          "b": { "$numberInt": "1" },
+          "coll": "foo",
+        }
 
 catalog_schema:
   {
@@ -58,7 +71,20 @@ catalog_schema:
       'nullAndNonNull': {
         'bsonType': 'object',
         'additionalProperies': true
-      }
+      },
+      "baz":
+        {
+          "bsonType": "object",
+          "required": ["_id", "a", "b", "coll"],
+          "additionalProperties": false,
+          "properties":
+            {
+              "_id": { "bsonType": "int" },
+              "a": { "bsonType": "int" },
+              "b": { "bsonType": "int" },
+              "coll": { "bsonType": "string" },
+            },
+        },
     }
   }
 
@@ -223,3 +249,105 @@ tests:
     query: "SELECT a FROM foo ORDER BY -1"
     should_compile: false
     parse_error: "Unrecognized token `-`"
+
+  - description: allowing ordering by column not in Select still supports ordering by computed column
+    current_db: mydb
+    query: "SELECT _id, a, b + 42 as c from baz order by b, c"
+    result:
+      - {"":
+          {
+            "_id": 1,
+            "a": { "$numberInt": "2" },
+            "c": 43,
+          }
+        }
+      - {"":
+          {
+            "_id": 0,
+            "a": { "$numberInt": "1" },
+            "c": 44
+          }
+        }
+
+  - description: allow ordering by column not in Select
+    current_db: mydb
+    query: "SELECT _id, a from baz order by b"
+    result:
+      - {"":
+          {
+            "_id": 1,
+            "a": { "$numberInt": "2" },
+          }
+        }
+      - {"":
+          {
+            "_id": 0,
+            "a": { "$numberInt": "1" },
+          }
+        }
+
+  - description: ordering by column in select list that shadows column from data sources still works
+    current_db: mydb
+    query: "SELECT _id, a from baz order by a"
+    result:
+      - {"":
+          {
+            "_id": 0,
+            "a": { "$numberInt": "1" },
+          }
+        }
+      - {"":
+          {
+            "_id": 1,
+            "a": { "$numberInt": "2" },
+          }
+        }
+
+  - description: ordering by column not in Select in join must be qualified
+    current_db: mydb
+    query: "SELECT a._id, b.a, b.b + 42 as c from baz a join baz b order by b, c"
+    algebrize_error: "Error 3009: Field `b` in the `ORDER BY` clause at the 0 scope level exists in multiple datasources and is ambiguous. Please qualify."
+
+  - description: ordering by column not in Select in join works when qualified
+    current_db: mydb
+    query: "SELECT b._id, a.a, b.b + 42 as c from baz a join baz b order by a.b, c"
+    result:
+      - {"":
+          {
+            "_id": { "$numberInt": "1" },
+            "a": { "$numberInt": "2" },
+            "c": { "$numberInt": "43" }
+          }
+      }
+      - {"":
+          {
+            "_id": { "$numberInt": "0" },
+            "a": { "$numberInt": "2" },
+            "c": { "$numberInt": "44" }
+          }
+      }
+      - {"":
+          {
+            "_id": { "$numberInt": "1" },
+            "a": { "$numberInt": "1" },
+            "c": { "$numberInt": "43" }
+          }
+      }
+      - {"":
+          {
+            "_id": { "$numberInt": "0" },
+            "a": { "$numberInt": "1" },
+            "c": { "$numberInt": "44" }
+          }
+      }
+
+  - description: allow ordering by column not in Select even with group by
+    current_db: mydb
+    query: "SELECT a, b + 42 as c from baz group by a, b order by b, c"
+    result:
+      - {"":
+          {"a": { "$numberInt": "2" }, "c": { "$numberInt": "43" }}
+        }
+      - {"":
+          {"a": { "$numberInt": "1" }, "c": { "$numberInt": "44" }}
+        }

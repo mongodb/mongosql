@@ -17,7 +17,7 @@ impl SqlOptions {
         SqlOptions {
             exclude_namespaces,
             schema_checking_mode,
-            allow_order_by_missing_columns: false,
+            allow_order_by_missing_columns: true,
         }
     }
 }

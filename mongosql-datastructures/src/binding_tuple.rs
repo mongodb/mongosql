@@ -59,7 +59,10 @@ where
     }
 }
 
-impl<T> BindingTuple<T> {
+impl<T> BindingTuple<T>
+where
+    T: PartialEq,
+{
     pub fn new() -> BindingTuple<T> {
         BindingTuple(BTreeMap::new())
     }
@@ -112,9 +115,12 @@ impl<T> BindingTuple<T> {
 
     pub fn merge(&mut self, other: BindingTuple<T>) -> Result<(), DuplicateKeyError> {
         for (k, v) in other.0.into_iter() {
-            if self.0.insert(k.clone(), v).is_some() {
-                return Err(DuplicateKeyError { key: k });
+            if let Some(v2) = self.0.remove(&k) {
+                if v != v2 {
+                    return Err(DuplicateKeyError { key: k });
+                }
             }
+            self.0.insert(k, v);
         }
         Ok(())
     }
@@ -143,7 +149,10 @@ impl<T> Default for BindingTuple<T> {
     }
 }
 
-impl<T> FromIterator<(Key, T)> for BindingTuple<T> {
+impl<T> FromIterator<(Key, T)> for BindingTuple<T>
+where
+    T: PartialEq,
+{
     fn from_iter<I: IntoIterator<Item = (Key, T)>>(iter: I) -> Self {
         let mut bt = BindingTuple(BTreeMap::new());
         for (k, v) in iter {
