@@ -226,15 +226,15 @@ buildvariants:
   - name: mongosqltranslate-macos
     tags: ["mongosqltranslate-release-variant"]
     display_name: "Mongosqltranslate - macOS"
-    run_on: [macos-1100]
+    run_on: [macos-14]
     tasks:
       - name: compile-mongosqltranslate
       - name: test-mongosqltranslate
 
   - name: mongosqltranslate-macos-arm
     tags: ["mongosqltranslate-release-variant"]
-    display_name: "Mongosqltranslate - macOS arm"
-    run_on: [macos-1100-arm64]
+    display_name: "Mongosqltranslate - macOS arm64"
+    run_on: [macos-14-arm64]
     tasks:
       - name: compile-mongosqltranslate
       - name: test-mongosqltranslate

@@ -37,7 +37,9 @@ functions:
         shell: bash
         working_dir: mongosql-rs
         script: |
-          export PATH="$PATH:$HOME/.cargo/bin"
+          # Put our own installation of Cargo first in the path to make sure this is the one used.
+          # Otherwise, on MacOs it will use the version installed with Brew which is not as recent.
+          export PATH="$HOME/.cargo/bin:$PATH"
           export CARGO_NET_GIT_FETCH_WITH_CLI=true
           export MONGODB_TEST_VERSION="6.0.5"
           export MONGODB_TEST_RHEL_VERSION="mongodb-linux-x86_64-rhel70-$MONGODB_TEST_VERSION"
@@ -106,7 +108,6 @@ functions:
           # install rustup from scratch
           rm -rf ~/.rustup
           curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path $DEFAULT_HOST_OPTIONS
-
           # rustup installs into C:\Users\$USER instead of
           # C:\home\$USER, so we symlink both .rustup and .cargo
           if [ "Windows_NT" == "$OS" ]; then
@@ -1577,8 +1578,8 @@ buildvariants:
       - name: test-rust-errors
 
   - name: macos
-    display_name: "macOS 11"
-    run_on: [macos-1100]
+    display_name: "macOS"
+    run_on: [macos-14]
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1587,8 +1588,8 @@ buildvariants:
       - name: test-go
 
   - name: macos-arm64
-    display_name: "macOS 11.0 arm64"
-    run_on: [macos-1100-arm64]
+    display_name: "macOS arm64"
+    run_on: [macos-14-arm64]
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1662,7 +1663,7 @@ buildvariants:
   - name: trr-macos
     tags: ["trr-release-variant"]
     display_name: "Transition Readiness Report - macOS"
-    run_on: [macos-1100]
+    run_on: [macos-14]
     tasks:
       - name: compile-trr
       - name: test-transition-readiness-report
@@ -1670,8 +1671,8 @@ buildvariants:
 
   - name: trr-macos-arm
     tags: ["trr-release-variant"]
-    display_name: "Transition Readiness Report - macOS arm"
-    run_on: [macos-1100-arm64]
+    display_name: "Transition Readiness Report - macOS arm64"
+    run_on: [macos-14-arm64]
     tasks:
       - name: compile-trr
       - name: test-transition-readiness-report
