@@ -13,4 +13,4 @@ semver = "1.0.23"
 
 [lib]
 name = "mongosqltranslate"
-crate-type = ["staticlib"]
+crate-type = ["cdylib"]
