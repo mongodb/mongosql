@@ -2032,20 +2032,7 @@ impl<'a> Algebrizer<'a> {
             .nearest_scope_for_datasource(&possible_datasource, self.scope_level)
             .map_or_else(
                 move || {
-                    let expr = self.algebrize_unqualified_identifier(q);
-                    let expr = match expr {
-                        Ok(expr) => expr,
-                        Err(e @ Error::FieldNotFound(_, _, _, _)) => {
-                            // If this is an OrderBy clause, try to find the field in the Bottom Data source
-                            // because many dialects of SQL support this. Note: this is a change to
-                            // our original spec and outside of SQL92.
-                            if *self.clause_type.borrow() == ClauseType::OrderBy {
-                                return self.algebrize_unqualified_identifier(cloned_field);
-                            }
-                            return Err(e);
-                        }
-                        Err(e) => return Err(e),
-                    };
+                    let expr = self.algebrize_unqualified_identifier(q)?;
                     self.construct_field_access_expr(
                         expr,
                         // combinators make this clone necessary, unfortunately
