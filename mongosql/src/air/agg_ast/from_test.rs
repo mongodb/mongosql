@@ -39,10 +39,8 @@ macro_rules! test_from_expr {
 
 mod stage {
     mod collection {
-        use crate::air::{
-            self,
-            agg_ast::{ast_definitions as agg_ast, from_test::default_source},
-        };
+        use crate::air::{self, agg_ast::from_test::default_source};
+        use agg_ast::definitions as agg_ast;
 
         test_from_stage!(
             simple,
@@ -59,12 +57,10 @@ mod stage {
 
     mod documents {
         use crate::{
-            air::{
-                self,
-                agg_ast::{ast_definitions as agg_ast, from_test::default_source},
-            },
+            air::{self, agg_ast::from_test::default_source},
             map, unchecked_unique_linked_hash_map,
         };
+        use agg_ast::definitions as agg_ast;
 
         test_from_stage!(
             empty,
@@ -117,12 +113,10 @@ mod stage {
 
     mod project {
         use crate::{
-            air::{
-                self,
-                agg_ast::{ast_definitions as agg_ast, from_test::default_source},
-            },
+            air::{self, agg_ast::from_test::default_source},
             map, unchecked_unique_linked_hash_map,
         };
+        use agg_ast::definitions as agg_ast;
 
         test_from_stage!(
             empty,
@@ -191,10 +185,8 @@ mod stage {
     }
 
     mod replace_with {
-        use crate::air::{
-            self,
-            agg_ast::{ast_definitions as agg_ast, from_test::default_source},
-        };
+        use crate::air::{self, agg_ast::from_test::default_source};
+        use agg_ast::definitions as agg_ast;
 
         test_from_stage!(
             simple,
@@ -209,10 +201,8 @@ mod stage {
     }
 
     mod match_stage {
-        use crate::air::{
-            self,
-            agg_ast::{ast_definitions as agg_ast, from_test::default_source},
-        };
+        use crate::air::{self, agg_ast::from_test::default_source};
+        use agg_ast::definitions as agg_ast;
 
         test_from_stage!(
             expr,
@@ -229,10 +219,8 @@ mod stage {
     }
 
     mod limit_skip {
-        use crate::air::{
-            self,
-            agg_ast::{ast_definitions as agg_ast, from_test::default_source},
-        };
+        use crate::air::{self, agg_ast::from_test::default_source};
+        use agg_ast::definitions as agg_ast;
 
         test_from_stage!(
             limit,
@@ -255,12 +243,10 @@ mod stage {
 
     mod sort {
         use crate::{
-            air::{
-                self,
-                agg_ast::{ast_definitions as agg_ast, from_test::default_source},
-            },
+            air::{self, agg_ast::from_test::default_source},
             map,
         };
+        use agg_ast::definitions as agg_ast;
 
         test_from_stage!(
             empty,
@@ -301,10 +287,8 @@ mod stage {
     }
 
     mod unwind {
-        use crate::air::{
-            self,
-            agg_ast::{ast_definitions as agg_ast, from_test::default_source},
-        };
+        use crate::air::{self, agg_ast::from_test::default_source};
+        use agg_ast::definitions as agg_ast;
 
         test_from_stage!(
             unwind_field_path,
@@ -360,12 +344,10 @@ mod stage {
 
     mod join {
         use crate::{
-            air::{
-                self,
-                agg_ast::{ast_definitions as agg_ast, from_test::default_source},
-            },
+            air::{self, agg_ast::from_test::default_source},
             map, unchecked_unique_linked_hash_map,
         };
+        use agg_ast::definitions as agg_ast;
 
         test_from_stage!(
             inner_join,
@@ -559,13 +541,11 @@ mod stage {
 
     mod lookup {
         use crate::{
-            air::{
-                self,
-                agg_ast::{ast_definitions as agg_ast, from_test::default_source},
-            },
+            air::{self, agg_ast::from_test::default_source},
             unchecked_unique_linked_hash_map,
             util::{ROOT, ROOT_NAME},
         };
+        use agg_ast::definitions as agg_ast;
 
         test_from_stage!(
             empty,
@@ -747,12 +727,10 @@ mod stage {
 
     mod group {
         use crate::{
-            air::{
-                self,
-                agg_ast::{ast_definitions as agg_ast, from_test::default_source},
-            },
+            air::{self, agg_ast::from_test::default_source},
             map,
         };
+        use agg_ast::definitions as agg_ast;
 
         test_from_stage!(
             group_null_id_no_acc,
@@ -866,7 +844,8 @@ mod stage {
 
 mod expression {
     mod literal {
-        use crate::air::{self, agg_ast::ast_definitions as agg_ast};
+        use crate::air;
+        use agg_ast::definitions as agg_ast;
 
         test_from_expr!(
             null,
@@ -900,7 +879,8 @@ mod expression {
     }
 
     mod string_or_ref {
-        use crate::air::{self, agg_ast::ast_definitions as agg_ast};
+        use crate::air;
+        use agg_ast::definitions as agg_ast;
 
         test_from_expr!(
             string,
@@ -947,7 +927,8 @@ mod expression {
     }
 
     mod array {
-        use crate::air::{self, agg_ast::ast_definitions as agg_ast};
+        use crate::air;
+        use agg_ast::definitions as agg_ast;
 
         test_from_expr!(
             empty,
@@ -980,10 +961,8 @@ mod expression {
     }
 
     mod document {
-        use crate::{
-            air::{self, agg_ast::ast_definitions as agg_ast},
-            map, unchecked_unique_linked_hash_map,
-        };
+        use crate::{air, map, unchecked_unique_linked_hash_map};
+        use agg_ast::definitions as agg_ast;
 
         test_from_expr!(
             empty,
@@ -1017,10 +996,8 @@ mod expression {
     }
 
     mod tagged_operators {
-        use crate::{
-            air::{self, agg_ast::ast_definitions as agg_ast},
-            map, unchecked_unique_linked_hash_map,
-        };
+        use crate::{air, map, unchecked_unique_linked_hash_map};
+        use agg_ast::definitions as agg_ast;
 
         test_from_expr!(
             get_field,
@@ -1523,7 +1500,8 @@ mod expression {
     }
 
     mod untagged_operators {
-        use crate::air::{self, agg_ast::ast_definitions as agg_ast};
+        use crate::air;
+        use agg_ast::definitions as agg_ast;
 
         test_from_expr!(
             sql_op_one_arg,

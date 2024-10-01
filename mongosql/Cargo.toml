@@ -9,6 +9,7 @@ authors = [
 edition = "2021"
 
 [dependencies]
+agg-ast = { path = "../agg-ast" }
 bson = { version = "2.11", features = ["chrono-0_4"] }
 chrono = "0.4.24"
 itertools = "0.10.1"

@@ -27,7 +27,7 @@ macro_rules! test_deserialize_expr {
 }
 
 mod stage_test {
-    use crate::air::agg_ast::ast_definitions::Stage;
+    use crate::definitions::Stage;
     use serde::Deserialize;
 
     #[derive(Debug, PartialEq, Deserialize)]
@@ -37,7 +37,7 @@ mod stage_test {
 
     mod documents {
         use crate::{
-            air::agg_ast::ast_definitions::{Expression, LiteralValue, Stage, StringOrRef},
+            definitions::{Expression, LiteralValue, Stage, StringOrRef},
             map,
         };
 
@@ -84,11 +84,10 @@ mod stage_test {
 
     mod project {
         use crate::{
-            air::agg_ast::ast_definitions::{
+            definitions::{
                 Expression, LiteralValue, ProjectItem, Stage, StringOrRef, UntaggedOperator,
             },
-            map,
-            util::ROOT_NAME,
+            map, ROOT_NAME,
         };
 
         test_deserialize_stage!(
@@ -156,8 +155,8 @@ mod stage_test {
 
     mod replace_with {
         use crate::{
-            air::agg_ast::ast_definitions::{Expression, Stage, StringOrRef, UntaggedOperator},
-            util::ROOT_NAME,
+            definitions::{Expression, Stage, StringOrRef, UntaggedOperator},
+            ROOT_NAME,
         };
 
         test_deserialize_stage!(
@@ -182,7 +181,7 @@ mod stage_test {
     }
 
     mod match_stage {
-        use crate::air::agg_ast::ast_definitions::{
+        use crate::definitions::{
             Expression, MatchExpression, Stage, StringOrRef, UntaggedOperator,
         };
 
@@ -202,7 +201,7 @@ mod stage_test {
     }
 
     mod limit_skip {
-        use crate::air::agg_ast::ast_definitions::Stage;
+        use crate::definitions::Stage;
 
         test_deserialize_stage!(
             limit,
@@ -218,7 +217,7 @@ mod stage_test {
     }
 
     mod sort {
-        use crate::{air::agg_ast::ast_definitions::Stage, map};
+        use crate::{definitions::Stage, map};
 
         test_deserialize_stage!(
             empty,
@@ -240,9 +239,7 @@ mod stage_test {
     }
 
     mod unwind {
-        use crate::air::agg_ast::ast_definitions::{
-            Expression, Stage, StringOrRef, Unwind, UnwindExpr,
-        };
+        use crate::definitions::{Expression, Stage, StringOrRef, Unwind, UnwindExpr};
 
         test_deserialize_stage!(
             unwind_field_ref,
@@ -279,7 +276,7 @@ mod stage_test {
 
     mod join {
         use crate::{
-            air::agg_ast::ast_definitions::{
+            definitions::{
                 Expression, Join, JoinType, LiteralValue, ProjectItem, Stage, StringOrRef,
                 UntaggedOperator,
             },
@@ -435,7 +432,7 @@ mod stage_test {
 
     mod lookup_test {
         use crate::{
-            air::agg_ast::ast_definitions::{
+            definitions::{
                 Expression, LiteralValue, Lookup, LookupFrom, MatchExpression, Namespace,
                 ProjectItem, Stage, StringOrRef, UntaggedOperator,
             },
@@ -566,7 +563,7 @@ mod stage_test {
 
     mod group_test {
         use crate::{
-            air::agg_ast::ast_definitions::{
+            definitions::{
                 Expression, Group, GroupAccumulator, GroupAccumulatorExpr, LiteralValue, Stage,
                 StringOrRef,
             },
@@ -648,7 +645,7 @@ mod stage_test {
 }
 
 mod expression_test {
-    use crate::air::agg_ast::ast_definitions::Expression;
+    use crate::definitions::Expression;
     use serde::Deserialize;
 
     #[derive(Debug, PartialEq, Deserialize)]
@@ -657,7 +654,7 @@ mod expression_test {
     }
 
     mod literal {
-        use crate::air::agg_ast::ast_definitions::{Expression, LiteralValue};
+        use crate::definitions::{Expression, LiteralValue};
 
         test_deserialize_expr!(
             null,
@@ -697,7 +694,7 @@ mod expression_test {
     }
 
     mod string_or_ref {
-        use crate::air::agg_ast::ast_definitions::{Expression, StringOrRef};
+        use crate::definitions::{Expression, StringOrRef};
 
         test_deserialize_expr!(
             string,
@@ -725,7 +722,7 @@ mod expression_test {
     }
 
     mod array {
-        use crate::air::agg_ast::ast_definitions::{Expression, LiteralValue, StringOrRef};
+        use crate::definitions::{Expression, LiteralValue, StringOrRef};
 
         test_deserialize_expr!(
             empty,
@@ -755,7 +752,7 @@ mod expression_test {
 
     mod document {
         use crate::{
-            air::agg_ast::ast_definitions::{Expression, LiteralValue, StringOrRef},
+            definitions::{Expression, LiteralValue, StringOrRef},
             map,
         };
 
@@ -800,7 +797,7 @@ mod expression_test {
 
     mod tagged_operators {
         use crate::{
-            air::agg_ast::ast_definitions::{
+            definitions::{
                 Convert, Expression, GetField, Let, Like, LiteralValue, ProjectItem, Reduce,
                 SetField, SqlConvert, SqlDivide, Stage, StringOrRef, Subquery, SubqueryComparison,
                 SubqueryExists, Switch, SwitchCase, TaggedOperator, UnsetField,
@@ -1081,9 +1078,7 @@ mod expression_test {
     }
 
     mod untagged_operators {
-        use crate::air::agg_ast::ast_definitions::{
-            Expression, LiteralValue, StringOrRef, UntaggedOperator,
-        };
+        use crate::definitions::{Expression, LiteralValue, StringOrRef, UntaggedOperator};
 
         test_deserialize_expr!(
             one_argument_non_array,

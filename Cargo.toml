@@ -2,6 +2,7 @@
 resolver = "2"
 
 members = [
+    "agg-ast",
     "benchmark/pipeline_generator",
     "benchmark/profiler",
     "bic-trip",

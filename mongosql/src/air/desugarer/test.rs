@@ -1,10 +1,10 @@
 use crate::air::{
     self,
-    agg_ast::ast_definitions as agg_ast,
     desugarer::{self, Pass},
     visitor::Visitor,
     Stage,
 };
+use agg_ast::definitions as agg_ast;
 use chrono::prelude::*;
 use itertools::Itertools;
 use lazy_static::lazy_static;
@@ -597,10 +597,8 @@ fn to_air_pipeline(pipeline: Vec<agg_ast::Stage>) -> air::Stage {
 #[cfg(test)]
 mod to_air_pipeline_test {
     use super::to_air_pipeline;
-    use crate::{
-        air::{self, agg_ast::ast_definitions as agg_ast},
-        map, unchecked_unique_linked_hash_map,
-    };
+    use crate::{air, map, unchecked_unique_linked_hash_map};
+    use agg_ast::definitions as agg_ast;
 
     macro_rules! test_to_air_pipeline {
         ($func_name:ident, expected = $expected:expr, input = $input:expr) => {

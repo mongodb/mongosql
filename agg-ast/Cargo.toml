@@ -1,0 +1,11 @@
+[package]
+name = "agg-ast"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.8.21"
+
+[features]
