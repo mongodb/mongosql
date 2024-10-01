@@ -261,14 +261,32 @@ pub enum TaggedOperator {
     LTrim(Trim),
     #[serde(rename = "$rtrim")]
     RTrim(Trim),
-    #[serde(rename = "$reduce")]
-    Reduce(Reduce),
     #[serde(rename = "$subquery")]
     Subquery(Subquery),
     #[serde(rename = "$subqueryComparison")]
     SubqueryComparison(SubqueryComparison),
     #[serde(rename = "$subqueryExists")]
     SubqueryExists(SubqueryExists),
+
+    // Array Operators
+    #[serde(rename = "$firstN")]
+    FirstN(FirstN),
+    #[serde(rename = "$lastN")]
+    LastN(LastN),
+    #[serde(rename = "$filter")]
+    Filter(Filter),
+    #[serde(rename = "$map")]
+    Map(Map),
+    #[serde(rename = "$maxN")]
+    MaxNArrayElement(MaxNArrayElement),
+    #[serde(rename = "$minN")]
+    MinNArrayElement(MinNArrayElement),
+    #[serde(rename = "$reduce")]
+    Reduce(Reduce),
+    #[serde(rename = "$sortArray")]
+    SortArray(SortArray),
+    #[serde(rename = "$zip")]
+    Zip(Zip),
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -328,10 +346,58 @@ pub struct Convert {
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Filter {
+    pub input: Box<Expression>,
+    #[serde(rename = "as")]
+    pub _as: String,
+    pub cond: Box<Expression>,
+    pub limit: Option<Box<Expression>>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FirstN {
+    pub input: Box<Expression>,
+    pub n: Box<Expression>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LastN {
+    pub input: Box<Expression>,
+    pub n: Box<Expression>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
 pub struct Like {
     pub input: Box<Expression>,
     pub pattern: Box<Expression>,
     pub escape: Option<char>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Map {
+    pub input: Box<Expression>,
+    #[serde(rename = "as")]
+    pub _as: String,
+    #[serde(rename = "in")]
+    pub inside: Box<Expression>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MaxNArrayElement {
+    pub input: Box<Expression>,
+    pub n: Box<Expression>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MinNArrayElement {
+    pub input: Box<Expression>,
+    pub n: Box<Expression>,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -366,6 +432,20 @@ pub struct Reduce {
 
 #[derive(Debug, PartialEq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct SortArray {
+    pub input: Box<Expression>,
+    pub sort_by: SortArraySpec,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(untagged)]
+pub enum SortArraySpec {
+    Value(i8),
+    Keys(HashMap<String, i8>),
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Subquery {
     pub db: Option<String>,
     pub collection: Option<String>,
@@ -390,6 +470,19 @@ pub struct SubqueryExists {
     #[serde(rename = "let")]
     pub let_bindings: Option<HashMap<String, Expression>>,
     pub pipeline: Vec<Stage>,
+}
+
+fn default_zip_defaults() -> bool {
+    false
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Zip {
+    pub inputs: Box<Expression>,
+    #[serde(default = "default_zip_defaults")]
+    pub use_longest_length: bool,
+    pub defaults: Option<Box<Expression>>,
 }
 
 /// Custom map visitor for identifying and deserializing UntaggedOperators.

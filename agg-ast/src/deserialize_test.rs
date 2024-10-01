@@ -798,9 +798,11 @@ mod expression_test {
     mod tagged_operators {
         use crate::{
             definitions::{
-                Convert, Expression, GetField, Let, Like, LiteralValue, ProjectItem, Reduce,
-                SetField, SqlConvert, SqlDivide, Stage, StringOrRef, Subquery, SubqueryComparison,
-                SubqueryExists, Switch, SwitchCase, TaggedOperator, UnsetField,
+                Convert, Expression, Filter, FirstN, GetField, LastN, Let, Like, LiteralValue, Map,
+                MaxNArrayElement, MinNArrayElement, ProjectItem, Reduce, SetField, SortArray,
+                SortArraySpec, SqlConvert, SqlDivide, Stage, StringOrRef, Subquery,
+                SubqueryComparison, SubqueryExists, Switch, SwitchCase, TaggedOperator, UnsetField,
+                UntaggedOperator, Zip,
             },
             map,
         };
@@ -974,22 +976,6 @@ mod expression_test {
         );
 
         test_deserialize_expr!(
-            reduce,
-            expected = Expression::TaggedOperator(TaggedOperator::Reduce(Reduce {
-                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))),
-                initial_value: Box::new(Expression::Literal(LiteralValue::Integer(2))),
-                inside: Box::new(Expression::Literal(LiteralValue::Null)),
-            })),
-            input = r#"expr: {"$reduce": {
-                                "input": "$a",
-                                "initialValue": 2,
-                                "in": null
-            }}"#
-        );
-
-        test_deserialize_expr!(
             sql_subquery,
             expected = Expression::TaggedOperator(TaggedOperator::Subquery(Subquery {
                 db: Some("foo".to_string()),
@@ -1074,6 +1060,209 @@ mod expression_test {
                               }
                             ]
                           }}"#
+        );
+
+        // Array Operators
+        test_deserialize_expr!(
+            first_n,
+            expected = Expression::TaggedOperator(TaggedOperator::FirstN(FirstN {
+                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))),
+                n: Box::new(Expression::Literal(LiteralValue::Integer(3))),
+            })),
+            input = r#"expr: {"$firstN": {
+                                "input": "$a",
+                                "n": 3
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            last_n,
+            expected = Expression::TaggedOperator(TaggedOperator::LastN(LastN {
+                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))),
+                n: Box::new(Expression::Literal(LiteralValue::Integer(3))),
+            })),
+            input = r#"expr: {"$lastN": {
+                                "input": "$a",
+                                "n": 3
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            filter,
+            expected = Expression::TaggedOperator(TaggedOperator::Filter(Filter {
+                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))),
+                _as: "x".to_string(),
+                cond: Box::new(Expression::Literal(LiteralValue::Integer(2))),
+                limit: None,
+            })),
+            input = r#"expr: {"$filter": {
+                                "input": "$a",
+                                "as": "x",
+                                "cond": 2
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            filter_with_limit,
+            expected = Expression::TaggedOperator(TaggedOperator::Filter(Filter {
+                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))),
+                _as: "x".to_string(),
+                cond: Box::new(Expression::Literal(LiteralValue::Integer(2))),
+                limit: Some(Box::new(Expression::UntaggedOperator(UntaggedOperator {
+                    op: "$add".to_string(),
+                    args: vec![
+                        Expression::Literal(LiteralValue::Integer(1)),
+                        Expression::Literal(LiteralValue::Integer(2)),
+                    ]
+                }))),
+            })),
+            input = r#"expr: {"$filter": {
+                                "input": "$a",
+                                "as": "x",
+                                "cond": 2,
+                                limit: {"$add": [1 ,2]}
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            map,
+            expected = Expression::TaggedOperator(TaggedOperator::Map(Map {
+                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))),
+                _as: "x".to_string(),
+                inside: Box::new(Expression::Literal(LiteralValue::Integer(2))),
+            })),
+            input = r#"expr: {"$map": {
+                                "input": "$a",
+                                "as": "x",
+                                "in": 2
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            max_n_array_element,
+            expected =
+                Expression::TaggedOperator(TaggedOperator::MaxNArrayElement(MaxNArrayElement {
+                    input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                        "a".to_string()
+                    ))),
+                    n: Box::new(Expression::Literal(LiteralValue::Integer(2))),
+                })),
+            input = r#"expr: {"$maxN": {
+                                "input": "$a",
+                                "n": 2
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            min_n_array_element,
+            expected =
+                Expression::TaggedOperator(TaggedOperator::MinNArrayElement(MinNArrayElement {
+                    input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                        "a".to_string()
+                    ))),
+                    n: Box::new(Expression::Literal(LiteralValue::Integer(2))),
+                })),
+            input = r#"expr: {"$minN": {
+                                "input": "$a",
+                                "n": 2
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            reduce,
+            expected = Expression::TaggedOperator(TaggedOperator::Reduce(Reduce {
+                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))),
+                initial_value: Box::new(Expression::Literal(LiteralValue::Integer(2))),
+                inside: Box::new(Expression::UntaggedOperator(UntaggedOperator {
+                    op: "$add".to_string(),
+                    args: vec![
+                        Expression::StringOrRef(StringOrRef::Variable("this".to_string())),
+                        Expression::Literal(LiteralValue::Integer(2)),
+                    ],
+                })),
+            })),
+            input = r#"expr: {"$reduce": {
+                                "input": "$a",
+                                "initialValue": 2,
+                                "in": {$add: ["$$this", 2]}
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            sort_array,
+            expected = Expression::TaggedOperator(TaggedOperator::SortArray(SortArray {
+                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))),
+                sort_by: SortArraySpec::Keys(map! {
+                    "x".to_string() => -1,
+                    "y".to_string() => 1,
+                }),
+            })),
+            input = r#"expr: {"$sortArray": {
+                                "input": "$a",
+                                "sortBy": {"x": -1, "y": 1}
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            sort_array_with_limit,
+            expected = Expression::TaggedOperator(TaggedOperator::SortArray(SortArray {
+                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))),
+                sort_by: SortArraySpec::Value(-1),
+            })),
+            input = r#"expr: {"$sortArray": {
+                                "input": "$a",
+                                "sortBy": -1
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            zip,
+            expected = Expression::TaggedOperator(TaggedOperator::Zip(Zip {
+                inputs: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))),
+                use_longest_length: true,
+                defaults: Some(Box::new(Expression::Array(vec![
+                    Expression::Literal(LiteralValue::Integer(1)),
+                    Expression::Literal(LiteralValue::Integer(2)),
+                    Expression::Literal(LiteralValue::Integer(3)),
+                ]))),
+            })),
+            input = r#"expr: {"$zip": {
+                                "inputs": "$a",
+                                "useLongestLength": true,
+                                "defaults": [1, 2, 3]
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            zip_default_false,
+            expected = Expression::TaggedOperator(TaggedOperator::Zip(Zip {
+                inputs: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))),
+                use_longest_length: false,
+                defaults: None,
+            })),
+            input = r#"expr: {"$zip": {
+                                "inputs": "$a",
+            }}"#
         );
     }
 
