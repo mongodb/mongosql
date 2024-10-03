@@ -235,6 +235,10 @@ pub struct UntaggedOperator {
 /// serde directly for these by using the enum names as the keys (operator names).
 #[derive(Debug, PartialEq, Deserialize)]
 pub enum TaggedOperator {
+    #[serde(rename = "$accumulator")]
+    Accumulator(Accumulator),
+    #[serde(rename = "$function")]
+    Function(Function),
     #[serde(rename = "$getField")]
     GetField(GetField),
     #[serde(rename = "$setField")]
@@ -261,6 +265,14 @@ pub enum TaggedOperator {
     LTrim(Trim),
     #[serde(rename = "$rtrim")]
     RTrim(Trim),
+    #[serde(rename = "$regexFind")]
+    RegexFind(RegexFind),
+    #[serde(rename = "$regexFindAll")]
+    RegexFindAll(RegexFindAll),
+    #[serde(rename = "$replaceAll")]
+    ReplaceAll(ReplaceAll),
+    #[serde(rename = "$replaceOne")]
+    ReplaceOne(ReplaceOne),
     #[serde(rename = "$subquery")]
     Subquery(Subquery),
     #[serde(rename = "$subqueryComparison")]
@@ -287,6 +299,25 @@ pub enum TaggedOperator {
     SortArray(SortArray),
     #[serde(rename = "$zip")]
     Zip(Zip),
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Accumulator {
+    pub init: Box<Expression>,
+    pub init_args: Option<Vec<Expression>>,
+    pub accumulate: Box<Expression>,
+    pub accumulate_args: Vec<Expression>,
+    pub merge: Box<Expression>,
+    pub finalize: Option<Box<Expression>>,
+    pub lang: String,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub struct Function {
+    pub body: Box<Expression>,
+    pub args: Vec<Expression>,
+    pub lang: String,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -405,6 +436,34 @@ pub struct RegexMatch {
     pub input: Box<Expression>,
     pub regex: Box<Expression>,
     pub options: Option<Box<Expression>>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub struct RegexFind {
+    pub input: Box<Expression>,
+    pub regex: Box<Expression>,
+    pub options: Option<Box<Expression>>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub struct RegexFindAll {
+    pub input: Box<Expression>,
+    pub regex: Box<Expression>,
+    pub options: Option<Box<Expression>>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub struct ReplaceAll {
+    pub input: Box<Expression>,
+    pub find: Box<Expression>,
+    pub replacement: Box<Expression>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub struct ReplaceOne {
+    pub input: Box<Expression>,
+    pub find: Box<Expression>,
+    pub replacement: Box<Expression>,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]

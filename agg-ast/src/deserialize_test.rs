@@ -798,14 +798,94 @@ mod expression_test {
     mod tagged_operators {
         use crate::{
             definitions::{
-                Convert, Expression, Filter, FirstN, GetField, LastN, Let, Like, LiteralValue, Map,
-                MaxNArrayElement, MinNArrayElement, ProjectItem, Reduce, SetField, SortArray,
+                Accumulator, Convert, Expression, Filter, FirstN, Function, GetField, LastN, Let,
+                Like, LiteralValue, Map, MaxNArrayElement, MinNArrayElement, ProjectItem, Reduce,
+                RegexFind, RegexFindAll, ReplaceAll, ReplaceOne, SetField, SortArray,
                 SortArraySpec, SqlConvert, SqlDivide, Stage, StringOrRef, Subquery,
                 SubqueryComparison, SubqueryExists, Switch, SwitchCase, TaggedOperator, UnsetField,
                 UntaggedOperator, Zip,
             },
             map,
         };
+
+        test_deserialize_expr!(
+            accumulator_all_args,
+            expected = Expression::TaggedOperator(TaggedOperator::Accumulator(Accumulator {
+                init: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "function (y) { return y; }".to_string()
+                ))),
+                init_args: Some(vec![Expression::Literal(LiteralValue::Integer(42))]),
+                accumulate: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "function (acc, curr) { return acc + curr; }".to_string()
+                ))),
+                accumulate_args: vec![Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))],
+                merge: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "function (a, b) { return a + b; }".to_string()
+                ))),
+                finalize: Some(Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "function (_x) { return 42; }".to_string()
+                )))),
+                lang: "js".to_string()
+            })),
+            input = r#"expr: {"$accumulator": {
+                                "init": "function (y) { return y; }",
+                                "initArgs": [42],
+                                "accumulate": "function (acc, curr) { return acc + curr; }",
+                                "accumulateArgs": ["$a"],
+                                "merge": "function (a, b) { return a + b; }",
+                                "finalize": "function (_x) { return 42; }",
+                                "lang": "js"
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            accumulator_no_optional_args,
+            expected = Expression::TaggedOperator(TaggedOperator::Accumulator(Accumulator {
+                init: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "function (y) { return y; }".to_string()
+                ))),
+                init_args: None,
+                accumulate: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "function (acc, curr) { return acc + curr; }".to_string()
+                ))),
+                accumulate_args: vec![Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))],
+                merge: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "function (a, b) { return a + b; }".to_string()
+                ))),
+                finalize: None,
+                lang: "js".to_string()
+            })),
+            input = r#"expr: {"$accumulator": {
+                                "init": "function (y) { return y; }",
+                                "accumulate": "function (acc, curr) { return acc + curr; }",
+                                "accumulateArgs": ["$a"],
+                                "merge": "function (a, b) { return a + b; }",
+                                "lang": "js"
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            function,
+            expected = Expression::TaggedOperator(TaggedOperator::Function(Function {
+                body: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "function (x) { return x + 1; }".to_string()
+                ))),
+                args: vec![
+                    Expression::Literal(LiteralValue::Integer(1)),
+                    Expression::Literal(LiteralValue::Integer(2)),
+                ],
+                lang: "js".to_string()
+            })),
+            input = r#"expr: {"$function": {
+                                "body": "function (x) { return x + 1; }",
+                                "args": [1, 2],
+                                "lang": "js"
+            }}"#
+        );
 
         test_deserialize_expr!(
             get_field,
@@ -972,6 +1052,120 @@ mod expression_test {
                                 "dividend": "$a",
                                 "divisor": 2,
                                 "onError": null
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            regex_find_with_options,
+            expected = Expression::TaggedOperator(TaggedOperator::RegexFind(RegexFind {
+                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))),
+                regex: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "pattern".to_string()
+                ))),
+                options: Some(Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "imxs".to_string()
+                )))),
+            })),
+            input = r#"expr: {"$regexFind": {
+                                "input": "$a",
+                                "regex": "pattern",
+                                "options": "imxs"
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            regex_find_without_options,
+            expected = Expression::TaggedOperator(TaggedOperator::RegexFind(RegexFind {
+                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))),
+                regex: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "/pattern/i".to_string()
+                ))),
+                options: None,
+            })),
+            input = r#"expr: {"$regexFind": {
+                                "input": "$a",
+                                "regex": "/pattern/i"
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            regex_find_all_with_options,
+            expected = Expression::TaggedOperator(TaggedOperator::RegexFindAll(RegexFindAll {
+                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))),
+                regex: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "pattern".to_string()
+                ))),
+                options: Some(Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "imxs".to_string()
+                )))),
+            })),
+            input = r#"expr: {"$regexFindAll": {
+                                "input": "$a",
+                                "regex": "pattern",
+                                "options": "imxs"
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            regex_find_all_without_options,
+            expected = Expression::TaggedOperator(TaggedOperator::RegexFindAll(RegexFindAll {
+                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))),
+                regex: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "/pattern/i".to_string()
+                ))),
+                options: None,
+            })),
+            input = r#"expr: {"$regexFindAll": {
+                                "input": "$a",
+                                "regex": "/pattern/i"
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            replace_all,
+            expected = Expression::TaggedOperator(TaggedOperator::ReplaceAll(ReplaceAll {
+                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))),
+                find: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "pattern".to_string()
+                ))),
+                replacement: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "new".to_string()
+                ))),
+            })),
+            input = r#"expr: {"$replaceAll": {
+                                "input": "$a",
+                                "find": "pattern",
+                                "replacement": "new"
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            replace_one,
+            expected = Expression::TaggedOperator(TaggedOperator::ReplaceOne(ReplaceOne {
+                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))),
+                find: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "pattern".to_string()
+                ))),
+                replacement: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "new".to_string()
+                ))),
+            })),
+            input = r#"expr: {"$replaceOne": {
+                                "input": "$a",
+                                "find": "pattern",
+                                "replacement": "new"
             }}"#
         );
 
@@ -1311,6 +1505,15 @@ mod expression_test {
                 args: vec![Expression::Literal(LiteralValue::Integer(1))]
             }),
             input = r#"expr: {"$literal": 1}"#
+        );
+
+        test_deserialize_expr!(
+            rand,
+            expected = Expression::UntaggedOperator(UntaggedOperator {
+                op: "$rand".to_string(),
+                args: vec![]
+            }),
+            input = r#"expr: {"$rand": []}"#
         );
     }
 }
