@@ -37,6 +37,41 @@ macro_rules! test_command_handler {
     };
 }
 
+macro_rules! test_driver_version_compatibility {
+    ($func_name:ident, version = $version:expr, isODBC = $isODBC:expr, expected = $expected:expr) => {
+        #[test]
+        fn $func_name() {
+            let expected_document = doc! {
+                "compatible": $expected
+            };
+
+            let input = Command {
+                command: CheckDriverVersion,
+                options: CommandOptions {
+                    driver_version: Some($version.to_string()),
+                    odbc_driver: Some($isODBC),
+                    ..Default::default()
+                },
+            };
+
+            let actual_document = input.run().unwrap();
+            let compat = match $expected {
+                true => "compatible",
+                false => "incompatible",
+            };
+            let driver_type = match $isODBC {
+                true => "odbc",
+                false => "jdbc",
+            };
+            assert_eq!(
+                actual_document, expected_document,
+                "Expected version {} to be {} for {} but it isn't",
+                $version, compat, driver_type
+            )
+        }
+    };
+}
+
 macro_rules! hashmap(
     { $($key:expr => $value:expr),+ } => {
             {
@@ -433,43 +468,28 @@ mod check_driver_version_tests {
     use super::*;
 
     test_command_handler!(
-        valid_check_driver_version_command_for_odbc_should_succeed,
-        expected = doc! {
-            "compatible": false
-        },
-        input = Command {
-            command: CheckDriverVersion,
-            options: CommandOptions {
-                driver_version: Some("0.0.0".to_string()),
-                odbc_driver: Some(true),
-                ..Default::default()
-            },
-        }
-    );
-
-    test_command_handler!(
-        valid_check_driver_version_command_for_jdbc_should_succeed,
-        expected = doc! {
-            "compatible": false
-        },
-        input = Command {
-            command: CheckDriverVersion,
-            options: CommandOptions {
-                driver_version: Some("0.0.0".to_string()),
-                ..Default::default()
-            },
-        }
-    );
-
-    test_command_handler!(
-        valid_check_driver_version_command_with_extra_parameter_should_succeed,
+        check_driver_version_valid_command_should_succeed,
         expected = doc! {
             "compatible": true
         },
         input = Command {
             command: CheckDriverVersion,
             options: CommandOptions {
-                driver_version: Some("1.0.0".to_string()),
+                driver_version: Some("3.0.0".to_string()),
+                ..Default::default()
+            },
+        }
+    );
+
+    test_command_handler!(
+        check_driver_version_command_with_extra_parameter_should_succeed,
+        expected = doc! {
+            "compatible": true
+        },
+        input = Command {
+            command: CheckDriverVersion,
+            options: CommandOptions {
+                driver_version: Some("3.0.0".to_string()),
                 db: Some("db1".to_string()),
                 ..Default::default()
             },
@@ -510,4 +530,73 @@ mod check_driver_version_tests {
 
         let _actual = command.run();
     }
+}
+
+mod validate_drivers_versions_tests {
+    use super::*;
+
+    test_driver_version_compatibility!(
+        incompatible_release_version_for_odbc,
+        version = "1.2.0",
+        isODBC = true,
+        expected = false
+    );
+
+    test_driver_version_compatibility!(
+        incompatible_release_version_for_jdbc,
+        version = "1.2.0",
+        isODBC = false,
+        expected = false
+    );
+
+    test_driver_version_compatibility!(
+        compatible_release_version_for_odbc,
+        version = "2.0.0-alpha",
+        isODBC = true,
+        expected = true
+    );
+
+    test_driver_version_compatibility!(
+        compatible_release_version_for_jdbc,
+        version = "3.0.0-alpha",
+        isODBC = false,
+        expected = true
+    );
+
+    test_driver_version_compatibility!(
+        compatible_dev_version_for_odbc,
+        version = "0.0.0",
+        isODBC = true,
+        expected = true
+    );
+
+    test_driver_version_compatibility!(
+        compatible_dev_version_for_jdbc,
+        // Any version ending with `-dirty` is deemed compatible
+        version = "2.2.0-dirty",
+        isODBC = false,
+        expected = true
+    );
+
+    test_driver_version_compatibility!(
+        compatible_snapshot_version_for_jdbc,
+        // Any version ending with `-SNAPSHOT` is deemed compatible
+        version = "1.2.0-SNAPSHOT",
+        isODBC = false,
+        expected = true
+    );
+
+    test_driver_version_compatibility!(
+        incompatible_dev_version_for_odbc,
+        version = "0.0.0-SNAPSHOT",
+        isODBC = true,
+        expected = false
+    );
+
+    test_driver_version_compatibility!(
+        incompatible_dev_version_for_jdbc,
+        version = "0.0.0",
+        isODBC = false,
+        expected = false
+    );
 }

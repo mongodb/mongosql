@@ -1,5 +1,6 @@
 use crate::{
-    MINIMUM_COMPATIBLE_JDBC_VERSION, MINIMUM_COMPATIBLE_ODBC_VERSION, MONGOSQLTRANSLATE_VERSION,
+    DEV_JDBC_VERSION_SUFFIX, DEV_ODBC_VERSION, MINIMUM_COMPATIBLE_JDBC_VERSION,
+    MINIMUM_COMPATIBLE_ODBC_VERSION, MONGOSQLTRANSLATE_VERSION, SNAPSHOT_JDBC_VERSION_SUFFIX,
 };
 use mongodb::bson::{doc, Bson, Deserializer, Document, Serializer};
 use mongosql::{
@@ -196,11 +197,25 @@ impl Command {
             .as_ref()
             .expect("`driver_version` parameter missing for CheckDriverVersion CommandType");
 
-        let driver_version =  match Version::parse(driver_version_command_option){
+        let driver_version = match Version::parse(driver_version_command_option) {
             Ok(version) => version,
             Err(_) => return Err(format!("Invalid `driver_version`: \"{}\". The `driver_version` must be a valid SemVer version (https://semver.org/).", driver_version_command_option).into())
         };
 
+        // *** Dev versions ***
+        // For JDBC, versions ending with -SNAPSHOT or -dirty are development/snapshot versions and are valid
+        // For ODBC, the development/snapshot version is always `0.0.0`
+        if (self.options.odbc_driver == Some(true) && DEV_ODBC_VERSION.matches(&driver_version))
+            || (self.options.odbc_driver != Some(true)
+                && (driver_version_command_option.ends_with(SNAPSHOT_JDBC_VERSION_SUFFIX)
+                    || driver_version_command_option.ends_with(DEV_JDBC_VERSION_SUFFIX)))
+        {
+            return Ok(doc! {
+                "compatible": true
+            });
+        }
+
+        // *** Release versions ***
         let minimum_version = if let Some(true) = self.options.odbc_driver {
             // The ODBC Driver is being used
             &*MINIMUM_COMPATIBLE_ODBC_VERSION
@@ -209,6 +224,7 @@ impl Command {
             &*MINIMUM_COMPATIBLE_JDBC_VERSION
         };
 
+        dbg!(minimum_version.matches(&driver_version));
         Ok(doc! {
             "compatible": minimum_version.matches(&driver_version)
         })
@@ -221,5 +237,36 @@ impl Command {
             Some(false) => Err("Test errored".into()),
             None => panic!("Test success value not provided"),
         }
+    }
+}
+
+#[test]
+pub fn test_versions_compatibility() {
+    let minimum_version = semver::VersionReq::parse(">=2.0.0-alpha").unwrap();
+
+    let compatible_min_versions: [&str; 6] = [
+        "2.0.0-alpha",
+        "2.0.0-beta",
+        "2.0.0",
+        "2.1.0",
+        "2.1.10",
+        "3.0.0",
+    ];
+    let incompatible_min_versions: [&str; 5] =
+        ["1.2.0-alpha", "1.0.3-beta", "1.4.5", "0.1.0", "0.0.0"];
+
+    for compatible_version in &compatible_min_versions {
+        let driver_version = Version::parse(compatible_version).unwrap();
+
+        assert!(minimum_version.matches(&driver_version));
+    }
+
+    for incompatible_version in &incompatible_min_versions {
+        let driver_version = match Version::parse(incompatible_version) {
+            Ok(version) => version,
+            Err(e) => panic!("{}", e),
+        };
+
+        assert!(!minimum_version.matches(&driver_version));
     }
 }

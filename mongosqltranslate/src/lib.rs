@@ -24,11 +24,20 @@ static MONGOSQLTRANSLATE_VERSION: LazyLock<String> = LazyLock::new(|| {
 
 // TODO: SQL-2309: Update minimum compatible driver versions in mongosqltranslate to the correct versions
 static MINIMUM_COMPATIBLE_JDBC_VERSION: LazyLock<VersionReq> = LazyLock::new(|| {
-    VersionReq::parse(">=0.0.1").expect("Minimum compatible JDBC version could not be parsed.")
+    VersionReq::parse(">=3.0.0-alpha")
+        .expect("Minimum compatible JDBC version could not be parsed.")
 });
 static MINIMUM_COMPATIBLE_ODBC_VERSION: LazyLock<VersionReq> = LazyLock::new(|| {
-    VersionReq::parse(">=0.0.1").expect("Minimum compatible ODBC version could not be parsed.")
+    VersionReq::parse(">=2.0.0-alpha")
+        .expect("Minimum compatible ODBC version could not be parsed.")
 });
+
+static DEV_ODBC_VERSION: LazyLock<VersionReq> =
+    LazyLock::new(|| VersionReq::parse("=0.0.0").expect("ODBC dev version could not be parsed."));
+
+pub const DEV_JDBC_VERSION_SUFFIX: &str = "-dirty";
+
+pub const SNAPSHOT_JDBC_VERSION_SUFFIX: &str = "-SNAPSHOT";
 
 #[repr(C)]
 pub struct OdbcCommand {
