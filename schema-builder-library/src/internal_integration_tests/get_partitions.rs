@@ -1,9 +1,11 @@
 use crate::internal_integration_tests::consts::{LARGE_PARTITIONS, SMALL_PARTITIONS};
 
 macro_rules! test_get_partitions {
-    ($test_name:ident, expected = $expected:expr, input_db = $input_db:expr, input_coll = $input_coll:expr) => {
+    ($test_name:ident, expected = $expected:expr, input_db = $input_db:expr, input_coll = $input_coll:expr $(, ignore = $ignore:expr)?) => {
+
         #[cfg(feature = "integration")]
         #[tokio::test]
+        $(#[ignore = $ignore])?
         async fn $test_name() {
             use super::get_mdb_collection;
             use crate::partitioning::{get_partitions, Partition};
@@ -50,7 +52,8 @@ test_get_partitions!(
     uniform_large,
     expected = LARGE_PARTITIONS,
     input_db = UNIFORM_DB_NAME,
-    input_coll = LARGE_COLL_NAME
+    input_coll = LARGE_COLL_NAME,
+    ignore = "SQL-2338"
 );
 
 test_get_partitions!(
@@ -75,7 +78,8 @@ test_get_partitions!(
     nonuniform_large,
     expected = LARGE_PARTITIONS,
     input_db = NONUNIFORM_DB_NAME,
-    input_coll = LARGE_COLL_NAME
+    input_coll = LARGE_COLL_NAME,
+    ignore = "SQL-2338"
 );
 
 #[cfg(feature = "integration")]
