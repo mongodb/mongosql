@@ -239,9 +239,12 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                     as_var: eql.as_var,
                 })
             }
-            Stage::GraphLookup(_) => todo!(),
-            Stage::AtlasSearchStage(x) => {
-                panic!("cannot convert {x:?} stage to air")
+            Stage::Bucket(_)
+            | Stage::BucketAuto(_)
+            | Stage::Count(_)
+            | Stage::GraphLookup(_)
+            | Stage::AtlasSearchStage(_) => {
+                panic!("cannot convert {} stage to air", ast_stage.name())
             }
         }
     }

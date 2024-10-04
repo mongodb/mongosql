@@ -1,3 +1,4 @@
+use bson::Bson;
 use serde::{
     de::{Error as serde_err, MapAccess, Visitor},
     Deserialize, Deserializer,
@@ -43,35 +44,18 @@ pub enum Stage {
     Lookup(Lookup),
     #[serde(rename = "$equiLookup")]
     EquiLookup(EquiLookup),
+    #[serde(rename = "$bucket")]
+    Bucket(Bucket),
+    #[serde(rename = "$bucketAuto")]
+    BucketAuto(BucketAuto),
+    #[serde(rename = "$count")]
+    Count(String),
 
     // Search stages
     #[serde(rename = "$graphLookup")]
     GraphLookup(GraphLookup),
     #[serde(untagged)]
     AtlasSearchStage(AtlasSearchStage),
-}
-
-#[derive(Debug, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GraphLookup {
-    pub from: String,
-    pub start_with: Box<Expression>,
-    pub connect_from_field: String,
-    pub connect_to_field: String,
-    pub r#as: String,
-    pub max_depth: Option<i32>,
-    pub depth_field: Option<String>,
-    pub restrict_search_with_match: Option<Box<Expression>>,
-}
-
-#[derive(Debug, PartialEq, Deserialize)]
-pub enum AtlasSearchStage {
-    #[serde(rename = "$search")]
-    Search(Box<Expression>),
-    #[serde(rename = "$searchMeta")]
-    SearchMeta(Box<Expression>),
-    #[serde(rename = "$vectorSearch")]
-    VectorSearch(Box<Expression>),
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -196,6 +180,47 @@ pub enum LookupFrom {
 pub struct Namespace {
     pub db: String,
     pub coll: String,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Bucket {
+    pub group_by: Box<Expression>,
+    pub boundaries: Vec<Bson>,
+    pub default: Option<Bson>,
+    pub output: Option<HashMap<String, Expression>>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BucketAuto {
+    pub group_by: Box<Expression>,
+    pub buckets: i32,
+    pub output: Option<HashMap<String, Expression>>,
+    pub granularity: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GraphLookup {
+    pub from: String,
+    pub start_with: Box<Expression>,
+    pub connect_from_field: String,
+    pub connect_to_field: String,
+    pub r#as: String,
+    pub max_depth: Option<i32>,
+    pub depth_field: Option<String>,
+    pub restrict_search_with_match: Option<Box<Expression>>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub enum AtlasSearchStage {
+    #[serde(rename = "$search")]
+    Search(Box<Expression>),
+    #[serde(rename = "$searchMeta")]
+    SearchMeta(Box<Expression>),
+    #[serde(rename = "$vectorSearch")]
+    VectorSearch(Box<Expression>),
 }
 
 /// Expression represents an aggregation pipeline expression. This is not
@@ -773,6 +798,32 @@ impl From<Expression> for ProjectItem {
             Expression::Literal(LiteralValue::Integer(0)) => ProjectItem::Exclusion,
             Expression::Literal(LiteralValue::Integer(1)) => ProjectItem::Inclusion,
             _ => ProjectItem::Assignment(e),
+        }
+    }
+}
+
+impl Stage {
+    pub fn name(&self) -> &str {
+        match self {
+            Stage::Collection(_) => "<collection>",
+            Stage::Documents(_) => "$documents",
+            Stage::Project(_) => "$project",
+            Stage::ReplaceWith(_) => "$replaceWith",
+            Stage::Match(_) => "$match",
+            Stage::Limit(_) => "$limit",
+            Stage::Skip(_) => "$skip",
+            Stage::Sort(_) => "$sort",
+            Stage::Group(_) => "$group",
+            Stage::Join(_) => "$join",
+            Stage::EquiJoin(_) => "$equiJoin",
+            Stage::Unwind(_) => "$unwind",
+            Stage::Lookup(_) => "$lookup",
+            Stage::EquiLookup(_) => "$equiLookup",
+            Stage::Bucket(_) => "$bucket",
+            Stage::BucketAuto(_) => "$bucketAuto",
+            Stage::Count(_) => "$count",
+            Stage::GraphLookup(_) => "$graphLookup",
+            Stage::AtlasSearchStage(_) => "<Atlas search stage>",
         }
     }
 }

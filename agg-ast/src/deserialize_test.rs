@@ -200,7 +200,7 @@ mod stage_test {
         );
     }
 
-    mod limit_skip {
+    mod const_stages {
         use crate::definitions::Stage;
 
         test_deserialize_stage!(
@@ -213,6 +213,12 @@ mod stage_test {
             skip,
             expected = Stage::Skip(100),
             input = r#"stage: {"$skip": 100}"#
+        );
+
+        test_deserialize_stage!(
+            count,
+            expected = Stage::Count("a".to_string()),
+            input = r#"stage: {"$count": "a"}"#
         );
     }
 
@@ -640,6 +646,181 @@ mod stage_test {
                 }
             }),
             input = r#"stage: { "$group": { "_id": null, "acc": { "$addToSet": "$a" } } }"#
+        );
+    }
+
+    mod bucket {
+        use crate::{
+            definitions::{Bucket, Expression, LiteralValue, Stage, UntaggedOperator},
+            map,
+        };
+        use bson::Bson;
+
+        test_deserialize_stage!(
+            only_group_by_and_boundaries,
+            expected = Stage::Bucket(Bucket {
+                group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                boundaries: vec![Bson::Int32(0), Bson::Int32(5)],
+                default: None,
+                output: None,
+            }),
+            input = r#"stage: {"$bucket": {
+                "groupBy": 1,
+                "boundaries": [0, 5],
+            }}"#
+        );
+
+        test_deserialize_stage!(
+            with_default,
+            expected = Stage::Bucket(Bucket {
+                group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                boundaries: vec![Bson::Int32(0), Bson::Int32(5)],
+                default: Some(Bson::Int32(10)),
+                output: None,
+            }),
+            input = r#"stage: {"$bucket": {
+                "groupBy": 1,
+                "boundaries": [0, 5],
+                "default": 10,
+            }}"#
+        );
+
+        test_deserialize_stage!(
+            fully_specified_with_one_output,
+            expected = Stage::Bucket(Bucket {
+                group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                boundaries: vec![Bson::Int32(0), Bson::Int32(5)],
+                default: Some(Bson::Int32(10)),
+                output: Some(map! {
+                    "o1".to_string() => Expression::UntaggedOperator(UntaggedOperator {
+                        op: "$sum".to_string(),
+                        args: vec![Expression::Literal(LiteralValue::Integer(1))]
+                    })
+                }),
+            }),
+            input = r#"stage: {"$bucket": {
+                "groupBy": 1,
+                "boundaries": [0, 5],
+                "default": 10,
+                "output": {
+                    "o1": { "$sum": 1 },
+                }
+            }}"#
+        );
+
+        test_deserialize_stage!(
+            fully_specified_with_multiple_output,
+            expected = Stage::Bucket(Bucket {
+                group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                boundaries: vec![Bson::Int32(0), Bson::Int32(5)],
+                default: Some(Bson::Int32(10)),
+                output: Some(map! {
+                    "o1".to_string() => Expression::UntaggedOperator(UntaggedOperator {
+                        op: "$sum".to_string(),
+                        args: vec![Expression::Literal(LiteralValue::Integer(1))]
+                    }),
+                    "o2".to_string() => Expression::UntaggedOperator(UntaggedOperator {
+                        op: "$avg".to_string(),
+                        args: vec![Expression::Literal(LiteralValue::Integer(2))]
+                    })
+                }),
+            }),
+            input = r#"stage: {"$bucket": {
+                "groupBy": 1,
+                "boundaries": [0, 5],
+                "default": 10,
+                "output": {
+                    "o1": { "$sum": 1 },
+                    "o2": { "$avg": 2 },
+                }
+            }}"#
+        );
+    }
+
+    mod bucket_auto {
+        use crate::{
+            definitions::{BucketAuto, Expression, LiteralValue, Stage, UntaggedOperator},
+            map,
+        };
+
+        test_deserialize_stage!(
+            only_group_by_and_buckets,
+            expected = Stage::BucketAuto(BucketAuto {
+                group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                buckets: 5,
+                output: None,
+                granularity: None,
+            }),
+            input = r#"stage: {"$bucketAuto": {
+                "groupBy": 1,
+                "buckets": 5,
+            }}"#
+        );
+
+        test_deserialize_stage!(
+            with_granularity,
+            expected = Stage::BucketAuto(BucketAuto {
+                group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                buckets: 10,
+                output: None,
+                granularity: Some("R5".to_string()),
+            }),
+            input = r#"stage: {"$bucketAuto": {
+                "groupBy": 1,
+                "buckets": 10,
+                "granularity": "R5",
+            }}"#
+        );
+
+        test_deserialize_stage!(
+            fully_specified_with_one_output,
+            expected = Stage::BucketAuto(BucketAuto {
+                group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                buckets: 2,
+                output: Some(map! {
+                    "o1".to_string() => Expression::UntaggedOperator(UntaggedOperator {
+                        op: "$sum".to_string(),
+                        args: vec![Expression::Literal(LiteralValue::Integer(1))]
+                    })
+                }),
+                granularity: Some("R40".to_string()),
+            }),
+            input = r#"stage: {"$bucketAuto": {
+                "groupBy": 1,
+                "buckets": 2,
+                "output": {
+                    "o1": { "$sum": 1 },
+                },
+                "granularity": "R40",
+            }}"#
+        );
+
+        test_deserialize_stage!(
+            fully_specified_with_multiple_output,
+            expected = Stage::BucketAuto(BucketAuto {
+                group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                buckets: 3,
+                output: Some(map! {
+                    "o1".to_string() => Expression::UntaggedOperator(UntaggedOperator {
+                        op: "$sum".to_string(),
+                        args: vec![Expression::Literal(LiteralValue::Integer(1))]
+                    }),
+                    "o2".to_string() => Expression::UntaggedOperator(UntaggedOperator {
+                        op: "$avg".to_string(),
+                        args: vec![Expression::Literal(LiteralValue::Integer(2))]
+                    })
+                }),
+                granularity: Some("E6".to_string()),
+            }),
+            input = r#"stage: {"$bucketAuto": {
+                "groupBy": 1,
+                "buckets": 3,
+                "output": {
+                    "o1": { "$sum": 1 },
+                    "o2": { "$avg": 2 },
+                },
+                "granularity": "E6",
+            }}"#
         );
     }
 
