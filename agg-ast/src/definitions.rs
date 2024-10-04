@@ -43,6 +43,35 @@ pub enum Stage {
     Lookup(Lookup),
     #[serde(rename = "$equiLookup")]
     EquiLookup(EquiLookup),
+
+    // Search stages
+    #[serde(rename = "$graphLookup")]
+    GraphLookup(GraphLookup),
+    #[serde(untagged)]
+    AtlasSearchStage(AtlasSearchStage),
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GraphLookup {
+    pub from: String,
+    pub start_with: Box<Expression>,
+    pub connect_from_field: String,
+    pub connect_to_field: String,
+    pub r#as: String,
+    pub max_depth: Option<i32>,
+    pub depth_field: Option<String>,
+    pub restrict_search_with_match: Option<Box<Expression>>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub enum AtlasSearchStage {
+    #[serde(rename = "$search")]
+    Search(Box<Expression>),
+    #[serde(rename = "$searchMeta")]
+    SearchMeta(Box<Expression>),
+    #[serde(rename = "$vectorSearch")]
+    VectorSearch(Box<Expression>),
 }
 
 #[derive(Debug, PartialEq, Deserialize)]

@@ -642,6 +642,76 @@ mod stage_test {
             input = r#"stage: { "$group": { "_id": null, "acc": { "$addToSet": "$a" } } }"#
         );
     }
+
+    mod search_stages {
+        use crate::{
+            definitions::{
+                AtlasSearchStage, Expression, GraphLookup, LiteralValue, Stage, StringOrRef,
+            },
+            map,
+        };
+
+        test_deserialize_stage!(
+            graph_lookup,
+            expected = Stage::GraphLookup(GraphLookup {
+                from: "start".to_string(),
+                start_with: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "start".to_string()
+                ))),
+                connect_from_field: "start".to_string(),
+                connect_to_field: "end".to_string(),
+                r#as: "path".to_string(),
+                max_depth: Some(5),
+                depth_field: Some("depth".to_string()),
+                restrict_search_with_match: Some(Box::new(Expression::Document(
+                    map! { "sql".to_string() => Expression::Literal(LiteralValue::Boolean(true)) }
+                ))),
+            }),
+            input = r#"stage: {"$graphLookup": {
+                "from": "start",
+                "startWith": "$start",
+                "connectFromField": "start",
+                "connectToField": "end",
+                "as": "path",
+                "maxDepth": 5,
+                "depthField": "depth",
+                "restrictSearchWithMatch": { "sql": true }
+            }}"#
+        );
+
+        // testing every possible permutation of $search, $searchMeta, and $vectorSearch isn't something
+        // we need to do since we do not have plans to inspect them
+        test_deserialize_stage!(
+            search,
+            expected = Stage::AtlasSearchStage(AtlasSearchStage::Search(Box::new(
+                Expression::Document(
+                    map! {"autocomplete".to_string() => Expression::Document(map! {"query".to_string() => Expression::StringOrRef(StringOrRef::String("off".to_string())), "path".to_string() => Expression::StringOrRef(StringOrRef::String("title".to_string()))})}
+                )
+            ))),
+            input = r#"stage: {"$search": {"autocomplete": {"query": "off", "path": "title"}}}"#
+        );
+
+        test_deserialize_stage!(
+            search_meta,
+            expected = Stage::AtlasSearchStage(AtlasSearchStage::SearchMeta(Box::new(
+                Expression::Document(
+                    map! {"searchTerm".to_string() => Expression::StringOrRef(StringOrRef::String("off".to_string()))}
+                )
+            ))),
+            input = r#"stage: {"$searchMeta": {"searchTerm": "off"}}"#
+        );
+
+        test_deserialize_stage!(
+            vector_search,
+            expected = Stage::AtlasSearchStage(AtlasSearchStage::VectorSearch(Box::new(
+                Expression::Document(
+                    map! {"vectorSearch".to_string() => Expression::Document(map! {"query".to_string() => Expression::StringOrRef(StringOrRef::String("off".to_string())), "path".to_string() => Expression::StringOrRef(StringOrRef::String("title".to_string()))})}
+                )
+            ))),
+            input =
+                r#"stage: {"$vectorSearch": {"vectorSearch": {"query": "off", "path": "title"}}}"#
+        );
+    }
 }
 
 mod expression_test {
