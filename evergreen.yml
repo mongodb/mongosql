@@ -1520,6 +1520,8 @@ tasks:
             -- --test-threads=1 --show-output
 
   - name: sign-transition-readiness-executables
+    allowed_requesters: ["github_tag", "ad_hoc"]
+    retry_on_failure: true
     depends_on:
       - name: compile-trr
     commands:
