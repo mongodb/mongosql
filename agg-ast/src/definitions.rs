@@ -309,6 +309,20 @@ pub enum TaggedOperator {
     #[serde(rename = "$subqueryExists")]
     SubqueryExists(SubqueryExists),
 
+    // accumulator exprs
+    #[serde(rename = "$bottom")]
+    Bottom(Bottom),
+    #[serde(rename = "$bottomN")]
+    BottomN(BottomN),
+    #[serde(rename = "$median")]
+    Median(Median),
+    #[serde(rename = "$percentile")]
+    Percentile(Percentile),
+    #[serde(rename = "$top")]
+    Top(Top),
+    #[serde(rename = "$topN")]
+    TopN(TopN),
+
     // Array Operators
     #[serde(rename = "$firstN")]
     FirstN(FirstN),
@@ -571,6 +585,49 @@ pub struct Zip {
     #[serde(default = "default_zip_defaults")]
     pub use_longest_length: bool,
     pub defaults: Option<Box<Expression>>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Bottom {
+    pub sort_by: Box<Expression>,
+    pub output: Box<Expression>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Top {
+    pub sort_by: Box<Expression>,
+    pub output: Box<Expression>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BottomN {
+    pub sort_by: Box<Expression>,
+    pub output: Box<Expression>,
+    pub n: i64,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TopN {
+    pub sort_by: Box<Expression>,
+    pub output: Box<Expression>,
+    pub n: i64,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub struct Median {
+    pub input: Box<Expression>,
+    pub method: String,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub struct Percentile {
+    pub input: Box<Expression>,
+    pub p: Vec<Expression>,
+    pub method: String,
 }
 
 /// Custom map visitor for identifying and deserializing UntaggedOperators.

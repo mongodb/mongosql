@@ -868,12 +868,12 @@ mod expression_test {
     mod tagged_operators {
         use crate::{
             definitions::{
-                Accumulator, Convert, Expression, Filter, FirstN, Function, GetField, LastN, Let,
-                Like, LiteralValue, Map, MaxNArrayElement, MinNArrayElement, ProjectItem, Reduce,
-                RegexFind, RegexFindAll, ReplaceAll, ReplaceOne, SetField, SortArray,
-                SortArraySpec, SqlConvert, SqlDivide, Stage, StringOrRef, Subquery,
-                SubqueryComparison, SubqueryExists, Switch, SwitchCase, TaggedOperator, UnsetField,
-                UntaggedOperator, Zip,
+                Accumulator, Bottom, BottomN, Convert, Expression, Filter, FirstN, Function,
+                GetField, LastN, Let, Like, LiteralValue, Map, MaxNArrayElement, Median,
+                MinNArrayElement, Percentile, ProjectItem, Reduce, RegexFind, RegexFindAll,
+                ReplaceAll, ReplaceOne, SetField, SortArray, SortArraySpec, SqlConvert, SqlDivide,
+                Stage, StringOrRef, Subquery, SubqueryComparison, SubqueryExists, Switch,
+                SwitchCase, TaggedOperator, Top, TopN, UnsetField, UntaggedOperator, Zip,
             },
             map,
         };
@@ -1326,6 +1326,151 @@ mod expression_test {
                           }}"#
         );
 
+        // accumulator operators
+        test_deserialize_expr!(
+            bottom,
+            expected = Expression::TaggedOperator(TaggedOperator::Bottom(Bottom {
+                output: Box::new(Expression::Array(vec![
+                    Expression::StringOrRef(StringOrRef::FieldRef("playerId".to_string())),
+                    Expression::StringOrRef(StringOrRef::FieldRef("score".to_string()))
+                ])),
+                sort_by: Box::new(Expression::Document(map!(
+                    "score".to_string() => Expression::Literal(LiteralValue::Integer(-1))
+                )))
+            })),
+            input = r#"expr: { $bottom: {
+                                output: [ "$playerId", "$score" ],
+                                sortBy: { "score": -1 }
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            bottom_n,
+            expected = Expression::TaggedOperator(TaggedOperator::BottomN(BottomN {
+                output: Box::new(Expression::Array(vec![
+                    Expression::StringOrRef(StringOrRef::FieldRef("playerId".to_string())),
+                    Expression::StringOrRef(StringOrRef::FieldRef("score".to_string()))
+                ])),
+                sort_by: Box::new(Expression::Document(map!(
+                    "score".to_string() => Expression::Literal(LiteralValue::Integer(-1))
+                ))),
+                n: 3,
+            })),
+            input = r#"expr: { $bottomN: {
+                                output: [ "$playerId", "$score" ],
+                                sortBy: { "score": -1 },
+                                n: 3
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            median_numeric_input,
+            expected = Expression::TaggedOperator(TaggedOperator::Median(Median {
+                method: "approximate".to_string(),
+                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "test01".to_string()
+                )))
+            })),
+            input = r#"expr: { $median: {
+                                input: "$test01",
+                                method: 'approximate'
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            median_vec_input,
+            expected = Expression::TaggedOperator(TaggedOperator::Median(Median {
+                method: "approximate".to_string(),
+                input: Box::new(Expression::Array(vec![
+                    Expression::StringOrRef(StringOrRef::FieldRef("test01".to_string())),
+                    Expression::StringOrRef(StringOrRef::FieldRef("test02".to_string())),
+                    Expression::StringOrRef(StringOrRef::FieldRef("test03".to_string())),
+                ]))
+            })),
+            input = r#"expr: { $median: {
+                                input: [ "$test01", "$test02", "$test03" ],
+                                method: 'approximate'
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            percentile_numeric_input,
+            expected = Expression::TaggedOperator(TaggedOperator::Percentile(Percentile {
+                method: "approximate".to_string(),
+                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "test01".to_string()
+                ))),
+                p: vec![
+                    Expression::Literal(LiteralValue::Double(0.9)),
+                    Expression::Literal(LiteralValue::Double(0.5)),
+                    Expression::Literal(LiteralValue::Double(0.75)),
+                    Expression::Literal(LiteralValue::Double(0.95)),
+                ]
+            })),
+            input = r#"expr: { $percentile: {
+                                input: "$test01",
+                                p: [ 0.9, 0.5, 0.75, 0.95 ],
+                                method: 'approximate'
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            percentile_vec_input,
+            expected = Expression::TaggedOperator(TaggedOperator::Percentile(Percentile {
+                method: "approximate".to_string(),
+                input: Box::new(Expression::Array(vec![
+                    Expression::StringOrRef(StringOrRef::FieldRef("test01".to_string())),
+                    Expression::StringOrRef(StringOrRef::FieldRef("test02".to_string())),
+                    Expression::StringOrRef(StringOrRef::FieldRef("test03".to_string())),
+                ])),
+                p: vec![
+                    Expression::Literal(LiteralValue::Double(0.5)),
+                    Expression::Literal(LiteralValue::Double(0.95)),
+                ]
+            })),
+            input = r#"expr: { $percentile: {
+                                input: [ "$test01", "$test02", "$test03" ],
+                                p: [ 0.5, 0.95 ],
+                                method: 'approximate'
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            top,
+            expected = Expression::TaggedOperator(TaggedOperator::Top(Top {
+                output: Box::new(Expression::Array(vec![
+                    Expression::StringOrRef(StringOrRef::FieldRef("playerId".to_string())),
+                    Expression::StringOrRef(StringOrRef::FieldRef("score".to_string()))
+                ])),
+                sort_by: Box::new(Expression::Document(map!(
+                    "score".to_string() => Expression::Literal(LiteralValue::Integer(-1))
+                )))
+            })),
+            input = r#"expr: { $top: {
+                                output: [ "$playerId", "$score" ],
+                                sortBy: { "score": -1 }
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            top_n,
+            expected = Expression::TaggedOperator(TaggedOperator::TopN(TopN {
+                output: Box::new(Expression::Array(vec![
+                    Expression::StringOrRef(StringOrRef::FieldRef("playerId".to_string())),
+                    Expression::StringOrRef(StringOrRef::FieldRef("score".to_string()))
+                ])),
+                sort_by: Box::new(Expression::Document(map!(
+                    "score".to_string() => Expression::Literal(LiteralValue::Integer(-1))
+                ))),
+                n: 3,
+            })),
+            input = r#"expr: { $topN: {
+                                output: [ "$playerId", "$score" ],
+                                sortBy: { "score": -1 },
+                                n: 3
+            }}"#
+        );
+
         // Array Operators
         test_deserialize_expr!(
             first_n,
@@ -1531,7 +1676,10 @@ mod expression_test {
     }
 
     mod untagged_operators {
-        use crate::definitions::{Expression, LiteralValue, StringOrRef, UntaggedOperator};
+        use crate::{
+            definitions::{Expression, LiteralValue, StringOrRef, UntaggedOperator},
+            map,
+        };
 
         test_deserialize_expr!(
             one_argument_non_array,
@@ -1578,7 +1726,16 @@ mod expression_test {
         );
 
         test_deserialize_expr!(
-            rand,
+            empty_document_argument,
+            expected = Expression::UntaggedOperator(UntaggedOperator {
+                op: "$count".to_string(),
+                args: vec![Expression::Document(map!())]
+            }),
+            input = r#"expr: {"$count": {}}"#
+        );
+
+        test_deserialize_expr!(
+            empty_vec_argument,
             expected = Expression::UntaggedOperator(UntaggedOperator {
                 op: "$rand".to_string(),
                 args: vec![]
