@@ -334,7 +334,7 @@ pub enum TaggedOperator {
     #[serde(rename = "$subqueryExists")]
     SubqueryExists(SubqueryExists),
 
-    // accumulator exprs
+    // Accumulator exprs
     #[serde(rename = "$bottom")]
     Bottom(Bottom),
     #[serde(rename = "$bottomN")]
@@ -367,6 +367,22 @@ pub enum TaggedOperator {
     SortArray(SortArray),
     #[serde(rename = "$zip")]
     Zip(Zip),
+
+    // Window Functions (note: $covariance[Pop | Samp] are UntaggedOperators)
+    #[serde(rename = "$denseRank")]
+    DenseRank(EmptyDoc),
+    #[serde(rename = "$derivative")]
+    Derivative(Derivative),
+    #[serde(rename = "$documentNumber")]
+    DocumentNumber(EmptyDoc),
+    #[serde(rename = "$expMovingAvg")]
+    ExpMovingAvg(ExpMovingAvg),
+    #[serde(rename = "$integral")]
+    Integral(Integral),
+    #[serde(rename = "$rank")]
+    Rank(EmptyDoc),
+    #[serde(rename = "$shift")]
+    Shift(Shift),
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -653,6 +669,43 @@ pub struct Percentile {
     pub input: Box<Expression>,
     pub p: Vec<Expression>,
     pub method: String,
+}
+
+// This is useful for operators that accept an empty document as an argument.
+#[derive(Debug, PartialEq, Deserialize)]
+pub struct EmptyDoc {}
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub struct Derivative {
+    pub input: Box<Expression>,
+    pub unit: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub struct ExpMovingAvg {
+    pub input: Box<Expression>,
+    #[serde(flatten)]
+    pub opt: ExpMovingAvgOpt,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub enum ExpMovingAvgOpt {
+    N(i32),
+    #[serde(rename = "alpha")]
+    Alpha(f64),
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub struct Integral {
+    pub input: Box<Expression>,
+    pub unit: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub struct Shift {
+    pub output: Box<Expression>,
+    pub by: i32,
+    pub default: Option<Box<Expression>>,
 }
 
 /// Custom map visitor for identifying and deserializing UntaggedOperators.

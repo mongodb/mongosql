@@ -16,7 +16,7 @@ macro_rules! test_deserialize_expr {
     ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
         #[test]
         fn $func_name() {
-            use super::TestExpr;
+            use crate::deserialize_test::expression_test::TestExpr;
 
             let input = $input;
             let e: TestExpr = serde_yaml::from_str(&input).unwrap();
@@ -1854,6 +1854,128 @@ mod expression_test {
                                 "inputs": "$a",
             }}"#
         );
+
+        mod window_functions {
+            use crate::definitions::{
+                Derivative, EmptyDoc, ExpMovingAvg, ExpMovingAvgOpt, Expression, Integral,
+                LiteralValue, Shift, TaggedOperator,
+            };
+
+            test_deserialize_expr!(
+                dense_rank,
+                expected = Expression::TaggedOperator(TaggedOperator::DenseRank(EmptyDoc {})),
+                input = r#"expr: {"$denseRank": {}}"#
+            );
+
+            test_deserialize_expr!(
+                derivative_no_unit,
+                expected = Expression::TaggedOperator(TaggedOperator::Derivative(Derivative {
+                    input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                    unit: None,
+                })),
+                input = r#"expr: {"$derivative": {
+                                    "input": 1,
+                }}"#
+            );
+
+            test_deserialize_expr!(
+                derivative_unit,
+                expected = Expression::TaggedOperator(TaggedOperator::Derivative(Derivative {
+                    input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                    unit: Some("day".to_string()),
+                })),
+                input = r#"expr: {"$derivative": {
+                                    "input": 1,
+                                    "unit": "day",
+                }}"#
+            );
+
+            test_deserialize_expr!(
+                document_number,
+                expected = Expression::TaggedOperator(TaggedOperator::DocumentNumber(EmptyDoc {})),
+                input = r#"expr: {"$documentNumber": {}}"#
+            );
+
+            test_deserialize_expr!(
+                exp_moving_avg_n,
+                expected = Expression::TaggedOperator(TaggedOperator::ExpMovingAvg(ExpMovingAvg {
+                    input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                    opt: ExpMovingAvgOpt::N(1),
+                })),
+                input = r#"expr: {"$expMovingAvg": {
+                                    "input": 1,
+                                    "N": 1,
+                }}"#
+            );
+
+            test_deserialize_expr!(
+                exp_moving_avg_alpha,
+                expected = Expression::TaggedOperator(TaggedOperator::ExpMovingAvg(ExpMovingAvg {
+                    input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                    opt: ExpMovingAvgOpt::Alpha(1.5),
+                })),
+                input = r#"expr: {"$expMovingAvg": {
+                                    "input": 1,
+                                    "alpha": 1.5,
+                }}"#
+            );
+
+            test_deserialize_expr!(
+                integral_no_unit,
+                expected = Expression::TaggedOperator(TaggedOperator::Integral(Integral {
+                    input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                    unit: None,
+                })),
+                input = r#"expr: {"$integral": {
+                                    "input": 1,
+                }}"#
+            );
+
+            test_deserialize_expr!(
+                integral_unit,
+                expected = Expression::TaggedOperator(TaggedOperator::Integral(Integral {
+                    input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                    unit: Some("day".to_string()),
+                })),
+                input = r#"expr: {"$integral": {
+                                    "input": 1,
+                                    "unit": "day",
+                }}"#
+            );
+
+            test_deserialize_expr!(
+                rank,
+                expected = Expression::TaggedOperator(TaggedOperator::Rank(EmptyDoc {})),
+                input = r#"expr: {"$rank": {}}"#
+            );
+
+            test_deserialize_expr!(
+                shift_no_default,
+                expected = Expression::TaggedOperator(TaggedOperator::Shift(Shift {
+                    output: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                    by: 1,
+                    default: None,
+                })),
+                input = r#"expr: {"$shift": {
+                                    "output": 1,
+                                    "by": 1,
+                }}"#
+            );
+
+            test_deserialize_expr!(
+                shift_default,
+                expected = Expression::TaggedOperator(TaggedOperator::Shift(Shift {
+                    output: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                    by: 1,
+                    default: Some(Box::new(Expression::Literal(LiteralValue::Integer(1)))),
+                })),
+                input = r#"expr: {"$shift": {
+                                    "output": 1,
+                                    "by": 1,
+                                    "default": 1,
+                }}"#
+            );
+        }
     }
 
     mod untagged_operators {
