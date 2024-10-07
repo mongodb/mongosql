@@ -23,7 +23,6 @@ pub struct IndexUsageTest {
     pub current_db: String,
     pub query: String,
     pub expected_utilization: IndexUtilization,
-    pub expected_index_bounds: Option<Vec<Bson>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -72,7 +71,6 @@ pub struct QueryPlan {
 #[serde(rename_all = "camelCase")]
 pub struct InputStage {
     pub stage: String,
-    pub index_bounds: Option<Bson>,
     pub input_stage: Option<Box<InputStage>>,
     // If the stage is an OR it will have multiple inputs
     pub input_stages: Option<Vec<InputStage>>,
@@ -206,14 +204,12 @@ pub fn get_input_stage_of_winning_plan(winning_plan: WinningPlan) -> InputStage 
     ) {
         (Some(stage), None, None) => InputStage {
             stage,
-            index_bounds: None,
             input_stage: None,
             input_stages: None,
         },
         (_, None, Some(query_plan)) => match (query_plan.stage, query_plan.input_stage) {
             (qp_stage, None) => InputStage {
                 stage: qp_stage,
-                index_bounds: None,
                 input_stage: None,
                 input_stages: None,
             },

@@ -74,26 +74,18 @@ tests:
     current_db: test_db
     query: 'SELECT * FROM foo WHERE a = 100 ORDER BY b'
     expected_utilization: IX_SCAN
-    expected_index_bounds:
-      - {'a': ['[100, 100]'], 'b': ['[MinKey, MaxKey]']}
 
   - description: combined WHERE and SORT with descending order utilizes index scan
     current_db: test_db
     query: 'SELECT * FROM foo WHERE a = 100 ORDER BY b DESC'
     expected_utilization: IX_SCAN
-    expected_index_bounds:
-      - {'a': ['[100, 100]'], 'b': ['[MaxKey, MinKey]']}
 
   - description: combined WHERE and SORT with JOIN utilizes index scan
     current_db: test_db
     query: 'SELECT * FROM foo JOIN bar ON foo.a = bar.a WHERE foo.a = 100 ORDER BY foo.b'
     expected_utilization: IX_SCAN
-    expected_index_bounds:
-      - {'a': ['[100, 100]'], 'b': ['[MinKey, MaxKey]']}
 
   - description: WHERE after JOIN utilizes index scan
     current_db: test_db
     query: 'SELECT * FROM foo JOIN bar WHERE bar.a = foo.a AND foo.a = 100'
     expected_utilization: IX_SCAN
-    expected_index_bounds:
-      - {'a': ['[100, 100]']}

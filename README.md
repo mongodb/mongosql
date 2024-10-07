@@ -56,7 +56,7 @@ result sets and execute against an actual database. Requires a running mongod.
 
 ### errors testing
 
-error tests are e2e tests for our errors. These tests specify a SQL query and have an expected 
+error tests are e2e tests for our errors. These tests specify a SQL query and have an expected
 error that they should cause. Requires a running mongod.
 
 `cargo test --features=error,generated --package=e2e-tests -- --test-threads=1` from the main directory
@@ -66,6 +66,16 @@ error that they should cause. Requires a running mongod.
 The query spec tests that specify language behavior. Requires a running mongod.
 
 `cargo test --features=query,generated --package=e2e-tests -- --test-threads=1` from the main directory
+
+### Evergreen testing
+
+Our suite of integration tests is automatically created by the `build.rs` script in
+`evergreen/create-tasks/build.rs`. If you modify this file to add a new version of
+MongoDB or to test against different topologies and do not have your editor/IDE
+configured to automatically run a check command that builds on save, ensure you
+run `cargo build --package create-tasks`.
+
+Ensure you commit the changes to `evergreen/suite-tasks.yml`.
 
 ### Spec testing
 
@@ -143,12 +153,12 @@ Since our visitors are created by a proc_macro that utilizes many macros, it is 
 what the generated walk and visit rust files look like just by reading the code. To see what the generated
 rust files look like, run:
 
-`cargo build --features debug-visitor-output` 
+`cargo build --features debug-visitor-output`
 
-This command will generate the visit and walk rust files and put them in subdirectories of the `target` 
+This command will generate the visit and walk rust files and put them in subdirectories of the `target`
 directory called `<some_enum_or_struct>_visit` and `<some_enum_or_struct>_walk` respectively. The
 `<some_enum_or_struct>` value will be one of the structs or enums that is input to `visitgen::generate_visitors! {...}`
-and will be the same for corresponding visit and walk files. 
+and will be the same for corresponding visit and walk files.
 
 ## Dependencies
 

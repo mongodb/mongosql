@@ -32,5 +32,4 @@ test-utils = { path = "../test-utils" }
 unwrap_used = "deny"
 
 [features]
-community = []
-enterprise = []
+integration = []

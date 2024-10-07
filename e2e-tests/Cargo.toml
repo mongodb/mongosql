@@ -14,9 +14,9 @@ mongodb = "3.1.0"
 test-utils = { path = "../test-utils" }
 
 [features]
-index = []
-query = []
-e2e = []
-error = []
+index = ["generated"]
+query = ["generated"]
+e2e = ["generated"]
+error = ["generated"]
 all = ["index", "query", "e2e", "error"]
 generated = []

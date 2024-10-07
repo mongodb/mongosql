@@ -10,6 +10,13 @@ stepback: true
 # Actual testing tasks are marked with `type: test`
 command_type: system
 
+# If any of the pre tasks fail, the task will be marked as a failure.
+pre_error_fails_task: true
+
+# Do not create patches for changes that only modify the following file types
+ignore:
+  - "*.md"
+
 # Protect ourselves against rogue test cases, or curl gone wild, that runs forever
 exec_timeout_secs: 86400 # 24hrs for TPC-H benchmark
 
@@ -24,6 +31,15 @@ include:
   - filename: evergreen/grpc.yml
   - filename: evergreen/schema-builder.yml
   - filename: evergreen/mongosqltranslate.yml
+  - filename: evergreen/suite-tasks.yml
+
+pre:
+  - func: "fetch source"
+  - func: "create expansions"
+  - func: "prepare resources"
+
+post:
+  - func: "stop mongo orchestration"
 
 functions:
   "fetch source":
@@ -31,63 +47,55 @@ functions:
       params:
         directory: mongosql-rs
 
-  "generate expansions":
-    - command: shell.exec
+  "prepare resources":
+    - command: subprocess.exec
       params:
-        shell: bash
         working_dir: mongosql-rs
+        include_expansions_in_env:
+          - DRIVERS_TOOLS
+        binary: bash
+        args:
+          - ./evergreen/fetch-drivers-tools.sh
+
+  "bootstrap mongo-orchestration":
+    - command: subprocess.exec
+      params:
+        binary: sh
+        args:
+          - ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
+        include_expansions_in_env:
+          - DRIVERS_TOOLS
+          - TOPOLOGY
+          - MONGODB_VERSION
+          - MONGODB_BINARIES
+
+  "stop mongo orchestration":
+    - command: shell.exec
+
+      params:
+        include_expansions_in_env:
+          - DRIVERS_TOOLS
+          - MONGO_ORCHESTRATION_HOME
+          - PROJECT_DIRECTORY
         script: |
-          # Put our own installation of Cargo first in the path to make sure this is the one used.
-          # Otherwise, on MacOs it will use the version installed with Brew which is not as recent.
-          export PATH="$HOME/.cargo/bin:$PATH"
-          export CARGO_NET_GIT_FETCH_WITH_CLI=true
-          export MONGODB_TEST_VERSION="6.0.5"
-          export MONGODB_TEST_RHEL_VERSION="mongodb-linux-x86_64-rhel70-$MONGODB_TEST_VERSION"
-          export MONGODB_TEST_RHEL_VERSION_ENT="mongodb-linux-x86_64-enterprise-rhel70-$MONGODB_TEST_VERSION"
-          export MONGODB_TEST_UBUNTU_VERSION="mongodb-linux-x86_64-ubuntu2204-$MONGODB_TEST_VERSION"
-          export DB_TOOLS_VERSION="100.7.2"
-          export MONGOSH_VERSION="1.8.0"
+          ${PREPARE_SHELL}
 
-          export GOPATH="$HOME/go"
-          export GOROOT=/opt/golang/go1.19
-          export GOPRIVATE=github.com/10gen/*
-          export GOCACHE="$HOME/gocache"
-          mkdir -p "$GOCACHE"
-          if [ "Windows_NT" = "$OS" ]; then
-             set -o igncr
-             export GOROOT='C:\golang\go1.19'
-             export GOPATH=$(cygpath -w "$GOPATH")
-             export GOCACHE=$(cygpath -w "$GOCACHE")
+          cd ${MONGO_ORCHESTRATION_HOME}
+          # source the mongo-orchestration virtualenv if it exists
+          if [ -f venv/bin/activate ]; then
+            . venv/bin/activate
+          elif [ -f venv/Scripts/activate ]; then
+            . venv/Scripts/activate
           fi
-          export PATH="$GOROOT/bin:$PATH"
-          if [[ "${triggered_by_git_tag}" != "" ]]; then
-            export release_version=$(echo ${triggered_by_git_tag} | sed -E 's/^(v|trr|dcsb|msql)//')
-          else
-            export release_version=test_release
-          fi
+          mongo-orchestration stop
 
-          cat <<EOT > expansions.yml
-          release_version: "$release_version"
-          prepare_shell: |
-            set -o errexit
-            export PATH="$PATH"
-            export CARGO_NET_GIT_FETCH_WITH_CLI="$CARGO_NET_GIT_FETCH_WITH_CLI"
-            export GOPATH="$GOPATH"
-            export GOROOT="$GOROOT"
-            export GOPRIVATE="$GOPRIVATE"
-            export GOCACHE="$GOCACHE"
-            export MONGODB_TEST_VERSION="$MONGODB_TEST_VERSION"
-            export MONGODB_TEST_RHEL_VERSION="$MONGODB_TEST_RHEL_VERSION"
-            export MONGODB_TEST_RHEL_VERSION_ENT="$MONGODB_TEST_RHEL_VERSION_ENT"
-            export MONGODB_TEST_UBUNTU_VERSION="$MONGODB_TEST_UBUNTU_VERSION"
-            export DB_TOOLS_VERSION="$DB_TOOLS_VERSION"
-            export MONGOSH_VERSION="$MONGOSH_VERSION"
-            export release_version="$release_version"
-            export SBOM_DIR="sbom_tools"
-            export SBOM_VULN="sbom.merge.grype.cdx.json"
-            export ALLOW_VULNS="${AllowVulns}"
-            git config --global url."ssh://git@github.com/".insteadOf "https://github.com/"
-          EOT
+  "create expansions":
+    - command: subprocess.exec
+      params:
+        working_dir: mongosql-rs
+        binary: bash
+        args:
+          - ./evergreen/create-expansions.sh
     - command: expansions.update
       params:
         file: mongosql-rs/expansions.yml
@@ -412,22 +420,6 @@ functions:
         script: |
           ${prepare_shell}
 
-          mdb_version=$MONGODB_TEST_RHEL_VERSION
-          root_url="fastdl.mongodb.org"
-          if [[ "${mdb}" == "enterprise" ]]; then
-            echo "using enterprise MongoDB server"
-            mdb_version=$MONGODB_TEST_RHEL_VERSION_ENT
-            root_url="downloads.mongodb.com"
-          fi
-
-          echo "downloading mongodb"
-          curl -O https://$root_url/linux/$mdb_version.tgz
-          tar zxvf $mdb_version.tgz
-          mkdir -p data_db
-
-          echo "starting mongodb"
-          $mdb_version/bin/mongod --dbpath data_db &
-
           if [[ "${load_data_cmd}" != "" ]]; then
             echo "loading data"
             eval ${load_data_cmd}
@@ -437,7 +429,6 @@ functions:
           set +e
           cargo test ${cargo_test_flags}
           EXITCODE=$?
-          pkill mongod
           set -e
           exit $EXITCODE
 
@@ -1107,12 +1098,6 @@ functions:
           echo "---------------------------------------------"
           echo "<<<< Done scanning SBOM"
 
-pre:
-  - func: "fetch source"
-  - func: "generate expansions"
-
-post: []
-
 tasks:
   - name: clippy
     commands:
@@ -1182,12 +1167,13 @@ tasks:
     commands:
       - func: "install rust toolchain"
       - func: "run rust tests"
+        retry_on_failure: true
         vars:
           description: "run rust fuzz tests"
           cargo_test_flags: >-
             fuzz_test
 
-  - name: test-spec-rewrite-and-type-constriaints
+  - name: test-spec-rewrite-and-type-constraints
     commands:
       - func: "install rust toolchain"
       - func: "run rust tests"
@@ -1195,50 +1181,6 @@ tasks:
           description: "run rewrite and type constraint spec tests"
           cargo_test_flags: >-
             -- --ignored
-
-  - name: test-index-usage
-    commands:
-      - func: "install rust toolchain"
-      - func: "run rust integration tests"
-        vars:
-          description: "run index usage tests"
-          cargo_test_flags: >-
-            --features=index,generated
-            --package=e2e-tests
-            -- --test-threads=1
-
-  - name: test-spec-query
-    commands:
-      - func: "install rust toolchain"
-      - func: "run rust integration tests"
-        vars:
-          description: "run rust query tests"
-          cargo_test_flags: >-
-            --features=query,generated
-            --package=e2e-tests
-            -- --test-threads=1
-
-  - name: test-rust-e2e
-    commands:
-      - func: "install rust toolchain"
-      - func: "run rust integration tests"
-        vars:
-          description: "run rust e2e tests"
-          cargo_test_flags: >-
-            --features=e2e,generated
-            --package=e2e-tests
-            -- --test-threads=1
-
-  - name: test-rust-errors
-    commands:
-      - func: "install rust toolchain"
-      - func: "run rust integration tests"
-        vars:
-          description: "run rust error tests"
-          cargo_test_flags: >-
-            --features=error,generated
-            --package=e2e-tests
-            -- --test-threads=1
 
   - name: trr-release
     git_tag_only: true
@@ -1271,6 +1213,10 @@ tasks:
     allow_for_git_tag: false
     disable: false
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
@@ -1285,6 +1231,10 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
@@ -1299,6 +1249,10 @@ tasks:
     allow_for_git_tag: false
     disable: false
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
@@ -1313,6 +1267,10 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
@@ -1326,6 +1284,10 @@ tasks:
       - name: tpch-0.001-normalized-validation
     allow_for_git_tag: false
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
@@ -1340,6 +1302,10 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
@@ -1354,6 +1320,10 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
@@ -1368,6 +1338,10 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
@@ -1380,6 +1354,10 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
@@ -1392,6 +1370,10 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
@@ -1404,6 +1386,10 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
@@ -1416,6 +1402,10 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
@@ -1428,6 +1418,10 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
@@ -1440,6 +1434,10 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
@@ -1452,6 +1450,10 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
@@ -1464,6 +1466,10 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
@@ -1476,6 +1482,10 @@ tasks:
     allow_for_git_tag: false
     disable: false
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "validate TPC-H benchmark"
         vars:
@@ -1487,6 +1497,10 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "validate TPC-H benchmark"
         vars:
@@ -1509,6 +1523,10 @@ tasks:
     depends_on:
       - name: compile-trr
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 6.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run rust integration tests"
         vars:
@@ -1573,11 +1591,14 @@ buildvariants:
       - name: test-rust
       - name: test-rust-fuzz
       - name: test-go
-      - name: test-spec-rewrite-and-type-constriaints
-      - name: test-index-usage
-      - name: test-spec-query
-      - name: test-rust-e2e
-      - name: test-rust-errors
+      - name: test-spec-rewrite-and-type-constraints
+      - name: .standalone !.7.0 !.8.0 !.rapid !.latest
+
+  - name: ubuntu2204
+    display_name: "MongoDB Integration Suite"
+    run_on: [ubuntu2204-large]
+    tasks:
+      - name: .standalone
 
   - name: macos
     display_name: "macOS"

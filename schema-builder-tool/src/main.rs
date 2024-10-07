@@ -27,7 +27,7 @@ use schema_document::SchemaDocument;
 use std::{collections::HashMap, process};
 use tokio::sync::mpsc::unbounded_channel;
 use tracing::{info, instrument};
-use utils::check_cluster_type;
+use utils::{get_cluster_type, verify_cluster_type};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -106,12 +106,11 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
     let mdb_client =
         Client::with_options(client_options).with_context(|| "Failed to create MongoDB client.")?;
 
-    match check_cluster_type(&mdb_client).await {
-        Ok(_) => {}
-        Err(e) => {
-            eprintln!("Error: {}", e);
-            process::exit(1);
-        }
+    let cluster_type = get_cluster_type(&mdb_client).await?;
+
+    if let Err(e) = verify_cluster_type(cluster_type) {
+        eprintln!("{e}");
+        process::exit(1);
     }
 
     // Create necessary channels for communication

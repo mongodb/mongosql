@@ -5,19 +5,21 @@ use mongodb::{
 };
 use serde::{Deserialize, Serialize};
 
-pub(crate) async fn check_cluster_type(client: &Client) -> Result<()> {
-    match get_cluster_type(client).await? {
-        ClusterType::AtlasDataFederation => Err(anyhow::Error::msg(
-            "Atlas Data Federation is not supported. ADF schema is managed through Atlas.",
-        )),
-        ClusterType::Community => {
-            Err(anyhow::Error::msg("Community clusters are not supported. Direct Cluster SQL Interface is only available for Enterprise users."))
-        }
+static ADF_ERROR: &str =
+    "Atlas Data Federation is not supported. ADF schema is managed through Atlas.";
+
+static COMMUNITY_ERROR: &str =
+    "Community clusters are not supported. Direct Cluster SQL Interface is only available for Enterprise users.";
+
+pub(crate) fn verify_cluster_type(cluster_type: ClusterType) -> Result<()> {
+    match cluster_type {
+        ClusterType::AtlasDataFederation => Err(anyhow::Error::msg(ADF_ERROR)),
+        ClusterType::Community => Err(anyhow::Error::msg(COMMUNITY_ERROR)),
         ClusterType::Enterprise => Ok(()),
     }
 }
 
-async fn get_cluster_type(client: &Client) -> Result<ClusterType> {
+pub(crate) async fn get_cluster_type(client: &Client) -> Result<ClusterType> {
     let cmd_res = client
         .database("admin")
         .run_command(doc! { "buildInfo": 1 })
@@ -29,7 +31,7 @@ async fn get_cluster_type(client: &Client) -> Result<ClusterType> {
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
-enum ClusterType {
+pub(crate) enum ClusterType {
     AtlasDataFederation,
     Community,
     Enterprise,
@@ -73,34 +75,86 @@ struct DataLakeBuildInfo {
 mod test {
     use super::*;
 
-    #[test]
-    fn test_cluster_type_from_build_info() {
-        let build_info = BuildInfo {
-            version: "4.4.0".to_string(),
-            modules: Some(vec!["enterprise".to_string()]),
-            data_lake: None,
-            version_array: vec![4, 4, 0],
-        };
-        assert_eq!(ClusterType::Enterprise, build_info.into());
+    mod cluster_type {
+        use super::*;
 
-        let build_info = BuildInfo {
-            version: "4.4.0".to_string(),
-            modules: None,
-            data_lake: None,
-            version_array: vec![4, 4, 0],
-        };
-        assert_eq!(ClusterType::Community, build_info.into());
+        #[test]
+        fn test_cluster_type_from_build_info() {
+            let build_info = BuildInfo {
+                version: "4.4.0".to_string(),
+                modules: Some(vec!["enterprise".to_string()]),
+                data_lake: None,
+                version_array: vec![4, 4, 0],
+            };
+            assert_eq!(ClusterType::Enterprise, build_info.into());
 
-        let build_info = BuildInfo {
-            version: "4.4.0".to_string(),
-            modules: None,
-            data_lake: Some(DataLakeBuildInfo {
-                version: "1.0.0".to_string(),
-                git_version: "1.0.0".to_string(),
-                date: "2020-01-01".to_string(),
-            }),
-            version_array: vec![4, 4, 0],
-        };
-        assert_eq!(ClusterType::AtlasDataFederation, build_info.into());
+            let build_info = BuildInfo {
+                version: "4.4.0".to_string(),
+                modules: None,
+                data_lake: None,
+                version_array: vec![4, 4, 0],
+            };
+            assert_eq!(ClusterType::Community, build_info.into());
+
+            let build_info = BuildInfo {
+                version: "4.4.0".to_string(),
+                modules: None,
+                data_lake: Some(DataLakeBuildInfo {
+                    version: "1.0.0".to_string(),
+                    git_version: "1.0.0".to_string(),
+                    date: "2020-01-01".to_string(),
+                }),
+                version_array: vec![4, 4, 0],
+            };
+            assert_eq!(ClusterType::AtlasDataFederation, build_info.into());
+        }
+    }
+
+    mod cluster_verification {
+
+        use super::*;
+        #[test]
+        fn community_is_disallowed() {
+            let build_info = BuildInfo {
+                version: "8.0.0".to_string(),
+                modules: None,
+                data_lake: None,
+                version_array: vec![8, 8, 0],
+            };
+            let cluster_type = build_info.into();
+            let verification = verify_cluster_type(cluster_type);
+            assert_eq!(verification.unwrap_err().to_string(), COMMUNITY_ERROR,);
+        }
+
+        #[test]
+        fn adf_is_disallowed() {
+            let build_info = BuildInfo {
+                version: "8.0.0".to_string(),
+                modules: None,
+                data_lake: Some(DataLakeBuildInfo {
+                    version: "1.0.0".to_string(),
+                    git_version: "1.0.0".to_string(),
+                    date: "2020-01-01".to_string(),
+                }),
+                version_array: vec![8, 8, 0],
+            };
+            let cluster_type = build_info.into();
+            assert_eq!(
+                verify_cluster_type(cluster_type).unwrap_err().to_string(),
+                ADF_ERROR,
+            )
+        }
+
+        #[test]
+        fn enterprise_is_allowed() {
+            let build_info = BuildInfo {
+                version: "8.0.0".to_string(),
+                modules: Some(vec!["enterprise".to_string()]),
+                data_lake: None,
+                version_array: vec![8, 8, 0],
+            };
+            let cluster_type = build_info.into();
+            assert!(verify_cluster_type(cluster_type).is_ok());
+        }
     }
 }

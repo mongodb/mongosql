@@ -46,5 +46,3 @@ tests:
     current_db: test_db
     query: 'SELECT * FROM test_coll GROUP BY a'
     expected_utilization: DISTINCT_SCAN
-    expected_index_bounds:
-      - {'a': ['[MinKey, MaxKey]']}

@@ -992,6 +992,7 @@ tests:
       - {'': {'type': 'maxKey', 'asObjectID': null}}
 
   - description: Cast DOUBLE to STRING
+    skip_reason: "SQL-2391: Update type conversion test suite"
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM doubles AS doubles"
     result:

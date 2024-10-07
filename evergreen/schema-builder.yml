@@ -324,6 +324,10 @@ tasks:
   - name: test-schema-builder-library-integration
     commands:
       - func: "install rust toolchain"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 6.0
+          TOPOLOGY: server
       - func: "run rust integration tests"
         retry_on_failure: true
         vars:
@@ -335,27 +339,18 @@ tasks:
             --lib internal_integration_tests
             -- --test-threads=1
 
-  - name: test-schema-builder-tool-e2e-enterprise
+  - name: test-schema-builder-tool-e2e
     commands:
+      - func: "bootstrap mongo-orchestration"
       - func: "install rust toolchain"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
       - func: "run rust integration tests"
         vars:
-          mdb: "enterprise"
-          description: "run schema-builder-tool e2e enterprise tests"
+          description: "run schema-builder-tool integration tests"
           cargo_test_flags: >-
-            --features=enterprise
-            --package=schema-builder-tool
-            --test e2e
-            -- --test-threads=1
-
-  - name: test-schema-builder-tool-e2e-community
-    commands:
-      - func: "install rust toolchain"
-      - func: "run rust integration tests"
-        vars:
-          description: "run schema-builder-tool e2e community tests"
-          cargo_test_flags: >-
-            --features=community
+            --features=integration
             --package=schema-builder-tool
             --test e2e
             -- --test-threads=1

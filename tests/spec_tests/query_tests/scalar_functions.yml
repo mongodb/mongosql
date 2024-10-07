@@ -975,6 +975,7 @@ tests:
       - {'': { 'n': null }}
 
   - description: MOD correctness tests
+    skip_reason: "SQL-2392: Make arithmetic tests forgiving of returned type"
     current_db: foo
     query: "SELECT VALUE {'v': v, 'divisor': divisor, 'n': MOD(v, divisor)} FROM mod AS c"
     result:

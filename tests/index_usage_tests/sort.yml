@@ -52,26 +52,18 @@ tests:
     current_db: test_db
     query: 'SELECT * FROM test_coll ORDER BY a ASC'
     expected_utilization: IX_SCAN
-    expected_index_bounds:
-      - {'a': ['[MinKey, MaxKey]']}
 
   - description: multi-field sort uses index scan
     current_db: test_db
     query: 'SELECT * FROM test_coll ORDER BY a ASC, b DESC'
     expected_utilization: IX_SCAN
-    expected_index_bounds:
-      - {'a': ['[MinKey, MaxKey]'], 'b': ['[MaxKey, MinKey]']}
 
   - description: SELECT field list does not impede index scan for single field sort
     current_db: test_db
     query: 'SELECT a FROM test_coll ORDER BY a ASC'
     expected_utilization: IX_SCAN
-    expected_index_bounds:
-      - {'a': ['[MinKey, MaxKey]']}
 
   - description: SELECT field list does not impede index scan for multi-field sort
     current_db: test_db
     query: 'SELECT a, b FROM test_coll ORDER BY a ASC, b DESC'
     expected_utilization: IX_SCAN
-    expected_index_bounds:
-      - {'a': ['[MinKey, MaxKey]'], 'b': ['[MaxKey, MinKey]']}

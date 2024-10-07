@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-#[cfg(feature = "enterprise")]
+#[cfg(feature = "integration")]
 mod enterprise {
     use assert_cmd::prelude::*;
     use mongodb::{
@@ -645,31 +645,4 @@ mod enterprise {
 
         Ok(())
     }
-}
-
-#[cfg(feature = "community")]
-#[tokio::test]
-async fn community_server_disallowed() -> Result<(), Box<dyn std::error::Error>> {
-    use assert_cmd::prelude::*;
-    use predicates::prelude::*;
-    use std::process::Command;
-    use test_utils::e2e_db_manager::TestDatabaseManager;
-
-    let _ = TestDatabaseManager::new(vec![], vec![], None).await;
-
-    let uri = format!(
-        "mongodb://test:test@localhost:{}",
-        std::env::var("MDB_TEST_LOCAL_PORT").unwrap_or_else(|_| "27017".to_string())
-    );
-
-    let cmd = Command::cargo_bin("schema-builder-tool")?
-        .arg("--uri")
-        .arg(uri)
-        .output()?;
-
-    cmd.assert().failure().stderr(predicate::str::contains(
-        "Community clusters are not supported",
-    ));
-
-    Ok(())
 }

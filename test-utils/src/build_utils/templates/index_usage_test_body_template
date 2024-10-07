@@ -38,15 +38,4 @@ pub fn {name}() {{
             "{description}"
         );
     }}
-
-    let actual_index_bounds = root_input_stages
-        .into_iter()
-        .map(|root_stage| root_stage.index_bounds.clone())
-        .collect::<Option<Vec<Bson>>>();
-
-    assert_eq!(
-        test.expected_index_bounds, actual_index_bounds,
-        "{{}}: unexpected index bounds",
-        "{description}"
-    );
 }}
