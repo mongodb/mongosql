@@ -26,6 +26,26 @@ macro_rules! test_deserialize_expr {
     };
 }
 
+macro_rules! test_deserialize_date_operator {
+    ($func_name:ident, string_op = $string_op:expr, expected_op = $expected_op:expr) => {
+        test_deserialize_expr!(
+            $func_name,
+            expected = Expression::TaggedOperator($expected_op(DateExpression {
+                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "date".to_string()
+                ))),
+                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "timezone".to_string()
+                ))))
+            })),
+            input = format!(
+                r#"expr: {{"{}": {{"date": "$date", "timezone": "$timezone"}}}}"#,
+                $string_op
+            )
+        );
+    };
+}
+
 mod stage_test {
     use crate::definitions::Stage;
     use serde::Deserialize;
@@ -1049,12 +1069,14 @@ mod expression_test {
     mod tagged_operators {
         use crate::{
             definitions::{
-                Accumulator, Bottom, BottomN, Convert, Expression, Filter, FirstN, Function,
-                GetField, LastN, Let, Like, LiteralValue, Map, MaxNArrayElement, Median,
-                MinNArrayElement, Percentile, ProjectItem, Reduce, RegexFind, RegexFindAll,
-                ReplaceAll, ReplaceOne, SetField, SortArray, SortArraySpec, SqlConvert, SqlDivide,
-                Stage, StringOrRef, Subquery, SubqueryComparison, SubqueryExists, Switch,
-                SwitchCase, TaggedOperator, Top, TopN, UnsetField, UntaggedOperator, Zip,
+                Accumulator, Bottom, BottomN, Convert, DateAdd, DateDiff, DateExpression,
+                DateFromParts, DateFromString, DateSubtract, DateToParts, DateToString, DateTrunc,
+                Expression, Filter, FirstN, Function, GetField, LastN, Let, Like, LiteralValue,
+                Map, MaxNArrayElement, Median, MinNArrayElement, Percentile, ProjectItem, Reduce,
+                RegexFind, RegexFindAll, ReplaceAll, ReplaceOne, SetField, SortArray,
+                SortArraySpec, SqlConvert, SqlDivide, Stage, StringOrRef, Subquery,
+                SubqueryComparison, SubqueryExists, Switch, SwitchCase, TaggedOperator, Top, TopN,
+                UnsetField, UntaggedOperator, Zip,
             },
             map,
         };
@@ -1855,6 +1877,407 @@ mod expression_test {
             }}"#
         );
 
+        // date operators
+        test_deserialize_expr!(
+            hour_no_timezone,
+            expected = Expression::TaggedOperator(TaggedOperator::Hour(DateExpression {
+                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "date".to_string()
+                ))),
+                timezone: None
+            })),
+            input = r#"expr: {"$hour": "$date" }"#
+        );
+
+        test_deserialize_expr!(
+            hour_fully_specified,
+            expected = Expression::TaggedOperator(TaggedOperator::Hour(DateExpression {
+                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "date".to_string()
+                ))),
+                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "timezone".to_string()
+                ))))
+            })),
+            input = r#"expr: {"$hour": {date: "$date", timezone: "$timezone" } }"#
+        );
+
+        test_deserialize_expr!(
+            hour_document_no_timezone,
+            expected = Expression::TaggedOperator(TaggedOperator::Hour(DateExpression {
+                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "date".to_string()
+                ))),
+                timezone: None
+            })),
+            input = r#"expr: {"$hour": {date: "$date" } }"#
+        );
+
+        test_deserialize_date_operator!(
+            minute_fully_specified,
+            string_op = "$minute",
+            expected_op = TaggedOperator::Minute
+        );
+
+        test_deserialize_date_operator!(
+            second_fully_specified,
+            string_op = "$second",
+            expected_op = TaggedOperator::Second
+        );
+
+        test_deserialize_date_operator!(
+            millisecond_fully_specified,
+            string_op = "$millisecond",
+            expected_op = TaggedOperator::Millisecond
+        );
+
+        test_deserialize_date_operator!(
+            week_fully_specified,
+            string_op = "$week",
+            expected_op = TaggedOperator::Week
+        );
+
+        test_deserialize_date_operator!(
+            month_fully_specified,
+            string_op = "$month",
+            expected_op = TaggedOperator::Month
+        );
+
+        test_deserialize_date_operator!(
+            year_fully_specified,
+            string_op = "$year",
+            expected_op = TaggedOperator::Year
+        );
+
+        test_deserialize_date_operator!(
+            day_of_week_fully_specified,
+            string_op = "$dayOfWeek",
+            expected_op = TaggedOperator::DayOfWeek
+        );
+
+        test_deserialize_date_operator!(
+            day_of_month_fully_specified,
+            string_op = "$dayOfMonth",
+            expected_op = TaggedOperator::DayOfMonth
+        );
+
+        test_deserialize_date_operator!(
+            day_of_year_fully_specified,
+            string_op = "$dayOfYear",
+            expected_op = TaggedOperator::DayOfYear
+        );
+
+        test_deserialize_date_operator!(
+            iso_day_of_week_fully_specified,
+            string_op = "$isoDayOfWeek",
+            expected_op = TaggedOperator::IsoDayOfWeek
+        );
+
+        test_deserialize_date_operator!(
+            iso_week_fully_specified,
+            string_op = "$isoWeek",
+            expected_op = TaggedOperator::IsoWeek
+        );
+
+        test_deserialize_date_operator!(
+            iso_week_year_fully_specified,
+            string_op = "$isoWeekYear",
+            expected_op = TaggedOperator::IsoWeekYear
+        );
+
+        test_deserialize_expr!(
+            date_to_parts_no_options,
+            expected = Expression::TaggedOperator(TaggedOperator::DateToParts(DateToParts {
+                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "date".to_string()
+                ))),
+                timezone: None,
+                iso8601: None
+            })),
+            input = r#"expr: {"$dateToParts": {date: "$date" } }"#
+        );
+
+        test_deserialize_expr!(
+            date_to_parts_fully_specified,
+            expected = Expression::TaggedOperator(TaggedOperator::DateToParts(DateToParts {
+                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "date".to_string()
+                ))),
+                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "timezone".to_string()
+                )))),
+                iso8601: Some(true)
+            })),
+            input = r#"expr: {"$dateToParts": {date: "$date", timezone: "$timezone", iso8601: true } }"#
+        );
+
+        test_deserialize_expr!(
+            date_from_parts_fully_specified,
+            expected = Expression::TaggedOperator(TaggedOperator::DateFromParts(DateFromParts {
+                year: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "year".to_string()
+                )))),
+                month: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "month".to_string()
+                )))),
+                day: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "day".to_string()
+                )))),
+                hour: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "hour".to_string()
+                )))),
+                minute: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "minute".to_string()
+                )))),
+                second: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "second".to_string()
+                )))),
+                millisecond: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "millisecond".to_string()
+                )))),
+                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "timezone".to_string()
+                )))),
+                iso_day_of_week: None,
+                iso_week: None,
+                iso_week_year: None,
+            })),
+            input = r#"expr: {"$dateFromParts": {year: "$year", timezone: "$timezone", month: "$month", day: "$day", hour: "$hour", minute: "$minute", second: "$second", millisecond: "$millisecond" } }"#
+        );
+
+        test_deserialize_expr!(
+            date_from_iso_parts,
+            expected = Expression::TaggedOperator(TaggedOperator::DateFromParts(DateFromParts {
+                year: None,
+                month: None,
+                day: None,
+                hour: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "hour".to_string()
+                )))),
+                minute: None,
+                second: None,
+                millisecond: None,
+                timezone: None,
+                iso_day_of_week: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "isoDayOfWeek".to_string()
+                )))),
+                iso_week: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "isoWeek".to_string()
+                )))),
+                iso_week_year: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "isoWeekYear".to_string()
+                )))),
+            })),
+            input = r#"expr: {"$dateFromParts": {isoWeekYear: "$isoWeekYear", isoWeek: "$isoWeek", isoDayOfWeek: "$isoDayOfWeek", hour: "$hour" } }"#
+        );
+
+        test_deserialize_expr!(
+            date_from_string_no_options,
+            expected = Expression::TaggedOperator(TaggedOperator::DateFromString(DateFromString {
+                date_string: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "date".to_string()
+                ))),
+                format: None,
+                timezone: None,
+                on_error: None,
+                on_null: None,
+            })),
+            input = r#"expr: {"$dateFromString": {dateString: "$date" } }"#
+        );
+
+        test_deserialize_expr!(
+            date_from_string_fully_specified,
+            expected = Expression::TaggedOperator(TaggedOperator::DateFromString(DateFromString {
+                date_string: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "date".to_string()
+                ))),
+                format: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "format".to_string()
+                )))),
+                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "timezone".to_string()
+                )))),
+                on_error: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "onError".to_string()
+                )))),
+                on_null: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "onNull".to_string()
+                )))),
+            })),
+            input = r#"expr: {"$dateFromString": { dateString: "$date", timezone: "$timezone", format: "$format", onError: "$onError", onNull: "$onNull" } }"#
+        );
+
+        test_deserialize_expr!(
+            date_to_string_no_options,
+            expected = Expression::TaggedOperator(TaggedOperator::DateToString(DateToString {
+                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "date".to_string()
+                ))),
+                format: None,
+                timezone: None,
+                on_null: None,
+            })),
+            input = r#"expr: {"$dateToString": {date: "$date" } }"#
+        );
+
+        test_deserialize_expr!(
+            date_to_string_fully_specified,
+            expected = Expression::TaggedOperator(TaggedOperator::DateToString(DateToString {
+                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "date".to_string()
+                ))),
+                format: Some("format".to_string()),
+                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "timezone".to_string()
+                )))),
+                on_null: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "onNull".to_string()
+                )))),
+            })),
+            input = r#"expr: {"$dateToString": {date: "$date", timezone: "$timezone", format: "format", onNull: "$onNull" } }"#
+        );
+
+        test_deserialize_expr!(
+            date_add_no_options,
+            expected = Expression::TaggedOperator(TaggedOperator::DateAdd(DateAdd {
+                start_date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "date".to_string()
+                ))),
+                unit: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "year".to_string()
+                ))),
+                amount: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                timezone: None,
+            })),
+            input = r#"expr: {"$dateAdd": {startDate: "$date", unit: "year", amount: 1 } }"#
+        );
+
+        test_deserialize_expr!(
+            date_add_fully_specified,
+            expected = Expression::TaggedOperator(TaggedOperator::DateAdd(DateAdd {
+                start_date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "date".to_string()
+                ))),
+                unit: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "year".to_string()
+                ))),
+                amount: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "timezone".to_string()
+                )))),
+            })),
+            input = r#"expr: {"$dateAdd": {startDate: "$date", unit: "year", amount: 1, timezone: "$timezone" } }"#
+        );
+
+        test_deserialize_expr!(
+            date_subtract_no_options,
+            expected = Expression::TaggedOperator(TaggedOperator::DateSubtract(DateSubtract {
+                start_date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "date".to_string()
+                ))),
+                unit: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "year".to_string()
+                ))),
+                amount: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                timezone: None,
+            })),
+            input = r#"expr: {"$dateSubtract": {startDate: "$date", unit: "year", amount: 1 } }"#
+        );
+
+        test_deserialize_expr!(
+            date_subtract_fully_specified,
+            expected = Expression::TaggedOperator(TaggedOperator::DateSubtract(DateSubtract {
+                start_date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "date".to_string()
+                ))),
+                unit: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "year".to_string()
+                ))),
+                amount: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "timezone".to_string()
+                )))),
+            })),
+            input = r#"expr: {"$dateSubtract": {startDate: "$date", unit: "year", amount: 1, timezone: "$timezone" } }"#
+        );
+
+        test_deserialize_expr!(
+            date_diff_no_options,
+            expected = Expression::TaggedOperator(TaggedOperator::DateDiff(DateDiff {
+                start_date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "startDate".to_string()
+                ))),
+                end_date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "endDate".to_string()
+                ))),
+                unit: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "year".to_string()
+                ))),
+                timezone: None,
+                start_of_week: None
+            })),
+            input = r#"expr: {"$dateDiff": {startDate: "$startDate", endDate: "$endDate", unit: "year" } }"#
+        );
+
+        test_deserialize_expr!(
+            date_diff_fully_specified,
+            expected = Expression::TaggedOperator(TaggedOperator::DateDiff(DateDiff {
+                start_date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "startDate".to_string()
+                ))),
+                end_date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "endDate".to_string()
+                ))),
+                unit: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "year".to_string()
+                ))),
+                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "timezone".to_string()
+                )))),
+                start_of_week: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "startOfWeek".to_string()
+                ))))
+            })),
+            input = r#"expr: {"$dateDiff": {startDate: "$startDate", endDate: "$endDate", unit: "year", timezone: "$timezone", startOfWeek: "$startOfWeek" } }"#
+        );
+
+        test_deserialize_expr!(
+            date_trunc_no_options,
+            expected = Expression::TaggedOperator(TaggedOperator::DateTrunc(DateTrunc {
+                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "date".to_string()
+                ))),
+                unit: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "year".to_string()
+                ))),
+                timezone: None,
+                start_of_week: None,
+                bin_size: None
+            })),
+            input = r#"expr: {"$dateTrunc": {date: "$date", unit: "year" } }"#
+        );
+
+        test_deserialize_expr!(
+            date_trunc_fully_specified,
+            expected = Expression::TaggedOperator(TaggedOperator::DateTrunc(DateTrunc {
+                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "date".to_string()
+                ))),
+                unit: Box::new(Expression::StringOrRef(StringOrRef::String(
+                    "year".to_string()
+                ))),
+                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "timezone".to_string()
+                )))),
+                start_of_week: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "startOfWeek".to_string()
+                )))),
+                bin_size: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "binSize".to_string()
+                ))))
+            })),
+            input = r#"expr: {"$dateTrunc": {date: "$date", unit: "year", timezone: "$timezone", startOfWeek: "$startOfWeek", binSize: "$binSize" } }"#
+        );
         mod window_functions {
             use crate::definitions::{
                 Derivative, EmptyDoc, ExpMovingAvg, ExpMovingAvgOpt, Expression, Integral,

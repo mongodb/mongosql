@@ -368,6 +368,50 @@ pub enum TaggedOperator {
     #[serde(rename = "$zip")]
     Zip(Zip),
 
+    // date operators
+    #[serde(rename = "$hour")]
+    Hour(DateExpression),
+    #[serde(rename = "$minute")]
+    Minute(DateExpression),
+    #[serde(rename = "$second")]
+    Second(DateExpression),
+    #[serde(rename = "$millisecond")]
+    Millisecond(DateExpression),
+    #[serde(rename = "$dayOfWeek")]
+    DayOfWeek(DateExpression),
+    #[serde(rename = "$dayOfMonth")]
+    DayOfMonth(DateExpression),
+    #[serde(rename = "$dayOfYear")]
+    DayOfYear(DateExpression),
+    #[serde(rename = "$isoDayOfWeek")]
+    IsoDayOfWeek(DateExpression),
+    #[serde(rename = "$isoWeek")]
+    IsoWeek(DateExpression),
+    #[serde(rename = "$isoWeekYear")]
+    IsoWeekYear(DateExpression),
+    #[serde(rename = "$week")]
+    Week(DateExpression),
+    #[serde(rename = "$month")]
+    Month(DateExpression),
+    #[serde(rename = "$year")]
+    Year(DateExpression),
+    #[serde(rename = "$dateToParts")]
+    DateToParts(DateToParts),
+    #[serde(rename = "$dateFromParts")]
+    DateFromParts(DateFromParts),
+    #[serde(rename = "$dateFromString")]
+    DateFromString(DateFromString),
+    #[serde(rename = "$dateToString")]
+    DateToString(DateToString),
+    #[serde(rename = "$dateAdd")]
+    DateAdd(DateAdd),
+    #[serde(rename = "$dateSubtract")]
+    DateSubtract(DateSubtract),
+    #[serde(rename = "$dateDiff")]
+    DateDiff(DateDiff),
+    #[serde(rename = "$dateTrunc")]
+    DateTrunc(DateTrunc),
+
     // Window Functions (note: $covariance[Pop | Samp] are UntaggedOperators)
     #[serde(rename = "$denseRank")]
     DenseRank(EmptyDoc),
@@ -628,6 +672,92 @@ pub struct Zip {
     pub defaults: Option<Box<Expression>>,
 }
 
+#[derive(Debug, PartialEq)]
+pub struct DateExpression {
+    pub date: Box<Expression>,
+    pub timezone: Option<Box<Expression>>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DateAdd {
+    pub start_date: Box<Expression>,
+    pub unit: Box<Expression>,
+    pub amount: Box<Expression>,
+    pub timezone: Option<Box<Expression>>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DateDiff {
+    pub start_date: Box<Expression>,
+    pub end_date: Box<Expression>,
+    pub unit: Box<Expression>,
+    pub timezone: Option<Box<Expression>>,
+    pub start_of_week: Option<Box<Expression>>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DateFromParts {
+    pub year: Option<Box<Expression>>,
+    pub iso_week_year: Option<Box<Expression>>,
+    pub month: Option<Box<Expression>>,
+    pub iso_week: Option<Box<Expression>>,
+    pub day: Option<Box<Expression>>,
+    pub iso_day_of_week: Option<Box<Expression>>,
+    pub hour: Option<Box<Expression>>,
+    pub minute: Option<Box<Expression>>,
+    pub second: Option<Box<Expression>>,
+    pub millisecond: Option<Box<Expression>>,
+    pub timezone: Option<Box<Expression>>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DateFromString {
+    pub date_string: Box<Expression>,
+    pub format: Option<Box<Expression>>,
+    pub timezone: Option<Box<Expression>>,
+    pub on_error: Option<Box<Expression>>,
+    pub on_null: Option<Box<Expression>>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DateSubtract {
+    pub start_date: Box<Expression>,
+    pub unit: Box<Expression>,
+    pub amount: Box<Expression>,
+    pub timezone: Option<Box<Expression>>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub struct DateToParts {
+    pub date: Box<Expression>,
+    pub timezone: Option<Box<Expression>>,
+    pub iso8601: Option<bool>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DateToString {
+    pub date: Box<Expression>,
+    pub format: Option<String>,
+    pub timezone: Option<Box<Expression>>,
+    pub on_null: Option<Box<Expression>>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DateTrunc {
+    pub date: Box<Expression>,
+    pub unit: Box<Expression>,
+    pub bin_size: Option<Box<Expression>>,
+    pub timezone: Option<Box<Expression>>,
+    pub start_of_week: Option<Box<Expression>>,
+}
+
 #[derive(Debug, PartialEq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Bottom {
@@ -851,6 +981,38 @@ impl From<Expression> for ProjectItem {
             Expression::Literal(LiteralValue::Integer(0)) => ProjectItem::Exclusion,
             Expression::Literal(LiteralValue::Integer(1)) => ProjectItem::Inclusion,
             _ => ProjectItem::Assignment(e),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for DateExpression {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // date expressions can take one of two forms;
+        // 1. $op: <dateExpression>
+        // 2. $op: { date: <dateExpression>, timezone: <timezoneExpression>}
+        // deserialize into expression, and try to convert any documents into the latter; otherwise, return the former
+        let expression = Expression::deserialize(deserializer)?;
+        match expression {
+            Expression::Document(mut d) => match d.remove("date") {
+                Some(date_expr) => {
+                    let date = Box::new(date_expr);
+                    let timezone = d.remove("timezone").map(Box::new);
+                    if !d.is_empty() {
+                        return Err(serde_err::custom("too many arguments for date Document"));
+                    }
+                    Ok(DateExpression { date, timezone })
+                }
+                None => Err(serde_err::custom(
+                    "document to date operator does not contain field \"date\"",
+                )),
+            },
+            expr => Ok(DateExpression {
+                date: Box::new(expr),
+                timezone: None,
+            }),
         }
     }
 }
