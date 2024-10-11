@@ -634,8 +634,10 @@ mod to_air_pipeline_test {
                 "x".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(42))),
             }
         }),
-        input = vec![agg_ast::Stage::Project(map! {
-            "x".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))),
+        input = vec![agg_ast::Stage::Project(agg_ast::ProjectStage {
+            items: map! {
+                "x".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))),
+            }
         }),]
     );
 
@@ -663,12 +665,16 @@ mod to_air_pipeline_test {
             ]
         }),
         input = vec![
-            agg_ast::Stage::Project(map! {
-                "a".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Boolean(true))),
-                "b".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(2))),
+            agg_ast::Stage::Project(agg_ast::ProjectStage {
+                items: map! {
+                    "a".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Boolean(true))),
+                    "b".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(2))),
+                }
             }),
-            agg_ast::Stage::Match(agg_ast::MatchExpression {
-                expr: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Null)),
+            agg_ast::Stage::Match(agg_ast::MatchStage {
+                expr: vec![agg_ast::MatchExpression::Expr(agg_ast::MatchExpr {
+                    expr: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Null)),
+                })],
             }),
             agg_ast::Stage::Sort(map! {
                 "a".to_string() => 1,

@@ -124,7 +124,7 @@ mod stage {
                 source: Box::new(default_source()),
                 specifications: unchecked_unique_linked_hash_map! {},
             }),
-            input = agg_ast::Stage::Project(map! {})
+            input = agg_ast::Stage::Project(agg_ast::ProjectStage { items: map! {} })
         );
 
         test_from_stage!(
@@ -135,8 +135,10 @@ mod stage {
                     "a".to_string() => air::ProjectItem::Exclusion,
                 },
             }),
-            input = agg_ast::Stage::Project(map! {
-                "a".to_string() => agg_ast::ProjectItem::Exclusion,
+            input = agg_ast::Stage::Project(agg_ast::ProjectStage {
+                items: map! {
+                    "a".to_string() => agg_ast::ProjectItem::Exclusion,
+                }
             })
         );
 
@@ -148,8 +150,10 @@ mod stage {
                     "a".to_string() => air::ProjectItem::Inclusion,
                 },
             }),
-            input = agg_ast::Stage::Project(map! {
-                "a".to_string() => agg_ast::ProjectItem::Inclusion,
+            input = agg_ast::Stage::Project(agg_ast::ProjectStage {
+                items: map! {
+                    "a".to_string() => agg_ast::ProjectItem::Inclusion,
+                }
             })
         );
 
@@ -161,8 +165,10 @@ mod stage {
                     "a".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(1))),
                 },
             }),
-            input = agg_ast::Stage::Project(map! {
-                "a".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))),
+            input = agg_ast::Stage::Project(agg_ast::ProjectStage {
+                items: map! {
+                    "a".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))),
+                }
             })
         );
 
@@ -176,10 +182,12 @@ mod stage {
                     "c".to_string() => air::ProjectItem::Inclusion,
                 },
             }),
-            input = agg_ast::Stage::Project(map! {
-                "a".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))),
-                "b".to_string() => agg_ast::ProjectItem::Exclusion,
-                "c".to_string() => agg_ast::ProjectItem::Inclusion,
+            input = agg_ast::Stage::Project(agg_ast::ProjectStage {
+                items: map! {
+                    "a".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))),
+                    "b".to_string() => agg_ast::ProjectItem::Exclusion,
+                    "c".to_string() => agg_ast::ProjectItem::Inclusion,
+                }
             })
         );
     }
@@ -210,10 +218,12 @@ mod stage {
                 source: Box::new(default_source()),
                 expr: Box::new(air::Expression::Literal(air::LiteralValue::Boolean(true))),
             })),
-            input = agg_ast::Stage::Match(agg_ast::MatchExpression {
-                expr: Box::new(agg_ast::Expression::Literal(
-                    agg_ast::LiteralValue::Boolean(true)
-                )),
+            input = agg_ast::Stage::Match(agg_ast::MatchStage {
+                expr: vec![agg_ast::MatchExpression::Expr(agg_ast::MatchExpr {
+                    expr: Box::new(agg_ast::Expression::Literal(
+                        agg_ast::LiteralValue::Boolean(true)
+                    )),
+                })]
             })
         );
     }
@@ -300,11 +310,9 @@ mod stage {
                 index: None,
                 outer: false
             }),
-            input = agg_ast::Stage::Unwind(agg_ast::Unwind::FieldPath(
-                agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                    "eca58228-b657-498a-b76e-f48a9161a404".to_string()
-                ))
-            ))
+            input = agg_ast::Stage::Unwind(agg_ast::Unwind::FieldPath(agg_ast::Expression::Ref(
+                agg_ast::Ref::FieldRef("eca58228-b657-498a-b76e-f48a9161a404".to_string())
+            )))
         );
 
         test_from_stage!(
@@ -316,9 +324,9 @@ mod stage {
                 outer: false
             }),
             input = agg_ast::Stage::Unwind(agg_ast::Unwind::Document(agg_ast::UnwindExpr {
-                path: Box::new(agg_ast::Expression::StringOrRef(
-                    agg_ast::StringOrRef::FieldRef("array".to_string())
-                )),
+                path: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
+                    "array".to_string()
+                ))),
                 include_array_index: None,
                 preserve_null_and_empty_arrays: None
             }))
@@ -333,9 +341,9 @@ mod stage {
                 outer: true
             }),
             input = agg_ast::Stage::Unwind(agg_ast::Unwind::Document(agg_ast::UnwindExpr {
-                path: Box::new(agg_ast::Expression::StringOrRef(
-                    agg_ast::StringOrRef::FieldRef("array".to_string())
-                )),
+                path: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
+                    "array".to_string()
+                ))),
                 include_array_index: Some("i".to_string()),
                 preserve_null_and_empty_arrays: Some(true)
             }))
@@ -461,23 +469,21 @@ mod stage {
                 database: None,
                 collection: Some("bar".to_string()),
                 let_body: Some(map! {
-                    "x".to_string() => agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef("x".to_string()))
+                    "x".to_string() => agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("x".to_string()))
                 }),
                 join_type: agg_ast::JoinType::Inner,
-                pipeline: vec![agg_ast::Stage::Project(map! {
-                    "_id".to_string() => agg_ast::ProjectItem::Exclusion,
-                    "x".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))),
+                pipeline: vec![agg_ast::Stage::Project(agg_ast::ProjectStage {
+                    items: map! {
+                        "_id".to_string() => agg_ast::ProjectItem::Exclusion,
+                        "x".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))),
+                    }
                 })],
                 condition: Some(agg_ast::Expression::UntaggedOperator(
                     agg_ast::UntaggedOperator {
                         op: "$sqlEq".to_string(),
                         args: vec![
-                            agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::Variable(
-                                "x".to_string()
-                            )),
-                            agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                                "x".to_string()
-                            )),
+                            agg_ast::Expression::Ref(agg_ast::Ref::VariableRef("x".to_string())),
+                            agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("x".to_string())),
                         ]
                     }
                 ))
@@ -627,15 +633,11 @@ mod stage {
                     vec![
                         (
                             "vfoo_a".to_string(),
-                            agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                                "foo_a".to_string()
-                            ))
+                            agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("foo_a".to_string()))
                         ),
                         (
                             "vfoo_b".to_string(),
-                            agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                                "foo_b".to_string()
-                            ))
+                            agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("foo_b".to_string()))
                         )
                     ]
                     .into_iter()
@@ -679,45 +681,45 @@ mod stage {
                 from: None,
                 let_body: None,
                 pipeline: vec![
-                    agg_ast::Stage::Project(
-                        vec![
+                    agg_ast::Stage::Project(agg_ast::ProjectStage {
+                        items: vec![
                             ("_id".to_string(), agg_ast::ProjectItem::Exclusion),
                             (
                                 "baz".to_string(),
-                                agg_ast::ProjectItem::Assignment(agg_ast::Expression::StringOrRef(
-                                    agg_ast::StringOrRef::Variable(ROOT_NAME.to_string())
+                                agg_ast::ProjectItem::Assignment(agg_ast::Expression::Ref(
+                                    agg_ast::Ref::VariableRef(ROOT_NAME.to_string())
                                 ))
                             ),
                         ]
                         .into_iter()
                         .collect()
-                    ),
-                    agg_ast::Stage::Project(
-                        vec![
+                    }),
+                    agg_ast::Stage::Project(agg_ast::ProjectStage {
+                        items: vec![
                             ("_id".to_string(), agg_ast::ProjectItem::Exclusion),
                             (
                                 "baz".to_string(),
-                                agg_ast::ProjectItem::Assignment(agg_ast::Expression::StringOrRef(
-                                    agg_ast::StringOrRef::FieldRef("baz".to_string())
+                                agg_ast::ProjectItem::Assignment(agg_ast::Expression::Ref(
+                                    agg_ast::Ref::FieldRef("baz".to_string())
                                 ))
                             ),
                         ]
                         .into_iter()
                         .collect()
-                    ),
-                    agg_ast::Stage::Project(
-                        vec![
+                    }),
+                    agg_ast::Stage::Project(agg_ast::ProjectStage {
+                        items: vec![
                             ("_id".to_string(), agg_ast::ProjectItem::Exclusion),
                             (
                                 "__bot.a".to_string(),
-                                agg_ast::ProjectItem::Assignment(agg_ast::Expression::StringOrRef(
-                                    agg_ast::StringOrRef::FieldRef("baz.a".to_string())
+                                agg_ast::ProjectItem::Assignment(agg_ast::Expression::Ref(
+                                    agg_ast::Ref::FieldRef("baz.a".to_string())
                                 ))
                             ),
                         ]
                         .into_iter()
                         .collect()
-                    ),
+                    }),
                     agg_ast::Stage::Skip(1)
                 ],
                 as_var: "simple".to_string()
@@ -764,7 +766,7 @@ mod stage {
                         function: "$sqlSum".to_string(),
                         expr: agg_ast::GroupAccumulatorExpr::SqlAccumulator {
                             distinct: true,
-                            var: Box::new(agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef("a".to_string())))
+                            var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())))
                         }
                     }
                 }
@@ -796,21 +798,21 @@ mod stage {
             }),
             input = agg_ast::Stage::Group(agg_ast::Group {
                 keys: agg_ast::Expression::Document(map! {
-                    "a".to_string() => agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef("a".to_string()))
+                    "a".to_string() => agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string()))
                 },),
                 aggregations: map! {
                     "acc_one".to_string() => agg_ast::GroupAccumulator {
                         function: "$sqlSum".to_string(),
                         expr: agg_ast::GroupAccumulatorExpr::SqlAccumulator {
                             distinct: true,
-                            var: Box::new(agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef("a".to_string())))
+                            var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())))
                         },
                     },
                     "acc_two".to_string() => agg_ast::GroupAccumulator {
                         function: "$sqlAvg".to_string(),
                         expr: agg_ast::GroupAccumulatorExpr::SqlAccumulator {
                             distinct: true,
-                            var: Box::new(agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef("b".to_string())))
+                            var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("b".to_string())))
                         },
                     },
                 }
@@ -834,7 +836,7 @@ mod stage {
                 aggregations: map! {
                     "acc".to_string() => agg_ast::GroupAccumulator {
                         function: "$addToSet".to_string(),
-                        expr: agg_ast::GroupAccumulatorExpr::NonSqlAccumulator(agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef("a".to_string()))),
+                        expr: agg_ast::GroupAccumulatorExpr::NonSqlAccumulator(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string()))),
                     }
                 }
             })
@@ -885,44 +887,37 @@ mod expression {
         test_from_expr!(
             string,
             expected = air::Expression::Literal(air::LiteralValue::String("s".to_string())),
-            input = agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::String("s".to_string()))
+            input = agg_ast::Expression::Literal(agg_ast::LiteralValue::String("s".to_string()))
         );
 
         test_from_expr!(
             empty_field_ref,
             expected = air::Expression::FieldRef("".to_string().into()),
-            input =
-                agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef("".to_string()))
+            input = agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("".to_string()))
         );
 
         test_from_expr!(
             simple_field_ref,
             expected = air::Expression::FieldRef("a".to_string().into()),
-            input =
-                agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef("a".to_string()))
+            input = agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string()))
         );
 
         test_from_expr!(
             nested_field_ref,
             expected = air::Expression::FieldRef("a.b.c".to_string().into()),
-            input = agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                "a.b.c".to_string()
-            ))
+            input = agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a.b.c".to_string()))
         );
 
         test_from_expr!(
             simple_variable,
             expected = air::Expression::Variable("v".to_string().into()),
-            input =
-                agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::Variable("v".to_string()))
+            input = agg_ast::Expression::Ref(agg_ast::Ref::VariableRef("v".to_string()))
         );
 
         test_from_expr!(
             nested_variable,
             expected = air::Expression::Variable("x.y.z".to_string().into()),
-            input = agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::Variable(
-                "x.y.z".to_string()
-            ))
+            input = agg_ast::Expression::Ref(agg_ast::Ref::VariableRef("x.y.z".to_string()))
         );
     }
 
@@ -1008,9 +1003,9 @@ mod expression {
             input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::GetField(
                 agg_ast::GetField {
                     field: "a".to_string(),
-                    input: Box::new(agg_ast::Expression::StringOrRef(
-                        agg_ast::StringOrRef::FieldRef("d".to_string())
-                    ))
+                    input: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
+                        "d".to_string()
+                    )))
                 }
             ))
         );
@@ -1025,9 +1020,9 @@ mod expression {
             input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SetField(
                 agg_ast::SetField {
                     field: "a".to_string(),
-                    input: Box::new(agg_ast::Expression::StringOrRef(
-                        agg_ast::StringOrRef::FieldRef("d".to_string())
-                    )),
+                    input: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
+                        "d".to_string()
+                    ))),
                     value: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Null))
                 }
             ))
@@ -1042,9 +1037,9 @@ mod expression {
             input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::UnsetField(
                 agg_ast::UnsetField {
                     field: "a".to_string(),
-                    input: Box::new(agg_ast::Expression::StringOrRef(
-                        agg_ast::StringOrRef::FieldRef("d".to_string())
-                    ))
+                    input: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
+                        "d".to_string()
+                    )))
                 }
             ))
         );
@@ -1068,17 +1063,17 @@ mod expression {
                 agg_ast::Switch {
                     branches: vec![
                         agg_ast::SwitchCase {
-                            case: Box::new(agg_ast::Expression::StringOrRef(
-                                agg_ast::StringOrRef::FieldRef("a".to_string())
-                            )),
+                            case: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
+                                "a".to_string()
+                            ))),
                             then: Box::new(agg_ast::Expression::Literal(
                                 agg_ast::LiteralValue::Integer(1)
                             )),
                         },
                         agg_ast::SwitchCase {
-                            case: Box::new(agg_ast::Expression::StringOrRef(
-                                agg_ast::StringOrRef::FieldRef("b".to_string())
-                            )),
+                            case: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
+                                "b".to_string()
+                            ))),
                             then: Box::new(agg_ast::Expression::Literal(
                                 agg_ast::LiteralValue::Integer(2)
                             )),
@@ -1103,7 +1098,7 @@ mod expression {
             input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::Let(
                 agg_ast::Let {
                     vars: map! {
-                        "v".to_string() => agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef("a".to_string())),
+                        "v".to_string() => agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
                     },
                     inside: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Null)),
                 }
@@ -1120,9 +1115,9 @@ mod expression {
             }),
             input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::Convert(
                 agg_ast::Convert {
-                    input: Box::new(agg_ast::Expression::StringOrRef(
-                        agg_ast::StringOrRef::FieldRef("a".to_string())
-                    )),
+                    input: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
+                        "a".to_string()
+                    ))),
                     to: "int".to_string(),
                     on_null: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Null)),
                     on_error: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Null)),
@@ -1140,9 +1135,9 @@ mod expression {
             }),
             input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SqlConvert(
                 agg_ast::SqlConvert {
-                    input: Box::new(agg_ast::Expression::StringOrRef(
-                        agg_ast::StringOrRef::FieldRef("a".to_string())
-                    )),
+                    input: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
+                        "a".to_string()
+                    ))),
                     to: "array".to_string(),
                     on_null: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Null)),
                     on_error: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Null)),
@@ -1161,12 +1156,12 @@ mod expression {
             }),
             input =
                 agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::Like(agg_ast::Like {
-                    input: Box::new(agg_ast::Expression::StringOrRef(
-                        agg_ast::StringOrRef::FieldRef("s".to_string())
-                    )),
-                    pattern: Box::new(agg_ast::Expression::StringOrRef(
-                        agg_ast::StringOrRef::String("pat".to_string())
-                    )),
+                    input: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
+                        "s".to_string()
+                    ))),
+                    pattern: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::String(
+                        "pat".to_string()
+                    ))),
                     escape: Some('e'),
                 }))
         );
@@ -1182,12 +1177,12 @@ mod expression {
             }),
             input =
                 agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::Like(agg_ast::Like {
-                    input: Box::new(agg_ast::Expression::StringOrRef(
-                        agg_ast::StringOrRef::FieldRef("s".to_string())
-                    )),
-                    pattern: Box::new(agg_ast::Expression::StringOrRef(
-                        agg_ast::StringOrRef::String("pat".to_string())
-                    )),
+                    input: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
+                        "s".to_string()
+                    ))),
+                    pattern: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::String(
+                        "pat".to_string()
+                    ))),
                     escape: None,
                 }))
         );
@@ -1201,12 +1196,12 @@ mod expression {
             }),
             input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SqlDivide(
                 agg_ast::SqlDivide {
-                    dividend: Box::new(agg_ast::Expression::StringOrRef(
-                        agg_ast::StringOrRef::FieldRef("a".to_string())
-                    )),
-                    divisor: Box::new(agg_ast::Expression::StringOrRef(
-                        agg_ast::StringOrRef::FieldRef("b".to_string())
-                    )),
+                    dividend: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
+                        "a".to_string()
+                    ))),
+                    divisor: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
+                        "b".to_string()
+                    ))),
                     on_error: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Null)),
                 }
             ))
@@ -1221,12 +1216,12 @@ mod expression {
             }),
             input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::Reduce(
                 agg_ast::Reduce {
-                    input: Box::new(agg_ast::Expression::StringOrRef(
-                        agg_ast::StringOrRef::FieldRef("a".to_string())
-                    )),
-                    initial_value: Box::new(agg_ast::Expression::StringOrRef(
-                        agg_ast::StringOrRef::FieldRef("b".to_string())
-                    )),
+                    input: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
+                        "a".to_string()
+                    ))),
+                    initial_value: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
+                        "b".to_string()
+                    ))),
                     inside: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Null)),
                 }
             ))
@@ -1258,9 +1253,9 @@ mod expression {
                     output_path: Some(vec!["x".to_string()]),
                     pipeline: vec![
                         agg_ast::Stage::Documents(vec![]),
-                        agg_ast::Stage::Project(
-                            map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
-                        )
+                        agg_ast::Stage::Project(agg_ast::ProjectStage {
+                            items: map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
+                        })
                     ]
                 }
             ))
@@ -1293,9 +1288,9 @@ mod expression {
                         "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))
                     }),
                     output_path: Some(vec!["x".to_string()]),
-                    pipeline: vec![agg_ast::Stage::Project(
-                        map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
-                    )]
+                    pipeline: vec![agg_ast::Stage::Project(agg_ast::ProjectStage {
+                        items: map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
+                    })]
                 }
             ))
         );
@@ -1337,7 +1332,9 @@ mod expression {
                            pipeline: vec![
                                agg_ast::Stage::Documents(vec![]),
                                agg_ast::Stage::Project(
-                                   map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
+                                   agg_ast::ProjectStage {
+                                        items: map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
+                                   }
                                )
                            ]
                        }.into()
@@ -1382,7 +1379,9 @@ mod expression {
                            pipeline: vec![
                                agg_ast::Stage::Documents(vec![]),
                                agg_ast::Stage::Project(
-                                   map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
+                                   agg_ast::ProjectStage {
+                                        items: map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
+                                   }
                                )
                            ]
                        }.into()
@@ -1426,7 +1425,9 @@ mod expression {
                            output_path: Some(vec!["x".to_string()]),
                            pipeline: vec![
                                agg_ast::Stage::Project(
-                                   map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
+                                   agg_ast::ProjectStage {
+                                        items: map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
+                                   }
                                )
                            ]
                        }.into()
@@ -1458,9 +1459,9 @@ mod expression {
                     }),
                     pipeline: vec![
                         agg_ast::Stage::Documents(vec![]),
-                        agg_ast::Stage::Project(
-                            map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
-                        )
+                        agg_ast::Stage::Project(agg_ast::ProjectStage {
+                            items: map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
+                        })
                     ]
                 }
             ))
@@ -1491,9 +1492,9 @@ mod expression {
                     let_bindings: Some(map! {
                         "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))
                     }),
-                    pipeline: vec![agg_ast::Stage::Project(
-                        map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
-                    )]
+                    pipeline: vec![agg_ast::Stage::Project(agg_ast::ProjectStage {
+                        items: map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
+                    })]
                 }
             ))
         );
@@ -1511,9 +1512,9 @@ mod expression {
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
                 op: "$sqlPos".to_string(),
-                args: vec![agg_ast::Expression::StringOrRef(
-                    agg_ast::StringOrRef::FieldRef("a".to_string())
-                )],
+                args: vec![agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
+                    "a".to_string()
+                ))],
             })
         );
 
@@ -1529,12 +1530,8 @@ mod expression {
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
                 op: "$sqlEq".to_string(),
                 args: vec![
-                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                        "a".to_string()
-                    )),
-                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                        "b".to_string()
-                    )),
+                    agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
+                    agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("b".to_string())),
                 ],
             })
         );
@@ -1547,9 +1544,9 @@ mod expression {
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
                 op: "$size".to_string(),
-                args: vec![agg_ast::Expression::StringOrRef(
-                    agg_ast::StringOrRef::FieldRef("a".to_string())
-                )],
+                args: vec![agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
+                    "a".to_string()
+                ))],
             })
         );
 
@@ -1565,12 +1562,8 @@ mod expression {
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
                 op: "$lte".to_string(),
                 args: vec![
-                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                        "a".to_string()
-                    )),
-                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                        "b".to_string()
-                    )),
+                    agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
+                    agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("b".to_string())),
                 ],
             })
         );
@@ -1591,9 +1584,9 @@ mod expression {
             expected = air::Expression::Literal(air::LiteralValue::String("a".to_string())),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
                 op: "$literal".to_string(),
-                args: vec![agg_ast::Expression::StringOrRef(
-                    agg_ast::StringOrRef::String("a".to_string())
-                )],
+                args: vec![agg_ast::Expression::Literal(agg_ast::LiteralValue::String(
+                    "a".to_string()
+                ))],
             })
         );
 
@@ -1606,12 +1599,8 @@ mod expression {
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
                 op: "$sqlIs".to_string(),
                 args: vec![
-                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                        "a".to_string()
-                    )),
-                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::String(
-                        "int".to_string()
-                    )),
+                    agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
+                    agg_ast::Expression::Literal(agg_ast::LiteralValue::String("int".to_string())),
                 ],
             })
         );
@@ -1625,10 +1614,8 @@ mod expression {
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
                 op: "$sqlIs".to_string(),
                 args: vec![
-                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                        "a".to_string()
-                    )),
-                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::String(
+                    agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
+                    agg_ast::Expression::Literal(agg_ast::LiteralValue::String(
                         "missing".to_string()
                     )),
                 ],
@@ -1676,15 +1663,9 @@ mod expression {
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
                 op: "$sqlBetween".to_string(),
                 args: vec![
-                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                        "a".to_string()
-                    )),
-                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                        "b".to_string()
-                    )),
-                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                        "c".to_string()
-                    )),
+                    agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
+                    agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("b".to_string())),
+                    agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("c".to_string())),
                 ],
             })
         );
@@ -1702,15 +1683,9 @@ mod expression {
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
                 op: "$mqlBetween".to_string(),
                 args: vec![
-                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                        "a".to_string()
-                    )),
-                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                        "b".to_string()
-                    )),
-                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                        "c".to_string()
-                    )),
+                    agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
+                    agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("b".to_string())),
+                    agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("c".to_string())),
                 ],
             })
         );

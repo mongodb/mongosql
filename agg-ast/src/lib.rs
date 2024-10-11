@@ -1,6 +1,7 @@
+pub mod custom_serde;
 pub mod definitions;
 #[cfg(test)]
-mod deserialize_test;
+mod serde_test;
 
 pub const ROOT_NAME: &str = "ROOT";
 

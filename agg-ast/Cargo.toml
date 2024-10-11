@@ -4,8 +4,10 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-bson = "2"
 serde = { version = "1", features = ["derive"] }
-serde_yaml = "0.8.21"
+serde_yaml = "0.8"
+serde_json = "1"
+bson = { version = "2", features = ["chrono-0_4"] }
+linked-hash-map = { version = "0", features = ["serde_impl"] }
 
 [features]

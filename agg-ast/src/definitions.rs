@@ -1,9 +1,8 @@
+use crate::custom_serde::{deserialize_mql_operator, serialize_mql_operator};
 use bson::Bson;
-use serde::{
-    de::{Error as serde_err, MapAccess, Visitor},
-    Deserialize, Deserializer,
-};
-use std::{collections::HashMap, fmt};
+use linked_hash_map::LinkedHashMap;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 // This module contains an aggregation pipeline syntax tree that implements
 // serde::Deserialize. This allows us to deserialize aggregation pipelines from
@@ -14,24 +13,24 @@ use std::{collections::HashMap, fmt};
 /// Stage represents an aggregation pipeline stage. This is not
 /// a complete representation of all of MQL. Only stages relevant
 /// for desugarer testing are supported here.
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Stage {
     #[serde(skip)]
     Collection(Collection),
     #[serde(rename = "$documents")]
-    Documents(Vec<HashMap<String, Expression>>),
+    Documents(Vec<LinkedHashMap<String, Expression>>),
     #[serde(rename = "$project")]
-    Project(HashMap<String, ProjectItem>),
+    Project(ProjectStage),
     #[serde(rename = "$replaceWith")]
     ReplaceWith(Expression),
     #[serde(rename = "$match")]
-    Match(MatchExpression),
+    Match(MatchStage),
     #[serde(rename = "$limit")]
     Limit(i64),
     #[serde(rename = "$skip")]
     Skip(i64),
     #[serde(rename = "$sort")]
-    Sort(HashMap<String, i8>),
+    Sort(LinkedHashMap<String, i8>),
     #[serde(rename = "$group")]
     Group(Group),
     #[serde(rename = "$join")]
@@ -58,41 +57,291 @@ pub enum Stage {
     AtlasSearchStage(AtlasSearchStage),
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Collection {
     pub db: String,
     pub collection: String,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
-#[serde(from = "Expression")]
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct ProjectStage {
+    pub items: LinkedHashMap<String, ProjectItem>,
+}
+
+impl ProjectStage {
+    pub fn with_capacity(capacity: usize) -> ProjectStage {
+        ProjectStage {
+            items: LinkedHashMap::with_capacity(capacity),
+        }
+    }
+
+    pub fn into_inner(self) -> LinkedHashMap<String, ProjectItem> {
+        self.items
+    }
+
+    pub fn push(&mut self, items: (String, ProjectItem)) {
+        self.items.insert(items.0, items.1);
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ProjectItem {
     Exclusion,
     Inclusion,
     Assignment(Expression),
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
-pub struct MatchExpression {
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct MatchStage {
+    pub expr: Vec<MatchExpression>,
+}
+
+impl MatchStage {
+    pub fn with_capacity(capacity: usize) -> MatchStage {
+        MatchStage {
+            expr: Vec::with_capacity(capacity),
+        }
+    }
+
+    pub fn into_inner(self) -> Vec<MatchExpression> {
+        self.expr
+    }
+
+    pub fn push(&mut self, expr: MatchExpression) {
+        self.expr.push(expr);
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.expr.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.expr.len()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum MatchExpression {
+    Expr(MatchExpr),
+    Logical(MatchLogical),
+    Misc(MatchMisc),
+    Field(MatchField),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum MatchMisc {
+    Regex(MatchRegex),
+    Element(MatchElement),
+    Where(MatchWhere),
+    JsonSchema(MatchJsonSchema),
+    Text(MatchText),
+    Comment(MatchComment),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MatchExpr {
     #[serde(rename = "$expr")]
     pub expr: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum MatchLogical {
+    #[serde(rename = "$and")]
+    And(Vec<MatchExpression>),
+    #[serde(rename = "$or")]
+    Or(Vec<MatchExpression>),
+    #[serde(rename = "$nor")]
+    Nor(Vec<MatchExpression>),
+    #[serde(untagged)]
+    Not(MatchNot),
+}
+
+/// MatchElement represents $elemMatch expressions.
+#[derive(Clone, Debug, PartialEq)]
+pub struct MatchElement {
+    pub field: Ref,
+    pub query: MatchArrayExpression,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum MatchArrayExpression {
+    Value(LinkedHashMap<MatchBinaryOp, bson::Bson>),
+    Query(MatchArrayQuery),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MatchArrayQuery {
+    pub query: Vec<MatchExpression>,
+}
+
+impl MatchArrayQuery {
+    pub fn with_capacity(capacity: usize) -> MatchArrayQuery {
+        MatchArrayQuery {
+            query: Vec::with_capacity(capacity),
+        }
+    }
+
+    pub fn into_inner(self) -> Vec<MatchExpression> {
+        self.query
+    }
+
+    pub fn push(&mut self, query: MatchExpression) {
+        self.query.push(query);
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.query.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.query.len()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MatchNot {
+    pub field: Ref,
+    pub expr: MatchNotExpression,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum MatchNotExpression {
+    Query(LinkedHashMap<MatchBinaryOp, bson::Bson>),
+    // technically, this needs to be a String or Regex, but this does not need
+    // to be encoded in the AST, it can be enforced semantically.
+    Regex(bson::Bson),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MatchWhere {
+    #[serde(rename = "$where")]
+    // This is technically supposed to be String or javascript code, but this does not need to
+    // be encoded in the AST, it can be enforced semantically.
+    pub code: bson::Bson,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MatchJsonSchema {
+    // At some point it may make sense to fully support JsonSchema rather than just defaulting to
+    // bson.
+    #[serde(rename = "$jsonSchema")]
+    pub schema: bson::Bson,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MatchText {
+    #[serde(rename = "$text")]
+    pub expr: MatchTextContents,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MatchRegex {
+    pub field: Ref,
+    pub pattern: bson::Bson,
+    pub options: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MatchComment {
+    #[serde(rename = "$comment")]
+    pub comment: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MatchTextContents {
+    #[serde(rename = "$search")]
+    pub search: String,
+    #[serde(rename = "$language")]
+    pub language: Option<String>,
+    #[serde(rename = "$caseSensitive")]
+    pub case_sensitive: Option<bool>,
+    #[serde(rename = "$diacriticSensitive")]
+    pub diacritic_sensitive: Option<bool>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MatchField {
+    pub field: Ref,
+    pub ops: LinkedHashMap<MatchBinaryOp, bson::Bson>,
+}
+
+#[derive(Clone, Debug, PartialEq, Copy, Eq, Hash, Serialize, Deserialize)]
+pub enum MatchBinaryOp {
+    // Typical $match binary operators with standard format of {field: {operator: value}}
+    #[serde(rename = "$eq")]
+    Eq,
+    #[serde(rename = "$gt")]
+    Gt,
+    #[serde(rename = "$gte")]
+    Gte,
+    #[serde(rename = "$in")]
+    In,
+    #[serde(rename = "$lt")]
+    Lt,
+    #[serde(rename = "$lte")]
+    Lte,
+    #[serde(rename = "$ne")]
+    Ne,
+    #[serde(rename = "$nin")]
+    Nin,
+    #[serde(rename = "$exists")]
+    Exists,
+    #[serde(rename = "$type")]
+    Type,
+    #[serde(rename = "$size")]
+    Size,
+    #[serde(rename = "$mod")]
+    Mod,
+    #[serde(rename = "$bitsAnySet")]
+    BitsAnySet,
+    #[serde(rename = "$bitsAnyClear")]
+    BitsAnyClear,
+    #[serde(rename = "$bitsAllSet")]
+    BitsAllSet,
+    #[serde(rename = "$bitsAllClear")]
+    BitsAllClear,
+    #[serde(rename = "$all")]
+    All,
+
+    // Geospatial operators have the same issue as $regex, where the fields are
+    // just stuck in a bson document as the value.
+    #[serde(rename = "$geoIntersects")]
+    GeoIntersects,
+    #[serde(rename = "$geoWithin")]
+    GeoWithin,
+    #[serde(rename = "$near")]
+    Near,
+    #[serde(rename = "$nearSphere")]
+    NearSphere,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Group {
     #[serde(rename = "_id")]
     pub keys: Expression,
     #[serde(flatten)]
-    pub aggregations: HashMap<String, GroupAccumulator>,
+    pub aggregations: LinkedHashMap<String, GroupAccumulator>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct GroupAccumulator {
     pub function: String,
     pub expr: GroupAccumulatorExpr,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum GroupAccumulatorExpr {
     SqlAccumulator {
@@ -102,19 +351,19 @@ pub enum GroupAccumulatorExpr {
     NonSqlAccumulator(Expression),
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Join {
     pub database: Option<String>,
     pub collection: Option<String>,
     #[serde(rename = "joinType")]
     pub join_type: JoinType,
     #[serde(rename = "let")]
-    pub let_body: Option<HashMap<String, Expression>>,
+    pub let_body: Option<LinkedHashMap<String, Expression>>,
     pub pipeline: Vec<Stage>,
     pub condition: Option<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EquiJoin {
     // Note: At the moment equijoin are only supported on collections of the same DB
@@ -127,21 +376,21 @@ pub struct EquiJoin {
     pub as_var: String,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum JoinType {
     Inner,
     Left,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Unwind {
     Document(UnwindExpr),
     FieldPath(Expression),
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UnwindExpr {
     pub path: Box<Expression>,
@@ -149,17 +398,17 @@ pub struct UnwindExpr {
     pub preserve_null_and_empty_arrays: Option<bool>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Lookup {
     pub from: Option<LookupFrom>,
     #[serde(rename = "let")]
-    pub let_body: Option<HashMap<String, Expression>>,
+    pub let_body: Option<LinkedHashMap<String, Expression>>,
     pub pipeline: Vec<Stage>,
     #[serde(rename = "as")]
     pub as_var: String,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EquiLookup {
     pub from: LookupFrom,
@@ -169,20 +418,20 @@ pub struct EquiLookup {
     pub as_var: String,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum LookupFrom {
     Collection(String),
     Namespace(Namespace),
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Namespace {
     pub db: String,
     pub coll: String,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Bucket {
     pub group_by: Box<Expression>,
@@ -191,7 +440,7 @@ pub struct Bucket {
     pub output: Option<HashMap<String, Expression>>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BucketAuto {
     pub group_by: Box<Expression>,
@@ -200,7 +449,7 @@ pub struct BucketAuto {
     pub granularity: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GraphLookup {
     pub from: String,
@@ -213,7 +462,7 @@ pub struct GraphLookup {
     pub restrict_search_with_match: Option<Box<Expression>>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum AtlasSearchStage {
     #[serde(rename = "$search")]
     Search(Box<Expression>),
@@ -227,45 +476,58 @@ pub enum AtlasSearchStage {
 /// a complete representation of all of MQL. Only expressions relevant for
 /// desugarer testing are supported here. Order of these variants matters
 /// since we use custom deserialization for several expression types.
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Expression {
-    // Non-string literal values
-    Literal(LiteralValue),
+    // Variable or field refs
+    Ref(Ref),
 
-    // String literal values, or variable or field refs
-    #[serde(deserialize_with = "deserialize_string_or_ref")]
-    StringOrRef(StringOrRef),
+    // Literal values including non-Ref strings
+    Literal(LiteralValue),
 
     // Operators with structured arguments
     TaggedOperator(TaggedOperator),
 
     // Operators with unstructured arguments
-    #[serde(deserialize_with = "deserialize_mql_operator")]
+    #[serde(
+        deserialize_with = "deserialize_mql_operator",
+        serialize_with = "serialize_mql_operator"
+    )]
     UntaggedOperator(UntaggedOperator),
 
     // Array literal expressions
     Array(Vec<Expression>),
 
     // Document literal expressions
-    Document(HashMap<String, Expression>),
+    Document(LinkedHashMap<String, Expression>),
 }
 
-/// StringOrRef represents string constants in the serialized pipelines.
-/// String literals, field references, and variable references are all represented
-/// by values in double quotes. The only difference is that variables are prefixed
-/// with "$$" and field references are prefixed with "$", while all other values
-/// are string literals. We need a custom deserializer that distinguishes these
-/// types by inspecting the actual string data.
-#[derive(Debug, PartialEq, Deserialize)]
-#[serde(untagged)]
-pub enum StringOrRef {
-    String(String),
+/// Ref represents field references and variable references. Variable references are prefixed with
+/// "$$" and field references are prefixed with "$".
+#[derive(Clone, Debug, PartialEq)]
+pub enum Ref {
     FieldRef(String),
-    Variable(String),
+    VariableRef(String),
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+impl Ref {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Ref::FieldRef(s) => s,
+            Ref::VariableRef(s) => s,
+        }
+    }
+
+    pub fn is_variable(&self) -> bool {
+        matches!(self, Ref::VariableRef(_))
+    }
+
+    pub fn is_field_ref(&self) -> bool {
+        matches!(self, Ref::FieldRef(_))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum LiteralValue {
     Null,
@@ -273,13 +535,15 @@ pub enum LiteralValue {
     Integer(i32),
     Long(i64),
     Double(f64),
+    Decimal128(bson::Decimal128),
+    String(String),
 }
 
 /// UntaggedOperators are operators that follow the general format:
 ///   { "$<op_name>": [<args>] }
 /// We need a custom deserializer that turns the key "$op_name" into
 /// the field "op" in the struct.
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UntaggedOperator {
     pub op: String,
     pub args: Vec<Expression>,
@@ -287,7 +551,7 @@ pub struct UntaggedOperator {
 
 /// TaggedOperators are operators that have named arguments. We can utilize
 /// serde directly for these by using the enum names as the keys (operator names).
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum TaggedOperator {
     #[serde(rename = "$accumulator")]
     Accumulator(Accumulator),
@@ -310,7 +574,7 @@ pub enum TaggedOperator {
     #[serde(rename = "$like")]
     Like(Like),
     #[serde(rename = "$regexMatch")]
-    RegexMatch(RegexMatch),
+    Regex(RegexAggExpression),
     #[serde(rename = "$sqlDivide")]
     SqlDivide(SqlDivide),
     #[serde(rename = "$trim")]
@@ -319,6 +583,8 @@ pub enum TaggedOperator {
     LTrim(Trim),
     #[serde(rename = "$rtrim")]
     RTrim(Trim),
+
+    // Subquery Operators (extended from MQL)
     #[serde(rename = "$regexFind")]
     RegexFind(RegexFind),
     #[serde(rename = "$regexFindAll")]
@@ -429,7 +695,7 @@ pub enum TaggedOperator {
     Shift(Shift),
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Accumulator {
     pub init: Box<Expression>,
@@ -441,52 +707,52 @@ pub struct Accumulator {
     pub lang: String,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Function {
     pub body: Box<Expression>,
     pub args: Vec<Expression>,
     pub lang: String,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GetField {
     pub field: String,
     pub input: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SetField {
     pub field: String,
     pub input: Box<Expression>,
     pub value: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UnsetField {
     pub field: String,
     pub input: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Switch {
     pub branches: Vec<SwitchCase>,
     pub default: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SwitchCase {
     pub case: Box<Expression>,
     pub then: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Let {
-    pub vars: HashMap<String, Expression>,
+    pub vars: LinkedHashMap<String, Expression>,
     #[serde(rename = "in")]
     pub inside: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SqlConvert {
     pub input: Box<Expression>,
@@ -495,7 +761,7 @@ pub struct SqlConvert {
     pub on_error: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Convert {
     pub input: Box<Expression>,
@@ -504,7 +770,7 @@ pub struct Convert {
     pub on_error: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Filter {
     pub input: Box<Expression>,
@@ -514,28 +780,28 @@ pub struct Filter {
     pub limit: Option<Box<Expression>>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FirstN {
     pub input: Box<Expression>,
     pub n: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LastN {
     pub input: Box<Expression>,
     pub n: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Like {
     pub input: Box<Expression>,
     pub pattern: Box<Expression>,
     pub escape: Option<char>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Map {
     pub input: Box<Expression>,
@@ -545,56 +811,63 @@ pub struct Map {
     pub inside: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct RegexAggExpression {
+    pub input: Box<Expression>,
+    pub regex: Box<Expression>,
+    pub options: Option<Box<Expression>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MaxNArrayElement {
     pub input: Box<Expression>,
     pub n: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MinNArrayElement {
     pub input: Box<Expression>,
     pub n: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RegexMatch {
     pub input: Box<Expression>,
     pub regex: Box<Expression>,
     pub options: Option<Box<Expression>>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RegexFind {
     pub input: Box<Expression>,
     pub regex: Box<Expression>,
     pub options: Option<Box<Expression>>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RegexFindAll {
     pub input: Box<Expression>,
     pub regex: Box<Expression>,
     pub options: Option<Box<Expression>>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ReplaceAll {
     pub input: Box<Expression>,
     pub find: Box<Expression>,
     pub replacement: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ReplaceOne {
     pub input: Box<Expression>,
     pub find: Box<Expression>,
     pub replacement: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SqlDivide {
     pub dividend: Box<Expression>,
@@ -602,13 +875,13 @@ pub struct SqlDivide {
     pub on_error: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Trim {
     pub input: Box<Expression>,
     pub chars: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Reduce {
     pub input: Box<Expression>,
@@ -617,32 +890,32 @@ pub struct Reduce {
     pub inside: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SortArray {
     pub input: Box<Expression>,
     pub sort_by: SortArraySpec,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum SortArraySpec {
     Value(i8),
-    Keys(HashMap<String, i8>),
+    Keys(LinkedHashMap<String, i8>),
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Subquery {
     pub db: Option<String>,
     pub collection: Option<String>,
     #[serde(rename = "let")]
-    pub let_bindings: Option<HashMap<String, Expression>>,
+    pub let_bindings: Option<LinkedHashMap<String, Expression>>,
     pub output_path: Option<Vec<String>>,
     pub pipeline: Vec<Stage>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SubqueryComparison {
     pub op: String,
     pub modifier: String,
@@ -650,12 +923,12 @@ pub struct SubqueryComparison {
     pub subquery: Box<Subquery>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SubqueryExists {
     pub db: Option<String>,
     pub collection: Option<String>,
     #[serde(rename = "let")]
-    pub let_bindings: Option<HashMap<String, Expression>>,
+    pub let_bindings: Option<LinkedHashMap<String, Expression>>,
     pub pipeline: Vec<Stage>,
 }
 
@@ -663,7 +936,7 @@ fn default_zip_defaults() -> bool {
     false
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Zip {
     pub inputs: Box<Expression>,
@@ -672,13 +945,13 @@ pub struct Zip {
     pub defaults: Option<Box<Expression>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct DateExpression {
     pub date: Box<Expression>,
     pub timezone: Option<Box<Expression>>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DateAdd {
     pub start_date: Box<Expression>,
@@ -687,7 +960,7 @@ pub struct DateAdd {
     pub timezone: Option<Box<Expression>>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DateDiff {
     pub start_date: Box<Expression>,
@@ -697,7 +970,7 @@ pub struct DateDiff {
     pub start_of_week: Option<Box<Expression>>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DateFromParts {
     pub year: Option<Box<Expression>>,
@@ -713,7 +986,7 @@ pub struct DateFromParts {
     pub timezone: Option<Box<Expression>>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DateFromString {
     pub date_string: Box<Expression>,
@@ -723,7 +996,7 @@ pub struct DateFromString {
     pub on_null: Option<Box<Expression>>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DateSubtract {
     pub start_date: Box<Expression>,
@@ -732,14 +1005,14 @@ pub struct DateSubtract {
     pub timezone: Option<Box<Expression>>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DateToParts {
     pub date: Box<Expression>,
     pub timezone: Option<Box<Expression>>,
     pub iso8601: Option<bool>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DateToString {
     pub date: Box<Expression>,
@@ -748,7 +1021,7 @@ pub struct DateToString {
     pub on_null: Option<Box<Expression>>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DateTrunc {
     pub date: Box<Expression>,
@@ -758,21 +1031,21 @@ pub struct DateTrunc {
     pub start_of_week: Option<Box<Expression>>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Bottom {
     pub sort_by: Box<Expression>,
     pub output: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Top {
     pub sort_by: Box<Expression>,
     pub output: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BottomN {
     pub sort_by: Box<Expression>,
@@ -780,7 +1053,7 @@ pub struct BottomN {
     pub n: i64,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TopN {
     pub sort_by: Box<Expression>,
@@ -788,13 +1061,13 @@ pub struct TopN {
     pub n: i64,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Median {
     pub input: Box<Expression>,
     pub method: String,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Percentile {
     pub input: Box<Expression>,
     pub p: Vec<Expression>,
@@ -802,49 +1075,40 @@ pub struct Percentile {
 }
 
 // This is useful for operators that accept an empty document as an argument.
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EmptyDoc {}
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Derivative {
     pub input: Box<Expression>,
     pub unit: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ExpMovingAvg {
     pub input: Box<Expression>,
     #[serde(flatten)]
     pub opt: ExpMovingAvgOpt,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ExpMovingAvgOpt {
     N(i32),
     #[serde(rename = "alpha")]
     Alpha(f64),
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Integral {
     pub input: Box<Expression>,
     pub unit: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Shift {
     pub output: Box<Expression>,
     pub by: i32,
     pub default: Option<Box<Expression>>,
-}
-
-/// Custom map visitor for identifying and deserializing UntaggedOperators.
-struct UntaggedOperatorVisitor {}
-
-impl UntaggedOperatorVisitor {
-    fn new() -> Self {
-        Self {}
-    }
 }
 
 /// VecOrSingleExpr represents the argument to UntaggedOperators.
@@ -853,166 +1117,18 @@ impl UntaggedOperatorVisitor {
 ///   { "$sqrt": ["$a"] }
 /// So we need to be able to parse either while deserializing an
 /// UntaggedOperator. This struct enables that.
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
-enum VecOrSingleExpr {
+pub enum VecOrSingleExpr {
     Vec(Vec<Expression>),
     Single(Expression),
 }
 
 impl VecOrSingleExpr {
-    fn get_as_vec(self) -> Vec<Expression> {
+    pub fn get_as_vec(self) -> Vec<Expression> {
         match self {
             VecOrSingleExpr::Vec(v) => v,
             VecOrSingleExpr::Single(e) => vec![e],
-        }
-    }
-}
-
-impl<'de> Visitor<'de> for UntaggedOperatorVisitor {
-    type Value = UntaggedOperator;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("{\"$op\": [args]}")
-    }
-
-    fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
-    where
-        M: MapAccess<'de>,
-    {
-        let kv = access.next_entry::<String, VecOrSingleExpr>()?;
-        if let Some((key, value)) = kv {
-            // If the key does not start with a "$", then it is not an agg operator.
-            // Ignore this map and stop attempting to deserialize with this function.
-            if !key.starts_with('$') {
-                return Err(serde_err::custom("ignoring key that does not start with $"));
-            }
-
-            // Immediately return when we see one key that starts with a "$".
-            // In a general environment, this would be very brittle, however in this
-            // controlled test environment, we safely make the assumption that
-            // a single key that starts with a "$" is present and indicates an operator.
-            return Ok(UntaggedOperator {
-                op: key,
-                args: value.get_as_vec(),
-            });
-        }
-
-        Err(serde_err::custom(
-            "fail when there are no keys; this lets empty doc be parsed as Document",
-        ))
-    }
-}
-
-/// Custom deserialization function for untagged aggregation operators.
-fn deserialize_mql_operator<'de, D>(deserializer: D) -> Result<UntaggedOperator, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    deserializer.deserialize_map(UntaggedOperatorVisitor::new())
-}
-
-impl<'de> Deserialize<'de> for GroupAccumulator {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        /// Custom map visitor for identifying and deserializing Accumulators.
-        struct AccumulatorVisitor;
-
-        impl<'de> Visitor<'de> for AccumulatorVisitor {
-            type Value = GroupAccumulator;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("{\"$op\": <expression or struct>}")
-            }
-
-            fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
-            where
-                M: MapAccess<'de>,
-            {
-                let kv = access.next_entry::<String, GroupAccumulatorExpr>()?;
-                if let Some((key, value)) = kv {
-                    // If the key does not start with a "$", then it is not an accumulator function.
-                    // Ignore this map and stop attempting to deserialize with this function.
-                    if !key.starts_with('$') {
-                        return Err(serde_err::custom("ignoring key that does not start with $"));
-                    }
-
-                    // Immediately return when we see one key that starts with a "$".
-                    // In a general environment, this would be very brittle, however in this
-                    // controlled test environment, we safely make the assumption that
-                    // a single key that starts with a "$" is present and indicates an operator.
-                    // let value = value.get_as_vec();
-                    return Ok(GroupAccumulator {
-                        function: key,
-                        expr: value,
-                    });
-                }
-
-                Err(serde_err::custom("no accumulator could be parsed"))
-            }
-        }
-
-        const FIELDS: &[&str] = &["function", "expr"];
-        deserializer.deserialize_struct("GroupAccumulator", FIELDS, AccumulatorVisitor)
-    }
-}
-
-/// Custom deserialization function for string constants in agg pipelines.
-fn deserialize_string_or_ref<'de, D>(deserializer: D) -> Result<StringOrRef, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-
-    if s.starts_with("$$") {
-        Ok(StringOrRef::Variable(s.chars().skip(2).collect()))
-    } else if s.starts_with('$') {
-        Ok(StringOrRef::FieldRef(s.chars().skip(1).collect()))
-    } else {
-        Ok(StringOrRef::String(s))
-    }
-}
-
-impl From<Expression> for ProjectItem {
-    fn from(e: Expression) -> Self {
-        match e {
-            Expression::Literal(LiteralValue::Integer(0)) => ProjectItem::Exclusion,
-            Expression::Literal(LiteralValue::Integer(1)) => ProjectItem::Inclusion,
-            _ => ProjectItem::Assignment(e),
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for DateExpression {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        // date expressions can take one of two forms;
-        // 1. $op: <dateExpression>
-        // 2. $op: { date: <dateExpression>, timezone: <timezoneExpression>}
-        // deserialize into expression, and try to convert any documents into the latter; otherwise, return the former
-        let expression = Expression::deserialize(deserializer)?;
-        match expression {
-            Expression::Document(mut d) => match d.remove("date") {
-                Some(date_expr) => {
-                    let date = Box::new(date_expr);
-                    let timezone = d.remove("timezone").map(Box::new);
-                    if !d.is_empty() {
-                        return Err(serde_err::custom("too many arguments for date Document"));
-                    }
-                    Ok(DateExpression { date, timezone })
-                }
-                None => Err(serde_err::custom(
-                    "document to date operator does not contain field \"date\"",
-                )),
-            },
-            expr => Ok(DateExpression {
-                date: Box::new(expr),
-                timezone: None,
-            }),
         }
     }
 }

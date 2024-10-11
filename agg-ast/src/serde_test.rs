@@ -1,4 +1,4 @@
-macro_rules! test_deserialize_stage {
+macro_rules! test_serde_stage {
     ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
         #[test]
         fn $func_name() {
@@ -7,34 +7,97 @@ macro_rules! test_deserialize_stage {
             let input = $input;
             let s: TestStage = serde_yaml::from_str(&input).unwrap();
 
-            assert_eq!($expected, s.stage)
+            assert_eq!($expected, s.stage, "failed to deserialize");
+
+            // test roundtrip by serializing to string and then deserializing
+            // again (so that we do not need to worry about white space, as we would
+            // if we were comparing the original input string to the output string)
+            let output = serde_json::to_string(&s).unwrap();
+            let s: TestStage = serde_yaml::from_str(&output).unwrap();
+
+            // we output the failed serialization as json since it's a bit easier to read
+            // in that it looks more like agg
+            assert_eq!($expected, s.stage, "failed to serialize: {}", output);
         }
     };
 }
 
-macro_rules! test_deserialize_expr {
+macro_rules! test_serde_expr {
     ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
         #[test]
         fn $func_name() {
-            use crate::deserialize_test::expression_test::TestExpr;
+            use crate::serde_test::expression_test::TestExpr;
 
             let input = $input;
             let e: TestExpr = serde_yaml::from_str(&input).unwrap();
 
-            assert_eq!($expected, e.expr)
+            assert_eq!($expected, e.expr, "failed to deserialize");
+
+            // test roundtrip by serializing to string and then deserializing
+            // again (so that we do not need to worry about white space, as we would
+            // if we were comparing the original input string to the output string)
+            let output = serde_json::to_string(&e).unwrap();
+            let e: TestExpr = serde_yaml::from_str(&output).unwrap();
+
+            // we output the failed serialization as json since it's a bit easier to read
+            // in that it looks more like agg
+            assert_eq!($expected, e.expr, "failed to serialize: {}", output);
         }
     };
 }
 
-macro_rules! test_deserialize_date_operator {
+macro_rules! test_match_bin_op {
     ($func_name:ident, string_op = $string_op:expr, expected_op = $expected_op:expr) => {
-        test_deserialize_expr!(
+        test_serde_stage!(
+            $func_name,
+            expected = Stage::Match(MatchStage {
+                expr: vec![MatchExpression::Field(MatchField {
+                    field: Ref::FieldRef("a".to_string()),
+                    ops: map! { $expected_op =>  bson::Bson::Int32(1) }
+                })]
+            }),
+            input = format!(r#"stage: {{"$match": {{"a": {{"{}": 1}}}}}}"#, $string_op)
+        );
+    };
+}
+
+macro_rules! test_match_logical_vararg {
+    ($func_name:ident, string_op = $string_op:expr, expected_op = $expected_op:expr) => {
+        test_serde_stage!(
+            $func_name,
+            expected = Stage::Match(MatchStage {
+                expr: vec![MatchExpression::Logical($expected_op(vec![
+                    MatchExpression::Field(MatchField {
+                        field: Ref::FieldRef("a".to_string()),
+                        ops: map! { MatchBinaryOp::Gt =>  bson::Bson::Int32(1) }
+                    }),
+                    MatchExpression::Field(MatchField {
+                        field: Ref::FieldRef("a".to_string()),
+                        ops: map! { MatchBinaryOp::Lt =>  bson::Bson::Int32(1) }
+                    }),
+                    MatchExpression::Field(MatchField {
+                        field: Ref::FieldRef("a".to_string()),
+                        ops: map! { MatchBinaryOp::Lte =>  bson::Bson::Int32(1) }
+                    }),
+                ])),]
+            }),
+            input = format!(
+                r#"stage: {{"$match": {{"{}":
+                [{{"a": {{"$gt": 1}}}}, {{"a": {{"$lt": 1}}}}, {{"a": {{"$lte": 1}}}}]
+            }}}}"#,
+                $string_op
+            )
+        );
+    };
+}
+
+macro_rules! test_serde_date_operator {
+    ($func_name:ident, string_op = $string_op:expr, expected_op = $expected_op:expr) => {
+        test_serde_expr!(
             $func_name,
             expected = Expression::TaggedOperator($expected_op(DateExpression {
-                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "date".to_string()
-                ))),
-                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                date: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
+                timezone: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "timezone".to_string()
                 ))))
             })),
@@ -48,26 +111,26 @@ macro_rules! test_deserialize_date_operator {
 
 mod stage_test {
     use crate::definitions::Stage;
-    use serde::Deserialize;
+    use serde::{Deserialize, Serialize};
 
-    #[derive(Debug, PartialEq, Deserialize)]
+    #[derive(Debug, PartialEq, Serialize, Deserialize)]
     struct TestStage {
         stage: Stage,
     }
 
     mod documents {
         use crate::{
-            definitions::{Expression, LiteralValue, Stage, StringOrRef},
+            definitions::{Expression, LiteralValue, Stage},
             map,
         };
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             empty,
             expected = Stage::Documents(vec![]),
             input = r#"stage: {"$documents": []}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             singleton,
             expected = Stage::Documents(vec![
                 map! {"a".to_string() => Expression::Literal(LiteralValue::Integer(1)) }
@@ -75,7 +138,7 @@ mod stage_test {
             input = r#"stage: {"$documents": [{"a": 1}]}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             multiple_elements,
             expected = Stage::Documents(vec![
                 map! {
@@ -83,7 +146,7 @@ mod stage_test {
                     "b".to_string() => Expression::Literal(LiteralValue::Integer(2)),
                 },
                 map! {
-                    "a".to_string() => Expression::StringOrRef(StringOrRef::String("yes".to_string())),
+                    "a".to_string() => Expression::Literal(LiteralValue::String("yes".to_string())),
                     "b".to_string() => Expression::Literal(LiteralValue::Null),
                 },
                 map! {
@@ -105,62 +168,68 @@ mod stage_test {
     mod project {
         use crate::{
             definitions::{
-                Expression, LiteralValue, ProjectItem, Stage, StringOrRef, UntaggedOperator,
+                Expression, LiteralValue, ProjectItem, ProjectStage, Ref, Stage, UntaggedOperator,
             },
             map, ROOT_NAME,
         };
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             empty,
-            expected = Stage::Project(map! {}),
+            expected = Stage::Project(ProjectStage { items: map! {} }),
             input = r#"stage: {"$project": {}}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             singleton_exclusion,
-            expected = Stage::Project(map! { "_id".to_string() => ProjectItem::Exclusion }),
+            expected = Stage::Project(ProjectStage {
+                items: map! { "_id".to_string() => ProjectItem::Exclusion }
+            }),
             input = r#"stage: {"$project": {"_id": 0}}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             singleton_inclusion,
-            expected = Stage::Project(map! { "_id".to_string() => ProjectItem::Inclusion }),
+            expected = Stage::Project(ProjectStage {
+                items: map! { "_id".to_string() => ProjectItem::Inclusion }
+            }),
             input = r#"stage: {"$project": {"_id": 1}}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             singleton_assignment,
-            expected = Stage::Project(
-                map! { "_id".to_string() => ProjectItem::Assignment(Expression::Literal(LiteralValue::Integer(42))) }
-            ),
-            input = r#"stage: {"$project": {"_id": 42}}"#
+            expected = Stage::Project(ProjectStage {
+                items: map! { "_id".to_string() => ProjectItem::Assignment(Expression::Literal(LiteralValue::String("hello".to_string()))) }
+            }),
+            input = r#"stage: {"$project": {"_id": "hello"}}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             multiple_elements,
-            expected = Stage::Project(map! {
-                "_id".to_string() => ProjectItem::Exclusion,
-                "foo".to_string() => ProjectItem::Assignment(Expression::StringOrRef(StringOrRef::Variable(ROOT_NAME.to_string()))),
-                "bar".to_string() => ProjectItem::Assignment(Expression::StringOrRef(StringOrRef::FieldRef("bar".to_string()))),
-                "a".to_string() => ProjectItem::Assignment(Expression::UntaggedOperator(UntaggedOperator {
-                    op: "$add".to_string(),
-                    args: vec![
-                        Expression::Literal(LiteralValue::Integer(1)),
-                        Expression::Literal(LiteralValue::Integer(2)),
-                    ]
-                })),
-                "x".to_string() => ProjectItem::Assignment(Expression::UntaggedOperator(UntaggedOperator {
-                    op: "$literal".to_string(),
-                    args: vec![
-                        Expression::Literal(LiteralValue::Integer(0)),
-                    ]
-                })),
-                "y".to_string() => ProjectItem::Assignment(Expression::UntaggedOperator(UntaggedOperator {
-                    op: "$literal".to_string(),
-                    args: vec![
-                        Expression::Literal(LiteralValue::Integer(1)),
-                    ]
-                })),
+            expected = Stage::Project(ProjectStage {
+                items: map! {
+                    "_id".to_string() => ProjectItem::Exclusion,
+                    "foo".to_string() => ProjectItem::Assignment(Expression::Ref(Ref::VariableRef(ROOT_NAME.to_string()))),
+                    "bar".to_string() => ProjectItem::Assignment(Expression::Ref(Ref::FieldRef("bar".to_string()))),
+                    "a".to_string() => ProjectItem::Assignment(Expression::UntaggedOperator(UntaggedOperator {
+                        op: "$add".to_string(),
+                        args: vec![
+                            Expression::Literal(LiteralValue::Integer(1)),
+                            Expression::Literal(LiteralValue::Integer(2)),
+                        ]
+                    })),
+                    "x".to_string() => ProjectItem::Assignment(Expression::UntaggedOperator(UntaggedOperator {
+                        op: "$literal".to_string(),
+                        args: vec![
+                            Expression::Literal(LiteralValue::Integer(0)),
+                        ]
+                    })),
+                    "y".to_string() => ProjectItem::Assignment(Expression::UntaggedOperator(UntaggedOperator {
+                        op: "$literal".to_string(),
+                        args: vec![
+                            Expression::Literal(LiteralValue::Integer(1)),
+                        ]
+                    })),
+                }
             }),
             input = r#"stage: {"$project": {
                                 "_id": 0,
@@ -175,67 +244,384 @@ mod stage_test {
 
     mod replace_with {
         use crate::{
-            definitions::{Expression, Stage, StringOrRef, UntaggedOperator},
+            definitions::{Expression, Ref, Stage, UntaggedOperator},
             ROOT_NAME,
         };
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             simple,
-            expected = Stage::ReplaceWith(Expression::StringOrRef(StringOrRef::FieldRef(
-                "a".to_string()
-            ))),
+            expected = Stage::ReplaceWith(Expression::Ref(Ref::FieldRef("a".to_string()))),
             input = r#"stage: {"$replaceWith": "$a"}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             complex,
             expected = Stage::ReplaceWith(Expression::UntaggedOperator(UntaggedOperator {
                 op: "$mergeObjects".to_string(),
                 args: vec![
-                    Expression::StringOrRef(StringOrRef::Variable(ROOT_NAME.to_string())),
-                    Expression::StringOrRef(StringOrRef::FieldRef("as".to_string())),
+                    Expression::Ref(Ref::VariableRef(ROOT_NAME.to_string())),
+                    Expression::Ref(Ref::FieldRef("as".to_string())),
                 ]
             })),
             input = r#"stage: {"$replaceWith": {"$mergeObjects": ["$$ROOT", "$as"]}}"#
         );
     }
 
-    mod match_stage {
-        use crate::definitions::{
-            Expression, MatchExpression, Stage, StringOrRef, UntaggedOperator,
+    mod elem_match {
+        use crate::{
+            definitions::{
+                MatchArrayExpression, MatchArrayQuery, MatchBinaryOp, MatchElement,
+                MatchExpression, MatchField, MatchLogical, MatchMisc, MatchStage, Ref, Stage,
+            },
+            map,
         };
 
-        test_deserialize_stage!(
+        test_serde_stage!(
+            elem_match_value,
+            expected = Stage::Match(MatchStage {
+                expr: vec![MatchExpression::Misc(MatchMisc::Element(MatchElement {
+                    field: Ref::FieldRef("x".to_string()),
+                    query: MatchArrayExpression::Value(map! {
+                        MatchBinaryOp::Gt => bson::Bson::Int32(1),
+                        MatchBinaryOp::Lt => bson::Bson::Int32(3)
+                    })
+                }))]
+            }),
+            input = r#"stage: {$match: {x: {$elemMatch: {$gt: 1, $lt: 3}}}}"#
+        );
+
+        test_serde_stage!(
+            elem_match_fields_binaries,
+            expected = Stage::Match(MatchStage {
+                expr: vec![MatchExpression::Misc(MatchMisc::Element(MatchElement {
+                    field: Ref::FieldRef("x".to_string()),
+                    query: MatchArrayExpression::Query(MatchArrayQuery {
+                        query: vec![
+                            MatchExpression::Field(MatchField {
+                                field: Ref::FieldRef("bar".to_string()),
+                                ops: map! { MatchBinaryOp::Eq =>  bson::Bson::Int32(1) }
+                            }),
+                            MatchExpression::Field(MatchField {
+                                field: Ref::FieldRef("foo".to_string()),
+                                ops: map! { MatchBinaryOp::Eq =>  bson::Bson::Int32(1) }
+                            })
+                        ]
+                    })
+                }))]
+            }),
+            input = r#"stage: {$match: {x: {$elemMatch: {'bar': {'$eq': 1}, 'foo': 1}}}}"#
+        );
+
+        test_serde_stage!(
+            elem_match_fields_or,
+            expected = Stage::Match(MatchStage {
+                expr: vec![MatchExpression::Misc(MatchMisc::Element(MatchElement {
+                    field: Ref::FieldRef("x".to_string()),
+                    query: MatchArrayExpression::Query(MatchArrayQuery {
+                        query: vec![MatchExpression::Logical(MatchLogical::Or(vec![
+                            MatchExpression::Field(MatchField {
+                                field: Ref::FieldRef("foo".to_string()),
+                                ops: map! { MatchBinaryOp::Eq =>  bson::Bson::Int32(1) }
+                            }),
+                            MatchExpression::Field(MatchField {
+                                field: Ref::FieldRef("bar".to_string()),
+                                ops: map! { MatchBinaryOp::Eq =>  bson::Bson::Int32(32) }
+                            })
+                        ]))]
+                    })
+                }))]
+            }),
+            input = r#"stage: {$match: {x: {$elemMatch: {$or: [{foo: {$eq: 1}}, {bar: 32}]}}}}"#
+        );
+    }
+
+    mod match_stage {
+        use crate::{
+            definitions::{
+                Expression, LiteralValue, MatchBinaryOp, MatchComment, MatchExpr, MatchExpression,
+                MatchField, MatchJsonSchema, MatchLogical, MatchMisc, MatchNot, MatchNotExpression,
+                MatchRegex, MatchStage, MatchText, MatchTextContents, MatchWhere, Ref, Stage,
+                UntaggedOperator,
+            },
+            map,
+        };
+
+        test_serde_stage!(
             expr,
-            expected = Stage::Match(MatchExpression {
-                expr: Box::new(Expression::UntaggedOperator(UntaggedOperator {
-                    op: "$sqlEq".to_string(),
-                    args: vec![
-                        Expression::StringOrRef(StringOrRef::FieldRef("a".to_string())),
-                        Expression::StringOrRef(StringOrRef::FieldRef("b".to_string())),
-                    ]
-                }))
+            expected = Stage::Match(MatchStage {
+                expr: vec![MatchExpression::Expr(MatchExpr {
+                    expr: Box::new(Expression::UntaggedOperator(UntaggedOperator {
+                        op: "$sqlEq".to_string(),
+                        args: vec![
+                            Expression::Ref(Ref::FieldRef("a".to_string())),
+                            Expression::Ref(Ref::FieldRef("b".to_string())),
+                        ]
+                    }))
+                })]
             }),
             input = r#"stage: {"$match": {"$expr": {"$sqlEq": ["$a", "$b"]}}}"#
+        );
+
+        test_serde_stage!(
+            implicit_eq,
+            expected = Stage::Match(MatchStage {
+                expr: vec![MatchExpression::Field(MatchField {
+                    field: Ref::FieldRef("a".to_string()),
+                    ops: map! { MatchBinaryOp::Eq =>  bson::Bson::Int32(1) }
+                })]
+            }),
+            input = r#"stage: {"$match": {"a": 1}}"#
+        );
+
+        test_match_bin_op!(
+            explicit_eq,
+            string_op = "$eq",
+            expected_op = MatchBinaryOp::Eq
+        );
+        test_match_bin_op!(gt, string_op = "$gt", expected_op = MatchBinaryOp::Gt);
+        test_match_bin_op!(gte, string_op = "$gte", expected_op = MatchBinaryOp::Gte);
+        test_match_bin_op!(in_op, string_op = "$in", expected_op = MatchBinaryOp::In);
+        test_match_bin_op!(lt, string_op = "$lt", expected_op = MatchBinaryOp::Lt);
+        test_match_bin_op!(lte, string_op = "$lte", expected_op = MatchBinaryOp::Lte);
+        test_match_bin_op!(ne, string_op = "$ne", expected_op = MatchBinaryOp::Ne);
+        test_match_bin_op!(nin, string_op = "$nin", expected_op = MatchBinaryOp::Nin);
+        test_match_bin_op!(
+            exists,
+            string_op = "$exists",
+            expected_op = MatchBinaryOp::Exists
+        );
+        test_match_bin_op!(
+            type_op,
+            string_op = "$type",
+            expected_op = MatchBinaryOp::Type
+        );
+        test_match_bin_op!(
+            size_op,
+            string_op = "$size",
+            expected_op = MatchBinaryOp::Size
+        );
+        test_match_bin_op!(mod_op, string_op = "$mod", expected_op = MatchBinaryOp::Mod);
+        test_match_bin_op!(
+            bits_any_set,
+            string_op = "$bitsAnySet",
+            expected_op = MatchBinaryOp::BitsAnySet
+        );
+        test_match_bin_op!(
+            bits_any_clear,
+            string_op = "$bitsAnyClear",
+            expected_op = MatchBinaryOp::BitsAnyClear
+        );
+        test_match_bin_op!(
+            bits_all_set,
+            string_op = "$bitsAllSet",
+            expected_op = MatchBinaryOp::BitsAllSet
+        );
+        test_match_bin_op!(
+            bits_all_clear,
+            string_op = "$bitsAllClear",
+            expected_op = MatchBinaryOp::BitsAllClear
+        );
+        test_match_bin_op!(all, string_op = "$all", expected_op = MatchBinaryOp::All);
+        test_match_bin_op!(
+            geo_intersects,
+            string_op = "$geoIntersects",
+            expected_op = MatchBinaryOp::GeoIntersects
+        );
+        test_match_bin_op!(
+            geo_within,
+            string_op = "$geoWithin",
+            expected_op = MatchBinaryOp::GeoWithin
+        );
+        test_match_bin_op!(near, string_op = "$near", expected_op = MatchBinaryOp::Near);
+        test_match_bin_op!(
+            near_sphere,
+            string_op = "$nearSphere",
+            expected_op = MatchBinaryOp::NearSphere
+        );
+
+        test_serde_stage!(
+            multi_conditions_on_field,
+            expected = Stage::Match(MatchStage {
+                expr: vec![MatchExpression::Field(MatchField {
+                    field: Ref::FieldRef("a".to_string()),
+                    ops: map! {
+                        MatchBinaryOp::Eq =>  bson::Bson::Int32(1),
+                        MatchBinaryOp::Ne =>  bson::Bson::String("hello".to_string())
+                    }
+                }),]
+            }),
+            input = r#"stage: {"$match": {"a": {"$eq": 1, "$ne": "hello"}}}"#
+        );
+
+        test_serde_stage!(
+            multi_fields_in_match_stage,
+            expected = Stage::Match(MatchStage {
+                expr: vec![
+                    MatchExpression::Field(MatchField {
+                        field: Ref::FieldRef("a".to_string()),
+                        ops: map! { MatchBinaryOp::Eq =>  bson::Bson::Int32(1) }
+                    }),
+                    MatchExpression::Field(MatchField {
+                        field: Ref::FieldRef("b".to_string()),
+                        ops: map! { MatchBinaryOp::Ne =>  bson::Bson::String("hello".to_string()) }
+                    }),
+                ]
+            }),
+            input = r#"stage: {"$match": {"a": {"$eq": 1}, "b": {"$ne": "hello"}}}"#
+        );
+
+        test_match_logical_vararg!(or, string_op = "$or", expected_op = MatchLogical::Or);
+        test_match_logical_vararg!(and, string_op = "$and", expected_op = MatchLogical::And);
+        test_match_logical_vararg!(nor, string_op = "$nor", expected_op = MatchLogical::Nor);
+
+        test_serde_stage!(
+            not_query,
+            expected = Stage::Match(MatchStage {
+                expr: vec![MatchExpression::Logical(MatchLogical::Not(MatchNot {
+                    field: Ref::FieldRef("bar".to_string()),
+                    expr: MatchNotExpression::Query(map! {
+                        MatchBinaryOp::Ne => bson::Bson::Int32(42),
+                        MatchBinaryOp::Gt => bson::Bson::Int32(50)
+                    })
+                })),]
+            }),
+            input = r#"stage: {"$match": {"bar": {"$not": {$ne: 42, $gt: 50}}}}"#
+        );
+
+        test_serde_stage!(
+            not_regex,
+            expected = Stage::Match(MatchStage {
+                expr: vec![MatchExpression::Logical(MatchLogical::Not(MatchNot {
+                    field: Ref::FieldRef("bar".to_string()),
+                    expr: MatchNotExpression::Regex(bson::Bson::String("hello world!".to_string())),
+                })),]
+            }),
+            input = r#"stage: {"$match": {"bar": {"$not": "hello world!"}}}"#
+        );
+
+        test_serde_stage!(
+            where_expr,
+            expected = Stage::Match(MatchStage {
+                expr: vec![MatchExpression::Misc(MatchMisc::Where(MatchWhere {
+                    code: bson::Bson::String("function() { return this.isGood == 42 }".to_string()),
+                })),]
+            }),
+            input = r#"stage: {"$match": {"$where": "function() { return this.isGood == 42 }"}}"#
+        );
+
+        test_serde_stage!(
+            text,
+            expected = Stage::Match(MatchStage {
+                expr: vec![MatchExpression::Misc(MatchMisc::Text(MatchText {
+                    expr: MatchTextContents {
+                        search: "Coffee".to_string(),
+                        language: Some("English".to_string()),
+                        case_sensitive: Some(true),
+                        diacritic_sensitive: Some(false),
+                    }
+                }))]
+            }),
+            input = r#"stage: {"$match":  {"$text": {"$search": "Coffee", "$language": "English", "$caseSensitive": true, "$diacriticSensitive": false }}}"#
+        );
+
+        test_serde_stage!(
+            json_schema,
+            expected = Stage::Match(MatchStage {
+                expr: vec![MatchExpression::Misc(MatchMisc::JsonSchema(
+                    MatchJsonSchema {
+                        schema: bson::Bson::Document(
+                            map! { "bsonType".to_string() => bson::Bson::String("object".to_string()) }
+                        ),
+                    }
+                )),]
+            }),
+            input = r#"stage: {"$match": {"$jsonSchema": {"bsonType": "object"}}}"#
+        );
+
+        test_serde_stage!(
+            regex_no_options,
+            expected = Stage::Match(MatchStage {
+                expr: vec![MatchExpression::Misc(MatchMisc::Regex(MatchRegex {
+                    field: Ref::FieldRef("x".to_string()),
+                    pattern: bson::Bson::String("hello".to_string()),
+                    options: None,
+                })),]
+            }),
+            input = r#"stage: {"$match": {"x": {"$regex": "hello"}}}"#
+        );
+
+        test_serde_stage!(
+            regex_options,
+            expected = Stage::Match(MatchStage {
+                expr: vec![MatchExpression::Misc(MatchMisc::Regex(MatchRegex {
+                    field: Ref::FieldRef("x".to_string()),
+                    pattern: bson::Bson::String("hello".to_string()),
+                    options: Some("i".to_string()),
+                })),]
+            }),
+            input = r#"stage: {"$match": {"x": {"$regex": "hello", "$options": "i"}}}"#
+        );
+
+        test_serde_stage!(
+            mixed_match_top_level,
+            expected = Stage::Match(MatchStage {
+                expr: vec![
+                    MatchExpression::Misc(MatchMisc::Comment(MatchComment {
+                        comment: "hello!".to_string()
+                    })),
+                    MatchExpression::Misc(MatchMisc::Where(MatchWhere {
+                        code: bson::Bson::String(
+                            "function() { return this.isGood == 42 }".to_string()
+                        ),
+                    })),
+                    MatchExpression::Field(MatchField {
+                        field: Ref::FieldRef("foo".to_string()),
+                        ops: map! { MatchBinaryOp::Eq =>  bson::Bson::Int32(1) }
+                    }),
+                    MatchExpression::Logical(MatchLogical::Not(MatchNot {
+                        field: Ref::FieldRef("bar".to_string()),
+                        expr: MatchNotExpression::Query(map! {
+                            MatchBinaryOp::Ne => bson::Bson::Int32(42)
+                        })
+                    })),
+                    MatchExpression::Logical(MatchLogical::Or(vec![
+                        MatchExpression::Expr(MatchExpr {
+                            expr: Expression::UntaggedOperator(UntaggedOperator {
+                                op: "$eq".to_string(),
+                                args: vec![
+                                    Expression::Ref(Ref::FieldRef("a".to_string())),
+                                    Expression::Literal(LiteralValue::Integer(1))
+                                ]
+                            })
+                            .into()
+                        }),
+                        MatchExpression::Field(MatchField {
+                            field: Ref::FieldRef("b".to_string()),
+                            ops: map! { MatchBinaryOp::Eq =>  bson::Bson::Int32(2) }
+                        }),
+                    ])),
+                ]
+            }),
+            input = r#"stage: {"$match": {"$comment": "hello!", "$where": "function() { return this.isGood == 42 }", "foo": 1, "bar": {"$not": {$ne: 42}},  "$or": [{$expr: {$eq: [$a, 1]}}, {b: 2}]}}"#
         );
     }
 
     mod const_stages {
         use crate::definitions::Stage;
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             limit,
             expected = Stage::Limit(10),
             input = r#"stage: {"$limit": 10}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             skip,
             expected = Stage::Skip(100),
             input = r#"stage: {"$skip": 100}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             count,
             expected = Stage::Count("a".to_string()),
             input = r#"stage: {"$count": "a"}"#
@@ -245,19 +631,19 @@ mod stage_test {
     mod sort {
         use crate::{definitions::Stage, map};
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             empty,
             expected = Stage::Sort(map! {}),
             input = r#"stage: {"$sort": {}}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             singleton,
             expected = Stage::Sort(map! { "a".to_string() => 1 }),
             input = r#"stage: {"$sort": {"a": 1}}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             multiple_elements,
             expected = Stage::Sort(map! { "a".to_string() => 1, "b".to_string() => -1 }),
             input = r#"stage: {"$sort": {"a": 1, "b": -1}}"#
@@ -265,34 +651,30 @@ mod stage_test {
     }
 
     mod unwind {
-        use crate::definitions::{Expression, Stage, StringOrRef, Unwind, UnwindExpr};
+        use crate::definitions::{Expression, Ref, Stage, Unwind, UnwindExpr};
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             unwind_field_ref,
-            expected = Stage::Unwind(Unwind::FieldPath(Expression::StringOrRef(
-                StringOrRef::FieldRef("eca58228-b657-498a-b76e-f48a9161a404".to_string())
-            ))),
+            expected = Stage::Unwind(Unwind::FieldPath(Expression::Ref(Ref::FieldRef(
+                "eca58228-b657-498a-b76e-f48a9161a404".to_string()
+            )))),
             input = r#"stage: { "$unwind": "$eca58228-b657-498a-b76e-f48a9161a404" }"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             unwind_document_no_options,
             expected = Stage::Unwind(Unwind::Document(UnwindExpr {
-                path: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "array".to_string()
-                ))),
+                path: Box::new(Expression::Ref(Ref::FieldRef("array".to_string()))),
                 include_array_index: None,
                 preserve_null_and_empty_arrays: None
             })),
             input = r#"stage: {"$unwind": {"path": "$array"}}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             unwind_document_all_options,
             expected = Stage::Unwind(Unwind::Document(UnwindExpr {
-                path: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "array".to_string()
-                ))),
+                path: Box::new(Expression::Ref(Ref::FieldRef("array".to_string()))),
                 include_array_index: Some("i".to_string()),
                 preserve_null_and_empty_arrays: Some(true)
             })),
@@ -303,13 +685,13 @@ mod stage_test {
     mod join {
         use crate::{
             definitions::{
-                Expression, Join, JoinType, LiteralValue, ProjectItem, Stage, StringOrRef,
+                Expression, Join, JoinType, LiteralValue, ProjectItem, ProjectStage, Ref, Stage,
                 UntaggedOperator,
             },
             map,
         };
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             inner_join,
             expected = Stage::Join(Box::new(Join {
                 database: None,
@@ -323,7 +705,7 @@ mod stage_test {
                 r#"stage: {"$join": {"collection": "bar", "joinType": "inner", "pipeline": [] }}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             left_join_with_db,
             expected = Stage::Join(Box::new(Join {
                 database: Some("db".to_string()),
@@ -343,7 +725,7 @@ mod stage_test {
               }"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             join_with_no_collection_and_pipeline,
             expected = Stage::Join(Box::new(Join {
                 database: None,
@@ -367,24 +749,26 @@ mod stage_test {
               }"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             join_with_let_vars_and_condition,
             expected = Stage::Join(Box::new(Join {
                 database: None,
                 collection: Some("bar".to_string()),
                 let_body: Some(map! {
-                    "x".to_string() => Expression::StringOrRef(StringOrRef::FieldRef("x".to_string()))
+                    "x".to_string() => Expression::Ref(Ref::FieldRef("x".to_string()))
                 }),
                 join_type: JoinType::Inner,
-                pipeline: vec![Stage::Project(map! {
-                    "_id".to_string() => ProjectItem::Exclusion,
-                    "x".to_string() => ProjectItem::Inclusion,
+                pipeline: vec![Stage::Project(ProjectStage {
+                    items: map! {
+                        "_id".to_string() => ProjectItem::Exclusion,
+                        "x".to_string() => ProjectItem::Inclusion,
+                    }
                 })],
                 condition: Some(Expression::UntaggedOperator(UntaggedOperator {
                     op: "$sqlEq".to_string(),
                     args: vec![
-                        Expression::StringOrRef(StringOrRef::Variable("x".to_string())),
-                        Expression::StringOrRef(StringOrRef::FieldRef("x".to_string())),
+                        Expression::Ref(Ref::VariableRef("x".to_string())),
+                        Expression::Ref(Ref::FieldRef("x".to_string())),
                     ]
                 })),
             })),
@@ -401,7 +785,7 @@ mod stage_test {
               }"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             nested_join,
             expected = Stage::Join(Box::new(Join {
                 database: None,
@@ -459,13 +843,13 @@ mod stage_test {
     mod lookup_test {
         use crate::{
             definitions::{
-                Expression, LiteralValue, Lookup, LookupFrom, MatchExpression, Namespace,
-                ProjectItem, Stage, StringOrRef, UntaggedOperator,
+                Expression, LiteralValue, Lookup, LookupFrom, MatchExpr, MatchExpression,
+                MatchStage, Namespace, ProjectItem, ProjectStage, Ref, Stage, UntaggedOperator,
             },
             map,
         };
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             lookup_with_no_optional_fields,
             expected = Stage::Lookup(Lookup {
                 from: None,
@@ -475,7 +859,7 @@ mod stage_test {
             }),
             input = r#"stage: {"$lookup": {"pipeline": [], "as": "as_var"}}"#
         );
-        test_deserialize_stage!(
+        test_serde_stage!(
             lookup_from_collection,
             expected = Stage::Lookup(Lookup {
                 from: Some(LookupFrom::Collection("from_coll".to_string())),
@@ -485,7 +869,7 @@ mod stage_test {
             }),
             input = r#"stage: {"$lookup": {"from": "from_coll", "pipeline": [], "as": "as_var"}}"#
         );
-        test_deserialize_stage!(
+        test_serde_stage!(
             lookup_from_namespace,
             expected = Stage::Lookup(Lookup {
                 from: Some(LookupFrom::Namespace(Namespace {
@@ -498,7 +882,7 @@ mod stage_test {
             }),
             input = r#"stage: {"$lookup": {"from": {"db": "from_db", "coll": "from_coll"}, "pipeline": [], "as": "as_var"}}"#
         );
-        test_deserialize_stage!(
+        test_serde_stage!(
             lookup_with_single_let_var,
             expected = Stage::Lookup(Lookup {
                 from: Some(LookupFrom::Namespace(Namespace {
@@ -518,7 +902,7 @@ mod stage_test {
                 "as": "as_var"
             }}"#
         );
-        test_deserialize_stage!(
+        test_serde_stage!(
             lookup_with_multiple_let_vars,
             expected = Stage::Lookup(Lookup {
                 from: Some(LookupFrom::Namespace(Namespace {
@@ -527,7 +911,7 @@ mod stage_test {
                 })),
                 let_body: Some(map! {
                     "x".to_string() => Expression::Literal(LiteralValue::Integer(9)),
-                    "y".to_string() => Expression::StringOrRef(StringOrRef::FieldRef("z".to_string())),
+                    "y".to_string() => Expression::Ref(Ref::FieldRef("z".to_string())),
                 }),
                 pipeline: vec![],
                 as_var: "as_var".to_string()
@@ -543,7 +927,7 @@ mod stage_test {
             }}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             lookup_with_pipeline,
             expected = Stage::Lookup(Lookup {
                 from: Some(LookupFrom::Namespace(Namespace {
@@ -551,23 +935,25 @@ mod stage_test {
                     coll: "bar".to_string()
                 })),
                 let_body: Some(map! {
-                    "foo_b_0".to_string() => Expression::StringOrRef(StringOrRef::FieldRef("b".to_string())),
+                    "foo_b_0".to_string() => Expression::Ref(Ref::FieldRef("b".to_string())),
                 }),
                 pipeline: vec![
-                    Stage::Match(MatchExpression {
-                        expr: Box::new(Expression::UntaggedOperator(UntaggedOperator {
-                            op: "$eq".to_string(),
-                            args: vec![
-                                Expression::StringOrRef(StringOrRef::Variable(
-                                    "foo_b_0".to_string()
-                                )),
-                                Expression::StringOrRef(StringOrRef::FieldRef("b".to_string()))
-                            ]
-                        }))
+                    Stage::Match(MatchStage {
+                        expr: vec![MatchExpression::Expr(MatchExpr {
+                            expr: Box::new(Expression::UntaggedOperator(UntaggedOperator {
+                                op: "$eq".to_string(),
+                                args: vec![
+                                    Expression::Ref(Ref::VariableRef("foo_b_0".to_string())),
+                                    Expression::Ref(Ref::FieldRef("b".to_string()))
+                                ]
+                            }))
+                        })]
                     }),
-                    Stage::Project(map! {
-                        "_id".to_string() => ProjectItem::Exclusion,
-                        "a".to_string() => ProjectItem::Inclusion,
+                    Stage::Project(ProjectStage {
+                        items: map! {
+                            "_id".to_string() => ProjectItem::Exclusion,
+                            "a".to_string() => ProjectItem::Inclusion,
+                        }
                     })
                 ],
                 as_var: "__subquery_result_0".to_string()
@@ -590,13 +976,12 @@ mod stage_test {
     mod group_test {
         use crate::{
             definitions::{
-                Expression, Group, GroupAccumulator, GroupAccumulatorExpr, LiteralValue, Stage,
-                StringOrRef,
+                Expression, Group, GroupAccumulator, GroupAccumulatorExpr, LiteralValue, Ref, Stage,
             },
             map,
         };
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             group_null_id_no_acc,
             expected = Stage::Group(Group {
                 keys: Expression::Literal(LiteralValue::Null),
@@ -607,14 +992,14 @@ mod stage_test {
             }}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             group_with_single_acc,
             expected = Stage::Group(Group {
                 keys: Expression::Literal(LiteralValue::Null),
                 aggregations: map! {
                     "acc".to_string() => GroupAccumulator {
                         function: "$sqlSum".to_string(),
-                        expr: GroupAccumulatorExpr::SqlAccumulator { distinct: true, var: Box::new(Expression::StringOrRef(StringOrRef::FieldRef("a".to_string()))) }
+                        expr: GroupAccumulatorExpr::SqlAccumulator { distinct: true, var: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))) }
                     }
                 }
             }),
@@ -627,20 +1012,20 @@ mod stage_test {
               }"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             group_with_keys_and_multiple_acc,
             expected = Stage::Group(Group {
                 keys: Expression::Document(map! {
-                    "a".to_string() => Expression::StringOrRef(StringOrRef::FieldRef("a".to_string()))
+                    "a".to_string() => Expression::Ref(Ref::FieldRef("a".to_string()))
                 },),
                 aggregations: map! {
                     "acc_one".to_string() => GroupAccumulator {
                         function: "$sqlSum".to_string(),
-                        expr: GroupAccumulatorExpr::SqlAccumulator { distinct: true, var: Box::new(Expression::StringOrRef(StringOrRef::FieldRef("a".to_string()))) },
+                        expr: GroupAccumulatorExpr::SqlAccumulator { distinct: true, var: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))) },
                     },
                     "acc_two".to_string() => GroupAccumulator {
                         function: "$sqlAvg".to_string(),
-                        expr: GroupAccumulatorExpr::SqlAccumulator { distinct: true, var: Box::new(Expression::StringOrRef(StringOrRef::FieldRef("b".to_string()))) },
+                        expr: GroupAccumulatorExpr::SqlAccumulator { distinct: true, var: Box::new(Expression::Ref(Ref::FieldRef("b".to_string()))) },
                     },
                 }
             }),
@@ -654,14 +1039,14 @@ mod stage_test {
             }"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             group_with_non_sql_acc,
             expected = Stage::Group(Group {
                 keys: Expression::Literal(LiteralValue::Null),
                 aggregations: map! {
                     "acc".to_string() => GroupAccumulator {
                         function: "$addToSet".to_string(),
-                        expr: GroupAccumulatorExpr::NonSqlAccumulator(Expression::StringOrRef(StringOrRef::FieldRef("a".to_string()))),
+                        expr: GroupAccumulatorExpr::NonSqlAccumulator(Expression::Ref(Ref::FieldRef("a".to_string()))),
                     }
                 }
             }),
@@ -676,7 +1061,7 @@ mod stage_test {
         };
         use bson::Bson;
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             only_group_by_and_boundaries,
             expected = Stage::Bucket(Bucket {
                 group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -690,7 +1075,7 @@ mod stage_test {
             }}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             with_default,
             expected = Stage::Bucket(Bucket {
                 group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -705,7 +1090,7 @@ mod stage_test {
             }}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             fully_specified_with_one_output,
             expected = Stage::Bucket(Bucket {
                 group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -728,7 +1113,7 @@ mod stage_test {
             }}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             fully_specified_with_multiple_output,
             expected = Stage::Bucket(Bucket {
                 group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -763,7 +1148,7 @@ mod stage_test {
             map,
         };
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             only_group_by_and_buckets,
             expected = Stage::BucketAuto(BucketAuto {
                 group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -777,7 +1162,7 @@ mod stage_test {
             }}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             with_granularity,
             expected = Stage::BucketAuto(BucketAuto {
                 group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -792,7 +1177,7 @@ mod stage_test {
             }}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             fully_specified_with_one_output,
             expected = Stage::BucketAuto(BucketAuto {
                 group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -815,7 +1200,7 @@ mod stage_test {
             }}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             fully_specified_with_multiple_output,
             expected = Stage::BucketAuto(BucketAuto {
                 group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -846,19 +1231,15 @@ mod stage_test {
 
     mod search_stages {
         use crate::{
-            definitions::{
-                AtlasSearchStage, Expression, GraphLookup, LiteralValue, Stage, StringOrRef,
-            },
+            definitions::{AtlasSearchStage, Expression, GraphLookup, LiteralValue, Ref, Stage},
             map,
         };
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             graph_lookup,
             expected = Stage::GraphLookup(GraphLookup {
                 from: "start".to_string(),
-                start_with: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "start".to_string()
-                ))),
+                start_with: Box::new(Expression::Ref(Ref::FieldRef("start".to_string()))),
                 connect_from_field: "start".to_string(),
                 connect_to_field: "end".to_string(),
                 r#as: "path".to_string(),
@@ -882,31 +1263,31 @@ mod stage_test {
 
         // testing every possible permutation of $search, $searchMeta, and $vectorSearch isn't something
         // we need to do since we do not have plans to inspect them
-        test_deserialize_stage!(
+        test_serde_stage!(
             search,
             expected = Stage::AtlasSearchStage(AtlasSearchStage::Search(Box::new(
                 Expression::Document(
-                    map! {"autocomplete".to_string() => Expression::Document(map! {"query".to_string() => Expression::StringOrRef(StringOrRef::String("off".to_string())), "path".to_string() => Expression::StringOrRef(StringOrRef::String("title".to_string()))})}
+                    map! {"autocomplete".to_string() => Expression::Document(map! {"query".to_string() => Expression::Literal(LiteralValue::String("off".to_string())), "path".to_string() => Expression::Literal(LiteralValue::String("title".to_string()))})}
                 )
             ))),
             input = r#"stage: {"$search": {"autocomplete": {"query": "off", "path": "title"}}}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             search_meta,
             expected = Stage::AtlasSearchStage(AtlasSearchStage::SearchMeta(Box::new(
                 Expression::Document(
-                    map! {"searchTerm".to_string() => Expression::StringOrRef(StringOrRef::String("off".to_string()))}
+                    map! {"searchTerm".to_string() => Expression::Literal(LiteralValue::String("off".to_string()))}
                 )
             ))),
             input = r#"stage: {"$searchMeta": {"searchTerm": "off"}}"#
         );
 
-        test_deserialize_stage!(
+        test_serde_stage!(
             vector_search,
             expected = Stage::AtlasSearchStage(AtlasSearchStage::VectorSearch(Box::new(
                 Expression::Document(
-                    map! {"vectorSearch".to_string() => Expression::Document(map! {"query".to_string() => Expression::StringOrRef(StringOrRef::String("off".to_string())), "path".to_string() => Expression::StringOrRef(StringOrRef::String("title".to_string()))})}
+                    map! {"vectorSearch".to_string() => Expression::Document(map! {"query".to_string() => Expression::Literal(LiteralValue::String("off".to_string())), "path".to_string() => Expression::Literal(LiteralValue::String("title".to_string()))})}
                 )
             ))),
             input =
@@ -917,9 +1298,9 @@ mod stage_test {
 
 mod expression_test {
     use crate::definitions::Expression;
-    use serde::Deserialize;
+    use serde::{Deserialize, Serialize};
 
-    #[derive(Debug, PartialEq, Deserialize)]
+    #[derive(Debug, PartialEq, Deserialize, Serialize)]
     struct TestExpr {
         expr: Expression,
     }
@@ -927,37 +1308,37 @@ mod expression_test {
     mod literal {
         use crate::definitions::{Expression, LiteralValue};
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             null,
             expected = Expression::Literal(LiteralValue::Null),
             input = r#"expr: null"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             boolean_true,
             expected = Expression::Literal(LiteralValue::Boolean(true)),
             input = r#"expr: true"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             boolean_false,
             expected = Expression::Literal(LiteralValue::Boolean(false)),
             input = r#"expr: false"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             int,
             expected = Expression::Literal(LiteralValue::Integer(1)),
             input = r#"expr: 1"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             long,
             expected = Expression::Literal(LiteralValue::Long(2147483648)),
             input = r#"expr: 2147483648"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             double,
             expected = Expression::Literal(LiteralValue::Double(1.5)),
             input = r#"expr: 1.5"#
@@ -965,53 +1346,53 @@ mod expression_test {
     }
 
     mod string_or_ref {
-        use crate::definitions::{Expression, StringOrRef};
+        use crate::definitions::{Expression, LiteralValue, Ref};
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             string,
-            expected = Expression::StringOrRef(StringOrRef::String("yes".to_string())),
+            expected = Expression::Literal(LiteralValue::String("yes".to_string())),
             input = r#"expr: "yes""#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             simple_field_ref,
-            expected = Expression::StringOrRef(StringOrRef::FieldRef("a".to_string())),
+            expected = Expression::Ref(Ref::FieldRef("a".to_string())),
             input = r#"expr: "$a""#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             nested_field_ref,
-            expected = Expression::StringOrRef(StringOrRef::FieldRef("a.b.c".to_string())),
+            expected = Expression::Ref(Ref::FieldRef("a.b.c".to_string())),
             input = r#"expr: "$a.b.c""#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             variable,
-            expected = Expression::StringOrRef(StringOrRef::Variable("v".to_string())),
+            expected = Expression::Ref(Ref::VariableRef("v".to_string())),
             input = r#"expr: "$$v""#
         );
     }
 
     mod array {
-        use crate::definitions::{Expression, LiteralValue, StringOrRef};
+        use crate::definitions::{Expression, LiteralValue};
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             empty,
             expected = Expression::Array(vec![]),
             input = r#"expr: []"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             singleton,
             expected = Expression::Array(vec![Expression::Literal(LiteralValue::Integer(1))]),
             input = r#"expr: [1]"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             multiple_elements,
             expected = Expression::Array(vec![
                 Expression::Literal(LiteralValue::Integer(1)),
-                Expression::StringOrRef(StringOrRef::String("yes".to_string())),
+                Expression::Literal(LiteralValue::String("yes".to_string())),
                 Expression::Array(vec![
                     Expression::Literal(LiteralValue::Boolean(true)),
                     Expression::Literal(LiteralValue::Double(4.1)),
@@ -1023,17 +1404,17 @@ mod expression_test {
 
     mod document {
         use crate::{
-            definitions::{Expression, LiteralValue, StringOrRef},
+            definitions::{Expression, LiteralValue},
             map,
         };
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             empty,
             expected = Expression::Document(map! {}),
             input = r#"expr: {}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             singleton,
             expected = Expression::Document(
                 map! {"a".to_string() => Expression::Literal(LiteralValue::Integer(1))}
@@ -1041,11 +1422,11 @@ mod expression_test {
             input = r#"expr: {"a": 1}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             multiple_elements,
             expected = Expression::Document(map! {
                 "a".to_string() => Expression::Literal(LiteralValue::Integer(1)),
-                "b".to_string() => Expression::StringOrRef(StringOrRef::String("two".to_string())),
+                "b".to_string() => Expression::Literal(LiteralValue::String("two".to_string())),
                 "c".to_string() => Expression::Document(map! {
                     "x".to_string() => Expression::Literal(LiteralValue::Boolean(false))
                 }),
@@ -1053,7 +1434,7 @@ mod expression_test {
             input = r#"expr: {"a": 1, "b": "two", "c": {"x": false}}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             similar_to_op_but_no_dollarx,
             expected = Expression::Document(map! {
                 "notOp".to_string() => Expression::Array(vec![
@@ -1072,32 +1453,30 @@ mod expression_test {
                 Accumulator, Bottom, BottomN, Convert, DateAdd, DateDiff, DateExpression,
                 DateFromParts, DateFromString, DateSubtract, DateToParts, DateToString, DateTrunc,
                 Expression, Filter, FirstN, Function, GetField, LastN, Let, Like, LiteralValue,
-                Map, MaxNArrayElement, Median, MinNArrayElement, Percentile, ProjectItem, Reduce,
-                RegexFind, RegexFindAll, ReplaceAll, ReplaceOne, SetField, SortArray,
-                SortArraySpec, SqlConvert, SqlDivide, Stage, StringOrRef, Subquery,
+                Map, MaxNArrayElement, Median, MinNArrayElement, Percentile, ProjectItem,
+                ProjectStage, Reduce, Ref, RegexFind, RegexFindAll, ReplaceAll, ReplaceOne,
+                SetField, SortArray, SortArraySpec, SqlConvert, SqlDivide, Stage, Subquery,
                 SubqueryComparison, SubqueryExists, Switch, SwitchCase, TaggedOperator, Top, TopN,
                 UnsetField, UntaggedOperator, Zip,
             },
             map,
         };
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             accumulator_all_args,
             expected = Expression::TaggedOperator(TaggedOperator::Accumulator(Accumulator {
-                init: Box::new(Expression::StringOrRef(StringOrRef::String(
+                init: Box::new(Expression::Literal(LiteralValue::String(
                     "function (y) { return y; }".to_string()
                 ))),
                 init_args: Some(vec![Expression::Literal(LiteralValue::Integer(42))]),
-                accumulate: Box::new(Expression::StringOrRef(StringOrRef::String(
+                accumulate: Box::new(Expression::Literal(LiteralValue::String(
                     "function (acc, curr) { return acc + curr; }".to_string()
                 ))),
-                accumulate_args: vec![Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))],
-                merge: Box::new(Expression::StringOrRef(StringOrRef::String(
+                accumulate_args: vec![Expression::Ref(Ref::FieldRef("a".to_string()))],
+                merge: Box::new(Expression::Literal(LiteralValue::String(
                     "function (a, b) { return a + b; }".to_string()
                 ))),
-                finalize: Some(Box::new(Expression::StringOrRef(StringOrRef::String(
+                finalize: Some(Box::new(Expression::Literal(LiteralValue::String(
                     "function (_x) { return 42; }".to_string()
                 )))),
                 lang: "js".to_string()
@@ -1113,20 +1492,18 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             accumulator_no_optional_args,
             expected = Expression::TaggedOperator(TaggedOperator::Accumulator(Accumulator {
-                init: Box::new(Expression::StringOrRef(StringOrRef::String(
+                init: Box::new(Expression::Literal(LiteralValue::String(
                     "function (y) { return y; }".to_string()
                 ))),
                 init_args: None,
-                accumulate: Box::new(Expression::StringOrRef(StringOrRef::String(
+                accumulate: Box::new(Expression::Literal(LiteralValue::String(
                     "function (acc, curr) { return acc + curr; }".to_string()
                 ))),
-                accumulate_args: vec![Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))],
-                merge: Box::new(Expression::StringOrRef(StringOrRef::String(
+                accumulate_args: vec![Expression::Ref(Ref::FieldRef("a".to_string()))],
+                merge: Box::new(Expression::Literal(LiteralValue::String(
                     "function (a, b) { return a + b; }".to_string()
                 ))),
                 finalize: None,
@@ -1141,10 +1518,10 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             function,
             expected = Expression::TaggedOperator(TaggedOperator::Function(Function {
-                body: Box::new(Expression::StringOrRef(StringOrRef::String(
+                body: Box::new(Expression::Literal(LiteralValue::String(
                     "function (x) { return x + 1; }".to_string()
                 ))),
                 args: vec![
@@ -1160,7 +1537,7 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             get_field,
             expected = Expression::TaggedOperator(TaggedOperator::GetField(GetField {
                 field: "x".to_string(),
@@ -1171,21 +1548,19 @@ mod expression_test {
             input = r#"expr: {"$getField": {"field": "x", "input": {"x": 1}}}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             set_field,
             expected = Expression::TaggedOperator(TaggedOperator::SetField(SetField {
                 field: "x".to_string(),
                 input: Box::new(Expression::Document(map! {
                     "x".to_string() => Expression::Literal(LiteralValue::Integer(1))
                 })),
-                value: Box::new(Expression::StringOrRef(StringOrRef::String(
-                    "new".to_string()
-                )))
+                value: Box::new(Expression::Literal(LiteralValue::String("new".to_string())))
             })),
             input = r#"expr: {"$setField": {"field": "x", "input": {"x": 1}, "value": "new"}}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             unset_field,
             expected = Expression::TaggedOperator(TaggedOperator::UnsetField(UnsetField {
                 field: "x".to_string(),
@@ -1196,20 +1571,16 @@ mod expression_test {
             input = r#"expr: {"$unsetField": {"field": "x", "input": {"x": 1}}}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             switch,
             expected = Expression::TaggedOperator(TaggedOperator::Switch(Switch {
                 branches: vec![
                     SwitchCase {
-                        case: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                            "a".to_string()
-                        ))),
+                        case: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                         then: Box::new(Expression::Literal(LiteralValue::Integer(10))),
                     },
                     SwitchCase {
-                        case: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                            "b".to_string()
-                        ))),
+                        case: Box::new(Expression::Ref(Ref::FieldRef("b".to_string()))),
                         then: Box::new(Expression::Literal(LiteralValue::Integer(20))),
                     },
                 ],
@@ -1224,14 +1595,14 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             let_expr,
             expected = Expression::TaggedOperator(TaggedOperator::Let(Let {
                 vars: map! {
                     "a".to_string() => Expression::Literal(LiteralValue::Integer(1)),
                     "b".to_string() => Expression::Literal(LiteralValue::Integer(2)),
                 },
-                inside: Box::new(Expression::StringOrRef(StringOrRef::String(
+                inside: Box::new(Expression::Literal(LiteralValue::String(
                     "body".to_string()
                 )))
             })),
@@ -1241,12 +1612,10 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             sql_convert,
             expected = Expression::TaggedOperator(TaggedOperator::SqlConvert(SqlConvert {
-                input: Box::new(Expression::StringOrRef(StringOrRef::String(
-                    "1".to_string()
-                ))),
+                input: Box::new(Expression::Literal(LiteralValue::String("1".to_string()))),
                 to: "int".to_string(),
                 on_null: Box::new(Expression::Literal(LiteralValue::Null)),
                 on_error: Box::new(Expression::Literal(LiteralValue::Null)),
@@ -1259,12 +1628,10 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             convert,
             expected = Expression::TaggedOperator(TaggedOperator::Convert(Convert {
-                input: Box::new(Expression::StringOrRef(StringOrRef::String(
-                    "1".to_string()
-                ))),
+                input: Box::new(Expression::Literal(LiteralValue::String("1".to_string()))),
                 to: "int".to_string(),
                 on_null: Box::new(Expression::Literal(LiteralValue::Null)),
                 on_error: Box::new(Expression::Literal(LiteralValue::Null)),
@@ -1277,13 +1644,13 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             like_with_escape,
             expected = Expression::TaggedOperator(TaggedOperator::Like(Like {
-                input: Box::new(Expression::StringOrRef(StringOrRef::String(
+                input: Box::new(Expression::Literal(LiteralValue::String(
                     "x*yz".to_string()
                 ))),
-                pattern: Box::new(Expression::StringOrRef(StringOrRef::String(
+                pattern: Box::new(Expression::Literal(LiteralValue::String(
                     "x!*.*".to_string()
                 ))),
                 escape: Some('!')
@@ -1295,13 +1662,13 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             like_without_escape,
             expected = Expression::TaggedOperator(TaggedOperator::Like(Like {
-                input: Box::new(Expression::StringOrRef(StringOrRef::String(
+                input: Box::new(Expression::Literal(LiteralValue::String(
                     "x*yz".to_string()
                 ))),
-                pattern: Box::new(Expression::StringOrRef(StringOrRef::String(
+                pattern: Box::new(Expression::Literal(LiteralValue::String(
                     "x!*.*".to_string()
                 ))),
                 escape: None
@@ -1312,12 +1679,10 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             sql_divide,
             expected = Expression::TaggedOperator(TaggedOperator::SqlDivide(SqlDivide {
-                dividend: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))),
+                dividend: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 divisor: Box::new(Expression::Literal(LiteralValue::Integer(2))),
                 on_error: Box::new(Expression::Literal(LiteralValue::Null)),
             })),
@@ -1328,16 +1693,14 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             regex_find_with_options,
             expected = Expression::TaggedOperator(TaggedOperator::RegexFind(RegexFind {
-                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))),
-                regex: Box::new(Expression::StringOrRef(StringOrRef::String(
+                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
+                regex: Box::new(Expression::Literal(LiteralValue::String(
                     "pattern".to_string()
                 ))),
-                options: Some(Box::new(Expression::StringOrRef(StringOrRef::String(
+                options: Some(Box::new(Expression::Literal(LiteralValue::String(
                     "imxs".to_string()
                 )))),
             })),
@@ -1348,13 +1711,11 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             regex_find_without_options,
             expected = Expression::TaggedOperator(TaggedOperator::RegexFind(RegexFind {
-                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))),
-                regex: Box::new(Expression::StringOrRef(StringOrRef::String(
+                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
+                regex: Box::new(Expression::Literal(LiteralValue::String(
                     "/pattern/i".to_string()
                 ))),
                 options: None,
@@ -1365,16 +1726,14 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             regex_find_all_with_options,
             expected = Expression::TaggedOperator(TaggedOperator::RegexFindAll(RegexFindAll {
-                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))),
-                regex: Box::new(Expression::StringOrRef(StringOrRef::String(
+                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
+                regex: Box::new(Expression::Literal(LiteralValue::String(
                     "pattern".to_string()
                 ))),
-                options: Some(Box::new(Expression::StringOrRef(StringOrRef::String(
+                options: Some(Box::new(Expression::Literal(LiteralValue::String(
                     "imxs".to_string()
                 )))),
             })),
@@ -1385,13 +1744,11 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             regex_find_all_without_options,
             expected = Expression::TaggedOperator(TaggedOperator::RegexFindAll(RegexFindAll {
-                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))),
-                regex: Box::new(Expression::StringOrRef(StringOrRef::String(
+                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
+                regex: Box::new(Expression::Literal(LiteralValue::String(
                     "/pattern/i".to_string()
                 ))),
                 options: None,
@@ -1402,18 +1759,14 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             replace_all,
             expected = Expression::TaggedOperator(TaggedOperator::ReplaceAll(ReplaceAll {
-                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))),
-                find: Box::new(Expression::StringOrRef(StringOrRef::String(
+                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
+                find: Box::new(Expression::Literal(LiteralValue::String(
                     "pattern".to_string()
                 ))),
-                replacement: Box::new(Expression::StringOrRef(StringOrRef::String(
-                    "new".to_string()
-                ))),
+                replacement: Box::new(Expression::Literal(LiteralValue::String("new".to_string()))),
             })),
             input = r#"expr: {"$replaceAll": {
                                 "input": "$a",
@@ -1422,18 +1775,14 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             replace_one,
             expected = Expression::TaggedOperator(TaggedOperator::ReplaceOne(ReplaceOne {
-                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))),
-                find: Box::new(Expression::StringOrRef(StringOrRef::String(
+                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
+                find: Box::new(Expression::Literal(LiteralValue::String(
                     "pattern".to_string()
                 ))),
-                replacement: Box::new(Expression::StringOrRef(StringOrRef::String(
-                    "new".to_string()
-                ))),
+                replacement: Box::new(Expression::Literal(LiteralValue::String("new".to_string()))),
             })),
             input = r#"expr: {"$replaceOne": {
                                 "input": "$a",
@@ -1442,16 +1791,16 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             sql_subquery,
             expected = Expression::TaggedOperator(TaggedOperator::Subquery(Subquery {
                 db: Some("foo".to_string()),
                 collection: Some("bar".to_string()),
                 let_bindings: None,
                 output_path: Some(vec!["x".to_string()]),
-                pipeline: vec![Stage::Project(
-                    map! {"x".to_string() => ProjectItem::Inclusion}
-                )]
+                pipeline: vec![Stage::Project(ProjectStage {
+                    items: map! {"x".to_string() => ProjectItem::Inclusion}
+                })]
             })),
             input = r#"expr: {"$subquery": {
                             "db": "foo",
@@ -1467,7 +1816,7 @@ mod expression_test {
                           }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             sql_subquery_comparison,
             expected = Expression::TaggedOperator(TaggedOperator::SubqueryComparison(
                 SubqueryComparison {
@@ -1481,7 +1830,9 @@ mod expression_test {
                         output_path: Some(vec!["x".to_string()]),
                         pipeline: vec![
                             Stage::Documents(vec![]),
-                            Stage::Project(map! {"x".to_string() => ProjectItem::Inclusion})
+                            Stage::Project(ProjectStage {
+                                items: map! {"x".to_string() => ProjectItem::Inclusion}
+                            })
                         ]
                     }
                     .into()
@@ -1506,15 +1857,15 @@ mod expression_test {
                           }}}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             sql_subquery_exists,
             expected = Expression::TaggedOperator(TaggedOperator::SubqueryExists(SubqueryExists {
                 db: Some("foo".to_string()),
                 collection: Some("bar".to_string()),
                 let_bindings: None,
-                pipeline: vec![Stage::Project(
-                    map! {"x".to_string() => ProjectItem::Inclusion}
-                )]
+                pipeline: vec![Stage::Project(ProjectStage {
+                    items: map! {"x".to_string() => ProjectItem::Inclusion}
+                })]
             })),
             input = r#"expr: {"$subqueryExists": {
                             "db": "foo",
@@ -1530,12 +1881,12 @@ mod expression_test {
         );
 
         // accumulator operators
-        test_deserialize_expr!(
+        test_serde_expr!(
             bottom,
             expected = Expression::TaggedOperator(TaggedOperator::Bottom(Bottom {
                 output: Box::new(Expression::Array(vec![
-                    Expression::StringOrRef(StringOrRef::FieldRef("playerId".to_string())),
-                    Expression::StringOrRef(StringOrRef::FieldRef("score".to_string()))
+                    Expression::Ref(Ref::FieldRef("playerId".to_string())),
+                    Expression::Ref(Ref::FieldRef("score".to_string()))
                 ])),
                 sort_by: Box::new(Expression::Document(map!(
                     "score".to_string() => Expression::Literal(LiteralValue::Integer(-1))
@@ -1547,12 +1898,12 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             bottom_n,
             expected = Expression::TaggedOperator(TaggedOperator::BottomN(BottomN {
                 output: Box::new(Expression::Array(vec![
-                    Expression::StringOrRef(StringOrRef::FieldRef("playerId".to_string())),
-                    Expression::StringOrRef(StringOrRef::FieldRef("score".to_string()))
+                    Expression::Ref(Ref::FieldRef("playerId".to_string())),
+                    Expression::Ref(Ref::FieldRef("score".to_string()))
                 ])),
                 sort_by: Box::new(Expression::Document(map!(
                     "score".to_string() => Expression::Literal(LiteralValue::Integer(-1))
@@ -1566,13 +1917,11 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             median_numeric_input,
             expected = Expression::TaggedOperator(TaggedOperator::Median(Median {
                 method: "approximate".to_string(),
-                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "test01".to_string()
-                )))
+                input: Box::new(Expression::Ref(Ref::FieldRef("test01".to_string())))
             })),
             input = r#"expr: { $median: {
                                 input: "$test01",
@@ -1580,14 +1929,14 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             median_vec_input,
             expected = Expression::TaggedOperator(TaggedOperator::Median(Median {
                 method: "approximate".to_string(),
                 input: Box::new(Expression::Array(vec![
-                    Expression::StringOrRef(StringOrRef::FieldRef("test01".to_string())),
-                    Expression::StringOrRef(StringOrRef::FieldRef("test02".to_string())),
-                    Expression::StringOrRef(StringOrRef::FieldRef("test03".to_string())),
+                    Expression::Ref(Ref::FieldRef("test01".to_string())),
+                    Expression::Ref(Ref::FieldRef("test02".to_string())),
+                    Expression::Ref(Ref::FieldRef("test03".to_string())),
                 ]))
             })),
             input = r#"expr: { $median: {
@@ -1596,13 +1945,11 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             percentile_numeric_input,
             expected = Expression::TaggedOperator(TaggedOperator::Percentile(Percentile {
                 method: "approximate".to_string(),
-                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "test01".to_string()
-                ))),
+                input: Box::new(Expression::Ref(Ref::FieldRef("test01".to_string()))),
                 p: vec![
                     Expression::Literal(LiteralValue::Double(0.9)),
                     Expression::Literal(LiteralValue::Double(0.5)),
@@ -1617,14 +1964,14 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             percentile_vec_input,
             expected = Expression::TaggedOperator(TaggedOperator::Percentile(Percentile {
                 method: "approximate".to_string(),
                 input: Box::new(Expression::Array(vec![
-                    Expression::StringOrRef(StringOrRef::FieldRef("test01".to_string())),
-                    Expression::StringOrRef(StringOrRef::FieldRef("test02".to_string())),
-                    Expression::StringOrRef(StringOrRef::FieldRef("test03".to_string())),
+                    Expression::Ref(Ref::FieldRef("test01".to_string())),
+                    Expression::Ref(Ref::FieldRef("test02".to_string())),
+                    Expression::Ref(Ref::FieldRef("test03".to_string())),
                 ])),
                 p: vec![
                     Expression::Literal(LiteralValue::Double(0.5)),
@@ -1638,12 +1985,12 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             top,
             expected = Expression::TaggedOperator(TaggedOperator::Top(Top {
                 output: Box::new(Expression::Array(vec![
-                    Expression::StringOrRef(StringOrRef::FieldRef("playerId".to_string())),
-                    Expression::StringOrRef(StringOrRef::FieldRef("score".to_string()))
+                    Expression::Ref(Ref::FieldRef("playerId".to_string())),
+                    Expression::Ref(Ref::FieldRef("score".to_string()))
                 ])),
                 sort_by: Box::new(Expression::Document(map!(
                     "score".to_string() => Expression::Literal(LiteralValue::Integer(-1))
@@ -1655,12 +2002,12 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             top_n,
             expected = Expression::TaggedOperator(TaggedOperator::TopN(TopN {
                 output: Box::new(Expression::Array(vec![
-                    Expression::StringOrRef(StringOrRef::FieldRef("playerId".to_string())),
-                    Expression::StringOrRef(StringOrRef::FieldRef("score".to_string()))
+                    Expression::Ref(Ref::FieldRef("playerId".to_string())),
+                    Expression::Ref(Ref::FieldRef("score".to_string()))
                 ])),
                 sort_by: Box::new(Expression::Document(map!(
                     "score".to_string() => Expression::Literal(LiteralValue::Integer(-1))
@@ -1675,12 +2022,10 @@ mod expression_test {
         );
 
         // Array Operators
-        test_deserialize_expr!(
+        test_serde_expr!(
             first_n,
             expected = Expression::TaggedOperator(TaggedOperator::FirstN(FirstN {
-                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))),
+                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 n: Box::new(Expression::Literal(LiteralValue::Integer(3))),
             })),
             input = r#"expr: {"$firstN": {
@@ -1689,12 +2034,10 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             last_n,
             expected = Expression::TaggedOperator(TaggedOperator::LastN(LastN {
-                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))),
+                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 n: Box::new(Expression::Literal(LiteralValue::Integer(3))),
             })),
             input = r#"expr: {"$lastN": {
@@ -1703,12 +2046,10 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             filter,
             expected = Expression::TaggedOperator(TaggedOperator::Filter(Filter {
-                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))),
+                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 _as: "x".to_string(),
                 cond: Box::new(Expression::Literal(LiteralValue::Integer(2))),
                 limit: None,
@@ -1720,12 +2061,10 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             filter_with_limit,
             expected = Expression::TaggedOperator(TaggedOperator::Filter(Filter {
-                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))),
+                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 _as: "x".to_string(),
                 cond: Box::new(Expression::Literal(LiteralValue::Integer(2))),
                 limit: Some(Box::new(Expression::UntaggedOperator(UntaggedOperator {
@@ -1744,12 +2083,10 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             map,
             expected = Expression::TaggedOperator(TaggedOperator::Map(Map {
-                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))),
+                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 _as: "x".to_string(),
                 inside: Box::new(Expression::Literal(LiteralValue::Integer(2))),
             })),
@@ -1760,13 +2097,11 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             max_n_array_element,
             expected =
                 Expression::TaggedOperator(TaggedOperator::MaxNArrayElement(MaxNArrayElement {
-                    input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                        "a".to_string()
-                    ))),
+                    input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                     n: Box::new(Expression::Literal(LiteralValue::Integer(2))),
                 })),
             input = r#"expr: {"$maxN": {
@@ -1775,13 +2110,11 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             min_n_array_element,
             expected =
                 Expression::TaggedOperator(TaggedOperator::MinNArrayElement(MinNArrayElement {
-                    input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                        "a".to_string()
-                    ))),
+                    input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                     n: Box::new(Expression::Literal(LiteralValue::Integer(2))),
                 })),
             input = r#"expr: {"$minN": {
@@ -1790,17 +2123,15 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             reduce,
             expected = Expression::TaggedOperator(TaggedOperator::Reduce(Reduce {
-                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))),
+                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 initial_value: Box::new(Expression::Literal(LiteralValue::Integer(2))),
                 inside: Box::new(Expression::UntaggedOperator(UntaggedOperator {
                     op: "$add".to_string(),
                     args: vec![
-                        Expression::StringOrRef(StringOrRef::Variable("this".to_string())),
+                        Expression::Ref(Ref::VariableRef("this".to_string())),
                         Expression::Literal(LiteralValue::Integer(2)),
                     ],
                 })),
@@ -1812,12 +2143,10 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             sort_array,
             expected = Expression::TaggedOperator(TaggedOperator::SortArray(SortArray {
-                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))),
+                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 sort_by: SortArraySpec::Keys(map! {
                     "x".to_string() => -1,
                     "y".to_string() => 1,
@@ -1829,12 +2158,10 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             sort_array_with_limit,
             expected = Expression::TaggedOperator(TaggedOperator::SortArray(SortArray {
-                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))),
+                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 sort_by: SortArraySpec::Value(-1),
             })),
             input = r#"expr: {"$sortArray": {
@@ -1843,12 +2170,10 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             zip,
             expected = Expression::TaggedOperator(TaggedOperator::Zip(Zip {
-                inputs: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))),
+                inputs: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 use_longest_length: true,
                 defaults: Some(Box::new(Expression::Array(vec![
                     Expression::Literal(LiteralValue::Integer(1)),
@@ -1863,12 +2188,10 @@ mod expression_test {
             }}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             zip_default_false,
             expected = Expression::TaggedOperator(TaggedOperator::Zip(Zip {
-                inputs: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "a".to_string()
-                ))),
+                inputs: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 use_longest_length: false,
                 defaults: None,
             })),
@@ -1878,132 +2201,122 @@ mod expression_test {
         );
 
         // date operators
-        test_deserialize_expr!(
+        test_serde_expr!(
             hour_no_timezone,
             expected = Expression::TaggedOperator(TaggedOperator::Hour(DateExpression {
-                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "date".to_string()
-                ))),
+                date: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
                 timezone: None
             })),
             input = r#"expr: {"$hour": "$date" }"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             hour_fully_specified,
             expected = Expression::TaggedOperator(TaggedOperator::Hour(DateExpression {
-                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "date".to_string()
-                ))),
-                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                date: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
+                timezone: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "timezone".to_string()
                 ))))
             })),
             input = r#"expr: {"$hour": {date: "$date", timezone: "$timezone" } }"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             hour_document_no_timezone,
             expected = Expression::TaggedOperator(TaggedOperator::Hour(DateExpression {
-                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "date".to_string()
-                ))),
+                date: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
                 timezone: None
             })),
             input = r#"expr: {"$hour": {date: "$date" } }"#
         );
 
-        test_deserialize_date_operator!(
+        test_serde_date_operator!(
             minute_fully_specified,
             string_op = "$minute",
             expected_op = TaggedOperator::Minute
         );
 
-        test_deserialize_date_operator!(
+        test_serde_date_operator!(
             second_fully_specified,
             string_op = "$second",
             expected_op = TaggedOperator::Second
         );
 
-        test_deserialize_date_operator!(
+        test_serde_date_operator!(
             millisecond_fully_specified,
             string_op = "$millisecond",
             expected_op = TaggedOperator::Millisecond
         );
 
-        test_deserialize_date_operator!(
+        test_serde_date_operator!(
             week_fully_specified,
             string_op = "$week",
             expected_op = TaggedOperator::Week
         );
 
-        test_deserialize_date_operator!(
+        test_serde_date_operator!(
             month_fully_specified,
             string_op = "$month",
             expected_op = TaggedOperator::Month
         );
 
-        test_deserialize_date_operator!(
+        test_serde_date_operator!(
             year_fully_specified,
             string_op = "$year",
             expected_op = TaggedOperator::Year
         );
 
-        test_deserialize_date_operator!(
+        test_serde_date_operator!(
             day_of_week_fully_specified,
             string_op = "$dayOfWeek",
             expected_op = TaggedOperator::DayOfWeek
         );
 
-        test_deserialize_date_operator!(
+        test_serde_date_operator!(
             day_of_month_fully_specified,
             string_op = "$dayOfMonth",
             expected_op = TaggedOperator::DayOfMonth
         );
 
-        test_deserialize_date_operator!(
+        test_serde_date_operator!(
             day_of_year_fully_specified,
             string_op = "$dayOfYear",
             expected_op = TaggedOperator::DayOfYear
         );
 
-        test_deserialize_date_operator!(
+        test_serde_date_operator!(
             iso_day_of_week_fully_specified,
             string_op = "$isoDayOfWeek",
             expected_op = TaggedOperator::IsoDayOfWeek
         );
 
-        test_deserialize_date_operator!(
+        test_serde_date_operator!(
             iso_week_fully_specified,
             string_op = "$isoWeek",
             expected_op = TaggedOperator::IsoWeek
         );
 
-        test_deserialize_date_operator!(
+        test_serde_date_operator!(
             iso_week_year_fully_specified,
             string_op = "$isoWeekYear",
             expected_op = TaggedOperator::IsoWeekYear
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             date_to_parts_no_options,
             expected = Expression::TaggedOperator(TaggedOperator::DateToParts(DateToParts {
-                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "date".to_string()
-                ))),
+                date: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
                 timezone: None,
                 iso8601: None
             })),
             input = r#"expr: {"$dateToParts": {date: "$date" } }"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             date_to_parts_fully_specified,
             expected = Expression::TaggedOperator(TaggedOperator::DateToParts(DateToParts {
-                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "date".to_string()
-                ))),
-                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                date: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
+                timezone: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "timezone".to_string()
                 )))),
                 iso8601: Some(true)
@@ -2011,31 +2324,25 @@ mod expression_test {
             input = r#"expr: {"$dateToParts": {date: "$date", timezone: "$timezone", iso8601: true } }"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             date_from_parts_fully_specified,
             expected = Expression::TaggedOperator(TaggedOperator::DateFromParts(DateFromParts {
-                year: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "year".to_string()
-                )))),
-                month: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                year: Some(Box::new(Expression::Ref(Ref::FieldRef("year".to_string())))),
+                month: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "month".to_string()
                 )))),
-                day: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "day".to_string()
-                )))),
-                hour: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "hour".to_string()
-                )))),
-                minute: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                day: Some(Box::new(Expression::Ref(Ref::FieldRef("day".to_string())))),
+                hour: Some(Box::new(Expression::Ref(Ref::FieldRef("hour".to_string())))),
+                minute: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "minute".to_string()
                 )))),
-                second: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                second: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "second".to_string()
                 )))),
-                millisecond: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                millisecond: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "millisecond".to_string()
                 )))),
-                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                timezone: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "timezone".to_string()
                 )))),
                 iso_day_of_week: None,
@@ -2045,38 +2352,34 @@ mod expression_test {
             input = r#"expr: {"$dateFromParts": {year: "$year", timezone: "$timezone", month: "$month", day: "$day", hour: "$hour", minute: "$minute", second: "$second", millisecond: "$millisecond" } }"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             date_from_iso_parts,
             expected = Expression::TaggedOperator(TaggedOperator::DateFromParts(DateFromParts {
                 year: None,
                 month: None,
                 day: None,
-                hour: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "hour".to_string()
-                )))),
+                hour: Some(Box::new(Expression::Ref(Ref::FieldRef("hour".to_string())))),
                 minute: None,
                 second: None,
                 millisecond: None,
                 timezone: None,
-                iso_day_of_week: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                iso_day_of_week: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "isoDayOfWeek".to_string()
                 )))),
-                iso_week: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                iso_week: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "isoWeek".to_string()
                 )))),
-                iso_week_year: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                iso_week_year: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "isoWeekYear".to_string()
                 )))),
             })),
             input = r#"expr: {"$dateFromParts": {isoWeekYear: "$isoWeekYear", isoWeek: "$isoWeek", isoDayOfWeek: "$isoDayOfWeek", hour: "$hour" } }"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             date_from_string_no_options,
             expected = Expression::TaggedOperator(TaggedOperator::DateFromString(DateFromString {
-                date_string: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "date".to_string()
-                ))),
+                date_string: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
                 format: None,
                 timezone: None,
                 on_error: None,
@@ -2085,34 +2388,30 @@ mod expression_test {
             input = r#"expr: {"$dateFromString": {dateString: "$date" } }"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             date_from_string_fully_specified,
             expected = Expression::TaggedOperator(TaggedOperator::DateFromString(DateFromString {
-                date_string: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "date".to_string()
-                ))),
-                format: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                date_string: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
+                format: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "format".to_string()
                 )))),
-                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                timezone: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "timezone".to_string()
                 )))),
-                on_error: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                on_error: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "onError".to_string()
                 )))),
-                on_null: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                on_null: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "onNull".to_string()
                 )))),
             })),
             input = r#"expr: {"$dateFromString": { dateString: "$date", timezone: "$timezone", format: "$format", onError: "$onError", onNull: "$onNull" } }"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             date_to_string_no_options,
             expected = Expression::TaggedOperator(TaggedOperator::DateToString(DateToString {
-                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "date".to_string()
-                ))),
+                date: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
                 format: None,
                 timezone: None,
                 on_null: None,
@@ -2120,30 +2419,26 @@ mod expression_test {
             input = r#"expr: {"$dateToString": {date: "$date" } }"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             date_to_string_fully_specified,
             expected = Expression::TaggedOperator(TaggedOperator::DateToString(DateToString {
-                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "date".to_string()
-                ))),
+                date: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
                 format: Some("format".to_string()),
-                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                timezone: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "timezone".to_string()
                 )))),
-                on_null: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                on_null: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "onNull".to_string()
                 )))),
             })),
             input = r#"expr: {"$dateToString": {date: "$date", timezone: "$timezone", format: "format", onNull: "$onNull" } }"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             date_add_no_options,
             expected = Expression::TaggedOperator(TaggedOperator::DateAdd(DateAdd {
-                start_date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "date".to_string()
-                ))),
-                unit: Box::new(Expression::StringOrRef(StringOrRef::String(
+                start_date: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
+                unit: Box::new(Expression::Literal(LiteralValue::String(
                     "year".to_string()
                 ))),
                 amount: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -2152,30 +2447,26 @@ mod expression_test {
             input = r#"expr: {"$dateAdd": {startDate: "$date", unit: "year", amount: 1 } }"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             date_add_fully_specified,
             expected = Expression::TaggedOperator(TaggedOperator::DateAdd(DateAdd {
-                start_date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "date".to_string()
-                ))),
-                unit: Box::new(Expression::StringOrRef(StringOrRef::String(
+                start_date: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
+                unit: Box::new(Expression::Literal(LiteralValue::String(
                     "year".to_string()
                 ))),
                 amount: Box::new(Expression::Literal(LiteralValue::Integer(1))),
-                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                timezone: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "timezone".to_string()
                 )))),
             })),
             input = r#"expr: {"$dateAdd": {startDate: "$date", unit: "year", amount: 1, timezone: "$timezone" } }"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             date_subtract_no_options,
             expected = Expression::TaggedOperator(TaggedOperator::DateSubtract(DateSubtract {
-                start_date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "date".to_string()
-                ))),
-                unit: Box::new(Expression::StringOrRef(StringOrRef::String(
+                start_date: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
+                unit: Box::new(Expression::Literal(LiteralValue::String(
                     "year".to_string()
                 ))),
                 amount: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -2184,33 +2475,27 @@ mod expression_test {
             input = r#"expr: {"$dateSubtract": {startDate: "$date", unit: "year", amount: 1 } }"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             date_subtract_fully_specified,
             expected = Expression::TaggedOperator(TaggedOperator::DateSubtract(DateSubtract {
-                start_date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "date".to_string()
-                ))),
-                unit: Box::new(Expression::StringOrRef(StringOrRef::String(
+                start_date: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
+                unit: Box::new(Expression::Literal(LiteralValue::String(
                     "year".to_string()
                 ))),
                 amount: Box::new(Expression::Literal(LiteralValue::Integer(1))),
-                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                timezone: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "timezone".to_string()
                 )))),
             })),
             input = r#"expr: {"$dateSubtract": {startDate: "$date", unit: "year", amount: 1, timezone: "$timezone" } }"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             date_diff_no_options,
             expected = Expression::TaggedOperator(TaggedOperator::DateDiff(DateDiff {
-                start_date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "startDate".to_string()
-                ))),
-                end_date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "endDate".to_string()
-                ))),
-                unit: Box::new(Expression::StringOrRef(StringOrRef::String(
+                start_date: Box::new(Expression::Ref(Ref::FieldRef("startDate".to_string()))),
+                end_date: Box::new(Expression::Ref(Ref::FieldRef("endDate".to_string()))),
+                unit: Box::new(Expression::Literal(LiteralValue::String(
                     "year".to_string()
                 ))),
                 timezone: None,
@@ -2219,35 +2504,29 @@ mod expression_test {
             input = r#"expr: {"$dateDiff": {startDate: "$startDate", endDate: "$endDate", unit: "year" } }"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             date_diff_fully_specified,
             expected = Expression::TaggedOperator(TaggedOperator::DateDiff(DateDiff {
-                start_date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "startDate".to_string()
-                ))),
-                end_date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "endDate".to_string()
-                ))),
-                unit: Box::new(Expression::StringOrRef(StringOrRef::String(
+                start_date: Box::new(Expression::Ref(Ref::FieldRef("startDate".to_string()))),
+                end_date: Box::new(Expression::Ref(Ref::FieldRef("endDate".to_string()))),
+                unit: Box::new(Expression::Literal(LiteralValue::String(
                     "year".to_string()
                 ))),
-                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                timezone: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "timezone".to_string()
                 )))),
-                start_of_week: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                start_of_week: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "startOfWeek".to_string()
                 ))))
             })),
             input = r#"expr: {"$dateDiff": {startDate: "$startDate", endDate: "$endDate", unit: "year", timezone: "$timezone", startOfWeek: "$startOfWeek" } }"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             date_trunc_no_options,
             expected = Expression::TaggedOperator(TaggedOperator::DateTrunc(DateTrunc {
-                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "date".to_string()
-                ))),
-                unit: Box::new(Expression::StringOrRef(StringOrRef::String(
+                date: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
+                unit: Box::new(Expression::Literal(LiteralValue::String(
                     "year".to_string()
                 ))),
                 timezone: None,
@@ -2257,22 +2536,20 @@ mod expression_test {
             input = r#"expr: {"$dateTrunc": {date: "$date", unit: "year" } }"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             date_trunc_fully_specified,
             expected = Expression::TaggedOperator(TaggedOperator::DateTrunc(DateTrunc {
-                date: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
-                    "date".to_string()
-                ))),
-                unit: Box::new(Expression::StringOrRef(StringOrRef::String(
+                date: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
+                unit: Box::new(Expression::Literal(LiteralValue::String(
                     "year".to_string()
                 ))),
-                timezone: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                timezone: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "timezone".to_string()
                 )))),
-                start_of_week: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                start_of_week: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "startOfWeek".to_string()
                 )))),
-                bin_size: Some(Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                bin_size: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "binSize".to_string()
                 ))))
             })),
@@ -2284,13 +2561,13 @@ mod expression_test {
                 LiteralValue, Shift, TaggedOperator,
             };
 
-            test_deserialize_expr!(
+            test_serde_expr!(
                 dense_rank,
                 expected = Expression::TaggedOperator(TaggedOperator::DenseRank(EmptyDoc {})),
                 input = r#"expr: {"$denseRank": {}}"#
             );
 
-            test_deserialize_expr!(
+            test_serde_expr!(
                 derivative_no_unit,
                 expected = Expression::TaggedOperator(TaggedOperator::Derivative(Derivative {
                     input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -2301,7 +2578,7 @@ mod expression_test {
                 }}"#
             );
 
-            test_deserialize_expr!(
+            test_serde_expr!(
                 derivative_unit,
                 expected = Expression::TaggedOperator(TaggedOperator::Derivative(Derivative {
                     input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -2313,13 +2590,13 @@ mod expression_test {
                 }}"#
             );
 
-            test_deserialize_expr!(
+            test_serde_expr!(
                 document_number,
                 expected = Expression::TaggedOperator(TaggedOperator::DocumentNumber(EmptyDoc {})),
                 input = r#"expr: {"$documentNumber": {}}"#
             );
 
-            test_deserialize_expr!(
+            test_serde_expr!(
                 exp_moving_avg_n,
                 expected = Expression::TaggedOperator(TaggedOperator::ExpMovingAvg(ExpMovingAvg {
                     input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -2331,7 +2608,7 @@ mod expression_test {
                 }}"#
             );
 
-            test_deserialize_expr!(
+            test_serde_expr!(
                 exp_moving_avg_alpha,
                 expected = Expression::TaggedOperator(TaggedOperator::ExpMovingAvg(ExpMovingAvg {
                     input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -2343,7 +2620,7 @@ mod expression_test {
                 }}"#
             );
 
-            test_deserialize_expr!(
+            test_serde_expr!(
                 integral_no_unit,
                 expected = Expression::TaggedOperator(TaggedOperator::Integral(Integral {
                     input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -2354,7 +2631,7 @@ mod expression_test {
                 }}"#
             );
 
-            test_deserialize_expr!(
+            test_serde_expr!(
                 integral_unit,
                 expected = Expression::TaggedOperator(TaggedOperator::Integral(Integral {
                     input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -2366,13 +2643,13 @@ mod expression_test {
                 }}"#
             );
 
-            test_deserialize_expr!(
+            test_serde_expr!(
                 rank,
                 expected = Expression::TaggedOperator(TaggedOperator::Rank(EmptyDoc {})),
                 input = r#"expr: {"$rank": {}}"#
             );
 
-            test_deserialize_expr!(
+            test_serde_expr!(
                 shift_no_default,
                 expected = Expression::TaggedOperator(TaggedOperator::Shift(Shift {
                     output: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -2385,7 +2662,7 @@ mod expression_test {
                 }}"#
             );
 
-            test_deserialize_expr!(
+            test_serde_expr!(
                 shift_default,
                 expected = Expression::TaggedOperator(TaggedOperator::Shift(Shift {
                     output: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -2403,46 +2680,42 @@ mod expression_test {
 
     mod untagged_operators {
         use crate::{
-            definitions::{Expression, LiteralValue, StringOrRef, UntaggedOperator},
+            definitions::{Expression, LiteralValue, Ref, UntaggedOperator},
             map,
         };
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             one_argument_non_array,
             expected = Expression::UntaggedOperator(UntaggedOperator {
                 op: "$sqlSqrt".to_string(),
-                args: vec![Expression::StringOrRef(StringOrRef::FieldRef(
-                    "x".to_string()
-                ))]
+                args: vec![Expression::Ref(Ref::FieldRef("x".to_string()))]
             }),
             input = r#"expr: {"$sqlSqrt": "$x"}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             one_argument,
             expected = Expression::UntaggedOperator(UntaggedOperator {
                 op: "$sqlSqrt".to_string(),
-                args: vec![Expression::StringOrRef(StringOrRef::FieldRef(
-                    "x".to_string()
-                ))]
+                args: vec![Expression::Ref(Ref::FieldRef("x".to_string()))]
             }),
             input = r#"expr: {"$sqlSqrt": ["$x"]}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             multiple_arguments,
             expected = Expression::UntaggedOperator(UntaggedOperator {
                 op: "$add".to_string(),
                 args: vec![
-                    Expression::StringOrRef(StringOrRef::FieldRef("x".to_string())),
-                    Expression::StringOrRef(StringOrRef::FieldRef("y".to_string())),
-                    Expression::StringOrRef(StringOrRef::FieldRef("z".to_string())),
+                    Expression::Ref(Ref::FieldRef("x".to_string())),
+                    Expression::Ref(Ref::FieldRef("y".to_string())),
+                    Expression::Ref(Ref::FieldRef("z".to_string())),
                 ]
             }),
             input = r#"expr: {"$add": ["$x", "$y", "$z"]}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             literal,
             expected = Expression::UntaggedOperator(UntaggedOperator {
                 op: "$literal".to_string(),
@@ -2451,7 +2724,7 @@ mod expression_test {
             input = r#"expr: {"$literal": 1}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             empty_document_argument,
             expected = Expression::UntaggedOperator(UntaggedOperator {
                 op: "$count".to_string(),
@@ -2460,7 +2733,7 @@ mod expression_test {
             input = r#"expr: {"$count": {}}"#
         );
 
-        test_deserialize_expr!(
+        test_serde_expr!(
             empty_vec_argument,
             expected = Expression::UntaggedOperator(UntaggedOperator {
                 op: "$rand".to_string(),
