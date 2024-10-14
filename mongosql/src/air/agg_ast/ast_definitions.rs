@@ -1,6 +1,6 @@
 use crate::air;
 use agg_ast::definitions::{
-    Expression, GroupAccumulatorExpr, JoinType, LiteralValue, LookupFrom, MatchExpr,
+    Expression, GroupAccumulatorExpr, JoinType, LiteralValue, Lookup, LookupFrom, MatchExpr,
     MatchExpression, ProjectItem, Ref, Stage, Subquery, SubqueryExists, TaggedOperator,
     UntaggedOperator, Unwind,
 };
@@ -202,7 +202,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                     outer: d.preserve_null_and_empty_arrays.unwrap_or(false),
                 }),
             },
-            Stage::Lookup(l) => {
+            Stage::Lookup(Lookup::Subquery(l)) => {
                 let (from_db, from_coll) = match l.from {
                     Some(LookupFrom::Collection(c)) => (None, Some(c)),
                     Some(LookupFrom::Namespace(n)) => (Some(n.db), Some(n.coll)),
@@ -236,7 +236,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                     as_var: l.as_var,
                 })
             }
-            Stage::EquiLookup(eql) => {
+            Stage::Lookup(Lookup::Equality(eql)) => {
                 let (from_db, from_coll) = match eql.from {
                     LookupFrom::Collection(c) => (None, c),
                     LookupFrom::Namespace(n) => (Some(n.db), n.coll),
@@ -260,7 +260,8 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
             | Stage::BucketAuto(_)
             | Stage::Count(_)
             | Stage::GraphLookup(_)
-            | Stage::AtlasSearchStage(_) => {
+            | Stage::AtlasSearchStage(_)
+            | Stage::Lookup(Lookup::ConciseSubquery(_)) => {
                 panic!("cannot convert {} stage to air", ast_stage.name())
             }
         }

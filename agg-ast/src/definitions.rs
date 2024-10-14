@@ -40,8 +40,6 @@ pub enum Stage {
     Unwind(Unwind),
     #[serde(rename = "$lookup")]
     Lookup(Lookup),
-    #[serde(rename = "$equiLookup")]
-    EquiLookup(EquiLookup),
     #[serde(rename = "$addFields", alias = "$set")]
     AddFields(LinkedHashMap<String, Expression>),
     #[serde(rename = "$redact")]
@@ -405,8 +403,47 @@ pub struct UnwindExpr {
     pub preserve_null_and_empty_arrays: Option<bool>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Lookup {
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum Lookup {
+    ConciseSubquery(ConciseSubqueryLookup),
+    Equality(EqualityLookup),
+    Subquery(SubqueryLookup),
+}
+
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum LookupFrom {
+    Collection(String),
+    Namespace(Namespace),
+}
+
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EqualityLookup {
+    pub from: LookupFrom,
+    pub local_field: String,
+    pub foreign_field: String,
+    #[serde(rename = "as")]
+    pub as_var: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConciseSubqueryLookup {
+    pub from: Option<LookupFrom>,
+    pub local_field: String,
+    pub foreign_field: String,
+    #[serde(rename = "let")]
+    pub let_body: Option<LinkedHashMap<String, Expression>>,
+    pub pipeline: Vec<Stage>,
+    #[serde(rename = "as")]
+    pub as_var: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubqueryLookup {
     pub from: Option<LookupFrom>,
     #[serde(rename = "let")]
     pub let_body: Option<LinkedHashMap<String, Expression>>,
@@ -415,24 +452,7 @@ pub struct Lookup {
     pub as_var: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EquiLookup {
-    pub from: LookupFrom,
-    pub local_field: String,
-    pub foreign_field: String,
-    #[serde(rename = "as")]
-    pub as_var: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum LookupFrom {
-    Collection(String),
-    Namespace(Namespace),
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct Namespace {
     pub db: String,
     pub coll: String,
@@ -1189,7 +1209,6 @@ impl Stage {
             Stage::EquiJoin(_) => "$equiJoin",
             Stage::Unwind(_) => "$unwind",
             Stage::Lookup(_) => "$lookup",
-            Stage::EquiLookup(_) => "$equiLookup",
             Stage::AddFields(_) => "$addFields",
             Stage::Redact(_) => "$redact",
             Stage::Unset(_) => "$unset",

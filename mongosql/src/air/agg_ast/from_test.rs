@@ -561,12 +561,12 @@ mod stage {
                 pipeline: Box::new(default_source()),
                 as_var: "simple".to_string()
             }),
-            input = agg_ast::Stage::Lookup(agg_ast::Lookup {
+            input = agg_ast::Stage::Lookup(agg_ast::Lookup::Subquery(agg_ast::SubqueryLookup {
                 from: None,
                 let_body: None,
                 pipeline: vec![],
                 as_var: "simple".to_string()
-            })
+            }))
         );
 
         test_from_stage!(
@@ -580,12 +580,12 @@ mod stage {
                 })),
                 as_var: "collection".to_string(),
             }),
-            input = agg_ast::Stage::Lookup(agg_ast::Lookup {
+            input = agg_ast::Stage::Lookup(agg_ast::Lookup::Subquery(agg_ast::SubqueryLookup {
                 from: Some(agg_ast::LookupFrom::Collection("coll".to_string())),
                 let_body: None,
                 pipeline: vec![],
                 as_var: "collection".to_string()
-            })
+            }))
         );
 
         test_from_stage!(
@@ -599,7 +599,7 @@ mod stage {
                 })),
                 as_var: "namespace".to_string(),
             }),
-            input = agg_ast::Stage::Lookup(agg_ast::Lookup {
+            input = agg_ast::Stage::Lookup(agg_ast::Lookup::Subquery(agg_ast::SubqueryLookup {
                 from: Some(agg_ast::LookupFrom::Namespace(agg_ast::Namespace {
                     db: "db".to_string(),
                     coll: "coll".to_string()
@@ -607,7 +607,7 @@ mod stage {
                 let_body: None,
                 pipeline: vec![],
                 as_var: "namespace".to_string()
-            })
+            }))
         );
 
         test_from_stage!(
@@ -627,7 +627,7 @@ mod stage {
                 pipeline: Box::new(default_source()),
                 as_var: "simple".to_string(),
             }),
-            input = agg_ast::Stage::Lookup(agg_ast::Lookup {
+            input = agg_ast::Stage::Lookup(agg_ast::Lookup::Subquery(agg_ast::SubqueryLookup {
                 from: None,
                 let_body: Some(
                     vec![
@@ -645,7 +645,7 @@ mod stage {
                 ),
                 pipeline: vec![],
                 as_var: "simple".to_string()
-            })
+            }))
         );
 
         test_from_stage!(
@@ -677,7 +677,7 @@ mod stage {
                 })),
                 as_var: "simple".to_string(),
             }),
-            input = agg_ast::Stage::Lookup(agg_ast::Lookup {
+            input = agg_ast::Stage::Lookup(agg_ast::Lookup::Subquery(agg_ast::SubqueryLookup {
                 from: None,
                 let_body: None,
                 pipeline: vec![
@@ -723,7 +723,7 @@ mod stage {
                     agg_ast::Stage::Skip(1)
                 ],
                 as_var: "simple".to_string()
-            })
+            }))
         );
     }
 

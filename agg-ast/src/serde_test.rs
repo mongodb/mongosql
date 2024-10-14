@@ -843,35 +843,37 @@ mod stage_test {
     mod lookup_test {
         use crate::{
             definitions::{
-                Expression, LiteralValue, Lookup, LookupFrom, MatchExpr, MatchExpression,
-                MatchStage, Namespace, ProjectItem, ProjectStage, Ref, Stage, UntaggedOperator,
+                ConciseSubqueryLookup, EqualityLookup, Expression, LiteralValue, Lookup,
+                LookupFrom, MatchExpr, MatchExpression, MatchStage, Namespace, ProjectItem,
+                ProjectStage, Ref, Stage, SubqueryLookup, UntaggedOperator,
             },
             map,
         };
 
         test_serde_stage!(
-            lookup_with_no_optional_fields,
-            expected = Stage::Lookup(Lookup {
+            subquery_lookup_with_no_optional_fields,
+            expected = Stage::Lookup(Lookup::Subquery(SubqueryLookup {
                 from: None,
                 let_body: None,
                 pipeline: vec![],
                 as_var: "as_var".to_string()
-            }),
+            })),
             input = r#"stage: {"$lookup": {"pipeline": [], "as": "as_var"}}"#
         );
         test_serde_stage!(
-            lookup_from_collection,
-            expected = Stage::Lookup(Lookup {
+            subquery_lookup_from_collection,
+            expected = Stage::Lookup(Lookup::Subquery(SubqueryLookup {
                 from: Some(LookupFrom::Collection("from_coll".to_string())),
                 let_body: None,
                 pipeline: vec![],
                 as_var: "as_var".to_string()
-            }),
+            })),
             input = r#"stage: {"$lookup": {"from": "from_coll", "pipeline": [], "as": "as_var"}}"#
         );
+
         test_serde_stage!(
-            lookup_from_namespace,
-            expected = Stage::Lookup(Lookup {
+            subquery_lookup_from_namespace,
+            expected = Stage::Lookup(Lookup::Subquery(SubqueryLookup {
                 from: Some(LookupFrom::Namespace(Namespace {
                     db: "from_db".to_string(),
                     coll: "from_coll".to_string()
@@ -879,12 +881,13 @@ mod stage_test {
                 let_body: None,
                 pipeline: vec![],
                 as_var: "as_var".to_string()
-            }),
+            })),
             input = r#"stage: {"$lookup": {"from": {"db": "from_db", "coll": "from_coll"}, "pipeline": [], "as": "as_var"}}"#
         );
+
         test_serde_stage!(
-            lookup_with_single_let_var,
-            expected = Stage::Lookup(Lookup {
+            subquery_lookup_with_single_let_var,
+            expected = Stage::Lookup(Lookup::Subquery(SubqueryLookup {
                 from: Some(LookupFrom::Namespace(Namespace {
                     db: "from_db".to_string(),
                     coll: "from_coll".to_string()
@@ -894,7 +897,7 @@ mod stage_test {
                 }),
                 pipeline: vec![],
                 as_var: "as_var".to_string()
-            }),
+            })),
             input = r#"stage: {"$lookup": {
                 "from": {"db": "from_db", "coll": "from_coll"},
                 "let": {"x": 9},
@@ -902,9 +905,10 @@ mod stage_test {
                 "as": "as_var"
             }}"#
         );
+
         test_serde_stage!(
-            lookup_with_multiple_let_vars,
-            expected = Stage::Lookup(Lookup {
+            subquery_lookup_with_multiple_let_vars,
+            expected = Stage::Lookup(Lookup::Subquery(SubqueryLookup {
                 from: Some(LookupFrom::Namespace(Namespace {
                     db: "from_db".to_string(),
                     coll: "from_coll".to_string()
@@ -915,7 +919,7 @@ mod stage_test {
                 }),
                 pipeline: vec![],
                 as_var: "as_var".to_string()
-            }),
+            })),
             input = r#"stage: {"$lookup": {
                 "from": {"db": "from_db", "coll": "from_coll"},
                 "let": {
@@ -928,8 +932,8 @@ mod stage_test {
         );
 
         test_serde_stage!(
-            lookup_with_pipeline,
-            expected = Stage::Lookup(Lookup {
+            subquery_lookup_with_pipeline,
+            expected = Stage::Lookup(Lookup::Subquery(SubqueryLookup {
                 from: Some(LookupFrom::Namespace(Namespace {
                     db: "db".to_string(),
                     coll: "bar".to_string()
@@ -957,7 +961,7 @@ mod stage_test {
                     })
                 ],
                 as_var: "__subquery_result_0".to_string()
-            }),
+            })),
             input = r#"stage: {
                 "$lookup":
                   {
@@ -970,6 +974,76 @@ mod stage_test {
                       ],
                     "as": "__subquery_result_0"
               }}"#
+        );
+
+        test_serde_stage!(
+            concise_subquery_lookup_with_no_optional_fields,
+            expected = Stage::Lookup(Lookup::ConciseSubquery(ConciseSubqueryLookup {
+                from: None,
+                let_body: None,
+                pipeline: vec![],
+                as_var: "as_var".to_string(),
+                local_field: "foo".to_string(),
+                foreign_field: "bar".to_string()
+            })),
+            input = r#"stage: {"$lookup": {"pipeline": [], "as": "as_var", "localField": "foo", "foreignField": "bar"}}"#
+        );
+
+        test_serde_stage!(
+            concise_subquery_lookup_fully_specified,
+            expected = Stage::Lookup(Lookup::ConciseSubquery(ConciseSubqueryLookup {
+                from: Some(LookupFrom::Collection("coll".to_string())),
+                let_body: Some(map! {
+                    "foo_b_0".to_string() => Expression::Ref(Ref::FieldRef("b".to_string())),
+                }),
+                pipeline: vec![
+                    Stage::Match(MatchStage {
+                        expr: vec![MatchExpression::Expr(MatchExpr {
+                            expr: Box::new(Expression::UntaggedOperator(UntaggedOperator {
+                                op: "$eq".to_string(),
+                                args: vec![
+                                    Expression::Ref(Ref::VariableRef("foo_b_0".to_string())),
+                                    Expression::Ref(Ref::FieldRef("b".to_string()))
+                                ]
+                            }))
+                        })]
+                    }),
+                    Stage::Project(ProjectStage {
+                        items: map! {
+                            "_id".to_string() => ProjectItem::Exclusion,
+                            "a".to_string() => ProjectItem::Inclusion,
+                        }
+                    })
+                ],
+                as_var: "__subquery_result_0".to_string(),
+                local_field: "foo".to_string(),
+                foreign_field: "bar".to_string()
+            })),
+            input = r#"stage: {
+                "$lookup":
+                  {
+                    "from": "coll",
+                    "let": { "foo_b_0": "$b" },
+                    "pipeline":
+                      [
+                        { "$match": { "$expr": { "$eq": ["$$foo_b_0", "$b"] } } },
+                        { "$project": { "_id": 0, "a": 1 } },
+                      ],
+                    "as": "__subquery_result_0",
+                    "localField": "foo",
+                    "foreignField": "bar"
+              }}"#
+        );
+
+        test_serde_stage!(
+            equality_lookup,
+            expected = Stage::Lookup(Lookup::Equality(EqualityLookup {
+                from: LookupFrom::Collection("coll".to_string()),
+                as_var: "__subquery_result_0".to_string(),
+                local_field: "foo".to_string(),
+                foreign_field: "bar".to_string()
+            })),
+            input = r#"stage: { "$lookup": { "from": "coll", "as": "__subquery_result_0", "localField": "foo", "foreignField": "bar" }}"#
         );
     }
 

@@ -40,7 +40,7 @@ tests:
       - { "$equiJoin": { "collection": "bar", "joinType": "inner", "localField": "a", "foreignField" : "b", "as": "bar" } }
     expected:
       - {
-        "$equiLookup":
+        "$lookup":
           {
             "from": "bar",
             "localField": "a",
@@ -89,7 +89,7 @@ tests:
       - { "$equiJoin": { "collection": "bar", "joinType": "left", "localField": "a", "foreignField" : "b", "as": "bar" } }
     expected:
       - {
-        "$equiLookup":
+        "$lookup":
           {
             "from": "bar",
             "localField": "a",
@@ -156,7 +156,7 @@ tests:
       }
     expected:
       - {
-        "$equiLookup":
+        "$lookup":
           {
             "from": { "db": "db", "coll": "bar" },
             "localField": "a",
@@ -309,7 +309,7 @@ tests:
     expected:
       - { "$project": { "_id": 0, "foo": "$$ROOT" } }
       - {
-        "$equiLookup":
+        "$lookup":
           {
             "from": "bar",
             "localField": "a",
@@ -389,7 +389,7 @@ tests:
       }
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
       - {
-        "$equiLookup":
+        "$lookup":
           {
             "from": "bat",
             "localField": "a",
@@ -493,7 +493,7 @@ tests:
                                 "from": "car",
                                 "pipeline": [
                                   {
-                                    "$equiLookup":
+                                    "$lookup":
                                       {
                                         "from": "bat",
                                         "localField": "a",
