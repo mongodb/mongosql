@@ -2,7 +2,6 @@ use crate::custom_serde::{deserialize_mql_operator, serialize_mql_operator};
 use bson::Bson;
 use linked_hash_map::LinkedHashMap;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 // This module contains an aggregation pipeline syntax tree that implements
 // serde::Deserialize. This allows us to deserialize aggregation pipelines from
@@ -43,6 +42,14 @@ pub enum Stage {
     Lookup(Lookup),
     #[serde(rename = "$equiLookup")]
     EquiLookup(EquiLookup),
+    #[serde(rename = "$addFields", alias = "$set")]
+    AddFields(LinkedHashMap<String, Expression>),
+    #[serde(rename = "$redact")]
+    Redact(Box<Expression>),
+    #[serde(rename = "$unset")]
+    Unset(Unset),
+    #[serde(rename = "$setWindowFields")]
+    SetWindowFields(SetWindowFields),
     #[serde(rename = "$bucket")]
     Bucket(Bucket),
     #[serde(rename = "$bucketAuto")]
@@ -432,12 +439,45 @@ pub struct Namespace {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Unset {
+    Single(String),
+    Multiple(Vec<String>),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetWindowFields {
+    pub partition_by: Option<Box<Expression>>,
+    pub sort_by: Option<LinkedHashMap<String, i8>>,
+    pub output: LinkedHashMap<String, SetWindowFieldsOutput>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct SetWindowFieldsOutput {
+    #[serde(flatten)]
+    pub window_func: Box<Expression>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub window: Option<Window>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Window {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub documents: Option<[Bson; 2]>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub range: Option<[Bson; 2]>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unit: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Bucket {
     pub group_by: Box<Expression>,
     pub boundaries: Vec<Bson>,
     pub default: Option<Bson>,
-    pub output: Option<HashMap<String, Expression>>,
+    pub output: Option<LinkedHashMap<String, Expression>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -445,7 +485,7 @@ pub struct Bucket {
 pub struct BucketAuto {
     pub group_by: Box<Expression>,
     pub buckets: i32,
-    pub output: Option<HashMap<String, Expression>>,
+    pub output: Option<LinkedHashMap<String, Expression>>,
     pub granularity: Option<String>,
 }
 
@@ -1150,6 +1190,10 @@ impl Stage {
             Stage::Unwind(_) => "$unwind",
             Stage::Lookup(_) => "$lookup",
             Stage::EquiLookup(_) => "$equiLookup",
+            Stage::AddFields(_) => "$addFields",
+            Stage::Redact(_) => "$redact",
+            Stage::Unset(_) => "$unset",
+            Stage::SetWindowFields(_) => "$setWindowFields",
             Stage::Bucket(_) => "$bucket",
             Stage::BucketAuto(_) => "$bucketAuto",
             Stage::Count(_) => "$count",

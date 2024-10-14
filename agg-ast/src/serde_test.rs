@@ -1054,6 +1054,231 @@ mod stage_test {
         );
     }
 
+    mod add_fields {
+        use crate::{
+            definitions::{Expression, LiteralValue, Stage},
+            map,
+        };
+
+        test_serde_stage!(
+            empty,
+            expected = Stage::AddFields(map! {}),
+            input = r#"stage: {"$addFields": {}}"#
+        );
+
+        test_serde_stage!(
+            single_field,
+            expected = Stage::AddFields(map! {
+                "a".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+            }),
+            input = r#"stage: {"$addFields": {"a": 1}}"#
+        );
+
+        test_serde_stage!(
+            multiple_fields,
+            expected = Stage::AddFields(map! {
+                "a".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+                "b".to_string() => Expression::Literal(LiteralValue::Boolean(false)),
+                "c".to_string() => Expression::Literal(LiteralValue::Double(2.4)),
+            }),
+            input = r#"stage: {"$addFields": {"a": 1, "b": false, "c": 2.4}}"#
+        );
+
+        test_serde_stage!(
+            set_alias,
+            expected = Stage::AddFields(map! {
+                "a".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+                "b".to_string() => Expression::Literal(LiteralValue::Boolean(false)),
+                "c".to_string() => Expression::Literal(LiteralValue::Double(2.4)),
+            }),
+            input = r#"stage: {"$set": {"a": 1, "b": false, "c": 2.4}}"#
+        );
+    }
+
+    mod redact {
+        use crate::{
+            definitions::{Expression, Ref, Stage},
+            PRUNE_NAME,
+        };
+
+        test_serde_stage!(
+            empty,
+            expected = Stage::Redact(Box::new(Expression::Ref(Ref::VariableRef(
+                PRUNE_NAME.to_string()
+            )))),
+            input = r#"stage: {"$redact": "$$PRUNE"}"#
+        );
+    }
+
+    mod unset {
+        use crate::definitions::{Stage, Unset};
+
+        test_serde_stage!(
+            single,
+            expected = Stage::Unset(Unset::Single("foo".to_string())),
+            input = r#"stage: {"$unset": "foo"}"#
+        );
+
+        test_serde_stage!(
+            multiple,
+            expected = Stage::Unset(Unset::Multiple(vec![
+                "foo".to_string(),
+                "bar".to_string(),
+                "baz".to_string()
+            ])),
+            input = r#"stage: {"$unset": ["foo", "bar", "baz"]}"#
+        );
+    }
+
+    mod set_window_fields {
+        use crate::{
+            definitions::{
+                Derivative, EmptyDoc, Expression, LiteralValue, SetWindowFields,
+                SetWindowFieldsOutput, Stage, TaggedOperator, UntaggedOperator, Window,
+            },
+            map,
+        };
+        use bson::Bson;
+
+        test_serde_stage!(
+            only_output_empty,
+            expected = Stage::SetWindowFields(SetWindowFields {
+                partition_by: None,
+                sort_by: None,
+                output: map! {},
+            }),
+            input = r#"stage: {"$setWindowFields": {"output": {}}}"#
+        );
+
+        test_serde_stage!(
+            only_output_single,
+            expected = Stage::SetWindowFields(SetWindowFields {
+                partition_by: None,
+                sort_by: None,
+                output: map! {
+                    "o1".to_string() => SetWindowFieldsOutput {
+                        window_func: Box::new(Expression::UntaggedOperator(UntaggedOperator {
+                            op: "$sum".to_string(),
+                            args: vec![Expression::Literal(LiteralValue::Integer(1))],
+                        })),
+                        window: None,
+                    }
+                },
+            }),
+            input = r#"stage: {"$setWindowFields": {
+                                    "output": {
+                                        "o1": {
+                                            "$sum": 1,
+                                        },
+                                    }
+            }}"#
+        );
+
+        // This test covers the various forms of outputs:
+        //   - Without "window"
+        //   - With "window.documents"
+        //   - With "window.range"
+        //   - With "window.unit"
+        test_serde_stage!(
+            only_output_multiple,
+            expected = Stage::SetWindowFields(SetWindowFields {
+                partition_by: None,
+                sort_by: None,
+                output: map! {
+                    "documents".to_string() => SetWindowFieldsOutput {
+                        window_func: Box::new(Expression::UntaggedOperator(UntaggedOperator {
+                            op: "$sum".to_string(),
+                            args: vec![Expression::Literal(LiteralValue::Integer(1))],
+                        })),
+                        window: Some(Window {
+                            documents: Some([Bson::Int64(-1), Bson::Int32(1)]),
+                            range: None,
+                            unit: None,
+                        }),
+                    },
+                    "no_window".to_string() => SetWindowFieldsOutput {
+                        window_func: Box::new(Expression::TaggedOperator(TaggedOperator::Derivative(Derivative {
+                            input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                            unit: Some("seconds".to_string()),
+                        }))),
+                        window: None,
+                    },
+                    "range_and_unit".to_string() => SetWindowFieldsOutput {
+                        window_func: Box::new(Expression::TaggedOperator(TaggedOperator::DenseRank(EmptyDoc {}))),
+                        window: Some(Window {
+                            documents: None,
+                            range: Some([Bson::Int64(-10), Bson::Int32(10)]),
+                            unit: Some("seconds".to_string()),
+                        }),
+                    },
+                },
+            }),
+            input = r#"stage: {"$setWindowFields": {
+                                    "output": {
+                                        "documents": {
+                                            "$sum": 1,
+                                            "window": {
+                                                "documents": [-1, 1],
+                                            },
+                                        },
+                                        "no_window": {
+                                            "$derivative": {
+                                                "input": 1,
+                                                "unit": "seconds",
+                                            },
+                                        },
+                                        "range_and_unit": {
+                                            "$denseRank": {},
+                                            "window": {
+                                                "range": [-10, 10],
+                                                "unit": "seconds",
+                                            },
+                                        },
+                                    }
+            }}"#
+        );
+
+        test_serde_stage!(
+            fully_specified,
+            expected = Stage::SetWindowFields(SetWindowFields {
+                partition_by: Some(Box::new(Expression::Literal(LiteralValue::Integer(1)))),
+                sort_by: Some(map! {
+                    "a".to_string() => 1,
+                    "b".to_string() => -1,
+                }),
+                output: map! {
+                    "o1".to_string() => SetWindowFieldsOutput {
+                        window_func: Box::new(Expression::UntaggedOperator(UntaggedOperator {
+                            op: "$sum".to_string(),
+                            args: vec![Expression::Literal(LiteralValue::Integer(1))],
+                        })),
+                        window: Some(Window {
+                            documents: Some([Bson::Int32(1), Bson::Int32(2)]),
+                            range: None,
+                            unit: Some("seconds".to_string()),
+                        })
+                    }
+                }
+            }),
+            input = r#"stage: {"$setWindowFields": {
+                                    "partitionBy": 1,
+                                    "sortBy": {
+                                        "a": 1,
+                                        "b": -1,
+                                    },
+                                    "output": {
+                                        "o1": {
+                                            "$sum": 1,
+                                            "window": {
+                                                "documents": [1, 2],
+                                                "unit": "seconds"
+                                            },
+                                        },
+                                    },
+            }}"#
+        );
+    }
+
     mod bucket {
         use crate::{
             definitions::{Bucket, Expression, LiteralValue, Stage, UntaggedOperator},

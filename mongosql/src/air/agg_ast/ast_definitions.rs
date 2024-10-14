@@ -252,7 +252,11 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                     as_var: eql.as_var,
                 })
             }
-            Stage::Bucket(_)
+            Stage::AddFields(_)
+            | Stage::Redact(_)
+            | Stage::Unset(_)
+            | Stage::SetWindowFields(_)
+            | Stage::Bucket(_)
             | Stage::BucketAuto(_)
             | Stage::Count(_)
             | Stage::GraphLookup(_)

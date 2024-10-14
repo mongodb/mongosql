@@ -3,11 +3,11 @@ use crate::{
         DateExpression, Expression, GroupAccumulator, GroupAccumulatorExpr, LiteralValue,
         MatchArrayExpression, MatchArrayQuery, MatchBinaryOp, MatchElement, MatchExpression,
         MatchField, MatchNot, MatchNotExpression, MatchRegex, MatchStage, ProjectItem,
-        ProjectStage, Ref, UntaggedOperator, VecOrSingleExpr,
+        ProjectStage, Ref, SetWindowFieldsOutput, UntaggedOperator, VecOrSingleExpr, Window,
     },
     map,
 };
-use bson::{self, Bson, Document};
+use bson::{self, doc, Bson, Document};
 use linked_hash_map::LinkedHashMap;
 use serde::{
     de::{self, Deserialize, Deserializer, Error as serde_err, MapAccess, Visitor},
@@ -759,6 +759,114 @@ impl ser::Serialize for Ref {
             Ref::VariableRef(s) => ("$$".into(), s),
         };
         serializer.serialize_str(&(prefix + s))
+    }
+}
+
+impl<'de> Deserialize<'de> for SetWindowFieldsOutput {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        /// Custom map visitor for identifying and deserializing Window Operators.
+        struct SetWindowFieldsOutputVisitor;
+
+        impl<'de> Visitor<'de> for SetWindowFieldsOutputVisitor {
+            type Value = SetWindowFieldsOutput;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str(r#"{"$op": <expression>, "window": {"documents": [<lower boundary>, <upper boundary>], "range": [<lower boundary>, <upper boundary>], "unit": <time unit>}}"#)
+            }
+
+            fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
+            where
+                M: MapAccess<'de>,
+            {
+                // The $setWindowFields "output" field looks like:
+                // {
+                //    <output field 1>: {
+                //        <"$"-prefixed window operator>: <window operator parameters>,
+                //        window: {
+                //            documents: [ <lower boundary>, <upper boundary> ],
+                //            range: [ <lower boundary>, <upper boundary> ],
+                //            unit: <time unit>,
+                //        },
+                //    },
+                //    <output field 2>: { ... },
+                //    ...
+                //    <output field n>: { ... }
+                // }
+                // This function parses a single output field value, meaning a document with the
+                // variable '$'-prefixed window operator and "window" fields. The "window" field is
+                // optional so a second kv pair may not be present.
+                let kv1 = access.next_entry::<String, Bson>()?;
+                let kv2 = access.next_entry::<String, Bson>()?;
+
+                // Figure out which is the window operator and which is the "window"
+                let (window_func_key, window_func_val, window_val) = match (kv1, kv2) {
+                    (Some((key1, value1)), Some((key2, value2))) => {
+                        let key1_is_window_func = key1.starts_with('$');
+                        let key2_is_window_func = key2.starts_with('$');
+
+                        if key1_is_window_func && key2_is_window_func {
+                            let err_msg =
+                                format!("multiple window operators found: '{key1}' and '{key2}'");
+                            return Err(serde_err::custom(err_msg));
+                        } else if !key1_is_window_func && !key2_is_window_func {
+                            return Err(serde_err::custom("no window operator found"));
+                        } else if key1_is_window_func {
+                            if key2 != "window" {
+                                let err_msg = format!("expected key 'window' but found '{key2}'");
+                                return Err(serde_err::custom(err_msg));
+                            }
+                            (key1, value1, Some(value2))
+                        } else {
+                            if key1 != "window" {
+                                let err_msg = format!("expected key 'window' but found '{key1}'");
+                                return Err(serde_err::custom(err_msg));
+                            }
+                            (key2, value2, Some(value1))
+                        }
+                    }
+                    (Some((key, value)), None) => {
+                        if !key.starts_with('$') {
+                            let err_msg = format!(
+                                "expected window operator key to start with '$' but found '{key}'"
+                            );
+                            return Err(serde_err::custom(err_msg));
+                        }
+                        (key, value, None)
+                    }
+                    _ => {
+                        return Err(serde_err::custom(
+                            "setWindowFields output could not be parsed",
+                        ))
+                    }
+                };
+
+                // Parse the window operator into an Expression.
+                let window_func_as_doc = doc! {window_func_key: window_func_val};
+                let window_func_as_expr: Expression = bson::from_document(window_func_as_doc)
+                    .expect("failed to deserialize window function, this is a code error.");
+
+                // Parse the window into a Window.
+                let window: Option<Window> = window_val.map(|val| {
+                    bson::from_bson(val)
+                        .expect("failed to deserialize window, this is a code error")
+                });
+
+                Ok(SetWindowFieldsOutput {
+                    window_func: Box::new(window_func_as_expr),
+                    window,
+                })
+            }
+        }
+
+        const FIELDS: &[&str] = &["window_func", "window"];
+        deserializer.deserialize_struct(
+            "SetWindowFieldsOutput",
+            FIELDS,
+            SetWindowFieldsOutputVisitor,
+        )
     }
 }
 
