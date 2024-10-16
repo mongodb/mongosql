@@ -15,7 +15,6 @@ mod cli;
 use anyhow::{Context, Result};
 use cli::Cli;
 use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
-use schema_builder_library as dcsb; // dcsb == Direct Cluster Schema Builder
 
 pub const REPORT_FILE_STEM: &str = "Atlas_SQL_Readiness";
 pub const REPORT_NAME: &str = "Atlas SQL Transition Readiness Report";
@@ -136,9 +135,11 @@ async fn handle_schema(args: SchemaProcessingArgs) -> Result<Option<SchemaAnalys
     } = args;
     if let Some(ref uri) = uri {
         if !uri.is_empty() {
-            let mut options = dcsb::client_util::get_opts(uri, resolver.map(|r| r.into())).await?;
+            let mut options =
+                schema_builder_library::client_util::get_opts(uri, resolver.map(|r| r.into()))
+                    .await?;
             let password: Option<String>;
-            if dcsb::client_util::needs_auth(&options) {
+            if schema_builder_library::client_util::needs_auth(&options) {
                 if let Some(ref username) = username {
                     if !username.is_empty() {
                         password = Some(
@@ -155,13 +156,19 @@ async fn handle_schema(args: SchemaProcessingArgs) -> Result<Option<SchemaAnalys
                     eprintln!("No username provided for authentication.");
                     process::exit(1);
                 }
-                dcsb::client_util::load_password_auth(&mut options, username, password).await;
+                schema_builder_library::client_util::load_password_auth(
+                    &mut options,
+                    username,
+                    password,
+                )
+                .await;
             }
 
-            let (tx_notifications, mut rx_notifications) =
-                tokio::sync::mpsc::unbounded_channel::<dcsb::SamplerNotification>();
+            let (tx_notifications, mut rx_notifications) = tokio::sync::mpsc::unbounded_channel::<
+                schema_builder_library::SamplerNotification,
+            >();
             let (tx_schemata, mut rx_schemata) =
-                tokio::sync::mpsc::unbounded_channel::<dcsb::SchemaResult>();
+                tokio::sync::mpsc::unbounded_channel::<schema_builder_library::SchemaResult>();
 
             let mut schemata: HashMap<String, HashMap<String, Schema>> = HashMap::new();
 
@@ -206,7 +213,7 @@ async fn handle_schema(args: SchemaProcessingArgs) -> Result<Option<SchemaAnalys
                 .collect();
 
             tokio::spawn(async move {
-                let builder_options = dcsb::options::BuilderOptions {
+                let builder_options = schema_builder_library::options::BuilderOptions {
                     include_list,
                     exclude_list,
                     schema_collection: None,
@@ -215,7 +222,7 @@ async fn handle_schema(args: SchemaProcessingArgs) -> Result<Option<SchemaAnalys
                     tx_notifications,
                     tx_schemata,
                 };
-                dcsb::build_schema(builder_options).await;
+                schema_builder_library::build_schema(builder_options).await;
             });
 
             loop {
@@ -226,7 +233,7 @@ async fn handle_schema(args: SchemaProcessingArgs) -> Result<Option<SchemaAnalys
                         if let Some(notification) = notification {
                             match notification.action {
                                 // If we receive an Error notification, we abort the program.
-                                dcsb::SamplerAction::Error { message } => anyhow::bail!(message),
+                                schema_builder_library::SamplerAction::Error { message } => anyhow::bail!(message),
                                 // All other notification types are simply logged, depending on the
                                 // value of quiet.
                                 _ => {
@@ -239,7 +246,7 @@ async fn handle_schema(args: SchemaProcessingArgs) -> Result<Option<SchemaAnalys
                     }
                     schema = rx_schemata.recv() => {
                         match schema {
-                            Some(dcsb::SchemaResult::FullSchema(schema_res)) => {
+                            Some(schema_builder_library::SchemaResult::FullSchema(schema_res)) => {
                                 if !quiet {
                                     pb.set_message(format!("Schema calculated for namespace: {}.{} ({:?})",
                                         schema_res.namespace_info.db_name,
@@ -254,7 +261,7 @@ async fn handle_schema(args: SchemaProcessingArgs) -> Result<Option<SchemaAnalys
                                 let schema_analysis = process_schemata(HashMap::from([(schema_res.namespace_info.db_name.clone(), schemata.get(&schema_res.namespace_info.db_name).unwrap().clone())]));
                                 generate_html(&file_path, None, Some(&schema_analysis), !quiet, &schema_res.namespace_info.db_name, &report_name).unwrap();
                             }
-                            Some(dcsb::SchemaResult::NamespaceOnly(schema_res)) => {
+                            Some(schema_builder_library::SchemaResult::NamespaceOnly(schema_res)) => {
                                 if !quiet {
                                     pb.set_message(format!(
                                         "Namespace acknowledged in dryRun mode: {}.{} ({:?})",

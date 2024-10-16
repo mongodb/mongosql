@@ -7,6 +7,6 @@ ns-include:
 ns-exclude:
   - mydb.baz
 quiet: false
-logpath: C:\Users\user\Documents\schema-builder\logs\schema-builder.log
+logpath: C:\Users\user\Documents\mongodb-schema-manager\logs\mongodb-schema-manager.log
 verbosity: DEBUG
 action: overwrite

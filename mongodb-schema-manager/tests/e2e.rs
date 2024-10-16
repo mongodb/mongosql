@@ -33,10 +33,10 @@ mod enterprise {
 
     #[test]
     fn no_args_prints_help() -> Result<(), Box<dyn std::error::Error>> {
-        let cmd = Command::cargo_bin("schema-builder-tool")?.output()?;
+        let cmd = Command::cargo_bin("mongodb-schema-manager")?.output()?;
 
         cmd.assert().failure().stderr(predicate::str::contains(
-            "Usage: schema-builder-tool [OPTIONS]",
+            "Usage: mongodb-schema-manager [OPTIONS]",
         ));
 
         Ok(())
@@ -44,7 +44,7 @@ mod enterprise {
 
     #[test]
     fn invalid_config_file_path_is_error() -> Result<(), Box<dyn std::error::Error>> {
-        let cmd = Command::cargo_bin("schema-builder-tool")?
+        let cmd = Command::cargo_bin("mongodb-schema-manager")?
             .arg("--file")
             .arg("./testfiles/invalid_config.yml")
             .output()?;
@@ -58,7 +58,7 @@ mod enterprise {
 
     #[test]
     fn missing_uri_is_error() -> Result<(), Box<dyn std::error::Error>> {
-        let cmd = Command::cargo_bin("schema-builder-tool")?
+        let cmd = Command::cargo_bin("mongodb-schema-manager")?
             .arg("--username")
             .arg("user")
             .output()?;
@@ -72,7 +72,7 @@ mod enterprise {
 
     #[test]
     fn uri_without_auth_and_no_username_arg_is_error() -> Result<(), Box<dyn std::error::Error>> {
-        let cmd = Command::cargo_bin("schema-builder-tool")?
+        let cmd = Command::cargo_bin("mongodb-schema-manager")?
             .arg("--uri")
             .arg("mongodb://localhost:27017")
             .output()?;
@@ -90,7 +90,7 @@ mod enterprise {
             "mongodb://invalid_user:invalid_pass@localhost:{}",
             std::env::var("MDB_TEST_LOCAL_PORT").unwrap_or_else(|_| "27017".to_string())
         );
-        let cmd = Command::cargo_bin("schema-builder-tool")?
+        let cmd = Command::cargo_bin("mongodb-schema-manager")?
             .arg("--uri")
             .arg(uri)
             .output()?;
@@ -106,7 +106,7 @@ mod enterprise {
     async fn invalid_include_is_error() -> Result<(), Box<dyn std::error::Error>> {
         let _ = TestDatabaseManager::new(vec![], vec![], None).await;
 
-        let cmd = Command::cargo_bin("schema-builder-tool")?
+        let cmd = Command::cargo_bin("mongodb-schema-manager")?
             .arg("--uri")
             .arg(VALID_MDB_URI.clone())
             .arg("--ns-include")
@@ -124,7 +124,7 @@ mod enterprise {
     async fn invalid_exclude_is_error() -> Result<(), Box<dyn std::error::Error>> {
         let _ = TestDatabaseManager::new(vec![], vec![], None).await;
 
-        let cmd = Command::cargo_bin("schema-builder-tool")?
+        let cmd = Command::cargo_bin("mongodb-schema-manager")?
             .arg("--uri")
             .arg(VALID_MDB_URI.clone())
             .arg("--ns-exclude")
@@ -150,7 +150,7 @@ mod enterprise {
             TestDatabaseManager::new(dbs.clone(), collections.clone(), None).await;
 
         // Run the command.
-        let cmd = Command::cargo_bin("schema-builder-tool")?
+        let cmd = Command::cargo_bin("mongodb-schema-manager")?
             .arg("--uri")
             .arg(VALID_MDB_URI.clone())
             .output()?;
@@ -200,7 +200,7 @@ mod enterprise {
         .await;
 
         // Run the command.
-        let cmd = Command::cargo_bin("schema-builder-tool")?
+        let cmd = Command::cargo_bin("mongodb-schema-manager")?
             .arg("--uri")
             .arg(VALID_MDB_URI.clone())
             .arg("--ns-include")
@@ -272,7 +272,7 @@ mod enterprise {
         .await;
 
         // Run the command.
-        let cmd = Command::cargo_bin("schema-builder-tool")?
+        let cmd = Command::cargo_bin("mongodb-schema-manager")?
             .arg("--uri")
             .arg(VALID_MDB_URI.clone())
             .arg("--ns-exclude")
@@ -327,7 +327,7 @@ mod enterprise {
                 .await;
 
         // Run the command.
-        let cmd = Command::cargo_bin("schema-builder-tool")?
+        let cmd = Command::cargo_bin("mongodb-schema-manager")?
             .arg("--uri")
             .arg(VALID_MDB_URI.clone())
             .arg("--dry-run")
@@ -361,7 +361,7 @@ mod enterprise {
                 .await;
 
         // Run the command once to create __sql_schemas.
-        let cmd = Command::cargo_bin("schema-builder-tool")?
+        let cmd = Command::cargo_bin("mongodb-schema-manager")?
             .arg("--uri")
             .arg(VALID_MDB_URI.clone())
             .output()?;
@@ -398,7 +398,7 @@ mod enterprise {
         );
 
         // Rerun the command with explicit "merge" action to ensure we use initial schema.
-        let cmd = Command::cargo_bin("schema-builder-tool")?
+        let cmd = Command::cargo_bin("mongodb-schema-manager")?
             .arg("--uri")
             .arg(VALID_MDB_URI.clone())
             .arg("--action")
@@ -441,7 +441,7 @@ mod enterprise {
                 .await;
 
         // Run the command.
-        let cmd = Command::cargo_bin("schema-builder-tool")?
+        let cmd = Command::cargo_bin("mongodb-schema-manager")?
             .arg("--file")
             .arg("./testfiles/valid_config.yml")
             .output()?;
@@ -505,7 +505,7 @@ mod enterprise {
         .await;
 
         // Run the command.
-        let cmd = Command::cargo_bin("schema-builder-tool")?
+        let cmd = Command::cargo_bin("mongodb-schema-manager")?
             .arg("--uri")
             .arg(VALID_MDB_URI.clone())
             .arg("--file")

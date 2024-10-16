@@ -2915,6 +2915,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "mongodb-schema-manager"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "assert_cmd",
+ "clap 4.5.20",
+ "confy",
+ "dialoguer",
+ "glob",
+ "human-panic",
+ "indicatif",
+ "itertools 0.13.0",
+ "lazy_static",
+ "mongodb",
+ "predicates",
+ "schema-builder-library",
+ "serde",
+ "serde_stacker",
+ "test-utils",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "mongosql"
 version = "0.0.0"
 dependencies = [
@@ -4305,32 +4331,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
-]
-
-[[package]]
-name = "schema-builder-tool"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "assert_cmd",
- "clap 4.5.20",
- "confy",
- "dialoguer",
- "glob",
- "human-panic",
- "indicatif",
- "itertools 0.13.0",
- "lazy_static",
- "mongodb",
- "predicates",
- "schema-builder-library",
- "serde",
- "serde_stacker",
- "test-utils",
- "tokio",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
 ]
 
 [[package]]

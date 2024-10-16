@@ -32,7 +32,7 @@ use utils::{get_cluster_type, verify_cluster_type};
 #[tokio::main]
 async fn main() -> Result<()> {
     setup_panic!(
-        Metadata::new("MongoDB Schema Builder", env!("CARGO_PKG_VERSION"))
+        Metadata::new("MongoDB Schema Manager", env!("CARGO_PKG_VERSION"))
             .homepage("")
             .support(SUPPORT_TEXT)
     );
@@ -47,7 +47,7 @@ async fn main() -> Result<()> {
     }
 
     if let (Some(path), Some(verbosity)) = (cfg.logpath.clone(), cfg.verbosity.clone()) {
-        let file_appender = tracing_appender::rolling::hourly(path, "mongo-schema-builder.log");
+        let file_appender = tracing_appender::rolling::hourly(path, "mongodb-schema-manager.log");
         let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
         tracing_subscriber::fmt()
             .with_ansi(false)

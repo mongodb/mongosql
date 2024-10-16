@@ -13,7 +13,7 @@ members = [
     "mongosql",
     "service",
     "test-utils",
-    "schema-builder-tool",
+    "mongodb-schema-manager",
     "schema-builder-library",
     "usererrordisplay-impl",
     "visitgen",

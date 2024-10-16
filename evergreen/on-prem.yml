@@ -1,0 +1,448 @@
+functions:
+  "run mongodb schema manager and schema builder library tests":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+          cargo test --package mongodb-schema-manager
+          cargo test --package schema-builder-library --lib
+
+  "upload mongodb schema manager executable":
+    - command: s3.put
+      params:
+        build_variants:
+          [ "mongodb-schema-manager-macos", "mongodb-schema-manager-macos-arm","mongodb-schema-manager-ubuntu2004" ]
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/target/release/mongodb-schema-manager
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongodb-schema-manager
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+    - command: s3.put
+      params:
+        build_variants:
+          - mongodb-schema-manager-windows-64
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/target/release/mongodb-schema-manager.exe
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongodb-schema-manager.exe
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+
+  "sign mongodb-schema-manager windows":
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/mongodb-schema-manager-windows-64/mongodb-schema-manager.exe
+        local_file: mongosql-rs/mongodb-schema-manager.exe
+        bucket: mciuploads
+    - command: shell.exec
+      type: system
+      retry_on_failure: true
+      params:
+        silent: true
+        script: |
+          docker login --username ${sql_engines_artifactory_username} --password ${sql_engines_artifactory_auth_token} ${release_tools_container_registry}
+    - command: shell.exec
+      type: system
+      params:
+        silent: true
+        env:
+          GRS_CONFIG_USER1_USERNAME: "${garasign_username}"
+          GRS_CONFIG_USER1_PASSWORD: "${garasign_password}"
+        working_dir: mongosql-rs
+        script: |
+          docker run \
+            -e GRS_CONFIG_USER1_USERNAME \
+            -e GRS_CONFIG_USER1_PASSWORD \
+            --rm \
+            -v $(pwd):$(pwd) -w $(pwd) \
+            ${garasign_jsign_image} \
+            /bin/bash -c "jsign -a mongo-authenticode-2021 --replace --tsaurl http://timestamp.digicert.com -d SHA-256 mongodb-schema-manager.exe"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/mongodb-schema-manager.exe
+        remote_file: mongosql-rs/artifacts/${version_id}/mongodb-schema-manager-windows-64/mongodb-schema-manager-signed.exe
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+
+  "sign mongodb-schema-manager linux":
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/mongodb-schema-manager-ubuntu2004/mongodb-schema-manager
+        local_file: mongosql-rs/mongodb-schema-manager-linux
+        bucket: mciuploads
+    - command: shell.exec
+      type: system
+      retry_on_failure: true
+      params:
+        silent: true
+        script: |
+          docker login --username ${sql_engines_artifactory_username} --password ${sql_engines_artifactory_auth_token} ${release_tools_container_registry}
+    - command: shell.exec
+      type: system
+      params:
+        silent: true
+        env:
+          GRS_CONFIG_USER1_USERNAME: "${garasign_username}"
+          GRS_CONFIG_USER1_PASSWORD: "${garasign_password}"
+        working_dir: mongosql-rs
+        script: |
+          docker run \
+            -e GRS_CONFIG_USER1_USERNAME \
+            -e GRS_CONFIG_USER1_PASSWORD \
+            --rm \
+            -v $(pwd):$(pwd) -w $(pwd) \
+            ${garasign_gpg_image} \
+            /bin/bash -c "gpgloader && gpg --yes -v --armor -o mongodb-schema-manager-linux.sig --detach-sign mongodb-schema-manager-linux"
+    - command: shell.exec
+      type: system
+      params:
+        silent: false
+        env:
+          GRS_CONFIG_USER1_USERNAME: "${garasign_username}"
+          GRS_CONFIG_USER1_PASSWORD: "${garasign_password}"
+        working_dir: mongosql-rs
+        script: |
+          docker run \
+            -e GRS_CONFIG_USER1_USERNAME \
+            -e GRS_CONFIG_USER1_PASSWORD \
+            --rm \
+            -v $(pwd):$(pwd) -w $(pwd) \
+            ${garasign_gpg_image} \
+            /bin/bash -c "gpgloader && gpg --verify mongodb-schema-manager-linux.sig mongodb-schema-manager-linux"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/mongodb-schema-manager-linux.sig
+        remote_file: mongosql-rs/artifacts/${version_id}/mongodb-schema-manager-ubuntu2004/mongodb-schema-manager-linux.sig
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+
+  "sign mongodb-schema-manager macos":
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongodb-schema-manager
+        local_file: mongosql-rs/mongodb-schema-manager-macos
+        bucket: mciuploads
+    - command: subprocess.exec
+      params:
+        binary: bash
+        working_dir: mongosql-rs
+        args:
+          - "./evergreen/resources/sign_macos_mongodb_schema_manager_zip.sh"
+        add_expansions_to_env: true
+    - command: s3.put
+      params:
+        build_variants: [ "mongodb-schema-manager-macos" ]
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/mongodb-schema-manager-macos
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongodb-schema-manager-macos-signed
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+        display_name: mongodb-schema-manager-macos-signed
+    - command: s3.put
+      params:
+        build_variants: [ "mongodb-schema-manager-macos-arm" ]
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/mongodb-schema-manager-macos
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongodb-schema-manager-macos-arm-signed
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+        display_name: mongodb-schema-manager-macos-arm-signed
+
+  "perform mongodb schema manager release":
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/mongodb-schema-manager-macos/mongodb-schema-manager-macos-signed
+        local_file: mongosql-rs/release/mongodb-schema-manager-macos/mongodb-schema-manager-macos-signed
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/mongodb-schema-manager-macos/mongodb-schema-manager-macos-signed
+        remote_file: mongodb-schema-manager/mongodb-schema-manager-latest-macos
+        bucket: translators-connectors-releases
+        permissions: public-read
+        skip_existing: false
+        content_type: application/octet-stream
+        display_name: mongodb-schema-manager-latest-macos
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/mongodb-schema-manager-macos/mongodb-schema-manager-macos-signed
+        remote_file: mongodb-schema-manager/mongodb-schema-manager-v${release_version}-macos
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+        display_name: mongodb-schema-manager-v${release_version}-macos
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/mongodb-schema-manager-macos-arm/mongodb-schema-manager-macos-arm-signed
+        local_file: mongosql-rs/release/mongodb-schema-manager-macos-arm/mongodb-schema-manager-macos-arm-signed
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/mongodb-schema-manager-macos-arm/mongodb-schema-manager-macos-arm-signed
+        remote_file: mongodb-schema-manager/mongodb-schema-manager-macos-latest-arm
+        bucket: translators-connectors-releases
+        permissions: public-read
+        skip_existing: false
+        content_type: application/octet-stream
+        display_name: mongodb-schema-manager-macos-latest-arm
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/mongodb-schema-manager-macos-arm/mongodb-schema-manager-macos-arm-signed
+        remote_file: mongodb-schema-manager/mongodb-schema-manager-v${release_version}-macos-arm
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+        display_name: mongodb-schema-manager-v${release_version}-macos-arm
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/mongodb-schema-manager-ubuntu2004/mongodb-schema-manager
+        local_file: mongosql-rs/release/mongodb-schema-manager-ubuntu2004/mongodb-schema-manager
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/mongodb-schema-manager-ubuntu2004/mongodb-schema-manager
+        remote_file: mongodb-schema-manager/mongodb-schema-manager-latest-linux
+        bucket: translators-connectors-releases
+        permissions: public-read
+        skip_existing: false
+        content_type: application/octet-stream
+        display_name: mongodb-schema-manager-latest-linux
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/mongodb-schema-manager-ubuntu2004/mongodb-schema-manager
+        remote_file: mongodb-schema-manager/mongodb-schema-manager-v${release_version}-linux
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+        display_name: mongodb-schema-manager-v${release_version}-linux
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/mongodb-schema-manager-ubuntu2004/mongodb-schema-manager-linux.sig
+        local_file: mongosql-rs/release/mongodb-schema-manager-ubuntu2004/mongodb-schema-manager-linux.sig
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/mongodb-schema-manager-ubuntu2004/mongodb-schema-manager-linux.sig
+        remote_file: mongodb-schema-manager/mongodb-schema-manager-latest-linux.sig
+        bucket: translators-connectors-releases
+        permissions: public-read
+        skip_existing: false
+        content_type: application/octet-stream
+        display_name: mongodb-schema-manager-latest-linux.sig
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/mongodb-schema-manager-ubuntu2004/mongodb-schema-manager-linux.sig
+        remote_file: mongodb-schema-manager/mongodb-schema-manager-v${release_version}-linux.sig
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+        display_name: mongodb-schema-manager-v${release_version}-linux.sig
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/mongodb-schema-manager-windows-64/mongodb-schema-manager.exe
+        local_file: mongosql-rs/release/mongodb-schema-manager-windows-64/mongodb-schema-manager-signed.exe
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/mongodb-schema-manager-windows-64/mongodb-schema-manager-signed.exe
+        remote_file: mongodb-schema-manager/mongodb-schema-manager-latest-win.exe
+        bucket: translators-connectors-releases
+        permissions: public-read
+        skip_existing: false
+        content_type: application/octet-stream
+        display_name: mongodb-schema-manager-latest-win.exe
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/mongodb-schema-manager-windows-64/mongodb-schema-manager-signed.exe
+        remote_file: mongodb-schema-manager/mongodb-schema-manager-v${release_version}-win.exe
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+        display_name: mongodb-schema-manager-v${release_version}-win.exe
+
+
+tasks:
+  - name: test-schema-manager-and-schema-builder-library
+    depends_on:
+      - name: compile-mongodb-schema-manager
+    commands:
+      - func: "install rust toolchain"
+      - func: "run mongodb schema manager and schema builder library tests"
+
+  - name: test-schema-builder-library-integration
+    commands:
+      - func: "install rust toolchain"
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 6.0
+          TOPOLOGY: server
+      - func: "run rust integration tests"
+        retry_on_failure: true
+        vars:
+          description: "run schema-builder-library integration tests"
+          load_data_cmd: "cargo run --bin data-loader"
+          cargo_test_flags: >-
+            --features=integration
+            --package=schema-builder-library
+            --lib internal_integration_tests
+            -- --test-threads=1
+
+  - name: test-mongodb-schema-manager-e2e
+    commands:
+      - func: "bootstrap mongo-orchestration"
+      - func: "install rust toolchain"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
+      - func: "run rust integration tests"
+        vars:
+          description: "run mongodb-schema-manager integration tests"
+          cargo_test_flags: >-
+            --features=integration
+            --package=mongodb-schema-manager
+            --test e2e
+            -- --test-threads=1
+
+  - name: sign-mongodb-schema-manager-executables
+    allowed_requesters: ["github_tag", "ad_hoc"]
+    retry_on_failure: true
+    depends_on:
+      - name: compile-mongodb-schema-manager
+    commands:
+      - func: "sign mongodb-schema-manager windows"
+        variants: [ mongodb-schema-manager-windows-64 ]
+      - func: "sign mongodb-schema-manager linux"
+        variants: [ mongodb-schema-manager-ubuntu2004 ]
+      - func: "sign mongodb-schema-manager macos"
+        variants: [ mongodb-schema-manager-macos, mongodb-schema-manager-macos-arm ]
+
+  - name: compile-mongodb-schema-manager
+    commands:
+      - func: "install rust toolchain"
+      - func: "compile release"
+      - func: "upload mongodb schema manager executable"
+
+  - name: mongodb-schema-manager-release
+    git_tag_only: true
+    depends_on:
+      - name: mongodb-schema-manager-sbom
+        variant: "mongodb-schema-manager-code-quality-security"
+      - name: compile-mongodb-schema-manager
+        variant: ".mongodb-schema-manager-release-variant"
+      - name: sign-mongodb-schema-manager-executables
+        variant: ".mongodb-schema-manager-release-variant"
+    commands:
+      - func: "perform mongodb schema manager release"
+
+buildvariants:
+  - name: mongodb-schema-manager-macos
+    tags: [ "mongodb-schema-manager-release-variant" ]
+    display_name: "MongoDB Schema Manager - macOS"
+    run_on: [ macos-14 ]
+    tasks:
+      - name: compile-mongodb-schema-manager
+      - name: test-schema-manager-and-schema-builder-library
+      - name: sign-mongodb-schema-manager-executables
+
+  - name: mongodb-schema-manager-integration-test
+    tags: [ "schema-builder-test" ]
+    display_name: "MongoDB Schema Manager Integration Test"
+    run_on: [ rhel76-large ]
+    tasks:
+      - name: compile-mongodb-schema-manager
+      - name: test-schema-manager-and-schema-builder-library
+      - name: test-schema-builder-library-integration
+
+  - name: mongodb-schema-manager-e2e-test
+    tags: [ "schema-builder-test" ]
+    display_name: "MongoDB Schema Manager  End-to-End Test"
+    run_on: [ rhel76-large ]
+    tasks:
+      - name: compile-mongodb-schema-manager
+      - name: test-mongodb-schema-manager-e2e
+
+  - name: mongodb-schema-manager-macos-arm
+    tags: [ "mongodb-schema-manager-release-variant" ]
+    display_name: "MongoDB Schema Manager - macOS arm64"
+    run_on: [ macos-14-arm64 ]
+    tasks:
+      - name: compile-mongodb-schema-manager
+      - name: test-schema-manager-and-schema-builder-library
+      - name: sign-mongodb-schema-manager-executables
+
+  - name: mongodb-schema-manager-windows-64
+    tags: [ "mongodb-schema-manager-release-variant" ]
+    display_name: "MongoDB Schema Manager - windows"
+    run_on: [ windows-64-vs2019-large ]
+    tasks:
+      - name: compile-mongodb-schema-manager
+      - name: test-schema-manager-and-schema-builder-library
+      - name: sign-mongodb-schema-manager-executables
+        run_on: ubuntu2204-large
+
+  - name: mongodb-schema-manager-ubuntu2004
+    tags: [ "mongodb-schema-manager-release-variant" ]
+    display_name: "MongoDB Schema Manager - linux"
+    run_on: [ ubuntu2004-large ]
+    tasks:
+      - name: compile-mongodb-schema-manager
+      - name: test-schema-manager-and-schema-builder-library
+      - name: sign-mongodb-schema-manager-executables
+
+  - name: mongodb-schema-manager-release
+    display_name: "MongoDB Schema Manager Release"
+    run_on: [ ubuntu2004-large ]
+    tasks:
+      - name: mongodb-schema-manager-release

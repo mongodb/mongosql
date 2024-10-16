@@ -29,7 +29,7 @@ timeout:
 
 include:
   - filename: evergreen/grpc.yml
-  - filename: evergreen/schema-builder.yml
+  - filename: evergreen/on-prem.yml
   - filename: evergreen/mongosqltranslate.yml
   - filename: evergreen/suite-tasks.yml
 
@@ -142,15 +142,15 @@ functions:
           # check all of the releasable packages in the monorepo to verify that whichever is being released has the correct version
           MONGOSQL_CARGO_PKGS_VERSION=$(cargo get --entry="mongosql/Cargo.toml" package.version)
           TRR_CARGO_PKGS_VERSION=$(cargo get --entry="bic-trip/Cargo.toml" package.version)
-          DCSB_CARGO_PKGS_VERSION=$(cargo get --entry="schema-builder-tool/Cargo.toml" package.version)
+          SCHEMA_MANAGER_CARGO_PKGS_VERSION=$(cargo get --entry="mongodb-schema-manager/Cargo.toml" package.version)
           MONGOSQLTRANSLATE_CARGO_PKGS_VERSION=$(cargo get --entry="mongosqltranslate/Cargo.toml" package.version)
           if [[ "${triggered_by_git_tag}" == "" ]]; then
             EXPECTED_RELEASE_VERSION="0.0.0"
           else
             EXPECTED_RELEASE_VERSION="$release_version"
           fi
-          if [[ "$MONGOSQL_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" || "$TRR_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" || "$DCSB_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" || "$MONGOSQLTRANSLATE_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" ]]; then
-            >&2 echo "Expected version $EXPECTED_RELEASE_VERSION doesn't match for at least one package ; mongosql version $MONGOSQL_CARGO_PKGS_VERSION, trr version $TRR_CARGO_PKGS_VERSION, dcsb version $DCSB_CARGO_PKGS_VERSION, mongosqltranslate version $MONGOSQLTRANSLATE_CARGO_PKGS_VERSION"
+          if [[ "$MONGOSQL_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" || "$TRR_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" || "$SCHEMA_MANAGER_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" || "$MONGOSQLTRANSLATE_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" ]]; then
+            >&2 echo "Expected version $EXPECTED_RELEASE_VERSION doesn't match for at least one package ; mongosql version $MONGOSQL_CARGO_PKGS_VERSION, trr version $TRR_CARGO_PKGS_VERSION, schema manager version $SCHEMA_MANAGER_CARGO_PKGS_VERSION, mongosqltranslate version $MONGOSQLTRANSLATE_CARGO_PKGS_VERSION"
             exit 1
           fi
 
@@ -1550,15 +1550,15 @@ tasks:
       - func: "sign trr macos"
         variants: [trr-macos, trr-macos-arm]
 
-  - name: dcsb-sbom
+  - name: mongodb-schema-manager-sbom
     commands:
       - func: "install rust toolchain"
       - func: "generate SBOM"
         vars:
-          project_folder: "schema-builder-tool"
+          project_folder: "mongodb-schema-manager"
       - func: "scan SBOM"
         vars:
-          project_folder: "schema-builder-tool"
+          project_folder: "mongodb-schema-manager"
 
 buildvariants:
   - name: static-analysis
@@ -1732,8 +1732,8 @@ buildvariants:
     tasks:
       - name: release
 
-  - name: dcsb-code-quality-security
-    display_name: "MongoDB Schema Builder Code Quality and Security"
+  - name: mongodb-schema-manager-code-quality-security
+    display_name: "MongoDB Schema Manager Code Quality and Security"
     run_on: [ubuntu2204-small]
     tasks:
-      - name: dcsb-sbom
+      - name: mongodb-schema-manager-sbom
