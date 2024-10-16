@@ -103,6 +103,8 @@ pub fn {name}() {{
 
     let result = run_query(&client, translation.unwrap()).unwrap();
 
+    let type_compare = test.type_compare.unwrap_or(false);
+
     if let Some(expected_results) = test.result.clone() {{
         // fun times here. If there isn't a catalog where the type is specified, then the
         // type is elided. Unfortunately, when coming in from serde_yaml, all positive numbers
@@ -127,7 +129,7 @@ pub fn {name}() {{
             assert!(
                 expected_results.iter().any(|expected| {{
                     // because NaN != NaN, we have to use custom comparison functions
-                    compare_documents(expected, actual)
+                    compare_documents(expected, actual, type_compare)
                 }}),
                 "unexpected query result for {{}}, \nexpected results: {{:?}}\nactual results: {{:?}}",
                 test.description,

@@ -172,6 +172,7 @@ tests:
 
   - description: Cast DOCUMENT to BOOL
     current_db: foo
+    type_compare: true
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM documents AS documents"
     result:
       - {'': {'v': {}, 'asBool': true}}
@@ -992,9 +993,9 @@ tests:
       - {'': {'type': 'maxKey', 'asObjectID': null}}
 
   - description: Cast DOUBLE to STRING
-    skip_reason: "SQL-2391: Update type conversion test suite"
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM doubles AS doubles"
+    type_compare: true
     result:
       - {'': {'v': {'$numberDouble': '0'}, 'asString': '0'}}
       - {'': {'v': {'$numberDouble': '1.9'}, 'asString': '1.9'}}
@@ -1088,6 +1089,7 @@ tests:
   - description: Cast DECIMAL to STRING
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM decimals AS decimals"
+    type_compare: true
     result:
       - {'': {'v': {'$numberDecimal': '0'}, 'asString': '0'}}
       - {'': {'v': {'$numberDecimal': '1.9'}, 'asString': '1.9'}}

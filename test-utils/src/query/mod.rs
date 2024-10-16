@@ -46,6 +46,7 @@ pub struct QueryTest {
     pub algebrize_error: Option<String>,
     pub catalog_error: Option<String>,
     pub allow_order_by_missing: Option<bool>,
+    pub type_compare: Option<bool>,
 }
 
 /// parse_query_yaml_file parses a YAML file into a QueryYamlTestFile struct.
@@ -68,7 +69,7 @@ pub fn parse_query_yaml_file(path: PathBuf) -> Result<QueryYamlTestFile, Error> 
 /// we MUST check every value in the expected array against every value in the actual array. Using the HashSet
 /// to mark seen indices, we can ensure that we don't check the same value twice.
 /// Since the query tests are small, this shouldn't be much of an impact.
-pub fn compare_arrays(expected: &[Bson], actual: &[Bson]) -> bool {
+pub fn compare_arrays(expected: &[Bson], actual: &[Bson], type_compare: bool) -> bool {
     if expected.len() != actual.len() {
         return false;
     }
@@ -80,7 +81,7 @@ pub fn compare_arrays(expected: &[Bson], actual: &[Bson]) -> bool {
             }
             if let Bson::Document(d) = e {
                 if let Bson::Document(ad) = a {
-                    if compare_documents(d, ad) {
+                    if compare_documents(d, ad, type_compare) {
                         return seen_indices.insert(i);
                     }
                 } else {
@@ -89,9 +90,16 @@ pub fn compare_arrays(expected: &[Bson], actual: &[Bson]) -> bool {
             }
             if let Bson::Array(ea) = e {
                 if let Bson::Array(aa) = a {
-                    if compare_arrays(ea, aa) {
+                    if compare_arrays(ea, aa, type_compare) {
                         return seen_indices.insert(i);
                     }
+                } else {
+                    return false;
+                }
+            }
+            if type_compare {
+                if e.element_type() == a.element_type() {
+                    return seen_indices.insert(i);
                 } else {
                     return false;
                 }
@@ -116,7 +124,7 @@ pub fn compare_arrays(expected: &[Bson], actual: &[Bson]) -> bool {
 /// Compare documents, allowing for NaN == NaN == true, by first checking to make sure they have the same number of keys, then iterating
 /// through one document and getting the matching key from the other. Because there can't be duplicate keys within a document (at the same level),
 /// this is a much more simple comparison than arrays.
-pub fn compare_documents(expected: &Document, actual: &Document) -> bool {
+pub fn compare_documents(expected: &Document, actual: &Document, type_compare: bool) -> bool {
     if expected.len() != actual.len() {
         return false;
     }
@@ -124,17 +132,21 @@ pub fn compare_documents(expected: &Document, actual: &Document) -> bool {
         actual.iter().any(|(ak, av)| {
             if let Bson::Document(d) = ev {
                 if let Bson::Document(ad) = av {
-                    return compare_documents(d, ad);
+                    return compare_documents(d, ad, type_compare);
                 } else {
                     return false;
                 }
             }
+
             if let Bson::Array(a) = ev {
                 if let Bson::Array(aa) = av {
-                    return compare_arrays(a, aa);
+                    return compare_arrays(a, aa, type_compare);
                 } else {
                     return false;
                 }
+            }
+            if type_compare {
+                return ek == ak && ev.element_type() == av.element_type();
             }
             if let Bson::Double(d) = ev {
                 if let Bson::Double(ad) = av {
