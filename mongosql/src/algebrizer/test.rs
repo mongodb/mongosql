@@ -8989,7 +8989,30 @@ mod select_and_order_by {
                     cache: SchemaCache::new(),
                 }).into(),
                 expression: map! {
-                    Key::bot(0) => Expression::Reference(Key::bot(0).into()),
+                    Key::bot(0) => Expression::Document(unchecked_unique_linked_hash_map! {
+                        "_id".into() => Expression::FieldAccess(FieldAccess {
+                            expr: Expression::Reference(("foo", 0u16).into()).into(),
+                            field: "_id".into(),
+                            is_nullable: false,
+                        }),
+                        "a".into() => Expression::FieldAccess(FieldAccess {
+                            expr: Expression::Reference(("foo", 0u16).into()).into(),
+                            field: "a".into(),
+                            is_nullable: false,
+                        }),
+                        "c".into() => Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::Add,
+                            args: vec![
+                                Expression::FieldAccess(FieldAccess {
+                                    expr: Expression::Reference(("foo", 0u16).into()).into(),
+                                    field: "b".into(),
+                                    is_nullable: false,
+                                }),
+                                Expression::Literal(mir::LiteralValue::Integer(42)),
+                            ],
+                            is_nullable: false,
+                        }),
+                    }.into())
                 },
                 is_add_fields: false,
                 cache: SchemaCache::new(),

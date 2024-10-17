@@ -118,9 +118,11 @@ mod project {
         catalog::Namespace,
         map,
         mir::{schema::SchemaCache, *},
-        schema::{ResultSet, ANY_DOCUMENT},
-        test_schema,
+        schema::{Atomic, Document, ResultSet, Schema, ANY_DOCUMENT},
+        set, test_schema, unchecked_unique_linked_hash_map,
+        util::mir_collection,
     };
+    use mongosql_datastructures::binding_tuple::Key;
 
     test_schema!(
         project_schema,
@@ -186,6 +188,49 @@ mod project {
         }),
         catalog = Catalog::new(map! {
             Namespace {db: "test2".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+        }),
+    );
+
+    test_schema!(
+        add_fields_does_not_result_in_any_of_schema,
+        expected = Ok(ResultSet {
+            schema_env: map! {
+                Key::bot(0) => Schema::Document(Document {
+                    keys: map! {
+                        "x".into() => Schema::Atomic(Atomic::Integer),
+                        "y".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set! { "x".into(), "y".into() },
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+                ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
+            },
+            min_size: 0,
+            max_size: None,
+        }),
+        input = Stage::Project(Project {
+            is_add_fields: true,
+            source: mir_collection("db", "foo"),
+            expression: map! {
+                Key::bot(0) => Expression::Document(unchecked_unique_linked_hash_map! {
+                    "y".into() => Expression::Literal(LiteralValue::Integer(1))
+                }.into()),
+            },
+            cache: SchemaCache::new(),
+        }),
+        schema_env = map! {
+            Key::bot(0) => Schema::Document(Document {
+                keys: map! {
+                    "x".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! { "x".into() },
+                additional_properties: false,
+                ..Default::default()
+            }),
+        },
+        catalog = Catalog::new(map! {
+            Namespace {db: "db".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
         }),
     );
 }

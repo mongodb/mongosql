@@ -1,34 +1,38 @@
 catalog_data:
   mydb:
     foo:
-      - {'_id': 0, 'a': 1, 'b': 'def'}
-      - {'_id': 1, 'a': 2, 'b': 'abc'}
-      - {'_id': 2, 'a': 1, 'b': 'abc'}
+      - { '_id': 0, 'a': 1, 'b': 'def' }
+      - { '_id': 1, 'a': 2, 'b': 'abc' }
+      - { '_id': 2, 'a': 1, 'b': 'abc' }
     bar:
-      - {'_id': 0, 'a': 3, 'b': {'c': 1}}
-      - {'_id': 1, 'a': 2, 'b': {'c': 3}}
-      - {'_id': 2, 'a': 1, 'b': {'c': 2}}
+      - { '_id': 0, 'a': 3, 'b': { 'c': 1 } }
+      - { '_id': 1, 'a': 2, 'b': { 'c': 3 } }
+      - { '_id': 2, 'a': 1, 'b': { 'c': 2 } }
     nullAndMissing:
-      - {'_id': 0, 'a': null}
-      - {'_id': 1}
-      - {'_id': 2, 'a': null}
+      - { '_id': 0, 'a': null }
+      - { '_id': 1 }
+      - { '_id': 2, 'a': null }
     nullAndNonNull:
-      - {'_id': 0, 'a': null}
-      - {'_id': 1, 'a': 1}
-      - {'_id': 2, 'a': null}
+      - { '_id': 0, 'a': null }
+      - { '_id': 1, 'a': 1 }
+      - { '_id': 2, 'a': null }
     baz:
       - {
-          "_id": 0,
-          "a": { "$numberInt": "1" },
-          "b": { "$numberInt": "2" },
-          "coll": "foo",
-        }
+        "_id": 0,
+        "a": { "$numberInt": "1" },
+        "b": { "$numberInt": "2" },
+        "coll": "foo",
+      }
       - {
-          "_id": 1,
-          "a": { "$numberInt": "2" },
-          "b": { "$numberInt": "1" },
-          "coll": "foo",
-        }
+        "_id": 1,
+        "a": { "$numberInt": "2" },
+        "b": { "$numberInt": "1" },
+        "coll": "foo",
+      }
+    car:
+      - { '_id': 0, 's': 'xyz' }
+      - { '_id': 1, 's': 'abc' }
+      - { '_id': 2, 's': 'abc' }
 
 catalog_schema:
   {
@@ -75,7 +79,7 @@ catalog_schema:
       "baz":
         {
           "bsonType": "object",
-          "required": ["_id", "a", "b", "coll"],
+          "required": [ "_id", "a", "b", "coll" ],
           "additionalProperties": false,
           "properties":
             {
@@ -83,6 +87,17 @@ catalog_schema:
               "a": { "bsonType": "int" },
               "b": { "bsonType": "int" },
               "coll": { "bsonType": "string" },
+            },
+        },
+      "car":
+        {
+          "bsonType": "object",
+          "required": [ "_id", "s" ],
+          "additionalProperties": false,
+          "properties":
+            {
+              "_id": { "bsonType": "int" },
+              "s": { "bsonType": "string" },
             },
         },
     }
@@ -94,45 +109,45 @@ tests:
     query: "SELECT VALUE {'a': a::!INT} FROM foo AS foo ORDER BY a ASC"
     ordered: true
     result:
-      - {'': {'a': 1}}
-      - {'': {'a': 1}}
-      - {'': {'a': 2}}
+      - { '': { 'a': 1 } }
+      - { '': { 'a': 1 } }
+      - { '': { 'a': 2 } }
 
   - description: descending-sort correctness test
     current_db: mydb
     query: "SELECT VALUE {'a': a::!INT} FROM foo AS foo ORDER BY a DESC"
     ordered: true
     result:
-      - {'': {'a': 2}}
-      - {'': {'a': 1}}
-      - {'': {'a': 1}}
+      - { '': { 'a': 2 } }
+      - { '': { 'a': 1 } }
+      - { '': { 'a': 1 } }
 
   - description: multiple-sort-key correctness test
     current_db: mydb
     query: "SELECT VALUE {'a': a::!INT, 'b': b::!STRING} FROM foo AS foo ORDER BY a ASC, b ASC"
     ordered: true
     result:
-      - {'': {'a': 1, 'b': 'abc'}}
-      - {'': {'a': 1, 'b': 'def'}}
-      - {'': {'a': 2, 'b': 'abc'}}
+      - { '': { 'a': 1, 'b': 'abc' } }
+      - { '': { 'a': 1, 'b': 'def' } }
+      - { '': { 'a': 2, 'b': 'abc' } }
 
   - description: missing sorts before null
     current_db: mydb
     query: "SELECT * FROM nullAndMissing AS nullAndMissing ORDER BY a ASC"
     ordered: true
     result:
-      - {'nullAndMissing': {'_id': 0, 'a': null}}
-      - {'nullAndMissing': {'_id': 1}}
-      - {'nullAndMissing': {'_id': 2, 'a': null}}
+      - { 'nullAndMissing': { '_id': 0, 'a': null } }
+      - { 'nullAndMissing': { '_id': 1 } }
+      - { 'nullAndMissing': { '_id': 2, 'a': null } }
 
   - description: null sorts before non-null values
     current_db: mydb
     query: "SELECT VALUE {'a': a::!INT} FROM nullAndNonNull AS nullAndNonNull ORDER BY a ASC"
     ordered: true
     result:
-      - {'': {'a': null}}
-      - {'': {'a': null}}
-      - {'': {'a': 1}}
+      - { '': { 'a': null } }
+      - { '': { 'a': null } }
+      - { '': { 'a': 1 } }
 
   - description: sort keys must be mutually comparable types
     current_db: mydb
@@ -145,45 +160,45 @@ tests:
     query: "SELECT * FROM bar AS bar ORDER BY bar.a ASC"
     ordered: true
     result:
-      - {'bar': {'_id': 2, 'a': 1, 'b': {'c': 2}}}
-      - {'bar': {'_id': 1, 'a': 2, 'b': {'c': 3}}}
-      - {'bar': {'_id': 0, 'a': 3, 'b': {'c': 1}}}
+      - { 'bar': { '_id': 2, 'a': 1, 'b': { 'c': 2 } } }
+      - { 'bar': { '_id': 1, 'a': 2, 'b': { 'c': 3 } } }
+      - { 'bar': { '_id': 0, 'a': 3, 'b': { 'c': 1 } } }
 
   - description: column references in sort keys can be qualified with table name after select substar
     current_db: mydb
     query: "SELECT VALUE bar.* FROM bar AS bar ORDER BY bar.a ASC"
     ordered: true
     result:
-      - {'bar': {'_id': 2, 'a': 1, 'b': {'c': 2}}}
-      - {'bar': {'_id': 1, 'a': 2, 'b': {'c': 3}}}
-      - {'bar': {'_id': 0, 'a': 3, 'b': {'c': 1}}}
+      - { 'bar': { '_id': 2, 'a': 1, 'b': { 'c': 2 } } }
+      - { 'bar': { '_id': 1, 'a': 2, 'b': { 'c': 3 } } }
+      - { 'bar': { '_id': 0, 'a': 3, 'b': { 'c': 1 } } }
 
   - description: column references in sort keys can be compound identifiers referencing document subfields
     current_db: mydb
     query: "SELECT VALUE {'b': b} FROM bar AS bar ORDER BY b.c ASC"
     ordered: true
     result:
-      - {'': {'b': {'c': 1}}}
-      - {'': {'b': {'c': 2}}}
-      - {'': {'b': {'c': 3}}}
+      - { '': { 'b': { 'c': 1 } } }
+      - { '': { 'b': { 'c': 2 } } }
+      - { '': { 'b': { 'c': 3 } } }
 
   - description: column references in sort keys can be compound identifiers referencing document subfields and be qualified with table name
     current_db: mydb
     query: "SELECT * FROM bar AS bar ORDER BY bar.b.c ASC"
     ordered: true
     result:
-      - {'bar': {'_id': 0, 'a': 3, 'b': {'c': 1}}}
-      - {'bar': {'_id': 2, 'a': 1, 'b': {'c': 2}}}
-      - {'bar': {'_id': 1, 'a': 2, 'b': {'c': 3}}}
+      - { 'bar': { '_id': 0, 'a': 3, 'b': { 'c': 1 } } }
+      - { 'bar': { '_id': 2, 'a': 1, 'b': { 'c': 2 } } }
+      - { 'bar': { '_id': 1, 'a': 2, 'b': { 'c': 3 } } }
 
   - description: allow qualified order by fields in ORDER BY because some BI tools require this even though it is not correct SQL92
     current_db: mydb
     query: "SELECT a, _id FROM bar AS bar ORDER BY bar.a ASC, _id"
     ordered: true
     result:
-      - {'': {'a': 1, '_id': 2}}
-      - {'': {'a': 2, '_id': 1}}
-      - {'': {'a': 3, '_id': 0}}
+      - { '': { 'a': 1, '_id': 2 } }
+      - { '': { 'a': 2, '_id': 1 } }
+      - { '': { 'a': 3, '_id': 0 } }
 
   - description: qualified order by fields in ORDER BY select the proper data source where there are multiple datasources in scope
     current_db: mydb
@@ -192,41 +207,41 @@ tests:
     skip_reason: "SQL-2405"
     result:
       - {
-          'a': {'_id': 2, 'a': 1, 'b': {'c': 2}},
-          'b': {'_id': 2, 'a': 1, 'b': {'c': 2}},
-        }
+        'a': { '_id': 2, 'a': 1, 'b': { 'c': 2 } },
+        'b': { '_id': 2, 'a': 1, 'b': { 'c': 2 } },
+      }
       - {
-          'a': {'_id': 2, 'a': 1, 'b': {'c': 2}},
-          'b': {'_id': 1, 'a': 2, 'b': {'c': 3}}
-        }
+        'a': { '_id': 2, 'a': 1, 'b': { 'c': 2 } },
+        'b': { '_id': 1, 'a': 2, 'b': { 'c': 3 } }
+      }
       - {
-          'a': {'_id': 2, 'a': 1, 'b': {'c': 2}},
-          'b': {'_id': 0, 'a': 3, 'b': {'c': 1}}
-        }
+        'a': { '_id': 2, 'a': 1, 'b': { 'c': 2 } },
+        'b': { '_id': 0, 'a': 3, 'b': { 'c': 1 } }
+      }
       - {
-          'a': {'_id': 1, 'a': 2, 'b': {'c': 3}},
-          'b': {'_id': 2, 'a': 1, 'b': {'c': 2}}
-        }
+        'a': { '_id': 1, 'a': 2, 'b': { 'c': 3 } },
+        'b': { '_id': 2, 'a': 1, 'b': { 'c': 2 } }
+      }
       - {
-          'a': {'_id': 1, 'a': 2, 'b': {'c': 3}},
-          'b': {'_id': 1, 'a': 2, 'b': {'c': 3}}
-        }
+        'a': { '_id': 1, 'a': 2, 'b': { 'c': 3 } },
+        'b': { '_id': 1, 'a': 2, 'b': { 'c': 3 } }
+      }
       - {
-          'a': {'_id': 1, 'a': 2, 'b': {'c': 3}},
-          'b': {'_id': 0, 'a': 3, 'b': {'c': 1}}
-        }
+        'a': { '_id': 1, 'a': 2, 'b': { 'c': 3 } },
+        'b': { '_id': 0, 'a': 3, 'b': { 'c': 1 } }
+      }
       - {
-          'a': {'_id': 0, 'a': 3, 'b': {'c': 1}},
-          'b': {'_id': 2, 'a': 1, 'b': {'c': 2}}
-        }
+        'a': { '_id': 0, 'a': 3, 'b': { 'c': 1 } },
+        'b': { '_id': 2, 'a': 1, 'b': { 'c': 2 } }
+      }
       - {
-          'a': {'_id': 0, 'a': 3, 'b': {'c': 1}},
-          'b': {'_id': 1, 'a': 2, 'b': {'c': 3}}
-        }
+        'a': { '_id': 0, 'a': 3, 'b': { 'c': 1 } },
+        'b': { '_id': 1, 'a': 2, 'b': { 'c': 3 } }
+      }
       - {
-          'a': {'_id': 0, 'a': 3, 'b': {'c': 1}},
-          'b': {'_id': 0, 'a': 3, 'b': {'c': 1}}
-        }
+        'a': { '_id': 0, 'a': 3, 'b': { 'c': 1 } },
+        'b': { '_id': 0, 'a': 3, 'b': { 'c': 1 } }
+      }
 
   - description: ordering by ambiguous column reference is an error
     current_db: mydb
@@ -255,54 +270,54 @@ tests:
     current_db: mydb
     query: "SELECT _id, a, b + 42 as c from baz order by b, c"
     result:
-      - {"":
-          {
-            "_id": 1,
-            "a": { "$numberInt": "2" },
-            "c": 43,
-          }
-        }
-      - {"":
-          {
-            "_id": 0,
-            "a": { "$numberInt": "1" },
-            "c": 44
-          }
-        }
+      - { "":
+            {
+              "_id": 1,
+              "a": { "$numberInt": "2" },
+              "c": 43,
+            }
+      }
+      - { "":
+            {
+              "_id": 0,
+              "a": { "$numberInt": "1" },
+              "c": 44
+            }
+      }
 
   - description: allow ordering by column not in Select
     current_db: mydb
     query: "SELECT _id, a from baz order by b"
     result:
-      - {"":
-          {
-            "_id": 1,
-            "a": { "$numberInt": "2" },
-          }
-        }
-      - {"":
-          {
-            "_id": 0,
-            "a": { "$numberInt": "1" },
-          }
-        }
+      - { "":
+            {
+              "_id": 1,
+              "a": { "$numberInt": "2" },
+            }
+      }
+      - { "":
+            {
+              "_id": 0,
+              "a": { "$numberInt": "1" },
+            }
+      }
 
   - description: ordering by column in select list that shadows column from data sources still works
     current_db: mydb
     query: "SELECT _id, a from baz order by a"
     result:
-      - {"":
-          {
-            "_id": 0,
-            "a": { "$numberInt": "1" },
-          }
-        }
-      - {"":
-          {
-            "_id": 1,
-            "a": { "$numberInt": "2" },
-          }
-        }
+      - { "":
+            {
+              "_id": 0,
+              "a": { "$numberInt": "1" },
+            }
+      }
+      - { "":
+            {
+              "_id": 1,
+              "a": { "$numberInt": "2" },
+            }
+      }
 
   - description: ordering by column not in Select in join must be qualified
     current_db: mydb
@@ -313,42 +328,49 @@ tests:
     current_db: mydb
     query: "SELECT b._id, a.a, b.b + 42 as c from baz a join baz b order by a.b, c"
     result:
-      - {"":
-          {
-            "_id": { "$numberInt": "1" },
-            "a": { "$numberInt": "2" },
-            "c": { "$numberInt": "43" }
-          }
+      - { "":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "c": { "$numberInt": "43" }
+            }
       }
-      - {"":
-          {
-            "_id": { "$numberInt": "0" },
-            "a": { "$numberInt": "2" },
-            "c": { "$numberInt": "44" }
-          }
+      - { "":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "2" },
+              "c": { "$numberInt": "44" }
+            }
       }
-      - {"":
-          {
-            "_id": { "$numberInt": "1" },
-            "a": { "$numberInt": "1" },
-            "c": { "$numberInt": "43" }
-          }
+      - { "":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "1" },
+              "c": { "$numberInt": "43" }
+            }
       }
-      - {"":
-          {
-            "_id": { "$numberInt": "0" },
-            "a": { "$numberInt": "1" },
-            "c": { "$numberInt": "44" }
-          }
+      - { "":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "c": { "$numberInt": "44" }
+            }
       }
 
   - description: allow ordering by column not in Select even with group by
     current_db: mydb
     query: "SELECT a, b + 42 as c from baz group by a, b order by b, c"
     result:
-      - {"":
-          {"a": { "$numberInt": "2" }, "c": { "$numberInt": "43" }}
-        }
-      - {"":
-          {"a": { "$numberInt": "1" }, "c": { "$numberInt": "44" }}
-        }
+      - { "":
+            { "a": { "$numberInt": "2" }, "c": { "$numberInt": "43" } }
+      }
+      - { "":
+            { "a": { "$numberInt": "1" }, "c": { "$numberInt": "44" } }
+      }
+
+  - description: ensure ORDER BY does not introduce extraneous columns
+    current_db: mydb
+    query: "SELECT COUNT(s) AS alias1, s AS alias2 FROM car GROUP BY s ORDER BY alias2"
+    result:
+      - { '': { 'alias1': 2, 'alias2': 'abc' } }
+      - { '': { 'alias1': 1, 'alias2': 'xyz' } }

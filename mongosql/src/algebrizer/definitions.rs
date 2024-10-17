@@ -947,12 +947,13 @@ impl<'a> Algebrizer<'a> {
             return self.algebrize_select_clause(select_node, source, false);
         }
         let select = self.algebrize_select_clause(select_node, source, true)?;
-        // the project_body will just maintain all the keys defined in the $addFields.
+        // The project_body must maintain the expressions defined by the $addFields or else
+        // the output may include extraneous fields
         let project_body = match select {
             mir::Stage::Project(ref p) => p
                 .expression
                 .iter()
-                .map(|(k, _)| (k.clone(), mir::Expression::Reference(k.clone().into())))
+                .map(|(k, e)| (k.clone(), e.clone()))
                 .collect(),
             // We only reach this case when we have SELECT *, so we can just return
             // algebrize_order_by

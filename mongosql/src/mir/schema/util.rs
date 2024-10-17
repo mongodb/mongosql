@@ -1,6 +1,6 @@
 use crate::{
     mir::*,
-    schema::{Document, Satisfaction, Schema, NULLISH},
+    schema::{Document, Satisfaction, Schema, SchemaEnvironment, NULLISH},
 };
 
 impl FieldAccess {
@@ -142,5 +142,41 @@ pub fn set_field_schema(
                 ..Default::default()
             })
         }
+    }
+}
+
+// When constructing the schema environment for Group and AddFields, calls to union() and
+// union_schema_for_datasource() combine schemas with the same Key under an AnyOf. However, we want
+// group keys and aggregations under bottom to be combined under a single document, and we want
+// AddFields keys under bottom to be added to the incoming bottom schema. To accomplish this, we
+// pull out the schema for bottom, and if it's an AnyOf set of documents, use Document::merge() to
+// combine the documents.
+pub(crate) fn merge_bot_any_of_document_schemas(
+    scope_level: u16,
+    mut schema_env: SchemaEnvironment,
+) -> SchemaEnvironment {
+    if let Some(bot_schema) = schema_env.remove(&binding_tuple::Key::bot(scope_level)) {
+        // Call simplify() to flatten the AnyOfs into a single set.
+        if let Schema::AnyOf(schemas) = Schema::simplify(&bot_schema) {
+            let merged_document = schemas.into_iter().fold(Document::empty(), |acc, schema| {
+                acc.merge(match schema {
+                    Schema::Document(doc) => doc,
+                    // Bottom is always a document according to the spec, and so
+                    // its schema can only be Document or AnyOf(documents). After
+                    // simplification, we know that we're inside the only AnyOf,
+                    // so there should only be documents.
+                    _ => unreachable!("Bottom should always be Document"),
+                })
+            });
+            schema_env.union_schema_for_datasource(
+                binding_tuple::Key::bot(scope_level),
+                Schema::Document(merged_document),
+            )
+        } else {
+            // Put the value back unchanged if the top-level bottom schema wasn't AnyOf.
+            schema_env.union_schema_for_datasource(binding_tuple::Key::bot(scope_level), bot_schema)
+        }
+    } else {
+        schema_env
     }
 }
