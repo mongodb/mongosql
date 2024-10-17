@@ -218,3 +218,21 @@ tests:
     query: "SELECT * FROM bar LEFT JOIN bar2 ON bar._id = bar2._id WHERE bar2.baz = 63"
     result:
       - { "bar": {"_id": 0, "foo": 1}, "bar2": {"_id": 0, "foo": 42, "baz": 63}}
+
+  - description: match filter in left join correctness test
+    current_db: mydb
+    query: "SELECT * FROM bar LEFT JOIN bar2 ON bar._id = bar2._id WHERE bar2.baz IS INT"
+    result:
+      - { "bar": {"_id": 0, "foo": 1}, "bar2": {"_id": 0, "foo": 42, "baz": 63}}
+
+  - description: filter in lateral join correctness test
+    current_db: mydb
+    query: "SELECT * FROM bar LEFT JOIN bar2 ON bar._id = bar2._id AND bar2.baz = 63 WHERE bar2.baz IS NOT MISSING"
+    result:
+      - { "bar": { "_id": 0, "foo": 1 }, "bar2": { "_id": 0, "foo": 42, "baz": 63 } }
+
+  - description: match filter in lateral join correctness test
+    current_db: mydb
+    query: "SELECT * FROM bar LEFT JOIN bar2 ON bar._id = bar2._id AND bar2.baz = 63 WHERE bar2.baz IS INT"
+    result:
+      - { "bar": {"_id": 0, "foo": 1}, "bar2": {"_id": 0, "foo": 42, "baz": 63}}

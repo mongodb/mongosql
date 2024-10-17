@@ -557,6 +557,16 @@ impl<'a> StageMovementVisitor<'a> {
             // inside the RHS (subquery) so this is safe.
             Stage::MQLIntrinsic(MQLStage::LateralJoin(ref n)) => {
                 let right_schema = n.subquery.schema(self.schema_state).unwrap();
+                // If this is a filter, we cannot move it, if the Join's JoinType is Left and any use is in the RHS.
+                // It is not semantically correct to merge WHERE conditions into lateral JOIN RHS clauses.
+                if node.is_filter() && n.join_type == JoinType::Left {
+                    for u in datasource_uses.iter() {
+                        if right_schema.has_datasource(u) {
+                            return (node, false);
+                        }
+                    }
+                }
+
                 let side = if datasource_uses
                     .iter()
                     .any(|u| right_schema.has_datasource(u))

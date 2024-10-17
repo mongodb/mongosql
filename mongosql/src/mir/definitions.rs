@@ -35,7 +35,7 @@ pub enum Stage {
 
 impl Stage {
     pub fn is_filter(&self) -> bool {
-        matches!(self, Stage::Filter(_))
+        matches!(self, Stage::Filter(_) | Stage::MQLIntrinsic(MQLStage::MatchFilter(_)))
     }
 }
 
