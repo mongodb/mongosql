@@ -1574,6 +1574,48 @@ test_move_stage_no_op!(
 );
 
 test_move_stage!(
+    move_sort_above_join,
+    expected = Stage::Join(Join {
+        join_type: JoinType::Inner,
+        left: Box::new(Stage::Sort(Sort {
+            source: mir_collection("foo", "bar"),
+            specs: vec![SortSpecification::Asc(mir_field_path("bar", vec!["y"]))],
+            cache: SchemaCache::new(),
+        })),
+        right: mir_collection("foo", "bar2"),
+        condition: None,
+        cache: SchemaCache::new(),
+    }),
+    expected_changed = true,
+    input = Stage::Sort(Sort {
+        source: Box::new(Stage::Join(Join {
+            join_type: JoinType::Inner,
+            left: mir_collection("foo", "bar"),
+            right: mir_collection("foo", "bar2"),
+            cache: SchemaCache::new(),
+            condition: None,
+        })),
+        specs: vec![SortSpecification::Asc(mir_field_path("bar", vec!["y"]))],
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_move_stage_no_op!(
+    cannot_move_sort_above_right_side_of_join,
+    Stage::Sort(Sort {
+        source: Box::new(Stage::Join(Join {
+            join_type: JoinType::Inner,
+            left: mir_collection("foo", "bar2"),
+            right: mir_collection("foo", "bar"),
+            cache: SchemaCache::new(),
+            condition: None,
+        })),
+        specs: vec![SortSpecification::Asc(mir_field_path("bar", vec!["y"]))],
+        cache: SchemaCache::new(),
+    })
+);
+
+test_move_stage!(
     move_filter_above_lateral_inner_join_if_only_left_datasource_is_used,
     expected = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
         join_type: JoinType::Inner,

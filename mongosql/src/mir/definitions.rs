@@ -37,6 +37,10 @@ impl Stage {
     pub fn is_filter(&self) -> bool {
         matches!(self, Stage::Filter(_) | Stage::MQLIntrinsic(MQLStage::MatchFilter(_)))
     }
+
+    pub fn is_sort(&self) -> bool {
+        matches!(self, Stage::Sort(_))
+    }
 }
 
 #[derive(PartialEq, Debug, Clone)]

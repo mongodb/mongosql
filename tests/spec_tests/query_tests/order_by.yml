@@ -29,6 +29,21 @@ catalog_data:
         "b": { "$numberInt": "1" },
         "coll": "foo",
       }
+    local:
+      - { '_id': 0 }
+      - { '_id': 1 }
+      - { '_id': 2 }
+    foreign:
+      - { '_id': 0, 'l_id': 0, 'x': 0 }
+      - { '_id': 1, 'l_id': 1, 'x': 1 }
+      - { '_id': 2, 'l_id': 0, 'x': 2 }
+      - { '_id': 3, 'l_id': 1, 'x': 1 }
+      - { '_id': 4, 'l_id': 0, 'x': 3 }
+      - { '_id': 5, 'l_id': 1, 'x': 2 }
+      - { '_id': 6, 'l_id': 0, 'x': 2 }
+      - { '_id': 7, 'l_id': 1, 'x': 2 }
+      - { '_id': 8, 'l_id': 0, 'x': 3 }
+      - { '_id': 9, 'l_id': 1, 'x': 0 }
     car:
       - { '_id': 0, 's': 'xyz' }
       - { '_id': 1, 's': 'abc' }
@@ -87,6 +102,28 @@ catalog_schema:
               "a": { "bsonType": "int" },
               "b": { "bsonType": "int" },
               "coll": { "bsonType": "string" },
+            },
+        },
+      "local":
+        {
+          "bsonType": "object",
+          "required": [ "_id" ],
+          "additionalProperties": false,
+          "properties":
+            {
+              "_id": { "bsonType": "int" },
+            },
+        },
+      "foreign":
+        {
+          "bsonType": "object",
+          "required": [ "_id", "l_id", "x" ],
+          "additionalProperties": false,
+          "properties":
+            {
+              "_id": { "bsonType": "int" },
+              "l_id": { "bsonType": "int" },
+              "x": { "bsonType": "int" },
             },
         },
       "car":
@@ -368,9 +405,43 @@ tests:
             { "a": { "$numberInt": "1" }, "c": { "$numberInt": "44" } }
       }
 
+  - description: Sorting by column from RHS of LEFT JOIN orders the entire result set
+    current_db: mydb
+    query: "SELECT l._id, f.x FROM local AS l LEFT JOIN foreign AS f ON l._id = f.l_id ORDER BY x ASC"
+    ordered: true
+    result:
+      - { '': { _id: 2 } }
+      - { '': { _id: 0, x: 0 } }
+      - { '': { _id: 1, x: 0 } }
+      - { '': { _id: 1, x: 1 } }
+      - { '': { _id: 1, x: 1 } }
+      - { '': { _id: 0, x: 2 } }
+      - { '': { _id: 0, x: 2 } }
+      - { '': { _id: 1, x: 2 } }
+      - { '': { _id: 1, x: 2 } }
+      - { '': { _id: 0, x: 3 } }
+      - { '': { _id: 0, x: 3 } }
+
+  - description: Sorting by column from RHS of INNER JOIN orders the entire result set
+    current_db: mydb
+    query: "SELECT l._id, f.x FROM local AS l JOIN foreign AS f ON l._id = f.l_id ORDER BY x ASC"
+    ordered: true
+    result:
+      - { '': { _id: 0, x: 0 } }
+      - { '': { _id: 1, x: 0 } }
+      - { '': { _id: 1, x: 1 } }
+      - { '': { _id: 1, x: 1 } }
+      - { '': { _id: 0, x: 2 } }
+      - { '': { _id: 0, x: 2 } }
+      - { '': { _id: 1, x: 2 } }
+      - { '': { _id: 1, x: 2 } }
+      - { '': { _id: 0, x: 3 } }
+      - { '': { _id: 0, x: 3 } }
+
   - description: ensure ORDER BY does not introduce extraneous columns
     current_db: mydb
     query: "SELECT COUNT(s) AS alias1, s AS alias2 FROM car GROUP BY s ORDER BY alias2"
     result:
       - { '': { 'alias1': 2, 'alias2': 'abc' } }
       - { '': { 'alias1': 1, 'alias2': 'xyz' } }
+

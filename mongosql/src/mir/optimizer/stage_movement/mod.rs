@@ -497,18 +497,21 @@ impl<'a> StageMovementVisitor<'a> {
             // entire pipeline, so we cannot just use *defines* on the left and right source here.
             Stage::Join(ref n) => {
                 let right_schema = n.right.schema(self.schema_state).unwrap();
-                // If this is a filter, we cannot move it, if the Join's JoinType is Left and any use is in the RHS because
-                // merging a WHERE or HAVING into a LEFT JOIN ON or into the Right datasource is semantically incorrect when the
-                // filter depends on the RHS values due to how $unwind with
-                // preserveNullAndEmptyArrays works.
-                if node.is_filter() && n.join_type == JoinType::Left {
+                // If this is a filter, we cannot move it if the Join's JoinType is Left and any use
+                // is in the RHS. Merging a WHERE or HAVING into a LEFT JOIN ON or into the right
+                // datasource is semantically incorrect when the filter depends on the RHS values
+                // due to how $unwind with preserveNullAndEmptyArrays works.
+                // If this is a sort, we cannot move it if any use is in the RHS. Merging an ORDER
+                // BY into the right datasource is semantically incorrect when the sort depends on
+                // the RHS values because it will only sort locally per LHS value, not overall.
+                if (node.is_filter() && n.join_type == JoinType::Left) || node.is_sort() {
                     for u in datasource_uses.iter() {
                         if right_schema.has_datasource(u) {
                             return (node, false);
                         }
                     }
                 }
-                // We have to compute the schema outside of the dual_source call
+                // We have to compute the schema outside the dual_source call
                 // because passing references to the left, right sources to dual_sources
                 // upsets the borrow checker since we also pass *node* by value.
                 let left_schema = n.left.schema(self.schema_state).unwrap();
@@ -559,7 +562,7 @@ impl<'a> StageMovementVisitor<'a> {
                 let right_schema = n.subquery.schema(self.schema_state).unwrap();
                 // If this is a filter, we cannot move it, if the Join's JoinType is Left and any use is in the RHS.
                 // It is not semantically correct to merge WHERE conditions into lateral JOIN RHS clauses.
-                if node.is_filter() && n.join_type == JoinType::Left {
+                if (node.is_filter() && n.join_type == JoinType::Left) || node.is_sort() {
                     for u in datasource_uses.iter() {
                         if right_schema.has_datasource(u) {
                             return (node, false);
