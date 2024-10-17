@@ -46,6 +46,7 @@ pub struct QueryTest {
     pub algebrize_error: Option<String>,
     pub catalog_error: Option<String>,
     pub allow_order_by_missing: Option<bool>,
+    pub ordered: Option<bool>,
     pub type_compare: Option<bool>,
 }
 

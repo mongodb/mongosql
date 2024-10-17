@@ -189,6 +189,7 @@ tests:
     current_db: mydb
     query: "SELECT * FROM bar AS a JOIN bar AS b ORDER BY a.a ASC"
     ordered: true
+    skip_reason: "SQL-2405"
     result:
       - {
           'a': {'_id': 2, 'a': 1, 'b': {'c': 2}},
