@@ -94,6 +94,8 @@ functions:
       params:
         working_dir: mongosql-rs
         binary: bash
+        env:
+          triggered_by_git_tag: ${triggered_by_git_tag}
         args:
           - ./evergreen/create-expansions.sh
     - command: expansions.update
