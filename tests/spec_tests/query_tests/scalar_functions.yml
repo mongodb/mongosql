@@ -975,7 +975,6 @@ tests:
       - {'': { 'n': null }}
 
   - description: MOD correctness tests
-    skip_reason: "SQL-2392: Make arithmetic tests forgiving of returned type"
     current_db: foo
     query: "SELECT VALUE {'v': v, 'divisor': divisor, 'n': MOD(v, divisor)} FROM mod AS c"
     result:
@@ -994,12 +993,12 @@ tests:
       - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDouble": "3" }}}
       - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberDouble": "3" }}}
       - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDouble": "3" }}}
-      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDecimal": "7" }, 'n': { "$numberDecimal": "3.0000000000000" }}}
+      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDecimal": "7" }, 'n': { "$numberDecimal": "3.0000000000000e1" }}}
       - {'': { 'v': { "$numberDouble": "80" }, 'divisor': null, 'n': null }}
       - {'': { 'v': { "$numberDouble": "80" }, 'n': null }}
       - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDecimal": "3" }}}
       - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberDecimal": "3" }}}
-      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDecimal": "3.00000000000000" }}}
+      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDecimal": "3.00000000000000E1" }}}
       - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberDecimal": "7" }, 'n': { "$numberDecimal": "3" }}}
       - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': null, 'n': null }}
       - {'': { 'v': { "$numberDecimal": "80" }, 'n': null }}

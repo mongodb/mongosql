@@ -1,5 +1,5 @@
 use mongodb::{
-    bson::{doc, Bson, Document},
+    bson::{doc, Bson, Decimal128, Document},
     sync::Client,
 };
 use mongosql::Translation;
@@ -105,11 +105,11 @@ pub fn compare_arrays(expected: &[Bson], actual: &[Bson], type_compare: bool) ->
                     return false;
                 }
             }
-            if let Bson::Double(d) = e {
-                if let Bson::Double(ad) = a {
-                    if d.is_nan() && ad.is_nan() || d == ad {
-                        return seen_indices.insert(i);
-                    }
+            if is_numeric(e) && is_numeric(a) {
+                let d = numeric_to_double(e);
+                let ad = numeric_to_double(a);
+                if compare_doubles_for_test(d, ad) {
+                    return seen_indices.insert(i);
                 } else {
                     return false;
                 }
@@ -120,6 +120,92 @@ pub fn compare_arrays(expected: &[Bson], actual: &[Bson], type_compare: bool) ->
             false
         })
     })
+}
+
+// According to the IEEE 754 standard, a 64-bit floating-point number (double precision) has a
+// significand (mantissa) precision of 53 bits. This translates to a maximum base 10 precision of
+// approximately 15 to 17 significant decimal digits. To be more specific: The 53-bit significand
+// represents a fraction with a maximum value of 2^52 (approximately 4.9 × 10^15). The exponent is
+// 11 bits wide, allowing for a range of values from 2^(-1022) to 2^1024. With the combination of
+// the significand and exponent, the 64-bit IEEE double precision floating-point format can
+// represent numbers with a precision of approximately 15 to 17 significant decimal digits.
+//
+// Because of this, we just discard digits past the 15th decimal place. Since we only check
+// approximate equality, this should be fine.
+//
+fn double_from_decimal128(d: &Decimal128) -> f64 {
+    // Note that rust f64 parse supports:
+    // 1e6, 1E6,  Infinity, -Infinity, NaN, -NaN, nan, -nan. The rust bson library only produces
+    // 1E6, Infinity, -Infinity, NaN, -NaN.
+    // but this code will also support 1e6 should that ever change.
+    //
+    // It actually seems like the yaml library may remove e/E exponents from the string representation
+    // of Decimal128, so this code may not be necessary, but better safe than sorry.
+    //
+    // https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=8c516ac0c3d901512979027fd1ae9f34
+    // for a test of this code.
+    let truncate_decimal_string = |s: &str, precision: usize| -> String {
+        let mut parts = s.split(".");
+        let whole = parts.next().unwrap();
+        let decimal = parts.next().unwrap();
+        let mut new_decimal = String::from(decimal);
+        let new_precision: i64 = precision as i64 - whole.len() as i64;
+        let new_precision = if new_precision < 0 { 0 } else { new_precision };
+        new_decimal.truncate(new_precision as usize);
+
+        format!("{}.{}", whole, new_decimal)
+    };
+
+    let s = d.to_string();
+    let splitter = if s.contains("E") {
+        Some("E")
+    } else if s.contains("e") {
+        Some("e")
+    } else {
+        None
+    };
+    let s = if s.contains(".") {
+        if let Some(splitter) = splitter {
+            let mut parts = s.split(splitter);
+            let mantissa = parts.next().unwrap();
+            let exponent = parts.next().unwrap();
+            let new_mantissa = truncate_decimal_string(mantissa, 15);
+            let new_double_str = format!("{}{}{}", new_mantissa, splitter, exponent);
+            new_double_str
+        } else {
+            truncate_decimal_string(&s, 15)
+        }
+    // the else case here is for when the number is a whole number with no decimal parts or Inf, or NaN
+    } else {
+        s
+    };
+    s.parse::<f64>().unwrap()
+}
+
+fn numeric_to_double(b: &Bson) -> f64 {
+    match b {
+        Bson::Int32(i) => *i as f64,
+        Bson::Int64(i) => *i as f64,
+        Bson::Double(d) => *d,
+        // Decimal128 supports more precision than double, but is hard to work with for comparisons
+        // because many important features for comparison are missing from Decimal128 in the bson
+        // crate. So we convert to double here, truncating extra precision.
+        Bson::Decimal128(d) => double_from_decimal128(d),
+        _ => panic!("Expected numeric value, got {:?}", b),
+    }
+}
+
+fn is_numeric(b: &Bson) -> bool {
+    matches!(
+        b,
+        Bson::Int32(_) | Bson::Int64(_) | Bson::Double(_) | Bson::Decimal128(_)
+    )
+}
+
+fn compare_doubles_for_test(d: f64, ad: f64) -> bool {
+    d.is_infinite() && ad.is_infinite() && d.signum() == ad.signum()
+        || d.is_nan() && ad.is_nan()
+        || (d - ad).abs() <= f64::EPSILON
 }
 
 /// Compare documents, allowing for NaN == NaN == true, by first checking to make sure they have the same number of keys, then iterating
@@ -149,14 +235,10 @@ pub fn compare_documents(expected: &Document, actual: &Document, type_compare: b
             if type_compare {
                 return ek == ak && ev.element_type() == av.element_type();
             }
-            if let Bson::Double(d) = ev {
-                if let Bson::Double(ad) = av {
-                    return d.is_infinite() && ad.is_infinite() && d.signum() == ad.signum()
-                        || d.is_nan() && ad.is_nan()
-                        || (d - ad).abs() <= f64::EPSILON;
-                } else {
-                    return false;
-                }
+            if is_numeric(ev) && is_numeric(av) {
+                let d = numeric_to_double(ev);
+                let ad = numeric_to_double(av);
+                return compare_doubles_for_test(d, ad);
             }
             ev == av && ek == ak
         })

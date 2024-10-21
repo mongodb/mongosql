@@ -198,7 +198,6 @@ tests:
       - {'': {'a': {'$numberDecimal': '-Infinity'}, '-a': {'$numberDecimal': 'Infinity'}}}
 
   - description: Addition correctness tests
-    skip_reason: "SQL-2390: Issues in precision cause test failures"
     current_db: foo
     query: "SELECT VALUE {'a': a, 'b': b, 'a+b': a + b} FROM binary AS binary"
     result:
