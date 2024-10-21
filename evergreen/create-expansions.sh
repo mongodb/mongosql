@@ -21,7 +21,7 @@ export PATH="$GOROOT/bin:$PATH"
 if [[ "${triggered_by_git_tag}" != "" ]]; then
     export release_version=$(echo ${triggered_by_git_tag} | sed -E 's/^(v|trr|dcsb|msql)//')
 else
-    export release_version=test_release
+    export release_version=snapshot
 fi
 
 PROJECT_DIRECTORY="$(pwd)"

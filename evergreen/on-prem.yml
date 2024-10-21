@@ -357,15 +357,17 @@ tasks:
 
   - name: sign-mongodb-schema-manager-executables
     allowed_requesters: ["github_tag", "ad_hoc"]
-    retry_on_failure: true
     depends_on:
       - name: compile-mongodb-schema-manager
     commands:
       - func: "sign mongodb-schema-manager windows"
+        retry_on_failure: true
         variants: [ mongodb-schema-manager-windows-64 ]
       - func: "sign mongodb-schema-manager linux"
+        retry_on_failure: true
         variants: [ mongodb-schema-manager-ubuntu2004 ]
       - func: "sign mongodb-schema-manager macos"
+        retry_on_failure: true
         variants: [ mongodb-schema-manager-macos, mongodb-schema-manager-macos-arm ]
 
   - name: compile-mongodb-schema-manager
