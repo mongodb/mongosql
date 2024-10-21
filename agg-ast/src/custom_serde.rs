@@ -90,7 +90,6 @@ impl MatchArrayQueryVisitor {
 impl<'de> de::Visitor<'de> for MatchArrayQueryVisitor {
     // The type that our Visitor is going to produce.
     type Value = MatchArrayQuery;
-
     // Deserialize MatchArrayQuery from an abstract "map" provided by the
     // Deserializer. The MapVisitor input is a callback provided by the Deserializer to let us see
     // each entry in the map.
@@ -110,7 +109,6 @@ impl<'de> de::Visitor<'de> for MatchArrayQueryVisitor {
                 .expect("failed to deserialize, this is a code error.");
             values.push(deserialized)
         }
-
         Ok(values)
     }
 
@@ -588,15 +586,15 @@ impl From<Expression> for ProjectItem {
                         ProjectItem::Inclusion
                     }
                 }
-                LiteralValue::Integer(i) => {
+                LiteralValue::Int32(i) => {
                     if i == 0 {
                         ProjectItem::Exclusion
                     } else {
                         ProjectItem::Inclusion
                     }
                 }
-                LiteralValue::Long(l) => {
-                    if l == 0 {
+                LiteralValue::Int64(i) => {
+                    if i == 0 {
                         ProjectItem::Exclusion
                     } else {
                         ProjectItem::Inclusion
@@ -1036,5 +1034,73 @@ impl ser::Serialize for DateExpression {
         } else {
             self.date.serialize(serializer)
         }
+    }
+}
+
+// This is the trait that informs Serde how to deserialize LiteralValue.
+impl<'de> de::Deserialize<'de> for LiteralValue {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        let b: Bson = de::Deserialize::deserialize(deserializer)?;
+        Ok(match b {
+            Bson::Double(d) => LiteralValue::Double(d),
+            Bson::String(s) => LiteralValue::String(s),
+            Bson::Array(_) | Bson::Document(_) => {
+                return Err(de::Error::custom(format_args!(
+                    "expected a literal value, found a document or array"
+                )))
+            }
+            Bson::Boolean(b) => LiteralValue::Boolean(b),
+            Bson::Null => LiteralValue::Null,
+            Bson::RegularExpression(r) => LiteralValue::RegularExpression(r),
+            Bson::JavaScriptCode(c) => LiteralValue::JavaScriptCode(c),
+            Bson::JavaScriptCodeWithScope(js) => LiteralValue::JavaScriptCodeWithScope(js),
+            Bson::Int32(i) => LiteralValue::Int32(i),
+            Bson::Int64(i) => LiteralValue::Int64(i),
+            Bson::Timestamp(ts) => LiteralValue::Timestamp(ts),
+            Bson::Binary(b) => LiteralValue::Binary(b),
+            Bson::ObjectId(oid) => LiteralValue::ObjectId(oid),
+            Bson::DateTime(dt) => LiteralValue::DateTime(dt),
+            Bson::Symbol(s) => LiteralValue::Symbol(s),
+            Bson::Decimal128(d) => LiteralValue::Decimal128(d),
+            Bson::Undefined => LiteralValue::Undefined,
+            Bson::MaxKey => LiteralValue::MaxKey,
+            Bson::MinKey => LiteralValue::MinKey,
+            Bson::DbPointer(dp) => LiteralValue::DbPointer(dp),
+        })
+    }
+}
+
+// This is the trait that informs Serde how to serialize LiteralValue.
+impl ser::Serialize for LiteralValue {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+        S::Error: ser::Error,
+    {
+        let b = match self {
+            LiteralValue::Double(d) => Bson::Double(*d),
+            LiteralValue::String(s) => Bson::String(s.clone()),
+            LiteralValue::Boolean(b) => Bson::Boolean(*b),
+            LiteralValue::Null => Bson::Null,
+            LiteralValue::RegularExpression(r) => Bson::RegularExpression(r.clone()),
+            LiteralValue::JavaScriptCode(c) => Bson::JavaScriptCode(c.clone()),
+            LiteralValue::JavaScriptCodeWithScope(js) => Bson::JavaScriptCodeWithScope(js.clone()),
+            LiteralValue::Int32(i) => Bson::Int32(*i),
+            LiteralValue::Int64(i) => Bson::Int64(*i),
+            LiteralValue::Timestamp(ts) => Bson::Timestamp(*ts),
+            LiteralValue::Binary(b) => Bson::Binary(b.clone()),
+            LiteralValue::ObjectId(oid) => Bson::ObjectId(*oid),
+            LiteralValue::DateTime(dt) => Bson::DateTime(*dt),
+            LiteralValue::Symbol(s) => Bson::Symbol(s.clone()),
+            LiteralValue::Decimal128(d) => Bson::Decimal128(*d),
+            LiteralValue::Undefined => Bson::Undefined,
+            LiteralValue::MaxKey => Bson::MaxKey,
+            LiteralValue::MinKey => Bson::MinKey,
+            LiteralValue::DbPointer(dp) => Bson::DbPointer(dp.clone()),
+        };
+        b.serialize(serializer)
     }
 }

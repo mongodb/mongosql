@@ -587,16 +587,34 @@ impl Ref {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
+// Literal values are atomic types that cannot contain sub-expressions that must be evaluated.
+// Becuase of this we do not treat Arrays or Documents as literals.
+// This can be thought of as an identical enum to the bson::Bson enum with Array and Document
+// removed.
+#[derive(Clone, Debug, PartialEq)]
 pub enum LiteralValue {
-    Null,
-    Boolean(bool),
-    Integer(i32),
-    Long(i64),
+    // specified in order of bson spec
     Double(f64),
-    Decimal128(bson::Decimal128),
     String(String),
+    // Array is supported as an expression and not as a literal since it can contain expressions that must be evaluated.
+    // Document is supported as expression and not as a literal since it can contain expressions that must be evaluated.
+    Boolean(bool),
+    Null,
+    RegularExpression(bson::Regex),
+    JavaScriptCode(String),
+    JavaScriptCodeWithScope(bson::JavaScriptCodeWithScope),
+    Int32(i32),
+    Int64(i64),
+    Timestamp(bson::Timestamp),
+    Binary(bson::Binary),
+    ObjectId(bson::oid::ObjectId),
+    DateTime(bson::DateTime),
+    Symbol(String),
+    Decimal128(bson::Decimal128),
+    Undefined,
+    MaxKey,
+    MinKey,
+    DbPointer(bson::DbPointer),
 }
 
 /// UntaggedOperators are operators that follow the general format:

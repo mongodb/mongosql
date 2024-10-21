@@ -310,11 +310,19 @@ impl From<LiteralValue> for air::LiteralValue {
         match ast_lv {
             LiteralValue::Null => air::LiteralValue::Null,
             LiteralValue::Boolean(v) => air::LiteralValue::Boolean(v),
-            LiteralValue::Integer(v) => air::LiteralValue::Integer(v),
-            LiteralValue::Long(v) => air::LiteralValue::Long(v),
+            LiteralValue::Int32(v) => air::LiteralValue::Integer(v),
+            LiteralValue::Int64(v) => {
+                if v.abs() <= i32::MAX as i64 {
+                    air::LiteralValue::Integer(v as i32)
+                } else {
+                    air::LiteralValue::Long(v)
+                }
+            }
             LiteralValue::Double(v) => air::LiteralValue::Double(v),
             LiteralValue::Decimal128(v) => air::LiteralValue::Decimal128(v),
             LiteralValue::String(s) => air::LiteralValue::String(s),
+            // other values in agg_ast are not used by the desugarer
+            _ => panic!("invalid literal value: {:?}", ast_lv),
         }
     }
 }

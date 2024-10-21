@@ -636,7 +636,7 @@ mod to_air_pipeline_test {
         }),
         input = vec![agg_ast::Stage::Project(agg_ast::ProjectStage {
             items: map! {
-                "x".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))),
+                "x".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(42))),
             }
         }),]
     );
@@ -668,7 +668,7 @@ mod to_air_pipeline_test {
             agg_ast::Stage::Project(agg_ast::ProjectStage {
                 items: map! {
                     "a".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Boolean(true))),
-                    "b".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(2))),
+                    "b".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(2))),
                 }
             }),
             agg_ast::Stage::Match(agg_ast::MatchStage {

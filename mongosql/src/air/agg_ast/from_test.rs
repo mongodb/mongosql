@@ -78,7 +78,7 @@ mod stage {
                 )],
             }),
             input = agg_ast::Stage::Documents(vec![map! {
-                "a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))
+                "a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(1))
             }])
         );
 
@@ -99,13 +99,13 @@ mod stage {
             }),
             input = agg_ast::Stage::Documents(vec![
                 map! {
-                    "a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))
+                    "a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(1))
                 },
                 map! {
-                    "a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(2))
+                    "a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(2))
                 },
                 map! {
-                    "a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(3))
+                    "a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(3))
                 },
             ])
         );
@@ -167,7 +167,7 @@ mod stage {
             }),
             input = agg_ast::Stage::Project(agg_ast::ProjectStage {
                 items: map! {
-                    "a".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))),
+                    "a".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(1))),
                 }
             })
         );
@@ -184,7 +184,7 @@ mod stage {
             }),
             input = agg_ast::Stage::Project(agg_ast::ProjectStage {
                 items: map! {
-                    "a".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))),
+                    "a".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(1))),
                     "b".to_string() => agg_ast::ProjectItem::Exclusion,
                     "c".to_string() => agg_ast::ProjectItem::Inclusion,
                 }
@@ -428,9 +428,9 @@ mod stage {
                 let_body: None,
                 join_type: agg_ast::JoinType::Inner,
                 pipeline: vec![agg_ast::Stage::Documents(vec![
-                    map! {"a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1)) },
-                    map! {"a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(2)) },
-                    map! {"a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(3)) },
+                    map! {"a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(1)) },
+                    map! {"a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(2)) },
+                    map! {"a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(3)) },
                 ])],
                 condition: None
             }))
@@ -475,7 +475,7 @@ mod stage {
                 pipeline: vec![agg_ast::Stage::Project(agg_ast::ProjectStage {
                     items: map! {
                         "_id".to_string() => agg_ast::ProjectItem::Exclusion,
-                        "x".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))),
+                        "x".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(1))),
                     }
                 })],
                 condition: Some(agg_ast::Expression::UntaggedOperator(
@@ -864,13 +864,13 @@ mod expression {
         test_from_expr!(
             int,
             expected = air::Expression::Literal(air::LiteralValue::Integer(10)),
-            input = agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(10))
+            input = agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(10))
         );
 
         test_from_expr!(
             long,
-            expected = air::Expression::Literal(air::LiteralValue::Long(200)),
-            input = agg_ast::Expression::Literal(agg_ast::LiteralValue::Long(200))
+            expected = air::Expression::Literal(air::LiteralValue::Long(12000000000)),
+            input = agg_ast::Expression::Literal(agg_ast::LiteralValue::Int64(12000000000))
         );
 
         test_from_expr!(
@@ -948,9 +948,9 @@ mod expression {
                 air::Expression::Literal(air::LiteralValue::Integer(3)),
             ]),
             input = agg_ast::Expression::Array(vec![
-                agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1)),
-                agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(2)),
-                agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(3)),
+                agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(1)),
+                agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(2)),
+                agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(3)),
             ])
         );
     }
@@ -983,9 +983,9 @@ mod expression {
                 "c".to_string() => air::Expression::Literal(air::LiteralValue::Integer(3)),
             }),
             input = agg_ast::Expression::Document(map! {
-                "a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1)),
-                "b".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(2)),
-                "c".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(3)),
+                "a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(1)),
+                "b".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(2)),
+                "c".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(3)),
             })
         );
     }
@@ -1067,7 +1067,7 @@ mod expression {
                                 "a".to_string()
                             ))),
                             then: Box::new(agg_ast::Expression::Literal(
-                                agg_ast::LiteralValue::Integer(1)
+                                agg_ast::LiteralValue::Int32(1)
                             )),
                         },
                         agg_ast::SwitchCase {
@@ -1075,13 +1075,13 @@ mod expression {
                                 "b".to_string()
                             ))),
                             then: Box::new(agg_ast::Expression::Literal(
-                                agg_ast::LiteralValue::Integer(2)
+                                agg_ast::LiteralValue::Int32(2)
                             )),
                         },
                     ],
-                    default: Box::new(agg_ast::Expression::Literal(
-                        agg_ast::LiteralValue::Integer(3)
-                    ))
+                    default: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(
+                        3
+                    )))
                 }
             ))
         );
@@ -1248,7 +1248,7 @@ mod expression {
                     db: Some("foo".to_string()),
                     collection: Some("bar".to_string()),
                     let_bindings: Some(map! {
-                        "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))
+                        "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(42))
                     }),
                     output_path: Some(vec!["x".to_string()]),
                     pipeline: vec![
@@ -1285,7 +1285,7 @@ mod expression {
                     db: Some("foo".to_string()),
                     collection: Some("bar".to_string()),
                     let_bindings: Some(map! {
-                        "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))
+                        "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(42))
                     }),
                     output_path: Some(vec!["x".to_string()]),
                     pipeline: vec![agg_ast::Stage::Project(agg_ast::ProjectStage {
@@ -1321,12 +1321,12 @@ mod expression {
                    agg_ast::SubqueryComparison {
                        op: "sqlEq".to_string(),
                        modifier: "all".to_string(),
-                       arg: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))),
+                       arg: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(42))),
                        subquery: agg_ast::Subquery {
                            db: Some("foo".to_string()),
                            collection: Some("bar".to_string()),
                            let_bindings: Some(map! {
-                               "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))
+                               "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(42))
                            }),
                            output_path: Some(vec!["x".to_string()]),
                            pipeline: vec![
@@ -1368,12 +1368,12 @@ mod expression {
                    agg_ast::SubqueryComparison {
                        op: "eq".to_string(),
                        modifier: "all".to_string(),
-                       arg: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))),
+                       arg: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(42))),
                        subquery: agg_ast::Subquery {
                            db: Some("foo".to_string()),
                            collection: Some("bar".to_string()),
                            let_bindings: Some(map! {
-                               "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))
+                               "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(42))
                            }),
                            output_path: Some(vec!["x".to_string()]),
                            pipeline: vec![
@@ -1415,12 +1415,12 @@ mod expression {
                    agg_ast::SubqueryComparison {
                        op: "ne".to_string(),
                        modifier: "any".to_string(),
-                       arg: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))),
+                       arg: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(42))),
                        subquery: agg_ast::Subquery {
                            db: Some("foo".to_string()),
                            collection: Some("bar2".to_string()),
                            let_bindings: Some(map! {
-                               "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))
+                               "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(42))
                            }),
                            output_path: Some(vec!["x".to_string()]),
                            pipeline: vec![
@@ -1455,7 +1455,7 @@ mod expression {
                     db: Some("foo".to_string()),
                     collection: Some("bar".to_string()),
                     let_bindings: Some(map! {
-                        "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))
+                        "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(42))
                     }),
                     pipeline: vec![
                         agg_ast::Stage::Documents(vec![]),
@@ -1490,7 +1490,7 @@ mod expression {
                     db: Some("foo2".to_string()),
                     collection: Some("bar2".to_string()),
                     let_bindings: Some(map! {
-                        "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))
+                        "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(42))
                     }),
                     pipeline: vec![agg_ast::Stage::Project(agg_ast::ProjectStage {
                         items: map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
@@ -1573,9 +1573,9 @@ mod expression {
             expected = air::Expression::Literal(air::LiteralValue::Integer(5)),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
                 op: "$literal".to_string(),
-                args: vec![agg_ast::Expression::Literal(
-                    agg_ast::LiteralValue::Integer(5)
-                )],
+                args: vec![agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(
+                    5
+                ))],
             })
         );
 
@@ -1630,9 +1630,9 @@ mod expression {
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
                 op: "$nullIf".to_string(),
-                args: vec![agg_ast::Expression::Literal(
-                    agg_ast::LiteralValue::Integer(1)
-                )]
+                args: vec![agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(
+                    1
+                ))]
             })
         );
 
@@ -1644,9 +1644,9 @@ mod expression {
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
                 op: "$coalesce".to_string(),
-                args: vec![agg_ast::Expression::Literal(
-                    agg_ast::LiteralValue::Integer(1)
-                )]
+                args: vec![agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(
+                    1
+                ))]
             })
         );
 

@@ -133,7 +133,7 @@ mod stage_test {
         test_serde_stage!(
             singleton,
             expected = Stage::Documents(vec![
-                map! {"a".to_string() => Expression::Literal(LiteralValue::Integer(1)) }
+                map! {"a".to_string() => Expression::Literal(LiteralValue::Int32(1)) }
             ]),
             input = r#"stage: {"$documents": [{"a": 1}]}"#
         );
@@ -142,8 +142,8 @@ mod stage_test {
             multiple_elements,
             expected = Stage::Documents(vec![
                 map! {
-                    "a".to_string() => Expression::Literal(LiteralValue::Integer(1)),
-                    "b".to_string() => Expression::Literal(LiteralValue::Integer(2)),
+                    "a".to_string() => Expression::Literal(LiteralValue::Int32(1)),
+                    "b".to_string() => Expression::Literal(LiteralValue::Int32(2)),
                 },
                 map! {
                     "a".to_string() => Expression::Literal(LiteralValue::String("yes".to_string())),
@@ -213,20 +213,20 @@ mod stage_test {
                     "a".to_string() => ProjectItem::Assignment(Expression::UntaggedOperator(UntaggedOperator {
                         op: "$add".to_string(),
                         args: vec![
-                            Expression::Literal(LiteralValue::Integer(1)),
-                            Expression::Literal(LiteralValue::Integer(2)),
+                            Expression::Literal(LiteralValue::Int32(1)),
+                            Expression::Literal(LiteralValue::Int32(2)),
                         ]
                     })),
                     "x".to_string() => ProjectItem::Assignment(Expression::UntaggedOperator(UntaggedOperator {
                         op: "$literal".to_string(),
                         args: vec![
-                            Expression::Literal(LiteralValue::Integer(0)),
+                            Expression::Literal(LiteralValue::Int32(0)),
                         ]
                     })),
                     "y".to_string() => ProjectItem::Assignment(Expression::UntaggedOperator(UntaggedOperator {
                         op: "$literal".to_string(),
                         args: vec![
-                            Expression::Literal(LiteralValue::Integer(1)),
+                            Expression::Literal(LiteralValue::Int32(1)),
                         ]
                     })),
                 }
@@ -590,7 +590,7 @@ mod stage_test {
                                 op: "$eq".to_string(),
                                 args: vec![
                                     Expression::Ref(Ref::FieldRef("a".to_string())),
-                                    Expression::Literal(LiteralValue::Integer(1))
+                                    Expression::Literal(LiteralValue::Int32(1))
                                 ]
                             })
                             .into()
@@ -733,9 +733,9 @@ mod stage_test {
                 let_body: None,
                 join_type: JoinType::Inner,
                 pipeline: vec![Stage::Documents(vec![
-                    map! {"a".to_string() => Expression::Literal(LiteralValue::Integer(1)) },
-                    map! {"a".to_string() => Expression::Literal(LiteralValue::Integer(2)) },
-                    map! {"a".to_string() => Expression::Literal(LiteralValue::Integer(3)) },
+                    map! {"a".to_string() => Expression::Literal(LiteralValue::Int32(1)) },
+                    map! {"a".to_string() => Expression::Literal(LiteralValue::Int32(2)) },
+                    map! {"a".to_string() => Expression::Literal(LiteralValue::Int32(3)) },
                 ])],
                 condition: None
             })),
@@ -893,7 +893,7 @@ mod stage_test {
                     coll: "from_coll".to_string()
                 })),
                 let_body: Some(map! {
-                    "x".to_string() => Expression::Literal(LiteralValue::Integer(9))
+                    "x".to_string() => Expression::Literal(LiteralValue::Int32(9))
                 }),
                 pipeline: vec![],
                 as_var: "as_var".to_string()
@@ -914,7 +914,7 @@ mod stage_test {
                     coll: "from_coll".to_string()
                 })),
                 let_body: Some(map! {
-                    "x".to_string() => Expression::Literal(LiteralValue::Integer(9)),
+                    "x".to_string() => Expression::Literal(LiteralValue::Int32(9)),
                     "y".to_string() => Expression::Ref(Ref::FieldRef("z".to_string())),
                 }),
                 pipeline: vec![],
@@ -1143,7 +1143,7 @@ mod stage_test {
         test_serde_stage!(
             single_field,
             expected = Stage::AddFields(map! {
-                "a".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+                "a".to_string() => Expression::Literal(LiteralValue::Int32(1)),
             }),
             input = r#"stage: {"$addFields": {"a": 1}}"#
         );
@@ -1151,7 +1151,7 @@ mod stage_test {
         test_serde_stage!(
             multiple_fields,
             expected = Stage::AddFields(map! {
-                "a".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+                "a".to_string() => Expression::Literal(LiteralValue::Int32(1)),
                 "b".to_string() => Expression::Literal(LiteralValue::Boolean(false)),
                 "c".to_string() => Expression::Literal(LiteralValue::Double(2.4)),
             }),
@@ -1161,7 +1161,7 @@ mod stage_test {
         test_serde_stage!(
             set_alias,
             expected = Stage::AddFields(map! {
-                "a".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+                "a".to_string() => Expression::Literal(LiteralValue::Int32(1)),
                 "b".to_string() => Expression::Literal(LiteralValue::Boolean(false)),
                 "c".to_string() => Expression::Literal(LiteralValue::Double(2.4)),
             }),
@@ -1233,7 +1233,7 @@ mod stage_test {
                     "o1".to_string() => SetWindowFieldsOutput {
                         window_func: Box::new(Expression::UntaggedOperator(UntaggedOperator {
                             op: "$sum".to_string(),
-                            args: vec![Expression::Literal(LiteralValue::Integer(1))],
+                            args: vec![Expression::Literal(LiteralValue::Int32(1))],
                         })),
                         window: None,
                     }
@@ -1262,7 +1262,7 @@ mod stage_test {
                     "documents".to_string() => SetWindowFieldsOutput {
                         window_func: Box::new(Expression::UntaggedOperator(UntaggedOperator {
                             op: "$sum".to_string(),
-                            args: vec![Expression::Literal(LiteralValue::Integer(1))],
+                            args: vec![Expression::Literal(LiteralValue::Int32(1))],
                         })),
                         window: Some(Window {
                             documents: Some([Bson::Int64(-1), Bson::Int32(1)]),
@@ -1272,7 +1272,7 @@ mod stage_test {
                     },
                     "no_window".to_string() => SetWindowFieldsOutput {
                         window_func: Box::new(Expression::TaggedOperator(TaggedOperator::Derivative(Derivative {
-                            input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                            input: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                             unit: Some("seconds".to_string()),
                         }))),
                         window: None,
@@ -1315,7 +1315,7 @@ mod stage_test {
         test_serde_stage!(
             fully_specified,
             expected = Stage::SetWindowFields(SetWindowFields {
-                partition_by: Some(Box::new(Expression::Literal(LiteralValue::Integer(1)))),
+                partition_by: Some(Box::new(Expression::Literal(LiteralValue::Int32(1)))),
                 sort_by: Some(map! {
                     "a".to_string() => 1,
                     "b".to_string() => -1,
@@ -1324,7 +1324,7 @@ mod stage_test {
                     "o1".to_string() => SetWindowFieldsOutput {
                         window_func: Box::new(Expression::UntaggedOperator(UntaggedOperator {
                             op: "$sum".to_string(),
-                            args: vec![Expression::Literal(LiteralValue::Integer(1))],
+                            args: vec![Expression::Literal(LiteralValue::Int32(1))],
                         })),
                         window: Some(Window {
                             documents: Some([Bson::Int32(1), Bson::Int32(2)]),
@@ -1363,7 +1363,7 @@ mod stage_test {
         test_serde_stage!(
             only_group_by_and_boundaries,
             expected = Stage::Bucket(Bucket {
-                group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                group_by: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                 boundaries: vec![Bson::Int32(0), Bson::Int32(5)],
                 default: None,
                 output: None,
@@ -1377,7 +1377,7 @@ mod stage_test {
         test_serde_stage!(
             with_default,
             expected = Stage::Bucket(Bucket {
-                group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                group_by: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                 boundaries: vec![Bson::Int32(0), Bson::Int32(5)],
                 default: Some(Bson::Int32(10)),
                 output: None,
@@ -1392,13 +1392,13 @@ mod stage_test {
         test_serde_stage!(
             fully_specified_with_one_output,
             expected = Stage::Bucket(Bucket {
-                group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                group_by: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                 boundaries: vec![Bson::Int32(0), Bson::Int32(5)],
                 default: Some(Bson::Int32(10)),
                 output: Some(map! {
                     "o1".to_string() => Expression::UntaggedOperator(UntaggedOperator {
                         op: "$sum".to_string(),
-                        args: vec![Expression::Literal(LiteralValue::Integer(1))]
+                        args: vec![Expression::Literal(LiteralValue::Int32(1))]
                     })
                 }),
             }),
@@ -1415,17 +1415,17 @@ mod stage_test {
         test_serde_stage!(
             fully_specified_with_multiple_output,
             expected = Stage::Bucket(Bucket {
-                group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                group_by: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                 boundaries: vec![Bson::Int32(0), Bson::Int32(5)],
                 default: Some(Bson::Int32(10)),
                 output: Some(map! {
                     "o1".to_string() => Expression::UntaggedOperator(UntaggedOperator {
                         op: "$sum".to_string(),
-                        args: vec![Expression::Literal(LiteralValue::Integer(1))]
+                        args: vec![Expression::Literal(LiteralValue::Int32(1))]
                     }),
                     "o2".to_string() => Expression::UntaggedOperator(UntaggedOperator {
                         op: "$avg".to_string(),
-                        args: vec![Expression::Literal(LiteralValue::Integer(2))]
+                        args: vec![Expression::Literal(LiteralValue::Int32(2))]
                     })
                 }),
             }),
@@ -1450,7 +1450,7 @@ mod stage_test {
         test_serde_stage!(
             only_group_by_and_buckets,
             expected = Stage::BucketAuto(BucketAuto {
-                group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                group_by: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                 buckets: 5,
                 output: None,
                 granularity: None,
@@ -1464,7 +1464,7 @@ mod stage_test {
         test_serde_stage!(
             with_granularity,
             expected = Stage::BucketAuto(BucketAuto {
-                group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                group_by: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                 buckets: 10,
                 output: None,
                 granularity: Some("R5".to_string()),
@@ -1479,12 +1479,12 @@ mod stage_test {
         test_serde_stage!(
             fully_specified_with_one_output,
             expected = Stage::BucketAuto(BucketAuto {
-                group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                group_by: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                 buckets: 2,
                 output: Some(map! {
                     "o1".to_string() => Expression::UntaggedOperator(UntaggedOperator {
                         op: "$sum".to_string(),
-                        args: vec![Expression::Literal(LiteralValue::Integer(1))]
+                        args: vec![Expression::Literal(LiteralValue::Int32(1))]
                     })
                 }),
                 granularity: Some("R40".to_string()),
@@ -1502,16 +1502,16 @@ mod stage_test {
         test_serde_stage!(
             fully_specified_with_multiple_output,
             expected = Stage::BucketAuto(BucketAuto {
-                group_by: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                group_by: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                 buckets: 3,
                 output: Some(map! {
                     "o1".to_string() => Expression::UntaggedOperator(UntaggedOperator {
                         op: "$sum".to_string(),
-                        args: vec![Expression::Literal(LiteralValue::Integer(1))]
+                        args: vec![Expression::Literal(LiteralValue::Int32(1))]
                     }),
                     "o2".to_string() => Expression::UntaggedOperator(UntaggedOperator {
                         op: "$avg".to_string(),
-                        args: vec![Expression::Literal(LiteralValue::Integer(2))]
+                        args: vec![Expression::Literal(LiteralValue::Int32(2))]
                     })
                 }),
                 granularity: Some("E6".to_string()),
@@ -1606,6 +1606,12 @@ mod expression_test {
 
     mod literal {
         use crate::definitions::{Expression, LiteralValue};
+        // These tests are complete for the bson types actually supported by the bson crate's
+        // extended json parser. Other ones come back as untagged operators or, bizarrely for
+        // generic binary, as an array of bytes.
+        //
+        // We may want to consider adding tests that test actual bson bytes, but there's no
+        // reason to assume these won't work.
 
         test_serde_expr!(
             null,
@@ -1627,13 +1633,13 @@ mod expression_test {
 
         test_serde_expr!(
             int,
-            expected = Expression::Literal(LiteralValue::Integer(1)),
+            expected = Expression::Literal(LiteralValue::Int32(1)),
             input = r#"expr: 1"#
         );
 
         test_serde_expr!(
             long,
-            expected = Expression::Literal(LiteralValue::Long(2147483648)),
+            expected = Expression::Literal(LiteralValue::Int64(2147483648)),
             input = r#"expr: 2147483648"#
         );
 
@@ -1641,6 +1647,43 @@ mod expression_test {
             double,
             expected = Expression::Literal(LiteralValue::Double(1.5)),
             input = r#"expr: 1.5"#
+        );
+
+        test_serde_expr!(
+            string,
+            expected = Expression::Literal(LiteralValue::String("yes".to_string())),
+            input = r#"expr: "yes""#
+        );
+
+        test_serde_expr!(
+            oid,
+            expected = Expression::Literal(LiteralValue::ObjectId(
+                bson::oid::ObjectId::parse_str("5d505646cf6d4fe581014ab2").unwrap()
+            )),
+            input = r#"expr: {"$oid": "5d505646cf6d4fe581014ab2"}"#
+        );
+
+        test_serde_expr!(
+            max_key,
+            expected = Expression::Literal(LiteralValue::MaxKey),
+            input = r#"expr: {"$maxKey": 1}"#
+        );
+
+        test_serde_expr!(
+            min_key,
+            expected = Expression::Literal(LiteralValue::MinKey),
+            input = r#"expr: {"$minKey": 1}"#
+        );
+
+        test_serde_expr!(
+            uuid,
+            expected = Expression::Literal(LiteralValue::Binary(bson::Binary {
+                subtype: bson::spec::BinarySubtype::Uuid,
+                bytes: vec![
+                    147, 109, 160, 31, 154, 189, 77, 157, 128, 199, 2, 175, 133, 200, 34, 168
+                ],
+            })),
+            input = r#"expr: {"$uuid": "936da01f-9abd-4d9d-80c7-02af85c822a8"}"#
         );
     }
 
@@ -1683,14 +1726,14 @@ mod expression_test {
 
         test_serde_expr!(
             singleton,
-            expected = Expression::Array(vec![Expression::Literal(LiteralValue::Integer(1))]),
+            expected = Expression::Array(vec![Expression::Literal(LiteralValue::Int32(1))]),
             input = r#"expr: [1]"#
         );
 
         test_serde_expr!(
             multiple_elements,
             expected = Expression::Array(vec![
-                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Int32(1)),
                 Expression::Literal(LiteralValue::String("yes".to_string())),
                 Expression::Array(vec![
                     Expression::Literal(LiteralValue::Boolean(true)),
@@ -1716,7 +1759,7 @@ mod expression_test {
         test_serde_expr!(
             singleton,
             expected = Expression::Document(
-                map! {"a".to_string() => Expression::Literal(LiteralValue::Integer(1))}
+                map! {"a".to_string() => Expression::Literal(LiteralValue::Int32(1))}
             ),
             input = r#"expr: {"a": 1}"#
         );
@@ -1724,7 +1767,7 @@ mod expression_test {
         test_serde_expr!(
             multiple_elements,
             expected = Expression::Document(map! {
-                "a".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+                "a".to_string() => Expression::Literal(LiteralValue::Int32(1)),
                 "b".to_string() => Expression::Literal(LiteralValue::String("two".to_string())),
                 "c".to_string() => Expression::Document(map! {
                     "x".to_string() => Expression::Literal(LiteralValue::Boolean(false))
@@ -1737,9 +1780,9 @@ mod expression_test {
             similar_to_op_but_no_dollarx,
             expected = Expression::Document(map! {
                 "notOp".to_string() => Expression::Array(vec![
-                    Expression::Literal(LiteralValue::Integer(1)),
-                    Expression::Literal(LiteralValue::Integer(2)),
-                    Expression::Literal(LiteralValue::Integer(3)),
+                    Expression::Literal(LiteralValue::Int32(1)),
+                    Expression::Literal(LiteralValue::Int32(2)),
+                    Expression::Literal(LiteralValue::Int32(3)),
                 ])
             }),
             input = r#"expr: {"notOp": [1, 2, 3]}"#
@@ -1767,7 +1810,7 @@ mod expression_test {
                 init: Box::new(Expression::Literal(LiteralValue::String(
                     "function (y) { return y; }".to_string()
                 ))),
-                init_args: Some(vec![Expression::Literal(LiteralValue::Integer(42))]),
+                init_args: Some(vec![Expression::Literal(LiteralValue::Int32(42))]),
                 accumulate: Box::new(Expression::Literal(LiteralValue::String(
                     "function (acc, curr) { return acc + curr; }".to_string()
                 ))),
@@ -1824,8 +1867,8 @@ mod expression_test {
                     "function (x) { return x + 1; }".to_string()
                 ))),
                 args: vec![
-                    Expression::Literal(LiteralValue::Integer(1)),
-                    Expression::Literal(LiteralValue::Integer(2)),
+                    Expression::Literal(LiteralValue::Int32(1)),
+                    Expression::Literal(LiteralValue::Int32(2)),
                 ],
                 lang: "js".to_string()
             })),
@@ -1841,7 +1884,7 @@ mod expression_test {
             expected = Expression::TaggedOperator(TaggedOperator::GetField(GetField {
                 field: "x".to_string(),
                 input: Box::new(Expression::Document(map! {
-                    "x".to_string() => Expression::Literal(LiteralValue::Integer(1))
+                    "x".to_string() => Expression::Literal(LiteralValue::Int32(1))
                 }))
             })),
             input = r#"expr: {"$getField": {"field": "x", "input": {"x": 1}}}"#
@@ -1852,7 +1895,7 @@ mod expression_test {
             expected = Expression::TaggedOperator(TaggedOperator::SetField(SetField {
                 field: "x".to_string(),
                 input: Box::new(Expression::Document(map! {
-                    "x".to_string() => Expression::Literal(LiteralValue::Integer(1))
+                    "x".to_string() => Expression::Literal(LiteralValue::Int32(1))
                 })),
                 value: Box::new(Expression::Literal(LiteralValue::String("new".to_string())))
             })),
@@ -1864,7 +1907,7 @@ mod expression_test {
             expected = Expression::TaggedOperator(TaggedOperator::UnsetField(UnsetField {
                 field: "x".to_string(),
                 input: Box::new(Expression::Document(map! {
-                    "x".to_string() => Expression::Literal(LiteralValue::Integer(1))
+                    "x".to_string() => Expression::Literal(LiteralValue::Int32(1))
                 }))
             })),
             input = r#"expr: {"$unsetField": {"field": "x", "input": {"x": 1}}}"#
@@ -1876,11 +1919,11 @@ mod expression_test {
                 branches: vec![
                     SwitchCase {
                         case: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
-                        then: Box::new(Expression::Literal(LiteralValue::Integer(10))),
+                        then: Box::new(Expression::Literal(LiteralValue::Int32(10))),
                     },
                     SwitchCase {
                         case: Box::new(Expression::Ref(Ref::FieldRef("b".to_string()))),
-                        then: Box::new(Expression::Literal(LiteralValue::Integer(20))),
+                        then: Box::new(Expression::Literal(LiteralValue::Int32(20))),
                     },
                 ],
                 default: Box::new(Expression::Literal(LiteralValue::Null))
@@ -1898,8 +1941,8 @@ mod expression_test {
             let_expr,
             expected = Expression::TaggedOperator(TaggedOperator::Let(Let {
                 vars: map! {
-                    "a".to_string() => Expression::Literal(LiteralValue::Integer(1)),
-                    "b".to_string() => Expression::Literal(LiteralValue::Integer(2)),
+                    "a".to_string() => Expression::Literal(LiteralValue::Int32(1)),
+                    "b".to_string() => Expression::Literal(LiteralValue::Int32(2)),
                 },
                 inside: Box::new(Expression::Literal(LiteralValue::String(
                     "body".to_string()
@@ -1982,7 +2025,7 @@ mod expression_test {
             sql_divide,
             expected = Expression::TaggedOperator(TaggedOperator::SqlDivide(SqlDivide {
                 dividend: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
-                divisor: Box::new(Expression::Literal(LiteralValue::Integer(2))),
+                divisor: Box::new(Expression::Literal(LiteralValue::Int32(2))),
                 on_error: Box::new(Expression::Literal(LiteralValue::Null)),
             })),
             input = r#"expr: {"$sqlDivide": {
@@ -2121,7 +2164,7 @@ mod expression_test {
                 SubqueryComparison {
                     op: "eq".to_string(),
                     modifier: "all".to_string(),
-                    arg: Box::new(Expression::Literal(LiteralValue::Integer(42))),
+                    arg: Box::new(Expression::Literal(LiteralValue::Int32(42))),
                     subquery: Subquery {
                         db: Some("foo".to_string()),
                         collection: Some("bar".to_string()),
@@ -2188,7 +2231,7 @@ mod expression_test {
                     Expression::Ref(Ref::FieldRef("score".to_string()))
                 ])),
                 sort_by: Box::new(Expression::Document(map!(
-                    "score".to_string() => Expression::Literal(LiteralValue::Integer(-1))
+                    "score".to_string() => Expression::Literal(LiteralValue::Int64(-1))
                 )))
             })),
             input = r#"expr: { $bottom: {
@@ -2205,7 +2248,7 @@ mod expression_test {
                     Expression::Ref(Ref::FieldRef("score".to_string()))
                 ])),
                 sort_by: Box::new(Expression::Document(map!(
-                    "score".to_string() => Expression::Literal(LiteralValue::Integer(-1))
+                    "score".to_string() => Expression::Literal(LiteralValue::Int64(-1))
                 ))),
                 n: 3,
             })),
@@ -2292,7 +2335,7 @@ mod expression_test {
                     Expression::Ref(Ref::FieldRef("score".to_string()))
                 ])),
                 sort_by: Box::new(Expression::Document(map!(
-                    "score".to_string() => Expression::Literal(LiteralValue::Integer(-1))
+                    "score".to_string() => Expression::Literal(LiteralValue::Int64(-1))
                 )))
             })),
             input = r#"expr: { $top: {
@@ -2309,7 +2352,7 @@ mod expression_test {
                     Expression::Ref(Ref::FieldRef("score".to_string()))
                 ])),
                 sort_by: Box::new(Expression::Document(map!(
-                    "score".to_string() => Expression::Literal(LiteralValue::Integer(-1))
+                    "score".to_string() => Expression::Literal(LiteralValue::Int64(-1))
                 ))),
                 n: 3,
             })),
@@ -2325,7 +2368,7 @@ mod expression_test {
             first_n,
             expected = Expression::TaggedOperator(TaggedOperator::FirstN(FirstN {
                 input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
-                n: Box::new(Expression::Literal(LiteralValue::Integer(3))),
+                n: Box::new(Expression::Literal(LiteralValue::Int32(3))),
             })),
             input = r#"expr: {"$firstN": {
                                 "input": "$a",
@@ -2337,7 +2380,7 @@ mod expression_test {
             last_n,
             expected = Expression::TaggedOperator(TaggedOperator::LastN(LastN {
                 input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
-                n: Box::new(Expression::Literal(LiteralValue::Integer(3))),
+                n: Box::new(Expression::Literal(LiteralValue::Int32(3))),
             })),
             input = r#"expr: {"$lastN": {
                                 "input": "$a",
@@ -2350,7 +2393,7 @@ mod expression_test {
             expected = Expression::TaggedOperator(TaggedOperator::Filter(Filter {
                 input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 _as: "x".to_string(),
-                cond: Box::new(Expression::Literal(LiteralValue::Integer(2))),
+                cond: Box::new(Expression::Literal(LiteralValue::Int32(2))),
                 limit: None,
             })),
             input = r#"expr: {"$filter": {
@@ -2365,12 +2408,12 @@ mod expression_test {
             expected = Expression::TaggedOperator(TaggedOperator::Filter(Filter {
                 input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 _as: "x".to_string(),
-                cond: Box::new(Expression::Literal(LiteralValue::Integer(2))),
+                cond: Box::new(Expression::Literal(LiteralValue::Int32(2))),
                 limit: Some(Box::new(Expression::UntaggedOperator(UntaggedOperator {
                     op: "$add".to_string(),
                     args: vec![
-                        Expression::Literal(LiteralValue::Integer(1)),
-                        Expression::Literal(LiteralValue::Integer(2)),
+                        Expression::Literal(LiteralValue::Int32(1)),
+                        Expression::Literal(LiteralValue::Int32(2)),
                     ]
                 }))),
             })),
@@ -2387,7 +2430,7 @@ mod expression_test {
             expected = Expression::TaggedOperator(TaggedOperator::Map(Map {
                 input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 _as: "x".to_string(),
-                inside: Box::new(Expression::Literal(LiteralValue::Integer(2))),
+                inside: Box::new(Expression::Literal(LiteralValue::Int32(2))),
             })),
             input = r#"expr: {"$map": {
                                 "input": "$a",
@@ -2401,7 +2444,7 @@ mod expression_test {
             expected =
                 Expression::TaggedOperator(TaggedOperator::MaxNArrayElement(MaxNArrayElement {
                     input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
-                    n: Box::new(Expression::Literal(LiteralValue::Integer(2))),
+                    n: Box::new(Expression::Literal(LiteralValue::Int32(2))),
                 })),
             input = r#"expr: {"$maxN": {
                                 "input": "$a",
@@ -2414,7 +2457,7 @@ mod expression_test {
             expected =
                 Expression::TaggedOperator(TaggedOperator::MinNArrayElement(MinNArrayElement {
                     input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
-                    n: Box::new(Expression::Literal(LiteralValue::Integer(2))),
+                    n: Box::new(Expression::Literal(LiteralValue::Int32(2))),
                 })),
             input = r#"expr: {"$minN": {
                                 "input": "$a",
@@ -2426,12 +2469,12 @@ mod expression_test {
             reduce,
             expected = Expression::TaggedOperator(TaggedOperator::Reduce(Reduce {
                 input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
-                initial_value: Box::new(Expression::Literal(LiteralValue::Integer(2))),
+                initial_value: Box::new(Expression::Literal(LiteralValue::Int32(2))),
                 inside: Box::new(Expression::UntaggedOperator(UntaggedOperator {
                     op: "$add".to_string(),
                     args: vec![
                         Expression::Ref(Ref::VariableRef("this".to_string())),
-                        Expression::Literal(LiteralValue::Integer(2)),
+                        Expression::Literal(LiteralValue::Int32(2)),
                     ],
                 })),
             })),
@@ -2475,9 +2518,9 @@ mod expression_test {
                 inputs: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 use_longest_length: true,
                 defaults: Some(Box::new(Expression::Array(vec![
-                    Expression::Literal(LiteralValue::Integer(1)),
-                    Expression::Literal(LiteralValue::Integer(2)),
-                    Expression::Literal(LiteralValue::Integer(3)),
+                    Expression::Literal(LiteralValue::Int32(1)),
+                    Expression::Literal(LiteralValue::Int32(2)),
+                    Expression::Literal(LiteralValue::Int32(3)),
                 ]))),
             })),
             input = r#"expr: {"$zip": {
@@ -2740,7 +2783,7 @@ mod expression_test {
                 unit: Box::new(Expression::Literal(LiteralValue::String(
                     "year".to_string()
                 ))),
-                amount: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                amount: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                 timezone: None,
             })),
             input = r#"expr: {"$dateAdd": {startDate: "$date", unit: "year", amount: 1 } }"#
@@ -2753,7 +2796,7 @@ mod expression_test {
                 unit: Box::new(Expression::Literal(LiteralValue::String(
                     "year".to_string()
                 ))),
-                amount: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                amount: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                 timezone: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "timezone".to_string()
                 )))),
@@ -2768,7 +2811,7 @@ mod expression_test {
                 unit: Box::new(Expression::Literal(LiteralValue::String(
                     "year".to_string()
                 ))),
-                amount: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                amount: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                 timezone: None,
             })),
             input = r#"expr: {"$dateSubtract": {startDate: "$date", unit: "year", amount: 1 } }"#
@@ -2781,7 +2824,7 @@ mod expression_test {
                 unit: Box::new(Expression::Literal(LiteralValue::String(
                     "year".to_string()
                 ))),
-                amount: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                amount: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                 timezone: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "timezone".to_string()
                 )))),
@@ -2869,7 +2912,7 @@ mod expression_test {
             test_serde_expr!(
                 derivative_no_unit,
                 expected = Expression::TaggedOperator(TaggedOperator::Derivative(Derivative {
-                    input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                    input: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                     unit: None,
                 })),
                 input = r#"expr: {"$derivative": {
@@ -2880,7 +2923,7 @@ mod expression_test {
             test_serde_expr!(
                 derivative_unit,
                 expected = Expression::TaggedOperator(TaggedOperator::Derivative(Derivative {
-                    input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                    input: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                     unit: Some("day".to_string()),
                 })),
                 input = r#"expr: {"$derivative": {
@@ -2898,7 +2941,7 @@ mod expression_test {
             test_serde_expr!(
                 exp_moving_avg_n,
                 expected = Expression::TaggedOperator(TaggedOperator::ExpMovingAvg(ExpMovingAvg {
-                    input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                    input: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                     opt: ExpMovingAvgOpt::N(1),
                 })),
                 input = r#"expr: {"$expMovingAvg": {
@@ -2910,7 +2953,7 @@ mod expression_test {
             test_serde_expr!(
                 exp_moving_avg_alpha,
                 expected = Expression::TaggedOperator(TaggedOperator::ExpMovingAvg(ExpMovingAvg {
-                    input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                    input: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                     opt: ExpMovingAvgOpt::Alpha(1.5),
                 })),
                 input = r#"expr: {"$expMovingAvg": {
@@ -2922,7 +2965,7 @@ mod expression_test {
             test_serde_expr!(
                 integral_no_unit,
                 expected = Expression::TaggedOperator(TaggedOperator::Integral(Integral {
-                    input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                    input: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                     unit: None,
                 })),
                 input = r#"expr: {"$integral": {
@@ -2933,7 +2976,7 @@ mod expression_test {
             test_serde_expr!(
                 integral_unit,
                 expected = Expression::TaggedOperator(TaggedOperator::Integral(Integral {
-                    input: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                    input: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                     unit: Some("day".to_string()),
                 })),
                 input = r#"expr: {"$integral": {
@@ -2951,7 +2994,7 @@ mod expression_test {
             test_serde_expr!(
                 shift_no_default,
                 expected = Expression::TaggedOperator(TaggedOperator::Shift(Shift {
-                    output: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                    output: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                     by: 1,
                     default: None,
                 })),
@@ -2964,9 +3007,9 @@ mod expression_test {
             test_serde_expr!(
                 shift_default,
                 expected = Expression::TaggedOperator(TaggedOperator::Shift(Shift {
-                    output: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                    output: Box::new(Expression::Literal(LiteralValue::Int32(1))),
                     by: 1,
-                    default: Some(Box::new(Expression::Literal(LiteralValue::Integer(1)))),
+                    default: Some(Box::new(Expression::Literal(LiteralValue::Int32(1)))),
                 })),
                 input = r#"expr: {"$shift": {
                                     "output": 1,
@@ -3018,7 +3061,7 @@ mod expression_test {
             literal,
             expected = Expression::UntaggedOperator(UntaggedOperator {
                 op: "$literal".to_string(),
-                args: vec![Expression::Literal(LiteralValue::Integer(1))]
+                args: vec![Expression::Literal(LiteralValue::Int32(1))]
             }),
             input = r#"expr: {"$literal": 1}"#
         );
