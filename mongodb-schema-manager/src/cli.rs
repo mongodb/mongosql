@@ -45,7 +45,9 @@ pub struct Cli {
     #[clap(long)]
     pub quiet: bool,
 
-    /// Output path to write a log file. If not provided, logging will be ignored.
+    /// Log directory path where to write log files. If not provided, logging will be ignored.
+    ///
+    /// The log files will be named `mongodb-schema-manager.log.{date}`.
     #[clap(long, short = 'o')]
     pub logpath: Option<String>,
 
