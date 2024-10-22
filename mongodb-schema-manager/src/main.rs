@@ -253,16 +253,13 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
 
 
                     },
+                    // For dry_run mode
                     Some(SchemaResult::NamespaceOnly(schema_res)) =>{
-                        // For dry_run mode
-                        if !cfg.quiet && cfg.dry_run {
-                            pb.set_message(format!(
-                                "Namespace acknowledged in dryRun mode: {}.{} ({:?})",
-                                schema_res.db_name,
-                                schema_res.coll_or_view_name,
-                                schema_res.namespace_type,
-                            ))
-                        }
+                        accessed_namespaces.entry(schema_res.db_name.clone())
+                        .and_modify(|coll_vec| {
+                            coll_vec.push(schema_res.coll_or_view_name.clone());
+                        })
+                        .or_insert(vec![schema_res.coll_or_view_name.clone()]);
                     },
                     None => {
                         // When the channel is closed, terminate the loop.
@@ -274,7 +271,11 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
     }
 
     if !cfg.quiet {
-        pb.finish_with_message("Schema creation has completed successfully.\nNow printing all namespaces with created or modified schemas:");
+        if cfg.dry_run {
+            pb.finish_with_message("Dry run mode.\nNo schemas were created or modified. The following namespaces would have been affected:");
+        } else {
+            pb.finish_with_message("Schema creation has completed successfully.\nNow printing all namespaces with created or modified schemas:");
+        }
 
         for (db, namespace) in accessed_namespaces.iter_mut().sorted() {
             namespace.sort();
