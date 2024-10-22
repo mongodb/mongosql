@@ -3158,3 +3158,206 @@ mod collision_check {
         }
     }
 }
+
+mod intersection {
+    use crate::{
+        map,
+        schema::{
+            Atomic, Document,
+            Schema::{self},
+        },
+        set,
+    };
+
+    macro_rules! test_intersection {
+        ($func_name:ident, expected = $expected:expr, left_schema = $left_schema:expr $(,)?, right_schema = $right_schema:expr $(,)?) => {
+            #[test]
+            fn $func_name() {
+                assert_eq!($expected, $left_schema.intersection($right_schema));
+            }
+        };
+    }
+
+    test_intersection!(
+        atomics_intersect,
+        expected = Schema::Atomic(Atomic::Integer),
+        left_schema = Schema::Atomic(Atomic::Integer),
+        right_schema = &Schema::Atomic(Atomic::Integer),
+    );
+
+    test_intersection!(
+        atomics_no_intersection,
+        expected = Schema::Unsat,
+        left_schema = Schema::Atomic(Atomic::Integer),
+        right_schema = &Schema::Atomic(Atomic::String),
+    );
+
+    test_intersection!(
+        anyof_atomic_intersection,
+        expected = Schema::Atomic(Atomic::String),
+        left_schema =
+            Schema::AnyOf(set! {Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)}),
+        right_schema = &Schema::Atomic(Atomic::String),
+    );
+
+    test_intersection!(
+        array_array_intersection,
+        expected = Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
+        left_schema = Schema::Array(Box::new(Schema::AnyOf(
+            set! {Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)}
+        ))),
+        right_schema = &Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
+    );
+
+    test_intersection!(
+        document_document_intersection,
+        expected = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!["a".into()],
+            additional_properties: false,
+            ..Default::default()
+        }),
+        left_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+                "c".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!["a".into()],
+            additional_properties: false,
+            ..Default::default()
+        }),
+        right_schema = &Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!["a".into(), "b".into()],
+            additional_properties: false,
+            ..Default::default()
+        }),
+    );
+
+    test_intersection!(
+        array_anyof_intersection,
+        expected = Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
+        left_schema = Schema::Array(Box::new(Schema::AnyOf(
+            set! {Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)}
+        ))),
+        right_schema = &Schema::AnyOf(set!(
+            Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
+            Schema::Atomic(Atomic::Double),
+        )),
+    );
+
+    test_intersection!(
+        document_anyof_intersection,
+        expected = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!["a".into()],
+            additional_properties: false,
+            ..Default::default()
+        }),
+        left_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+                "c".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!["a".into()],
+            additional_properties: false,
+            ..Default::default()
+        }),
+        right_schema = &Schema::AnyOf(set!(
+            Schema::Document(Document {
+                keys: map! {
+                    "a".to_string() => Schema::Atomic(Atomic::Integer),
+                    "b".to_string() => Schema::Atomic(Atomic::String),
+                },
+                required: set!["a".into(), "b".into()],
+                additional_properties: false,
+                ..Default::default()
+            }),
+            Schema::Atomic(Atomic::Double),
+        )),
+    );
+
+    test_intersection!(
+        anyof_anyof_all_types,
+        expected = Schema::AnyOf(set!(
+            Schema::Document(Document {
+                keys: map! {
+                    "a".to_string() => Schema::Atomic(Atomic::Integer),
+                    "b".to_string() => Schema::Atomic(Atomic::String),
+                },
+                required: set!["a".into()],
+                additional_properties: false,
+                ..Default::default()
+            }),
+            Schema::Atomic(Atomic::Double),
+            Schema::Array(Box::new(Schema::Atomic(Atomic::Double))),
+        )),
+        left_schema = Schema::AnyOf(set!(
+            Schema::Document(Document {
+                keys: map! {
+                    "a".to_string() => Schema::Atomic(Atomic::Integer),
+                    "b".to_string() => Schema::Atomic(Atomic::String),
+                    "c".to_string() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!["a".into()],
+                additional_properties: false,
+                ..Default::default()
+            }),
+            Schema::Atomic(Atomic::Double),
+            Schema::Array(Box::new(Schema::AnyOf(set!(
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::BinData)
+            )))),
+        )),
+        right_schema = &Schema::AnyOf(set!(
+            Schema::Array(Box::new(Schema::Atomic(Atomic::Double))),
+            Schema::Atomic(Atomic::Double),
+            Schema::Document(Document {
+                keys: map! {
+                    "a".to_string() => Schema::Atomic(Atomic::Integer),
+                    "b".to_string() => Schema::Atomic(Atomic::String),
+                },
+                required: set!["a".into(), "b".into()],
+                additional_properties: false,
+                ..Default::default()
+            }),
+        )),
+    );
+
+    test_intersection!(
+        nested_anyofs,
+        expected = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::BinData),
+            Schema::Atomic(Atomic::MinKey),
+            Schema::Atomic(Atomic::MaxKey),
+        )),
+        left_schema = Schema::AnyOf(set!(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::BinData),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::MinKey),
+            Schema::Atomic(Atomic::MaxKey),
+        )),)),
+        right_schema = &Schema::AnyOf(set!(
+            Schema::AnyOf(set!(Schema::AnyOf(set!(Schema::AnyOf(set!(
+                Schema::Atomic(Atomic::BinData),
+                Schema::Atomic(Atomic::Double),
+            )))))),
+            Schema::AnyOf(set!(
+                Schema::Atomic(Atomic::MinKey),
+                Schema::Atomic(Atomic::MaxKey),
+            )),
+        )),
+    );
+}

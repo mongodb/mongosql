@@ -1400,6 +1400,95 @@ impl Schema {
             (s1, s2) => AnyOf(set! {s1, s2}),
         }
     }
+
+    /// This helper takes a BTreeSet -- the intersection of each member of an AnyOf with another schema --
+    /// and returns a schema
+    fn schema_from_anyof_intersection(&self, intersection: BTreeSet<Schema>) -> Schema {
+        if intersection.is_empty() {
+            Schema::Unsat
+        } else {
+            Schema::simplify(&Schema::AnyOf(intersection))
+        }
+    }
+
+    /// The intersection of two Schemas S and T is the maximal schema R
+    /// such that R.satisfies(S) == R.satisfies(T) == must. Knowing this is useful for schema
+    /// derivation, where we can use intersection to combine the implied schemas of $match filters
+    pub fn intersection(&self, other: &Schema) -> Schema {
+        let self_schema = Schema::simplify(self);
+        let other_schema = Schema::simplify(other);
+        match (self_schema, other_schema) {
+            (Schema::Atomic(a), Schema::Atomic(b)) => {
+                if a == b {
+                    self.clone()
+                } else {
+                    Schema::Unsat
+                }
+            }
+            (atomic @ Schema::Atomic(_), Schema::AnyOf(anyof))
+            | (Schema::AnyOf(anyof), atomic @ Schema::Atomic(_)) => {
+                if anyof.contains(&atomic) {
+                    atomic.clone()
+                } else {
+                    Schema::Unsat
+                }
+            }
+            (Schema::Array(a), Schema::Array(b)) => match a.intersection(&b) {
+                Schema::Unsat => Schema::Unsat,
+                schema => Schema::Array(Box::new(schema)),
+            },
+            (schema @ Schema::Array(_), Schema::AnyOf(anyof))
+            | (schema @ Schema::Document(_), Schema::AnyOf(anyof))
+            | (Schema::AnyOf(anyof), schema @ Schema::Array(_))
+            | (Schema::AnyOf(anyof), schema @ Schema::Document(_)) => {
+                let ret: BTreeSet<Schema> = anyof
+                    .iter()
+                    .map(|anyof_item| schema.intersection(anyof_item))
+                    .filter(|intersection: &Schema| intersection != &Schema::Unsat)
+                    .collect();
+                self.schema_from_anyof_intersection(ret)
+            }
+            (Schema::Document(a), Schema::Document(b)) => {
+                let mut doc_intersection = Document::default();
+                a.keys.clone().into_iter().for_each(|(key, schema)| {
+                    if let Some(b_schema) = b.keys.get(&key) {
+                        match schema.intersection(b_schema) {
+                            Schema::Unsat => {}
+                            intersection => {
+                                doc_intersection.keys.insert(key.clone(), intersection);
+                                if a.required.contains(&key) && b.required.contains(&key) {
+                                    doc_intersection.required.insert(key);
+                                }
+                            }
+                        }
+                    }
+                });
+                if doc_intersection.keys.is_empty() {
+                    Schema::Unsat
+                } else {
+                    Schema::Document(doc_intersection)
+                }
+            }
+            (Schema::AnyOf(a), Schema::AnyOf(b)) => {
+                let ret: BTreeSet<Schema> = a
+                    .iter()
+                    .map(|anyof_item| {
+                        let ret: BTreeSet<Schema> = b
+                            .iter()
+                            .map(|item| anyof_item.intersection(item))
+                            .filter(|intersection: &Schema| intersection != &Schema::Unsat)
+                            .collect();
+                        self.schema_from_anyof_intersection(ret)
+                    })
+                    .filter(|intersection: &Schema| intersection != &Schema::Unsat)
+                    .collect();
+                self.schema_from_anyof_intersection(ret)
+            }
+            // if there is no intersection between the two schemas, we will use Unsat to represent
+            // that no such schema R exists.
+            _ => Schema::Unsat,
+        }
+    }
 }
 
 impl From<Type> for Schema {
