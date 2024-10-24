@@ -1,0 +1,9 @@
+[package]
+name = "schema-derivation"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+mongosql = { path = "../../mongosql" }
+
+[features]

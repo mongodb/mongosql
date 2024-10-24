@@ -4334,6 +4334,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "schema-derivation"
+version = "0.0.0"
+dependencies = [
+ "mongosql",
+]
+
+[[package]]
 name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
