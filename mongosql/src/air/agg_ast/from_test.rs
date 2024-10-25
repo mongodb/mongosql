@@ -202,8 +202,8 @@ mod stage {
                 source: Box::new(default_source()),
                 new_root: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
             }),
-            input = agg_ast::Stage::ReplaceWith(agg_ast::Expression::Literal(
-                agg_ast::LiteralValue::Null
+            input = agg_ast::Stage::ReplaceWith(agg_ast::ReplaceStage::Expression(
+                agg_ast::Expression::Literal(agg_ast::LiteralValue::Null)
             ))
         );
     }

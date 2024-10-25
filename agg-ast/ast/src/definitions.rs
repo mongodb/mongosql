@@ -9,9 +9,17 @@ use serde::{Deserialize, Serialize};
 // into air structs so that we can run desugarer passes and therefore test the
 // desugarers.
 
-/// Stage represents an aggregation pipeline stage. This is not
-/// a complete representation of all of MQL. Only stages relevant
-/// for desugarer testing are supported here.
+// This module contains an aggregation pipeline syntax tree that implements serde::Deserialize and
+// serde::Serialize. This syntax tree has two primary use cases: 1) for desugarer testing, and 2)
+// for schema-derivation for the mongodb-schema-manager.
+//
+// The desugarer tests are specified in YAML files. The test pipelines are parsed into the types
+// in this module, and then converted into air structs in the air/agg_ast module.
+//
+// The schema-derivation module is a sibling to this module, and is used by the mongodb-schema-
+// manager.
+
+/// Stage represents an aggregation pipeline stage.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Stage {
     #[serde(skip)]
@@ -20,8 +28,8 @@ pub enum Stage {
     Documents(Vec<LinkedHashMap<String, Expression>>),
     #[serde(rename = "$project")]
     Project(ProjectStage),
-    #[serde(rename = "$replaceWith")]
-    ReplaceWith(Expression),
+    #[serde(rename = "$replaceWith", alias = "$replaceRoot")]
+    ReplaceWith(ReplaceStage),
     #[serde(rename = "$match")]
     Match(MatchStage),
     #[serde(rename = "$limit")]
@@ -30,6 +38,8 @@ pub enum Stage {
     Skip(i64),
     #[serde(rename = "$sort")]
     Sort(LinkedHashMap<String, i8>),
+    #[serde(rename = "$sortByCount")]
+    SortByCount(Box<Expression>),
     #[serde(rename = "$group")]
     Group(Group),
     #[serde(rename = "$join")]
@@ -54,6 +64,18 @@ pub enum Stage {
     BucketAuto(BucketAuto),
     #[serde(rename = "$count")]
     Count(String),
+    #[serde(rename = "$densify")]
+    Densify(Densify),
+    #[serde(rename = "$facet")]
+    Facet(LinkedHashMap<String, Vec<Stage>>),
+    #[serde(rename = "$fill")]
+    Fill(Fill),
+    #[serde(rename = "$geoNear")]
+    GeoNear(GeoNear),
+    #[serde(rename = "$sample")]
+    Sample(Sample),
+    #[serde(rename = "$unionWith")]
+    UnionWith(UnionWith),
 
     // Search stages
     #[serde(rename = "$graphLookup")]
@@ -102,6 +124,23 @@ pub enum ProjectItem {
     Exclusion,
     Inclusion,
     Assignment(Expression),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ReplaceStage {
+    NewRoot(Expression),
+    #[serde(untagged)]
+    Expression(Expression),
+}
+
+impl ReplaceStage {
+    pub fn expression(self) -> Expression {
+        match self {
+            ReplaceStage::NewRoot(expr) => expr,
+            ReplaceStage::Expression(expr) => expr,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -511,6 +550,110 @@ pub struct BucketAuto {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct Densify {
+    pub field: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub partition_by_fields: Option<Vec<String>>,
+    pub range: DensifyRange,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DensifyRange {
+    pub step: Bson,
+    pub bounds: DensifyRangeBounds,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unit: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum DensifyRangeBounds {
+    Full,
+    Partition,
+    #[serde(untagged)]
+    Array(Box<[Bson; 2]>),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Fill {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub partition_by: Option<Box<Expression>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub partition_by_fields: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sort_by: Option<LinkedHashMap<String, i8>>,
+    pub output: LinkedHashMap<String, FillOutput>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum FillOutput {
+    Value(Expression),
+    Method(FillOutputMethod),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum FillOutputMethod {
+    Linear,
+    Locf,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GeoNear {
+    pub distance_field: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub distance_multiplier: Option<Bson>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_locs: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_distance: Option<Bson>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_distance: Option<Bson>,
+    pub near: GeoNearPoint,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub query: Option<MatchExpression>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spherical: Option<bool>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum GeoNearPoint {
+    GeoJSON(GeoJSON),
+    Legacy([Bson; 2]),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct GeoJSON {
+    pub r#type: String,
+    pub coordinates: [Bson; 2],
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Sample {
+    pub size: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum UnionWith {
+    Collection(String),
+    Pipeline(UnionWithPipeline),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UnionWithPipeline {
+    pub collection: String,
+    pub pipeline: Vec<Stage>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GraphLookup {
     pub from: String,
     pub start_with: Box<Expression>,
@@ -532,9 +675,7 @@ pub enum AtlasSearchStage {
     VectorSearch(Box<Expression>),
 }
 
-/// Expression represents an aggregation pipeline expression. This is not
-/// a complete representation of all of MQL. Only expressions relevant for
-/// desugarer testing are supported here. Order of these variants matters
+/// Expression represents an aggregation pipeline expression. Order of these variants matters
 /// since we use custom deserialization for several expression types.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -1222,6 +1363,7 @@ impl Stage {
             Stage::Limit(_) => "$limit",
             Stage::Skip(_) => "$skip",
             Stage::Sort(_) => "$sort",
+            Stage::SortByCount(_) => "$sortByCount",
             Stage::Group(_) => "$group",
             Stage::Join(_) => "$join",
             Stage::EquiJoin(_) => "$equiJoin",
@@ -1234,6 +1376,12 @@ impl Stage {
             Stage::Bucket(_) => "$bucket",
             Stage::BucketAuto(_) => "$bucketAuto",
             Stage::Count(_) => "$count",
+            Stage::Densify(_) => "$densify",
+            Stage::Facet(_) => "$facet",
+            Stage::Fill(_) => "$fill",
+            Stage::GeoNear(_) => "$geoNear",
+            Stage::Sample(_) => "$sample",
+            Stage::UnionWith(_) => "$unionWith",
             Stage::GraphLookup(_) => "$graphLookup",
             Stage::AtlasSearchStage(_) => "<Atlas search stage>",
         }

@@ -47,7 +47,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
             }
             Stage::ReplaceWith(r) => air::Stage::ReplaceWith(air::ReplaceWith {
                 source: Box::new(source.expect("$replaceWith without valid source stage")),
-                new_root: Box::new(r.into()),
+                new_root: Box::new(r.expression().into()),
             }),
             Stage::Match(mut m) => {
                 let expr = if m.expr.len() == 1 {
@@ -259,6 +259,13 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
             | Stage::Bucket(_)
             | Stage::BucketAuto(_)
             | Stage::Count(_)
+            | Stage::Densify(_)
+            | Stage::Facet(_)
+            | Stage::Fill(_)
+            | Stage::GeoNear(_)
+            | Stage::Sample(_)
+            | Stage::SortByCount(_)
+            | Stage::UnionWith(_)
             | Stage::GraphLookup(_)
             | Stage::AtlasSearchStage(_)
             | Stage::Lookup(Lookup::ConciseSubquery(_)) => {

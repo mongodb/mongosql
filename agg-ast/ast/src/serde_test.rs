@@ -244,26 +244,38 @@ mod stage_test {
 
     mod replace_with {
         use crate::{
-            definitions::{Expression, Ref, Stage, UntaggedOperator},
+            definitions::{Expression, Ref, ReplaceStage, Stage, UntaggedOperator},
             ROOT_NAME,
         };
 
         test_serde_stage!(
             simple,
-            expected = Stage::ReplaceWith(Expression::Ref(Ref::FieldRef("a".to_string()))),
+            expected = Stage::ReplaceWith(ReplaceStage::Expression(Expression::Ref(
+                Ref::FieldRef("a".to_string())
+            ))),
             input = r#"stage: {"$replaceWith": "$a"}"#
         );
 
         test_serde_stage!(
             complex,
-            expected = Stage::ReplaceWith(Expression::UntaggedOperator(UntaggedOperator {
-                op: "$mergeObjects".to_string(),
-                args: vec![
-                    Expression::Ref(Ref::VariableRef(ROOT_NAME.to_string())),
-                    Expression::Ref(Ref::FieldRef("as".to_string())),
-                ]
-            })),
+            expected = Stage::ReplaceWith(ReplaceStage::Expression(Expression::UntaggedOperator(
+                UntaggedOperator {
+                    op: "$mergeObjects".to_string(),
+                    args: vec![
+                        Expression::Ref(Ref::VariableRef(ROOT_NAME.to_string())),
+                        Expression::Ref(Ref::FieldRef("as".to_string())),
+                    ]
+                }
+            ))),
             input = r#"stage: {"$replaceWith": {"$mergeObjects": ["$$ROOT", "$as"]}}"#
+        );
+
+        test_serde_stage!(
+            replace_root,
+            expected = Stage::ReplaceWith(ReplaceStage::NewRoot(Expression::Ref(Ref::FieldRef(
+                "n".to_string()
+            )))),
+            input = r#"stage: {"$replaceRoot": {"newRoot": "$n"}}"#
         );
     }
 
@@ -629,7 +641,10 @@ mod stage_test {
     }
 
     mod sort {
-        use crate::{definitions::Stage, map};
+        use crate::{
+            definitions::{Expression, Ref, Stage},
+            map,
+        };
 
         test_serde_stage!(
             empty,
@@ -647,6 +662,13 @@ mod stage_test {
             multiple_elements,
             expected = Stage::Sort(map! { "a".to_string() => 1, "b".to_string() => -1 }),
             input = r#"stage: {"$sort": {"a": 1, "b": -1}}"#
+        );
+
+        test_serde_stage!(
+            sort_by_count,
+            expected =
+                Stage::SortByCount(Box::new(Expression::Ref(Ref::FieldRef("f".to_string())))),
+            input = r#"stage: {"$sortByCount": "$f"}"#
         );
     }
 
@@ -1525,6 +1547,341 @@ mod stage_test {
                 },
                 "granularity": "E6",
             }}"#
+        );
+    }
+
+    mod densify {
+        use crate::definitions::{Densify, DensifyRange, DensifyRangeBounds, Stage};
+        use bson::Bson;
+
+        test_serde_stage!(
+            bounds_full,
+            expected = Stage::Densify(Densify {
+                field: "f".to_string(),
+                partition_by_fields: None,
+                range: DensifyRange {
+                    step: Bson::Int32(1),
+                    bounds: DensifyRangeBounds::Full,
+                    unit: None,
+                },
+            }),
+            input = r#"stage: {"$densify": {
+                "field": "f",
+                "range": {
+                    "step": 1,
+                    "bounds": "full",
+                },
+            }}"#
+        );
+
+        test_serde_stage!(
+            bounds_partition,
+            expected = Stage::Densify(Densify {
+                field: "f".to_string(),
+                partition_by_fields: None,
+                range: DensifyRange {
+                    step: Bson::Int32(1),
+                    bounds: DensifyRangeBounds::Partition,
+                    unit: None,
+                },
+            }),
+            input = r#"stage: {"$densify": {
+                "field": "f",
+                "range": {
+                    "step": 1,
+                    "bounds": "partition",
+                },
+            }}"#
+        );
+
+        test_serde_stage!(
+            bounds_array,
+            expected = Stage::Densify(Densify {
+                field: "f".to_string(),
+                partition_by_fields: None,
+                range: DensifyRange {
+                    step: Bson::Int32(1),
+                    bounds: DensifyRangeBounds::Array(Box::new([Bson::Int32(1), Bson::Int32(2)])),
+                    unit: None,
+                },
+            }),
+            input = r#"stage: {"$densify": {
+                "field": "f",
+                "range": {
+                    "step": 1,
+                    "bounds": [1, 2],
+                },
+            }}"#
+        );
+
+        test_serde_stage!(
+            fully_specified,
+            expected = Stage::Densify(Densify {
+                field: "d".to_string(),
+                partition_by_fields: Some(vec!["x".to_string(), "y".to_string(), "z".to_string()]),
+                range: DensifyRange {
+                    step: Bson::Int32(1),
+                    bounds: DensifyRangeBounds::Full,
+                    unit: Some("second".to_string()),
+                },
+            }),
+            input = r#"stage: {"$densify": {
+                "field": "d",
+                partitionByFields: ["x", "y", "z"],
+                "range": {
+                    "step": 1,
+                    "bounds": "full",
+                    "unit": "second",
+                },
+            }}"#
+        );
+    }
+
+    mod facet {
+        use crate::{
+            definitions::{ProjectItem, ProjectStage, Stage},
+            map,
+        };
+
+        test_serde_stage!(
+            empty,
+            expected = Stage::Facet(map! {}),
+            input = r#"stage: {"$facet": {}}"#
+        );
+
+        test_serde_stage!(
+            single,
+            expected = Stage::Facet(map! {
+                "outputField1".to_string() => vec![Stage::Count("x".to_string())]
+            }),
+            input = r#"stage: {"$facet": {
+                "outputField1": [{"$count": "x"}]
+            }}"#
+        );
+
+        test_serde_stage!(
+            multiple,
+            expected = Stage::Facet(map! {
+                "o1".to_string() => vec![Stage::Limit(10)],
+                "outputField2".to_string() => vec![
+                    Stage::Project(ProjectStage {
+                        items: map! {
+                            "_id".to_string() => ProjectItem::Exclusion,
+                        },
+                    }),
+                    Stage::Count("x".to_string()),
+                ],
+            }),
+            input = r#"stage: {"$facet": {
+                "o1": [{"$limit": 10}],
+                "outputField2": [{"$project": {"_id": 0}}, {"$count": "x"}],
+            }}"#
+        );
+    }
+
+    mod fill {
+        use crate::{
+            definitions::{Expression, Fill, FillOutput, FillOutputMethod, LiteralValue, Stage},
+            map,
+        };
+
+        test_serde_stage!(
+            with_partition_by,
+            expected = Stage::Fill(Fill {
+                partition_by: Some(Box::new(Expression::Literal(LiteralValue::Int32(10)))),
+                partition_by_fields: None,
+                sort_by: None,
+                output: map! {
+                    "x".to_string() => FillOutput::Value(Expression::Literal(LiteralValue::Int32(1))),
+                }
+            }),
+            input = r#"stage: {"$fill": {
+                "partitionBy": 10,
+                "output": {
+                    "x": {"value": 1},
+                },
+            }}"#
+        );
+
+        test_serde_stage!(
+            with_partition_by_fields,
+            expected = Stage::Fill(Fill {
+                partition_by: None,
+                partition_by_fields: Some(vec!["x".to_string(), "y".to_string()]),
+                sort_by: None,
+                output: map! {
+                    "x".to_string() => FillOutput::Value(Expression::Literal(LiteralValue::Int32(1))),
+                }
+            }),
+            input = r#"stage: {"$fill": {
+                "partitionByFields": ["x", "y"],
+                "output": {
+                    "x": {"value": 1},
+                },
+            }}"#
+        );
+
+        test_serde_stage!(
+            with_sort_by_linear,
+            expected = Stage::Fill(Fill {
+                partition_by: None,
+                partition_by_fields: None,
+                sort_by: Some(map! {
+                    "x".to_string() => -1i8,
+                }),
+                output: map! {
+                    "x".to_string() => FillOutput::Method(FillOutputMethod::Linear),
+                }
+            }),
+            input = r#"stage: {"$fill": {
+                "sortBy": {"x": -1},
+                "output": {
+                    "x": {"method": "linear"},
+                },
+            }}"#
+        );
+
+        test_serde_stage!(
+            with_sort_by_locf,
+            expected = Stage::Fill(Fill {
+                partition_by: None,
+                partition_by_fields: None,
+                sort_by: Some(map! {
+                    "x".to_string() => -1i8,
+                }),
+                output: map! {
+                    "x".to_string() => FillOutput::Method(FillOutputMethod::Locf),
+                }
+            }),
+            input = r#"stage: {"$fill": {
+                "sortBy": {"x": -1},
+                "output": {
+                    "x": {"method": "locf"},
+                },
+            }}"#
+        );
+    }
+
+    mod geo_near {
+        use crate::{
+            definitions::{
+                GeoJSON, GeoNear, GeoNearPoint, MatchBinaryOp, MatchExpression, MatchField, Ref,
+                Stage,
+            },
+            map,
+        };
+        use bson::Bson;
+
+        test_serde_stage!(
+            with_no_optional_fields,
+            expected = Stage::GeoNear(GeoNear {
+                distance_field: "f".to_string(),
+                distance_multiplier: None,
+                include_locs: None,
+                key: None,
+                max_distance: None,
+                min_distance: None,
+                near: GeoNearPoint::GeoJSON(GeoJSON {
+                    r#type: "Point".to_string(),
+                    coordinates: [Bson::Double(-73.856077), Bson::Double(40.848447)],
+                }),
+                query: None,
+                spherical: None,
+            }),
+            input = r#"stage: {"$geoNear": {
+                "distanceField": "f",
+                "near": {
+                    "type": "Point",
+                    "coordinates": [-73.856077, 40.848447],
+                }
+            }}"#
+        );
+
+        test_serde_stage!(
+            fully_specified,
+            expected = Stage::GeoNear(GeoNear {
+                distance_field: "f".to_string(),
+                distance_multiplier: Some(Bson::Int32(3)),
+                include_locs: Some("locs".to_string()),
+                key: Some("idx".to_string()),
+                max_distance: Some(Bson::Int32(100)),
+                min_distance: Some(Bson::Int32(10)),
+                near: GeoNearPoint::Legacy([Bson::Double(-51.634855), Bson::Double(51.959558)]),
+                query: Some(MatchExpression::Field(MatchField {
+                    field: Ref::FieldRef("x".to_string()),
+                    ops: map! {
+                        MatchBinaryOp::Eq => Bson::Int32(42),
+                    },
+                })),
+                spherical: Some(true),
+            }),
+            input = r#"stage: {"$geoNear": {
+                "distanceField": "f",
+                "distanceMultiplier": 3,
+                "includeLocs": "locs",
+                "key": "idx",
+                "maxDistance": 100,
+                "minDistance": 10,
+                "near": [-51.634855, 51.959558],
+                "query": {"x": 42},
+                "spherical": true,
+            }}"#
+        );
+    }
+
+    mod sample {
+        use crate::definitions::{Sample, Stage};
+
+        test_serde_stage!(
+            simple,
+            expected = Stage::Sample(Sample { size: 500 }),
+            input = r#"stage: {"$sample": {"size": 500}}"#
+        );
+    }
+
+    mod union_with {
+        use crate::definitions::{Stage, UnionWith, UnionWithPipeline};
+
+        test_serde_stage!(
+            empty_pipeline,
+            expected = Stage::UnionWith(UnionWith::Pipeline(UnionWithPipeline {
+                collection: "empty".to_string(),
+                pipeline: vec![],
+            })),
+            input = r#"stage: {"$unionWith": {
+                "collection": "empty",
+                "pipeline": []
+            }}"#
+        );
+
+        test_serde_stage!(
+            singleton_pipeline,
+            expected = Stage::UnionWith(UnionWith::Pipeline(UnionWithPipeline {
+                collection: "single".to_string(),
+                pipeline: vec![Stage::Limit(10)],
+            })),
+            input = r#"stage: {"$unionWith": {
+                "collection": "single",
+                "pipeline": [{"$limit": 10}]
+            }}"#
+        );
+
+        test_serde_stage!(
+            multiple_element_pipeline,
+            expected = Stage::UnionWith(UnionWith::Pipeline(UnionWithPipeline {
+                collection: "multiple".to_string(),
+                pipeline: vec![Stage::Skip(5), Stage::Limit(10)],
+            })),
+            input = r#"stage: {"$unionWith": {
+                "collection": "multiple",
+                "pipeline": [{"$skip": 5}, {"$limit": 10}]
+            }}"#
+        );
+
+        test_serde_stage!(
+            collection,
+            expected = Stage::UnionWith(UnionWith::Collection("coll".to_string())),
+            input = r#"stage: {"$unionWith": "coll"}"#
         );
     }
 
