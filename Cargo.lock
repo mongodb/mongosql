@@ -4337,7 +4337,9 @@ dependencies = [
 name = "schema-derivation"
 version = "0.0.0"
 dependencies = [
+ "agg-ast",
  "mongosql",
+ "serde_json",
 ]
 
 [[package]]
