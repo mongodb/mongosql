@@ -15,6 +15,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use itertools::Itertools;
 use mongodb::{
     bson::{self, datetime, doc},
+    options::AuthMechanism,
     Client,
 };
 use schema_builder_library::{
@@ -28,6 +29,8 @@ use std::{collections::HashMap, process};
 use tokio::sync::mpsc::unbounded_channel;
 use tracing::{info, instrument};
 use utils::{get_cluster_type, verify_cluster_type};
+
+const ENVIRONMENT_PROP_STR: &str = "ENVIRONMENT";
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -59,6 +62,29 @@ async fn main() -> Result<()> {
     run_with_config(cfg).await
 }
 
+// If the client is using OIDC authentication, this function will conditionally add the OIDC human flow callback to the client options,
+// if no OIDC ENVIRONMENT is set.
+async fn conditionally_add_oidc_human_flow(client_options: &mut mongodb::options::ClientOptions) {
+    if let Some(ref mut credential) = client_options.credential {
+        if credential.mechanism != Some(AuthMechanism::MongoDbOidc) {
+            return;
+        }
+        use futures::future::FutureExt;
+        if let Some(ref properties) = credential.mechanism_properties {
+            // It is invalid to supply a callback if any ENVIRONMENT is set.
+            if properties.get(ENVIRONMENT_PROP_STR).is_none() {
+                credential.oidc_callback = mongodb::options::oidc::Callback::human(move |c| {
+                    async move { oidc::oidc_call_back(c).await }.boxed()
+                });
+            }
+        } else {
+            credential.oidc_callback = mongodb::options::oidc::Callback::human(move |c| {
+                async move { oidc::oidc_call_back(c).await }.boxed()
+            });
+        }
+    }
+}
+
 #[instrument(skip_all)]
 async fn run_with_config(cfg: Cli) -> Result<()> {
     info!(cfg=?cfg);
@@ -72,6 +98,8 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
 
     // Create MongoDB client
     let mut client_options = get_opts(&uri, cfg.resolver.map(|r| r.into())).await?;
+
+    conditionally_add_oidc_human_flow(&mut client_options).await;
 
     client_options.app_name = Some(DEFAULT_APP_NAME.clone());
 
