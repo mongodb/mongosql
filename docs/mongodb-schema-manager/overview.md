@@ -15,3 +15,4 @@ following topics:
 - [Authentication Support](./auth.md)
 - [Examples](./examples.md)
 - [Schema Instability](./instability.md)
+- [Known Vulnerabilities](./vulnerabilities.md)
