@@ -11,15 +11,15 @@ pub struct Cli {
     #[clap(long = "file", short = 'f')]
     pub config_file: Option<String>,
 
-    /// The Atlas cluster URI (optional). If not provided, you must specify --file to load a configuration file with the URI.
+    /// The cluster URI (optional). If not provided, you must specify --file to load a configuration file with the URI.
     #[clap(long)]
     pub uri: Option<String>,
 
-    /// Username for authentication (optional). If not provided, you must specify --file to load a configuration file with the username.
+    /// Username for authentication (optional).
     #[clap(long, short)]
     pub username: Option<String>,
 
-    /// Password for authentication (optional). If not provided by command line or in a configuration file, you will be prompted for password (recommended).
+    /// Password for authentication (optional).
     ///
     /// You can also specify username and password, or another authentication method, in your MongoDB URI.
     #[clap(long, short)]
@@ -60,7 +60,7 @@ pub struct Cli {
     #[serde(rename = "action")]
     pub schema_action: Option<SchemaAction>,
 
-    /// Perform a dry run without analyzing schema or writing to the database. Useful for testing nsInclude and nsExclude.
+    /// Perform a dry run without analyzing schema or writing to the database. Useful for testing ns-include and ns-exclude.
     ///
     /// Default: false
     #[clap(long = "dry-run")]

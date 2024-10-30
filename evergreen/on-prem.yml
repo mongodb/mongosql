@@ -211,12 +211,12 @@ functions:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/mongodb-schema-manager-macos-arm/mongodb-schema-manager-macos-arm-signed
-        remote_file: mongodb-schema-manager/mongodb-schema-manager-macos-latest-arm
+        remote_file: mongodb-schema-manager/mongodb-schema-manager-latest-macos-arm
         bucket: translators-connectors-releases
         permissions: public-read
         skip_existing: false
         content_type: application/octet-stream
-        display_name: mongodb-schema-manager-macos-latest-arm
+        display_name: mongodb-schema-manager-latest-macos-arm
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
