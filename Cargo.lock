@@ -5121,6 +5121,7 @@ name = "schema-derivation"
 version = "0.0.0"
 dependencies = [
  "agg-ast",
+ "bson",
  "mongosql",
  "serde_json",
 ]
