@@ -19,7 +19,7 @@ if [ "Windows_NT" = "$OS" ]; then
 fi
 export PATH="$GOROOT/bin:$PATH"
 if [[ "${triggered_by_git_tag}" != "" ]]; then
-    export release_version=$(echo ${triggered_by_git_tag} | sed -E 's/^(v|trr|dcsb|msql)//')
+    export release_version=$(echo ${triggered_by_git_tag} | sed -E 's/^(v|trr|msm|msql)//')
 else
     export release_version=snapshot
 fi
