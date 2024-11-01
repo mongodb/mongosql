@@ -5,8 +5,9 @@ edition = "2021"
 
 [dependencies]
 agg-ast = { path = "../ast" }
+bson = { version = "2", features = ["chrono-0_4"] }
 mongosql = { path = "../../mongosql" }
 serde_json = "1"
-bson = { version = "2", features = ["chrono-0_4"] }
+thiserror = "1"
 
 [features]

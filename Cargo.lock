@@ -5124,6 +5124,7 @@ dependencies = [
  "bson",
  "mongosql",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]
