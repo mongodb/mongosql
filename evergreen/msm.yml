@@ -1,4 +1,13 @@
 functions:
+  "build mongodb schema manager documentation":
+    - command: subprocess.exec
+      params:
+        binary: bash
+        working_dir: mongosql-rs
+        args:
+          - "./evergreen/make_docs.sh"
+        add_expansions_to_env: true
+
   "run mongodb schema manager and schema builder library tests":
     - command: shell.exec
       type: test
@@ -9,6 +18,17 @@ functions:
           ${prepare_shell}
           cargo test --package mongodb-schema-manager
           cargo test --package schema-builder-library --lib
+
+  "upload mongodb schema manager docs":
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/docs/mongodb-schema-manager/overview.pdf
+        remote_file: mongosql-rs/artifacts/docs/mongodb-schema-manager/overview.pdf
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/pdf
 
   "upload mongodb schema manager executable":
     - command: s3.put
@@ -179,6 +199,23 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/docs/mongodb-schema-manager/overview.pdf
+        local_file: mongosql-rs/release/docs/mongodb-schema-manager/overview.pdf
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/docs/mongodb-schema-manager/overview.pdf
+        remote_file: eap/mongodb-schema-manager/docs/MongoDB_Schema_Manager.pdf
+        bucket: translators-connectors-releases
+        permissions: public-read
+        skip_existing: false
+        content_type: application/pdf
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
         remote_file: mongosql-rs/artifacts/${version_id}/mongodb-schema-manager-macos/mongodb-schema-manager-macos-signed
         local_file: mongosql-rs/release/mongodb-schema-manager-macos/mongodb-schema-manager-macos-signed
         bucket: mciuploads
@@ -187,22 +224,22 @@ functions:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/mongodb-schema-manager-macos/mongodb-schema-manager-macos-signed
-        remote_file: eap/mongodb-schema-manager/mongodb-schema-manager-macos-x86_64-latest
+        remote_file: eap/mongodb-schema-manager/x86_64/macos/mongodb-schema-manager
         bucket: translators-connectors-releases
         permissions: public-read
         skip_existing: false
         content_type: application/octet-stream
-        display_name: mongodb-schema-manager-macos-x86_64-latest
+        display_name: mongodb-schema-manager
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/mongodb-schema-manager-macos/mongodb-schema-manager-macos-signed
-        remote_file: eap/mongodb-schema-manager/mongodb-schema-manager-macos-x86_64-v${release_version}
+        remote_file: eap/mongodb-schema-manager/x86_64/macos/mongodb-schema-v${release_version}
         bucket: translators-connectors-releases
         permissions: public-read
         content_type: application/octet-stream
-        display_name: mongodb-schema-manager-macos-x86_64-v${release_version}
+        display_name: mongodb-schema-manager-v${release_version}
     - command: s3.get
       params:
         aws_key: ${aws_key}
@@ -215,22 +252,22 @@ functions:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/mongodb-schema-manager-macos-arm/mongodb-schema-manager-macos-arm-signed
-        remote_file: eap/mongodb-schema-manager/mongodb-schema-manager-macos-arm64-latest
+        remote_file: eap/mongodb-schema-manager/arm64/macos/mongodb-schema-manager
         bucket: translators-connectors-releases
         permissions: public-read
         skip_existing: false
         content_type: application/octet-stream
-        display_name: mongodb-schema-manager-macos-arm64-latest
+        display_name: mongodb-schema-manager
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/mongodb-schema-manager-macos-arm/mongodb-schema-manager-macos-arm-signed
-        remote_file: eap/mongodb-schema-manager/mongodb-schema-manager-macos-arm64-v${release_version}
+        remote_file: eap/mongodb-schema-manager/arm64/macos/mongodb-schema-manager-v${release_version}
         bucket: translators-connectors-releases
         permissions: public-read
         content_type: application/octet-stream
-        display_name: mongodb-schema-manager-macos-arm64-v${release_version}
+        display_name: mongodb-schema-manager-v${release_version}
     - command: s3.get
       params:
         aws_key: ${aws_key}
@@ -243,22 +280,22 @@ functions:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/mongodb-schema-manager-linux-x86_64/mongodb-schema-manager
-        remote_file: eap/mongodb-schema-manager/mongodb-schema-manager-linux-x86_64-latest
+        remote_file: eap/mongodb-schema-manager/x86_64/linux/mongodb-schema-manager
         bucket: translators-connectors-releases
         permissions: public-read
         skip_existing: false
         content_type: application/octet-stream
-        display_name: mongodb-schema-manager-linux-x86_64-latest
+        display_name: mongodb-schema-manager
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/mongodb-schema-manager-linux-x86_64/mongodb-schema-manager
-        remote_file: eap/mongodb-schema-manager/mongodb-schema-manager-linux-x86_64-v${release_version}
+        remote_file: eap/mongodb-schema-manager/x86_64/linux/mongodb-schema-manager-v${release_version}
         bucket: translators-connectors-releases
         permissions: public-read
         content_type: application/octet-stream
-        display_name: mongodb-schema-manager-linux-x86_64-v${release_version}
+        display_name: mongodb-schema-manager-v${release_version}
     - command: s3.get
       params:
         aws_key: ${aws_key}
@@ -271,22 +308,22 @@ functions:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/mongodb-schema-manager-linux-arm64/mongodb-schema-manager
-        remote_file: eap/mongodb-schema-manager/mongodb-schema-manager-linux-arm64-latest
+        remote_file: eap/mongodb-schema-manager/arm64/linux/mongodb-schema-manager
         bucket: translators-connectors-releases
         permissions: public-read
         skip_existing: false
         content_type: application/octet-stream
-        display_name: mongodb-schema-manager-linux-arm64-latest
+        display_name: mongodb-schema-manager
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/mongodb-schema-manager-linux-arm64/mongodb-schema-manager
-        remote_file: eap/mongodb-schema-manager/mongodb-schema-manager-linux-arm64-v${release_version}
+        remote_file: eap/mongodb-schema-manager/arm64/linux/mongodb-schema-manager-v${release_version}
         bucket: translators-connectors-releases
         permissions: public-read
         content_type: application/octet-stream
-        display_name: mongodb-schema-manager-linux-arm64-v${release_version}
+        display_name: mongodb-schema-manager-v${release_version}
     - command: s3.get
       params:
         build_variants: [ "mongodb-schema-manager-linux-x86_64", "mongodb-schema-manager-linux-arm64" ]
@@ -330,25 +367,33 @@ functions:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/mongodb-schema-manager-windows-64/mongodb-schema-manager-signed.exe
-        remote_file: eap/mongodb-schema-manager/mongodb-schema-manager-win-x86_64-latest.exe
+        remote_file: eap/mongodb-schema-manager/x86_64/win/mongodb-schema-manager.exe
         bucket: translators-connectors-releases
         permissions: public-read
         skip_existing: false
         content_type: application/octet-stream
-        display_name: mongodb-schema-manager-win-x86_64-latest.exe
+        display_name: mongodb-schema-manager.exe
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/mongodb-schema-manager-windows-64/mongodb-schema-manager-signed.exe
-        remote_file: eap/mongodb-schema-manager/mongodb-schema-manager-win-x86_64-v${release_version}.exe
+        remote_file: eap/mongodb-schema-manager/x86_64/win/mongodb-schema-manager-v${release_version}.exe
         bucket: translators-connectors-releases
         permissions: public-read
         content_type: application/octet-stream
-        display_name: mongodb-schema-manager-win-x86_64-v${release_version}.exe
+        display_name: mongodb-schema-manager-v${release_version}.exe
 
 
 tasks:
+  - name: make-mongodb-schema-manager-docs
+    depends_on:
+      - name: compile-mongodb-schema-manager
+    commands:
+      - func: "build mongodb schema manager documentation"
+        run_on: ubuntu2004-large
+      - func: "upload mongodb schema manager docs"
+
   - name: test-schema-manager-and-schema-builder-library
     depends_on:
       - name: compile-mongodb-schema-manager
@@ -420,14 +465,18 @@ tasks:
         variant: ".mongodb-schema-manager-release-variant"
       - name: sign-mongodb-schema-manager-executables
         variant: ".mongodb-schema-manager-release-variant"
+      - name: make-mongodb-schema-manager-docs
+        variant: ".mongodb-schema-manager-release-variant"
     commands:
+      - func: "build mongodb schema manager documentation"
+      - func: "upload mongodb schema manager docs"
       - func: "perform mongodb schema manager release"
 
 buildvariants:
   - name: mongodb-schema-manager-macos
     tags: [ "mongodb-schema-manager-release-variant" ]
     display_name: "MongoDB Schema Manager - macOS"
-    run_on: [ macos-14 ]
+    run_on: [ macos-1100 ]
     tasks:
       - name: compile-mongodb-schema-manager
       - name: test-schema-manager-and-schema-builder-library
@@ -453,7 +502,7 @@ buildvariants:
   - name: mongodb-schema-manager-macos-arm
     tags: [ "mongodb-schema-manager-release-variant" ]
     display_name: "MongoDB Schema Manager - macOS arm64"
-    run_on: [ macos-14-arm64 ]
+    run_on: [ macos-1100-arm64 ]
     tasks:
       - name: compile-mongodb-schema-manager
       - name: test-schema-manager-and-schema-builder-library

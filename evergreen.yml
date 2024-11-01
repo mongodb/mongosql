@@ -29,7 +29,7 @@ timeout:
 
 include:
   - filename: evergreen/grpc.yml
-  - filename: evergreen/on-prem.yml
+  - filename: evergreen/msm.yml
   - filename: evergreen/mongosqltranslate.yml
   - filename: evergreen/suite-tasks.yml
 
