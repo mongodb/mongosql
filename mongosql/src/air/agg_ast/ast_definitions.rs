@@ -488,17 +488,32 @@ impl From<TaggedOperator> for air::Expression {
             TaggedOperator::Trim(t) => air::Expression::Trim(air::Trim {
                 op: air::TrimOperator::Trim,
                 input: t.input.into(),
-                chars: t.chars.into(),
+                chars: t
+                    .chars
+                    .unwrap_or(Box::new(Expression::Literal(LiteralValue::String(
+                        " ".to_string(),
+                    ))))
+                    .into(),
             }),
             TaggedOperator::LTrim(lt) => air::Expression::Trim(air::Trim {
                 op: air::TrimOperator::LTrim,
                 input: lt.input.into(),
-                chars: lt.chars.into(),
+                chars: lt
+                    .chars
+                    .unwrap_or(Box::new(Expression::Literal(LiteralValue::String(
+                        " ".to_string(),
+                    ))))
+                    .into(),
             }),
             TaggedOperator::RTrim(rt) => air::Expression::Trim(air::Trim {
                 op: air::TrimOperator::RTrim,
                 input: rt.input.into(),
-                chars: rt.chars.into(),
+                chars: rt
+                    .chars
+                    .unwrap_or(Box::new(Expression::Literal(LiteralValue::String(
+                        " ".to_string(),
+                    ))))
+                    .into(),
             }),
             // Array operators
             TaggedOperator::Reduce(r) => air::Expression::Reduce(air::Reduce {

@@ -993,8 +993,9 @@ pub struct Convert {
 #[serde(rename_all = "camelCase")]
 pub struct Filter {
     pub input: Box<Expression>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "as")]
-    pub _as: String,
+    pub _as: Option<String>,
     pub cond: Box<Expression>,
     pub limit: Option<Box<Expression>>,
 }
@@ -1024,8 +1025,9 @@ pub struct Like {
 #[serde(rename_all = "camelCase")]
 pub struct Map {
     pub input: Box<Expression>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "as")]
-    pub _as: String,
+    pub _as: Option<String>,
     #[serde(rename = "in")]
     pub inside: Box<Expression>,
 }
@@ -1097,7 +1099,8 @@ pub struct SqlDivide {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Trim {
     pub input: Box<Expression>,
-    pub chars: Box<Expression>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chars: Option<Box<Expression>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

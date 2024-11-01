@@ -2746,10 +2746,10 @@ mod expression_test {
         );
 
         test_serde_expr!(
-            filter,
+            filter_with_as,
             expected = Expression::TaggedOperator(TaggedOperator::Filter(Filter {
                 input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
-                _as: "x".to_string(),
+                _as: Some("x".to_string()),
                 cond: Box::new(Expression::Literal(LiteralValue::Int32(2))),
                 limit: None,
             })),
@@ -2764,7 +2764,7 @@ mod expression_test {
             filter_with_limit,
             expected = Expression::TaggedOperator(TaggedOperator::Filter(Filter {
                 input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
-                _as: "x".to_string(),
+                _as: Some("x".to_string()),
                 cond: Box::new(Expression::Literal(LiteralValue::Int32(2))),
                 limit: Some(Box::new(Expression::UntaggedOperator(UntaggedOperator {
                     op: "$add".to_string(),
@@ -2783,15 +2783,28 @@ mod expression_test {
         );
 
         test_serde_expr!(
-            map,
+            map_with_as,
             expected = Expression::TaggedOperator(TaggedOperator::Map(Map {
                 input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
-                _as: "x".to_string(),
+                _as: Some("x".to_string()),
                 inside: Box::new(Expression::Literal(LiteralValue::Int32(2))),
             })),
             input = r#"expr: {"$map": {
                                 "input": "$a",
                                 "as": "x",
+                                "in": 2
+            }}"#
+        );
+
+        test_serde_expr!(
+            map_without_as,
+            expected = Expression::TaggedOperator(TaggedOperator::Map(Map {
+                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
+                _as: None,
+                inside: Box::new(Expression::Literal(LiteralValue::Int32(2))),
+            })),
+            input = r#"expr: {"$map": {
+                                "input": "$a",
                                 "in": 2
             }}"#
         );

@@ -1,6 +1,6 @@
-mod match_stage;
+mod negative_normalize;
 #[cfg(test)]
-mod match_stage_test;
+mod negative_normalize_tests;
 pub mod schema_derivation;
 #[allow(unused_imports)]
 pub use schema_derivation::*;

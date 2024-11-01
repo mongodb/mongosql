@@ -1,7 +1,7 @@
 use agg_ast::{
     definitions::{
-        Expression, MatchBinaryOp, MatchExpr, MatchExpression, MatchField, MatchLogical, MatchNot,
-        MatchNotExpression, Ref, UntaggedOperator,
+        Expression, LiteralValue, MatchBinaryOp, MatchExpr, MatchExpression, MatchField,
+        MatchLogical, MatchNot, MatchNotExpression, Ref, TaggedOperator, UntaggedOperator,
     },
     map,
 };
@@ -16,24 +16,35 @@ pub(crate) trait NegativeNormalize<T> {
     fn get_negative_normal_form(&self) -> T;
 }
 
-fn wrap_in_zero_check(expr: Expression) -> Expression {
-    Expression::UntaggedOperator(UntaggedOperator {
-        op: "$eq".to_string(),
-        args: vec![
-            expr,
-            Expression::Literal(agg_ast::definitions::LiteralValue::Int32(0)),
-        ],
-    })
+macro_rules! wrap_in_check {
+    ($op:expr, $expr:expr, $val:expr) => {
+        Expression::UntaggedOperator(UntaggedOperator {
+            op: $op.to_string(),
+            args: vec![$expr, $val],
+        })
+    };
 }
 
-fn wrap_in_null_check(expr: Expression) -> Expression {
-    Expression::UntaggedOperator(UntaggedOperator {
-        op: "$lte".to_string(),
-        args: vec![
-            expr,
-            Expression::Literal(agg_ast::definitions::LiteralValue::Null),
-        ],
-    })
+macro_rules! wrap_in_zero_check {
+    ($expr:expr) => {
+        wrap_in_check!("$eq", $expr, Expression::Literal(LiteralValue::Int32(0)))
+    };
+}
+
+macro_rules! wrap_in_null_or_missing_check {
+    ($expr:expr) => {
+        wrap_in_check!("$lte", $expr, Expression::Literal(LiteralValue::Null))
+    };
+}
+
+macro_rules! wrap_in_false_check {
+    ($expr:expr) => {
+        wrap_in_check!(
+            "$eq",
+            $expr,
+            Expression::Literal(LiteralValue::Boolean(false))
+        )
+    };
 }
 
 impl NegativeNormalize<Expression> for Expression {
@@ -52,11 +63,43 @@ impl NegativeNormalize<Expression> for Expression {
             ref_expr @ Expression::Ref(_) => Expression::UntaggedOperator(UntaggedOperator {
                 op: "$or".to_string(),
                 args: vec![
-                    wrap_in_null_check(ref_expr.clone()),
-                    wrap_in_zero_check(ref_expr.clone()),
+                    wrap_in_null_or_missing_check!(ref_expr.clone()),
+                    wrap_in_zero_check!(ref_expr.clone()),
+                    wrap_in_false_check!(ref_expr.clone()),
                 ],
             }),
-            Expression::TaggedOperator(_t) => todo!(),
+            Expression::TaggedOperator(t) => match t {
+                // The following operators may evaluate to null, so the negation simply asserts
+                // that they are less than or equal to null. Although they should never evaluate to
+                // missing, we still use the $lte operator for the negation since there are some
+                // MQL operators that can evaluate to missing under certain circumstances. At time
+                // of writing, none of these operators behave that way but that doesn't preclude
+                // them from ever behaving that way so $lte is defensive against such updates in
+                // future MongoDB versions.
+                TaggedOperator::DateAdd(_)
+                | TaggedOperator::DateDiff(_)
+                | TaggedOperator::DateFromParts(_)
+                | TaggedOperator::DateFromString(_)
+                | TaggedOperator::DateSubtract(_)
+                | TaggedOperator::DateToParts(_)
+                | TaggedOperator::DateToString(_)
+                | TaggedOperator::DateTrunc(_)
+                | TaggedOperator::Filter(_)
+                | TaggedOperator::LTrim(_)
+                | TaggedOperator::Map(_)
+                | TaggedOperator::RegexFind(_)
+                | TaggedOperator::RegexFindAll(_)
+                | TaggedOperator::ReplaceAll(_)
+                | TaggedOperator::ReplaceOne(_)
+                | TaggedOperator::RTrim(_)
+                | TaggedOperator::SortArray(_)
+                | TaggedOperator::Trim(_)
+                | TaggedOperator::Zip(_) => wrap_in_null_or_missing_check!(self.clone()),
+                // This operator never evaluates to null, only ever true or false. So the negation
+                // asserts that it is false.
+                TaggedOperator::Regex(_) => wrap_in_false_check!(self.clone()),
+                _ => todo!(),
+            },
             Expression::UntaggedOperator(u) => {
                 let (op, args) = match u.op.as_str() {
                     "$eq" => ("$ne", u.args.clone()),
@@ -74,6 +117,24 @@ impl NegativeNormalize<Expression> for Expression {
                         let args: Vec<Expression> =
                             u.args.iter().map(|x| x.get_negation()).collect();
                         ("$and", args)
+                    }
+                    // The following operators may evaluate to null, so the negation simply asserts
+                    // that they are less than or equal to null. See the TaggedOperators section
+                    // for further explanation.
+                    "$arrayToObject" | "$objectToArray" | "$reverseArray" | "$toDate"
+                    | "$toObjectId" | "$toString" | "$tsSecond" | "$tsIncrement" | "$concat"
+                    | "$concatArrays" | "$setDifference" | "$setIntersection" | "$setUnion"
+                    | "$slice" | "$split" => (
+                        "$lte",
+                        vec![self.clone(), Expression::Literal(LiteralValue::Null)],
+                    ),
+                    // The following operators may evaluate to the falsy values missing, null, 0, or
+                    // false, so the negation asserts equality to any of those values.
+                    "$first" | "$last" => {
+                        let null_check = wrap_in_null_or_missing_check!(self.clone());
+                        let zero_check = wrap_in_zero_check!(self.clone());
+                        let false_check = wrap_in_false_check!(self.clone());
+                        ("$or", vec![null_check, zero_check, false_check])
                     }
                     op => unreachable!("Cannot negate unknown untagged operator: {op}"),
                 };
