@@ -358,15 +358,7 @@ impl<'de> de::Visitor<'de> for MatchRegexVisitor {
                         pattern,
                         options: None,
                     };
-                    if let Some(options) = doc.remove("$options") {
-                        let options = options.as_str().ok_or_else(|| {
-                            de::Error::custom(format_args!(
-                                "expected $options to be a string, found {:?}",
-                                options
-                            ))
-                        })?;
-                        ret.options = Some(options.to_string());
-                    }
+                    ret.options = doc.remove("$options");
                     Ok(ret)
                 } else {
                     Err(de::Error::custom(format_args!(
@@ -410,7 +402,7 @@ impl ser::Serialize for MatchRegex {
         let mut map = serializer.serialize_map(Some(1))?;
         let expr: LinkedHashMap<_, _> = match self.options {
             Some(ref options) => {
-                map! {"$regex" => self.pattern.clone(), "$options" =>  Bson::String(options.clone())}
+                map! {"$regex" => self.pattern.clone(), "$options" =>  options.clone()}
             }
             None => map! {"$regex" => self.pattern.clone()},
         };

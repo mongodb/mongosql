@@ -31,6 +31,8 @@ macro_rules! test_expression_negation {
 #[cfg(test)]
 mod match_field;
 #[cfg(test)]
+mod match_logical;
+#[cfg(test)]
 mod negative_normal_form;
 #[cfg(test)]
 mod tagged_ops;

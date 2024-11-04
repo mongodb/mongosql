@@ -568,7 +568,7 @@ mod stage_test {
                 expr: vec![MatchExpression::Misc(MatchMisc::Regex(MatchRegex {
                     field: Ref::FieldRef("x".to_string()),
                     pattern: bson::Bson::String("hello".to_string()),
-                    options: Some("i".to_string()),
+                    options: Some(bson::Bson::String("i".to_string())),
                 })),]
             }),
             input = r#"stage: {"$match": {"x": {"$regex": "hello", "$options": "i"}}}"#

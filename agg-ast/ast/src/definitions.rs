@@ -294,7 +294,7 @@ pub struct MatchText {
 pub struct MatchRegex {
     pub field: Ref,
     pub pattern: bson::Bson,
-    pub options: Option<String>,
+    pub options: Option<bson::Bson>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

@@ -1,7 +1,8 @@
 use agg_ast::{
     definitions::{
         Expression, LiteralValue, MatchBinaryOp, MatchExpr, MatchExpression, MatchField,
-        MatchLogical, MatchNot, MatchNotExpression, Ref, TaggedOperator, UntaggedOperator,
+        MatchLogical, MatchMisc, MatchNot, MatchNotExpression, MatchRegex, Ref, TaggedOperator,
+        UntaggedOperator,
     },
     map,
 };
@@ -160,7 +161,7 @@ impl NegativeNormalize<MatchExpression> for MatchExpression {
                 }
                 _ => self.clone(),
             },
-            MatchExpression::Logical(_logical) => todo!(),
+            MatchExpression::Logical(logical) => logical.get_negative_normal_form(),
             MatchExpression::Field(field) => field.get_negative_normal_form(),
             MatchExpression::Misc(_misc) => todo!(),
         }
@@ -177,9 +178,98 @@ impl NegativeNormalize<MatchExpression> for MatchExpression {
                 // a $match where the expression is a value or field ref should fail in deserialization
                 _ => unreachable!("Cannot negate match on non operator expression"),
             },
-            MatchExpression::Logical(_logical) => todo!(),
+            MatchExpression::Logical(logical) => logical.get_negation(),
             MatchExpression::Field(field) => field.get_negation(),
             MatchExpression::Misc(_misc) => todo!(),
+        }
+    }
+}
+
+impl NegativeNormalize<MatchExpression> for MatchLogical {
+    fn get_negative_normal_form(&self) -> MatchExpression {
+        macro_rules! negative_normal_form_logical {
+            ($args:expr, $output_sym:path) => {{
+                let args: Vec<_> = $args.iter().map(|x| x.get_negative_normal_form()).collect();
+                if args.len() == 1 {
+                    args.into_iter().next().unwrap()
+                } else {
+                    MatchExpression::Logical($output_sym(args))
+                }
+            }};
+        }
+        match self {
+            MatchLogical::And(and) => {
+                negative_normal_form_logical!(and, MatchLogical::And)
+            }
+            MatchLogical::Or(or) => {
+                negative_normal_form_logical!(or, MatchLogical::Or)
+            }
+            MatchLogical::Nor(nor) => {
+                let args = nor
+                    .iter()
+                    .map(|expr| expr.get_negation())
+                    .collect::<Vec<MatchExpression>>();
+                negative_normal_form_logical!(args, MatchLogical::And)
+            }
+            MatchLogical::Not(ref not) => match not.expr {
+                MatchNotExpression::Regex(_) => {
+                    MatchExpression::Logical(MatchLogical::Not(not.clone()))
+                }
+                MatchNotExpression::Query(ref ops) => {
+                    let args = ops
+                        .iter()
+                        .map(|(op, b)| negate_binary_operator(&not.field, op, b))
+                        .collect::<Vec<MatchExpression>>();
+                    if args.len() == 1 {
+                        args.into_iter().next().unwrap()
+                    } else {
+                        MatchExpression::Logical(MatchLogical::Or(args))
+                    }
+                }
+            },
+        }
+    }
+
+    fn get_negation(&self) -> MatchExpression {
+        macro_rules! negate_logical {
+            ($args:expr, $output_sym:path) => {{
+                let args: Vec<_> = $args.iter().map(|x| x.get_negation()).collect();
+                if args.len() == 1 {
+                    args.into_iter().next().unwrap()
+                } else {
+                    MatchExpression::Logical($output_sym(args))
+                }
+            }};
+        }
+        match self {
+            MatchLogical::And(and) => {
+                negate_logical!(and, MatchLogical::Or)
+            }
+            MatchLogical::Or(or) => {
+                negate_logical!(or, MatchLogical::And)
+            }
+            MatchLogical::Nor(nor) => MatchExpression::Logical(MatchLogical::Or(nor.clone())),
+            MatchLogical::Not(ref not) => match not.expr {
+                MatchNotExpression::Regex(ref b) => {
+                    let (pattern, options) = if let Bson::Document(d) = b {
+                        (
+                            d.get("$regex").cloned().unwrap_or(Bson::Null),
+                            d.get("$options").cloned(),
+                        )
+                    } else {
+                        (b.clone(), None)
+                    };
+                    MatchExpression::Misc(MatchMisc::Regex(MatchRegex {
+                        field: not.field.clone(),
+                        pattern,
+                        options,
+                    }))
+                }
+                MatchNotExpression::Query(ref ops) => MatchExpression::Field(MatchField {
+                    field: not.field.clone(),
+                    ops: ops.clone(),
+                }),
+            },
         }
     }
 }
