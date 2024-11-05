@@ -80,6 +80,9 @@
     "boolz":
       - { "_id": 0, "a": true, "b": 1 }
       - { "_id": 1, "a": false, "b": 1 }
+  "test_db":
+    "foo":
+      - { "_id": 0, "a1": [ 1, 2, 3 ], "a2": [ { "x": 1 }, { "x": 2 } ] }
 
 "catalog_schema":
   {
@@ -219,6 +222,35 @@
             "properties": { "x": { "bsonType": "int" } },
           },
       },
+    "test_db":
+      {
+        "foo":
+          {
+            "bsonType": "object",
+            "required": [ "_id", "a1", "a2" ],
+            "additionalProperties": false,
+            "properties": {
+              "_id": { "bsonType": "int" },
+              "a1": {
+                "bsonType": "array",
+                "items": {
+                  "bsonType": "int",
+                }
+              },
+              "a2": {
+                "bsonType": "array",
+                "items": {
+                  "bsonType": "object",
+                  "required": [ "x" ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "x": { "bsonType": "int" }
+                  }
+                }
+              },
+            },
+          },
+      },
   }
 
 tests:
@@ -226,6 +258,7 @@ tests:
     query: "SELECT `var_group_variables__count` `var_group_variables__count`, `plot__count` `plot__count`, `notation__count` `notation__count` FROM ( SELECT `main__variable`.identifier `variable__identifier`, count( `main__plot`._id) `plot__count`, count( `main__notation`._id) `notation__count` FROM shared.notation AS `main__notation` LEFT JOIN shared.notebook AS `main__notebook` ON `main__notation`.notebookId = `main__notebook`._id LEFT JOIN shared.plot AS `main__plot` ON `main__notation`.subjectId = `main__plot`._id LEFT JOIN shared.variable AS `main__variable` ON `main__variable`._id = `main__notation`.variableId LEFT JOIN shared.opTask AS `main__op_task` ON `main__notebook`.observationRoundId = `main__op_task`._id LEFT JOIN ( SELECT variables_variableId, _id FROM FLATTEN( UNWIND( shared.varGroup WITH PATH => variables, INDEX => idx ) ) ) AS `main__var_group_variables` ON `main__op_task`.variableGroupId = `main__var_group_variables`._id WHERE (`main__notebook`.trialId = CAST('65b3ca00089363af01fa2e38' AS OBJECTID)) GROUP BY `variable__identifier` ) as q_0 LEFT JOIN ( SELECT `Y`.`variable__identifier`, count( `var_group_variables_key__var_group_variables`._id ) `var_group_variables__count` FROM ( SELECT `var_group_variables_key__variable`.identifier `variable__identifier`, `X`._id `var_group_variables__id` FROM shared.notation AS `var_group_variables_key__notation` LEFT JOIN shared.notebook AS `var_group_variables_key__notebook` ON `var_group_variables_key__notation`.notebookId = `var_group_variables_key__notebook`._id LEFT JOIN shared.plot AS `var_group_variables_key__plot` ON `var_group_variables_key__notation`.subjectId = `var_group_variables_key__plot`._id LEFT JOIN shared.variable AS `var_group_variables_key__variable` ON `var_group_variables_key__variable`._id = `var_group_variables_key__notation`.variableId LEFT JOIN shared.opTask AS `var_group_variables_key__op_task` ON `var_group_variables_key__notebook`.observationRoundId = `var_group_variables_key__op_task`._id LEFT JOIN ( SELECT variables_variableId, _id FROM FLATTEN( UNWIND( shared.varGroup WITH PATH => variables, INDEX => idx ) ) ) AS `X` ON `var_group_variables_key__op_task`.variableGroupId = `X`._id WHERE ( `var_group_variables_key__notebook`.trialId = '65b3ca00089363af01fa2e38'::OBJECTID ) ) AS `Y` LEFT JOIN ( SELECT variables_variableId, _id FROM FLATTEN( UNWIND( shared.varGroup WITH PATH => variables, INDEX => idx ) ) ) AS `var_group_variables_key__var_group_variables` ON `Y`.`var_group_variables__id` = `var_group_variables_key__var_group_variables`._id GROUP BY `variable__identifier` ) as q_1 ON ( q_0.`variable__identifier` = q_1.`variable__identifier`)"
     current_db: shared
     result: []
+
   - description: Can use $ and . characters in collection aliases
     query: "SELECT * FROM foo as `$foo.alias`"
     current_db: testquerydb
@@ -836,5 +869,13 @@ tests:
     query: "SELECT * FROM ( SELECT OTBL.foo as ofoo, ITBL.foo as ifoo, baz FROM mydb.bar AS OTBL LEFT OUTER JOIN mydb.bar2 AS ITBL ON (OTBL._id = ITBL._id)) AS ITBL WHERE baz > 60"
     result:
       - {
-          "ITBL": {"ofoo": 1, "ifoo": 42, "baz": 63}
-        }
+        "ITBL": {"ofoo": 1, "ifoo": 42, "baz": 63}
+      }
+
+  - description: Subquery filtering against nested unwinds is semantically valid
+    current_db: test_db
+    query: "SELECT * FROM UNWIND((SELECT * FROM UNWIND (foo WITH PATH => a1)) AS f WITH PATH => a2) WHERE f.a2.x+1 IN (1,2)"
+    result:
+      - { "f": { "_id": 0, "a1": 1, "a2": { "x": 1 } } }
+      - { "f": { "_id": 0, "a1": 2, "a2": { "x": 1 } } }
+      - { "f": { "_id": 0, "a1": 3, "a2": { "x": 1 } } }

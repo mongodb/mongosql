@@ -1,5 +1,5 @@
-use crate::mir::visitor::Visitor;
-use crate::mir::Expression;
+use crate::mir::{visitor::Visitor, Expression, FieldPath};
+use std::collections::HashSet;
 
 /// A visitor that checks if an expression contains a subquery.
 ///
@@ -41,5 +41,33 @@ impl Visitor for ContainsSubqueryVisitor {
                 Expression::MQLIntrinsicFieldExistence(e.walk(self))
             }
         }
+    }
+}
+
+/// insert_field_path_and_all_ancestors is a helper function for gathering field uses. Given a
+/// FieldPath, which may or may not include multiple components, this function includes the path
+/// and all ancestor paths in the provided mutable set of paths. This is important since this
+/// function is used by the use_def_analysis "field_uses" method, which is used to determine whether
+/// a stage can be moved above another. If we did not include ancestors in this list, it would be
+/// possible to erroneously move a stage above another stage that defines the ancestor field.
+///
+/// For example, for field path "foo.a.b.c" this function inserts "foo.a.b.c", "foo.a.b" and "foo.a"
+/// assuming "foo" is the FieldPath "key" and ["a", "b", "c"] are the fields.
+pub(crate) fn insert_field_path_and_all_ancestors(
+    field_uses: &mut HashSet<FieldPath>,
+    fp: FieldPath,
+) {
+    let mut fields = fp.fields.clone();
+    while !fields.is_empty() {
+        field_uses.insert(FieldPath {
+            key: fp.key.clone(),
+            fields: fields.clone(),
+            // We need to assume nullability for each field up the chain based on the final
+            // nullability because we have no other information here. Fortunately, the FieldPaths
+            // produced by this function are never used for their nullability data, just for their
+            // names.
+            is_nullable: fp.is_nullable,
+        });
+        fields.pop();
     }
 }

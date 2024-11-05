@@ -34,9 +34,9 @@ mod test;
 
 use crate::{
     mir::{
-        binding_tuple::Key, visitor::Visitor, ExistsExpr, Expression, FieldAccess, FieldPath,
-        Filter, Group, MQLStage, MatchFilter, Project, ReferenceExpr, Sort, Stage,
-        SubqueryComparison, SubqueryExpr, Unwind,
+        binding_tuple::Key, optimizer::util::insert_field_path_and_all_ancestors, visitor::Visitor,
+        ExistsExpr, Expression, FieldAccess, FieldPath, Filter, Group, MQLStage, MatchFilter,
+        Project, ReferenceExpr, Sort, Stage, SubqueryComparison, SubqueryExpr, Unwind,
     },
     util::unique_linked_hash_map::UniqueLinkedHashMap,
 };
@@ -183,25 +183,16 @@ impl Visitor for SingleStageFieldUseVisitor {
         if let Some(ref mut field_uses) = self.field_uses {
             let f: Result<FieldPath, _> = (&node).try_into();
             match f {
-                Ok(fp) => {
-                    let _ = field_uses.insert(fp);
-                }
+                Ok(fp) => insert_field_path_and_all_ancestors(field_uses, fp),
                 Err(_) => self.field_uses = None,
             }
         }
-        // Walk up this FieldAccess node to indicate that all ancestors are
-        // also considered "used". Importantly, this is an exponential algorithm,
-        // so we should look here in case customers ever see their queries taking
-        // a long time to compile. Realistically, this should never be a problem
-        // for any reasonable SQL queries. Some contrived cases with extremely
-        // deeply nested field references could pose an issue, but these are
-        // unlikely to happen for the overwhelming majority of queries.
-        node.walk(self)
+        node
     }
 
     fn visit_field_path(&mut self, node: FieldPath) -> FieldPath {
         if let Some(ref mut field_uses) = self.field_uses {
-            field_uses.insert(node.clone());
+            insert_field_path_and_all_ancestors(field_uses, node.clone());
         }
         node
     }
@@ -211,12 +202,18 @@ impl Visitor for SingleStageFieldUseVisitor {
         // collects ALL field_uses from the SubqueryExpr.
         if let Some(ref mut field_uses) = self.field_uses {
             let mut all_use_visitor = AllFieldUseVisitor::default();
-            let node = node.walk(&mut all_use_visitor);
+            // We do not want to walk the output_expr since that expression is _defined_ by the
+            // SubqueryExpr, not "used" by it.
+            let subquery = node.subquery.walk(&mut all_use_visitor);
             match all_use_visitor.field_uses {
                 Some(u) => field_uses.extend(u),
                 None => self.field_uses = None,
             }
-            node
+            SubqueryExpr {
+                output_expr: node.output_expr,
+                subquery: Box::new(subquery),
+                is_nullable: node.is_nullable,
+            }
         } else {
             node
         }
@@ -275,13 +272,29 @@ impl Visitor for AllFieldUseVisitor {
         if let Some(ref mut field_uses) = self.field_uses {
             let f: Result<FieldPath, _> = (&node).try_into();
             match f {
-                Ok(fp) => {
-                    let _ = field_uses.insert(fp);
-                }
+                Ok(fp) => insert_field_path_and_all_ancestors(field_uses, fp),
                 Err(_) => self.field_uses = None,
             }
         }
         node
+    }
+
+    fn visit_field_path(&mut self, node: FieldPath) -> FieldPath {
+        if let Some(ref mut field_uses) = self.field_uses {
+            insert_field_path_and_all_ancestors(field_uses, node.clone());
+        }
+        node
+    }
+
+    fn visit_subquery_expr(&mut self, node: SubqueryExpr) -> SubqueryExpr {
+        // We do not want to walk the output_expr since that expression is _defined_ by the
+        // SubqueryExpr, not "used" by it.
+        let subquery = node.subquery.walk(self);
+        SubqueryExpr {
+            output_expr: node.output_expr,
+            subquery: Box::new(subquery),
+            is_nullable: node.is_nullable,
+        }
     }
 }
 
