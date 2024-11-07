@@ -1,86 +1,17 @@
-mod expression {
-    use crate::{
-        schema_derivation::{DeriveSchema, ResultSetState},
-        Error,
-    };
-    use agg_ast::definitions::Expression;
-    use mongosql::{
-        map,
-        schema::{Atomic, Document, Schema},
-        set,
-    };
-    use std::collections::BTreeMap;
+use crate::{
+    schema_derivation::{DeriveSchema, ResultSetState},
+    Error,
+};
+use agg_ast::definitions::Expression;
+use mongosql::{
+    map,
+    schema::{Atomic, Document, Schema},
+    set,
+};
+use std::collections::BTreeMap;
 
-    macro_rules! test_derive_schema {
-        ($func_name:ident, expected = $expected:expr, input = $input:expr$(, schema = $schema:expr, variables = $variables:expr)?) => {
-            #[test]
-            fn $func_name() {
-                let input: Expression = serde_json::from_str($input).unwrap();
-                #[allow(unused_mut, unused_assignments)]
-                let mut result_set_schema = Schema::Any;
-                $(result_set_schema = $schema;)?
-                #[allow(unused_variables)]
-                let v: &BTreeMap<String, Schema> = &BTreeMap::new();
-                $(let v = $variables;)?
-                let mut state = ResultSetState {
-                    catalog: &BTreeMap::new(),
-                    variables: v,
-                    result_set_schema
-                };
-                let result = input.derive_schema(&mut state);
-                assert_eq!(result, $expected);
-            }
-        };
-    }
-
-    test_derive_schema!(
-        variable_ref_present,
-        expected = Ok(Schema::Atomic(Atomic::Double)),
-        input = r#""$$foo""#,
-        schema = Schema::Any,
-        variables = &map! {
-            "foo".to_string() => Schema::Atomic(Atomic::Double)
-        }
-    );
-
-    test_derive_schema!(
-        variable_ref_missing,
-        expected = Err(Error::UnknownReference("foo".to_string())),
-        input = r#""$$foo""#,
-        schema = Schema::Any,
-        variables = &map!()
-    );
-
-    test_derive_schema!(
-        field_ref,
-        expected = Ok(Schema::Atomic(Atomic::Double)),
-        input = r#""$foo""#,
-        schema = Schema::Document(Document {
-            keys: map! {
-                "foo".to_string() => Schema::Atomic(Atomic::Double)
-            },
-            ..Default::default()
-        }),
-        variables = &map!()
-    );
-
-    test_derive_schema!(
-        nested_field_ref,
-        expected = Ok(Schema::Atomic(Atomic::Double)),
-        input = r#""$foo.bar""#,
-        schema = Schema::Document(Document {
-            keys: map! {
-                "foo".to_string() => Schema::Document(Document {
-                    keys: map! {
-                        "bar".to_string() => Schema::Atomic(Atomic::Double)
-                    },
-                    ..Default::default()
-                })
-            },
-            ..Default::default()
-        }),
-        variables = &map!()
-    );
+mod literal {
+    use super::*;
 
     test_derive_schema!(
         literal_binary,
@@ -190,12 +121,58 @@ mod expression {
         expected = Ok(Schema::Atomic(Atomic::Timestamp)),
         input = r#"{ "$timestamp": { "t": 42, "i": 1 } }"#
     );
+}
+mod field_ref {
+    use super::*;
+
+    test_derive_schema!(
+        variable_ref_present,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = r#""$$foo""#,
+        ref_schema = Schema::Any,
+        variables = map! {
+            "foo".to_string() => Schema::Atomic(Atomic::Double)
+        }
+    );
+
+    test_derive_schema!(
+        variable_ref_missing,
+        expected = Err(Error::UnknownReference("foo".to_string())),
+        input = r#""$$foo""#,
+        ref_schema = Schema::Any,
+        variables = map!()
+    );
+
+    test_derive_schema!(
+        field_ref,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = r#""$foo""#,
+        ref_schema = Schema::Atomic(Atomic::Double),
+        variables = map!()
+    );
+
+    test_derive_schema!(
+        nested_field_ref,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = r#""$foo.bar""#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "bar".to_string() => Schema::Atomic(Atomic::Double)
+            },
+            ..Default::default()
+        }),
+        variables = map!()
+    );
 
     test_derive_schema!(
         field_ref_missing,
         expected = Err(Error::UnknownReference("foo".to_string())),
         input = r#""$foo""#
     );
+}
+
+mod array {
+    use super::*;
 
     test_derive_schema!(
         empty_array,
@@ -233,6 +210,10 @@ mod expression {
         ))))),
         input = r#"[[1, 2, "hi"], ["foo", "bar"]]"#
     );
+}
+
+mod document {
+    use super::*;
 
     test_derive_schema!(
         empty_document,

@@ -1096,7 +1096,7 @@ pub struct SqlDivide {
     pub on_error: Box<Expression>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Trim {
     pub input: Box<Expression>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1192,29 +1192,44 @@ pub struct DateDiff {
     pub start_of_week: Option<Box<Expression>>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DateFromParts {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub year: Option<Box<Expression>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub iso_week_year: Option<Box<Expression>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub month: Option<Box<Expression>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub iso_week: Option<Box<Expression>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub day: Option<Box<Expression>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub iso_day_of_week: Option<Box<Expression>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub hour: Option<Box<Expression>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub minute: Option<Box<Expression>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub second: Option<Box<Expression>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub millisecond: Option<Box<Expression>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub timezone: Option<Box<Expression>>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DateFromString {
     pub date_string: Box<Expression>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub format: Option<Box<Expression>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub timezone: Option<Box<Expression>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub on_error: Option<Box<Expression>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub on_null: Option<Box<Expression>>,
 }
 
@@ -1234,12 +1249,15 @@ pub struct DateToParts {
     pub iso8601: Option<bool>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DateToString {
     pub date: Box<Expression>,
-    pub format: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub format: Option<Box<Expression>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub timezone: Option<Box<Expression>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub on_null: Option<Box<Expression>>,
 }
 

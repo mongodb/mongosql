@@ -5,7 +5,7 @@ pub mod schema_derivation;
 #[allow(unused_imports)]
 pub use schema_derivation::*;
 #[cfg(test)]
-mod schema_derivation_test;
+mod schema_derivation_tests;
 #[cfg(test)]
 mod test;
 

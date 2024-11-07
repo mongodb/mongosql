@@ -2156,7 +2156,7 @@ mod expression_test {
                 ProjectStage, Reduce, Ref, RegexFind, RegexFindAll, ReplaceAll, ReplaceOne,
                 SetField, SortArray, SortArraySpec, SqlConvert, SqlDivide, Stage, Subquery,
                 SubqueryComparison, SubqueryExists, Switch, SwitchCase, TaggedOperator, Top, TopN,
-                UnsetField, UntaggedOperator, Zip,
+                Trim, UnsetField, UntaggedOperator, Zip,
             },
             map,
         };
@@ -2942,6 +2942,15 @@ mod expression_test {
             input = r#"expr: {"$hour": {date: "$date" } }"#
         );
 
+        test_serde_expr!(
+            hour_document_timezone_null,
+            expected = Expression::TaggedOperator(TaggedOperator::Hour(DateExpression {
+                date: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
+                timezone: Some(Box::new(Expression::Literal(LiteralValue::Null)))
+            })),
+            input = r#"expr: {"$hour": {date: "$date", timezone: null } }"#
+        );
+
         test_serde_date_operator!(
             minute_fully_specified,
             string_op = "$minute",
@@ -3089,6 +3098,24 @@ mod expression_test {
         );
 
         test_serde_expr!(
+            date_from_parts_all_specified_null,
+            expected = Expression::TaggedOperator(TaggedOperator::DateFromParts(DateFromParts {
+                year: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+                month: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+                day: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+                hour: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+                minute: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+                second: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+                millisecond: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+                timezone: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+                iso_day_of_week: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+                iso_week: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+                iso_week_year: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+            })),
+            input = r#"expr: {"$dateFromParts": {year: null, month: null, day: null, isoWeekYear: null, isoWeek: null, isoDayOfWeek: null, hour: null, minute: null, second: null, millisecond: null, timezone: null} }"#
+        );
+
+        test_serde_expr!(
             date_from_string_no_options,
             expected = Expression::TaggedOperator(TaggedOperator::DateFromString(DateFromString {
                 date_string: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
@@ -3121,6 +3148,18 @@ mod expression_test {
         );
 
         test_serde_expr!(
+            date_from_string_optional_params_explicitly_null,
+            expected = Expression::TaggedOperator(TaggedOperator::DateFromString(DateFromString {
+                date_string: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
+                format: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+                timezone: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+                on_error: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+                on_null: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+            })),
+            input = r#"expr: {"$dateFromString": { dateString: "$date", timezone: null, format: null, onError: null, onNull: null } }"#
+        );
+
+        test_serde_expr!(
             date_to_string_no_options,
             expected = Expression::TaggedOperator(TaggedOperator::DateToString(DateToString {
                 date: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
@@ -3135,7 +3174,9 @@ mod expression_test {
             date_to_string_fully_specified,
             expected = Expression::TaggedOperator(TaggedOperator::DateToString(DateToString {
                 date: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
-                format: Some("format".to_string()),
+                format: Some(Box::new(Expression::Literal(LiteralValue::String(
+                    "format".to_string()
+                )))),
                 timezone: Some(Box::new(Expression::Ref(Ref::FieldRef(
                     "timezone".to_string()
                 )))),
@@ -3144,6 +3185,17 @@ mod expression_test {
                 )))),
             })),
             input = r#"expr: {"$dateToString": {date: "$date", timezone: "$timezone", format: "format", onNull: "$onNull" } }"#
+        );
+
+        test_serde_expr!(
+            date_to_string_optional_params_explicitly_null,
+            expected = Expression::TaggedOperator(TaggedOperator::DateToString(DateToString {
+                date: Box::new(Expression::Ref(Ref::FieldRef("date".to_string()))),
+                format: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+                timezone: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+                on_null: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+            })),
+            input = r#"expr: {"$dateToString": {date: "$date", "format": null, "timezone": null, "onNull": null } }"#
         );
 
         test_serde_expr!(
@@ -3267,6 +3319,42 @@ mod expression_test {
             })),
             input = r#"expr: {"$dateTrunc": {date: "$date", unit: "year", timezone: "$timezone", startOfWeek: "$startOfWeek", binSize: "$binSize" } }"#
         );
+
+        test_serde_expr!(
+            trim_no_chars,
+            expected = Expression::TaggedOperator(TaggedOperator::Trim(Trim {
+                input: Box::new(Expression::Literal(LiteralValue::String(
+                    "hello".to_string()
+                ))),
+                chars: None
+            })),
+            input = r#"expr: {"$trim": {input: "hello" } }"#
+        );
+
+        test_serde_expr!(
+            trim_chars_null,
+            expected = Expression::TaggedOperator(TaggedOperator::Trim(Trim {
+                input: Box::new(Expression::Literal(LiteralValue::String(
+                    "hello".to_string()
+                ))),
+                chars: Some(Box::new(Expression::Literal(LiteralValue::Null)))
+            })),
+            input = r#"expr: {"$trim": {input: "hello", "chars": null } }"#
+        );
+
+        test_serde_expr!(
+            trim_chars,
+            expected = Expression::TaggedOperator(TaggedOperator::Trim(Trim {
+                input: Box::new(Expression::Literal(LiteralValue::String(
+                    "hello".to_string()
+                ))),
+                chars: Some(Box::new(Expression::Literal(LiteralValue::String(
+                    "world".to_string()
+                ))))
+            })),
+            input = r#"expr: {"$trim": {input: "hello", chars: "world" } }"#
+        );
+
         mod window_functions {
             use crate::definitions::{
                 Derivative, EmptyDoc, ExpMovingAvg, ExpMovingAvgOpt, Expression, Integral,

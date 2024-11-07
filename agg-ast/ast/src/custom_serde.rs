@@ -1,9 +1,10 @@
 use crate::{
     definitions::{
-        DateExpression, Expression, GroupAccumulator, GroupAccumulatorExpr, LiteralValue,
-        MatchArrayExpression, MatchArrayQuery, MatchBinaryOp, MatchElement, MatchExpression,
-        MatchField, MatchNot, MatchNotExpression, MatchRegex, MatchStage, ProjectItem,
-        ProjectStage, Ref, SetWindowFieldsOutput, UntaggedOperator, VecOrSingleExpr, Window,
+        DateExpression, DateFromParts, DateFromString, DateToString, Expression, GroupAccumulator,
+        GroupAccumulatorExpr, LiteralValue, MatchArrayExpression, MatchArrayQuery, MatchBinaryOp,
+        MatchElement, MatchExpression, MatchField, MatchNot, MatchNotExpression, MatchRegex,
+        MatchStage, ProjectItem, ProjectStage, Ref, SetWindowFieldsOutput, Trim, UntaggedOperator,
+        VecOrSingleExpr, Window,
     },
     map,
 };
@@ -1094,5 +1095,150 @@ impl ser::Serialize for LiteralValue {
             LiteralValue::DbPointer(dp) => Bson::DbPointer(dp.clone()),
         };
         b.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Trim {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // this custom serde covers the case in which trim's optional parameter, chars, is explicitly set to null
+        // by default, the Option<Box<Expression>> for null will deserialize as None, but we want Some(Literal(LiteralValue::Null))
+        let expression = Expression::deserialize(deserializer)?;
+        match expression {
+            Expression::Document(mut d) => match d.remove("input") {
+                Some(input_expr) => {
+                    let input = Box::new(input_expr);
+                    let chars = d.remove("chars").map(Box::new);
+                    if !d.is_empty() {
+                        return Err(serde_err::custom("too many arguments for date Document"));
+                    }
+                    Ok(Trim { input, chars })
+                }
+                None => Err(serde_err::custom(
+                    "document to trim does not contain field \"input\"",
+                )),
+            },
+            _ => Err(serde_err::custom("input to trim must be document")),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for DateFromString {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // this custom serde covers the case in which any of dateFromString's optional parameters, format, on_error, on_null, and timezone,
+        // are explicitly set to null. by default, the Option<Box<Expression>> for null will deserialize as None,
+        // but we want Some(Literal(LiteralValue::Null))
+        let expression = Expression::deserialize(deserializer)?;
+        match expression {
+            Expression::Document(mut d) => match d.remove("dateString") {
+                Some(input_expr) => {
+                    let date_string = Box::new(input_expr);
+                    let format = d.remove("format").map(Box::new);
+                    let timezone = d.remove("timezone").map(Box::new);
+                    let on_error = d.remove("onError").map(Box::new);
+                    let on_null = d.remove("onNull").map(Box::new);
+                    if !d.is_empty() {
+                        return Err(serde_err::custom("too many arguments for date Document"));
+                    }
+                    Ok(DateFromString {
+                        date_string,
+                        format,
+                        timezone,
+                        on_error,
+                        on_null,
+                    })
+                }
+                None => Err(serde_err::custom(
+                    "document to dateFromString does not contain field \"dateString\"",
+                )),
+            },
+            _ => Err(serde_err::custom(
+                "input to dateFromString must be document",
+            )),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for DateFromParts {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // this custom serde covers the case in which any of dateFromParts params (all optional)
+        // are explicitly set to null. by default, the Option<Box<Expression>> for null will deserialize as None,
+        // but we want Some(Literal(LiteralValue::Null))
+        let expression = Expression::deserialize(deserializer)?;
+        match expression {
+            Expression::Document(mut d) => {
+                let year = d.remove("year").map(Box::new);
+                let month = d.remove("month").map(Box::new);
+                let day = d.remove("day").map(Box::new);
+                let iso_day_of_week = d.remove("isoDayOfWeek").map(Box::new);
+                let iso_week: Option<Box<Expression>> = d.remove("isoWeek").map(Box::new);
+                let iso_week_year = d.remove("isoWeekYear").map(Box::new);
+                let hour = d.remove("hour").map(Box::new);
+                let minute = d.remove("minute").map(Box::new);
+                let second = d.remove("second").map(Box::new);
+                let millisecond = d.remove("millisecond").map(Box::new);
+                let timezone = d.remove("timezone").map(Box::new);
+                if !d.is_empty() {
+                    return Err(serde_err::custom("too many arguments for date Document"));
+                }
+                Ok(DateFromParts {
+                    year,
+                    month,
+                    day,
+                    iso_day_of_week,
+                    iso_week,
+                    iso_week_year,
+                    hour,
+                    minute,
+                    second,
+                    millisecond,
+                    timezone,
+                })
+            }
+            _ => Err(serde_err::custom("input to dateFromParts must be document")),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for DateToString {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // this custom serde covers the case in which any ofdateFromString's optional parameters, format, on_error, on_null, and timezone,
+        // are explicitly set to null. by default, the Option<Box<Expression>> for null will deserialize as None,
+        // but we want Some(Literal(LiteralValue::Null))
+        let expression = Expression::deserialize(deserializer)?;
+        match expression {
+            Expression::Document(mut d) => match d.remove("date") {
+                Some(input_expr) => {
+                    let date = Box::new(input_expr);
+                    let format = d.remove("format").map(Box::new);
+                    let timezone = d.remove("timezone").map(Box::new);
+                    let on_null = d.remove("onNull").map(Box::new);
+                    if !d.is_empty() {
+                        return Err(serde_err::custom("too many arguments for date Document"));
+                    }
+                    Ok(DateToString {
+                        date,
+                        format,
+                        timezone,
+                        on_null,
+                    })
+                }
+                None => Err(serde_err::custom(
+                    "document to dateToString does not contain field \"dateString\"",
+                )),
+            },
+            _ => Err(serde_err::custom("input to dateToString must be document")),
+        }
     }
 }
