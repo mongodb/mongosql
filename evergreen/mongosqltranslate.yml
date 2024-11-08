@@ -162,7 +162,7 @@ tasks:
     commands:
       - func: "install rust toolchain"
       - func: "set and check packages version"
-      - func: "compile release"
+      - func: "compile libmongosqltranslate"
       - func: "mciuploads mongosqltranslate"
 
 buildvariants:

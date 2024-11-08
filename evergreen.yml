@@ -251,7 +251,8 @@ functions:
           ${prepare_shell}
           rustfmt --check $(find . -not \( -path \./e2e-tests -prune -o -path \./target -prune \) -name \*.rs)
 
-  "compile go tests":
+  # "mongosql-rs" is the name of the library we release for Atlas SQL.
+  "compile mongosql-rs":
     - command: shell.exec
       type: test
       params:
@@ -262,7 +263,8 @@ functions:
           cargo build --release --features "mongosql-c/test" --target-dir "test_target"
           cargo build --release
 
-  "compile release":
+  # "libmongosqltranslate" is the name of the library we release for on-prem SQL.
+  "compile libmongosqltranslate":
     - command: shell.exec
       type: test
       params:
@@ -1143,19 +1145,20 @@ tasks:
     commands:
       - func: "install rust toolchain"
       - func: "set and check packages version"
-      - func: "compile release"
+      - func: "compile mongosql-rs"
+      - func: "upload c library"
 
   - name: compile-trr
     commands:
       - func: "install rust toolchain"
       - func: "set and check packages version"
-      - func: "compile release"
+      - func: "compile libmongosqltranslate"
       - func: "upload transition readiness report executable"
 
   - name: test-go
     commands:
       - func: "install rust toolchain"
-      - func: "compile go tests"
+      - func: "compile mongosql-rs"
       - func: "upload c library"
       - func: "download c library"
       - func: "run go tests"

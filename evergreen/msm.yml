@@ -453,7 +453,7 @@ tasks:
   - name: compile-mongodb-schema-manager
     commands:
       - func: "install rust toolchain"
-      - func: "compile release"
+      - func: "compile libmongosqltranslate"
       - func: "upload mongodb schema manager executable"
 
   - name: mongodb-schema-manager-release
