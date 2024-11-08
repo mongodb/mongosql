@@ -118,3 +118,93 @@ test_negation!(
     expected = r#"{"$expr": {"$lte": [{"$zip": {"inputs": ["$x", "$y"], "useLongestLength": true, "defaults": [1, 2]}}, null]}}"#,
     input = r#"{"$expr": {"$zip": {"inputs": ["$x", "$y"], "useLongestLength": true, "defaults": [1, 2]}}}"#
 );
+
+test_negation!(
+    day_of_month,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$dayOfMonth": {"date": "$x", "timezone": "$y"}}, null]}, {"$eq": [{"$dayOfMonth": {"date": "$x", "timezone": "$y"}}, 0]}]}}"#,
+    input = r#"{"$expr": {"$dayOfMonth": {"date": "$x", "timezone": "$y"}}}"#
+);
+
+test_negation!(
+    day_of_week,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$dayOfWeek": {"date": "$x", "timezone": "$y"}}, null]}, {"$eq": [{"$dayOfWeek": {"date": "$x", "timezone": "$y"}}, 0]}]}}"#,
+    input = r#"{"$expr": {"$dayOfWeek": {"date": "$x", "timezone": "$y"}}}"#
+);
+
+test_negation!(
+    day_of_year,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$dayOfYear": {"date": "$x", "timezone": "$y"}}, null]}, {"$eq": [{"$dayOfYear": {"date": "$x", "timezone": "$y"}}, 0]}]}}"#,
+    input = r#"{"$expr": {"$dayOfYear": {"date": "$x", "timezone": "$y"}}}"#
+);
+
+test_negation!(
+    hour,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$hour": {"date": "$x", "timezone": "$y"}}, null]}, {"$eq": [{"$hour": {"date": "$x", "timezone": "$y"}}, 0]}]}}"#,
+    input = r#"{"$expr": {"$hour": {"date": "$x", "timezone": "$y"}}}"#
+);
+
+test_negation!(
+    millisecond,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$millisecond": {"date": "$x", "timezone": "$y"}}, null]}, {"$eq": [{"$millisecond": {"date": "$x", "timezone": "$y"}}, 0]}]}}"#,
+    input = r#"{"$expr": {"$millisecond": {"date": "$x", "timezone": "$y"}}}"#
+);
+
+test_negation!(
+    minute,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$minute": {"date": "$x", "timezone": "$y"}}, null]}, {"$eq": [{"$minute": {"date": "$x", "timezone": "$y"}}, 0]}]}}"#,
+    input = r#"{"$expr": {"$minute": {"date": "$x", "timezone": "$y"}}}"#
+);
+
+test_negation!(
+    month,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$month": {"date": "$x", "timezone": "$y"}}, null]}, {"$eq": [{"$month": {"date": "$x", "timezone": "$y"}}, 0]}]}}"#,
+    input = r#"{"$expr": {"$month": {"date": "$x", "timezone": "$y"}}}"#
+);
+
+test_negation!(
+    second,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$second": {"date": "$x", "timezone": "$y"}}, null]}, {"$eq": [{"$second": {"date": "$x", "timezone": "$y"}}, 0]}]}}"#,
+    input = r#"{"$expr": {"$second": {"date": "$x", "timezone": "$y"}}}"#
+);
+
+test_negation!(
+    week,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$week": {"date": "$x", "timezone": "$y"}}, null]}, {"$eq": [{"$week": {"date": "$x", "timezone": "$y"}}, 0]}]}}"#,
+    input = r#"{"$expr": {"$week": {"date": "$x", "timezone": "$y"}}}"#
+);
+
+test_negation!(
+    year,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$year": {"date": "$x", "timezone": "$y"}}, null]}, {"$eq": [{"$year": {"date": "$x", "timezone": "$y"}}, 0]}]}}"#,
+    input = r#"{"$expr": {"$year": {"date": "$x", "timezone": "$y"}}}"#
+);
+
+test_negation!(
+    iso_day_of_week,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$isoDayOfWeek": {"date": "$x", "timezone": "$y"}}, null]}, {"$eq": [{"$isoDayOfWeek": {"date": "$x", "timezone": "$y"}}, 0]}]}}"#,
+    input = r#"{"$expr": {"$isoDayOfWeek": {"date": "$x", "timezone": "$y"}}}"#
+);
+
+test_negation!(
+    iso_week,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$isoWeek": {"date": "$x", "timezone": "$y"}}, null]}, {"$eq": [{"$isoWeek": {"date": "$x", "timezone": "$y"}}, 0]}]}}"#,
+    input = r#"{"$expr": {"$isoWeek": {"date": "$x", "timezone": "$y"}}}"#
+);
+
+test_negation!(
+    iso_week_year,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$isoWeekYear": {"date": "$x", "timezone": "$y"}}, null]}, {"$eq": [{"$isoWeekYear": {"date": "$x", "timezone": "$y"}}, 0]}]}}"#,
+    input = r#"{"$expr": {"$isoWeekYear": {"date": "$x", "timezone": "$y"}}}"#
+);
+
+test_negation!(
+    median,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$median": {"input": "$x", "method": "approximate"}}, null]}, {"$eq": [{"$median": {"input": "$x", "method": "approximate"}}, 0]}]}}"#,
+    input = r#"{"$expr": {"$median": {"input": "$x", "method": "approximate"}}}"#
+);
+
+test_negation!(
+    percentile,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$percentile": {"input": "$x", "p": ["$y", "$z"], "method": "approximate"}}, null]}, {"$eq": [{"$percentile": {"input": "$x", "p": ["$y", "$z"], "method": "approximate"}}, 0]}]}}"#,
+    input = r#"{"$expr": {"$percentile": {"input": "$x", "p": ["$y", "$z"], "method": "approximate"}}}"#
+);

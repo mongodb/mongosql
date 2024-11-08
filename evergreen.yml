@@ -1701,7 +1701,7 @@ buildvariants:
   - name: trr-macos
     tags: ["trr-release-variant"]
     display_name: "Transition Readiness Report - macOS"
-    run_on: [macos-14]
+    run_on: [macos-11]
     tasks:
       - name: compile-trr
       - name: test-transition-readiness-report
@@ -1710,7 +1710,7 @@ buildvariants:
   - name: trr-macos-arm
     tags: ["trr-release-variant"]
     display_name: "Transition Readiness Report - macOS arm64"
-    run_on: [macos-14-arm64]
+    run_on: [macos-13-arm64]
     tasks:
       - name: compile-trr
       - name: test-transition-readiness-report

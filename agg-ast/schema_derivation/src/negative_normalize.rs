@@ -96,6 +96,29 @@ impl NegativeNormalize<Expression> for Expression {
                 | TaggedOperator::SortArray(_)
                 | TaggedOperator::Trim(_)
                 | TaggedOperator::Zip(_) => wrap_in_null_or_missing_check!(self.clone()),
+                // The following operators may evaluate to the falsy values null or 0, so the
+                // negation asserts that equality to any of those values.
+                TaggedOperator::DayOfMonth(_)
+                | TaggedOperator::DayOfWeek(_)
+                | TaggedOperator::DayOfYear(_)
+                | TaggedOperator::Hour(_)
+                | TaggedOperator::Millisecond(_)
+                | TaggedOperator::Minute(_)
+                | TaggedOperator::Month(_)
+                | TaggedOperator::Second(_)
+                | TaggedOperator::Week(_)
+                | TaggedOperator::Year(_)
+                | TaggedOperator::IsoDayOfWeek(_)
+                | TaggedOperator::IsoWeek(_)
+                | TaggedOperator::IsoWeekYear(_)
+                | TaggedOperator::Median(_)
+                | TaggedOperator::Percentile(_) => Expression::UntaggedOperator(UntaggedOperator {
+                    op: "$or".to_string(),
+                    args: vec![
+                        wrap_in_null_or_missing_check!(self.clone()),
+                        wrap_in_zero_check!(self.clone()),
+                    ],
+                }),
                 // This operator never evaluates to null, only ever true or false. So the negation
                 // asserts that it is false.
                 TaggedOperator::Regex(_) => wrap_in_false_check!(self.clone()),
@@ -129,6 +152,21 @@ impl NegativeNormalize<Expression> for Expression {
                         "$lte",
                         vec![self.clone(), Expression::Literal(LiteralValue::Null)],
                     ),
+                    // The following operators may evaluate to the falsy values null or 0, so the
+                    // negation asserts that equality to any of those values.
+                    "$abs" | "$acos" | "$acosh" | "$asin" | "$asinh" | "$atan" | "$atan2"
+                    | "$atanh" | "$avg" | "$cos" | "$cosh" | "$degreesToRadians" | "$divide"
+                    | "$exp" | "$ln" | "$log" | "$log10" | "$mod" | "$multiply" | "$pow"
+                    | "$radiansToDegrees" | "$sin" | "$sinh" | "$sqrt" | "$tan" | "$tanh"
+                    | "$trunc" | "$ceil" | "$floor" | "$indexOfArray" | "$indexOfBytes"
+                    | "$indexOfCP" | "$toInt" | "$add" | "$subtract" | "$arrayElemAt"
+                    | "$binarySize" | "$bitAnd" | "$bitNot" | "$bitOr" | "$bitXor"
+                    | "$bsonSize" | "$covariancePop" | "$covarianceSamp" | "$stdDevPop"
+                    | "$stdDevSamp" | "$round" | "$toDecimal" | "$toDouble" | "$toLong" => {
+                        let null_check = wrap_in_null_or_missing_check!(self.clone());
+                        let zero_check = wrap_in_zero_check!(self.clone());
+                        ("$or", vec![null_check, zero_check])
+                    }
                     // The following operators may evaluate to the falsy values missing, null, 0, or
                     // false, so the negation asserts equality to any of those values.
                     "$first" | "$last" => {
