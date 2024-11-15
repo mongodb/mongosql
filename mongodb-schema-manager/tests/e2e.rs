@@ -334,7 +334,12 @@ mod enterprise {
             .output()?;
 
         // Assert the command succeeded.
-        cmd.assert().success().stdout("");
+        cmd.assert()
+            .success()
+            .stdout(predicates::str::contains(format!(
+                "Database: {db_name}. Namespaces: {:?}.",
+                vec![coll_name]
+            )));
 
         // Assert that the database does not have any schemas written.
         let db = test_db_manager.client.database(db_name);

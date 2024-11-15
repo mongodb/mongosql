@@ -28,7 +28,8 @@ timeout:
         ls -la
 
 include:
-  - filename: evergreen/grpc.yml
+  # https://jira.mongodb.org/browse/DEVPROD-12779
+  # - filename: evergreen/grpc.yml
   - filename: evergreen/msm.yml
   - filename: evergreen/mongosqltranslate.yml
   - filename: evergreen/suite-tasks.yml
