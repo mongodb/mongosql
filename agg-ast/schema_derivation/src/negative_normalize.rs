@@ -1,6 +1,6 @@
 use agg_ast::{
     definitions::{
-        Expression, LiteralValue, MatchBinaryOp, MatchExpr, MatchExpression, MatchField,
+        Expression, Let, LiteralValue, MatchBinaryOp, MatchExpr, MatchExpression, MatchField,
         MatchLogical, MatchMisc, MatchNot, MatchNotExpression, MatchRegex, Ref, TaggedOperator,
         UntaggedOperator,
     },
@@ -61,14 +61,21 @@ impl NegativeNormalize<Expression> for Expression {
             // would have no effect.
             Expression::Array(_) | Expression::Document(_) | Expression::Literal(_) => self.clone(),
             // to negate a field reference, we should assert that it has falsish behavior
-            ref_expr @ Expression::Ref(_) => Expression::UntaggedOperator(UntaggedOperator {
-                op: "$or".to_string(),
-                args: vec![
-                    wrap_in_null_or_missing_check!(ref_expr.clone()),
-                    wrap_in_zero_check!(ref_expr.clone()),
-                    wrap_in_false_check!(ref_expr.clone()),
-                ],
-            }),
+            Expression::Ref(_)
+            | Expression::TaggedOperator(TaggedOperator::GetField(_))
+            | Expression::TaggedOperator(TaggedOperator::Reduce(_))
+            | Expression::TaggedOperator(TaggedOperator::SetField(_))
+            | Expression::TaggedOperator(TaggedOperator::Switch(_))
+            | Expression::TaggedOperator(TaggedOperator::UnsetField(_)) => {
+                Expression::UntaggedOperator(UntaggedOperator {
+                    op: "$or".to_string(),
+                    args: vec![
+                        wrap_in_null_or_missing_check!(self.clone()),
+                        wrap_in_zero_check!(self.clone()),
+                        wrap_in_false_check!(self.clone()),
+                    ],
+                })
+            }
             Expression::TaggedOperator(t) => match t {
                 // The following operators may evaluate to null, so the negation simply asserts
                 // that they are less than or equal to null. Although they should never evaluate to
@@ -95,7 +102,15 @@ impl NegativeNormalize<Expression> for Expression {
                 | TaggedOperator::RTrim(_)
                 | TaggedOperator::SortArray(_)
                 | TaggedOperator::Trim(_)
-                | TaggedOperator::Zip(_) => wrap_in_null_or_missing_check!(self.clone()),
+                | TaggedOperator::Zip(_)
+                // these operators will never return nullish values -- instead, they may return empty string,
+                // or array, which are truish. Wrapping with null will ensure if they are negated, the schema
+                // will evaluate to Unsat
+                | TaggedOperator::FirstN(_)
+                | TaggedOperator::LastN(_)
+                | TaggedOperator::MaxNArrayElement(_)
+                | TaggedOperator::MinNArrayElement(_)
+                 => wrap_in_null_or_missing_check!(self.clone()),
                 // The following operators may evaluate to the falsy values null or 0, so the
                 // negation asserts that equality to any of those values.
                 TaggedOperator::DayOfMonth(_)
@@ -122,6 +137,14 @@ impl NegativeNormalize<Expression> for Expression {
                 // This operator never evaluates to null, only ever true or false. So the negation
                 // asserts that it is false.
                 TaggedOperator::Regex(_) => wrap_in_false_check!(self.clone()),
+                // to get the negation of $let we will simply negate the in statement
+                TaggedOperator::Let(l) => {
+                    let negated_inside = l.inside.get_negation();
+                    Expression::TaggedOperator(TaggedOperator::Let(Let {
+                        vars: l.vars.clone(),
+                        inside: Box::new(negated_inside)
+                    }))
+                }
                 _ => todo!(),
             },
             Expression::UntaggedOperator(u) => {
@@ -148,10 +171,11 @@ impl NegativeNormalize<Expression> for Expression {
                     "$arrayToObject" | "$objectToArray" | "$reverseArray" | "$toDate"
                     | "$toObjectId" | "$toString" | "$tsSecond" | "$tsIncrement" | "$concat"
                     | "$concatArrays" | "$setDifference" | "$setIntersection" | "$setUnion"
-                    | "$slice" | "$split" => (
-                        "$lte",
-                        vec![self.clone(), Expression::Literal(LiteralValue::Null)],
-                    ),
+                    | "$slice" | "$split"
+                    // these operators will never return nullish values -- instead, they may return empty string,
+                    // or array, which are truish. Wrapping with null will ensure if they are negated, the schema
+                    // will evaluate to Unsat
+                    | "$meta" | "$mergeObjects" | "$rand" | "$range" | "$substr" | "$substrBytes" | "$substrCP" | "$toHashedIndexKey" | "$toLower" | "$toUpper" | "$type" => return wrap_in_null_or_missing_check!(self.clone()),
                     // The following operators may evaluate to the falsy values null or 0, so the
                     // negation asserts that equality to any of those values.
                     "$abs" | "$acos" | "$acosh" | "$asin" | "$asinh" | "$atan" | "$atan2"
@@ -169,12 +193,35 @@ impl NegativeNormalize<Expression> for Expression {
                     }
                     // The following operators may evaluate to the falsy values missing, null, 0, or
                     // false, so the negation asserts equality to any of those values.
-                    "$first" | "$last" => {
+                    "$first" | "$ifNull" | "$last" | "$literal" | "$max" | "$min" | "$setField"
+                    | "$reduce" | "$switch" => {
                         let null_check = wrap_in_null_or_missing_check!(self.clone());
                         let zero_check = wrap_in_zero_check!(self.clone());
                         let false_check = wrap_in_false_check!(self.clone());
                         ("$or", vec![null_check, zero_check, false_check])
                     }
+                    // the following operators negation depends on the underlying documents -- thus,
+                    // for the sake of schema derivation, they function the same way negated as they do normally
+                    "$allElementsTrue" | "$anyElementTrue" | "$cmp" | "$in" | "$size"
+                    | "$strLenBytes" | "$strLenCP" | "$strcasecmp" | "$setEquals"
+                    | "$setIsSubset" | "$sum" => (u.op.as_str(), u.args.clone()),
+                    // toBool is the only untagged op that is boolean or nullish
+                    "$toBool" => {
+                        let null_check = wrap_in_null_or_missing_check!(self.clone());
+                        let false_check = wrap_in_false_check!(self.clone());
+                        ("$or", vec![null_check, false_check])
+                    }
+                    // The following operators only evaluate to boolean, so the negation simply asserts
+                    // that they are false
+                    "$isArray" | "$isNumber" => (
+                        "$eq",
+                        vec![
+                            self.clone(),
+                            Expression::Literal(LiteralValue::Boolean(false)),
+                        ],
+                    ),
+                    // the negation of not(X) is X, so we short circuit here and just return X
+                    "$not" => return u.args[0].clone(),
                     op => unreachable!("Cannot negate unknown untagged operator: {op}"),
                 };
                 Expression::UntaggedOperator(UntaggedOperator {
@@ -192,7 +239,9 @@ impl NegativeNormalize<MatchExpression> for MatchExpression {
             MatchExpression::Expr(MatchExpr { expr }) => match *expr.clone() {
                 Expression::UntaggedOperator(untagged_operator) => {
                     match untagged_operator.op.as_str() {
-                        "$not" => todo!(),
+                        "$not" => MatchExpression::Expr(MatchExpr {
+                            expr: Box::new(untagged_operator.args[0].get_negation()),
+                        }),
                         "$cond" => todo!(),
                         _ => self.clone(),
                     }

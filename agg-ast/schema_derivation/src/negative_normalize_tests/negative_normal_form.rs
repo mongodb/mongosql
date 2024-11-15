@@ -54,3 +54,9 @@ test_nnf!(
     expected = r#"{"foo": {"$not": {"$regex": "bar", "$options": "i"}}}"#,
     input = r#"{"foo": {"$not": {"$regex": "bar", "$options": "i"}}}"#
 );
+
+test_nnf!(
+    not_expr_func_gets_negation,
+    expected = r#"{"$expr": {"$ne": ["$bar", 1]}}"#,
+    input = r#"{"$expr": {"$not": {"$eq": ["$bar", 1]}}}"#
+);

@@ -59,9 +59,33 @@ test_negation!(
 );
 
 test_negation!(
+    if_null,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$ifNull": ["$x", "foo"]}, null]}, {"$eq": [{"$ifNull": ["$x", "foo"]}, 0]}, {"$eq": [{"$ifNull": ["$x", "foo"]}, false]}]}}"#,
+    input = r#"{"$expr": {"$ifNull": ["$x", "foo"]}}"#
+);
+
+test_negation!(
     last,
     expected = r#"{"$expr": {"$or": [{"$lte": [{"$last": "$x"}, null]}, {"$eq": [{"$last": "$x"}, 0]}, {"$eq": [{"$last": "$x"}, false]}]}}"#,
     input = r#"{"$expr": {"$last": "$x"}}"#
+);
+
+test_negation!(
+    literal,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$literal": "$foo"}, null]}, {"$eq": [{"$literal": "$foo"}, 0]}, {"$eq": [{"$literal": "$foo"}, false]}]}}"#,
+    input = r#"{"$expr": {"$literal": "$foo"}}"#
+);
+
+test_negation!(
+    max,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$max": ["$x", "foo"]}, null]}, {"$eq": [{"$max": ["$x", "foo"]}, 0]}, {"$eq": [{"$max": ["$x", "foo"]}, false]}]}}"#,
+    input = r#"{"$expr": {"$max": ["$x", "foo"]}}"#
+);
+
+test_negation!(
+    min,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$min": "$x"}, null]}, {"$eq": [{"$min": "$x"}, 0]}, {"$eq": [{"$min": "$x"}, false]}]}}"#,
+    input = r#"{"$expr": {"$min": "$x"}}"#
 );
 
 test_negation!(
@@ -146,6 +170,162 @@ test_negation!(
     split,
     expected = r#"{"$expr": {"$lte": [{"$split": ["$x", "$y"]}, null]}}"#,
     input = r#"{"$expr": {"$split": ["$x", "$y"]}}"#
+);
+
+test_negation!(
+    meta,
+    expected = r#"{"$expr": {"$lte": [{"$meta": "textScore"}, null]}}"#,
+    input = r#"{"$expr": {"$meta": "textScore"}}"#
+);
+
+test_negation!(
+    merge_objects,
+    expected = r#"{"$expr": {"$lte": [{"$mergeObjects": "$x"}, null]}}"#,
+    input = r#"{"$expr": {"$mergeObjects": "$x"}}"#
+);
+
+test_negation!(
+    rand,
+    expected = r#"{"$expr": {"$lte": [{"$rand": {}}, null]}}"#,
+    input = r#"{"$expr": {"$rand": {}}}"#
+);
+
+test_negation!(
+    range,
+    expected = r#"{"$expr": {"$lte": [{"$range": [1, 2, 3]}, null]}}"#,
+    input = r#"{"$expr": {"$range": [1,2,3]}}"#
+);
+
+test_negation!(
+    substr,
+    expected = r#"{"$expr": {"$lte": [{"$substr": ["$x", 1, 2]}, null]}}"#,
+    input = r#"{"$expr": {"$substr": ["$x", 1, 2]}}"#
+);
+
+test_negation!(
+    substr_bytes,
+    expected = r#"{"$expr": {"$lte": [{"$substrBytes": ["$x", 1, 2]}, null]}}"#,
+    input = r#"{"$expr": {"$substrBytes": ["$x", 1, 2]}}"#
+);
+
+test_negation!(
+    substr_cp,
+    expected = r#"{"$expr": {"$lte": [{"$substrCP": ["$x", 1, 2]}, null]}}"#,
+    input = r#"{"$expr": {"$substrCP": ["$x", 1, 2]}}"#
+);
+
+test_negation!(
+    to_hashed_index_key,
+    expected = r#"{"$expr": {"$lte": [{"$toHashedIndexKey": "$x"}, null]}}"#,
+    input = r#"{"$expr": {"$toHashedIndexKey": "$x"}}"#
+);
+
+test_negation!(
+    to_lower,
+    expected = r#"{"$expr": {"$lte": [{"$toLower": "$x"}, null]}}"#,
+    input = r#"{"$expr": {"$toLower": "$x"}}"#
+);
+
+test_negation!(
+    to_upper,
+    expected = r#"{"$expr": {"$lte": [{"$toUpper": "$x"}, null]}}"#,
+    input = r#"{"$expr": {"$toUpper": "$x"}}"#
+);
+
+test_negation!(
+    type_of,
+    expected = r#"{"$expr": {"$lte": [{"$type": "$x"}, null]}}"#,
+    input = r#"{"$expr": {"$type": "$x"}}"#
+);
+
+test_negation!(
+    not,
+    expected = r#"{"$expr": {"$eq": ["$x", "$y"]}}"#,
+    input = r#"{"$expr": {"$not": {"$eq": ["$x", "$y"]}}}"#
+);
+
+test_negation!(
+    all_elements_true,
+    expected = r#"{"$expr": {"$allElementsTrue": "$x"}}"#,
+    input = r#"{"$expr": {"$allElementsTrue": "$x"}}"#
+);
+
+test_negation!(
+    any_element_true,
+    expected = r#"{"$expr": {"$anyElementTrue": "$x"}}"#,
+    input = r#"{"$expr": {"$anyElementTrue": "$x"}}"#
+);
+
+test_negation!(
+    cmp,
+    expected = r#"{"$expr": {"$cmp": ["$x", "$y"]}}"#,
+    input = r#"{"$expr": {"$cmp": ["$x", "$y"]}}"#
+);
+
+test_negation!(
+    in_,
+    expected = r#"{"$expr": {"$in": ["$x", [1, 2, 3]]}}"#,
+    input = r#"{"$expr": {"$in": ["$x", [1, 2, 3]]}}"#
+);
+
+test_negation!(
+    size,
+    expected = r#"{"$expr": {"$size": "$x"}}"#,
+    input = r#"{"$expr": {"$size": "$x"}}"#
+);
+
+test_negation!(
+    str_len_bytes,
+    expected = r#"{"$expr": {"$strLenBytes": "$x"}}"#,
+    input = r#"{"$expr": {"$strLenBytes": "$x"}}"#
+);
+
+test_negation!(
+    str_len_cp,
+    expected = r#"{"$expr": {"$strLenCP": "$x"}}"#,
+    input = r#"{"$expr": {"$strLenCP": "$x"}}"#
+);
+
+test_negation!(
+    strcasecmp,
+    expected = r#"{"$expr": {"$strcasecmp": ["$x", "$y"]}}"#,
+    input = r#"{"$expr": {"$strcasecmp": ["$x", "$y"]}}"#
+);
+
+test_negation!(
+    set_equals,
+    expected = r#"{"$expr": {"$setEquals": ["$x", "$y"]}}"#,
+    input = r#"{"$expr": {"$setEquals": ["$x", "$y"]}}"#
+);
+
+test_negation!(
+    set_is_subset,
+    expected = r#"{"$expr": {"$setIsSubset": ["$x", "$y"]}}"#,
+    input = r#"{"$expr": {"$setIsSubset": ["$x", "$y"]}}"#
+);
+
+test_negation!(
+    sum,
+    expected = r#"{"$expr": {"$sum": ["$x", "$y"]}}"#,
+    input = r#"{"$expr": {"$sum": ["$x", "$y"]}}"#
+);
+
+test_negation!(
+    to_bool,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$toBool": "$x"}, null]}, {"$eq": [{"$toBool": "$x"}, false]}]}}"#,
+    input = r#"{"$expr": {"$toBool": "$x"}}"#
+);
+
+test_negation!(
+    is_array,
+    expected = r#"{"$expr": {"$eq": [{"$isArray": "$x"}, false]}}"#,
+    input = r#"{"$expr": {"$isArray": "$x"}}"#
+);
+
+test_negation!(
+    is_number,
+    expected = r#"{"$expr": {"$eq": [{"$isNumber": "$x"}, false]}}"#,
+    input = r#"{"$expr": {"$isNumber": "$x"}}"#
 );
 
 test_negation!(

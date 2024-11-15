@@ -120,6 +120,66 @@ test_negation!(
 );
 
 test_negation!(
+    get_field,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$getField": {"input": "$x", "field": "foo"}}, null]}, {"$eq": [{"$getField": {"input": "$x", "field": "foo"}}, 0]}, {"$eq": [{"$getField": {"input": "$x", "field": "foo"}}, false]}]}}"#,
+    input = r#"{"$expr": {"$getField": {"input": "$x", "field": "foo"}}}"#
+);
+
+test_negation!(
+    reduce,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$reduce": {"input": "$x", "initialValue": {"sum": 1}, "in": {"sum": { "$add" : ["$$value.sum", "$$this"] }}}}, null]}, {"$eq": [{"$reduce": {"input": "$x", "initialValue": {"sum": 1}, "in": {"sum": { "$add" : ["$$value.sum", "$$this"] }}}}, 0]}, {"$eq": [{"$reduce": {"input": "$x", "initialValue": {"sum": 1}, "in": {"sum": { "$add" : ["$$value.sum", "$$this"] }}}}, false]}]}}"#,
+    input = r#"{"$expr": {"$reduce": {"input": "$x", "initialValue": {"sum": 1}, "in": {"sum": { "$add" : ["$$value.sum", "$$this"] }}}}}"#
+);
+
+test_negation!(
+    set_field,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$setField": {"input": "$x", "field": "foo", "value": "bar"}}, null]}, {"$eq": [{"$setField": {"input": "$x", "field": "foo", "value": "bar"}}, 0]}, {"$eq": [{"$setField": {"input": "$x", "field": "foo", "value": "bar"}}, false]}]}}"#,
+    input = r#"{"$expr": {"$setField": {"input": "$x", "field": "foo", "value": "bar"}}}"#
+);
+
+test_negation!(
+    switch,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$switch": {"branches": [{ "case": { "$eq": [ 0, 5 ] }, "then": "equals" }], "default": "Did not match"}}, null]}, {"$eq": [{"$switch": {"branches": [{ "case": { "$eq": [ 0, 5 ] }, "then": "equals" }], "default": "Did not match"}}, 0]}, {"$eq": [{"$switch": {"branches": [{ "case": { "$eq": [ 0, 5 ] }, "then": "equals" }], "default": "Did not match"}}, false]}]}}"#,
+    input = r#"{"$expr": {"$switch": {"branches": [{ "case": { "$eq": [ 0, 5 ] }, "then": "equals" }], "default": "Did not match"}}}"#
+);
+
+test_negation!(
+    unset_field,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$unsetField": {"input": "$x", "field": "foo"}}, null]}, {"$eq": [{"$unsetField": {"input": "$x", "field": "foo"}}, 0]}, {"$eq": [{"$unsetField": {"input": "$x", "field": "foo"}}, false]}]}}"#,
+    input = r#"{"$expr": {"$unsetField": {"input": "$x", "field": "foo"}}}"#
+);
+
+test_negation!(
+    first_n,
+    expected = r#"{"$expr": {"$lte": [{"$firstN": {"input": "$x", "n": 2}}, null]}}"#,
+    input = r#"{"$expr": {"$firstN": {"input": "$x", "n": 2}}}"#
+);
+
+test_negation!(
+    last_n,
+    expected = r#"{"$expr": {"$lte": [{"$lastN": {"input": "$x", "n": 2}}, null]}}"#,
+    input = r#"{"$expr": {"$lastN": {"input": "$x", "n": 2}}}"#
+);
+
+test_negation!(
+    max_n_array_element,
+    expected = r#"{"$expr": {"$lte": [{"$maxN": {"input": "$x", "n": 2}}, null]}}"#,
+    input = r#"{"$expr": {"$maxN": {"input": "$x", "n": 2}}}"#
+);
+
+test_negation!(
+    min_n_array_element,
+    expected = r#"{"$expr": {"$lte": [{"$minN": {"input": "$x", "n": 2}}, null]}}"#,
+    input = r#"{"$expr": {"$minN": {"input": "$x", "n": 2}}}"#
+);
+
+test_negation!(
+    let_op,
+    expected = r#"{"$expr": {"$let": {"vars": {"a": 1, "b": 2}, "in": {"$ne": ["$$a", "$$b"]}}}}"#,
+    input = r#"{"$expr": {"$let": {"vars": {"a": 1, "b": 2}, "in": {"$eq": ["$$a", "$$b"]}}}}"#
+);
+
+test_negation!(
     day_of_month,
     expected = r#"{"$expr": {"$or": [{"$lte": [{"$dayOfMonth": {"date": "$x", "timezone": "$y"}}, null]}, {"$eq": [{"$dayOfMonth": {"date": "$x", "timezone": "$y"}}, 0]}]}}"#,
     input = r#"{"$expr": {"$dayOfMonth": {"date": "$x", "timezone": "$y"}}}"#
