@@ -4,9 +4,9 @@ use mongosql::json_schema;
 use crate::{
     generate_partition_match,
     partitioning::{get_num_partitions, Partition},
-    schema::schema_for_document,
     PARTITION_SIZE_IN_BYTES,
 };
+use schema_derivation::schema_for_document;
 
 #[test]
 fn test_generate_partition_match_without_schema_doc_max_bound_inclusive() {
