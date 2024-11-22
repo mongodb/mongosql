@@ -15,6 +15,7 @@ mongodb = "3.1.0"
 serde = "1.0.189"
 tokio = { version = "1.32.0", features = ["full"] }
 mongosql = { path = "../mongosql" }
+schema_derivation = { path = "../agg-ast/schema_derivation" }
 thiserror = "1.0.50"
 lazy_static = "1.4.0"
 glob = "0.3.1"

@@ -55,6 +55,7 @@ pub enum BsonTypeName {
     Long,
     Decimal,
     BinData,
+    Undefined,
     ObjectId,
     Bool,
     Date,
@@ -66,7 +67,6 @@ pub enum BsonTypeName {
     Timestamp,
     MinKey,
     MaxKey,
-    Undefined,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]

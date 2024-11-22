@@ -5109,6 +5109,7 @@ dependencies = [
  "lazy_static",
  "mongodb",
  "mongosql",
+ "schema_derivation",
  "serde",
  "test-utils",
  "thiserror",
@@ -5117,7 +5118,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "schema-derivation"
+name = "schema_derivation"
 version = "0.0.0"
 dependencies = [
  "agg-ast",

@@ -363,6 +363,7 @@ pub enum Atomic {
     Symbol,
     String,
     BinData,
+    Undefined,
     ObjectId,
     Boolean,
     Date,
@@ -429,6 +430,7 @@ impl Display for Atomic {
             Atomic::Double => write!(f, "double"),
             Atomic::Decimal => write!(f, "decimal"),
             Atomic::BinData => write!(f, "binData"),
+            Atomic::Undefined => write!(f, "undefined"),
             Atomic::ObjectId => write!(f, "objectId"),
             Atomic::Boolean => write!(f, "boolean"),
             Atomic::Date => write!(f, "date"),
@@ -656,6 +658,7 @@ impl From<Atomic> for json_schema::BsonTypeName {
             Long => json_schema::BsonTypeName::Long,
             String => json_schema::BsonTypeName::String,
             BinData => json_schema::BsonTypeName::BinData,
+            Undefined => json_schema::BsonTypeName::Undefined,
             ObjectId => json_schema::BsonTypeName::ObjectId,
             Boolean => json_schema::BsonTypeName::Bool,
             Date => json_schema::BsonTypeName::Date,
@@ -1418,6 +1421,8 @@ impl Schema {
         let self_schema = Schema::simplify(self);
         let other_schema = Schema::simplify(other);
         match (self_schema, other_schema) {
+            (Schema::Any, schema) | (schema, Schema::Any) => schema,
+            (Schema::Missing, Schema::Missing) => Schema::Missing,
             (Schema::Atomic(a), Schema::Atomic(b)) => {
                 if a == b {
                     self.clone()
@@ -1429,6 +1434,13 @@ impl Schema {
             | (Schema::AnyOf(anyof), atomic @ Schema::Atomic(_)) => {
                 if anyof.contains(&atomic) {
                     atomic.clone()
+                } else {
+                    Schema::Unsat
+                }
+            }
+            (Schema::Missing, Schema::AnyOf(anyof)) | (Schema::AnyOf(anyof), Schema::Missing) => {
+                if anyof.contains(&Schema::Missing) {
+                    Schema::Missing
                 } else {
                     Schema::Unsat
                 }
@@ -1717,7 +1729,7 @@ impl Atomic {
         use self::Atomic::*;
         match self {
             Decimal | Double | Integer | Long => true,
-            String | BinData | ObjectId | Boolean | Date | Null | Regex | DbPointer
+            String | BinData | Undefined | ObjectId | Boolean | Date | Null | Regex | DbPointer
             | Javascript | Symbol | JavascriptWithScope | Timestamp | MinKey | MaxKey => false,
         }
     }

@@ -23,7 +23,8 @@ mod schema_ord {
         assert!(Decimal < Symbol);
         assert!(Symbol < String);
         assert!(String < BinData);
-        assert!(BinData < ObjectId);
+        assert!(BinData < Undefined);
+        assert!(Undefined < ObjectId);
         assert!(ObjectId < Boolean);
         assert!(Boolean < Date);
         assert!(Date < Timestamp);
@@ -2540,6 +2541,7 @@ mod subtract_nullish {
             Atomic(Double),
             Atomic(Decimal),
             Atomic(BinData),
+            Atomic(Undefined),
             Atomic(ObjectId),
             Atomic(Boolean),
             Atomic(Date),

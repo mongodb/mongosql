@@ -8,7 +8,8 @@ use agg_ast::{
 };
 use bson::Bson;
 use std::{collections::HashSet, sync::LazyLock};
-static DECIMAL_ZERO: LazyLock<bson::Decimal128> = LazyLock::new(|| "0.0".parse().unwrap());
+pub(crate) static DECIMAL_ZERO: LazyLock<bson::Decimal128> =
+    LazyLock::new(|| "0.0".parse().unwrap());
 
 #[allow(dead_code)]
 pub(crate) trait NegativeNormalize<T> {

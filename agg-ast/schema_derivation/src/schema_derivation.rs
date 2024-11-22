@@ -22,7 +22,7 @@ pub(crate) struct ResultSetState<'a> {
 }
 
 impl DeriveSchema for Stage {
-    fn derive_schema(&self, _state: &mut ResultSetState) -> Result<Schema> {
+    fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
         match *self {
             Stage::AddFields(_) => todo!(),
             Stage::AtlasSearchStage(_) => todo!(),
@@ -41,7 +41,7 @@ impl DeriveSchema for Stage {
             Stage::Join(_) => todo!(),
             Stage::Limit(_) => todo!(),
             Stage::Lookup(_) => todo!(),
-            Stage::Match(_) => todo!(),
+            Stage::Match(ref m) => m.derive_schema(state),
             Stage::Project(_) => todo!(),
             Stage::Redact(_) => todo!(),
             Stage::ReplaceWith(_) => todo!(),

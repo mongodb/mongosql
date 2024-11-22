@@ -1,10 +1,11 @@
 use futures::{future, TryStreamExt};
 use mongodb::{
-    bson::{doc, Bson, Document},
+    bson::{doc, Document},
     options::AggregateOptions,
     Collection, Database,
 };
-use mongosql::schema::{Atomic, JaccardIndex, Schema};
+use mongosql::schema::Schema;
+use schema_derivation::schema_for_document;
 use tracing::instrument;
 
 use crate::{
@@ -12,9 +13,6 @@ use crate::{
     Partition, Result, SamplerAction, SamplerNotification, PARTITION_DOCS_PER_ITERATION,
     VIEW_SAMPLE_SIZE,
 };
-
-#[cfg(test)]
-mod test;
 
 /// A utility function for deriving the schema for a collection based on its partitions.
 ///
@@ -250,62 +248,4 @@ pub(crate) async fn derive_schema_for_view(
 
     drop(tx_notification);
     schema
-}
-
-/// Returns a [Schema] for a given BSON document.
-#[instrument(level = "trace", skip_all)]
-pub(crate) fn schema_for_document(doc: &Document) -> Schema {
-    Schema::Document(mongosql::schema::Document {
-        keys: doc
-            .iter()
-            .map(|(k, v)| (k.to_string(), schema_for_bson(v)))
-            .collect(),
-        required: doc.iter().map(|(k, _)| k.to_string()).collect(),
-        jaccard_index: JaccardIndex::default().into(),
-        ..Default::default()
-    })
-}
-
-#[instrument(level = "trace", skip_all)]
-fn schema_for_bson(b: &Bson) -> Schema {
-    use Atomic::*;
-    match b {
-        Bson::Double(_) => Schema::Atomic(Double),
-        Bson::String(_) => Schema::Atomic(String),
-        Bson::Array(a) => Schema::Array(Box::new(schema_for_bson_array_elements(a))),
-        Bson::Document(d) => schema_for_document(d),
-        Bson::Boolean(_) => Schema::Atomic(Boolean),
-        Bson::Null => Schema::Atomic(Null),
-        Bson::RegularExpression(_) => Schema::Atomic(Regex),
-        Bson::JavaScriptCode(_) => Schema::Atomic(Javascript),
-        Bson::JavaScriptCodeWithScope(_) => Schema::Atomic(JavascriptWithScope),
-        Bson::Int32(_) => Schema::Atomic(Integer),
-        Bson::Int64(_) => Schema::Atomic(Long),
-        Bson::Timestamp(_) => Schema::Atomic(Timestamp),
-        Bson::Binary(_) => Schema::Atomic(BinData),
-        Bson::ObjectId(_) => Schema::Atomic(ObjectId),
-        Bson::DateTime(_) => Schema::Atomic(Date),
-        Bson::Symbol(_) => Schema::Atomic(Symbol),
-        Bson::Decimal128(_) => Schema::Atomic(Decimal),
-        Bson::Undefined => Schema::Atomic(Null),
-        Bson::MaxKey => Schema::Atomic(MaxKey),
-        Bson::MinKey => Schema::Atomic(MinKey),
-        Bson::DbPointer(_) => Schema::Atomic(DbPointer),
-    }
-}
-
-// This may prove costly for very large arrays, and we may want to
-// consider a limit on the number of elements to consider.
-#[instrument(level = "trace", skip_all)]
-fn schema_for_bson_array_elements(bs: &[Bson]) -> Schema {
-    // if an array is empty, we can't infer anything about it
-    // we're safe to mark it as potentially null, as an empty array
-    // satisfies jsonSchema search predicate
-    if bs.is_empty() {
-        return Schema::Atomic(Atomic::Null);
-    }
-    bs.iter()
-        .map(schema_for_bson)
-        .reduce(|acc, s| acc.union(&s))
-        .unwrap_or(Schema::Any)
 }
