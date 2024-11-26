@@ -387,6 +387,7 @@ types:
 - Boolean
 - Date
 - Null
+- Undefined
 - Regex
 - DBPointer
 - Javascript
@@ -398,14 +399,6 @@ types:
 - Decimal
 - MinKey
 - MaxKey
-
-##### Unsupported BSON Types
-
-MongoSQL reserves the right to not support certain BSON types. As BSON types
-become deprecated, support for them in MongoSQL may be removed. The following
-types are _not_ supported in MongoSQL:
-
-- Undefined
 
 #### Type Names and Aliases
 

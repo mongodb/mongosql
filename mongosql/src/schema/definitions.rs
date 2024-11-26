@@ -81,13 +81,7 @@ mod user_schema_error {
                     "Consider aliasing the following conflicting field(s) to unique names: {}",
                     names.join(", ")
                 )),
-                Error::UnsupportedBsonType(s) => {
-                    let message = match s.as_str() {
-                        "undefined" => "Consider updating the type of undefined fields to a non-deprecated BSON type, such as Null".to_string(),
-                        _ => String::new(),
-                    };
-                    Some(format!("Unsupported BSON type: {s}. {message}"))
-                }
+                Error::UnsupportedBsonType(s) => Some(format!("Unsupported BSON type: {s}.")),
             }
         }
 
@@ -471,11 +465,9 @@ impl TryFrom<json_schema::BsonTypeName> for Atomic {
             BsonTypeName::Timestamp => Ok(Atomic::Timestamp),
             BsonTypeName::MinKey => Ok(Atomic::MinKey),
             BsonTypeName::MaxKey => Ok(Atomic::MaxKey),
+            BsonTypeName::Undefined => Ok(Atomic::Undefined),
             BsonTypeName::Object | BsonTypeName::Array => {
                 Err(Error::CannotConvertBsonTypeToAtomic(t))
-            }
-            BsonTypeName::Undefined => {
-                Err(user_schema_error::Error::UnsupportedBsonType("undefined".to_string()).into())
             }
         }
     }
