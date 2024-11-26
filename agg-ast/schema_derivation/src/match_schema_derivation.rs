@@ -3,7 +3,9 @@ use crate::{
     negative_normalize::{NegativeNormalize, DECIMAL_ZERO},
     schema_for_bson, DeriveSchema, Result, ResultSetState,
 };
-use agg_ast::definitions::{MatchBinaryOp, MatchExpression, MatchField, MatchStage};
+use agg_ast::definitions::{
+    MatchBinaryOp, MatchExpression, MatchField, MatchLogical, MatchNotExpression, MatchStage,
+};
 use bson::Bson;
 use mongosql::{
     map,
@@ -213,6 +215,10 @@ fn schema_for_array_bson_values(bson: &Bson, include_missing: bool) -> Schema {
 // to check or modify required. We will rely on Schema::simply to lower Schema::Missing back to
 // removing from required, since Schema::Missing cannot be serialized.
 fn promote_missing(schema: &Schema) -> Schema {
+    // It would be much more efficient to do this in place, but we can't do that because of
+    // BTreeSets. At some point we may want to consider moving to Vec, which would have no
+    // effect on serialization, but we would have to be more careful to remove duplicates and
+    // define an ordering.
     match schema {
         Schema::AnyOf(schemas) => {
             let schemas = schemas.iter().map(promote_missing).collect::<BTreeSet<_>>();
@@ -238,25 +244,94 @@ impl DeriveSchema for MatchStage {
         state.result_set_schema = promote_missing(&state.result_set_schema);
         for expr in self.expr.iter() {
             let expr = expr.get_negative_normal_form();
-            expr.derive_schema(state)?;
+            expr.match_derive_schema(state);
         }
         Ok(state.result_set_schema.clone())
     }
 }
 
-impl DeriveSchema for MatchExpression {
-    fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
+trait MatchConstrainSchema {
+    // match_derive_schema does not need to return Schema because it only applies constraints
+    // to already existing Schema. It also does not need to return a Result because it is infallible
+    // (modulo a panic that can only result due to programmer error).
+    fn match_derive_schema(&self, state: &mut ResultSetState);
+}
+
+impl MatchConstrainSchema for MatchExpression {
+    fn match_derive_schema(&self, state: &mut ResultSetState) {
         match self {
             MatchExpression::Expr(_) => todo!(),
             MatchExpression::Misc(_) => todo!(),
-            MatchExpression::Logical(_) => todo!(),
-            MatchExpression::Field(f) => f.derive_schema(state),
+            MatchExpression::Logical(l) => l.match_derive_schema(state),
+            MatchExpression::Field(f) => f.match_derive_schema(state),
         }
     }
 }
 
-impl DeriveSchema for MatchField {
-    fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
+impl MatchConstrainSchema for MatchLogical {
+    fn match_derive_schema(&self, state: &mut ResultSetState) {
+        match self {
+            MatchLogical::And(exprs) => {
+                for expr in exprs.iter() {
+                    expr.match_derive_schema(state);
+                }
+            }
+            MatchLogical::Or(exprs) => {
+                let mut states = Vec::new();
+                for expr in exprs.iter() {
+                    let mut state = state.clone();
+                    expr.match_derive_schema(&mut state);
+                    states.push(state);
+                }
+                let mut schema = Schema::Unsat;
+                for state in states.into_iter() {
+                    schema = schema.union(&state.result_set_schema);
+                }
+                state.result_set_schema = schema;
+            }
+            MatchLogical::Nor(_) => {
+                panic!(
+                    "found $nor in match_derive_schema, this means negative normalization did not occur"
+                )
+            }
+            MatchLogical::Not(n) => {
+                // The only operator left with $not after negative normalization that can inform
+                // types is $type. We originally had the idea of just negating the type set for
+                // $type, but there is no type name for missing, so that does not handle missing
+                // correctly. All other operators left with $not currently do not have an affect on
+                // schema. For instance geo ops will fail to match if the field is an incorrect geo
+                // coordinate or if it is _any other type_.
+                if let MatchNotExpression::Query(ref ops) = n.expr {
+                    // ops must be length one after negative normalization
+                    if ops.len() == 1 {
+                        let (op, b) = ops.iter().next().unwrap();
+                        if let MatchBinaryOp::Type = op {
+                            let path = n.field.as_str().split('.').map(|s| s.to_string()).collect();
+                            let to_remove_schema = schema_for_type_expr(b);
+                            let field_schema =
+                                get_schema_for_path_mut(&mut state.result_set_schema, path);
+                            let field_schema = match field_schema {
+                                Some(field_schema) => field_schema,
+                                None => {
+                                    return;
+                                }
+                            };
+                            match to_remove_schema {
+                                Schema::AnyOf(schemas) => {
+                                    schema_difference(field_schema, schemas);
+                                }
+                                _ => schema_difference(field_schema, set![to_remove_schema]),
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl MatchConstrainSchema for MatchField {
+    fn match_derive_schema(&self, state: &mut ResultSetState) {
         let path: Vec<_> = self
             .field
             .as_str()
@@ -264,10 +339,8 @@ impl DeriveSchema for MatchField {
             .map(|s| s.to_string())
             .collect();
         self.ops.iter().for_each(|(op, b)| {
-            derive_schema_for_match_op(path.clone(), *op, b, state);
+            match_derive_schema_for_op(path.clone(), *op, b, state);
         });
-        // This result will not be used, but this is the most accurate Schema.
-        Ok(Schema::Atomic(Atomic::Boolean))
     }
 }
 
@@ -296,9 +369,9 @@ fn schema_difference(schema: &mut Schema, to_remove: BTreeSet<Schema>) {
     }
 }
 
-// derive_schema_for_match_op derives the schema for a single match operation, since a given field
-// may be nested above multiple match operations. This is a helper function for MatchField::derive_schema.
-fn derive_schema_for_match_op(
+// match_derive_schema_for_op derives the schema for a single match operation, since a given field
+// may be nested above multiple match operations. This is a helper function for MatchField::match_derive_schema.
+fn match_derive_schema_for_op(
     path: Vec<String>,
     op: MatchBinaryOp,
     b: &Bson,

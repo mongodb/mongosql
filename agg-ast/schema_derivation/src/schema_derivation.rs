@@ -15,6 +15,7 @@ pub(crate) trait DeriveSchema {
 }
 
 #[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct ResultSetState<'a> {
     pub catalog: &'a BTreeMap<String, Schema>,
     pub variables: &'a BTreeMap<String, Schema>,

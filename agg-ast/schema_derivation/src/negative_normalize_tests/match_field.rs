@@ -96,27 +96,7 @@ test_negation!(
 
 test_negation!(
     m_type,
-    expected = r#"{"x": {"$type": [
-        "string",
-        "object",
-        "array",
-        "binData",
-        "undefined",
-        "objectId",
-        "bool",
-        "date",
-        "null",
-        "regex",
-        "dbPointer",
-        "javascript",
-        "symbol",
-        "javascriptWithScope",
-        "timestamp",
-        "long",
-        "decimal",
-        "minKey",
-        "maxKey"
-    ]}}"#,
+    expected = r#"{"x": {"$not": {"$type": ["int", "double"]}}}"#,
     input = r#"{"x": {"$type": ["int", "double"]}}"#
 );
 

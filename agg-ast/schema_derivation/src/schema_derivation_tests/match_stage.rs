@@ -598,3 +598,167 @@ test_derivation_for_geo_ops! { derivation_for_geo_near, operator = "$near", }
 test_derivation_for_geo_ops! { derivation_for_geo_near_sphere, operator = "$nearSphere", }
 test_derivation_for_geo_ops! { derivation_for_geo_geo_within, operator = "$geoWithin", }
 test_derivation_for_geo_ops! { derivation_for_geo_geo_intersects, operator = "$geoIntersects", }
+
+test_derive_schema_for_match_stage! {
+    derivation_for_or_string_oid,
+    expected = Ok(Schema::Document(Document {
+        keys: map! {
+            "foo".to_string() => Schema::AnyOf(set!{
+                Schema::Atomic(Atomic::String),
+                Schema::Atomic(Atomic::ObjectId),
+            })
+        },
+        required: set!{"foo".to_string()},
+        additional_properties: false,
+        jaccard_index: None,
+    })),
+    input = r#"{"$match": {"$or": [{"foo": "hello"}, {"foo": {"$type": "objectId"}}]}}"#,
+    ref_schema = Schema::Any
+}
+
+test_derive_schema_for_match_stage! {
+    derivation_for_and_over_or,
+    expected = Ok(Schema::Document(Document {
+        keys: map! {
+            "foo".to_string() => Schema::Atomic(Atomic::String),
+        },
+        required: set!{"foo".to_string()},
+        additional_properties: false,
+        jaccard_index: None,
+    })),
+    input = r#"{"$match": {"$and": [{"$or": [{"foo": "hello"}, {"foo": {"$type": "objectId"}}]}, {"foo": {"$type": "string"}}]}}"#,
+    ref_schema = Schema::Any
+}
+
+test_derive_schema_for_match_stage! {
+    derivation_for_or_over_and_exists_true,
+    expected = Ok(Schema::Document(Document {
+        keys: map! {
+            "foo".to_string() => Schema::AnyOf(set![
+                Schema::Atomic(Atomic::String),
+                Schema::Atomic(Atomic::ObjectId),
+            ]),
+        },
+        required: set!{"foo".to_string()},
+        additional_properties: false,
+        jaccard_index: None,
+    })),
+    input = r#"{"$match": {"$or": [{"$and": [{"foo": "hello"}, {"foo": {"$type": "string"}}]}, {"foo": {"$type": ["objectId"], "$exists": true}}]}}"#,
+    ref_schema = Schema::Any
+}
+
+test_derive_schema_for_match_stage! {
+    derivation_for_or_over_and_exists_false,
+    expected = Ok(Schema::Document(Document {
+        keys: map! {
+            "foo".to_string() => Schema::Atomic(Atomic::String),
+        },
+        required: set!{},
+        additional_properties: false,
+        jaccard_index: None,
+    })),
+    input = r#"{"$match": {"$or": [{"$and": [{"foo": "hello"}, {"foo": {"$type": "string"}}]}, {"foo": {"$exists": false}}]}}"#,
+    ref_schema = Schema::Any
+}
+
+test_derive_schema_for_match_stage! {
+    derivation_for_nor,
+    expected = Ok(Schema::Document(Document {
+        keys: map! {
+            "foo".to_string() => Schema::AnyOf(set![
+                 Schema::Atomic(Atomic::Double),
+                 Schema::Document(Document::any()),
+                 Schema::Array(Box::new(Schema::Any)),
+                 Schema::Atomic(Atomic::BinData),
+                 Schema::Atomic(Atomic::Undefined),
+                 Schema::Atomic(Atomic::Boolean),
+                 Schema::Atomic(Atomic::Date),
+                 Schema::Atomic(Atomic::Null),
+                 Schema::Atomic(Atomic::Regex),
+                 Schema::Atomic(Atomic::DbPointer),
+                 Schema::Atomic(Atomic::Javascript),
+                 Schema::Atomic(Atomic::Symbol),
+                 Schema::Atomic(Atomic::JavascriptWithScope),
+                 Schema::Atomic(Atomic::Integer),
+                 Schema::Atomic(Atomic::Timestamp),
+                 Schema::Atomic(Atomic::Long),
+                 Schema::Atomic(Atomic::Decimal),
+                 Schema::Atomic(Atomic::MinKey),
+                 Schema::Atomic(Atomic::MaxKey),
+            ]),
+        },
+        required: set!{},
+        additional_properties: false,
+        jaccard_index: None,
+    })),
+    input = r#"{"$match": {"$nor": [{"foo": {"$type": "string"}}, {"foo": {"$type": "objectId"}}]}}"#,
+    ref_schema = Schema::Any
+}
+
+test_derive_schema_for_match_stage! {
+    derivation_for_not,
+    expected = Ok(Schema::Document(Document {
+        keys: map! {
+            "foo".to_string() => Schema::AnyOf(set![
+                 Schema::Atomic(Atomic::Double),
+                 Schema::Document(Document::any()),
+                 Schema::Array(Box::new(Schema::Any)),
+                 Schema::Atomic(Atomic::BinData),
+                 Schema::Atomic(Atomic::Undefined),
+                 Schema::Atomic(Atomic::Boolean),
+                 Schema::Atomic(Atomic::Date),
+                 Schema::Atomic(Atomic::Null),
+                 Schema::Atomic(Atomic::Regex),
+                 Schema::Atomic(Atomic::DbPointer),
+                 Schema::Atomic(Atomic::Javascript),
+                 Schema::Atomic(Atomic::Symbol),
+                 Schema::Atomic(Atomic::JavascriptWithScope),
+                 Schema::Atomic(Atomic::Timestamp),
+                 Schema::Atomic(Atomic::Long),
+                 Schema::Atomic(Atomic::Decimal),
+                 Schema::Atomic(Atomic::MinKey),
+                 Schema::Atomic(Atomic::MaxKey),
+            ]),
+        },
+        required: set!{},
+        additional_properties: false,
+        jaccard_index: None,
+    })),
+    input = r#"{"$match": {"foo": {"$not": {"$type": ["string", "int", "objectId"]}}}}"#,
+    ref_schema = Schema::Any
+}
+
+test_derive_schema_for_match_stage! {
+    derivation_for_not_multi,
+    expected = Ok(Schema::Document(Document {
+        keys: map! {
+            "foo".to_string() => Schema::AnyOf(set![
+                 Schema::Atomic(Atomic::Double),
+                 Schema::Document(Document::any()),
+                 Schema::Array(Box::new(Schema::Any)),
+                 Schema::Atomic(Atomic::String),
+                 Schema::Atomic(Atomic::BinData),
+                 Schema::Atomic(Atomic::Undefined),
+                 Schema::Atomic(Atomic::ObjectId),
+                 Schema::Atomic(Atomic::Boolean),
+                 Schema::Atomic(Atomic::Date),
+                 Schema::Atomic(Atomic::Regex),
+                 Schema::Atomic(Atomic::DbPointer),
+                 Schema::Atomic(Atomic::Javascript),
+                 Schema::Atomic(Atomic::Symbol),
+                 Schema::Atomic(Atomic::JavascriptWithScope),
+                 Schema::Atomic(Atomic::Timestamp),
+                 Schema::Atomic(Atomic::Integer),
+                 Schema::Atomic(Atomic::Long),
+                 Schema::Atomic(Atomic::Decimal),
+                 Schema::Atomic(Atomic::MinKey),
+                 Schema::Atomic(Atomic::MaxKey),
+            ]),
+        },
+        required: set!{},
+        additional_properties: false,
+        jaccard_index: None,
+    })),
+    input = r#"{"$match": {"foo": {"$not": {"$type": ["string", "int", "null"], "$eq": null}}}}"#,
+    ref_schema = Schema::Any
+}

@@ -7,7 +7,7 @@ use agg_ast::{
     map,
 };
 use bson::Bson;
-use std::{collections::HashSet, sync::LazyLock};
+use std::sync::LazyLock;
 pub(crate) static DECIMAL_ZERO: LazyLock<bson::Decimal128> =
     LazyLock::new(|| "0.0".parse().unwrap());
 
@@ -379,53 +379,6 @@ fn negate_exists_bson(bson: &Bson) -> Bson {
     }
 }
 
-// negate_type_bson computes the set complement Bson::Array of bson type names from those provided
-// in a Bson object that is either a Bson::Array(["type1", "type2", ...]) or a
-// Bson::String("type").
-fn negate_type_bson(bson: &Bson) -> Bson {
-    let non_types = match bson {
-        Bson::String(s) => {
-            let mut set = HashSet::new();
-            set.insert(s.as_str());
-            set
-        }
-        Bson::Array(values) => values
-            .iter()
-            .map(|v| v.as_str().unwrap())
-            .collect::<HashSet<_>>(),
-        _ => unreachable!(),
-    };
-    Bson::Array(
-        [
-            "double",
-            "string",
-            "object",
-            "array",
-            "binData",
-            "undefined",
-            "objectId",
-            "bool",
-            "date",
-            "null",
-            "regex",
-            "dbPointer",
-            "javascript",
-            "symbol",
-            "javascriptWithScope",
-            "int",
-            "timestamp",
-            "long",
-            "decimal",
-            "minKey",
-            "maxKey",
-        ]
-        .iter()
-        .filter(|t| !non_types.contains(*t))
-        .map(|t| Bson::String(t.to_string()))
-        .collect(),
-    )
-}
-
 // negate_binary_operator computes the negation of a binary operator in a MatchField that
 // has a field name, a binary operator, and a BSON value, there may be multiple operators in an
 // implicit conjunction, e.g. {x: {$lt: 10, $gt: 5}}, but that is handled below; here,
@@ -468,7 +421,7 @@ fn negate_binary_operator(field: &Ref, op: &MatchBinaryOp, b: &Bson) -> MatchExp
         MatchBinaryOp::Exists => {
             funcion_negate!(field, MatchBinaryOp::Exists, negate_exists_bson, b)
         }
-        MatchBinaryOp::Type => funcion_negate!(field, MatchBinaryOp::Type, negate_type_bson, b),
+        MatchBinaryOp::Type => logical_not_negate!(field, MatchBinaryOp::Type, b),
         MatchBinaryOp::Size => logical_not_negate!(field, MatchBinaryOp::Size, b),
         MatchBinaryOp::Mod => logical_not_negate!(field, MatchBinaryOp::Mod, b),
         MatchBinaryOp::BitsAnySet => simple_negate!(field, MatchBinaryOp::BitsAllClear, b),

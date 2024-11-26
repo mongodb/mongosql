@@ -476,7 +476,7 @@ buildvariants:
   - name: mongodb-schema-manager-macos
     tags: [ "mongodb-schema-manager-release-variant" ]
     display_name: "MongoDB Schema Manager - macOS"
-    run_on: [ macos-1100 ]
+    run_on: [ macos-11 ]
     tasks:
       - name: compile-mongodb-schema-manager
       - name: test-schema-manager-and-schema-builder-library
@@ -502,7 +502,7 @@ buildvariants:
   - name: mongodb-schema-manager-macos-arm
     tags: [ "mongodb-schema-manager-release-variant" ]
     display_name: "MongoDB Schema Manager - macOS arm64"
-    run_on: [ macos-1100-arm64 ]
+    run_on: [ macos-11-arm64 ]
     tasks:
       - name: compile-mongodb-schema-manager
       - name: test-schema-manager-and-schema-builder-library
