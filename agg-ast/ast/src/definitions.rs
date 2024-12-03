@@ -266,6 +266,9 @@ pub enum MatchNotExpression {
     // technically, this needs to be a String or Regex, but this does not need
     // to be encoded in the AST, it can be enforced semantically.
     Regex(bson::Bson),
+    // this is functionally unreachable because bson::Bson will capture everything deserializing; however,
+    // the custom serde explicitly pulls out $elemMatch operators and deserializes to this variant.
+    Element(MatchArrayExpression),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

@@ -60,3 +60,10 @@ test_nnf!(
     expected = r#"{"$expr": {"$ne": ["$bar", 1]}}"#,
     input = r#"{"$expr": {"$not": {"$eq": ["$bar", 1]}}}"#
 );
+
+test_nnf!(
+    not_misc_elem_match,
+    expected =
+        r#"{"$or": [{"a": {"$elemMatch": {"$lte": 3}}}, {"a": {"$elemMatch": {"$ne": 5}}}]}"#,
+    input = r#"{"a": {"$not": {"$elemMatch": {"$gt": 3, "$eq": 5}}}}"#
+);

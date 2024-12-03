@@ -1,8 +1,8 @@
 use agg_ast::{
     definitions::{
-        Expression, Let, LiteralValue, MatchBinaryOp, MatchExpr, MatchExpression, MatchField,
-        MatchLogical, MatchMisc, MatchNot, MatchNotExpression, MatchRegex, Ref, TaggedOperator,
-        UntaggedOperator,
+        Expression, Let, LiteralValue, MatchArrayExpression, MatchArrayQuery, MatchBinaryOp,
+        MatchElement, MatchExpr, MatchExpression, MatchField, MatchLogical, MatchMisc, MatchNot,
+        MatchNotExpression, MatchRegex, Ref, TaggedOperator, UntaggedOperator,
     },
     map,
 };
@@ -47,6 +47,39 @@ macro_rules! wrap_in_false_check {
             Expression::Literal(LiteralValue::Boolean(false))
         )
     };
+}
+
+fn negate_elem_match(field: Ref, match_array_expression: &MatchArrayExpression) -> MatchExpression {
+    let mut args: Vec<MatchExpression> = vec![];
+    match match_array_expression {
+        MatchArrayExpression::Query(q) => {
+            q.query.iter().for_each(|expr| {
+                args.push(MatchExpression::Misc(MatchMisc::Element(MatchElement {
+                    field: field.clone(),
+                    query: MatchArrayExpression::Query(MatchArrayQuery {
+                        query: vec![expr.get_negation()],
+                    }),
+                })));
+            });
+        }
+        MatchArrayExpression::Value(v) => {
+            v.iter().for_each(|(op, b)| {
+                if let MatchExpression::Field(MatchField { field: _field, ops }) =
+                    negate_binary_operator(&field, op, b)
+                {
+                    args.push(MatchExpression::Misc(MatchMisc::Element(MatchElement {
+                        field: field.clone(),
+                        query: MatchArrayExpression::Value(ops),
+                    })));
+                };
+            });
+        }
+    };
+    if args.len() == 1 {
+        args.pop().unwrap()
+    } else {
+        MatchExpression::Logical(MatchLogical::Or(args))
+    }
 }
 
 impl NegativeNormalize<Expression> for Expression {
@@ -251,7 +284,7 @@ impl NegativeNormalize<MatchExpression> for MatchExpression {
             },
             MatchExpression::Logical(logical) => logical.get_negative_normal_form(),
             MatchExpression::Field(field) => field.get_negative_normal_form(),
-            MatchExpression::Misc(_misc) => todo!(),
+            MatchExpression::Misc(misc) => misc.get_negative_normal_form(),
         }
     }
 
@@ -268,7 +301,7 @@ impl NegativeNormalize<MatchExpression> for MatchExpression {
             },
             MatchExpression::Logical(logical) => logical.get_negation(),
             MatchExpression::Field(field) => field.get_negation(),
-            MatchExpression::Misc(_misc) => todo!(),
+            MatchExpression::Misc(misc) => misc.get_negation(),
         }
     }
 }
@@ -302,6 +335,9 @@ impl NegativeNormalize<MatchExpression> for MatchLogical {
             MatchLogical::Not(ref not) => match not.expr {
                 MatchNotExpression::Regex(_) => {
                     MatchExpression::Logical(MatchLogical::Not(not.clone()))
+                }
+                MatchNotExpression::Element(ref element) => {
+                    negate_elem_match(not.field.clone(), element)
                 }
                 MatchNotExpression::Query(ref ops) => {
                     let args = ops
@@ -351,6 +387,12 @@ impl NegativeNormalize<MatchExpression> for MatchLogical {
                         field: not.field.clone(),
                         pattern,
                         options,
+                    }))
+                }
+                MatchNotExpression::Element(ref element) => {
+                    MatchExpression::Misc(MatchMisc::Element(MatchElement {
+                        field: not.field.clone(),
+                        query: element.clone(),
                     }))
                 }
                 MatchNotExpression::Query(ref ops) => MatchExpression::Field(MatchField {
@@ -453,6 +495,23 @@ impl NegativeNormalize<MatchExpression> for MatchField {
             ops.into_iter().next().unwrap()
         } else {
             MatchExpression::Logical(MatchLogical::Or(ops))
+        }
+    }
+}
+
+impl NegativeNormalize<MatchExpression> for MatchMisc {
+    fn get_negative_normal_form(&self) -> MatchExpression {
+        MatchExpression::Misc(self.clone())
+    }
+
+    fn get_negation(&self) -> MatchExpression {
+        match self {
+            MatchMisc::Element(e) => negate_elem_match(e.field.clone(), &e.query),
+            MatchMisc::Comment(_)
+            | MatchMisc::JsonSchema(_)
+            | MatchMisc::Regex(_)
+            | MatchMisc::Text(_)
+            | MatchMisc::Where(_) => MatchExpression::Misc(self.clone()),
         }
     }
 }

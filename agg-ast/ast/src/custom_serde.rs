@@ -201,6 +201,19 @@ impl<'de> de::Visitor<'de> for MatchNotVisitor {
                         op
                     )));
                 }
+                // check if we have an $elemMatch
+                if let bson::Bson::Document(ref d) = value {
+                    if let Some((k, v)) = get_single_entry(d) {
+                        if k == "$elemMatch" {
+                            let match_array_expr: MatchArrayExpression =
+                                bson::from_bson(v).map_err(de::Error::custom)?;
+                            return Ok(MatchNot {
+                                field,
+                                expr: MatchNotExpression::Element(match_array_expr),
+                            });
+                        }
+                    }
+                }
                 let expr: MatchNotExpression = bson::from_bson(value).map_err(de::Error::custom)?;
                 Ok(MatchNot { field, expr })
             }
@@ -235,8 +248,18 @@ impl ser::Serialize for MatchNot {
         S: ser::Serializer,
     {
         let mut map = serializer.serialize_map(Some(1))?;
-        let expr: LinkedHashMap<_, _> = map! {"$not" => &self.expr};
-        map.serialize_entry(self.field.as_str(), &expr)?;
+        match self.expr {
+            MatchNotExpression::Element(ref e) => {
+                let expr: LinkedHashMap<&str, LinkedHashMap<_, _>> = map! {"$not" => map! {
+                    "$elemMatch" => e
+                }};
+                map.serialize_entry(self.field.as_str(), &expr)?
+            }
+            _ => {
+                let expr: LinkedHashMap<_, _> = map! {"$not" => &self.expr};
+                map.serialize_entry(self.field.as_str(), &expr)?;
+            }
+        }
         map.end()
     }
 }

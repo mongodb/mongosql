@@ -350,10 +350,10 @@ mod stage_test {
     mod match_stage {
         use crate::{
             definitions::{
-                Expression, LiteralValue, MatchBinaryOp, MatchComment, MatchExpr, MatchExpression,
-                MatchField, MatchJsonSchema, MatchLogical, MatchMisc, MatchNot, MatchNotExpression,
-                MatchRegex, MatchStage, MatchText, MatchTextContents, MatchWhere, Ref, Stage,
-                UntaggedOperator,
+                Expression, LiteralValue, MatchArrayExpression, MatchBinaryOp, MatchComment,
+                MatchExpr, MatchExpression, MatchField, MatchJsonSchema, MatchLogical, MatchMisc,
+                MatchNot, MatchNotExpression, MatchRegex, MatchStage, MatchText, MatchTextContents,
+                MatchWhere, Ref, Stage, UntaggedOperator,
             },
             map,
         };
@@ -485,6 +485,20 @@ mod stage_test {
         test_match_logical_vararg!(or, string_op = "$or", expected_op = MatchLogical::Or);
         test_match_logical_vararg!(and, string_op = "$and", expected_op = MatchLogical::And);
         test_match_logical_vararg!(nor, string_op = "$nor", expected_op = MatchLogical::Nor);
+
+        test_serde_stage!(
+            not_element,
+            expected = Stage::Match(MatchStage {
+                expr: vec![MatchExpression::Logical(MatchLogical::Not(MatchNot {
+                    field: Ref::FieldRef("a".to_string()),
+                    expr: MatchNotExpression::Element(MatchArrayExpression::Value(map! {
+                        MatchBinaryOp::Gt => bson::Bson::Int32(3),
+                        MatchBinaryOp::Eq => bson::Bson::Int32(5),
+                    }))
+                })),]
+            }),
+            input = r#"stage: {"$match": {"a": {"$not": {"$elemMatch": {"$gt": 3, "$eq": 5}}}}}"#
+        );
 
         test_serde_stage!(
             not_query,
