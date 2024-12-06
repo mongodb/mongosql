@@ -1355,6 +1355,7 @@ pub struct Shift {
 }
 
 /// VecOrSingleExpr represents the argument to UntaggedOperators.
+///
 /// Either of the following is valid MQL:
 ///   { "$sqrt": "$a" }, or
 ///   { "$sqrt": ["$a"] }

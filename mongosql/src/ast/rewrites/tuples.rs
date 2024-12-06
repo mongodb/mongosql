@@ -4,7 +4,8 @@ use crate::ast::{
     *,
 };
 
-/// Finds all expressions of the form `<expr> [NOT] IN (<e1>, <e2>, ...)` and rewrites them to either
+/// Finds all expressions of the form `<expr> [NOT] IN (<e1>, <e2>, ...)` and rewrites them to either:
+///
 /// `<expr> (<> | =) <e1> [(AND | OR) <expr> (<> | =) <e2>, ...]` or
 /// `<expr> [NOT] IN (SELECT _1 FROM [{'_1': <e1>}, {'_1': <e2>}, ...] AS _arr)`
 /// depending on the type of expression `<expr>` is. For simple field references, we rewrite to the former;

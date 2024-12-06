@@ -300,7 +300,7 @@ struct StageMovementVisitor<'a> {
     is_filter_filter_only_change: bool,
 }
 
-impl<'a> StageMovementVisitor<'a> {
+impl StageMovementVisitor<'_> {
     // bubble_up should only be used after we are _sure_ we want to move a Stage up. The handle_x
     // methods should be determining if the swap is necessary.
     fn bubble_up(
@@ -704,7 +704,7 @@ impl<'a> StageMovementVisitor<'a> {
     }
 }
 
-impl<'a> Visitor for StageMovementVisitor<'a> {
+impl Visitor for StageMovementVisitor<'_> {
     fn visit_stage(&mut self, node: Stage) -> Stage {
         let node = node.walk(self);
         match node {

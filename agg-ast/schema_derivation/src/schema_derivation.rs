@@ -1,4 +1,4 @@
-use crate::{get_schema_for_path_mut, Error, Result};
+use crate::{get_schema_for_path_mut, remove_field, Error, Result};
 use agg_ast::definitions::{
     Expression, LiteralValue, Ref, Stage, TaggedOperator, UntaggedOperator,
 };
@@ -123,9 +123,13 @@ impl DeriveSchema for Expression {
                     None => Err(Error::UnknownReference(f.clone())),
                 }
             }
-            Expression::Ref(Ref::VariableRef(v)) => match state.variables.get(v) {
-                Some(schema) => Ok(schema.clone()),
-                None => Err(Error::UnknownReference(v.clone())),
+            Expression::Ref(Ref::VariableRef(v)) => match v.as_str() {
+                "REMOVE" => Ok(Schema::Missing),
+                "ROOT" => Ok(state.result_set_schema.clone()),
+                v => match state.variables.get(v) {
+                    Some(schema) => Ok(schema.clone()),
+                    None => Err(Error::UnknownReference(v.into())),
+                },
             },
             Expression::TaggedOperator(op) => op.derive_schema(state),
             Expression::UntaggedOperator(op) => op.derive_schema(state),
@@ -436,6 +440,81 @@ impl DeriveSchema for TaggedOperator {
                 handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Date))
             }
             TaggedOperator::SortArray(s) => s.input.derive_schema(state),
+            TaggedOperator::Let(l) => {
+                // we create a copy of the underlying result set state, then add the vars to that.
+                // this allows us to temporarily overwrite any variables from the top level if they are defined in
+                // both places, and result set state remains unchanged for future operations.
+                let mut variables = state.variables.clone();
+                let mut let_state_variables = l
+                    .vars
+                    .iter()
+                    .map(|(key, value)| {
+                        value
+                            .derive_schema(state)
+                            .map(|schema| (key.clone(), schema))
+                    })
+                    .collect::<Result<BTreeMap<String, Schema>>>()?;
+                variables.append(&mut let_state_variables);
+                let mut let_state = ResultSetState {
+                    result_set_schema: state.result_set_schema.clone(),
+                    catalog: state.catalog,
+                    variables: &variables,
+                };
+                l.inside.derive_schema(&mut let_state)
+            }
+            TaggedOperator::GetField(g) => {
+                let mut input_schema = g.input.derive_schema(state)?;
+                let field_schema =
+                    get_schema_for_path_mut(&mut input_schema, vec![g.field.clone()]);
+                match field_schema {
+                    None => Ok(Schema::Missing),
+                    Some(schema) => Ok(schema.clone()),
+                }
+            }
+            TaggedOperator::SetField(s) => {
+                // set field does not update the underlying result set schema, but rather, gets the schema
+                // of the input, modifies that, and returns it. Thus, we copy the input schema and modify that accordingly.
+                let mut input_schema = s.input.derive_schema(state)?;
+                let value_schema = s.value.derive_schema(state)?;
+                let field_schema =
+                    get_schema_for_path_mut(&mut input_schema, vec![s.field.clone()]);
+                match field_schema {
+                    // if we are setting a new field, add it in appropriately, unless its missing (no-op)
+                    None => {
+                        if value_schema != Schema::Missing {
+                            let new_field = Schema::Document(Document {
+                                keys: map! {
+                                    s.field.clone() => value_schema,
+                                },
+                                required: set!(s.field.clone()),
+                                ..Default::default()
+                            });
+                            Ok(input_schema.union(&new_field))
+                        } else {
+                            Ok(input_schema)
+                        }
+                    }
+                    // if we are handling a new field, check first if the schema is missing (could either be
+                    // cause by setting to missing, or setting ot $$REMOVE). Remove it or set it to the new type accordingly
+                    Some(field_schema) => {
+                        match value_schema {
+                            Schema::Missing => {
+                                remove_field(&mut input_schema, vec![s.field.clone()]);
+                            }
+                            _ => {
+                                *field_schema = value_schema;
+                            }
+                        }
+                        Ok(input_schema)
+                    }
+                }
+            }
+            TaggedOperator::UnsetField(u) => {
+                // note: this is functionally the same as $setField with Schema::Missing or $$REMOVE
+                let mut input_schema = u.input.derive_schema(state)?;
+                remove_field(&mut input_schema, vec![u.field.clone()]);
+                Ok(input_schema)
+            }
             TaggedOperator::Accumulator(_) => todo!(),
             TaggedOperator::Bottom(_) => todo!(),
             TaggedOperator::BottomN(_) => todo!(),
@@ -443,10 +522,8 @@ impl DeriveSchema for TaggedOperator {
             TaggedOperator::Filter(_) => todo!(),
             TaggedOperator::FirstN(_) => todo!(),
             TaggedOperator::Function(_) => todo!(),
-            TaggedOperator::GetField(_) => todo!(),
             TaggedOperator::Integral(_) => todo!(),
             TaggedOperator::LastN(_) => todo!(),
-            TaggedOperator::Let(_) => todo!(),
             TaggedOperator::Like(_) => todo!(),
             TaggedOperator::Map(_) => todo!(),
             TaggedOperator::MaxNArrayElement(_) => todo!(),
@@ -455,7 +532,6 @@ impl DeriveSchema for TaggedOperator {
             TaggedOperator::Regex(_) => todo!(),
             TaggedOperator::ReplaceAll(_) => todo!(),
             TaggedOperator::ReplaceOne(_) => todo!(),
-            TaggedOperator::SetField(_) => todo!(),
             TaggedOperator::Shift(_) => todo!(),
             TaggedOperator::Subquery(_) => todo!(),
             TaggedOperator::SubqueryComparison(_) => todo!(),
@@ -463,7 +539,6 @@ impl DeriveSchema for TaggedOperator {
             TaggedOperator::Switch(_) => todo!(),
             TaggedOperator::Top(_) => todo!(),
             TaggedOperator::TopN(_) => todo!(),
-            TaggedOperator::UnsetField(_) => todo!(),
             TaggedOperator::Zip(_) => todo!(),
             TaggedOperator::SqlConvert(_) | TaggedOperator::SqlDivide(_) => {
                 Err(Error::InvalidTaggedOperator(self.clone()))

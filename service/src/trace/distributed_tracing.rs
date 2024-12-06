@@ -50,7 +50,7 @@ pub fn init_tracer_provider() -> Result<sdktrace::TracerProvider, TraceError> {
 
 pub struct MetadataMapExtractor<'a>(pub &'a MetadataMap);
 
-impl<'a> Extractor for MetadataMapExtractor<'a> {
+impl Extractor for MetadataMapExtractor<'_> {
     fn get(&self, key: &str) -> Option<&str> {
         self.0.get(key).and_then(|metadata| metadata.to_str().ok())
     }

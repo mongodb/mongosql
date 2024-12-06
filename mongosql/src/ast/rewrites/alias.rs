@@ -5,8 +5,9 @@ use crate::ast::{
     CollectionSource,
 };
 
-/// Adds aliases to any AliasedExprs or CollectionSources that are missing one. Since we can't
-/// distinguish between top-level field references and SubpathExprs during syntactic rewrites, we
+/// Adds aliases to any AliasedExprs or CollectionSources that are missing one.
+///
+/// Since we can't distinguish between top-level field references and SubpathExprs during syntactic rewrites, we
 /// will skip generating aliases for any GROUP BY key that resembles a top-level field reference, i.e.
 /// any expression with exactly one dot.
 pub struct AddAliasRewritePass;

@@ -58,7 +58,7 @@ struct JoinSemanticsOptimizerVisitor<'a> {
     changed: bool,
 }
 
-impl<'a> JoinSemanticsOptimizerVisitor<'a> {
+impl JoinSemanticsOptimizerVisitor<'_> {
     /// get_if_resembles_collection_source gets the 'right' field for the
     /// EquiJoin _if_ the Join's right stage "resembles a collection source".
     /// The argument, stage, must be the candidate Join stage's right source.
@@ -150,7 +150,7 @@ impl<'a> JoinSemanticsOptimizerVisitor<'a> {
     }
 }
 
-impl<'a> Visitor for JoinSemanticsOptimizerVisitor<'a> {
+impl Visitor for JoinSemanticsOptimizerVisitor<'_> {
     fn visit_stage(&mut self, node: Stage) -> Stage {
         let node = node.walk(self);
 

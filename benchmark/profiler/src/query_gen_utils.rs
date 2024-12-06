@@ -8,8 +8,8 @@ use std::{collections::BTreeMap, fs::File, io::BufWriter, path::PathBuf};
 ///
 /// Note that there is no function for writing/printing these queries
 /// anywhere. That is up to the developer to decide what is best based
-/// on what they are doing.  
-
+/// on what they are doing.
+///
 /// NameGenerator is an Iterator that generates 2-char-length names for use
 /// in test SQL queries. The names are produced in ascending order following
 /// the pattern: aa, ab, ac, ..., ay, az, ba, bb, ..., zy, zz.

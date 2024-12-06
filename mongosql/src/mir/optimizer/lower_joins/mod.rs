@@ -4,7 +4,6 @@
 /// This enables stage_movement to move the condition earlier in the right
 /// source (or "subquery" in a LateralJoin), which results in better performance
 /// when the LateralJoin is translated into a $lookup stage.
-
 #[cfg(test)]
 mod test;
 

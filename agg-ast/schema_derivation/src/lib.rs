@@ -28,6 +28,9 @@ pub enum Error {
     UnknownReference(String),
 }
 
+/// Gets a mutable reference to a specific field or document path in the schema.
+/// This allows us to insert, remove, or modify fields as we derive the schema for
+/// operators and stages.
 #[allow(dead_code)]
 pub(crate) fn get_schema_for_path_mut(
     schema: &mut Schema,
@@ -43,6 +46,20 @@ pub(crate) fn get_schema_for_path_mut(
         };
     }
     schema
+}
+
+/// remove field is a helper based on get_schema_for_path_mut which removes a field given a field path.
+/// this is useful for operators that operate on specific fields, such as $unsetField, or operators
+/// involving variables like $$REMOVE.
+#[allow(dead_code)]
+pub(crate) fn remove_field(schema: &mut Schema, path: Vec<String>) {
+    if let Some((field, field_path)) = path.split_last() {
+        let input = get_schema_for_path_mut(schema, field_path.into());
+        if let Some(Schema::Document(d)) = input {
+            d.keys.remove(field);
+            d.required.remove(field);
+        }
+    }
 }
 
 pub fn schema_for_bson(b: &Bson) -> Schema {

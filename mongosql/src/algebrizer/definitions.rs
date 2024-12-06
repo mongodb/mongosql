@@ -1849,9 +1849,9 @@ impl<'a> Algebrizer<'a> {
             e.schema(&self.schema_inference_state())
                 .unwrap_or(schema::Schema::Unsat)
         });
-        if !expr_schema
+        if expr_schema
             .as_ref()
-            .is_some_and(|schema| schema.satisfies(&STRING_OR_NULLISH) == Satisfaction::Must)
+            .is_none_or(|schema| schema.satisfies(&STRING_OR_NULLISH) != Satisfaction::Must)
         {
             when_branch = c
                 .when_branch

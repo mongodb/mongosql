@@ -66,7 +66,9 @@ pub fn parse_query_yaml_file(path: PathBuf) -> Result<QueryYamlTestFile, Error> 
  * Unfortunately, NaN != NaN, so we need to do some special handling.
  */
 
-/// Compare arrays of Bson values, allowing for NaN == NaN == true. This is not ideal (ballooning O). Because arrays may contain duplicate values,
+/// Compare arrays of Bson values, allowing for NaN == NaN == true.
+///
+/// This is not ideal (ballooning O). Because arrays may contain duplicate values,
 /// we MUST check every value in the expected array against every value in the actual array. Using the HashSet
 /// to mark seen indices, we can ensure that we don't check the same value twice.
 /// Since the query tests are small, this shouldn't be much of an impact.
@@ -208,9 +210,10 @@ fn compare_doubles_for_test(d: f64, ad: f64) -> bool {
         || (d - ad).abs() <= f64::EPSILON
 }
 
-/// Compare documents, allowing for NaN == NaN == true, by first checking to make sure they have the same number of keys, then iterating
-/// through one document and getting the matching key from the other. Because there can't be duplicate keys within a document (at the same level),
-/// this is a much more simple comparison than arrays.
+/// Compare documents, allowing for NaN == NaN == true.
+///
+/// First, check to make sure they have the same number of keys, then iterate through one document and getting the matching key from the other.
+/// Because there can't be duplicate keys within a document (at the same level), this is a much more simple comparison than arrays.
 pub fn compare_documents(expected: &Document, actual: &Document, type_compare: bool) -> bool {
     if expected.len() != actual.len() {
         return false;

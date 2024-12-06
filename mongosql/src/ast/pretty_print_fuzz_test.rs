@@ -1,5 +1,4 @@
 #[cfg(test)]
-
 mod fuzz_test {
     use crate::{
         ast::{

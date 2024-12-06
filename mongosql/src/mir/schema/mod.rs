@@ -143,7 +143,7 @@ impl<'a> SchemaInferenceState<'a> {
         env: SchemaEnvironment,
         catalog: &'a Catalog,
         schema_checking_mode: SchemaCheckingMode,
-    ) -> SchemaInferenceState {
+    ) -> SchemaInferenceState<'a> {
         SchemaInferenceState {
             scope_level,
             env,
@@ -1813,7 +1813,6 @@ impl ScalarFunction {
             })
             .fold(Ok(EMPTY_DOCUMENT.clone()), |acc, curr| {
                 let acc = acc?;
-                let curr = curr;
                 let sat = acc.has_overlapping_keys_with(&curr);
                 if sat != Satisfaction::Not {
                     return Err(Error::CannotMergeObjects(acc, curr, sat));

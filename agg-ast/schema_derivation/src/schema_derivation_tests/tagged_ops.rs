@@ -531,3 +531,207 @@ mod date_operators {
         input = r#"{"$dateDiff": {"startDate": {"$date": {"$numberLong": "123"}}, "endDate": null, "unit": "hour", "startOfWeek": "mon", "timezone": "America/New_York"}}"#
     );
 }
+
+mod field_setter_ops {
+    use super::*;
+
+    test_derive_schema!(
+        get_field,
+        expected = Ok(Schema::Atomic(Atomic::String)),
+        input = r#"{ "$getField": { "input": "$foo", "field": "x" } }"#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!(),
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema!(
+        get_field_missing,
+        expected = Ok(Schema::Missing),
+        input = r#"{ "$getField": { "input": "$foo", "field": "z" } }"#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!(),
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema!(
+        set_field,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::Boolean),
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!(),
+            ..Default::default()
+        })),
+        input = r#"{ "$setField": { "input": "$foo", "field": "x", "value": true } }"#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!(),
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema!(
+        set_field_root,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Integer),
+                "x".to_string() => Schema::Atomic(Atomic::Boolean),
+            },
+            required: set!(),
+            ..Default::default()
+        })),
+        input = r#"{ "$setField": { "input": "$$ROOT", "field": "x", "value": true } }"#,
+        ref_schema = Schema::Atomic(Atomic::Integer)
+    );
+
+    test_derive_schema!(
+        set_field_new_field,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+                "z".to_string() => Schema::Atomic(Atomic::Boolean),
+            },
+            required: set!(),
+            ..Default::default()
+        })),
+        input = r#"{ "$setField": { "input": "$foo", "field": "z", "value": true } }"#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!(),
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema!(
+        set_field_remove,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("y".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{ "$setField": { "input": "$foo", "field": "x", "value": "$$REMOVE" } }"#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("x".to_string(), "y".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema!(
+        set_field_remove_non_existing_field,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("x".to_string(), "y".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{ "$setField": { "input": "$foo", "field": "z", "value": "$$REMOVE" } }"#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("x".to_string(), "y".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema!(
+        unset_field,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("y".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{ "$unsetField": { "input": "$foo", "field": "x" } }"#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("x".to_string(), "y".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema!(
+        unset_field_non_exising_field,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("x".to_string(), "y".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{ "$unsetField": { "input": "$foo", "field": "z" } }"#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("x".to_string(), "y".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema!(
+        let_simple,
+        expected = Ok(Schema::Atomic(Atomic::Decimal)),
+        input = r#"{ "$let": { "vars": {"x": {"$numberDecimal": "1"}}, "in": {"$multiply": ["$$x", "$foo"]}} }"#,
+        ref_schema = Schema::Atomic(Atomic::Integer)
+    );
+
+    test_derive_schema!(
+        let_accesses_existing_variables,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{ "$let": { "vars": {"x": {"$numberDecimal": "1"}}, "in": {"$multiply": ["$$x", "$$y"]}} }"#,
+        ref_schema = Schema::Any,
+        variables = map! {
+            "y".to_string() => Schema::AnyOf(set!(
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Null),
+            ))
+        }
+    );
+
+    test_derive_schema!(
+        let_overwrites_existing_variables,
+        expected = Ok(Schema::Atomic(Atomic::Decimal)),
+        input = r#"{ "$let": { "vars": {"x": {"$numberDecimal": "1"}}, "in": {"$multiply": ["$$x", "$foo"]}} }"#,
+        ref_schema = Schema::Atomic(Atomic::Integer),
+        variables = map! {
+            "x".to_string() => Schema::Atomic(Atomic::Double)
+        }
+    );
+}

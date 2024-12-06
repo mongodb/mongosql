@@ -28,7 +28,7 @@ lazy_static! {
     static ref DEFAULT_CATALOG: Catalog = Catalog::default();
 }
 
-impl<'a> ConstantFoldExprVisitor<'a> {
+impl ConstantFoldExprVisitor<'_> {
     // Checks if a vector of expressions contains a null or missing expression
     fn has_null_arg(&self, args: &[Expression]) -> bool {
         for expr in args {
@@ -948,7 +948,7 @@ impl<'a> ConstantFoldExprVisitor<'a> {
     }
 }
 
-impl<'a> Visitor for ConstantFoldExprVisitor<'a> {
+impl Visitor for ConstantFoldExprVisitor<'_> {
     fn visit_expression(&mut self, e: Expression) -> Expression {
         let e = e.walk(self);
         let (folded, changed) = match e {

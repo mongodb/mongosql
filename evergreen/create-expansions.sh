@@ -6,14 +6,14 @@ export PATH="$HOME/.cargo/bin:$PATH"
 export CARGO_NET_GIT_FETCH_WITH_CLI=true
 
 export GOPATH="$HOME/go"
-export GOROOT=/opt/golang/go1.19
+export GOROOT=/opt/golang/go1.23
 export GOPRIVATE=github.com/10gen/*
 export GOCACHE="$HOME/gocache"
 
 mkdir -p "$GOCACHE"
 if [ "Windows_NT" = "$OS" ]; then
     set -o igncr
-    export GOROOT='C:\golang\go1.19'
+    export GOROOT='C:\golang\go1.23'
     export GOPATH=$(cygpath -w "$GOPATH")
     export GOCACHE=$(cygpath -w "$GOCACHE")
 fi

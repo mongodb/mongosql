@@ -721,7 +721,7 @@ impl RefVisitor {
 // Deserialization for Ref adapted from an out-of-date tutorial:
 // https://riptutorial.com/rust/example/16175/implement-deserialize-for-a-custom-map-type
 // This is the trait that Deserializers are going to be driving.
-impl<'de> de::Visitor<'de> for RefVisitor {
+impl de::Visitor<'_> for RefVisitor {
     // The type that our Visitor is going to produce.
     type Value = Ref;
 
@@ -886,7 +886,6 @@ impl<'de> Deserialize<'de> for SetWindowFieldsOutput {
 
 /// Custom deserialization function for untagged aggregation operators.
 ///
-
 /// Custom map visitor for identifying and deserializing UntaggedOperators.
 struct UntaggedOperatorVisitor {}
 
