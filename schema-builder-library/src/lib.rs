@@ -1,8 +1,5 @@
 use futures::future;
-use mongodb::{
-    bson::{doc, Document},
-    options::ListDatabasesOptions,
-};
+use mongodb::bson::{doc, Document};
 use mongosql::schema::Schema;
 use std::{
     collections::HashMap,
@@ -115,17 +112,17 @@ impl Display for NamespaceType {
 pub async fn build_schema(options: BuilderOptions) {
     // To start computing the schema for all databases, we need to wait for the
     // list_database_names method to finish.
-    match options
-        .client
-        .list_database_names()
-        .with_options(Some(
-            ListDatabasesOptions::builder()
-                .filter(doc! {"name": { "$nin": DISALLOWED_DB_NAMES.to_vec()} })
-                .build(),
-        ))
-        .await
-    {
-        Ok(databases) => process_databases(options, databases).await,
+    match options.client.list_database_names().await {
+        Ok(databases) => {
+            // The list_database_names() `filter` option doesn't work for Atlas Free and Shared tier clusters,
+            // so we have to manually filter out unwanted databases here.
+            let valid_databases = databases
+                .into_iter()
+                .filter(|db| !DISALLOWED_DB_NAMES.contains(&db.as_str()))
+                .collect();
+
+            process_databases(options, valid_databases).await
+        }
         // If listing the databases fails, there is nothing to do so we report an
         // error, drop all channels, and return.
         Err(e) => {
