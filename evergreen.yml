@@ -1588,7 +1588,6 @@ buildvariants:
       - name: rustfmt
       - name: unused-dependencies
       - name: gofmt
-      - name: goimports
       - name: gomodtidy
 
   - name: ubuntu1804

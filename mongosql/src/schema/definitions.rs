@@ -744,6 +744,8 @@ lazy_static! {
     // Nullish Schemas (Schemas that additionally allow for Null or Missing).
     pub static ref NULLISH: Schema =
         Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing,]);
+    pub static ref NULLISH_OR_UNDEFINED: Schema =
+        Schema::AnyOf(set![Schema::Missing, Schema::Atomic(Atomic::Null), Schema::Atomic(Atomic::Undefined),]);
     pub static ref NON_NULLISH: Schema = Schema::Any.subtract_nullish();
 
     pub static ref ANY_ARRAY_OR_NULLISH: Schema = Schema::AnyOf(set![

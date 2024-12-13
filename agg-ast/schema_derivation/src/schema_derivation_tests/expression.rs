@@ -166,7 +166,7 @@ mod field_ref {
 
     test_derive_schema!(
         field_ref_missing,
-        expected = Err(Error::UnknownReference("foo".to_string())),
+        expected = Ok(Schema::Missing),
         input = r#""$foo""#
     );
 }
@@ -176,15 +176,13 @@ mod array {
 
     test_derive_schema!(
         empty_array,
-        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!())))),
+        expected = Ok(Schema::Array(Box::new(Schema::Atomic(Atomic::Null)))),
         input = r#"[]"#
     );
 
     test_derive_schema!(
         array_single_type,
-        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Integer)
-        ))))),
+        expected = Ok(Schema::Array(Box::new(Schema::Atomic(Atomic::Integer)))),
         input = r#"[1, 2, 3]"#
     );
 
@@ -204,9 +202,7 @@ mod array {
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String)
             )))),
-            Schema::Array(Box::new(Schema::AnyOf(set!(Schema::Atomic(
-                Atomic::String
-            ))))),
+            Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
         ))))),
         input = r#"[[1, 2, "hi"], ["foo", "bar"]]"#
     );
@@ -241,7 +237,7 @@ mod document {
                 "a".to_string() => Schema::Atomic(Atomic::Integer),
                 "b".to_string() => Schema::Document(Document { keys: map! {
                     "c".to_string() => Schema::Atomic(Atomic::String),
-                    "d".to_string() => Schema::Array(Box::new(Schema::AnyOf(set!(Schema::Atomic(Atomic::Boolean)))))
+                    "d".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Boolean))),
                 }, required: set!("c".to_string(), "d".to_string()), ..Default::default() }),
             },
             required: set!("a".to_string(), "b".to_string()),

@@ -4,7 +4,7 @@ use agg_ast::definitions::{
 };
 use mongosql::{
     map,
-    schema::{Atomic, Document, Satisfaction, Schema, NULLISH},
+    schema::{Atomic, Document, Satisfaction, Schema, NULLISH, NULLISH_OR_UNDEFINED, NUMERIC},
     set,
 };
 use std::collections::{BTreeMap, BTreeSet};
@@ -78,21 +78,32 @@ fn derive_schema_for_literal(literal_value: &LiteralValue) -> Result<Schema> {
         LiteralValue::String(_) => Ok(Schema::Atomic(Atomic::String)),
         LiteralValue::Symbol(_) => Ok(Schema::Atomic(Atomic::Symbol)),
         LiteralValue::Timestamp(_) => Ok(Schema::Atomic(Atomic::Timestamp)),
-        LiteralValue::Undefined => Err(Error::InvalidLiteralType),
+        LiteralValue::Undefined => Ok(Schema::Atomic(Atomic::Undefined)),
     }
 }
 
 impl DeriveSchema for Expression {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
         match self {
-            Expression::Array(ref a) => Ok(Schema::Array(Box::new(Schema::AnyOf(
-                a.iter()
+            Expression::Array(ref a) => {
+                let array_schema = a
+                    .iter()
                     .map(|e| {
                         e.derive_schema(state)
                             .map(|schema| schema.upconvert_missing_to_null())
                     })
-                    .collect::<Result<BTreeSet<_>>>()?,
-            )))),
+                    .collect::<Result<BTreeSet<_>>>()?;
+                let array_schema = match array_schema.len() {
+                    // Null for empty array is not great, but it's the best we can do since we
+                    // can't serialize Unsat (technically {"anyOf": []} would be Unsat, but MongoDB does
+                    // not allow that as a viable json schema). We use Null when we derive schema
+                    // for bson arrays in sampling, so it's consistent.
+                    0 => Schema::Atomic(Atomic::Null),
+                    1 => array_schema.into_iter().next().unwrap(),
+                    _ => Schema::AnyOf(array_schema),
+                };
+                Ok(Schema::Array(Box::new(array_schema)))
+            }
             Expression::Document(d) => {
                 let (mut keys, mut required) = (BTreeMap::new(), BTreeSet::new());
                 for (key, e) in d.iter() {
@@ -120,7 +131,9 @@ impl DeriveSchema for Expression {
                 let schema = get_schema_for_path_mut(&mut state.result_set_schema, path);
                 match schema {
                     Some(schema) => Ok(schema.clone()),
-                    None => Err(Error::UnknownReference(f.clone())),
+                    // Unknown fields actually have the Schema Missing, while unknown variables are
+                    // an error.
+                    None => Ok(Schema::Missing),
                 }
             }
             Expression::Ref(Ref::VariableRef(v)) => match v.as_str() {
@@ -516,8 +529,10 @@ impl DeriveSchema for TaggedOperator {
                 Ok(input_schema)
             }
             TaggedOperator::Accumulator(_) => todo!(),
-            TaggedOperator::Bottom(_) => todo!(),
-            TaggedOperator::BottomN(_) => todo!(),
+            TaggedOperator::Bottom(b) => b.output.derive_schema(state),
+            TaggedOperator::BottomN(b) => {
+                Ok(Schema::Array(Box::new(b.output.derive_schema(state)?)))
+            }
             TaggedOperator::Convert(_) => todo!(),
             TaggedOperator::Filter(_) => todo!(),
             TaggedOperator::FirstN(_) => todo!(),
@@ -525,10 +540,56 @@ impl DeriveSchema for TaggedOperator {
             TaggedOperator::Integral(_) => todo!(),
             TaggedOperator::LastN(_) => todo!(),
             TaggedOperator::Like(_) => todo!(),
-            TaggedOperator::Map(_) => todo!(),
-            TaggedOperator::MaxNArrayElement(_) => todo!(),
-            TaggedOperator::MinNArrayElement(_) => todo!(),
-            TaggedOperator::Reduce(_) => todo!(),
+            TaggedOperator::Map(m) => {
+                let var = m._as.clone();
+                let var = var.unwrap_or("this".to_string());
+                let input_schema = m.input.derive_schema(state)?;
+                let array_schema = match input_schema {
+                    Schema::Array(a) => *a,
+                    _ => {
+                        return Err(Error::InvalidExpressionForField(
+                            format!("{:?}", m.input),
+                            "input",
+                        ))
+                    }
+                };
+                let mut new_state = state.clone();
+                let mut variables = state.variables.clone();
+                variables.insert(var, array_schema);
+                new_state.variables = &variables;
+                Ok(
+                    Schema::Array(Box::new(m.inside.derive_schema(&mut new_state)?))
+                        .upconvert_missing_to_null(),
+                )
+            }
+            // Unfortunately, unlike $max and $min, $maxN and $minN cannot
+            // reduce the scope of the result Schema beyond Array(InputSchema)
+            // because doing so would require knowing all the data.
+            TaggedOperator::MaxNArrayElement(m) => {
+                Ok(Schema::Array(Box::new(m.input.derive_schema(state)?)))
+            }
+            TaggedOperator::MinNArrayElement(m) => {
+                Ok(Schema::Array(Box::new(m.input.derive_schema(state)?)))
+            }
+            TaggedOperator::Reduce(r) => {
+                let input_schema = r.input.derive_schema(state)?;
+                let array_schema = match input_schema {
+                    Schema::Array(a) => *a,
+                    _ => {
+                        return Err(Error::InvalidExpressionForField(
+                            format!("{:?}", r.input),
+                            "input",
+                        ))
+                    }
+                };
+                let initial_schema = r.initial_value.derive_schema(state)?;
+                let mut new_state = state.clone();
+                let mut variables = state.variables.clone();
+                variables.insert("this".to_string(), array_schema);
+                variables.insert("value".to_string(), initial_schema);
+                new_state.variables = &variables;
+                r.inside.derive_schema(&mut new_state)
+            }
             TaggedOperator::Regex(_) => todo!(),
             TaggedOperator::ReplaceAll(_) => todo!(),
             TaggedOperator::ReplaceOne(_) => todo!(),
@@ -537,9 +598,31 @@ impl DeriveSchema for TaggedOperator {
             TaggedOperator::SubqueryComparison(_) => todo!(),
             TaggedOperator::SubqueryExists(_) => todo!(),
             TaggedOperator::Switch(_) => todo!(),
-            TaggedOperator::Top(_) => todo!(),
-            TaggedOperator::TopN(_) => todo!(),
-            TaggedOperator::Zip(_) => todo!(),
+            TaggedOperator::Top(t) => t.output.derive_schema(state),
+            TaggedOperator::TopN(t) => Ok(Schema::Array(Box::new(t.output.derive_schema(state)?))),
+            TaggedOperator::Zip(z) => {
+                let inputs = match z.inputs.as_ref() {
+                    Expression::Array(a) => a,
+                    exp => {
+                        return Err(Error::InvalidExpressionForField(
+                            format!("{:?}", exp),
+                            "inputs",
+                        ))
+                    }
+                };
+                let mut array_schema = Schema::Unsat;
+                for input in inputs.iter() {
+                    let input_schema = input.derive_schema(state)?;
+                    array_schema = array_schema.union(&input_schema);
+                }
+                if let Some(defaults) = z.defaults.as_ref() {
+                    let defaults_schema = defaults.derive_schema(state)?;
+                    if matches!(defaults_schema, Schema::Array(_)) {
+                        array_schema = array_schema.union(&defaults_schema);
+                    }
+                }
+                Ok(Schema::Array(Box::new(array_schema)))
+            }
             TaggedOperator::SqlConvert(_) | TaggedOperator::SqlDivide(_) => {
                 Err(Error::InvalidTaggedOperator(self.clone()))
             }
@@ -598,11 +681,40 @@ fn get_decimal_double_or_nullish(
 
 impl DeriveSchema for UntaggedOperator {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
-        let args = self.args.iter().collect();
+        // numeric_filter is a helper that takes a schema and a set of schemas. If the schema is
+        // numeric it will retain all the numeric schemas from the set of schemas, otherwise it
+        // will return that original schema. This is useful for $min and $max.
+        let numeric_filter = |schema: Schema, schemas: BTreeSet<Schema>| {
+            if schema.satisfies(&NUMERIC) == Satisfaction::Must {
+                let out_schemas = schemas
+                    .into_iter()
+                    .filter(|s| {
+                        matches!(
+                            s,
+                            Schema::Atomic(
+                                Atomic::Integer | Atomic::Long | Atomic::Double | Atomic::Decimal
+                            )
+                        )
+                    })
+                    .collect::<BTreeSet<_>>();
+                if out_schemas.len() == 1 {
+                    out_schemas.into_iter().next().unwrap()
+                } else {
+                    Schema::AnyOf(out_schemas)
+                }
+            } else {
+                schema
+            }
+        };
+        let mut args = self.args.iter().collect();
         match self.op.as_str() {
             // no-ops
             "$abs" | "$ceil" | "$floor" | "$reverseArray" | "$round" | "$sampleRate" | "$slice"
-            | "$trunc" => self.args[0].derive_schema(state),
+            | "$trunc"
+            // We cannot know anything about the Schema change from the set difference, since it only
+            // removes values not types. The best we can do is keep the lhs Schema, which may
+            // be overly broad.
+            | "$setDifference" => self.args[0].derive_schema(state),
             // operators returning constants
             "$allElementsTrue" | "$anyElementTrue" | "$and" | "$eq" | "$gt" | "$gte" | "$in"
             | "$isArray" | "$isNumber" | "$lt" | "$lte" | "$not" | "$ne" | "$or"
@@ -744,6 +856,109 @@ impl DeriveSchema for UntaggedOperator {
                     Schema::Atomic(Atomic::Integer)
                 };
                 handle_null_satisfaction(args, state, schema)
+            }
+            "$arrayElemAt" => {
+                let input_schema = self.args[0].derive_schema(state)?;
+                match input_schema {
+                    Schema::Array(a) => Ok(a.as_ref().clone()),
+                    _ => {
+                        if input_schema.satisfies(&NULLISH_OR_UNDEFINED) == Satisfaction::Must {
+                            Ok(Schema::Atomic(Atomic::Null))
+                        } else {
+                            Err(Error::InvalidType(input_schema, 0usize))
+                        }
+                    }
+                }
+            }
+            "$arrayToObject" => {
+                // We could only know the keys, if we have the entire array.
+                // We may consider making this more precise for array literals.
+                Ok(Schema::Document(Document::any()))
+            }
+            "$concatArrays" | "$setUnion" => {
+                let mut array_schema = Schema::Unsat;
+                for (i, arg) in self.args.iter().enumerate() {
+                    let schema = arg.derive_schema(state)?;
+                    match schema {
+                        Schema::Array(a) => array_schema = array_schema.union(a.as_ref()),
+                        _ => return Err(Error::InvalidType(schema, i)),
+                    };
+                }
+                let array_schema = if array_schema == Schema::Unsat {
+                    Schema::Atomic(Atomic::Null)
+                } else {
+                    array_schema
+                };
+                Ok(Schema::Array(Box::new(array_schema)))
+            }
+            "$setIntersection" => {
+                if args.is_empty() {
+                    return Ok(Schema::Array(Box::new(Schema::Atomic(Atomic::Null))));
+                }
+                let mut array_schema = match args.remove(0_usize).derive_schema(state)?{
+                    Schema::Array(a) => *a,
+                    Schema::Missing => return Ok(Schema::Array(Box::new(Schema::Atomic(Atomic::Null)))),
+                    schema => return Err(Error::InvalidType(schema, 0)),
+                };
+                for (i, arg) in self.args.iter().enumerate() {
+                    let schema = arg.derive_schema(state)?;
+                    match schema {
+                        Schema::Array(a) => {
+                            // If the array_schema MAY satisify numeric, we need to augment the rhs
+                            // of the intersection with the entire numeric Schema set because 42.0
+                            // as a double is considered equivalent to 42 as an integer in mongo,
+                            // meaning that intersection of [42.0] and [42] is [42.0]. Note
+                            // specifically that Mongo retains the lhs value when there is
+                            // equivalent numeric values in the rhs. This is why we pull out the
+                            // first Schema individually before the loop.
+                            let a = if a.satisfies(&NUMERIC) >= Satisfaction::May {
+                                a.union(&NUMERIC)
+                            } else {
+                                *a
+                            };
+                            array_schema = array_schema.intersection(&a)
+                        }
+                        Schema::Missing => return Ok(Schema::Array(Box::new(Schema::Atomic(Atomic::Null)))),
+                        _ => return Err(Error::InvalidType(schema, i+1)),
+                    };
+                }
+                let array_schema = if array_schema == Schema::Unsat {
+                    Schema::Atomic(Atomic::Null)
+                } else {
+                    array_schema
+                };
+                Ok(Schema::Array(Box::new(array_schema)))
+            }
+            "$locf" => {
+                self.args[0].derive_schema(state)
+            }
+            "$max" => {
+                let schema = self.args[0].derive_schema(state)?;
+                let schema = match schema {
+                    Schema::AnyOf(a) => {
+                        // Unsat should be impossible, since we should never see AnyOf(empty_set)
+                        let schema = a.iter().max().unwrap_or(&Schema::Unsat);
+                        numeric_filter(schema.clone(), a)
+                    }
+                    _ => schema,
+                };
+                Ok(schema)
+            }
+            "$min" => {
+                let schema = self.args[0].derive_schema(state)?;
+                let schema = match schema {
+                    Schema::AnyOf(a) => {
+                        // Unsat should be impossible, since we should never see AnyOf(empty_set)
+                        let schema = a.iter().min().unwrap_or(&Schema::Unsat);
+                        numeric_filter(schema.clone(), a)
+                    }
+                    _ => schema,
+                };
+                Ok(schema)
+            }
+            "$addToSet" | "$push" => {
+                let schema = self.args[0].derive_schema(state)?;
+                Ok(Schema::Array(Box::new(schema)))
             }
             _ => Err(Error::InvalidUntaggedOperator(self.op.clone())),
         }

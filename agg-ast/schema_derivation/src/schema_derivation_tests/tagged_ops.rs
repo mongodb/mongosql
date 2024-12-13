@@ -55,7 +55,229 @@ mod window_ops {
         input = r#"{ "$derivative": { "input": "$foo", "unit": "hour" } }"#,
         ref_schema = Schema::AnyOf(set!(Schema::Missing, Schema::Atomic(Atomic::Integer)))
     );
+
+    test_derive_schema!(
+        locf,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Missing,
+        ))),
+        input = r#"{ "$locf": "$foo" }"#,
+        ref_schema = Schema::AnyOf(set!(Schema::Missing, Schema::Atomic(Atomic::Integer)))
+    );
 }
+
+mod array_ops {
+    use super::*;
+    test_derive_schema!(
+        zip_no_defaults,
+        expected = Ok(Schema::Array(Box::new(Schema::Array(Box::new(
+            Schema::AnyOf(set!(
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::String),
+            ))
+        ))))),
+        input = r#"{"$zip": {"inputs": ["$foo", [1,2,3]]}}"#,
+        ref_schema = Schema::Array(Box::new(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+        ))))
+    );
+    test_derive_schema!(
+        zip_defaults,
+        expected = Ok(Schema::Array(Box::new(Schema::Array(Box::new(
+            Schema::AnyOf(set!(
+                Schema::Atomic(Atomic::String),
+                Schema::Atomic(Atomic::Integer),
+            ))
+        ))))),
+        input = r#"{"$zip": {"inputs": ["$foo", [1,2,3]], "defaults": ["hello"]}}"#,
+        ref_schema = Schema::Array(Box::new(Schema::Atomic(Atomic::Integer)))
+    );
+    test_derive_schema!(
+        zip_error,
+        expected = Err(crate::Error::InvalidExpressionForField(
+            "Literal(String(\"hello\"))".to_string(),
+            "inputs"
+        )),
+        input = r#"{"$zip": {"inputs": "hello"}}"#
+    );
+    test_derive_schema!(
+        map_this,
+        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Double),
+        ))))),
+        input = r#"{"$map": {"input": "$foo", "in": "$$this"}}"#,
+        ref_schema = Schema::Array(Box::new(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Double),
+        ))))
+    );
+    test_derive_schema!(
+        map_as,
+        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Double),
+        ))))),
+        input = r#"{"$map": {"input": "$foo", "as": "bar", "in": "$$bar"}}"#,
+        ref_schema = Schema::Array(Box::new(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Double),
+        ))))
+    );
+    test_derive_schema!(
+        map_error,
+        expected = Err(crate::Error::InvalidExpressionForField(
+            "Literal(String(\"hello\"))".to_string(),
+            "input"
+        )),
+        input = r#"{"$map": {"input": "hello", "in": "foo"}}"#
+    );
+    test_derive_schema!(
+        reduce,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Double),
+        ))),
+        input = r#"{"$reduce": {"input": "$foo", "initialValue": 42, "in": "$$this"}}"#,
+        ref_schema = Schema::Array(Box::new(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Double),
+        ))))
+    );
+    test_derive_schema!(
+        reduce_error,
+        expected = Err(crate::Error::InvalidExpressionForField(
+            "Literal(String(\"hello\"))".to_string(),
+            "input"
+        )),
+        input = r#"{"$reduce": {"input": "hello", "initialValue": "stuff", "in": "foo"}}"#
+    );
+}
+
+mod group_ops {
+    use super::*;
+    test_derive_schema!(
+        top_expression,
+        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(
+            set! {Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)}
+        )))),
+        input = r#"{"$top": {
+                     "output": [ "$foo", "hello" ],
+                     "sortBy": { "score": -1 }
+                   }}"#,
+        ref_schema = Schema::Atomic(Atomic::Integer)
+    );
+    test_derive_schema!(
+        top_n_expression,
+        expected = Ok(Schema::Array(Box::new(Schema::Array(Box::new(
+            Schema::AnyOf(set! {Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)})
+        ))))),
+        input = r#"{"$topN": {
+                     "output": [ "$foo", "hello" ],
+                     "sortBy": { "score": -1 },
+                     "n": 64
+                   }}"#,
+        ref_schema = Schema::Atomic(Atomic::Integer)
+    );
+    test_derive_schema!(
+        bottom_expression,
+        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(
+            set! {Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)}
+        )))),
+        input = r#"{"$bottom": {
+                     "output": [ "$foo", "hello" ],
+                     "sortBy": { "score": -1 }
+                   }}"#,
+        ref_schema = Schema::Atomic(Atomic::Integer)
+    );
+    test_derive_schema!(
+        bottom_n_expression,
+        expected = Ok(Schema::Array(Box::new(Schema::Array(Box::new(
+            Schema::AnyOf(set! {Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)})
+        ))))),
+        input = r#"{"$bottomN": {
+                     "output": [ "$foo", "hello" ],
+                     "sortBy": { "score": -1 },
+                     "n": 64
+                   }}"#,
+        ref_schema = Schema::Atomic(Atomic::Integer)
+    );
+    test_derive_schema!(
+        max_n,
+        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Timestamp),
+            Schema::Atomic(Atomic::MaxKey),
+        })))),
+        input = r#"{"$maxN": {"input": "$foo", "n": 64}}"#,
+        ref_schema = Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Timestamp),
+            Schema::Atomic(Atomic::MaxKey),
+        })
+    );
+    test_derive_schema!(
+        min_n,
+        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Timestamp),
+            Schema::Atomic(Atomic::MaxKey),
+        })))),
+        input = r#"{"$minN": {"input": "$foo", "n": 64}}"#,
+        ref_schema = Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Timestamp),
+            Schema::Atomic(Atomic::MaxKey),
+        })
+    );
+    test_derive_schema!(
+        push,
+        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+        ))))),
+        input = r#"{"$push": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_schema!(
+        add_to_set,
+        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+        ))))),
+        input = r#"{"$addToSet": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+}
+
 mod numeric_ops {
     use super::*;
 

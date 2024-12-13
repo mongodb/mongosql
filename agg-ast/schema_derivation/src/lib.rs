@@ -18,8 +18,10 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Error, PartialEq, Clone)]
 pub enum Error {
-    #[error("Cannot derive schema for undefined literals")]
-    InvalidLiteralType,
+    #[error("Invalid type {0} at argument index: {1}")]
+    InvalidType(Schema, usize),
+    #[error("Invalid expression {0:?} at argument named: {1}")]
+    InvalidExpressionForField(String, &'static str),
     #[error("Cannot derive schema for unsupported operator: {0}")]
     InvalidUntaggedOperator(String),
     #[error("Cannot derive schema for unsupported operator: {0:?}")]

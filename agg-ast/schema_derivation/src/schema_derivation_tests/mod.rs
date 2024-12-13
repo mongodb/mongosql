@@ -19,7 +19,7 @@ macro_rules! test_derive_schema {
                 result_set_schema
             };
             let result = input.derive_schema(&mut state);
-            assert_eq!(result, $expected);
+            assert_eq!($expected, result);
         }
     };
 }

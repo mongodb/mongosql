@@ -1,9 +1,11 @@
 use crate::Result;
 use mongodb::options::{ClientOptions, ResolverConfig};
 
-/// This module contains utility functions for a MongoDB client to make
-/// working with a CLI easier.
-///
+//
+// This module contains utility functions for a MongoDB client to make
+// working with a CLI easier.
+//
+
 /// Returns true if the client options does not have any authentication credentials.
 pub fn needs_auth(options: &ClientOptions) -> bool {
     options.credential.is_none()
