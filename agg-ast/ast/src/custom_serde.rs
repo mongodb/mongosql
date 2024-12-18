@@ -1,10 +1,10 @@
 use crate::{
     definitions::{
-        DateExpression, DateFromParts, DateFromString, DateToString, Expression, GroupAccumulator,
-        GroupAccumulatorExpr, LiteralValue, MatchArrayExpression, MatchArrayQuery, MatchBinaryOp,
-        MatchElement, MatchExpression, MatchField, MatchNot, MatchNotExpression, MatchRegex,
-        MatchStage, ProjectItem, ProjectStage, Ref, SetWindowFieldsOutput, Trim, UntaggedOperator,
-        VecOrSingleExpr, Window,
+        Convert, DateExpression, DateFromParts, DateFromString, DateToString, Expression,
+        GroupAccumulator, GroupAccumulatorExpr, LiteralValue, MatchArrayExpression,
+        MatchArrayQuery, MatchBinaryOp, MatchElement, MatchExpression, MatchField, MatchNot,
+        MatchNotExpression, MatchRegex, MatchStage, ProjectItem, ProjectStage, Ref,
+        SetWindowFieldsOutput, Trim, UntaggedOperator, VecOrSingleExpr, Window,
     },
     map,
 };
@@ -1261,6 +1261,46 @@ impl<'de> Deserialize<'de> for DateToString {
                 )),
             },
             _ => Err(serde_err::custom("input to dateToString must be document")),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Convert {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // this custom serde covers the various optional arguments of $convert, such as on_error, on_null, or format. The first two
+        // can be specified as null, so we must explicitly handle these arguments when present to ensure they serialize as Some(Literal::Null)
+        // as opposed to None
+        let expression = Expression::deserialize(deserializer)?;
+        match expression {
+            Expression::Document(mut d) => match (d.remove("input"), d.remove("to")) {
+                (Some(input), Some(to)) => {
+                    let format = match d.get("format") {
+                        Some(Expression::Literal(LiteralValue::String(s))) => Some(s.clone()),
+                        Some(Expression::Literal(LiteralValue::Null)) | None => None,
+                        _ => {
+                            return Err(serde_err::custom(
+                                "expected format for convert to be string or none",
+                            ))
+                        }
+                    };
+                    let on_error = d.remove("onError").map(Box::new);
+                    let on_null = d.remove("onNull").map(Box::new);
+                    Ok(Convert {
+                        input: Box::new(input),
+                        to: Box::new(to),
+                        format,
+                        on_null,
+                        on_error,
+                    })
+                }
+                _ => Err(serde_err::custom(
+                    "input and to are required arguments for convert",
+                )),
+            },
+            _ => Err(serde_err::custom("input to convert must be document")),
         }
     }
 }

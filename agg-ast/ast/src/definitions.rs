@@ -983,13 +983,16 @@ pub struct SqlConvert {
     pub on_error: Box<Expression>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Convert {
     pub input: Box<Expression>,
-    pub to: String,
-    pub on_null: Box<Expression>,
-    pub on_error: Box<Expression>,
+    pub to: Box<Expression>,
+    pub format: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub on_null: Option<Box<Expression>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub on_error: Option<Box<Expression>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

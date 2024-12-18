@@ -2342,18 +2342,73 @@ mod expression_test {
         );
 
         test_serde_expr!(
-            convert,
+            convert_no_options,
             expected = Expression::TaggedOperator(TaggedOperator::Convert(Convert {
                 input: Box::new(Expression::Literal(LiteralValue::String("1".to_string()))),
-                to: "int".to_string(),
-                on_null: Box::new(Expression::Literal(LiteralValue::Null)),
-                on_error: Box::new(Expression::Literal(LiteralValue::Null)),
+                to: Box::new(Expression::Literal(LiteralValue::String("int".to_string()))),
+                format: None,
+                on_null: None,
+                on_error: None,
+            })),
+            input = r#"expr: {"$convert": {
+                                "input": "1",
+                                "to": "int"
+            }}"#
+        );
+
+        test_serde_expr!(
+            convert_subtype,
+            expected = Expression::TaggedOperator(TaggedOperator::Convert(Convert {
+                input: Box::new(Expression::Literal(LiteralValue::Int32(123))),
+                to: Box::new(Expression::Document(map! {
+                    "type".to_string() => Expression::Literal(LiteralValue::String("binData".to_string())),
+                    "subtype".to_string() => Expression::Literal(LiteralValue::Int32(0)),
+                })),
+                format: None,
+                on_null: None,
+                on_error: None,
+            })),
+            input = r#"expr: {"$convert": {
+                                "input": 123,
+                                "to": {"type": "binData", "subtype": 0},
+            }}"#
+        );
+
+        test_serde_expr!(
+            convert_fully_specified,
+            expected = Expression::TaggedOperator(TaggedOperator::Convert(Convert {
+                input: Box::new(Expression::Literal(LiteralValue::String("1".to_string()))),
+                to: Box::new(Expression::Literal(LiteralValue::String("int".to_string()))),
+                format: Some("hi".to_string()),
+                on_null: Some(Box::new(Expression::Literal(LiteralValue::Null))),
+                on_error: Some(Box::new(Expression::Literal(LiteralValue::Null))),
             })),
             input = r#"expr: {"$convert": {
                                 "input": "1",
                                 "to": "int",
+                                "format": "hi",
                                 "onNull": null,
                                 "onError": null
+            }}"#
+        );
+
+        test_serde_expr!(
+            convert_null_options,
+            expected = Expression::TaggedOperator(TaggedOperator::Convert(Convert {
+                input: Box::new(Expression::Literal(LiteralValue::String("1".to_string()))),
+                to: Box::new(Expression::Literal(LiteralValue::String(
+                    "binData".to_string()
+                ))),
+                format: Some("format".to_string()),
+                on_null: Some(Box::new(Expression::Literal(LiteralValue::Int32(1)))),
+                on_error: Some(Box::new(Expression::Literal(LiteralValue::Int32(2)))),
+            })),
+            input = r#"expr: {"$convert": {
+                                "input": "1",
+                                "to": "binData",
+                                "format": "format",
+                                "onNull": 1,
+                                "onError": 2
             }}"#
         );
 

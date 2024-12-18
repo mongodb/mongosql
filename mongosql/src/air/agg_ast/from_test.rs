@@ -1118,9 +1118,16 @@ mod expression {
                     input: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
                         "a".to_string()
                     ))),
-                    to: "int".to_string(),
-                    on_null: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Null)),
-                    on_error: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Null)),
+                    to: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::String(
+                        "int".to_string()
+                    ))),
+                    format: None,
+                    on_null: Some(Box::new(agg_ast::Expression::Literal(
+                        agg_ast::LiteralValue::Null
+                    ))),
+                    on_error: Some(Box::new(agg_ast::Expression::Literal(
+                        agg_ast::LiteralValue::Null
+                    ))),
                 }
             ))
         );

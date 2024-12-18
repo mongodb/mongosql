@@ -957,3 +957,191 @@ mod field_setter_ops {
         }
     );
 }
+
+mod convert {
+    use super::*;
+    use agg_ast::definitions::{Convert, LiteralValue, Ref, TaggedOperator};
+
+    macro_rules! test_convert_op {
+        ($func_name:ident, expected = $expected:expr, numeric_rep = $numeric_rep:expr, string_rep = $string_rep:expr) => {
+            #[test]
+            fn $func_name() {
+                let mut state = ResultSetState {
+                    catalog: &BTreeMap::new(),
+                    variables: &BTreeMap::new(),
+                    result_set_schema: Schema::Document(Document {
+                        keys: map! {"foo".to_string() => Schema::Any },
+                        ..Default::default()
+                    }),
+                };
+                let to_values = vec![
+                    Expression::Literal(LiteralValue::String($string_rep.to_string())),
+                    Expression::Literal(LiteralValue::Int32($numeric_rep)),
+                    Expression::Literal(LiteralValue::Int64($numeric_rep.into())),
+                    Expression::Literal(LiteralValue::Double($numeric_rep.into())),
+                    Expression::Literal(LiteralValue::Decimal128(
+                        $numeric_rep.to_string().parse().unwrap(),
+                    )),
+                ];
+                to_values.into_iter().for_each(|v| {
+                    let input = Expression::TaggedOperator(TaggedOperator::Convert(Convert {
+                        input: Box::new(Expression::Ref(Ref::FieldRef("foo".to_string()))),
+                        to: Box::new(v),
+                        format: None,
+                        on_error: None,
+                        on_null: None,
+                    }));
+                    let result = input.derive_schema(&mut state);
+                    assert_eq!(result, $expected);
+                });
+            }
+        };
+    }
+
+    test_convert_op!(
+        double,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        numeric_rep = 1,
+        string_rep = "double"
+    );
+
+    test_convert_op!(
+        string,
+        expected = Ok(Schema::Atomic(Atomic::String)),
+        numeric_rep = 2,
+        string_rep = "string"
+    );
+
+    test_convert_op!(
+        object,
+        expected = Ok(Schema::Document(Document::any())),
+        numeric_rep = 3,
+        string_rep = "object"
+    );
+
+    test_convert_op!(
+        array,
+        expected = Ok(Schema::Array(Box::new(Schema::Any))),
+        numeric_rep = 4,
+        string_rep = "array"
+    );
+
+    test_convert_op!(
+        bin_data,
+        expected = Ok(Schema::Atomic(Atomic::BinData)),
+        numeric_rep = 5,
+        string_rep = "binData"
+    );
+
+    test_convert_op!(
+        undefined,
+        expected = Ok(Schema::Atomic(Atomic::Undefined)),
+        numeric_rep = 6,
+        string_rep = "undefined"
+    );
+
+    test_convert_op!(
+        oid,
+        expected = Ok(Schema::Atomic(Atomic::ObjectId)),
+        numeric_rep = 7,
+        string_rep = "objectId"
+    );
+
+    test_convert_op!(
+        bool,
+        expected = Ok(Schema::Atomic(Atomic::Boolean)),
+        numeric_rep = 8,
+        string_rep = "bool"
+    );
+
+    test_convert_op!(
+        date,
+        expected = Ok(Schema::Atomic(Atomic::Date)),
+        numeric_rep = 9,
+        string_rep = "date"
+    );
+
+    test_convert_op!(
+        null,
+        expected = Ok(Schema::Atomic(Atomic::Null)),
+        numeric_rep = 10,
+        string_rep = "null"
+    );
+
+    test_convert_op!(
+        regex,
+        expected = Ok(Schema::Atomic(Atomic::Regex)),
+        numeric_rep = 11,
+        string_rep = "regex"
+    );
+
+    test_convert_op!(
+        db_pointer,
+        expected = Ok(Schema::Atomic(Atomic::DbPointer)),
+        numeric_rep = 12,
+        string_rep = "dbPointer"
+    );
+
+    test_convert_op!(
+        javascript,
+        expected = Ok(Schema::Atomic(Atomic::Javascript)),
+        numeric_rep = 13,
+        string_rep = "javascript"
+    );
+
+    test_convert_op!(
+        javascript_with_scope,
+        expected = Ok(Schema::Atomic(Atomic::Symbol)),
+        numeric_rep = 14,
+        string_rep = "symbol"
+    );
+
+    test_convert_op!(
+        symbol,
+        expected = Ok(Schema::Atomic(Atomic::JavascriptWithScope)),
+        numeric_rep = 15,
+        string_rep = "javascriptWithScope"
+    );
+
+    test_convert_op!(
+        integer,
+        expected = Ok(Schema::Atomic(Atomic::Integer)),
+        numeric_rep = 16,
+        string_rep = "int"
+    );
+
+    test_convert_op!(
+        timestamp,
+        expected = Ok(Schema::Atomic(Atomic::Timestamp)),
+        numeric_rep = 17,
+        string_rep = "timestamp"
+    );
+
+    test_convert_op!(
+        long,
+        expected = Ok(Schema::Atomic(Atomic::Long)),
+        numeric_rep = 18,
+        string_rep = "long"
+    );
+
+    test_convert_op!(
+        decimal,
+        expected = Ok(Schema::Atomic(Atomic::Decimal)),
+        numeric_rep = 19,
+        string_rep = "decimal"
+    );
+
+    test_convert_op!(
+        min_key,
+        expected = Ok(Schema::Atomic(Atomic::MinKey)),
+        numeric_rep = -1,
+        string_rep = "minKey"
+    );
+
+    test_convert_op!(
+        max_key,
+        expected = Ok(Schema::Atomic(Atomic::MaxKey)),
+        numeric_rep = 127,
+        string_rep = "maxKey"
+    );
+}

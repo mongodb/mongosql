@@ -1,7 +1,7 @@
 use crate::{
     get_schema_for_path_mut,
     negative_normalize::{NegativeNormalize, DECIMAL_ZERO},
-    schema_for_bson, DeriveSchema, Result, ResultSetState,
+    schema_for_bson, schema_for_type_str, DeriveSchema, Result, ResultSetState,
 };
 use agg_ast::definitions::{
     MatchBinaryOp, MatchExpression, MatchField, MatchLogical, MatchNotExpression, MatchStage,
@@ -143,34 +143,6 @@ fn schema_for_match_bson_literal(bson: &Bson, include_missing: bool) -> Schema {
             }
         }
         b => schema_for_bson(b),
-    }
-}
-
-// schema_for_type_str generates a schema for a type name string used in a $type match operation.
-fn schema_for_type_str(type_str: &str) -> Schema {
-    match type_str {
-        "double" => Schema::Atomic(Atomic::Double),
-        "string" => Schema::Atomic(Atomic::String),
-        "object" => Schema::Document(Document::any()),
-        "array" => Schema::Array(Box::new(Schema::Any)),
-        "binData" => Schema::Atomic(Atomic::BinData),
-        "undefined" => Schema::Atomic(Atomic::Undefined),
-        "objectId" => Schema::Atomic(Atomic::ObjectId),
-        "bool" => Schema::Atomic(Atomic::Boolean),
-        "date" => Schema::Atomic(Atomic::Date),
-        "null" => Schema::Atomic(Atomic::Null),
-        "regex" => Schema::Atomic(Atomic::Regex),
-        "dbPointer" => Schema::Atomic(Atomic::DbPointer),
-        "javascript" => Schema::Atomic(Atomic::Javascript),
-        "symbol" => Schema::Atomic(Atomic::Symbol),
-        "javascriptWithScope" => Schema::Atomic(Atomic::JavascriptWithScope),
-        "int" => Schema::Atomic(Atomic::Integer),
-        "timestamp" => Schema::Atomic(Atomic::Timestamp),
-        "long" => Schema::Atomic(Atomic::Long),
-        "decimal" => Schema::Atomic(Atomic::Decimal),
-        "minKey" => Schema::Atomic(Atomic::MinKey),
-        "maxKey" => Schema::Atomic(Atomic::MaxKey),
-        _ => unreachable!(),
     }
 }
 

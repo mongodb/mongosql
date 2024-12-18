@@ -455,12 +455,17 @@ impl From<TaggedOperator> for air::Expression {
                     on_error: c.on_error.into(),
                 })
             }
-            TaggedOperator::Convert(c) => air::Expression::Convert(air::Convert {
-                input: c.input.into(),
-                to: str_to_air_type(c.to),
-                on_null: c.on_null.into(),
-                on_error: c.on_error.into(),
-            }),
+            TaggedOperator::Convert(c) => match (*c.to, c.on_null, c.on_error) {
+                (Expression::Literal(LiteralValue::String(s)), Some(on_null), Some(on_error)) => {
+                    air::Expression::Convert(air::Convert {
+                        input: c.input.into(),
+                        to: str_to_air_type(s),
+                        on_null: on_null.into(),
+                        on_error: on_error.into(),
+                    })
+                }
+                _ => panic!("invalid '$' target type"),
+            },
             TaggedOperator::Like(l) => air::Expression::Like(air::Like {
                 expr: l.input.into(),
                 pattern: l.pattern.into(),

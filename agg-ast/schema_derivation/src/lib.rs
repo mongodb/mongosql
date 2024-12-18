@@ -11,13 +11,17 @@ mod schema_derivation_tests;
 mod test;
 
 use bson::{Bson, Document};
-use mongosql::schema::{Atomic, JaccardIndex, Schema};
+use mongosql::schema::{self, Atomic, JaccardIndex, Schema};
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Error, PartialEq, Clone)]
 pub enum Error {
+    #[error("Cannot derive schema for undefined literals")]
+    InvalidLiteralType,
+    #[error("Type value for convert invalid: {0}")]
+    InvalidConvertTypeValue(String),
     #[error("Invalid type {0} at argument index: {1}")]
     InvalidType(Schema, usize),
     #[error("Invalid expression {0:?} at argument named: {1}")]
@@ -117,4 +121,59 @@ fn schema_for_bson_array_elements(bs: &[Bson]) -> Schema {
         .map(schema_for_bson)
         .reduce(|acc, s| acc.union(&s))
         .unwrap_or(Schema::Any)
+}
+
+// schema_for_type_str generates a schema for a type name string used in a $type match operation.
+fn schema_for_type_str(type_str: &str) -> Schema {
+    match type_str {
+        "double" => Schema::Atomic(Atomic::Double),
+        "string" => Schema::Atomic(Atomic::String),
+        "object" => Schema::Document(schema::Document::any()),
+        "array" => Schema::Array(Box::new(Schema::Any)),
+        "binData" => Schema::Atomic(Atomic::BinData),
+        "undefined" => Schema::Atomic(Atomic::Undefined),
+        "objectId" => Schema::Atomic(Atomic::ObjectId),
+        "bool" => Schema::Atomic(Atomic::Boolean),
+        "date" => Schema::Atomic(Atomic::Date),
+        "null" => Schema::Atomic(Atomic::Null),
+        "regex" => Schema::Atomic(Atomic::Regex),
+        "dbPointer" => Schema::Atomic(Atomic::DbPointer),
+        "javascript" => Schema::Atomic(Atomic::Javascript),
+        "symbol" => Schema::Atomic(Atomic::Symbol),
+        "javascriptWithScope" => Schema::Atomic(Atomic::JavascriptWithScope),
+        "int" => Schema::Atomic(Atomic::Integer),
+        "timestamp" => Schema::Atomic(Atomic::Timestamp),
+        "long" => Schema::Atomic(Atomic::Long),
+        "decimal" => Schema::Atomic(Atomic::Decimal),
+        "minKey" => Schema::Atomic(Atomic::MinKey),
+        "maxKey" => Schema::Atomic(Atomic::MaxKey),
+        _ => unreachable!(),
+    }
+}
+
+fn schema_for_type_numeric(type_as_int: i32) -> Schema {
+    match type_as_int {
+        1 => Schema::Atomic(Atomic::Double),
+        2 => Schema::Atomic(Atomic::String),
+        3 => Schema::Document(schema::Document::any()),
+        4 => Schema::Array(Box::new(Schema::Any)),
+        5 => Schema::Atomic(Atomic::BinData),
+        6 => Schema::Atomic(Atomic::Undefined),
+        7 => Schema::Atomic(Atomic::ObjectId),
+        8 => Schema::Atomic(Atomic::Boolean),
+        9 => Schema::Atomic(Atomic::Date),
+        10 => Schema::Atomic(Atomic::Null),
+        11 => Schema::Atomic(Atomic::Regex),
+        12 => Schema::Atomic(Atomic::DbPointer),
+        13 => Schema::Atomic(Atomic::Javascript),
+        14 => Schema::Atomic(Atomic::Symbol),
+        15 => Schema::Atomic(Atomic::JavascriptWithScope),
+        16 => Schema::Atomic(Atomic::Integer),
+        17 => Schema::Atomic(Atomic::Timestamp),
+        18 => Schema::Atomic(Atomic::Long),
+        19 => Schema::Atomic(Atomic::Decimal),
+        -1 => Schema::Atomic(Atomic::MinKey),
+        127 => Schema::Atomic(Atomic::MaxKey),
+        _ => unreachable!(),
+    }
 }

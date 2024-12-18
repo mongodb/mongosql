@@ -1,4 +1,7 @@
-use crate::{get_schema_for_path_mut, remove_field, Error, Result};
+use crate::{
+    get_schema_for_path_mut, remove_field, schema_for_type_numeric, schema_for_type_str, Error,
+    Result,
+};
 use agg_ast::definitions::{
     Expression, LiteralValue, Ref, Stage, TaggedOperator, UntaggedOperator,
 };
@@ -237,6 +240,24 @@ impl DeriveSchema for TaggedOperator {
             }};
         }
         match self {
+            TaggedOperator::Convert(c) => match c.to.as_ref() {
+                Expression::Literal(LiteralValue::String(s)) => Ok(schema_for_type_str(s.as_str())),
+                Expression::Literal(LiteralValue::Double(d)) => {
+                    Ok(schema_for_type_numeric(*d as i32))
+                }
+                Expression::Literal(LiteralValue::Int32(i)) => Ok(schema_for_type_numeric(*i)),
+                Expression::Literal(LiteralValue::Int64(i)) => {
+                    Ok(schema_for_type_numeric(*i as i32))
+                }
+                Expression::Literal(LiteralValue::Decimal128(d)) => {
+                    let decimal_string = d.to_string();
+                    let decimal_as_double = decimal_string
+                        .parse::<f64>()
+                        .map_err(|_| Error::InvalidConvertTypeValue(decimal_string))?;
+                    Ok(schema_for_type_numeric(decimal_as_double as i32))
+                }
+                _ => unreachable!(),
+            },
             TaggedOperator::DenseRank(_)
             | TaggedOperator::DocumentNumber(_)
             | TaggedOperator::Rank(_) => Ok(Schema::AnyOf(set!(
@@ -533,7 +554,6 @@ impl DeriveSchema for TaggedOperator {
             TaggedOperator::BottomN(b) => {
                 Ok(Schema::Array(Box::new(b.output.derive_schema(state)?)))
             }
-            TaggedOperator::Convert(_) => todo!(),
             TaggedOperator::Filter(_) => todo!(),
             TaggedOperator::FirstN(_) => todo!(),
             TaggedOperator::Function(_) => todo!(),
