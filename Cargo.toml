@@ -23,6 +23,9 @@ members = [
     "oidc",
 ]
 
+[workspace.dependencies]
+mongodb = "3"
+
 [profile.release]
 lto = "fat"
 codegen-units = 1
