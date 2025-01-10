@@ -138,8 +138,12 @@ validate_json_schema!(
     expected_json = r#"{"bsonType":"int"}"#,
     input = r#"{"extra1":"value1","bsonType":"int","extra2":"value2"}"#,
 );
+
+// Currently, `max_items` only works with empty arrays, so the only valid values are `None` and `Some(0)`.
+// Additionally, when `max_items` is `Some(0)`, `items` must be `None`.
+// A non-default value for `max_items` is tested in the `empty_array_schema` test below.
 validate_json_schema!(
-    schema_with_all_fields_non_default,
+    schema_with_all_fields_non_default_except_max_items,
     expected_schema = &Schema {
         bson_type: Some(BsonType::Multiple(vec![
             BsonTypeName::Object,
@@ -165,6 +169,7 @@ validate_json_schema!(
             bson_type: Some(BsonType::Single(BsonTypeName::Int)),
             ..Default::default()
         }]),
+        max_items: None,
     },
     input = r#"{"bsonType":["object","array"],"properties":{"a":{"bsonType":"int"}},"required":["a"],"additionalProperties":true,"items":{"bsonType":"int"},"anyOf":[{"bsonType":"int"}],"oneOf":[{"bsonType":"int"}]}"#,
 );
@@ -176,6 +181,18 @@ validate_json_schema!(
         ..Default::default()
     },
     input = r#"{"bsonType":"array","items":[{}]}"#,
+);
+
+// For the `max_items` field to work, `items` must be `None`.
+validate_json_schema!(
+    empty_array_schema,
+    expected_schema = &Schema {
+        bson_type: Some(BsonType::Single(BsonTypeName::Array)),
+        items: None,
+        max_items: Some(0),
+        ..Default::default()
+    },
+    input = r#"{"bsonType":"array","maxItems":0}"#,
 );
 
 mod no_stack_overflows {

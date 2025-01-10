@@ -176,7 +176,7 @@ mod array {
 
     test_derive_schema!(
         empty_array,
-        expected = Ok(Schema::Array(Box::new(Schema::Atomic(Atomic::Null)))),
+        expected = Ok(Schema::Array(Box::new(Schema::Unsat))),
         input = r#"[]"#
     );
 

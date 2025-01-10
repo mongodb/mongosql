@@ -61,7 +61,6 @@ prepare_shell: |
   export LIBRARY_PATH="${LIBRARY_PATH}"
   export DB_TOOLS_VERSION="${DB_TOOLS_VERSION}"
   export MONGOSH_VERSION="${MONGOSH_VERSION}"
-  git config --global url."ssh://git@github.com/".insteadOf "https://github.com/"
 EOT
 
 cat expansions.yml

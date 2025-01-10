@@ -620,6 +620,7 @@ impl TryFrom<Document> for json_schema::Schema {
             },
             additional_properties: Some(v.additional_properties),
             items: None,
+            max_items: None,
             any_of: None,
             one_of: None,
         })
@@ -634,6 +635,7 @@ impl From<Atomic> for json_schema::Schema {
             required: None,
             additional_properties: None,
             items: None,
+            max_items: None,
             any_of: None,
             one_of: None,
         }
@@ -678,6 +680,7 @@ impl TryFrom<Schema> for json_schema::Schema {
                 required: None,
                 additional_properties: None,
                 items: None,
+                max_items: None,
                 any_of: None,
                 one_of: None,
             },
@@ -687,6 +690,7 @@ impl TryFrom<Schema> for json_schema::Schema {
                 required: None,
                 additional_properties: None,
                 items: None,
+                max_items: None,
                 any_of: Some(vec![]),
                 one_of: None,
             },
@@ -698,6 +702,7 @@ impl TryFrom<Schema> for json_schema::Schema {
                 required: None,
                 additional_properties: None,
                 items: None,
+                max_items: None,
                 any_of: Some(
                     ao.into_iter()
                         .map(json_schema::Schema::try_from)
@@ -705,19 +710,33 @@ impl TryFrom<Schema> for json_schema::Schema {
                 ),
                 one_of: None,
             },
-            Schema::Array(a) => json_schema::Schema {
-                bson_type: Some(json_schema::BsonType::Single(
-                    json_schema::BsonTypeName::Array,
-                )),
-                properties: None,
-                required: None,
-                additional_properties: None,
-                items: Some(json_schema::Items::Single(Box::new(
-                    json_schema::Schema::try_from(*a)?,
-                ))),
-                any_of: None,
-                one_of: None,
-            },
+            Schema::Array(a) => {
+                // `a` gets moved below (i.e., at this part `json_schema::Schema::try_from(*a)?` ),
+                // so doing this equality check here prevents needing to clone `a`.
+                let unsat_array = *a == Schema::Unsat;
+
+                let mut array_json_schema = json_schema::Schema {
+                    bson_type: Some(json_schema::BsonType::Single(
+                        json_schema::BsonTypeName::Array,
+                    )),
+                    properties: None,
+                    required: None,
+                    additional_properties: None,
+                    items: Some(json_schema::Items::Single(Box::new(
+                        json_schema::Schema::try_from(*a)?,
+                    ))),
+                    max_items: None,
+                    any_of: None,
+                    one_of: None,
+                };
+
+                if unsat_array {
+                    array_json_schema.max_items = Some(0);
+                    array_json_schema.items = None;
+                }
+
+                array_json_schema
+            }
             Schema::Document(d) => json_schema::Schema::try_from(d)?,
         })
     }
@@ -1565,6 +1584,7 @@ impl TryFrom<json_schema::Schema> for Schema {
                 required: None,
                 additional_properties: None,
                 items: None,
+                max_items: None,
                 any_of: None,
                 one_of: None,
             } => Ok(Schema::Any),
@@ -1578,6 +1598,7 @@ impl TryFrom<json_schema::Schema> for Schema {
                 required,
                 additional_properties,
                 items,
+                max_items,
                 any_of: None,
                 one_of: None,
             } => {
@@ -1604,7 +1625,13 @@ impl TryFrom<json_schema::Schema> for Schema {
                             Some(json_schema::Items::Multiple(_)) => Schema::Any,
                             // No `items` field means no constraints on
                             // array elements.
-                            None => Schema::Any,
+                            None => {
+                                if max_items == Some(0) {
+                                    Schema::Array(Box::new(Schema::Unsat))
+                                } else {
+                                    Schema::Any
+                                }
+                            }
                         })))
                     }
                     json_schema::BsonType::Single(json_schema::BsonTypeName::Object) => {
@@ -1632,6 +1659,7 @@ impl TryFrom<json_schema::Schema> for Schema {
                                                 bson_type,
                                             )),
                                             items: items.clone(),
+                                            max_items,
                                             ..Default::default()
                                         })
                                     }
@@ -1662,6 +1690,7 @@ impl TryFrom<json_schema::Schema> for Schema {
                 required: None,
                 additional_properties: None,
                 items: None,
+                max_items: None,
                 any_of: Some(any_of),
                 one_of: None,
             } => Ok(Schema::AnyOf(
@@ -1676,6 +1705,7 @@ impl TryFrom<json_schema::Schema> for Schema {
                 required: None,
                 additional_properties: None,
                 items: None,
+                max_items: None,
                 any_of: None,
                 one_of: Some(one_of),
                 // convert one_of to any_of

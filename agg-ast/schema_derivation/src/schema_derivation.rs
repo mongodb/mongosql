@@ -97,11 +97,7 @@ impl DeriveSchema for Expression {
                     })
                     .collect::<Result<BTreeSet<_>>>()?;
                 let array_schema = match array_schema.len() {
-                    // Null for empty array is not great, but it's the best we can do since we
-                    // can't serialize Unsat (technically {"anyOf": []} would be Unsat, but MongoDB does
-                    // not allow that as a viable json schema). We use Null when we derive schema
-                    // for bson arrays in sampling, so it's consistent.
-                    0 => Schema::Atomic(Atomic::Null),
+                    0 => Schema::Unsat,
                     1 => array_schema.into_iter().next().unwrap(),
                     _ => Schema::AnyOf(array_schema),
                 };
@@ -904,16 +900,11 @@ impl DeriveSchema for UntaggedOperator {
                         _ => return Err(Error::InvalidType(schema, i)),
                     };
                 }
-                let array_schema = if array_schema == Schema::Unsat {
-                    Schema::Atomic(Atomic::Null)
-                } else {
-                    array_schema
-                };
                 Ok(Schema::Array(Box::new(array_schema)))
             }
             "$setIntersection" => {
                 if args.is_empty() {
-                    return Ok(Schema::Array(Box::new(Schema::Atomic(Atomic::Null))));
+                    return Ok(Schema::Array(Box::new(Schema::Unsat)));
                 }
                 let mut array_schema = match args.remove(0_usize).derive_schema(state)?{
                     Schema::Array(a) => *a,
@@ -942,11 +933,6 @@ impl DeriveSchema for UntaggedOperator {
                         _ => return Err(Error::InvalidType(schema, i+1)),
                     };
                 }
-                let array_schema = if array_schema == Schema::Unsat {
-                    Schema::Atomic(Atomic::Null)
-                } else {
-                    array_schema
-                };
                 Ok(Schema::Array(Box::new(array_schema)))
             }
             "$locf" => {

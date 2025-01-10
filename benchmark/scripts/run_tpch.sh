@@ -59,7 +59,7 @@ function process_genny_output() {
 }
 
 echo "setting up Genny"
-git clone git@github.com:mongodb/genny ../genny || true
+git clone https://github.com/mongodb/genny ../genny || true
 cd ../genny
 ./run-genny install -d ubuntu2204
 cd -

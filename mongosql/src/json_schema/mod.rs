@@ -31,6 +31,8 @@ pub struct Schema {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub items: Option<Items>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_items: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub any_of: Option<Vec<Schema>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub one_of: Option<Vec<Schema>>,

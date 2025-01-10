@@ -111,11 +111,9 @@ pub fn schema_for_document(doc: &Document) -> Schema {
 // This may prove costly for very large arrays, and we may want to
 // consider a limit on the number of elements to consider.
 fn schema_for_bson_array_elements(bs: &[Bson]) -> Schema {
-    // if an array is empty, we can't infer anything about it
-    // we're safe to mark it as potentially null, as an empty array
-    // satisfies jsonSchema search predicate
+    // if an array is empty, the only appropriate `items` Schema is Unsat.
     if bs.is_empty() {
-        return Schema::Atomic(Atomic::Null);
+        return Schema::Unsat;
     }
     bs.iter()
         .map(schema_for_bson)

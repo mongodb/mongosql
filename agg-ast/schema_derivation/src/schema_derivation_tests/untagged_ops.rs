@@ -128,7 +128,7 @@ mod array_ops {
     );
     test_derive_schema!(
         set_intersection_empty_set,
-        expected = Ok(Schema::Array(Box::new(Schema::Atomic(Atomic::Null),))),
+        expected = Ok(Schema::Array(Box::new(Schema::Unsat))),
         input = r#"{"$setIntersection": ["$foo", ["hello", "world"]]}"#,
         ref_schema = Schema::Array(Box::new(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),

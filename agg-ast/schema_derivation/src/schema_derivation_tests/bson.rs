@@ -82,7 +82,7 @@ test_schema_for_bson!(
 test_schema_for_bson!(
     empty_array,
     input = bson!([]),
-    expected = Schema::Array(Schema::Atomic(Atomic::Null).into())
+    expected = Schema::Array(Schema::Unsat.into())
 );
 
 test_schema_for_bson!(
