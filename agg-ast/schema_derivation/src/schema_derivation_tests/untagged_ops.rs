@@ -2,7 +2,7 @@ use crate::schema_derivation::{DeriveSchema, ResultSetState};
 use agg_ast::definitions::Expression;
 use mongosql::{
     map,
-    schema::{Atomic, Document, Schema},
+    schema::{Atomic, Document, Satisfaction, Schema},
     set,
 };
 use std::collections::BTreeMap;
@@ -17,7 +17,8 @@ macro_rules! test_type_conversion_op {
                     result_set_schema: Schema::Document(Document {
                         keys: map! {"foo".to_string() => Schema::Atomic(Atomic::Null)},
                         ..Default::default()
-                    })
+                    }),
+                    null_behavior: Satisfaction::Not
                 };
                 let input: Expression = serde_json::from_str(format!("{{\"{0}\":\"$foo\"}}", $op).as_str()).unwrap();
                 // if the input schema is null, we should return null

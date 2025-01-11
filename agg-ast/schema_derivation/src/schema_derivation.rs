@@ -23,6 +23,7 @@ pub(crate) struct ResultSetState<'a> {
     pub catalog: &'a BTreeMap<String, Schema>,
     pub variables: &'a BTreeMap<String, Schema>,
     pub result_set_schema: Schema,
+    pub null_behavior: Satisfaction,
 }
 
 impl DeriveSchema for Stage {
@@ -489,6 +490,7 @@ impl DeriveSchema for TaggedOperator {
                     result_set_schema: state.result_set_schema.clone(),
                     catalog: state.catalog,
                     variables: &variables,
+                    null_behavior: Satisfaction::Not,
                 };
                 l.inside.derive_schema(&mut let_state)
             }

@@ -2,41 +2,10 @@ use crate::{DeriveSchema, ResultSetState};
 use agg_ast::definitions::Stage;
 use mongosql::{
     map,
-    schema::{Atomic, Document, Schema},
+    schema::{Atomic, Document, Satisfaction, Schema},
     set,
 };
 use std::collections::BTreeMap;
-
-macro_rules! test_derive_schema_for_match_stage {
-    // ref_schema and starting_schema are mutually exclusive. ref_schema should be used when only
-    // one reference is needed, while starting_schema should be used when the schema needs multiple
-    // fields.
-    ($func_name:ident, expected = $expected:expr, input = $input:expr$(, starting_schema = $starting_schema:expr)?$(, ref_schema = $ref_schema:expr)?$(, variables = $variables:expr)?) => {
-        #[test]
-        fn $func_name() {
-            let input: Stage = serde_json::from_str($input).unwrap();
-            #[allow(unused_mut, unused_assignments)]
-            let mut result_set_schema = Schema::Any;
-            $(result_set_schema = Schema::Document(Document {
-                keys: map! {"foo".to_string() => $ref_schema },
-                required: set!{"foo".to_string()},
-                ..Default::default()
-            });)?
-            $(result_set_schema = $starting_schema;)?
-            #[allow(unused_mut, unused_assignments)]
-            let mut variables = BTreeMap::new();
-            $(variables = $variables;)?
-            let mut state = ResultSetState {
-                catalog: &BTreeMap::new(),
-                variables: &variables,
-                result_set_schema
-            };
-            let result = input.derive_schema(&mut state);
-            let result = result.as_ref().map(Schema::simplify);
-            assert_eq!($expected, result);
-        }
-    };
-}
 
 macro_rules! test_derivation_for_bits_ops {
     (
@@ -58,8 +27,7 @@ macro_rules! test_derivation_for_bits_ops {
                     ),
                 },
                 required: set!{"foo".to_string()},
-                additional_properties: false,
-                jaccard_index: None,
+                ..Default::default()
             })),
             input = format!(r#"{{"$match": {{"foo": {{"{}": [1, 5]}}}}}}"#, $op).as_str(),
             ref_schema = Schema::Any
@@ -85,8 +53,7 @@ macro_rules! test_derivation_for_geo_ops {
                                 ))),
                             },
                             required: set!{"coordinates".to_string()},
-                            additional_properties: false,
-                            jaccard_index: None,
+                            ..Default::default()
                         }),
                         Schema::Array(Box::new(Schema::AnyOf(
                             set!{Schema::Atomic(Atomic::Double), Schema::Atomic(Atomic::Decimal), Schema::Atomic(Atomic::Long), Schema::Atomic(Atomic::Integer)}
@@ -94,8 +61,7 @@ macro_rules! test_derivation_for_geo_ops {
                     }),
                 },
                 required: set!{"foo".to_string()},
-                additional_properties: false,
-                jaccard_index: None,
+                ..Default::default()
             })),
             input = format!(r#"{{"$match": {{"foo": {{"{}": [1, 5]}}}}}}"#, $op).as_str(),
             ref_schema = Schema::Any
@@ -118,13 +84,11 @@ test_derive_schema_for_match_stage! {
                     "car".to_string() => Schema::Atomic(Atomic::String),
                 },
                 required: set!{"car".to_string()},
-                additional_properties: false,
-                jaccard_index: None,
+                ..Default::default()
             }),
         },
         required: set!{"foo".to_string(), "bar".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$eq": 4}, "bar.car": {"$eq": "hello"}}}"#,
     starting_schema = Schema::Document(Document {
@@ -143,8 +107,7 @@ test_derive_schema_for_match_stage! {
             }),
         },
         required: set!{"foo".to_string(), "bar".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })
 }
 
@@ -155,8 +118,7 @@ test_derive_schema_for_match_stage! {
             "foo".to_string() => Schema::Atomic(Atomic::Null),
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$gte": null, "$exists": true}}}"#,
     ref_schema = Schema::AnyOf(set!{
@@ -177,8 +139,7 @@ test_derive_schema_for_match_stage! {
             }),
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": 4}}"#,
     ref_schema = Schema::Any
@@ -196,8 +157,7 @@ test_derive_schema_for_match_stage! {
             }),
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$gt": 4}}}"#,
     ref_schema = Schema::Any
@@ -211,9 +171,7 @@ test_derive_schema_for_match_stage! {
                 Schema::Atomic(Atomic::Null),
             }),
         },
-        required: set!{},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$gte": null}}}"#,
     ref_schema = Schema::Any
@@ -231,8 +189,7 @@ test_derive_schema_for_match_stage! {
             }),
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$lt": 4}}}"#,
     ref_schema = Schema::Any
@@ -245,8 +202,7 @@ test_derive_schema_for_match_stage! {
             "foo".to_string() => Schema::Atomic(Atomic::String),
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$lte": "hello"}}}"#,
     ref_schema = Schema::Any
@@ -259,8 +215,7 @@ test_derive_schema_for_match_stage! {
             "foo".to_string() => Schema::Atomic(Atomic::String),
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$ne": null}}}"#,
     ref_schema = Schema::AnyOf(set!{
@@ -276,8 +231,7 @@ test_derive_schema_for_match_stage! {
             "foo".to_string() => Schema::Atomic(Atomic::String),
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$exists": 42}}}"#,
     // Missing should be inferred since it's not in the required set
@@ -285,9 +239,7 @@ test_derive_schema_for_match_stage! {
         keys: map! {
             "foo".to_string() => Schema::Atomic(Atomic::String),
         },
-        required: set!{},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })
 }
 
@@ -298,8 +250,7 @@ test_derive_schema_for_match_stage! {
             "foo".to_string() => Schema::Atomic(Atomic::String),
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$exists": {"$numberLong": "42"}}}}"#,
     ref_schema = Schema::AnyOf(set!{
@@ -315,8 +266,7 @@ test_derive_schema_for_match_stage! {
             "foo".to_string() => Schema::Atomic(Atomic::String),
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$exists": 42.5}}}"#,
     ref_schema = Schema::AnyOf(set!{
@@ -332,8 +282,7 @@ test_derive_schema_for_match_stage! {
             "foo".to_string() => Schema::Atomic(Atomic::String),
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$exists": {"$numberDecimal": "42.5"}}}}"#,
     ref_schema = Schema::AnyOf(set!{
@@ -349,8 +298,7 @@ test_derive_schema_for_match_stage! {
             "foo".to_string() => Schema::Atomic(Atomic::String),
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$exists": true}}}"#,
     ref_schema = Schema::AnyOf(set!{
@@ -362,10 +310,7 @@ test_derive_schema_for_match_stage! {
 test_derive_schema_for_match_stage! {
     derivation_for_exists_0,
     expected = Ok(Schema::Document(Document {
-        keys: map! {},
-        required: set!{},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$exists": 0}}}"#,
     ref_schema = Schema::AnyOf(set!{
@@ -377,10 +322,7 @@ test_derive_schema_for_match_stage! {
 test_derive_schema_for_match_stage! {
     derivation_for_exists_long_0,
     expected = Ok(Schema::Document(Document {
-        keys: map! {},
-        required: set!{},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$exists": {"$numberLong": "0"}}}}"#,
     ref_schema = Schema::AnyOf(set!{
@@ -392,10 +334,7 @@ test_derive_schema_for_match_stage! {
 test_derive_schema_for_match_stage! {
     derivation_for_exists_0p0,
     expected = Ok(Schema::Document(Document {
-        keys: map! {        },
-        required: set!{},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$exists": 0.0}}}"#,
     ref_schema = Schema::AnyOf(set!{
@@ -407,10 +346,7 @@ test_derive_schema_for_match_stage! {
 test_derive_schema_for_match_stage! {
     derivation_for_exists_decimal_0p0,
     expected = Ok(Schema::Document(Document {
-        keys: map! {},
-        required: set!{},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$exists": {"$numberDecimal": "0.0"}}}}"#,
     ref_schema = Schema::AnyOf(set!{
@@ -422,10 +358,7 @@ test_derive_schema_for_match_stage! {
 test_derive_schema_for_match_stage! {
     derivation_for_exists_false,
     expected = Ok(Schema::Document(Document {
-        keys: map! {},
-        required: set!{},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$exists": false}}}"#,
     ref_schema = Schema::AnyOf(set!{
@@ -437,10 +370,7 @@ test_derive_schema_for_match_stage! {
 test_derive_schema_for_match_stage! {
     derivation_for_exists_null,
     expected = Ok(Schema::Document(Document {
-        keys: map! {},
-        required: set!{},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$exists": null}}}"#,
     ref_schema = Schema::AnyOf(set!{
@@ -456,8 +386,7 @@ test_derive_schema_for_match_stage! {
             "foo".to_string() => Schema::Atomic(Atomic::String),
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$type": "string"}}}"#,
     ref_schema = Schema::AnyOf(set!{
@@ -477,8 +406,7 @@ test_derive_schema_for_match_stage! {
                 })
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$type": ["string", "int"]}}}"#,
     ref_schema = Schema::AnyOf(set!{
@@ -500,9 +428,7 @@ test_derive_schema_for_match_stage! {
                     Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
                 })
         },
-        required: set!{},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$in": [["hello", "world"], "hello", null]}}}"#,
     ref_schema = Schema::AnyOf(set!{
@@ -526,8 +452,7 @@ test_derive_schema_for_match_stage! {
                 })
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$nin": [["hello", "world"], "hello", null]}}}"#,
     ref_schema = Schema::AnyOf(set!{
@@ -551,8 +476,7 @@ test_derive_schema_for_match_stage! {
             }),
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$mod": [2,0]}}}"#,
     ref_schema = Schema::Any
@@ -565,8 +489,7 @@ test_derive_schema_for_match_stage! {
             "foo".to_string() => Schema::Array(Box::new(Schema::Any)),
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$size": 2}}}"#,
     ref_schema = Schema::Any
@@ -582,8 +505,7 @@ test_derive_schema_for_match_stage! {
             })))
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$all": ["hello", "world", null]}}}"#,
     ref_schema = Schema::Any
@@ -609,8 +531,7 @@ test_derive_schema_for_match_stage! {
             })
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"$or": [{"foo": "hello"}, {"foo": {"$type": "objectId"}}]}}"#,
     ref_schema = Schema::Any
@@ -623,8 +544,7 @@ test_derive_schema_for_match_stage! {
             "foo".to_string() => Schema::Atomic(Atomic::String),
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"$and": [{"$or": [{"foo": "hello"}, {"foo": {"$type": "objectId"}}]}, {"foo": {"$type": "string"}}]}}"#,
     ref_schema = Schema::Any
@@ -640,8 +560,7 @@ test_derive_schema_for_match_stage! {
             ]),
         },
         required: set!{"foo".to_string()},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"$or": [{"$and": [{"foo": "hello"}, {"foo": {"$type": "string"}}]}, {"foo": {"$type": ["objectId"], "$exists": true}}]}}"#,
     ref_schema = Schema::Any
@@ -653,9 +572,7 @@ test_derive_schema_for_match_stage! {
         keys: map! {
             "foo".to_string() => Schema::Atomic(Atomic::String),
         },
-        required: set!{},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"$or": [{"$and": [{"foo": "hello"}, {"foo": {"$type": "string"}}]}, {"foo": {"$exists": false}}]}}"#,
     ref_schema = Schema::Any
@@ -687,9 +604,7 @@ test_derive_schema_for_match_stage! {
                  Schema::Atomic(Atomic::MaxKey),
             ]),
         },
-        required: set!{},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"$nor": [{"foo": {"$type": "string"}}, {"foo": {"$type": "objectId"}}]}}"#,
     ref_schema = Schema::Any
@@ -720,9 +635,7 @@ test_derive_schema_for_match_stage! {
                  Schema::Atomic(Atomic::MaxKey),
             ]),
         },
-        required: set!{},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$not": {"$type": ["string", "int", "objectId"]}}}}"#,
     ref_schema = Schema::Any
@@ -755,9 +668,7 @@ test_derive_schema_for_match_stage! {
                  Schema::Atomic(Atomic::MaxKey),
             ]),
         },
-        required: set!{},
-        additional_properties: false,
-        jaccard_index: None,
+        ..Default::default()
     })),
     input = r#"{"$match": {"foo": {"$not": {"$type": ["string", "int", "null"], "$eq": null}}}}"#,
     ref_schema = Schema::Any

@@ -760,6 +760,17 @@ lazy_static! {
     pub static ref ANY_ARRAY: Schema = Schema::Array(Box::new(Schema::Any));
     pub static ref EMPTY_ARRAY: Schema = Schema::Array(Box::new(Schema::Unsat));
 
+    // these types
+    pub static ref FALSIFIABLE_TYPES: Schema = Schema::AnyOf(set![
+        Schema::Atomic(Atomic::Boolean),
+        Schema::Atomic(Atomic::Integer),
+        Schema::Atomic(Atomic::Long),
+        Schema::Atomic(Atomic::Double),
+        Schema::Atomic(Atomic::Decimal),
+        Schema::Atomic(Atomic::Null),
+        Schema::Missing
+    ]);
+
     // Nullish Schemas (Schemas that additionally allow for Null or Missing).
     pub static ref NULLISH: Schema =
         Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing,]);

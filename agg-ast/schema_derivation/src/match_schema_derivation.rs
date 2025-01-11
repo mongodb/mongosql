@@ -4,12 +4,16 @@ use crate::{
     schema_for_bson, schema_for_type_str, DeriveSchema, Result, ResultSetState,
 };
 use agg_ast::definitions::{
-    MatchBinaryOp, MatchExpression, MatchField, MatchLogical, MatchNotExpression, MatchStage,
+    Expression, MatchBinaryOp, MatchExpr, MatchExpression, MatchField, MatchLogical,
+    MatchNotExpression, MatchStage, Ref, UntaggedOperator,
 };
 use bson::Bson;
 use mongosql::{
     map,
-    schema::{Atomic, Document, Schema, NUMERIC},
+    schema::{
+        Atomic, Document, Satisfaction, Schema, FALSIFIABLE_TYPES, NULLISH, NUMERIC,
+        NUMERIC_OR_NULLISH,
+    },
     set,
 };
 use std::collections::BTreeSet;
@@ -184,7 +188,7 @@ fn schema_for_array_bson_values(bson: &Bson, include_missing: bool) -> Schema {
 
 // promote_missing adds Schema::Missing to any non-required key in a Document schema. This is
 // necessary for our operations to work correctly, since they operate on paths, leaving no way
-// to check or modify required. We will rely on Schema::simply to lower Schema::Missing back to
+// to check or modify required. We will rely on Schema::simplify to lower Schema::Missing back to
 // removing from required, since Schema::Missing cannot be serialized.
 fn promote_missing(schema: &Schema) -> Schema {
     // It would be much more efficient to do this in place, but we can't do that because of
@@ -211,6 +215,26 @@ fn promote_missing(schema: &Schema) -> Schema {
     }
 }
 
+// this function gets the maximum type of a given schema, which is mostly meaningful for AnyOfs. This allows us to handle comparison
+// operators that use total ordering, such as $lte in $expr.
+fn max_type_for_schema(schema: Schema) -> Schema {
+    match schema {
+        Schema::Unsat
+        | Schema::Array(_)
+        | Schema::Atomic(_)
+        | Schema::Document(_)
+        | Schema::Missing
+        | Schema::Any => schema,
+        Schema::AnyOf(a) => a.iter().fold(Schema::Unsat, |local_max, anyof_element| {
+            if &local_max < anyof_element {
+                anyof_element.clone()
+            } else {
+                local_max
+            }
+        }),
+    }
+}
+
 impl DeriveSchema for MatchStage {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
         state.result_set_schema = promote_missing(&state.result_set_schema);
@@ -232,7 +256,7 @@ trait MatchConstrainSchema {
 impl MatchConstrainSchema for MatchExpression {
     fn match_derive_schema(&self, state: &mut ResultSetState) {
         match self {
-            MatchExpression::Expr(_) => todo!(),
+            MatchExpression::Expr(e) => e.match_derive_schema(state),
             MatchExpression::Misc(_) => todo!(),
             MatchExpression::Logical(l) => l.match_derive_schema(state),
             MatchExpression::Field(f) => f.match_derive_schema(state),
@@ -341,6 +365,14 @@ fn schema_difference(schema: &mut Schema, to_remove: BTreeSet<Schema>) {
     }
 }
 
+// this function simply applies the intersection to a field if it exists, otherwise does nothing..
+// this is useful for applying the constraints of certain match operations to the overall result set schema
+fn intersect_if_exists(path: Vec<String>, state: &mut ResultSetState, schema: Schema) {
+    if let Some(field_schema) = get_schema_for_path_mut(&mut state.result_set_schema, path) {
+        *field_schema = schema.intersection(field_schema);
+    }
+}
+
 // match_derive_schema_for_op derives the schema for a single match operation, since a given field
 // may be nested above multiple match operations. This is a helper function for MatchField::match_derive_schema.
 fn match_derive_schema_for_op(
@@ -349,17 +381,6 @@ fn match_derive_schema_for_op(
     b: &Bson,
     state: &mut ResultSetState,
 ) {
-    macro_rules! schema_intersect {
-        ($path:expr, $state:expr, $schema:expr) => {
-            let field_schema = get_schema_for_path_mut(&mut $state.result_set_schema, $path);
-            match field_schema {
-                Some(field_schema) => {
-                    *field_schema = $schema.intersection(field_schema);
-                }
-                None => (),
-            }
-        };
-    }
     macro_rules! schema_difference {
         ($path:expr, $state:expr, $schemas:expr) => {
             let field_schema = get_schema_for_path_mut(&mut $state.result_set_schema, $path);
@@ -374,11 +395,11 @@ fn match_derive_schema_for_op(
     match op {
         MatchBinaryOp::Eq | MatchBinaryOp::Gte | MatchBinaryOp::Lte => {
             let schema = schema_for_match_bson_literal(b, true);
-            schema_intersect!(path, state, schema);
+            intersect_if_exists(path, state, schema);
         }
         MatchBinaryOp::Gt | MatchBinaryOp::Lt => {
             let schema = schema_for_match_bson_literal(b, false);
-            schema_intersect!(path, state, schema);
+            intersect_if_exists(path, state, schema);
         }
         // Ne actually does not tell us anything about Schema except for types that are
         // unitary-valued: Null, MinKey, MaxKey, Undefined.
@@ -395,16 +416,16 @@ fn match_derive_schema_for_op(
             if is_exists_true_bson(b) {
                 schema_difference!(path, state, set![Schema::Missing]);
             } else {
-                schema_intersect!(path, state, Schema::Missing);
+                intersect_if_exists(path, state, Schema::Missing);
             }
         }
         MatchBinaryOp::Type => {
             let schema = schema_for_type_expr(b);
-            schema_intersect!(path, state, schema);
+            intersect_if_exists(path, state, schema);
         }
         MatchBinaryOp::In => {
             let schema = schema_for_array_bson_values(b, true);
-            schema_intersect!(path, state, schema);
+            intersect_if_exists(path, state, schema);
         }
         MatchBinaryOp::Nin => {
             let schema = schema_for_array_bson_values(b, true);
@@ -427,27 +448,168 @@ fn match_derive_schema_for_op(
             }
         }
         MatchBinaryOp::Mod => {
-            schema_intersect!(path, state, NUMERIC.clone());
+            intersect_if_exists(path, state, NUMERIC.clone());
         }
         MatchBinaryOp::Size => {
             let schema = Schema::Array(Box::new(Schema::Any));
-            schema_intersect!(path, state, schema);
+            intersect_if_exists(path, state, schema);
         }
         MatchBinaryOp::All => {
             let schema = Schema::Array(Box::new(schema_for_array_bson_values(b, false)));
-            schema_intersect!(path, state, schema);
+            intersect_if_exists(path, state, schema);
         }
         MatchBinaryOp::BitsAllClear
         | MatchBinaryOp::BitsAnyClear
         | MatchBinaryOp::BitsAllSet
         | MatchBinaryOp::BitsAnySet => {
-            schema_intersect!(path, state, bits_schema!());
+            intersect_if_exists(path, state, bits_schema!());
         }
         MatchBinaryOp::Near
         | MatchBinaryOp::GeoWithin
         | MatchBinaryOp::NearSphere
         | MatchBinaryOp::GeoIntersects => {
-            schema_intersect!(path, state, geo_schema!());
+            intersect_if_exists(path, state, geo_schema!());
         }
+    }
+}
+
+impl MatchConstrainSchema for Expression {
+    fn match_derive_schema(&self, state: &mut ResultSetState) {
+        // unwrap_or_return is used to simply move on if derive_schema returns an error. Becuase the schema
+        // derivation currently does not verify the correctness of pipelines, this results in us simply _not_
+        // narrowing the result set schema for a $match, limiting precision but not correctness.
+        macro_rules! unwrap_or_return {
+            ( $e:expr ) => {
+                match $e {
+                    Ok(x) => x,
+                    Err(_) => return,
+                }
+            };
+        }
+
+        fn match_derive_or(u: &UntaggedOperator, state: &mut ResultSetState) {
+            let schema: Option<Schema> = u.args.iter().fold(None, |schema, arg| {
+                // because the conditions of $or are not additive, we need to create a fresh copy of the incoming result set schema for
+                // each. This avoids us applying the constraints of one operand to another.
+                let mut tmp_state = state.clone();
+                tmp_state.null_behavior = Satisfaction::Not;
+                arg.match_derive_schema(&mut tmp_state);
+                match schema {
+                    None => Some(tmp_state.result_set_schema),
+                    Some(schema) => Some(schema.union(&tmp_state.result_set_schema)),
+                }
+            });
+            if let Some(schema) = schema {
+                state.result_set_schema = schema;
+            }
+        }
+
+        fn match_derive_eq(u: &UntaggedOperator, state: &mut ResultSetState) {
+            if u.args.len() == 2 {
+                let lhs_schema = unwrap_or_return!(u.args[0].derive_schema(state));
+                let rhs_schema = unwrap_or_return!(u.args[1].derive_schema(state));
+                let mut schema_intersection = lhs_schema.intersection(&rhs_schema);
+                // this covers the fact that numerics are all comparable in equality (eg, an integer can equal a decimal)
+                if schema_intersection.satisfies(&NUMERIC.clone()) != Satisfaction::Not {
+                    schema_intersection = schema_intersection.union(&NUMERIC.clone());
+                }
+                // falsish types include numbers, nullish, and boolean. evaluate if we must, may, or cannot be any nullish
+                // type to determine the set of values the operands can take on.
+                state.null_behavior = schema_intersection.satisfies(&FALSIFIABLE_TYPES.clone());
+                u.args.iter().for_each(|arg| match arg {
+                    Expression::Ref(Ref::FieldRef(r)) => {
+                        let path = r.as_str().split('.').map(|s| s.to_string()).collect();
+                        intersect_if_exists(path, state, schema_intersection.clone());
+                    }
+                    _ => {
+                        arg.match_derive_schema(state);
+                    }
+                });
+            }
+        }
+
+        fn match_derive_lte(u: &UntaggedOperator, state: &mut ResultSetState) {
+            if u.args.len() == 2 {
+                if let Expression::Ref(Ref::FieldRef(r)) = &u.args[0] {
+                    let rhs_schema = unwrap_or_return!(u.args[1].derive_schema(state));
+                    let max_rhs_schema = max_type_for_schema(rhs_schema);
+                    let path = r.as_str().split('.').map(|s| s.to_string()).collect();
+                    if let Some(field_schema) =
+                        get_schema_for_path_mut(&mut state.result_set_schema, path)
+                    {
+                        if field_schema == &mut Schema::Any {
+                            *field_schema = any_expand!();
+                        }
+                        let mut updated_schema = match field_schema.clone() {
+                            Schema::AnyOf(a) => Schema::AnyOf(
+                                a.into_iter().filter(|x| x <= &max_rhs_schema).collect(),
+                            ),
+                            s => {
+                                if s <= max_rhs_schema {
+                                    s.clone()
+                                } else {
+                                    Schema::Unsat
+                                }
+                            }
+                        };
+                        // because all numerics are comparable, we must include them even if they are greater than the max type of the rhs
+                        if updated_schema.intersection(&NUMERIC.clone()) != Schema::Unsat {
+                            updated_schema =
+                                updated_schema.union(&NUMERIC.clone().intersection(field_schema));
+                        }
+                        *field_schema = updated_schema;
+                    }
+                } else {
+                    u.args[0].match_derive_schema(state);
+                    u.args[1].match_derive_schema(state);
+                }
+            }
+        }
+
+        fn match_derive_numeric(u: &UntaggedOperator, state: &mut ResultSetState) {
+            u.args.iter().for_each(|arg| {
+                if let Expression::Ref(Ref::FieldRef(r)) = arg {
+                    let path = r.as_str().split('.').map(|s| s.to_string()).collect();
+                    match state.null_behavior {
+                        Satisfaction::Not => {
+                            intersect_if_exists(path, state, NUMERIC.clone());
+                        }
+                        Satisfaction::May => {
+                            intersect_if_exists(path, state, NUMERIC_OR_NULLISH.clone());
+                        }
+                        Satisfaction::Must => {
+                            intersect_if_exists(path, state, NULLISH.clone());
+                        }
+                    };
+                }
+            });
+        }
+
+        let null_behavior = state.null_behavior;
+        match self {
+            Expression::TaggedOperator(_t) => todo!(),
+            Expression::UntaggedOperator(u) => match u.op.as_str() {
+                // logical ops
+                "$or" => match_derive_or(u, state),
+                // comparison ops
+                "$eq" => match_derive_eq(u, state),
+                "$lte" => match_derive_lte(u, state),
+                // numeric ops
+                "$abs" | "$acos" | "$acosh" | "$asin" | "$asinh" | "$atan" | "$atan2"
+                | "$atanh" | "$cos" | "$cosh" | "$degreesToRadians" | "$divide" | "$exp"
+                | "$ln" | "$log" | "$log10" | "$mod" | "$multiply" | "$pow"
+                | "$radiansToDegrees" | "$sin" | "$sinh" | "$sqrt" | "$tan" | "$tanh"
+                | "$trunc" | "$ceil" | "$floor" => match_derive_numeric(u, state),
+                _ => todo!(),
+            },
+            _ => {}
+        }
+        state.null_behavior = null_behavior;
+    }
+}
+
+impl MatchConstrainSchema for MatchExpr {
+    fn match_derive_schema(&self, state: &mut ResultSetState) {
+        self.expr.match_derive_schema(state);
     }
 }

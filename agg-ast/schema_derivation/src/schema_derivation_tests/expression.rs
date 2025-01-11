@@ -5,7 +5,7 @@ use crate::{
 use agg_ast::definitions::Expression;
 use mongosql::{
     map,
-    schema::{Atomic, Document, Schema},
+    schema::{Atomic, Document, Satisfaction, Schema},
     set,
 };
 use std::collections::BTreeMap;

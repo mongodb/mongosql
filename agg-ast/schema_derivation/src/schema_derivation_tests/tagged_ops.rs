@@ -2,7 +2,7 @@ use crate::schema_derivation::{DeriveSchema, ResultSetState};
 use agg_ast::definitions::Expression;
 use mongosql::{
     map,
-    schema::{Atomic, Document, Schema},
+    schema::{Atomic, Document, Satisfaction, Schema},
     set,
 };
 use std::collections::BTreeMap;
@@ -961,6 +961,7 @@ mod field_setter_ops {
 mod convert {
     use super::*;
     use agg_ast::definitions::{Convert, LiteralValue, Ref, TaggedOperator};
+    use mongosql::schema::Satisfaction;
 
     macro_rules! test_convert_op {
         ($func_name:ident, expected = $expected:expr, numeric_rep = $numeric_rep:expr, string_rep = $string_rep:expr) => {
@@ -973,6 +974,7 @@ mod convert {
                         keys: map! {"foo".to_string() => Schema::Any },
                         ..Default::default()
                     }),
+                    null_behavior: Satisfaction::Not,
                 };
                 let to_values = vec![
                     Expression::Literal(LiteralValue::String($string_rep.to_string())),
