@@ -23,21 +23,21 @@ macro_rules! test_type_conversion_op {
                 let input: Expression = serde_json::from_str(format!("{{\"{0}\":\"$foo\"}}", $op).as_str()).unwrap();
                 // if the input schema is null, we should return null
                 let result = input.derive_schema(&mut state);
-                assert_eq!(result, Ok(Schema::Atomic(Atomic::Null)));
+                assert_eq!(Ok(Schema::Atomic(Atomic::Null)), result);
                 // if the input schema is not nullable, return the expected type
                 state.result_set_schema = Schema::Document(Document {
                     keys: map! {"foo".to_string() => Schema::Atomic(Atomic::Integer)},
                     ..Default::default()
                 });
                 let result = input.derive_schema(&mut state);
-                assert_eq!(result, Ok($expected));
+                assert_eq!(Ok($expected), result);
                 // if the input schema is null or some, return expected type, nullable
                 state.result_set_schema = Schema::Document(Document {
                     keys: map! {"foo".to_string() => Schema::AnyOf(set!(Schema::Missing, Schema::Atomic(Atomic::Null), Schema::Atomic(Atomic::Integer)))},
                     ..Default::default()
                 });
                 let result = input.derive_schema(&mut state);
-                assert_eq!(result, Ok(Schema::AnyOf(set!(Schema::Atomic(Atomic::Null), $expected))));
+                assert_eq!(Ok(Schema::AnyOf(set!(Schema::Atomic(Atomic::Null), $expected))), result);
             }
         };
     }
@@ -293,7 +293,7 @@ mod conversion_ops {
     test_type_conversion_op!(
         convert_object_id,
         expected = Schema::Atomic(Atomic::ObjectId),
-        op = "$toObjectid"
+        op = "$toObjectId"
     );
 }
 mod bit_ops {

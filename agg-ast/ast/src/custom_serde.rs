@@ -4,7 +4,8 @@ use crate::{
         GroupAccumulator, GroupAccumulatorExpr, LiteralValue, MatchArrayExpression,
         MatchArrayQuery, MatchBinaryOp, MatchElement, MatchExpression, MatchField, MatchNot,
         MatchNotExpression, MatchRegex, MatchStage, ProjectItem, ProjectStage, Ref,
-        SetWindowFieldsOutput, Trim, UntaggedOperator, VecOrSingleExpr, Window,
+        SetWindowFieldsOutput, Trim, UntaggedOperator, UntaggedOperatorName, VecOrSingleExpr,
+        Window,
     },
     map,
 };
@@ -58,6 +59,25 @@ fn get_single_entry(doc: &bson::Document) -> Option<(String, bson::Bson)> {
         return Some((key.clone(), value.clone()));
     }
     None
+}
+
+impl TryFrom<String> for UntaggedOperatorName {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, String> {
+        bson::from_bson(bson::Bson::String(value))
+            .map_err(|e| format!("Failed to deserialize operator name: {}", e))
+    }
+}
+
+impl From<UntaggedOperatorName> for String {
+    fn from(value: UntaggedOperatorName) -> Self {
+        bson::to_bson(&value)
+            .expect("Failed to serialize operator name, this is a code error.")
+            .as_str()
+            .unwrap()
+            .to_string()
+    }
 }
 
 impl TryFrom<&str> for MatchBinaryOp {
@@ -907,7 +927,8 @@ where
     S: ser::Serializer,
 {
     let mut map = serializer.serialize_map(Some(1))?;
-    map.serialize_entry(&value.op, &value.args)?;
+    let key: String = value.op.into();
+    map.serialize_entry(&key, &value.args)?;
     map.end()
 }
 
@@ -924,18 +945,13 @@ impl<'de> Visitor<'de> for UntaggedOperatorVisitor {
     {
         let kv = access.next_entry::<String, VecOrSingleExpr>()?;
         if let Some((key, value)) = kv {
-            // If the key does not start with a "$", then it is not an agg operator.
-            // Ignore this map and stop attempting to deserialize with this function.
-            if !key.starts_with('$') {
-                return Err(serde_err::custom("ignoring key that does not start with $"));
-            }
-
-            // Immediately return when we see one key that starts with a "$".
+            let op: UntaggedOperatorName = key.try_into().map_err(de::Error::custom)?;
+            // Immediately return when we see one key that deserializes to an UntaggedOperatorName.
             // In a general environment, this would be very brittle, however in this
             // controlled test environment, we safely make the assumption that
             // a single key that starts with a "$" is present and indicates an operator.
             return Ok(UntaggedOperator {
-                op: key,
+                op,
                 args: value.get_as_vec(),
             });
         }

@@ -3,7 +3,7 @@ use crate::{
     Result,
 };
 use agg_ast::definitions::{
-    Expression, LiteralValue, Ref, Stage, TaggedOperator, UntaggedOperator,
+    Expression, LiteralValue, Ref, Stage, TaggedOperator, UntaggedOperator, UntaggedOperatorName,
 };
 use mongosql::{
     map,
@@ -641,7 +641,7 @@ impl DeriveSchema for TaggedOperator {
                 }
                 Ok(Schema::Array(Box::new(array_schema)))
             }
-            TaggedOperator::SqlConvert(_) | TaggedOperator::SqlDivide(_) => {
+            TaggedOperator::SQLConvert(_) | TaggedOperator::SQLDivide(_) => {
                 Err(Error::InvalidTaggedOperator(self.clone()))
             }
         }
@@ -725,74 +725,74 @@ impl DeriveSchema for UntaggedOperator {
             }
         };
         let mut args = self.args.iter().collect();
-        match self.op.as_str() {
+        match self.op {
             // no-ops
-            "$abs" | "$ceil" | "$floor" | "$reverseArray" | "$round" | "$sampleRate" | "$slice"
-            | "$trunc"
+            UntaggedOperatorName::Abs | UntaggedOperatorName::Ceil | UntaggedOperatorName::Floor | UntaggedOperatorName::ReverseArray | UntaggedOperatorName::Round | UntaggedOperatorName::SampleRate | UntaggedOperatorName::Slice
+            | UntaggedOperatorName::Trunc
             // We cannot know anything about the Schema change from the set difference, since it only
             // removes values not types. The best we can do is keep the lhs Schema, which may
             // be overly broad.
-            | "$setDifference" => self.args[0].derive_schema(state),
+            | UntaggedOperatorName::SetDifference => self.args[0].derive_schema(state),
             // operators returning constants
-            "$allElementsTrue" | "$anyElementTrue" | "$and" | "$eq" | "$gt" | "$gte" | "$in"
-            | "$isArray" | "$isNumber" | "$lt" | "$lte" | "$not" | "$ne" | "$or"
-            | "$regexMatch" | "$setEquals" | "$setIsSubset" => Ok(Schema::Atomic(Atomic::Boolean)),
-            "$binarySize" | "$cmp" | "$strcasecmp" | "$strLenBytes" | "$strLenCP" => {
+            UntaggedOperatorName::AllElementsTrue | UntaggedOperatorName::AnyElementTrue | UntaggedOperatorName::And | UntaggedOperatorName::Eq | UntaggedOperatorName::Gt | UntaggedOperatorName::Gte | UntaggedOperatorName::In
+            | UntaggedOperatorName::IsArray | UntaggedOperatorName::IsNumber | UntaggedOperatorName::Lt | UntaggedOperatorName::Lte | UntaggedOperatorName::Not | UntaggedOperatorName::Ne | UntaggedOperatorName::Or
+            | UntaggedOperatorName::RegexMatch | UntaggedOperatorName::SetEquals | UntaggedOperatorName::SetIsSubset => Ok(Schema::Atomic(Atomic::Boolean)),
+            UntaggedOperatorName::BinarySize | UntaggedOperatorName::Cmp | UntaggedOperatorName::Strcasecmp | UntaggedOperatorName::StrLenBytes | UntaggedOperatorName::StrLenCP => {
                 Ok(Schema::Atomic(Atomic::Integer))
             }
-            "$count" => Ok(Schema::AnyOf(set!(
+            UntaggedOperatorName::Count => Ok(Schema::AnyOf(set!(
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Long)
             ))),
-            "$range" => Ok(Schema::Array(Box::new(Schema::Atomic(Atomic::Integer)))),
-            "$rand" => Ok(Schema::Atomic(Atomic::Double)),
-            "$substr" | "$substrBytes" | "$substrCP" | "$toLower" | "$toUpper" | "$type" => {
+            UntaggedOperatorName::Range => Ok(Schema::Array(Box::new(Schema::Atomic(Atomic::Integer)))),
+            UntaggedOperatorName::Rand => Ok(Schema::Atomic(Atomic::Double)),
+            UntaggedOperatorName::Substr | UntaggedOperatorName::SubstrBytes | UntaggedOperatorName::SubstrCP | UntaggedOperatorName::ToLower | UntaggedOperatorName::ToUpper | UntaggedOperatorName::Type => {
                 Ok(Schema::Atomic(Atomic::String))
             }
-            "$toHashedIndexKey" => Ok(Schema::Atomic(Atomic::Long)),
+            UntaggedOperatorName::ToHashedIndexKey => Ok(Schema::Atomic(Atomic::Long)),
             // Ops that return a constant schema but must handle nullability
-            "$bsonSize" | "$indexOfArray" | "$indexOfBytes" | "$indexOfCP" | "$size" | "$toInt" => {
+            UntaggedOperatorName::BsonSize | UntaggedOperatorName::IndexOfArray | UntaggedOperatorName::IndexOfBytes | UntaggedOperatorName::IndexOfCP | UntaggedOperatorName::Size | UntaggedOperatorName::ToInt => {
                 handle_null_satisfaction(
                     args, state,
                     Schema::Atomic(Atomic::Integer),
                 )
             }
-            "$concat" | "$split" | "$toString" => handle_null_satisfaction(
+            UntaggedOperatorName::Concat | UntaggedOperatorName::Split | UntaggedOperatorName::ToString => handle_null_satisfaction(
                 args, state,
                 Schema::Atomic(Atomic::String),
             ),
-            "$tsIncrement" | "$tsSecond" | "$toLong" => handle_null_satisfaction(
+            UntaggedOperatorName::TSIncrement | UntaggedOperatorName::TSSecond | UntaggedOperatorName::ToLong => handle_null_satisfaction(
                 args, state,
                 Schema::Atomic(Atomic::Long),
             ),
-            "$toBool" => handle_null_satisfaction(
+            UntaggedOperatorName::ToBool => handle_null_satisfaction(
                 args, state,
                 Schema::Atomic(Atomic::Boolean),
             ),
-            "$toDate" => handle_null_satisfaction(
+            UntaggedOperatorName::ToDate => handle_null_satisfaction(
                 args, state,
                 Schema::Atomic(Atomic::Date),
             ),
-            "$toDecimal" => handle_null_satisfaction(
+            UntaggedOperatorName::ToDecimal => handle_null_satisfaction(
                 args, state,
                 Schema::Atomic(Atomic::Decimal),
             ),
-            "$toDouble" => handle_null_satisfaction(
+            UntaggedOperatorName::ToDouble => handle_null_satisfaction(
                 args, state,
                 Schema::Atomic(Atomic::Double),
             ),
-            "$toObjectid" => handle_null_satisfaction(
+            UntaggedOperatorName::ToObjectId => handle_null_satisfaction(
                 args, state,
                 Schema::Atomic(Atomic::ObjectId),
             ),
             // these operators can only return a decimal (if the input is a decimal), double for any other numeric input, or nullish.
-            "$acos" | "$acosh" | "$asin" | "$asinh" | "$atan" | "$atan2" | "$atanh" | "$avg"
-            | "$cos" | "$cosh" | "$degressToRadians" | "$divide" | "$exp" | "$ln" | "$log"
-            | "$log10" | "$radiansToDegrees" | "$sin" | "$sinh" | "$sqrt" | "$tan" | "$tanh" =>
+            UntaggedOperatorName::Acos | UntaggedOperatorName::Acosh | UntaggedOperatorName::Asin | UntaggedOperatorName::Asinh | UntaggedOperatorName::Atan | UntaggedOperatorName::Atan2 | UntaggedOperatorName::Atanh | UntaggedOperatorName::Avg
+            | UntaggedOperatorName::Cos | UntaggedOperatorName::Cosh | UntaggedOperatorName::DegreesToRadians | UntaggedOperatorName::Divide | UntaggedOperatorName::Exp | UntaggedOperatorName::Ln | UntaggedOperatorName::Log
+            | UntaggedOperatorName::Log10 | UntaggedOperatorName::RadiansToDegrees | UntaggedOperatorName::Sin | UntaggedOperatorName::Sinh | UntaggedOperatorName::Sqrt | UntaggedOperatorName::Tan | UntaggedOperatorName::Tanh =>
                 get_decimal_double_or_nullish(args, state)
             ,
             // if any of the args are long, long; otherwise int. Int, long only possilbe types
-            "$bitAnd" | "$bitNot" | "$bitOr" | "$bitXor" => {
+            UntaggedOperatorName::BitAnd | UntaggedOperatorName::BitNot | UntaggedOperatorName::BitOr | UntaggedOperatorName::BitXor => {
                 Ok(
                     match arguments_schema_satisfies(&args, state, &Schema::Atomic(Atomic::Long))? {
                         Satisfaction::Must => Schema::Atomic(Atomic::Long),
@@ -805,7 +805,7 @@ impl DeriveSchema for UntaggedOperator {
                 )
             }
             // int + int -> int or long; int + long, long + long -> long,
-            "$multiply" => {
+            UntaggedOperatorName::Multiply => {
                 let input_schema = get_input_schema(&args, state)?;
                 let integral_types = Schema::AnyOf(set!(
                     Schema::Atomic(Atomic::Integer),
@@ -820,7 +820,7 @@ impl DeriveSchema for UntaggedOperator {
                 }
             }
             // window function operators
-            "$covariancePop" | "$covarianceSamp" | "$stdDevPop" | "$stdDevSamp" => {
+            UntaggedOperatorName::CovariancePop | UntaggedOperatorName::CovarianceSamp | UntaggedOperatorName::StdDevPop | UntaggedOperatorName::StdDevSamp => {
                 let input_schema = get_input_schema(&args, state)?;
                 // window function operators can return null, even if the data is not null, based on the window
                 let mut types: BTreeSet<Schema> = set!(Schema::Atomic(Atomic::Null));
@@ -840,7 +840,7 @@ impl DeriveSchema for UntaggedOperator {
             }
             // pow will return the maximal numeric type of its inputs; integrals are lumped together
             // because an int ^ int can return a long
-            "$pow" => {
+            UntaggedOperatorName::Pow => {
                 let input_schema = get_input_schema(&args, state)?;
                 let schema = if input_schema.satisfies(&Schema::Atomic(Atomic::Decimal)) != Satisfaction::Not {
                     Schema::Atomic(Atomic::Decimal)
@@ -859,7 +859,7 @@ impl DeriveSchema for UntaggedOperator {
                 handle_null_satisfaction(args, state, schema)
             }
             // mod returns the maximal numeric type of its inputs
-            "$mod" => {
+            UntaggedOperatorName::Mod => {
                 let input_schema = get_input_schema(&args, state)?;
                 let schema = if input_schema.satisfies(&Schema::Atomic(Atomic::Decimal)) != Satisfaction::Not {
                     Schema::Atomic(Atomic::Decimal)
@@ -875,7 +875,7 @@ impl DeriveSchema for UntaggedOperator {
                 };
                 handle_null_satisfaction(args, state, schema)
             }
-            "$arrayElemAt" => {
+            UntaggedOperatorName::ArrayElemAt => {
                 let input_schema = self.args[0].derive_schema(state)?;
                 match input_schema {
                     Schema::Array(a) => Ok(a.as_ref().clone()),
@@ -888,12 +888,12 @@ impl DeriveSchema for UntaggedOperator {
                     }
                 }
             }
-            "$arrayToObject" => {
+            UntaggedOperatorName::ArrayToObject => {
                 // We could only know the keys, if we have the entire array.
                 // We may consider making this more precise for array literals.
                 Ok(Schema::Document(Document::any()))
             }
-            "$concatArrays" | "$setUnion" => {
+            UntaggedOperatorName::ConcatArrays | UntaggedOperatorName::SetUnion => {
                 let mut array_schema = Schema::Unsat;
                 for (i, arg) in self.args.iter().enumerate() {
                     let schema = arg.derive_schema(state)?;
@@ -904,7 +904,7 @@ impl DeriveSchema for UntaggedOperator {
                 }
                 Ok(Schema::Array(Box::new(array_schema)))
             }
-            "$setIntersection" => {
+            UntaggedOperatorName::SetIntersection => {
                 if args.is_empty() {
                     return Ok(Schema::Array(Box::new(Schema::Unsat)));
                 }
@@ -937,10 +937,10 @@ impl DeriveSchema for UntaggedOperator {
                 }
                 Ok(Schema::Array(Box::new(array_schema)))
             }
-            "$locf" => {
+            UntaggedOperatorName::Locf => {
                 self.args[0].derive_schema(state)
             }
-            "$max" => {
+            UntaggedOperatorName::Max => {
                 let schema = self.args[0].derive_schema(state)?;
                 let schema = match schema {
                     Schema::AnyOf(a) => {
@@ -952,7 +952,7 @@ impl DeriveSchema for UntaggedOperator {
                 };
                 Ok(schema)
             }
-            "$min" => {
+            UntaggedOperatorName::Min => {
                 let schema = self.args[0].derive_schema(state)?;
                 let schema = match schema {
                     Schema::AnyOf(a) => {
@@ -964,11 +964,12 @@ impl DeriveSchema for UntaggedOperator {
                 };
                 Ok(schema)
             }
-            "$addToSet" | "$push" => {
+            UntaggedOperatorName::AddToSet | UntaggedOperatorName::Push => {
                 let schema = self.args[0].derive_schema(state)?;
                 Ok(Schema::Array(Box::new(schema)))
             }
-            _ => Err(Error::InvalidUntaggedOperator(self.op.clone())),
+            // Do this in another ticket
+            _ => todo!(),
         }
     }
 }

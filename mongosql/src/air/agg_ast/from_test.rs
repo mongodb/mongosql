@@ -480,7 +480,7 @@ mod stage {
                 })],
                 condition: Some(agg_ast::Expression::UntaggedOperator(
                     agg_ast::UntaggedOperator {
-                        op: "$sqlEq".to_string(),
+                        op: agg_ast::UntaggedOperatorName::SQLEq,
                         args: vec![
                             agg_ast::Expression::Ref(agg_ast::Ref::VariableRef("x".to_string())),
                             agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("x".to_string())),
@@ -764,7 +764,7 @@ mod stage {
                 aggregations: map! {
                     "acc".to_string() => agg_ast::GroupAccumulator {
                         function: "$sqlSum".to_string(),
-                        expr: agg_ast::GroupAccumulatorExpr::SqlAccumulator {
+                        expr: agg_ast::GroupAccumulatorExpr::SQLAccumulator {
                             distinct: true,
                             var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())))
                         }
@@ -803,14 +803,14 @@ mod stage {
                 aggregations: map! {
                     "acc_one".to_string() => agg_ast::GroupAccumulator {
                         function: "$sqlSum".to_string(),
-                        expr: agg_ast::GroupAccumulatorExpr::SqlAccumulator {
+                        expr: agg_ast::GroupAccumulatorExpr::SQLAccumulator {
                             distinct: true,
                             var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())))
                         },
                     },
                     "acc_two".to_string() => agg_ast::GroupAccumulator {
                         function: "$sqlAvg".to_string(),
-                        expr: agg_ast::GroupAccumulatorExpr::SqlAccumulator {
+                        expr: agg_ast::GroupAccumulatorExpr::SQLAccumulator {
                             distinct: true,
                             var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("b".to_string())))
                         },
@@ -836,7 +836,7 @@ mod stage {
                 aggregations: map! {
                     "acc".to_string() => agg_ast::GroupAccumulator {
                         function: "$addToSet".to_string(),
-                        expr: agg_ast::GroupAccumulatorExpr::NonSqlAccumulator(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string()))),
+                        expr: agg_ast::GroupAccumulatorExpr::NonSQLAccumulator(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string()))),
                     }
                 }
             })
@@ -1140,8 +1140,8 @@ mod expression {
                 on_null: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
                 on_error: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
             }),
-            input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SqlConvert(
-                agg_ast::SqlConvert {
+            input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SQLConvert(
+                agg_ast::SQLConvert {
                     input: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
                         "a".to_string()
                     ))),
@@ -1201,8 +1201,8 @@ mod expression {
                 divisor: Box::new(air::Expression::FieldRef("b".to_string().into())),
                 on_error: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
             }),
-            input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SqlDivide(
-                agg_ast::SqlDivide {
+            input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SQLDivide(
+                agg_ast::SQLDivide {
                     dividend: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
                         "a".to_string()
                     ))),
@@ -1518,7 +1518,7 @@ mod expression {
                 args: vec![air::Expression::FieldRef("a".to_string().into())]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: "$sqlPos".to_string(),
+                op: agg_ast::UntaggedOperatorName::SQLPos,
                 args: vec![agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
                     "a".to_string()
                 ))],
@@ -1535,7 +1535,7 @@ mod expression {
                 ]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: "$sqlEq".to_string(),
+                op: agg_ast::UntaggedOperatorName::SQLEq,
                 args: vec![
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("b".to_string())),
@@ -1550,7 +1550,7 @@ mod expression {
                 args: vec![air::Expression::FieldRef("a".to_string().into())]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: "$size".to_string(),
+                op: agg_ast::UntaggedOperatorName::Size,
                 args: vec![agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
                     "a".to_string()
                 ))],
@@ -1567,7 +1567,7 @@ mod expression {
                 ]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: "$lte".to_string(),
+                op: agg_ast::UntaggedOperatorName::Lte,
                 args: vec![
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("b".to_string())),
@@ -1579,7 +1579,7 @@ mod expression {
             dollar_literal_literal_becomes_literal,
             expected = air::Expression::Literal(air::LiteralValue::Integer(5)),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: "$literal".to_string(),
+                op: agg_ast::UntaggedOperatorName::Literal,
                 args: vec![agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(
                     5
                 ))],
@@ -1590,7 +1590,7 @@ mod expression {
             dollar_literal_string_becomes_literal,
             expected = air::Expression::Literal(air::LiteralValue::String("a".to_string())),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: "$literal".to_string(),
+                op: agg_ast::UntaggedOperatorName::Literal,
                 args: vec![agg_ast::Expression::Literal(agg_ast::LiteralValue::String(
                     "a".to_string()
                 ))],
@@ -1604,7 +1604,7 @@ mod expression {
                 target_type: air::TypeOrMissing::Type(air::Type::Int32),
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: "$sqlIs".to_string(),
+                op: agg_ast::UntaggedOperatorName::SQLIs,
                 args: vec![
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
                     agg_ast::Expression::Literal(agg_ast::LiteralValue::String("int".to_string())),
@@ -1619,7 +1619,7 @@ mod expression {
                 target_type: air::TypeOrMissing::Missing,
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: "$sqlIs".to_string(),
+                op: agg_ast::UntaggedOperatorName::SQLIs,
                 args: vec![
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
                     agg_ast::Expression::Literal(agg_ast::LiteralValue::String(
@@ -1636,7 +1636,7 @@ mod expression {
                 args: vec![air::Expression::Literal(air::LiteralValue::Integer(1))]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: "$nullIf".to_string(),
+                op: agg_ast::UntaggedOperatorName::NullIf,
                 args: vec![agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(
                     1
                 ))]
@@ -1650,7 +1650,7 @@ mod expression {
                 args: vec![air::Expression::Literal(air::LiteralValue::Integer(1))]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: "$coalesce".to_string(),
+                op: agg_ast::UntaggedOperatorName::Coalesce,
                 args: vec![agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(
                     1
                 ))]
@@ -1668,7 +1668,7 @@ mod expression {
                 ]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: "$sqlBetween".to_string(),
+                op: agg_ast::UntaggedOperatorName::SQLBetween,
                 args: vec![
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("b".to_string())),
@@ -1688,7 +1688,7 @@ mod expression {
                 ]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: "$mqlBetween".to_string(),
+                op: agg_ast::UntaggedOperatorName::MQLBetween,
                 args: vec![
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("b".to_string())),

@@ -169,6 +169,7 @@ mod stage_test {
         use crate::{
             definitions::{
                 Expression, LiteralValue, ProjectItem, ProjectStage, Ref, Stage, UntaggedOperator,
+                UntaggedOperatorName,
             },
             map, ROOT_NAME,
         };
@@ -211,20 +212,20 @@ mod stage_test {
                     "foo".to_string() => ProjectItem::Assignment(Expression::Ref(Ref::VariableRef(ROOT_NAME.to_string()))),
                     "bar".to_string() => ProjectItem::Assignment(Expression::Ref(Ref::FieldRef("bar".to_string()))),
                     "a".to_string() => ProjectItem::Assignment(Expression::UntaggedOperator(UntaggedOperator {
-                        op: "$add".to_string(),
+                        op: UntaggedOperatorName::Add,
                         args: vec![
                             Expression::Literal(LiteralValue::Int32(1)),
                             Expression::Literal(LiteralValue::Int32(2)),
                         ]
                     })),
                     "x".to_string() => ProjectItem::Assignment(Expression::UntaggedOperator(UntaggedOperator {
-                        op: "$literal".to_string(),
+                        op: UntaggedOperatorName::Literal,
                         args: vec![
                             Expression::Literal(LiteralValue::Int32(0)),
                         ]
                     })),
                     "y".to_string() => ProjectItem::Assignment(Expression::UntaggedOperator(UntaggedOperator {
-                        op: "$literal".to_string(),
+                        op: UntaggedOperatorName::Literal,
                         args: vec![
                             Expression::Literal(LiteralValue::Int32(1)),
                         ]
@@ -244,7 +245,9 @@ mod stage_test {
 
     mod replace_with {
         use crate::{
-            definitions::{Expression, Ref, ReplaceStage, Stage, UntaggedOperator},
+            definitions::{
+                Expression, Ref, ReplaceStage, Stage, UntaggedOperator, UntaggedOperatorName,
+            },
             ROOT_NAME,
         };
 
@@ -260,7 +263,7 @@ mod stage_test {
             complex,
             expected = Stage::ReplaceWith(ReplaceStage::Expression(Expression::UntaggedOperator(
                 UntaggedOperator {
-                    op: "$mergeObjects".to_string(),
+                    op: UntaggedOperatorName::MergeObjects,
                     args: vec![
                         Expression::Ref(Ref::VariableRef(ROOT_NAME.to_string())),
                         Expression::Ref(Ref::FieldRef("as".to_string())),
@@ -353,7 +356,7 @@ mod stage_test {
                 Expression, LiteralValue, MatchArrayExpression, MatchBinaryOp, MatchComment,
                 MatchExpr, MatchExpression, MatchField, MatchJsonSchema, MatchLogical, MatchMisc,
                 MatchNot, MatchNotExpression, MatchRegex, MatchStage, MatchText, MatchTextContents,
-                MatchWhere, Ref, Stage, UntaggedOperator,
+                MatchWhere, Ref, Stage, UntaggedOperator, UntaggedOperatorName,
             },
             map,
         };
@@ -363,7 +366,7 @@ mod stage_test {
             expected = Stage::Match(MatchStage {
                 expr: vec![MatchExpression::Expr(MatchExpr {
                     expr: Box::new(Expression::UntaggedOperator(UntaggedOperator {
-                        op: "$sqlEq".to_string(),
+                        op: UntaggedOperatorName::SQLEq,
                         args: vec![
                             Expression::Ref(Ref::FieldRef("a".to_string())),
                             Expression::Ref(Ref::FieldRef("b".to_string())),
@@ -613,7 +616,7 @@ mod stage_test {
                     MatchExpression::Logical(MatchLogical::Or(vec![
                         MatchExpression::Expr(MatchExpr {
                             expr: Expression::UntaggedOperator(UntaggedOperator {
-                                op: "$eq".to_string(),
+                                op: UntaggedOperatorName::Eq,
                                 args: vec![
                                     Expression::Ref(Ref::FieldRef("a".to_string())),
                                     Expression::Literal(LiteralValue::Int32(1))
@@ -722,7 +725,7 @@ mod stage_test {
         use crate::{
             definitions::{
                 Expression, Join, JoinType, LiteralValue, ProjectItem, ProjectStage, Ref, Stage,
-                UntaggedOperator,
+                UntaggedOperator, UntaggedOperatorName,
             },
             map,
         };
@@ -801,7 +804,7 @@ mod stage_test {
                     }
                 })],
                 condition: Some(Expression::UntaggedOperator(UntaggedOperator {
-                    op: "$sqlEq".to_string(),
+                    op: UntaggedOperatorName::SQLEq,
                     args: vec![
                         Expression::Ref(Ref::VariableRef("x".to_string())),
                         Expression::Ref(Ref::FieldRef("x".to_string())),
@@ -881,7 +884,7 @@ mod stage_test {
             definitions::{
                 ConciseSubqueryLookup, EqualityLookup, Expression, LiteralValue, Lookup,
                 LookupFrom, MatchExpr, MatchExpression, MatchStage, Namespace, ProjectItem,
-                ProjectStage, Ref, Stage, SubqueryLookup, UntaggedOperator,
+                ProjectStage, Ref, Stage, SubqueryLookup, UntaggedOperator, UntaggedOperatorName,
             },
             map,
         };
@@ -981,7 +984,7 @@ mod stage_test {
                     Stage::Match(MatchStage {
                         expr: vec![MatchExpression::Expr(MatchExpr {
                             expr: Box::new(Expression::UntaggedOperator(UntaggedOperator {
-                                op: "$eq".to_string(),
+                                op: UntaggedOperatorName::Eq,
                                 args: vec![
                                     Expression::Ref(Ref::VariableRef("foo_b_0".to_string())),
                                     Expression::Ref(Ref::FieldRef("b".to_string()))
@@ -1036,7 +1039,7 @@ mod stage_test {
                     Stage::Match(MatchStage {
                         expr: vec![MatchExpression::Expr(MatchExpr {
                             expr: Box::new(Expression::UntaggedOperator(UntaggedOperator {
-                                op: "$eq".to_string(),
+                                op: UntaggedOperatorName::Eq,
                                 args: vec![
                                     Expression::Ref(Ref::VariableRef("foo_b_0".to_string())),
                                     Expression::Ref(Ref::FieldRef("b".to_string()))
@@ -1109,7 +1112,7 @@ mod stage_test {
                 aggregations: map! {
                     "acc".to_string() => GroupAccumulator {
                         function: "$sqlSum".to_string(),
-                        expr: GroupAccumulatorExpr::SqlAccumulator { distinct: true, var: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))) }
+                        expr: GroupAccumulatorExpr::SQLAccumulator { distinct: true, var: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))) }
                     }
                 }
             }),
@@ -1131,11 +1134,11 @@ mod stage_test {
                 aggregations: map! {
                     "acc_one".to_string() => GroupAccumulator {
                         function: "$sqlSum".to_string(),
-                        expr: GroupAccumulatorExpr::SqlAccumulator { distinct: true, var: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))) },
+                        expr: GroupAccumulatorExpr::SQLAccumulator { distinct: true, var: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))) },
                     },
                     "acc_two".to_string() => GroupAccumulator {
                         function: "$sqlAvg".to_string(),
-                        expr: GroupAccumulatorExpr::SqlAccumulator { distinct: true, var: Box::new(Expression::Ref(Ref::FieldRef("b".to_string()))) },
+                        expr: GroupAccumulatorExpr::SQLAccumulator { distinct: true, var: Box::new(Expression::Ref(Ref::FieldRef("b".to_string()))) },
                     },
                 }
             }),
@@ -1156,7 +1159,7 @@ mod stage_test {
                 aggregations: map! {
                     "acc".to_string() => GroupAccumulator {
                         function: "$addToSet".to_string(),
-                        expr: GroupAccumulatorExpr::NonSqlAccumulator(Expression::Ref(Ref::FieldRef("a".to_string()))),
+                        expr: GroupAccumulatorExpr::NonSQLAccumulator(Expression::Ref(Ref::FieldRef("a".to_string()))),
                     }
                 }
             }),
@@ -1244,7 +1247,8 @@ mod stage_test {
         use crate::{
             definitions::{
                 Derivative, EmptyDoc, Expression, LiteralValue, SetWindowFields,
-                SetWindowFieldsOutput, Stage, TaggedOperator, UntaggedOperator, Window,
+                SetWindowFieldsOutput, Stage, TaggedOperator, UntaggedOperator,
+                UntaggedOperatorName, Window,
             },
             map,
         };
@@ -1268,7 +1272,7 @@ mod stage_test {
                 output: map! {
                     "o1".to_string() => SetWindowFieldsOutput {
                         window_func: Box::new(Expression::UntaggedOperator(UntaggedOperator {
-                            op: "$sum".to_string(),
+                            op: UntaggedOperatorName::Sum,
                             args: vec![Expression::Literal(LiteralValue::Int32(1))],
                         })),
                         window: None,
@@ -1297,7 +1301,7 @@ mod stage_test {
                 output: map! {
                     "documents".to_string() => SetWindowFieldsOutput {
                         window_func: Box::new(Expression::UntaggedOperator(UntaggedOperator {
-                            op: "$sum".to_string(),
+                            op: UntaggedOperatorName::Sum,
                             args: vec![Expression::Literal(LiteralValue::Int32(1))],
                         })),
                         window: Some(Window {
@@ -1359,7 +1363,7 @@ mod stage_test {
                 output: map! {
                     "o1".to_string() => SetWindowFieldsOutput {
                         window_func: Box::new(Expression::UntaggedOperator(UntaggedOperator {
-                            op: "$sum".to_string(),
+                            op: UntaggedOperatorName::Sum,
                             args: vec![Expression::Literal(LiteralValue::Int32(1))],
                         })),
                         window: Some(Window {
@@ -1391,7 +1395,9 @@ mod stage_test {
 
     mod bucket {
         use crate::{
-            definitions::{Bucket, Expression, LiteralValue, Stage, UntaggedOperator},
+            definitions::{
+                Bucket, Expression, LiteralValue, Stage, UntaggedOperator, UntaggedOperatorName,
+            },
             map,
         };
         use bson::Bson;
@@ -1433,7 +1439,7 @@ mod stage_test {
                 default: Some(Bson::Int32(10)),
                 output: Some(map! {
                     "o1".to_string() => Expression::UntaggedOperator(UntaggedOperator {
-                        op: "$sum".to_string(),
+                        op: UntaggedOperatorName::Sum,
                         args: vec![Expression::Literal(LiteralValue::Int32(1))]
                     })
                 }),
@@ -1456,11 +1462,11 @@ mod stage_test {
                 default: Some(Bson::Int32(10)),
                 output: Some(map! {
                     "o1".to_string() => Expression::UntaggedOperator(UntaggedOperator {
-                        op: "$sum".to_string(),
+                        op: UntaggedOperatorName::Sum,
                         args: vec![Expression::Literal(LiteralValue::Int32(1))]
                     }),
                     "o2".to_string() => Expression::UntaggedOperator(UntaggedOperator {
-                        op: "$avg".to_string(),
+                        op: UntaggedOperatorName::Avg,
                         args: vec![Expression::Literal(LiteralValue::Int32(2))]
                     })
                 }),
@@ -1479,7 +1485,9 @@ mod stage_test {
 
     mod bucket_auto {
         use crate::{
-            definitions::{BucketAuto, Expression, LiteralValue, Stage, UntaggedOperator},
+            definitions::{
+                BucketAuto, Expression, LiteralValue, Stage, UntaggedOperator, UntaggedOperatorName,
+            },
             map,
         };
 
@@ -1519,7 +1527,7 @@ mod stage_test {
                 buckets: 2,
                 output: Some(map! {
                     "o1".to_string() => Expression::UntaggedOperator(UntaggedOperator {
-                        op: "$sum".to_string(),
+                        op: UntaggedOperatorName::Sum,
                         args: vec![Expression::Literal(LiteralValue::Int32(1))]
                     })
                 }),
@@ -1542,11 +1550,11 @@ mod stage_test {
                 buckets: 3,
                 output: Some(map! {
                     "o1".to_string() => Expression::UntaggedOperator(UntaggedOperator {
-                        op: "$sum".to_string(),
+                        op: UntaggedOperatorName::Sum,
                         args: vec![Expression::Literal(LiteralValue::Int32(1))]
                     }),
                     "o2".to_string() => Expression::UntaggedOperator(UntaggedOperator {
-                        op: "$avg".to_string(),
+                        op: UntaggedOperatorName::Avg,
                         args: vec![Expression::Literal(LiteralValue::Int32(2))]
                     })
                 }),
@@ -2168,9 +2176,9 @@ mod expression_test {
                 Expression, Filter, FirstN, Function, GetField, LastN, Let, Like, LiteralValue,
                 Map, MaxNArrayElement, Median, MinNArrayElement, Percentile, ProjectItem,
                 ProjectStage, Reduce, Ref, RegexFind, RegexFindAll, ReplaceAll, ReplaceOne,
-                SetField, SortArray, SortArraySpec, SqlConvert, SqlDivide, Stage, Subquery,
+                SQLConvert, SQLDivide, SetField, SortArray, SortArraySpec, Stage, Subquery,
                 SubqueryComparison, SubqueryExists, Switch, SwitchCase, TaggedOperator, Top, TopN,
-                Trim, UnsetField, UntaggedOperator, Zip,
+                Trim, UnsetField, UntaggedOperator, UntaggedOperatorName, Zip,
             },
             map,
         };
@@ -2327,7 +2335,7 @@ mod expression_test {
 
         test_serde_expr!(
             sql_convert,
-            expected = Expression::TaggedOperator(TaggedOperator::SqlConvert(SqlConvert {
+            expected = Expression::TaggedOperator(TaggedOperator::SQLConvert(SQLConvert {
                 input: Box::new(Expression::Literal(LiteralValue::String("1".to_string()))),
                 to: "int".to_string(),
                 on_null: Box::new(Expression::Literal(LiteralValue::Null)),
@@ -2449,7 +2457,7 @@ mod expression_test {
 
         test_serde_expr!(
             sql_divide,
-            expected = Expression::TaggedOperator(TaggedOperator::SqlDivide(SqlDivide {
+            expected = Expression::TaggedOperator(TaggedOperator::SQLDivide(SQLDivide {
                 dividend: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 divisor: Box::new(Expression::Literal(LiteralValue::Int32(2))),
                 on_error: Box::new(Expression::Literal(LiteralValue::Null)),
@@ -2836,7 +2844,7 @@ mod expression_test {
                 _as: Some("x".to_string()),
                 cond: Box::new(Expression::Literal(LiteralValue::Int32(2))),
                 limit: Some(Box::new(Expression::UntaggedOperator(UntaggedOperator {
-                    op: "$add".to_string(),
+                    op: UntaggedOperatorName::Add,
                     args: vec![
                         Expression::Literal(LiteralValue::Int32(1)),
                         Expression::Literal(LiteralValue::Int32(2)),
@@ -2910,7 +2918,7 @@ mod expression_test {
                 input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 initial_value: Box::new(Expression::Literal(LiteralValue::Int32(2))),
                 inside: Box::new(Expression::UntaggedOperator(UntaggedOperator {
-                    op: "$add".to_string(),
+                    op: UntaggedOperatorName::Add,
                     args: vec![
                         Expression::Ref(Ref::VariableRef("this".to_string())),
                         Expression::Literal(LiteralValue::Int32(2)),
@@ -3549,14 +3557,14 @@ mod expression_test {
 
     mod untagged_operators {
         use crate::{
-            definitions::{Expression, LiteralValue, Ref, UntaggedOperator},
+            definitions::{Expression, LiteralValue, Ref, UntaggedOperator, UntaggedOperatorName},
             map,
         };
 
         test_serde_expr!(
             one_argument_non_array,
             expected = Expression::UntaggedOperator(UntaggedOperator {
-                op: "$sqlSqrt".to_string(),
+                op: UntaggedOperatorName::SQLSqrt,
                 args: vec![Expression::Ref(Ref::FieldRef("x".to_string()))]
             }),
             input = r#"expr: {"$sqlSqrt": "$x"}"#
@@ -3565,7 +3573,7 @@ mod expression_test {
         test_serde_expr!(
             one_argument,
             expected = Expression::UntaggedOperator(UntaggedOperator {
-                op: "$sqlSqrt".to_string(),
+                op: UntaggedOperatorName::SQLSqrt,
                 args: vec![Expression::Ref(Ref::FieldRef("x".to_string()))]
             }),
             input = r#"expr: {"$sqlSqrt": ["$x"]}"#
@@ -3574,7 +3582,7 @@ mod expression_test {
         test_serde_expr!(
             multiple_arguments,
             expected = Expression::UntaggedOperator(UntaggedOperator {
-                op: "$add".to_string(),
+                op: UntaggedOperatorName::Add,
                 args: vec![
                     Expression::Ref(Ref::FieldRef("x".to_string())),
                     Expression::Ref(Ref::FieldRef("y".to_string())),
@@ -3587,7 +3595,7 @@ mod expression_test {
         test_serde_expr!(
             literal,
             expected = Expression::UntaggedOperator(UntaggedOperator {
-                op: "$literal".to_string(),
+                op: UntaggedOperatorName::Literal,
                 args: vec![Expression::Literal(LiteralValue::Int32(1))]
             }),
             input = r#"expr: {"$literal": 1}"#
@@ -3596,7 +3604,7 @@ mod expression_test {
         test_serde_expr!(
             empty_document_argument,
             expected = Expression::UntaggedOperator(UntaggedOperator {
-                op: "$count".to_string(),
+                op: UntaggedOperatorName::Count,
                 args: vec![Expression::Document(map!())]
             }),
             input = r#"expr: {"$count": {}}"#
@@ -3605,7 +3613,7 @@ mod expression_test {
         test_serde_expr!(
             empty_vec_argument,
             expected = Expression::UntaggedOperator(UntaggedOperator {
-                op: "$rand".to_string(),
+                op: UntaggedOperatorName::Rand,
                 args: vec![]
             }),
             input = r#"expr: {"$rand": []}"#

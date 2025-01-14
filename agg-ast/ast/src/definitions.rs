@@ -391,11 +391,11 @@ pub struct GroupAccumulator {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum GroupAccumulatorExpr {
-    SqlAccumulator {
+    SQLAccumulator {
         distinct: bool,
         var: Box<Expression>,
     },
-    NonSqlAccumulator(Expression),
+    NonSQLAccumulator(Expression),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -767,8 +767,353 @@ pub enum LiteralValue {
 /// the field "op" in the struct.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UntaggedOperator {
-    pub op: String,
+    pub op: UntaggedOperatorName,
     pub args: Vec<Expression>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub enum UntaggedOperatorName {
+    #[serde(rename = "$abs")]
+    Abs,
+    #[serde(rename = "$acos")]
+    Acos,
+    #[serde(rename = "$acosh")]
+    Acosh,
+    #[serde(rename = "$asin")]
+    Asin,
+    #[serde(rename = "$asinh")]
+    Asinh,
+    #[serde(rename = "$atan")]
+    Atan,
+    #[serde(rename = "$atan2")]
+    Atan2,
+    #[serde(rename = "$atanh")]
+    Atanh,
+    #[serde(rename = "$add")]
+    Add,
+    #[serde(rename = "$addToSet")]
+    AddToSet,
+    #[serde(rename = "$allElementsTrue")]
+    AllElementsTrue,
+    #[serde(rename = "$and")]
+    And,
+    #[serde(rename = "$anyElementTrue")]
+    AnyElementTrue,
+    #[serde(rename = "$arrayElemAt")]
+    ArrayElemAt,
+    #[serde(rename = "$arrayToObject")]
+    ArrayToObject,
+    #[serde(rename = "$avg")]
+    Avg,
+    #[serde(rename = "$binarySize")]
+    BinarySize,
+    #[serde(rename = "$bitAnd")]
+    BitAnd,
+    #[serde(rename = "$bitNot")]
+    BitNot,
+    #[serde(rename = "$bitOr")]
+    BitOr,
+    #[serde(rename = "$bitXor")]
+    BitXor,
+    #[serde(rename = "$bsonSize")]
+    BsonSize,
+    #[serde(rename = "$ceil")]
+    Ceil,
+    #[serde(rename = "$cmp")]
+    Cmp,
+    #[serde(rename = "$coalesce")]
+    Coalesce,
+    #[serde(rename = "$concat")]
+    Concat,
+    #[serde(rename = "$concatArrays")]
+    ConcatArrays,
+    #[serde(rename = "$cond")]
+    Cond,
+    #[serde(rename = "$cos")]
+    Cos,
+    #[serde(rename = "$cosh")]
+    Cosh,
+    #[serde(rename = "$covariancePop")]
+    CovariancePop,
+    #[serde(rename = "$covarianceSamp")]
+    CovarianceSamp,
+    #[serde(rename = "$degreesToRadians")]
+    DegreesToRadians,
+    #[serde(rename = "$count")]
+    Count,
+    #[serde(rename = "$dateAdd")]
+    DateAdd,
+    #[serde(rename = "$dateDiff")]
+    DateDiff,
+    #[serde(rename = "$dateTrunc")]
+    DateTrunc,
+    #[serde(rename = "$dayOfMonth")]
+    DayOfMonth,
+    #[serde(rename = "$dayOfYear")]
+    DayOfYear,
+    #[serde(rename = "$divide")]
+    Divide,
+    #[serde(rename = "$eq")]
+    Eq,
+    #[serde(rename = "$exp")]
+    Exp,
+    #[serde(rename = "$first")]
+    First,
+    #[serde(rename = "$floor")]
+    Floor,
+    #[serde(rename = "$gt")]
+    Gt,
+    #[serde(rename = "$gte")]
+    Gte,
+    #[serde(rename = "$hour")]
+    Hour,
+    #[serde(rename = "$ifNull")]
+    IfNull,
+    #[serde(rename = "$in")]
+    In,
+    #[serde(rename = "$indexOfArray")]
+    IndexOfArray,
+    #[serde(rename = "$indexOfBytes")]
+    IndexOfBytes,
+    #[serde(rename = "$indexOfCP")]
+    IndexOfCP,
+    #[serde(rename = "$is")]
+    Is,
+    #[serde(rename = "$isArray")]
+    IsArray,
+    #[serde(rename = "$isNumber")]
+    IsNumber,
+    #[serde(rename = "$isoDayOfWeek")]
+    IsoDayOfWeek,
+    #[serde(rename = "$isoWeek")]
+    IsoWeek,
+    #[serde(rename = "$last")]
+    Last,
+    #[serde(rename = "$let")]
+    Let,
+    #[serde(rename = "$literal")]
+    Literal,
+    #[serde(rename = "$locf")]
+    Locf,
+    #[serde(rename = "$log")]
+    Log,
+    #[serde(rename = "$log10")]
+    Log10,
+    #[serde(rename = "$ln")]
+    Ln,
+    #[serde(rename = "$lt")]
+    Lt,
+    #[serde(rename = "$lte")]
+    Lte,
+    #[serde(rename = "$max")]
+    Max,
+    #[serde(rename = "$meta")]
+    Meta,
+    #[serde(rename = "$millisecond")]
+    Millisecond,
+    #[serde(rename = "$min")]
+    Min,
+    #[serde(rename = "$minute")]
+    Minute,
+    #[serde(rename = "$mergeObjects")]
+    MergeObjects,
+    #[serde(rename = "$mod")]
+    Mod,
+    #[serde(rename = "$month")]
+    Month,
+    #[serde(rename = "$mqlBetween")]
+    MQLBetween,
+    #[serde(rename = "$multiply")]
+    Multiply,
+    #[serde(rename = "$ne")]
+    Ne,
+    #[serde(rename = "$not")]
+    Not,
+    #[serde(rename = "$nullIf")]
+    NullIf,
+    #[serde(rename = "$numberDouble")]
+    NumberDouble,
+    #[serde(rename = "$objectToArray")]
+    ObjectToArray,
+    #[serde(rename = "$or")]
+    Or,
+    #[serde(rename = "$pow")]
+    Pow,
+    #[serde(rename = "$push")]
+    Push,
+    #[serde(rename = "$radiansToDegrees")]
+    RadiansToDegrees,
+    #[serde(rename = "$rand")]
+    Rand,
+    #[serde(rename = "$range")]
+    Range,
+    #[serde(rename = "$reduce")]
+    Reduce,
+    #[serde(rename = "$regexMatch")]
+    RegexMatch,
+    #[serde(rename = "$reverseArray")]
+    ReverseArray,
+    #[serde(rename = "$round")]
+    Round,
+    #[serde(rename = "$sampleRate")]
+    SampleRate,
+    #[serde(rename = "$second")]
+    Second,
+    #[serde(rename = "$setEquals")]
+    SetEquals,
+    #[serde(rename = "$setField")]
+    SetField,
+    #[serde(rename = "$setIntersection")]
+    SetIntersection,
+    #[serde(rename = "$setDifference")]
+    SetDifference,
+    #[serde(rename = "$setUnion")]
+    SetUnion,
+    #[serde(rename = "$setIsSubset")]
+    SetIsSubset,
+    #[serde(rename = "$sin")]
+    Sin,
+    #[serde(rename = "$sinh")]
+    Sinh,
+    #[serde(rename = "$size")]
+    Size,
+    #[serde(rename = "$slice")]
+    Slice,
+    #[serde(rename = "$split")]
+    Split,
+    #[serde(rename = "$sqlAnd")]
+    SQLAnd,
+    #[serde(rename = "$sqlBetween")]
+    SQLBetween,
+    #[serde(rename = "$sqlBitLength")]
+    SQLBitLength,
+    #[serde(rename = "$sqlCos")]
+    SQLCos,
+    #[serde(rename = "$sqlEq")]
+    SQLEq,
+    #[serde(rename = "$sqlGt")]
+    SQLGt,
+    #[serde(rename = "$sqlGte")]
+    SQLGte,
+    #[serde(rename = "$sqlIndexOfCP")]
+    SQLIndexOfCP,
+    #[serde(rename = "$sqlIs")]
+    SQLIs,
+    #[serde(rename = "$sqlLog")]
+    SQLLog,
+    #[serde(rename = "$sqlLt")]
+    SQLLt,
+    #[serde(rename = "$sqlLte")]
+    SQLLte,
+    #[serde(rename = "$sqlMod")]
+    SQLMod,
+    #[serde(rename = "$sqlNe")]
+    SQLNe,
+    #[serde(rename = "$sqlNeg")]
+    SQLNeg,
+    #[serde(rename = "$sqlNot")]
+    SQLNot,
+    #[serde(rename = "$sqlOr")]
+    SQLOr,
+    #[serde(rename = "$sqlPos")]
+    SQLPos,
+    #[serde(rename = "$sqlRound")]
+    SQLRound,
+    #[serde(rename = "$sqlSin")]
+    SQLSin,
+    #[serde(rename = "$sqlSlice")]
+    SQLSlice,
+    #[serde(rename = "$sqlSize")]
+    SQLSize,
+    #[serde(rename = "$sqlSplit")]
+    SQLSplit,
+    #[serde(rename = "$sqlSqrt")]
+    SQLSqrt,
+    #[serde(rename = "$sqlStrLenCP")]
+    SQLStrLenCP,
+    #[serde(rename = "$sqlStrLenBytes")]
+    SQLStrLenBytes,
+    #[serde(rename = "$sqlSubstrCP")]
+    SQLSubstrCP,
+    #[serde(rename = "$sqlSum")]
+    SQLSum,
+    #[serde(rename = "$sqlTan")]
+    SQLTan,
+    #[serde(rename = "$sqlToLower")]
+    SQLToLower,
+    #[serde(rename = "$sqlToUpper")]
+    SQLToUpper,
+    #[serde(rename = "$sqrt")]
+    Sqrt,
+    #[serde(rename = "$stdDevPop")]
+    StdDevPop,
+    #[serde(rename = "$stdDevSamp")]
+    StdDevSamp,
+    #[serde(rename = "$strcasecmp")]
+    Strcasecmp,
+    #[serde(rename = "$strLenBytes")]
+    StrLenBytes,
+    #[serde(rename = "$strLenCP")]
+    StrLenCP,
+    #[serde(rename = "$substr")]
+    Substr,
+    #[serde(rename = "$substrBytes")]
+    SubstrBytes,
+    #[serde(rename = "$substrCP")]
+    SubstrCP,
+    #[serde(rename = "$subtract")]
+    Subtract,
+    #[serde(rename = "$sum")]
+    Sum,
+    #[serde(rename = "$switch")]
+    Switch,
+    #[serde(rename = "$tan")]
+    Tan,
+    #[serde(rename = "$tanh")]
+    Tanh,
+    #[serde(rename = "$toBool")]
+    ToBool,
+    #[serde(rename = "$toDate")]
+    ToDate,
+    #[serde(rename = "$toDecimal")]
+    ToDecimal,
+    #[serde(rename = "$toDouble")]
+    ToDouble,
+    #[serde(rename = "$toHashedIndexKey")]
+    ToHashedIndexKey,
+    #[serde(rename = "$toInt")]
+    ToInt,
+    #[serde(rename = "$toLong")]
+    ToLong,
+    #[serde(rename = "$toObjectId")]
+    ToObjectId,
+    #[serde(rename = "$toString")]
+    ToString,
+    #[serde(rename = "$toLower")]
+    ToLower,
+    #[serde(rename = "$toUpper")]
+    ToUpper,
+    #[serde(rename = "$trunc")]
+    Trunc,
+    #[serde(rename = "$tsIncrement")]
+    TSIncrement,
+    #[serde(rename = "$tsSecond")]
+    TSSecond,
+    #[serde(rename = "$type")]
+    Type,
+    #[serde(rename = "$week")]
+    Week,
+    #[serde(rename = "$year")]
+    Year,
+}
+
+impl TryFrom<&str> for UntaggedOperatorName {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, String> {
+        serde_json::from_str(value)
+            .map_err(|e| format!("Failed to deserialize operator name: {}", e))
+    }
 }
 
 /// TaggedOperators are operators that have named arguments. We can utilize
@@ -790,7 +1135,7 @@ pub enum TaggedOperator {
     #[serde(rename = "$let")]
     Let(Let),
     #[serde(rename = "$sqlConvert")]
-    SqlConvert(SqlConvert),
+    SQLConvert(SQLConvert),
     #[serde(rename = "$convert")]
     Convert(Convert),
     #[serde(rename = "$like")]
@@ -798,7 +1143,7 @@ pub enum TaggedOperator {
     #[serde(rename = "$regexMatch")]
     Regex(RegexAggExpression),
     #[serde(rename = "$sqlDivide")]
-    SqlDivide(SqlDivide),
+    SQLDivide(SQLDivide),
     #[serde(rename = "$trim")]
     Trim(Trim),
     #[serde(rename = "$ltrim")]
@@ -976,7 +1321,7 @@ pub struct Let {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SqlConvert {
+pub struct SQLConvert {
     pub input: Box<Expression>,
     pub to: String,
     pub on_null: Box<Expression>,
@@ -1096,7 +1441,7 @@ pub struct ReplaceOne {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SqlDivide {
+pub struct SQLDivide {
     pub dividend: Box<Expression>,
     pub divisor: Box<Expression>,
     pub on_error: Box<Expression>,

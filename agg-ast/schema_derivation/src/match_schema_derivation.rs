@@ -585,21 +585,45 @@ impl MatchConstrainSchema for Expression {
             });
         }
 
+        use agg_ast::definitions::UntaggedOperatorName;
         let null_behavior = state.null_behavior;
         match self {
             Expression::TaggedOperator(_t) => todo!(),
-            Expression::UntaggedOperator(u) => match u.op.as_str() {
+            Expression::UntaggedOperator(u) => match u.op {
                 // logical ops
-                "$or" => match_derive_or(u, state),
+                UntaggedOperatorName::Or => match_derive_or(u, state),
                 // comparison ops
-                "$eq" => match_derive_eq(u, state),
-                "$lte" => match_derive_lte(u, state),
+                UntaggedOperatorName::Eq => match_derive_eq(u, state),
+                UntaggedOperatorName::Lte => match_derive_lte(u, state),
                 // numeric ops
-                "$abs" | "$acos" | "$acosh" | "$asin" | "$asinh" | "$atan" | "$atan2"
-                | "$atanh" | "$cos" | "$cosh" | "$degreesToRadians" | "$divide" | "$exp"
-                | "$ln" | "$log" | "$log10" | "$mod" | "$multiply" | "$pow"
-                | "$radiansToDegrees" | "$sin" | "$sinh" | "$sqrt" | "$tan" | "$tanh"
-                | "$trunc" | "$ceil" | "$floor" => match_derive_numeric(u, state),
+                UntaggedOperatorName::Abs
+                | UntaggedOperatorName::Acos
+                | UntaggedOperatorName::Acosh
+                | UntaggedOperatorName::Asin
+                | UntaggedOperatorName::Asinh
+                | UntaggedOperatorName::Atan
+                | UntaggedOperatorName::Atan2
+                | UntaggedOperatorName::Atanh
+                | UntaggedOperatorName::Cos
+                | UntaggedOperatorName::Cosh
+                | UntaggedOperatorName::DegreesToRadians
+                | UntaggedOperatorName::Divide
+                | UntaggedOperatorName::Exp
+                | UntaggedOperatorName::Ln
+                | UntaggedOperatorName::Log
+                | UntaggedOperatorName::Log10
+                | UntaggedOperatorName::Mod
+                | UntaggedOperatorName::Multiply
+                | UntaggedOperatorName::Pow
+                | UntaggedOperatorName::RadiansToDegrees
+                | UntaggedOperatorName::Sin
+                | UntaggedOperatorName::Sinh
+                | UntaggedOperatorName::Sqrt
+                | UntaggedOperatorName::Tan
+                | UntaggedOperatorName::Tanh
+                | UntaggedOperatorName::Trunc
+                | UntaggedOperatorName::Ceil
+                | UntaggedOperatorName::Floor => match_derive_numeric(u, state),
                 _ => todo!(),
             },
             _ => {}
