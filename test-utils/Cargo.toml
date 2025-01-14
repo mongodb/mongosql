@@ -11,15 +11,15 @@ path = "src/data-loader.rs"
 
 [dependencies]
 fake = "2"
-itertools = "0.10.5"
-lazy_static = "1"
+itertools = { workspace = true }
+lazy_static = { workspace = true }
 mongosql = { path = "../mongosql" }
-rand = "0.8.5"
-serde = { version = "1", features = ["derive"] }
-serde_yaml = "0.9.21"
-thiserror = "1"
-tokio = "1.38.0"
-serde_stacker = "0.1"
+rand = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_yaml = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+serde_stacker = { workspace = true }
 
 [dependencies.mongodb]
 version = "3.1.0"

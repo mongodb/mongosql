@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 reqwest = { version = "0", features = ["blocking"] }
 mongodb = { workspace = true }
-tokio = { version = "1", features = ["full"] }
+tokio = { workspace = true, features = ["full"] }
 openidconnect = "3"
 open = "5"
 actix-web = "4"

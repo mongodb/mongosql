@@ -10,29 +10,29 @@ edition = "2021"
 
 [dependencies]
 agg-ast = { path = "../agg-ast/ast" }
-bson = { version = "2.11", features = ["chrono-0_4"] }
-chrono = "0.4.24"
-itertools = "0.10.1"
+bson = { workspace = true, features = ["chrono-0_4"] }
+chrono = { workspace = true }
+itertools = { workspace = true }
 lalrpop-util = { version = "0.20.2", features = ["lexer"] }
-lazy_static = "1"
-linked-hash-map = "0.5.4"
+lazy_static = { workspace = true }
+linked-hash-map = { workspace = true }
 quickcheck = "1"
-rand = "0.8.0"
-regex = "1"
-serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1", features = ["unbounded_depth"] }
-serde_yaml = "0.8.21"
-serde_stacker = "0.1"
+rand = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["unbounded_depth"] }
+serde_yaml = { workspace = true }
+serde_stacker = { workspace = true }
 enum-iterator = "0.7.0"
 tailcall = "1.0.1"
-thiserror = "1"
+thiserror = { workspace = true }
 variant_count = "1.1.0"
 visitgen = { path = "../visitgen" }
 mongosql-datastructures = { path = "../mongosql-datastructures" }
 edit-distance = "2.1.0"
 usererrordisplay-impl = { path = "../usererrordisplay-impl" }
 derive-new = "0.5.9"
-base64 = "0.21.3"
+base64 = { workspace = true }
 
 [target.'cfg(unix)'.dev-dependencies]
 criterion = "0.3"
@@ -44,4 +44,4 @@ harness = false
 
 [build-dependencies]
 lalrpop = "0.20.2"
-regex = "1.4.6"
+regex = { workspace = true }

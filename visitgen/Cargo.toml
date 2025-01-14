@@ -8,10 +8,10 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
-syn = { version = "1", features = ["visit", "full"] }
-lazy_static = "1"
+syn = { workspace = true, features = ["visit", "full"] }
+lazy_static = { workspace = true }
 proc-macro2 = "1"
-quote = "1"
+quote = { workspace = true }
 procout = {version = "0.1.13", features = ["procout", "formatted"]}
 
 [features]

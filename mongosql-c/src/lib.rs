@@ -1,3 +1,4 @@
+use base64::Engine;
 use lazy_static::lazy_static;
 use mongosql::{
     build_catalog_from_base_64,
@@ -118,7 +119,8 @@ fn translation_success_payload(t: mongosql::Translation) -> String {
         "select_order": &so,
     };
 
-    base64::encode(bson::to_vec(&translation).expect("serializing bson to bytes failed"))
+    base64::engine::general_purpose::STANDARD
+        .encode(bson::to_vec(&translation).expect("serializing bson to bytes failed"))
 }
 
 /// ErrorVisibility describes whether an error is "internal" or
@@ -147,7 +149,7 @@ fn translation_failure_payload(error: String, error_visibility: ErrorVisibility)
         .to_writer(&mut buf)
         .expect("serializing bson to bytes failed");
 
-    base64::encode(buf)
+    base64::engine::general_purpose::STANDARD.encode(buf)
 }
 
 /// Returns a base64-encoded bson representation of
@@ -192,7 +194,8 @@ fn get_namespaces_success_payload(namespaces: BTreeSet<mongosql::Namespace>) -> 
         "namespaces": &ns,
     };
 
-    base64::encode(bson::to_vec(&result).expect("serializing bson to bytes failed"))
+    base64::engine::general_purpose::STANDARD
+        .encode(bson::to_vec(&result).expect("serializing bson to bytes failed"))
 }
 
 /// Returns a base64-encoded BSON document representing the payload
@@ -212,7 +215,7 @@ fn get_namespaces_failure_payload(error: String, error_visibility: ErrorVisibili
         .to_writer(&mut buf)
         .expect("serializing bson to bytes failed");
 
-    base64::encode(buf)
+    base64::engine::general_purpose::STANDARD.encode(buf)
 }
 
 /// Executes function `f` such that any panics do not crash the runtime. The

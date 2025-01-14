@@ -4,10 +4,10 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-serde = "1.0.208"
+serde = { workspace = true }
 mongosql = { path = "../mongosql" }
 mongodb = { workspace = true } 
-serde_stacker = "0.1"
+serde_stacker = { workspace = true }
 jni = "0.21.1"
 semver = "1.0.23"
 

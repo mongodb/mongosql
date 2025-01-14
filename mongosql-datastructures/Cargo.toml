@@ -7,5 +7,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-linked-hash-map = "0.5.4"
-thiserror = "1"
+linked-hash-map = { workspace = true }
+thiserror = { workspace = true }

@@ -256,6 +256,7 @@ functions:
   "compile mongosql-rs":
     - command: shell.exec
       type: test
+      retry_on_failure: true
       params:
         shell: bash
         working_dir: mongosql-rs
@@ -268,6 +269,7 @@ functions:
   "compile libmongosqltranslate":
     - command: shell.exec
       type: test
+      retry_on_failure: true
       params:
         shell: bash
         working_dir: mongosql-rs
