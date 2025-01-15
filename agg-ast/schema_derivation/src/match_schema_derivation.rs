@@ -11,8 +11,8 @@ use bson::Bson;
 use mongosql::{
     map,
     schema::{
-        Atomic, Document, Satisfaction, Schema, FALSIFIABLE_TYPES, NULLISH, NUMERIC,
-        NUMERIC_OR_NULLISH,
+        Atomic, Document, Satisfaction, Schema, FALSIFIABLE_TYPES, INTEGER_LONG_OR_NULLISH,
+        NULLISH, NUMERIC, NUMERIC_OR_NULLISH,
     },
     set,
 };
@@ -513,7 +513,7 @@ impl MatchConstrainSchema for Expression {
                 if schema_intersection.satisfies(&NUMERIC.clone()) != Satisfaction::Not {
                     schema_intersection = schema_intersection.union(&NUMERIC.clone());
                 }
-                // falsish types include numbers, nullish, and boolean. evaluate if we must, may, or cannot be any nullish
+                // falsifiable types include numbers, nullish, and boolean. evaluate if we must, may, or cannot be any nullish
                 // type to determine the set of values the operands can take on.
                 state.null_behavior = schema_intersection.satisfies(&FALSIFIABLE_TYPES.clone());
                 u.args.iter().for_each(|arg| match arg {
@@ -585,6 +585,137 @@ impl MatchConstrainSchema for Expression {
             });
         }
 
+        fn match_derive_bit_ops(u: &UntaggedOperator, state: &mut ResultSetState) {
+            u.args.iter().for_each(|arg| {
+                if let Expression::Ref(Ref::FieldRef(r)) = arg {
+                    let path = r.as_str().split('.').map(|s| s.to_string()).collect();
+                    match state.null_behavior {
+                        Satisfaction::Not => {
+                            intersect_if_exists(
+                                path,
+                                state,
+                                Schema::AnyOf(set!(
+                                    Schema::Atomic(Atomic::Integer),
+                                    Schema::Atomic(Atomic::Long),
+                                )),
+                            );
+                        }
+                        Satisfaction::May => {
+                            intersect_if_exists(path, state, INTEGER_LONG_OR_NULLISH.clone());
+                        }
+                        Satisfaction::Must => {
+                            intersect_if_exists(path, state, NULLISH.clone());
+                        }
+                    }
+                }
+            });
+        }
+
+        fn match_derive_is_number(u: &UntaggedOperator, state: &mut ResultSetState) {
+            if let Expression::Ref(Ref::FieldRef(r)) = u.args[0].clone() {
+                let path = r.as_str().split('.').map(|s| s.to_string()).collect();
+                match state.null_behavior {
+                    Satisfaction::Not => {
+                        intersect_if_exists(path, state, NUMERIC.clone());
+                    }
+                    Satisfaction::Must => {
+                        if let Some(field_schema) =
+                            get_schema_for_path_mut(&mut state.result_set_schema, path)
+                        {
+                            schema_difference(
+                                field_schema,
+                                set!(
+                                    Schema::Atomic(Atomic::Decimal),
+                                    Schema::Atomic(Atomic::Double),
+                                    Schema::Atomic(Atomic::Integer),
+                                    Schema::Atomic(Atomic::Long),
+                                ),
+                            );
+                        }
+                    }
+                    _ => {}
+                };
+            }
+        }
+
+        fn match_derive_range(u: &UntaggedOperator, state: &mut ResultSetState) {
+            u.args.iter().for_each(|arg| {
+                if let Expression::Ref(Ref::FieldRef(r)) = arg {
+                    let path = r.as_str().split('.').map(|s| s.to_string()).collect();
+                    intersect_if_exists(path, state, NUMERIC.clone());
+                }
+            });
+        }
+
+        fn match_derive_round(u: &UntaggedOperator, state: &mut ResultSetState) {
+            if let Expression::Ref(Ref::FieldRef(r)) = u.args[0].clone() {
+                let path = r.as_str().split('.').map(|s| s.to_string()).collect();
+                match state.null_behavior {
+                    Satisfaction::Not => {
+                        intersect_if_exists(path, state, NUMERIC.clone());
+                    }
+                    Satisfaction::May => {
+                        intersect_if_exists(path, state, NUMERIC_OR_NULLISH.clone());
+                    }
+                    Satisfaction::Must => {
+                        intersect_if_exists(path, state, NULLISH.clone());
+                    }
+                };
+            }
+            if u.args.len() > 1 {
+                if let Expression::Ref(Ref::FieldRef(r)) = u.args[1].clone() {
+                    let path = r.as_str().split('.').map(|s| s.to_string()).collect();
+                    match state.null_behavior {
+                        Satisfaction::Not => {
+                            intersect_if_exists(
+                                path,
+                                state,
+                                Schema::AnyOf(set!(
+                                    Schema::Atomic(Atomic::Integer),
+                                    Schema::Atomic(Atomic::Long)
+                                )),
+                            );
+                        }
+                        Satisfaction::May => {
+                            intersect_if_exists(path, state, INTEGER_LONG_OR_NULLISH.clone());
+                        }
+                        Satisfaction::Must => {
+                            intersect_if_exists(path, state, NULLISH.clone());
+                        }
+                    };
+                }
+            }
+        }
+
+        fn match_derive_numeric_conversion(u: &UntaggedOperator, state: &mut ResultSetState) {
+            if let Expression::Ref(Ref::FieldRef(r)) = u.args[0].clone() {
+                let path = r.as_str().split('.').map(|s| s.to_string()).collect();
+                let numeric_convertible = Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Boolean),
+                    Schema::Atomic(Atomic::Decimal),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::String),
+                ));
+                match state.null_behavior {
+                    Satisfaction::Not => {
+                        intersect_if_exists(path, state, numeric_convertible);
+                    }
+                    Satisfaction::May => {
+                        intersect_if_exists(
+                            path,
+                            state,
+                            numeric_convertible.union(&NULLISH.clone()),
+                        );
+                    }
+                    Satisfaction::Must => {
+                        intersect_if_exists(path, state, NULLISH.clone());
+                    }
+                };
+            }
+        }
+
         use agg_ast::definitions::UntaggedOperatorName;
         let null_behavior = state.null_behavior;
         match self {
@@ -624,6 +755,17 @@ impl MatchConstrainSchema for Expression {
                 | UntaggedOperatorName::Trunc
                 | UntaggedOperatorName::Ceil
                 | UntaggedOperatorName::Floor => match_derive_numeric(u, state),
+                UntaggedOperatorName::BitAnd
+                | UntaggedOperatorName::BitNot
+                | UntaggedOperatorName::BitOr
+                | UntaggedOperatorName::BitXor => match_derive_bit_ops(u, state),
+                UntaggedOperatorName::IsNumber => match_derive_is_number(u, state),
+                UntaggedOperatorName::Range => match_derive_range(u, state),
+                UntaggedOperatorName::Round => match_derive_round(u, state),
+                UntaggedOperatorName::ToInt
+                | UntaggedOperatorName::ToDouble
+                | UntaggedOperatorName::ToDecimal
+                | UntaggedOperatorName::ToLong => match_derive_numeric_conversion(u, state),
                 _ => todo!(),
             },
             _ => {}

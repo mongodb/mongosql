@@ -293,4 +293,285 @@ mod numeric_ops {
         input = r#"{"$match": {"$expr": {"$eq": [{"$abs": "$foo"}, null]}}}"#,
         ref_schema = Schema::Any
     );
+
+    test_derive_schema_for_match_stage!(
+        bit_and_atomic,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$bitAnd": "$foo"}}}"#,
+        ref_schema = Schema::Atomic(Atomic::Integer)
+    );
+
+    test_derive_schema_for_match_stage!(
+        bit_and_not_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                )),
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$bitAnd": "$foo"}}}"#,
+        ref_schema = Schema::Any
+    );
+
+    test_derive_schema_for_match_stage!(
+        bit_and_maybe_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Null),
+                )),
+            },
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$not": {"$bitAnd": "$foo"}}}}"#,
+        ref_schema = Schema::Any
+    );
+
+    test_derive_schema_for_match_stage!(
+        bit_and_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Null),
+                )),
+            },
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$eq": [{"$bitAnd": "$foo"}, null]}}}"#,
+        ref_schema = Schema::Any
+    );
+
+    test_derive_schema_for_match_stage!(
+        range_atomic,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$range": [0, "$foo"]}}}"#,
+        ref_schema = Schema::Atomic(Atomic::Integer)
+    );
+
+    test_derive_schema_for_match_stage!(
+        range_not_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal),
+                )),
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$range": [0, "$foo"]}}}"#,
+        ref_schema = Schema::Any
+    );
+
+    test_derive_schema_for_match_stage!(
+        is_number_atomic,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$isNumber": "$foo"}}}"#,
+        ref_schema = Schema::Atomic(Atomic::Integer)
+    );
+
+    test_derive_schema_for_match_stage!(
+        is_number_not_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal),
+                )),
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$isNumber": "$foo"}}}"#,
+        ref_schema = Schema::Any
+    );
+
+    test_derive_schema_for_match_stage!(
+        is_number_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Array(Box::new(Schema::Any)),
+                    Schema::Document(Document {additional_properties: true, ..Default::default()}),
+                    Schema::Atomic(Atomic::BinData),
+                    Schema::Atomic(Atomic::Boolean),
+                    Schema::Atomic(Atomic::Date),
+                    Schema::Atomic(Atomic::DbPointer),
+                    Schema::Atomic(Atomic::Javascript),
+                    Schema::Atomic(Atomic::JavascriptWithScope),
+                    Schema::Atomic(Atomic::MinKey),
+                    Schema::Atomic(Atomic::MaxKey),
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Atomic(Atomic::Regex),
+                    Schema::Atomic(Atomic::ObjectId),
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Symbol),
+                    Schema::Atomic(Atomic::Timestamp),
+                    Schema::Atomic(Atomic::Undefined),
+                )),
+            },
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$eq": [{"$isNumber": "$foo"}, false]}}}"#,
+        ref_schema = Schema::Any
+    );
+
+    test_derive_schema_for_match_stage!(
+        round_atomic,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$round": "$foo"}}}"#,
+        ref_schema = Schema::Atomic(Atomic::Integer)
+    );
+
+    test_derive_schema_for_match_stage!(
+        round_not_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal),
+                )),
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$round": "$foo"}}}"#,
+        ref_schema = Schema::Any
+    );
+
+    test_derive_schema_for_match_stage!(
+        round_maybe_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal),
+                    Schema::Atomic(Atomic::Null),
+                )),
+            },
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$not": {"$round": "$foo"}}}}"#,
+        ref_schema = Schema::Any
+    );
+
+    test_derive_schema_for_match_stage!(
+        round_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Null),
+                )),
+            },
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$eq": [{"$round": "$foo"}, null]}}}"#,
+        ref_schema = Schema::Any
+    );
+
+    test_derive_schema_for_match_stage!(
+        to_int_atomic,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$toInt": "$foo"}}}"#,
+        ref_schema = Schema::Atomic(Atomic::Integer)
+    );
+
+    test_derive_schema_for_match_stage!(
+        to_int_not_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal),
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Boolean),
+                )),
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$toInt": "$foo"}}}"#,
+        ref_schema = Schema::Any
+    );
+
+    test_derive_schema_for_match_stage!(
+        to_int_maybe_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal),
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Boolean),
+                    Schema::Atomic(Atomic::Null),
+                )),
+            },
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$not": {"$toInt": "$foo"}}}}"#,
+        ref_schema = Schema::Any
+    );
+
+    test_derive_schema_for_match_stage!(
+        to_int_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Null),
+                )),
+            },
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$eq": [{"$toInt": "$foo"}, null]}}}"#,
+        ref_schema = Schema::Any
+    );
 }
