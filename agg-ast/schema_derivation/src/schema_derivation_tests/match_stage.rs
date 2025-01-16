@@ -167,9 +167,7 @@ test_derive_schema_for_match_stage! {
     derivation_for_gte,
     expected = Ok(Schema::Document(Document {
         keys: map! {
-            "foo".to_string() => Schema::AnyOf(set!{
-                Schema::Atomic(Atomic::Null),
-            }),
+            "foo".to_string() => Schema::Atomic(Atomic::Null),
         },
         ..Default::default()
     })),

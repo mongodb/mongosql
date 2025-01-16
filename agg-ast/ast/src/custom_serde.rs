@@ -1,6 +1,6 @@
 use crate::{
     definitions::{
-        Convert, DateExpression, DateFromParts, DateFromString, DateToString, Expression,
+        Cond, Convert, DateExpression, DateFromParts, DateFromString, DateToString, Expression,
         GroupAccumulator, GroupAccumulatorExpr, GroupAccumulatorName, LiteralValue,
         MatchArrayExpression, MatchArrayQuery, MatchBinaryOp, MatchElement, MatchExpression,
         MatchField, MatchNot, MatchNotExpression, MatchRegex, MatchStage, ProjectItem,
@@ -1030,6 +1030,50 @@ impl<'de> Deserialize<'de> for DateExpression {
                 date: Box::new(expr),
                 timezone: None,
             }),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Cond {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // $cond expression can take one of two forms:
+        // 1. { $cond: { if: <expr>, then: <expr>, else: <expr> } }
+        // 2. { $cond: [<expr>, <expr>, <expr>] }
+        // So we deserialize the expression into an Expression and convert an Documents or Arrays
+        // into a Cond struct.
+        let expression = Expression::deserialize(deserializer)?;
+        #[allow(unused_assignments)]
+        let (mut r#if, mut then, mut r#else) = (None, None, None);
+        match expression {
+            Expression::Document(mut d) => {
+                (r#if, then, r#else) = (d.remove("if"), d.remove("then"), d.remove("else"));
+                if !d.is_empty() {
+                    return Err(serde_err::custom("too many arguments for $cond document"));
+                }
+            }
+            Expression::Array(mut a) => {
+                if a.len() != 3 {
+                    return Err(serde_err::custom(
+                        "incorrect number of arguments for $cond array",
+                    ));
+                }
+                // pop() removes the last element, so we assign these in order "else", "then", "if".
+                (r#else, then, r#if) = (a.pop(), a.pop(), a.pop());
+            }
+            _ => return Err(serde_err::custom("unexpected value for $cond operator")),
+        }
+
+        if let (Some(r#if), Some(then), Some(r#else)) = (r#if, then, r#else) {
+            Ok(Cond {
+                r#if: Box::new(r#if),
+                then: Box::new(then),
+                r#else: Box::new(r#else),
+            })
+        } else {
+            Err(serde_err::custom("incorrect arguments to $cond document"))
         }
     }
 }

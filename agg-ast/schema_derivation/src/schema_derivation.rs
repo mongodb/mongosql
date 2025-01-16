@@ -1,13 +1,17 @@
 use crate::{
-    get_schema_for_path_mut, remove_field, schema_for_type_numeric, schema_for_type_str, Error,
-    Result,
+    get_schema_for_path_mut, promote_missing, remove_field, schema_difference,
+    schema_for_type_numeric, schema_for_type_str, Error, Result,
 };
 use agg_ast::definitions::{
     Expression, LiteralValue, Ref, Stage, TaggedOperator, UntaggedOperator, UntaggedOperatorName,
 };
 use mongosql::{
     map,
-    schema::{Atomic, Document, Satisfaction, Schema, NULLISH, NULLISH_OR_UNDEFINED, NUMERIC},
+    schema::{
+        Atomic, Document, Satisfaction, Schema, ANY_DOCUMENT, DATE_OR_NULLISH, EMPTY_DOCUMENT,
+        INTEGER_LONG_OR_NULLISH, INTEGER_OR_NULLISH, INTEGRAL, NULLISH, NULLISH_OR_UNDEFINED,
+        NUMERIC, NUMERIC_OR_NULLISH,
+    },
     set,
 };
 use std::collections::{BTreeMap, BTreeSet};
@@ -88,6 +92,7 @@ fn derive_schema_for_literal(literal_value: &LiteralValue) -> Result<Schema> {
 
 impl DeriveSchema for Expression {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
+        state.result_set_schema = promote_missing(&state.result_set_schema);
         match self {
             Expression::Array(ref a) => {
                 let array_schema = a
@@ -151,7 +156,7 @@ impl DeriveSchema for Expression {
 }
 
 /// This helper gets the maximal satisfaction of a list of expressions for a given type. This is primarily useful
-/// for determininig if _any_ argument must be null, or may be null, which can determine the output of an operator.
+/// for determining if _any_ argument must be null, or may be null, which can determine the output of an operator.
 /// This has similar implications for Decimal, which affects many math ops.
 fn arguments_schema_satisfies(
     args: &[&Expression],
@@ -552,6 +557,13 @@ impl DeriveSchema for TaggedOperator {
             TaggedOperator::BottomN(b) => {
                 Ok(Schema::Array(Box::new(b.output.derive_schema(state)?)))
             }
+            TaggedOperator::Cond(c) => {
+                let then_schema = c.then.derive_schema(state)?;
+                let else_schema = c.r#else.derive_schema(state)?;
+                Ok(Schema::simplify(&Schema::AnyOf(
+                    set! {then_schema, else_schema},
+                )))
+            }
             TaggedOperator::Filter(_) => todo!(),
             TaggedOperator::FirstN(_) => todo!(),
             TaggedOperator::Function(_) => todo!(),
@@ -804,16 +816,50 @@ impl DeriveSchema for UntaggedOperator {
                     },
                 )
             }
+            UntaggedOperatorName::Add => {
+                let input_schema = get_input_schema(&args, state)?;
+                if input_schema.satisfies(&INTEGER_OR_NULLISH) == Satisfaction::Must {
+                    // If both are (nullable) Ints, the result is (nullable) Int or Long
+                    handle_null_satisfaction(args, state, INTEGRAL.clone())
+                } else if input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
+                    // If both are (nullable) Ints or Longs, the result is (nullable) Long
+                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
+                } else if input_schema.satisfies(&Schema::Atomic(Atomic::Date)) == Satisfaction::May {
+                    // TODO: this is not exactly correct. Consider { $add: ["$date_or_int", "$int"] }
+                    //  - this could be a Date when the first is a date
+                    //  - but could also be an Int when the first is an int
+                    //  - I think we need to analyze the args separately to get the most accurate schema.
+                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Date))
+                } else {
+                    get_decimal_double_or_nullish(args, state)
+                }
+            }
+            UntaggedOperatorName::Subtract => {
+                let input_schema = get_input_schema(&args, state)?;
+                if input_schema.satisfies(&DATE_OR_NULLISH) == Satisfaction::Must {
+                    // If both are (nullable) Dates, the result is (nullable) Long
+                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
+                } else if input_schema.satisfies(&DATE_OR_NULLISH) == Satisfaction::May && input_schema.satisfies(&NUMERIC_OR_NULLISH) == Satisfaction::May {
+                    // If only one is a (nullable) Date and the other is a (nullable) number,
+                    // the result is a (nullable) Date
+                    // TODO: what about { $subtract: ["$date", "$date_or_int"] }
+                    //   - this could be a Long when it is Date-Date
+                    //   - this could be a Date when it is Date-Int
+                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Date))
+                } else if input_schema.satisfies(&INTEGER_OR_NULLISH) == Satisfaction::Must {
+                    handle_null_satisfaction(args, state, INTEGRAL.clone())
+                } else if input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
+                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
+                } else {
+                    get_decimal_double_or_nullish(args, state)
+                }
+            }
             // int + int -> int or long; int + long, long + long -> long,
             UntaggedOperatorName::Multiply => {
                 let input_schema = get_input_schema(&args, state)?;
-                let integral_types = Schema::AnyOf(set!(
-                    Schema::Atomic(Atomic::Integer),
-                    Schema::Atomic(Atomic::Long)
-                ));
                 if input_schema.satisfies(&Schema::Atomic(Atomic::Integer)) == Satisfaction::Must {
-                    Ok(integral_types)
-                } else if input_schema.satisfies(&integral_types) == Satisfaction::Must {
+                    Ok(INTEGRAL.clone())
+                } else if input_schema.satisfies(&INTEGRAL) == Satisfaction::Must {
                     Ok(Schema::Atomic(Atomic::Long))
                 } else {
                     get_decimal_double_or_nullish(args, state)
@@ -968,8 +1014,154 @@ impl DeriveSchema for UntaggedOperator {
                 let schema = self.args[0].derive_schema(state)?;
                 Ok(Schema::Array(Box::new(schema)))
             }
-            // Do this in another ticket
-            _ => todo!(),
+            UntaggedOperatorName::IfNull => {
+                // Note that $ifNull is variadic, not binary. It returns the first
+                // non-null argument. If all arguments are nullish, it returns the
+                // last argument unmodified (meaning, even if the last argument is
+                // null or missing, that value is returned). Therefore, the schema
+                // for this expression is the union of all argument schemas up to
+                // the first non-nullish argument (minus the nullish types).
+                //
+                // If all arguments up to the last one are nullish, then it is the
+                // union of all argument schemas. The schema retains any nullish
+                // types that the last argument may satisfy.
+                let mut schema = Schema::Unsat;
+                let last_elem_idx = args.len() - 1;
+                for (i, arg) in args.into_iter().enumerate() {
+                    let arg_schema = arg.derive_schema(state)?;
+                    if i == last_elem_idx {
+                        // If we get to the last element, we do not want to remove
+                        // nullish types from this argument's schema since $ifNull
+                        // returns this value no matter what.
+                        schema = schema.union(&arg_schema);
+                        break;
+                    }
+
+                    match arg_schema.satisfies(&NULLISH) {
+                        // If this argument is never nullish, include this schema
+                        // and break.
+                        Satisfaction::Not => {
+                            schema = schema.union(&arg_schema);
+                            break;
+                        }
+                        // If this argument may be nullish, retain the non-nullish
+                        // types only.
+                        Satisfaction::May => {
+                            schema = schema.union(&arg_schema.subtract_nullish());
+                        }
+                        // If this argument must be nullish, ignore it
+                        Satisfaction::Must => {}
+                    }
+                }
+
+                Ok(schema)
+            }
+            UntaggedOperatorName::MergeObjects => {
+                // $mergeObjects ignores nullish arguments. If all arguments are
+                // nullish, then the result is the empty document schema. It is
+                // tempting to simply use document schema union to represent the
+                // result schema for this operator, however that is not exactly
+                // correct. $mergeObjects uses the last value for a key if it
+                // appears multiple times. See the tests for examples.
+                let arg_schemas: Result<Vec<Document>> = args.iter().filter_map(|arg| {
+                    let arg_schema = arg.derive_schema(state);
+                    match arg_schema {
+                        Err(e) => Some(Err(e)),
+                        Ok(arg_schema) => {
+                            fn retain_only_doc_schemas(sch: Schema) -> Option<Schema> {
+                                match sch {
+                                    Schema::Unsat => None,
+                                    Schema::Missing => None,
+                                    Schema::Atomic(_) => None,
+                                    Schema::Array(_) => None,
+                                    Schema::Document(_) => Some(sch),
+                                    Schema::Any => Some(ANY_DOCUMENT.clone()),
+                                    Schema::AnyOf(ao) => {
+                                        // Retain only the Document schemas in this AnyOf and
+                                        // union them all together. The presence of any types
+                                        // other than Document implies that any "required"
+                                        // fields in any Document schemas are not required in
+                                        // the resulting schema. This is achieved by starting
+                                        // the fold with EMPTY_DOCUMENT. If the AnyOf only
+                                        // contains Document schemas, then some fields in the
+                                        // result schema may actually be required. This is
+                                        // achieved by starting the fold with the first schema
+                                        // from the AnyOf.
+                                        if ao.is_empty() {
+                                            return None
+                                        }
+                                        let init_doc_schema = if ao.iter().all(|s| matches!(s, Schema::Document(_))) {
+                                            // At this point, we know ao is non-empty and contains
+                                            // only document schemas.
+                                            ao.first().unwrap().clone()
+                                        } else {
+                                            EMPTY_DOCUMENT.clone()
+                                        };
+
+                                        Some(ao.into_iter()
+                                            .filter_map(retain_only_doc_schemas)
+                                            .fold(init_doc_schema, Schema::document_union))
+                                    }
+                                }
+                            }
+
+                            match retain_only_doc_schemas(arg_schema) {
+                                Some(Schema::Document(d)) => Some(Ok(d)),
+                                _ => None,
+                            }
+                        }
+                    }
+                }).collect();
+
+                Ok(Schema::simplify(&Schema::Document(arg_schemas?
+                    .into_iter()
+                    .fold(Document::empty(), |acc, arg_schema| {
+                        // Generally, mergeObjects retains the last value seen
+                        // for a key. Therefore, we iterate through the keys
+                        // of this argument and insert them and their schemas.
+                        let mut keys = acc.keys;
+                        for (arg_key, mut arg_key_schema) in arg_schema.keys {
+                            let current_key_schema = keys.get(&arg_key);
+                            let schema_to_insert = if let Some(current_key_schema) = current_key_schema {
+                                if arg_key_schema.satisfies(&Schema::Missing) == Satisfaction::May {
+                                    // If this key already appears in the accumulated schema _and_
+                                    // this argument's schema for this key is possibly missing, then
+                                    // we cannot simply overwrite the accumulated schema for this
+                                    // key. This is because in the case the later document's value
+                                    // for this key is missing, the earlier document's value will be
+                                    // returned. Therefore, we must union the accumulated schema and
+                                    // this argument's schema for this key. See the tests for an
+                                    // example.
+                                    schema_difference(&mut arg_key_schema, set!{Schema::Missing});
+                                    arg_key_schema.union(current_key_schema)
+                                } else {
+                                    arg_key_schema
+                                }
+                            } else {
+                                arg_key_schema
+                            };
+
+                            keys.insert(arg_key, schema_to_insert);
+                        }
+
+                        // All required keys must still be required.
+                        let mut required = acc.required;
+                        required.extend(arg_schema.required);
+
+                        // If any Document allows additional properties, the result
+                        // must also allow additional_properties.
+                        let additional_properties = acc.additional_properties || arg_schema.additional_properties;
+
+                        Document {
+                            keys,
+                            required,
+                            additional_properties,
+                            ..Default::default()
+                        }
+                    })
+                )))
+            }
+            _ => Err(Error::InvalidUntaggedOperator(self.op.into())),
         }
     }
 }

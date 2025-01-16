@@ -3554,6 +3554,34 @@ mod expression_test {
                 }}"#
             );
         }
+
+        mod cond {
+            use crate::definitions::{Cond, Expression, LiteralValue, TaggedOperator};
+
+            test_serde_expr!(
+                tagged_input,
+                expected = Expression::TaggedOperator(TaggedOperator::Cond(Cond {
+                    r#if: Box::new(Expression::Literal(LiteralValue::Boolean(true))),
+                    then: Box::new(Expression::Literal(LiteralValue::Int32(1))),
+                    r#else: Box::new(Expression::Literal(LiteralValue::Null)),
+                })),
+                input = r#"expr: {"$cond": {
+                                    "if": true,
+                                    "then": 1,
+                                    "else": null,
+                }}"#
+            );
+
+            test_serde_expr!(
+                untagged_input,
+                expected = Expression::TaggedOperator(TaggedOperator::Cond(Cond {
+                    r#if: Box::new(Expression::Literal(LiteralValue::Boolean(false))),
+                    then: Box::new(Expression::Literal(LiteralValue::Int32(0))),
+                    r#else: Box::new(Expression::Literal(LiteralValue::String("x".to_string()))),
+                })),
+                input = r#"expr: {"$cond": [false, 0, "x"]}"#
+            );
+        }
     }
 
     mod untagged_operators {

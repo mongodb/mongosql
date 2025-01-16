@@ -16,6 +16,7 @@ macro_rules! test_type_conversion_op {
                     variables: &BTreeMap::new(),
                     result_set_schema: Schema::Document(Document {
                         keys: map! {"foo".to_string() => Schema::Atomic(Atomic::Null)},
+                        required: set!{"foo".to_string()},
                         ..Default::default()
                     }),
                     null_behavior: Satisfaction::Not
@@ -27,6 +28,7 @@ macro_rules! test_type_conversion_op {
                 // if the input schema is not nullable, return the expected type
                 state.result_set_schema = Schema::Document(Document {
                     keys: map! {"foo".to_string() => Schema::Atomic(Atomic::Integer)},
+                    required: set!{"foo".to_string()},
                     ..Default::default()
                 });
                 let result = input.derive_schema(&mut state);
@@ -486,6 +488,98 @@ mod numeric_ops {
         expected = Ok(Schema::Atomic(Atomic::Integer)),
         input = r#"{"$mod": [1, 123]}"#
     );
+    test_derive_schema!(
+        add_integral,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ))),
+        input = r#"{"$add": [1, 1]}"#
+    );
+    test_derive_schema!(
+        add_long,
+        expected = Ok(Schema::Atomic(Atomic::Long)),
+        input = r#"{"$add": [1, {"$numberLong": "1"}]}"#
+    );
+    test_derive_schema!(
+        add_decimal,
+        expected = Ok(Schema::Atomic(Atomic::Decimal)),
+        input = r#"{"$add": [1, "$foo"]}"#,
+        ref_schema = Schema::Atomic(Atomic::Decimal)
+    );
+    test_derive_schema!(
+        add_double_or_null,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$add": [1, "$foo"]}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_schema!(
+        add_date_or_null,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$add": [1, "$foo"]}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_schema!(
+        subtract_integral,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ))),
+        input = r#"{"$subtract": [1, 1]}"#
+    );
+    test_derive_schema!(
+        subtract_long,
+        expected = Ok(Schema::Atomic(Atomic::Long)),
+        input = r#"{"$subtract": [1, {"$numberLong": "1"}]}"#
+    );
+    test_derive_schema!(
+        subtract_decimal,
+        expected = Ok(Schema::Atomic(Atomic::Decimal)),
+        input = r#"{"$subtract": [1, "$foo"]}"#,
+        ref_schema = Schema::Atomic(Atomic::Decimal)
+    );
+    test_derive_schema!(
+        subtract_double_or_null,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$subtract": [1, "$foo"]}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_schema!(
+        subtract_date_or_null,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$subtract": [1, "$foo"]}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_schema!(
+        subtract_both_dates,
+        expected = Ok(Schema::Atomic(Atomic::Long)),
+        input = r#"{"$subtract": ["$foo", "$foo"]}"#,
+        ref_schema = Schema::Atomic(Atomic::Date)
+    );
 }
 
 mod supremum_ops {
@@ -506,6 +600,319 @@ mod supremum_ops {
         ref_schema = Schema::AnyOf(set! {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String),
+        })
+    );
+}
+
+mod misc_ops {
+    use super::*;
+
+    // $ifNull
+    test_derive_schema!(
+        if_null_single_nullable,
+        expected = Ok(Schema::AnyOf(
+            set! {Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)}
+        )),
+        input = r#"{"$ifNull": ["$foo", "yes"]}"#,
+        ref_schema = Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+        })
+    );
+    test_derive_schema!(
+        if_null_single_nonnullable,
+        expected = Ok(Schema::Atomic(Atomic::Integer)),
+        input = r#"{"$ifNull": ["$foo", "yes"]}"#,
+        ref_schema = Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+        })
+    );
+    test_derive_schema!(
+        if_null_multiple_nullable,
+        expected = Ok(Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::String),
+        })),
+        input = r#"{"$ifNull": ["$foo", "$bar", "yes"]}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Integer),
+                "bar".to_string() => Schema::Atomic(Atomic::Long),
+            },
+            // Nullability implied by lack of requirement
+            required: set! {},
+            additional_properties: false,
+            jaccard_index: None,
+        })
+    );
+    test_derive_schema!(
+        if_null_multiple_only_include_up_to_first_nonnullable_type,
+        expected = Ok(Schema::AnyOf(
+            set! {Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long)}
+        )),
+        input = r#"{"$ifNull": ["$foo", "$bar", "yes"]}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Integer),
+                "bar".to_string() => Schema::Atomic(Atomic::Long),
+            },
+            // Nullability implied by lack of requirement
+            required: set! {"bar".to_string()},
+            additional_properties: false,
+            jaccard_index: None,
+        })
+    );
+    test_derive_schema!(
+        if_null_final_arg_possibly_null_or_missing,
+        expected = Ok(Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing,
+        })),
+        input = r#"{"$ifNull": ["$foo", "$bar", "$r"]}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Integer),
+                "bar".to_string() => Schema::Atomic(Atomic::Long),
+                "r".to_string() => Schema::AnyOf(set!{
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Null),
+                }),
+            },
+            // Nullability implied by lack of requirement
+            required: set! {},
+            additional_properties: false,
+            jaccard_index: None,
+        })
+    );
+    test_derive_schema!(
+        if_null_final_arg_only_possibly_null,
+        expected = Ok(Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+        })),
+        input = r#"{"$ifNull": ["$foo", "$bar", "$r"]}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Integer),
+                "bar".to_string() => Schema::Atomic(Atomic::Long),
+                "r".to_string() => Schema::AnyOf(set!{
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Null),
+                }),
+            },
+            // Nullability implied by lack of requirement
+            required: set! {"r".to_string()},
+            additional_properties: false,
+            jaccard_index: None,
+        })
+    );
+    test_derive_schema!(
+        if_null_final_arg_only_possibly_missing,
+        expected = Ok(Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::String),
+            Schema::Missing,
+        })),
+        input = r#"{"$ifNull": ["$foo", "$bar", "$r"]}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Integer),
+                "bar".to_string() => Schema::Atomic(Atomic::Long),
+                "r".to_string() => Schema::Atomic(Atomic::String),
+            },
+            // Nullability implied by lack of requirement
+            required: set! {},
+            additional_properties: false,
+            jaccard_index: None,
+        })
+    );
+
+    // $mergeObjects
+    test_derive_schema!(
+        merge_objects,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set! {"a".to_string(), "b".to_string()},
+            additional_properties: false,
+            jaccard_index: None,
+        })),
+        input = r#"{"$mergeObjects": [{"a": 1}, {"b": "yes"}]}"#
+    );
+    test_derive_schema!(
+        merge_objects_overlapping_keys_same_type,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+            jaccard_index: None,
+        })),
+        input = r#"{"$mergeObjects": [{"a": 1}, {"a": 2}]}"#
+    );
+    test_derive_schema!(
+        merge_objects_overlapping_keys_diff_types,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Boolean),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+            jaccard_index: None,
+        })),
+        input = r#"{"$mergeObjects": [{"a": 1}, {"a": true}]}"#
+    );
+    test_derive_schema!(
+        merge_objects_ignores_nullish_args,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set! {"a".to_string(), "b".to_string()},
+            additional_properties: false,
+            jaccard_index: None,
+        })),
+        input = r#"{"$mergeObjects": [{"a": 1}, null, {"b": "yes"}, "$missing"]}"#
+    );
+    test_derive_schema!(
+        merge_objects_all_nullish_args,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {},
+            required: set! {},
+            additional_properties: false,
+            jaccard_index: None,
+        })),
+        input = r#"{"$mergeObjects": [null, null, "$missing"]}"#
+    );
+    test_derive_schema!(
+        merge_objects_possibly_nullish_args,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+                "c".to_string() => Schema::Atomic(Atomic::Double),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+            jaccard_index: None,
+        })),
+        input = r#"{"$mergeObjects": [{"a": 1}, "$foo", "$bar", "$missing"]}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!{
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Document(Document {
+                        keys: map! {
+                            "b".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set! {"b".to_string()},
+                        additional_properties: false,
+                        jaccard_index: None,
+                    }),
+                }),
+                "bar".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "c".to_string() => Schema::Atomic(Atomic::Double),
+                    },
+                    required: set! {"c".to_string()},
+                    additional_properties: false,
+                    jaccard_index: None,
+                }),
+            },
+            required: set! {"foo".to_string()},
+            additional_properties: false,
+            jaccard_index: None,
+        })
+    );
+    test_derive_schema!(
+        merge_objects_any_of_only_docs,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+                "c".to_string() => Schema::Atomic(Atomic::Boolean),
+            },
+            required: set! {"b".to_string(), "c".to_string()},
+            additional_properties: true,
+            jaccard_index: None,
+        })),
+        input = r#"{"$mergeObjects": ["$foo", {"c": true}]}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!{
+                    Schema::Document(Document {
+                        keys: map! {
+                            "b".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set! {"b".to_string()},
+                        additional_properties: true,
+                        jaccard_index: None,
+                    }),
+                    Schema::Document(Document {
+                        keys: map! {
+                            "a".to_string() => Schema::Atomic(Atomic::Integer),
+                            "b".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set! {"b".to_string()},
+                        additional_properties: false,
+                        jaccard_index: None,
+                    }),
+                }),
+            },
+            required: set! {"foo".to_string()},
+            additional_properties: false,
+            jaccard_index: None,
+        })
+    );
+    test_derive_schema!(
+        merge_objects_duplicate_field_not_required_in_later_doc,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::AnyOf(set!{
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::String),
+                }),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+            jaccard_index: None,
+        })),
+        input = r#"{"$mergeObjects": ["$foo", "$bar"]}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "a".to_string() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set! {"a".to_string()},
+                    additional_properties: false,
+                    jaccard_index: None,
+                }),
+                "bar".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "a".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    // Note that "a" is a String in this Document, but it
+                    // is not required.
+                    required: set! {},
+                    additional_properties: false,
+                    jaccard_index: None,
+                }),
+            },
+            required: set! {"foo".to_string(), "bar".to_string()},
+            additional_properties: false,
+            jaccard_index: None,
         })
     );
 }

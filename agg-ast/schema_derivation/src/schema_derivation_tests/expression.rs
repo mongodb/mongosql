@@ -153,7 +153,9 @@ mod field_ref {
 
     test_derive_schema!(
         nested_field_ref,
-        expected = Ok(Schema::Atomic(Atomic::Double)),
+        expected = Ok(Schema::AnyOf(
+            set! {Schema::Missing, Schema::Atomic(Atomic::Double)}
+        )),
         input = r#""$foo.bar""#,
         ref_schema = Schema::Document(Document {
             keys: map! {

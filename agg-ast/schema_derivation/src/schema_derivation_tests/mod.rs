@@ -8,7 +8,7 @@ macro_rules! test_derive_schema {
             let input: Expression = serde_json::from_str($input).unwrap();
             #[allow(unused_mut, unused_assignments)]
             let mut result_set_schema = Schema::Any;
-            $(result_set_schema = Schema::Document(Document { keys: map! {"foo".to_string() => $ref_schema }, ..Default::default()});)?
+            $(result_set_schema = Schema::Document(Document { keys: map! {"foo".to_string() => $ref_schema }, required: set! {"foo".to_string()}, ..Default::default()});)?
             $(result_set_schema = $starting_schema;)?
             #[allow(unused_mut, unused_assignments)]
             let mut variables = BTreeMap::new();

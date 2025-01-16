@@ -2231,46 +2231,42 @@ mod simplify {
     test_simplify!(
         missing_in_documents,
         expected = Document(Document {
-            keys: map![
+            keys: map! {
                 "a".to_string() => AnyOf(set![
-                Atomic(String),
-                Atomic(Integer)
-            ]),
-            "b".to_string() => Atomic(String),
-                    "d".to_string() => Document(
-                        Document {
-                            keys: map![
-                                "ia".to_string() => AnyOf(set![Atomic(String)]),
-                            ],
-                            required: set![],
-                            additional_properties: false,
-                            ..Default::default()
-                            }
-                    ),
-                ],
+                    Atomic(String),
+                    Atomic(Integer)
+                ]),
+                "b".to_string() => Atomic(String),
+                "d".to_string() => Document(Document {
+                    keys: map!{
+                        "ia".to_string() => Atomic(String),
+                    },
+                    required: set![],
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
             required: set!["b".to_string(), "d".to_string()],
             additional_properties: true,
             ..Default::default()
         }),
         input = Document(Document {
-            keys: map![
-                    "a".to_string() => AnyOf(set![
-                        AnyOf(set![Missing, Atomic(String)]),
-                        Atomic(Integer)
-                    ]),
-                    "b".to_string() => Atomic(String),
-                    "c".to_string() => Missing,
-                    "d".to_string() => Document(
-                        Document {
-                            keys: map![
-                                "ia".to_string() => AnyOf(set![Missing, Atomic(String)]),
-                            ],
-                            required: set!["ia".to_string()],
-                            additional_properties: false,
-                            ..Default::default()
-                            }
-                    ),
-            ],
+            keys: map! {
+                "a".to_string() => AnyOf(set![
+                    AnyOf(set![Missing, Atomic(String)]),
+                    Atomic(Integer)
+                ]),
+                "b".to_string() => Atomic(String),
+                "c".to_string() => Missing,
+                "d".to_string() => Document(Document {
+                    keys: map!{
+                        "ia".to_string() => AnyOf(set![Missing, Atomic(String)]),
+                    },
+                    required: set!["ia".to_string()],
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
             required: set![
                 "a".to_string(),
                 "b".to_string(),

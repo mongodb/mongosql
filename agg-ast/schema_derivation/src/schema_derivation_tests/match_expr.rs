@@ -284,9 +284,7 @@ mod numeric_ops {
         abs_null,
         expected = Ok(Schema::Document(Document {
             keys: map! {
-                "foo".to_string() => Schema::AnyOf(set!(
-                    Schema::Atomic(Atomic::Null),
-                )),
+                "foo".to_string() => Schema::Atomic(Atomic::Null),
             },
             ..Default::default()
         })),
@@ -343,9 +341,7 @@ mod numeric_ops {
         bit_and_null,
         expected = Ok(Schema::Document(Document {
             keys: map! {
-                "foo".to_string() => Schema::AnyOf(set!(
-                    Schema::Atomic(Atomic::Null),
-                )),
+                "foo".to_string() => Schema::Atomic(Atomic::Null),
             },
             ..Default::default()
         })),
@@ -498,9 +494,7 @@ mod numeric_ops {
         round_null,
         expected = Ok(Schema::Document(Document {
             keys: map! {
-                "foo".to_string() => Schema::AnyOf(set!(
-                    Schema::Atomic(Atomic::Null),
-                )),
+                "foo".to_string() => Schema::Atomic(Atomic::Null),
             },
             ..Default::default()
         })),
@@ -565,9 +559,7 @@ mod numeric_ops {
         to_int_null,
         expected = Ok(Schema::Document(Document {
             keys: map! {
-                "foo".to_string() => Schema::AnyOf(set!(
-                    Schema::Atomic(Atomic::Null),
-                )),
+                "foo".to_string() => Schema::Atomic(Atomic::Null),
             },
             ..Default::default()
         })),

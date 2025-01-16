@@ -9,6 +9,7 @@ use std::collections::BTreeMap;
 
 mod misc_ops {
     use super::*;
+
     test_derive_schema!(
         constant_integral,
         expected = Ok(Schema::AnyOf(set!(
@@ -16,6 +17,16 @@ mod misc_ops {
             Schema::Atomic(Atomic::Long)
         ))),
         input = r#"{ "$documentNumber": { } }"#
+    );
+
+    // $cond
+    test_derive_schema!(
+        cond,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+        ))),
+        input = r#"{ "$cond": [true, 1, "yes"] }"#
     );
 }
 
@@ -766,7 +777,7 @@ mod field_setter_ops {
                 "x".to_string() => Schema::Atomic(Atomic::String),
                 "y".to_string() => Schema::Atomic(Atomic::Integer),
             },
-            required: set!(),
+            required: set!("x".to_string()),
             ..Default::default()
         })
     );
@@ -792,7 +803,7 @@ mod field_setter_ops {
                 "x".to_string() => Schema::Atomic(Atomic::Boolean),
                 "y".to_string() => Schema::Atomic(Atomic::Integer),
             },
-            required: set!(),
+            required: set!("x".to_string(), "y".to_string()),
             ..Default::default()
         })),
         input = r#"{ "$setField": { "input": "$foo", "field": "x", "value": true } }"#,
@@ -801,7 +812,7 @@ mod field_setter_ops {
                 "x".to_string() => Schema::Atomic(Atomic::String),
                 "y".to_string() => Schema::Atomic(Atomic::Integer),
             },
-            required: set!(),
+            required: set!("x".to_string(), "y".to_string()),
             ..Default::default()
         })
     );

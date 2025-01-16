@@ -798,6 +798,10 @@ lazy_static! {
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
     ]);
+    pub static ref INTEGRAL: Schema = Schema::AnyOf(set![
+        Schema::Atomic(Atomic::Integer),
+        Schema::Atomic(Atomic::Long),
+    ]);
     pub static ref NUMERIC: Schema = Schema::AnyOf(set![
         Schema::Atomic(Atomic::Integer),
         Schema::Atomic(Atomic::Long),
@@ -909,7 +913,7 @@ impl Schema {
                                 Satisfaction::Not => Some((k.clone(), s)),
                                 Satisfaction::May => {
                                     missing_keys.insert(k.clone());
-                                    Some((k.clone(), remove_missing(s)))
+                                    Some((k.clone(), Schema::simplify(&remove_missing(s))))
                                 }
                                 Satisfaction::Must => {
                                     missing_keys.insert(k.clone());

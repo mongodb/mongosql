@@ -1306,6 +1306,8 @@ pub enum TaggedOperator {
     Rank(EmptyDoc),
     #[serde(rename = "$shift")]
     Shift(Shift),
+    #[serde(rename = "$cond")]
+    Cond(Cond),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -1746,6 +1748,13 @@ pub struct Shift {
     pub output: Box<Expression>,
     pub by: i32,
     pub default: Option<Box<Expression>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct Cond {
+    pub r#if: Box<Expression>,
+    pub then: Box<Expression>,
+    pub r#else: Box<Expression>,
 }
 
 /// VecOrSingleExpr represents the argument to UntaggedOperators.

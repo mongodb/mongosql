@@ -1,7 +1,8 @@
 use crate::{
-    get_schema_for_path_mut,
+    get_schema_for_path_mut, maybe_any_of,
     negative_normalize::{NegativeNormalize, DECIMAL_ZERO},
-    schema_for_bson, schema_for_type_str, DeriveSchema, Result, ResultSetState,
+    promote_missing, schema_difference, schema_for_bson, schema_for_type_str, DeriveSchema, Result,
+    ResultSetState,
 };
 use agg_ast::definitions::{
     Expression, MatchBinaryOp, MatchExpr, MatchExpression, MatchField, MatchLogical,
@@ -12,7 +13,7 @@ use mongosql::{
     map,
     schema::{
         Atomic, Document, Satisfaction, Schema, FALSIFIABLE_TYPES, INTEGER_LONG_OR_NULLISH,
-        NULLISH, NUMERIC, NUMERIC_OR_NULLISH,
+        NULLISH, NUMERIC, NUMERIC_OR_NULLISH, UNFOLDED_ANY,
     },
     set,
 };
@@ -27,45 +28,6 @@ fn is_unitary_schema(schema: &Schema) -> bool {
             | Schema::Atomic(Atomic::MaxKey)
             | Schema::Atomic(Atomic::Undefined)
     )
-}
-
-macro_rules! maybe_any_of {
-    ($schemas:expr) => {
-        if $schemas.len() == 1 {
-            $schemas.into_iter().next().unwrap()
-        } else {
-            Schema::AnyOf($schemas)
-        }
-    };
-}
-
-macro_rules! any_expand {
-    () => {
-        Schema::AnyOf(set![
-            Schema::Atomic(Atomic::Double),
-            Schema::Atomic(Atomic::String),
-            Schema::Document(Document::any()),
-            Schema::Array(Box::new(Schema::Any)),
-            Schema::Atomic(Atomic::BinData),
-            Schema::Atomic(Atomic::Undefined),
-            Schema::Atomic(Atomic::ObjectId),
-            Schema::Atomic(Atomic::Boolean),
-            Schema::Atomic(Atomic::Date),
-            Schema::Missing,
-            Schema::Atomic(Atomic::Null),
-            Schema::Atomic(Atomic::Regex),
-            Schema::Atomic(Atomic::DbPointer),
-            Schema::Atomic(Atomic::Javascript),
-            Schema::Atomic(Atomic::Symbol),
-            Schema::Atomic(Atomic::JavascriptWithScope),
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::Timestamp),
-            Schema::Atomic(Atomic::Long),
-            Schema::Atomic(Atomic::Decimal),
-            Schema::Atomic(Atomic::MinKey),
-            Schema::Atomic(Atomic::MaxKey),
-        ])
-    };
 }
 
 macro_rules! bits_schema {
@@ -183,35 +145,6 @@ fn schema_for_array_bson_values(bson: &Bson, include_missing: bool) -> Schema {
         }
         // this should never happen because this should result in a statically unacceptable query
         _ => Schema::Any,
-    }
-}
-
-// promote_missing adds Schema::Missing to any non-required key in a Document schema. This is
-// necessary for our operations to work correctly, since they operate on paths, leaving no way
-// to check or modify required. We will rely on Schema::simplify to lower Schema::Missing back to
-// removing from required, since Schema::Missing cannot be serialized.
-fn promote_missing(schema: &Schema) -> Schema {
-    // It would be much more efficient to do this in place, but we can't do that because of
-    // BTreeSets. At some point we may want to consider moving to Vec, which would have no
-    // effect on serialization, but we would have to be more careful to remove duplicates and
-    // define an ordering.
-    match schema {
-        Schema::AnyOf(schemas) => {
-            let schemas = schemas.iter().map(promote_missing).collect::<BTreeSet<_>>();
-            maybe_any_of!(schemas)
-        }
-        Schema::Array(schema) => Schema::Array(Box::new(promote_missing(schema))),
-        Schema::Document(doc) => {
-            let mut doc = doc.clone();
-            for (key, schema) in doc.keys.iter_mut() {
-                if !doc.required.contains(key) {
-                    *schema = schema.union(&Schema::Missing);
-                    doc.required.insert(key.clone());
-                }
-            }
-            Schema::Document(doc)
-        }
-        _ => schema.clone(),
     }
 }
 
@@ -337,31 +270,6 @@ impl MatchConstrainSchema for MatchField {
         self.ops.iter().for_each(|(op, b)| {
             match_derive_schema_for_op(path.clone(), *op, b, state);
         });
-    }
-}
-
-// schema_difference removes a set of Schema from another Schema. This differs from
-// Schema::intersection in that it does not use two Schemas as operands. Part of this is that
-// schema_difference only ever happens with Atomic Schemas (and Missing, which is rather isomorphic
-// to Atomic) and this is expedient. If we ever need to expand this to more complex Schemas, it may
-// make sense to make this a real operator on two Schemas in the schema module.
-//
-// Note that this could also be achieved by complementing the Schema to be removed and intersecting
-// it with the Schema to be modified, but this would be quite a bit less efficient.
-fn schema_difference(schema: &mut Schema, to_remove: BTreeSet<Schema>) {
-    match schema {
-        Schema::Any => {
-            *schema = any_expand!();
-            schema_difference(schema, to_remove);
-        }
-        Schema::AnyOf(schemas) => {
-            let any_of_schemas = schemas
-                .difference(&to_remove)
-                .cloned()
-                .collect::<BTreeSet<_>>();
-            *schema = maybe_any_of!(any_of_schemas);
-        }
-        _ => (),
     }
 }
 
@@ -538,7 +446,7 @@ impl MatchConstrainSchema for Expression {
                         get_schema_for_path_mut(&mut state.result_set_schema, path)
                     {
                         if field_schema == &mut Schema::Any {
-                            *field_schema = any_expand!();
+                            *field_schema = UNFOLDED_ANY.clone();
                         }
                         let mut updated_schema = match field_schema.clone() {
                             Schema::AnyOf(a) => Schema::AnyOf(

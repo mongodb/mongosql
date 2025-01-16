@@ -3,15 +3,17 @@ mod negative_normalize;
 #[cfg(test)]
 mod negative_normalize_tests;
 pub mod schema_derivation;
+
 #[allow(unused_imports)]
 pub use schema_derivation::*;
+use std::collections::BTreeSet;
 #[cfg(test)]
 mod schema_derivation_tests;
 #[cfg(test)]
 mod test;
 
 use bson::{Bson, Document};
-use mongosql::schema::{self, Atomic, JaccardIndex, Schema};
+use mongosql::schema::{self, Atomic, JaccardIndex, Schema, UNFOLDED_ANY};
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -34,10 +36,75 @@ pub enum Error {
     UnknownReference(String),
 }
 
+#[macro_export]
+macro_rules! maybe_any_of {
+    ($schemas:expr) => {
+        if $schemas.len() == 1 {
+            $schemas.into_iter().next().unwrap()
+        } else {
+            Schema::AnyOf($schemas)
+        }
+    };
+}
+
+// promote_missing adds Schema::Missing to any non-required key in a Document schema. This is
+// necessary for our operations to work correctly, since they operate on paths, leaving no way
+// to check or modify required. We will rely on Schema::simplify to lower Schema::Missing back to
+// removing from required, since Schema::Missing cannot be serialized.
+fn promote_missing(schema: &Schema) -> Schema {
+    // It would be much more efficient to do this in place, but we can't do that because of
+    // BTreeSets. At some point we may want to consider moving to Vec, which would have no
+    // effect on serialization, but we would have to be more careful to remove duplicates and
+    // define an ordering.
+    match schema {
+        Schema::AnyOf(schemas) => {
+            let schemas = schemas.iter().map(promote_missing).collect::<BTreeSet<_>>();
+            maybe_any_of!(schemas)
+        }
+        Schema::Array(schema) => Schema::Array(Box::new(promote_missing(schema))),
+        Schema::Document(doc) => {
+            let mut doc = doc.clone();
+            for (key, schema) in doc.keys.iter_mut() {
+                *schema = promote_missing(schema);
+                if !doc.required.contains(key) {
+                    *schema = schema.union(&Schema::Missing);
+                    doc.required.insert(key.clone());
+                }
+            }
+            Schema::Document(doc)
+        }
+        _ => schema.clone(),
+    }
+}
+
+// schema_difference removes a set of Schema from another Schema. This differs from
+// Schema::intersection in that it does not use two Schemas as operands. Part of this is that
+// schema_difference only ever happens with Atomic Schemas (and Missing, which is rather isomorphic
+// to Atomic) and this is expedient. If we ever need to expand this to more complex Schemas, it may
+// make sense to make this a real operator on two Schemas in the schema module.
+//
+// Note that this could also be achieved by complementing the Schema to be removed and intersecting
+// it with the Schema to be modified, but this would be quite a bit less efficient.
+fn schema_difference(schema: &mut Schema, to_remove: BTreeSet<Schema>) {
+    match schema {
+        Schema::Any => {
+            *schema = UNFOLDED_ANY.clone();
+            schema_difference(schema, to_remove);
+        }
+        Schema::AnyOf(schemas) => {
+            let any_of_schemas = schemas
+                .difference(&to_remove)
+                .cloned()
+                .collect::<BTreeSet<_>>();
+            *schema = maybe_any_of!(any_of_schemas);
+        }
+        _ => (),
+    }
+}
+
 /// Gets a mutable reference to a specific field or document path in the schema.
 /// This allows us to insert, remove, or modify fields as we derive the schema for
 /// operators and stages.
-#[allow(dead_code)]
 pub(crate) fn get_schema_for_path_mut(
     schema: &mut Schema,
     path: Vec<String>,
