@@ -1,11 +1,11 @@
 use crate::{
     definitions::{
         Convert, DateExpression, DateFromParts, DateFromString, DateToString, Expression,
-        GroupAccumulator, GroupAccumulatorExpr, LiteralValue, MatchArrayExpression,
-        MatchArrayQuery, MatchBinaryOp, MatchElement, MatchExpression, MatchField, MatchNot,
-        MatchNotExpression, MatchRegex, MatchStage, ProjectItem, ProjectStage, Ref,
-        SetWindowFieldsOutput, Trim, UntaggedOperator, UntaggedOperatorName, VecOrSingleExpr,
-        Window,
+        GroupAccumulator, GroupAccumulatorExpr, GroupAccumulatorName, LiteralValue,
+        MatchArrayExpression, MatchArrayQuery, MatchBinaryOp, MatchElement, MatchExpression,
+        MatchField, MatchNot, MatchNotExpression, MatchRegex, MatchStage, ProjectItem,
+        ProjectStage, Ref, SetWindowFieldsOutput, Trim, UntaggedOperator, UntaggedOperatorName,
+        VecOrSingleExpr, Window,
     },
     map,
 };
@@ -61,44 +61,32 @@ fn get_single_entry(doc: &bson::Document) -> Option<(String, bson::Bson)> {
     None
 }
 
-impl TryFrom<String> for UntaggedOperatorName {
-    type Error = String;
+macro_rules! try_from_serde {
+    ($t:ty) => {
+        impl TryFrom<String> for $t {
+            type Error = String;
 
-    fn try_from(value: String) -> Result<Self, String> {
-        bson::from_bson(bson::Bson::String(value))
-            .map_err(|e| format!("Failed to deserialize operator name: {}", e))
-    }
-}
-
-impl From<UntaggedOperatorName> for String {
-    fn from(value: UntaggedOperatorName) -> Self {
-        bson::to_bson(&value)
-            .expect("Failed to serialize operator name, this is a code error.")
-            .as_str()
-            .unwrap()
-            .to_string()
-    }
-}
-
-impl TryFrom<&str> for MatchBinaryOp {
-    type Error = String;
-    fn try_from(s: &str) -> Result<Self, String> {
-        let deserialized: Self =
-            bson::from_bson(bson::Bson::String(s.to_string())).map_err(|e| e.to_string())?;
-        Ok(deserialized)
-    }
-}
-
-impl From<MatchBinaryOp> for String {
-    fn from(o: MatchBinaryOp) -> Self {
-        let serialized: Bson =
-            bson::to_bson(&o).expect("failed to serialize, this is a code error.");
-        match serialized {
-            bson::Bson::String(s) => s,
-            _ => unreachable!(),
+            fn try_from(value: String) -> Result<Self, String> {
+                bson::from_bson(bson::Bson::String(value))
+                    .map_err(|e| format!("Failed to deserialize operator name: {}", e))
+            }
         }
-    }
+
+        impl From<$t> for String {
+            fn from(value: $t) -> Self {
+                bson::to_bson(&value)
+                    .expect("Failed to serialize operator name, this is a code error.")
+                    .as_str()
+                    .unwrap()
+                    .to_string()
+            }
+        }
+    };
 }
+
+try_from_serde!(UntaggedOperatorName);
+try_from_serde!(GroupAccumulatorName);
+try_from_serde!(MatchBinaryOp);
 
 impl MatchArrayQueryVisitor {
     fn new() -> Self {
@@ -488,7 +476,7 @@ impl<'de> de::Visitor<'de> for MatchFieldVisitor {
                 for (key, value) in doc.into_iter() {
                     let key: String = key;
                     let value: bson::Bson = value;
-                    ops.insert(key.as_str().try_into().map_err(de::Error::custom)?, value);
+                    ops.insert(key.try_into().map_err(de::Error::custom)?, value);
                 }
                 Ok(MatchField { field, ops })
             }
@@ -927,8 +915,7 @@ where
     S: ser::Serializer,
 {
     let mut map = serializer.serialize_map(Some(1))?;
-    let key: String = value.op.into();
-    map.serialize_entry(&key, &value.args)?;
+    map.serialize_entry(&value.op, &value.args)?;
     map.end()
 }
 
@@ -983,19 +970,14 @@ impl<'de> Deserialize<'de> for GroupAccumulator {
             {
                 let kv = access.next_entry::<String, GroupAccumulatorExpr>()?;
                 if let Some((key, value)) = kv {
-                    // If the key does not start with a "$", then it is not an accumulator function.
-                    // Ignore this map and stop attempting to deserialize with this function.
-                    if !key.starts_with('$') {
-                        return Err(serde_err::custom("ignoring key that does not start with $"));
-                    }
-
+                    let function = key.try_into().map_err(serde_err::custom)?;
                     // Immediately return when we see one key that starts with a "$".
                     // In a general environment, this would be very brittle, however in this
                     // controlled test environment, we safely make the assumption that
                     // a single key that starts with a "$" is present and indicates an operator.
                     // let value = value.get_as_vec();
                     return Ok(GroupAccumulator {
-                        function: key,
+                        function,
                         expr: value,
                     });
                 }

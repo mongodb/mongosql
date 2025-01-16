@@ -384,8 +384,54 @@ pub struct Group {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct GroupAccumulator {
-    pub function: String,
+    pub function: GroupAccumulatorName,
     pub expr: GroupAccumulatorExpr,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub enum GroupAccumulatorName {
+    #[serde(rename = "$addToSet")]
+    AddToSet,
+    #[serde(rename = "$avg")]
+    Avg,
+    #[serde(rename = "$first")]
+    First,
+    #[serde(rename = "$last")]
+    Last,
+    #[serde(rename = "$max")]
+    Max,
+    #[serde(rename = "$mergeObjects")]
+    MergeObjects,
+    #[serde(rename = "$min")]
+    Min,
+    #[serde(rename = "$push")]
+    Push,
+    #[serde(rename = "$sqlAvg")]
+    SQLAvg,
+    #[serde(rename = "$sqlCount")]
+    SQLCount,
+    #[serde(rename = "$sqlFirst")]
+    SQLFirst,
+    #[serde(rename = "$sqlLast")]
+    SQLLast,
+    #[serde(rename = "$sqlMax")]
+    SQLMax,
+    #[serde(rename = "$sqlMergeObjects")]
+    SQLMergeObjects,
+    #[serde(rename = "$sqlMin")]
+    SQLMin,
+    #[serde(rename = "$sqlStdDevPop")]
+    SQLStdDevPop,
+    #[serde(rename = "$sqlStdDevSamp")]
+    SQLStdDevSamp,
+    #[serde(rename = "$sqlSum")]
+    SQLSum,
+    #[serde(rename = "$stdDevPop")]
+    StdDevPop,
+    #[serde(rename = "$stdDevSamp")]
+    StdDevSamp,
+    #[serde(rename = "$sum")]
+    Sum,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

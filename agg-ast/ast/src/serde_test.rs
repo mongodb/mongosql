@@ -1089,7 +1089,8 @@ mod stage_test {
     mod group_test {
         use crate::{
             definitions::{
-                Expression, Group, GroupAccumulator, GroupAccumulatorExpr, LiteralValue, Ref, Stage,
+                Expression, Group, GroupAccumulator, GroupAccumulatorExpr, GroupAccumulatorName,
+                LiteralValue, Ref, Stage,
             },
             map,
         };
@@ -1111,7 +1112,7 @@ mod stage_test {
                 keys: Expression::Literal(LiteralValue::Null),
                 aggregations: map! {
                     "acc".to_string() => GroupAccumulator {
-                        function: "$sqlSum".to_string(),
+                        function: GroupAccumulatorName::SQLSum,
                         expr: GroupAccumulatorExpr::SQLAccumulator { distinct: true, var: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))) }
                     }
                 }
@@ -1133,11 +1134,11 @@ mod stage_test {
                 },),
                 aggregations: map! {
                     "acc_one".to_string() => GroupAccumulator {
-                        function: "$sqlSum".to_string(),
+                        function: GroupAccumulatorName::SQLSum,
                         expr: GroupAccumulatorExpr::SQLAccumulator { distinct: true, var: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))) },
                     },
                     "acc_two".to_string() => GroupAccumulator {
-                        function: "$sqlAvg".to_string(),
+                        function: GroupAccumulatorName::SQLAvg,
                         expr: GroupAccumulatorExpr::SQLAccumulator { distinct: true, var: Box::new(Expression::Ref(Ref::FieldRef("b".to_string()))) },
                     },
                 }
@@ -1158,7 +1159,7 @@ mod stage_test {
                 keys: Expression::Literal(LiteralValue::Null),
                 aggregations: map! {
                     "acc".to_string() => GroupAccumulator {
-                        function: "$addToSet".to_string(),
+                        function: GroupAccumulatorName::AddToSet,
                         expr: GroupAccumulatorExpr::NonSQLAccumulator(Expression::Ref(Ref::FieldRef("a".to_string()))),
                     }
                 }

@@ -763,7 +763,7 @@ mod stage {
                 keys: agg_ast::Expression::Literal(agg_ast::LiteralValue::Null),
                 aggregations: map! {
                     "acc".to_string() => agg_ast::GroupAccumulator {
-                        function: "$sqlSum".to_string(),
+                        function: agg_ast::GroupAccumulatorName::SQLSum,
                         expr: agg_ast::GroupAccumulatorExpr::SQLAccumulator {
                             distinct: true,
                             var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())))
@@ -802,14 +802,14 @@ mod stage {
                 },),
                 aggregations: map! {
                     "acc_one".to_string() => agg_ast::GroupAccumulator {
-                        function: "$sqlSum".to_string(),
+                        function: agg_ast::GroupAccumulatorName::SQLSum,
                         expr: agg_ast::GroupAccumulatorExpr::SQLAccumulator {
                             distinct: true,
                             var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())))
                         },
                     },
                     "acc_two".to_string() => agg_ast::GroupAccumulator {
-                        function: "$sqlAvg".to_string(),
+                        function: agg_ast::GroupAccumulatorName::SQLAvg,
                         expr: agg_ast::GroupAccumulatorExpr::SQLAccumulator {
                             distinct: true,
                             var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("b".to_string())))
@@ -835,7 +835,7 @@ mod stage {
                 keys: agg_ast::Expression::Literal(agg_ast::LiteralValue::Null),
                 aggregations: map! {
                     "acc".to_string() => agg_ast::GroupAccumulator {
-                        function: "$addToSet".to_string(),
+                        function: agg_ast::GroupAccumulatorName::AddToSet,
                         expr: agg_ast::GroupAccumulatorExpr::NonSQLAccumulator(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string()))),
                     }
                 }

@@ -1,8 +1,8 @@
 use crate::air;
 use agg_ast::definitions::{
-    Expression, GroupAccumulatorExpr, JoinType, LiteralValue, Lookup, LookupFrom, MatchExpr,
-    MatchExpression, ProjectItem, Ref, Stage, Subquery, SubqueryExists, TaggedOperator,
-    UntaggedOperator, Unwind,
+    Expression, GroupAccumulatorExpr, GroupAccumulatorName, JoinType, LiteralValue, Lookup,
+    LookupFrom, MatchExpr, MatchExpression, ProjectItem, Ref, Stage, Subquery, SubqueryExists,
+    TaggedOperator, UntaggedOperator, Unwind,
 };
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
@@ -769,22 +769,39 @@ fn to_type_or_missing(s: String) -> air::TypeOrMissing {
     }
 }
 
-impl From<String> for air::AggregationFunction {
-    fn from(s: String) -> Self {
-        match s.as_str() {
-            "$addToSet" => air::AggregationFunction::AddToSet,
-            "$push" => air::AggregationFunction::AddToArray,
-            "$avg" | "$sqlAvg" => air::AggregationFunction::Avg,
-            "$sqlCount" => air::AggregationFunction::Count,
-            "$first" | "$sqlFirst" => air::AggregationFunction::First,
-            "$last" | "$sqlLast" => air::AggregationFunction::Last,
-            "$max" | "$sqlMax" => air::AggregationFunction::Max,
-            "$mergeObjects" | "$sqlMergeObjects" => air::AggregationFunction::MergeDocuments,
-            "$min" | "$sqlMin" => air::AggregationFunction::Min,
-            "$stdDevPop" | "$sqlStdDevPop" => air::AggregationFunction::StddevPop,
-            "$stdDevSamp" | "$sqlStdDevSamp" => air::AggregationFunction::StddevSamp,
-            "$sum" | "$sqlSum" => air::AggregationFunction::Sum,
-            _ => panic!("Recieved invalid Group aggregation function: {s}"),
+impl From<GroupAccumulatorName> for air::AggregationFunction {
+    fn from(n: GroupAccumulatorName) -> Self {
+        match n {
+            GroupAccumulatorName::AddToSet => air::AggregationFunction::AddToSet,
+            GroupAccumulatorName::Push => air::AggregationFunction::AddToArray,
+            GroupAccumulatorName::Avg | GroupAccumulatorName::SQLAvg => {
+                air::AggregationFunction::Avg
+            }
+            GroupAccumulatorName::SQLCount => air::AggregationFunction::Count,
+            GroupAccumulatorName::First | GroupAccumulatorName::SQLFirst => {
+                air::AggregationFunction::First
+            }
+            GroupAccumulatorName::Last | GroupAccumulatorName::SQLLast => {
+                air::AggregationFunction::Last
+            }
+            GroupAccumulatorName::Max | GroupAccumulatorName::SQLMax => {
+                air::AggregationFunction::Max
+            }
+            GroupAccumulatorName::MergeObjects | GroupAccumulatorName::SQLMergeObjects => {
+                air::AggregationFunction::MergeDocuments
+            }
+            GroupAccumulatorName::Min | GroupAccumulatorName::SQLMin => {
+                air::AggregationFunction::Min
+            }
+            GroupAccumulatorName::StdDevPop | GroupAccumulatorName::SQLStdDevPop => {
+                air::AggregationFunction::StddevPop
+            }
+            GroupAccumulatorName::StdDevSamp | GroupAccumulatorName::SQLStdDevSamp => {
+                air::AggregationFunction::StddevSamp
+            }
+            GroupAccumulatorName::Sum | GroupAccumulatorName::SQLSum => {
+                air::AggregationFunction::Sum
+            }
         }
     }
 }
