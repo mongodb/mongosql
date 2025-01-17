@@ -25,7 +25,7 @@ pub(crate) trait DeriveSchema {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct ResultSetState<'a> {
     pub catalog: &'a BTreeMap<String, Schema>,
-    pub variables: &'a BTreeMap<String, Schema>,
+    pub variables: BTreeMap<String, Schema>,
     pub result_set_schema: Schema,
     pub null_behavior: Satisfaction,
 }
@@ -494,7 +494,7 @@ impl DeriveSchema for TaggedOperator {
                 let mut let_state = ResultSetState {
                     result_set_schema: state.result_set_schema.clone(),
                     catalog: state.catalog,
-                    variables: &variables,
+                    variables,
                     null_behavior: Satisfaction::Not,
                 };
                 l.inside.derive_schema(&mut let_state)
@@ -586,7 +586,7 @@ impl DeriveSchema for TaggedOperator {
                 let mut new_state = state.clone();
                 let mut variables = state.variables.clone();
                 variables.insert(var, array_schema);
-                new_state.variables = &variables;
+                new_state.variables = variables;
                 Ok(
                     Schema::Array(Box::new(m.inside.derive_schema(&mut new_state)?))
                         .upconvert_missing_to_null(),
@@ -617,7 +617,7 @@ impl DeriveSchema for TaggedOperator {
                 let mut variables = state.variables.clone();
                 variables.insert("this".to_string(), array_schema);
                 variables.insert("value".to_string(), initial_schema);
-                new_state.variables = &variables;
+                new_state.variables = variables;
                 r.inside.derive_schema(&mut new_state)
             }
             TaggedOperator::Regex(_) => todo!(),

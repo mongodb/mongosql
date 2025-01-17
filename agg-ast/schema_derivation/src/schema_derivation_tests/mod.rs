@@ -15,7 +15,7 @@ macro_rules! test_derive_schema {
             $(variables = $variables;)?
             let mut state = ResultSetState {
                 catalog: &BTreeMap::new(),
-                variables: &variables,
+                variables,
                 result_set_schema,
                 null_behavior: Satisfaction::Not
             };
@@ -46,7 +46,7 @@ macro_rules! test_derive_schema_for_match_stage {
             $(variables = $variables;)?
             let mut state = ResultSetState {
                 catalog: &BTreeMap::new(),
-                variables: &variables,
+                variables,
                 result_set_schema,
                 null_behavior: Satisfaction::Not
             };

@@ -7,7 +7,7 @@ use mongosql::{
 };
 use std::collections::BTreeMap;
 
-mod conjunction_ops {
+mod logical_ops {
     use super::*;
 
     test_derive_schema_for_match_stage!(
@@ -52,6 +52,59 @@ mod conjunction_ops {
         })),
         input = r#"{"$match": {"$expr": {"$or": [{"$abs": "$foo"}, {"$eq": ["$foo", "hello world"]}]}}}"#,
         ref_schema = Schema::Any
+    );
+
+    test_derive_schema_for_match_stage!(
+        and_simple,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal),
+                )),
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$and": [{"$abs": "$foo"}]}}}"#,
+        ref_schema = Schema::Any
+    );
+
+    test_derive_schema_for_match_stage!(
+        and_joins_multiple_constraints_to_fixed_point,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::BinData),
+                    Schema::Atomic(Atomic::ObjectId),
+                )),
+                "b".to_string() => Schema::Atomic(Atomic::ObjectId),
+                "c".to_string() => Schema::Atomic(Atomic::ObjectId),
+            },
+            required: set! {"a".to_string(), "b".to_string(), "c".to_string()},
+            ..Default::default()
+        })),
+        input =
+            r#"{"$match": {"$expr": {"$and": [{"$lt": ["$a", "$b"]}, {"$lt": ["$b", "$c"]}]}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::BinData),
+                    Schema::Atomic(Atomic::ObjectId),
+                    Schema::Atomic(Atomic::Boolean),
+                )),
+                "b".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Atomic(Atomic::ObjectId),
+                    Schema::Atomic(Atomic::Boolean),
+                )),
+                "c".to_string() => Schema::Atomic(Atomic::ObjectId),
+            },
+            required: set! {"a".to_string(), "b".to_string(), "c".to_string()},
+            ..Default::default()
+        })
     );
 }
 
@@ -124,6 +177,72 @@ mod comparison_ops {
                     Schema::Atomic(Atomic::Integer),
                     Schema::Atomic(Atomic::Null),
                 )),
+            },
+            required: set! {"foo".to_string(), "bar".to_string()},
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema_for_match_stage!(
+        ne_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$ne": ["$foo", null]}}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null)
+        ))
+    );
+
+    test_derive_schema_for_match_stage!(
+        ne_non_unitary_no_op,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Any,
+            },
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$ne": ["$foo", 1]}}}"#,
+        ref_schema = Schema::Any
+    );
+
+    test_derive_schema_for_match_stage!(
+        ne_two_refs,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Integer),
+                "bar".to_string() => Schema::Atomic(Atomic::MaxKey),
+            },
+            required: set!("bar".to_string(), "foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$ne": ["$foo", "$bar"]}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::MaxKey),
+                )),
+                "bar".to_string() => Schema::Atomic(Atomic::MaxKey),
+            },
+            required: set! {"foo".to_string(), "bar".to_string()},
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema_for_match_stage!(
+        ne_two_refs_unsat,
+        expected = Ok(Schema::Document(Document::default())),
+        input = r#"{"$match": {"$expr": {"$ne": ["$foo", "$bar"]}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "bar".to_string() => Schema::Atomic(Atomic::Null),
+                "foo".to_string() => Schema::Atomic(Atomic::Null),
             },
             required: set! {"foo".to_string(), "bar".to_string()},
             ..Default::default()
@@ -204,10 +323,7 @@ mod comparison_ops {
             keys: map! {
                 "foo".to_string() => Schema::AnyOf(set!(
                     Schema::Atomic(Atomic::Integer),
-                    Schema::Atomic(Atomic::Long),
-                    Schema::Atomic(Atomic::Double),
                     Schema::Atomic(Atomic::Decimal),
-                    Schema::Atomic(Atomic::MinKey),
                     Schema::Atomic(Atomic::Null),
                 )),
                 "bar".to_string() => Schema::AnyOf(set!(
@@ -215,16 +331,160 @@ mod comparison_ops {
                     Schema::Atomic(Atomic::Null)
                 )),
             },
-            required: set!("bar".to_string()),
+            required: set!("bar".to_string(), "foo".to_string()),
             ..Default::default()
         })),
         input = r#"{"$match": {"$expr": {"$lte": ["$foo", "$bar"]}}}"#,
         starting_schema = Schema::Document(Document {
             keys: map! {
-                "foo".to_string() => Schema::Any,
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Atomic(Atomic::Decimal),
+                    Schema::Atomic(Atomic::Timestamp),
+                )),
                 "bar".to_string() => Schema::AnyOf(set!(
                     Schema::Atomic(Atomic::Long),
                     Schema::Atomic(Atomic::Null),
+                    Schema::Atomic(Atomic::MinKey),
+                )),
+            },
+            required: set! {"bar".to_string(), "foo".to_string()},
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema_for_match_stage!(
+        lt_two_refs,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Decimal),
+                    Schema::Atomic(Atomic::Null),
+                )),
+                "bar".to_string() => Schema::Atomic(Atomic::Long),
+            },
+            required: set!("bar".to_string(), "foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$lt": ["$foo", "$bar"]}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Atomic(Atomic::Decimal),
+                    Schema::Atomic(Atomic::Timestamp),
+                )),
+                "bar".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Atomic(Atomic::MinKey),
+                )),
+            },
+            required: set! {"bar".to_string(), "foo".to_string()},
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema_for_match_stage!(
+        gte_two_refs,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "bar".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Decimal),
+                    Schema::Atomic(Atomic::Null),
+                )),
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Null)
+                )),
+            },
+            required: set!("bar".to_string(), "foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$gte": ["$foo", "$bar"]}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "bar".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Atomic(Atomic::Decimal),
+                    Schema::Atomic(Atomic::Timestamp),
+                )),
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Atomic(Atomic::MinKey),
+                )),
+            },
+            required: set! {"bar".to_string(), "foo".to_string()},
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema_for_match_stage!(
+        gt_two_refs,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "bar".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Decimal),
+                    Schema::Atomic(Atomic::Null),
+                )),
+                "foo".to_string() => Schema::Atomic(Atomic::Long),
+            },
+            required: set!("bar".to_string(), "foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$gt": ["$foo", "$bar"]}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "bar".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Atomic(Atomic::Decimal),
+                    Schema::Atomic(Atomic::Timestamp),
+                )),
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Atomic(Atomic::MinKey),
+                )),
+            },
+            required: set! {"bar".to_string(), "foo".to_string()},
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema_for_match_stage!(
+        gt_two_refs_one_missing,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "bar".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Decimal),
+                    Schema::Atomic(Atomic::Null),
+                )),
+                "foo".to_string() => Schema::Atomic(Atomic::Long),
+            },
+            required: set!("bar".to_string(), "foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$gt": ["$foo", "$bar"]}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "bar".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Atomic(Atomic::Decimal),
+                    Schema::Atomic(Atomic::Timestamp),
+                )),
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::MinKey),
                 )),
             },
             required: set! {"bar".to_string()},

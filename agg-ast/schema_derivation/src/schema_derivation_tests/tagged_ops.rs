@@ -980,7 +980,7 @@ mod convert {
             fn $func_name() {
                 let mut state = ResultSetState {
                     catalog: &BTreeMap::new(),
-                    variables: &BTreeMap::new(),
+                    variables: BTreeMap::new(),
                     result_set_schema: Schema::Document(Document {
                         keys: map! {"foo".to_string() => Schema::Any },
                         ..Default::default()

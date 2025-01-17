@@ -148,23 +148,26 @@ fn schema_for_array_bson_values(bson: &Bson, include_missing: bool) -> Schema {
     }
 }
 
-// this function gets the maximum type of a given schema, which is mostly meaningful for AnyOfs. This allows us to handle comparison
-// operators that use total ordering, such as $lte in $expr.
-fn max_type_for_schema(schema: Schema) -> Schema {
-    match schema {
-        Schema::Unsat
-        | Schema::Array(_)
-        | Schema::Atomic(_)
-        | Schema::Document(_)
-        | Schema::Missing
-        | Schema::Any => schema,
-        Schema::AnyOf(a) => a.iter().fold(Schema::Unsat, |local_max, anyof_element| {
-            if &local_max < anyof_element {
-                anyof_element.clone()
-            } else {
-                local_max
-            }
-        }),
+// result_set_schema_difference wraps schema_difference to operate on field refs and variables within the
+// result set state. This is specifically for applying constraints via match.
+fn result_set_schema_difference(
+    reference: &agg_ast::definitions::Ref,
+    state: &mut ResultSetState,
+    to_remove: BTreeSet<Schema>,
+) {
+    let ref_schema: Option<&mut Schema> = match reference {
+        agg_ast::definitions::Ref::FieldRef(reference) => {
+            let path = reference
+                .as_str()
+                .split('.')
+                .map(|s| s.to_string())
+                .collect();
+            get_schema_for_path_mut(&mut state.result_set_schema, path)
+        }
+        agg_ast::definitions::Ref::VariableRef(v) => state.variables.get_mut(v),
+    };
+    if let Some(schema) = ref_schema {
+        schema_difference(schema, to_remove);
     }
 }
 
@@ -235,21 +238,16 @@ impl MatchConstrainSchema for MatchLogical {
                     if ops.len() == 1 {
                         let (op, b) = ops.iter().next().unwrap();
                         if let MatchBinaryOp::Type = op {
-                            let path = n.field.as_str().split('.').map(|s| s.to_string()).collect();
                             let to_remove_schema = schema_for_type_expr(b);
-                            let field_schema =
-                                get_schema_for_path_mut(&mut state.result_set_schema, path);
-                            let field_schema = match field_schema {
-                                Some(field_schema) => field_schema,
-                                None => {
-                                    return;
-                                }
-                            };
                             match to_remove_schema {
                                 Schema::AnyOf(schemas) => {
-                                    schema_difference(field_schema, schemas);
+                                    result_set_schema_difference(&n.field, state, schemas);
                                 }
-                                _ => schema_difference(field_schema, set![to_remove_schema]),
+                                _ => result_set_schema_difference(
+                                    &n.field,
+                                    state,
+                                    set![to_remove_schema],
+                                ),
                             }
                         }
                     }
@@ -261,84 +259,78 @@ impl MatchConstrainSchema for MatchLogical {
 
 impl MatchConstrainSchema for MatchField {
     fn match_derive_schema(&self, state: &mut ResultSetState) {
-        let path: Vec<_> = self
-            .field
-            .as_str()
-            .split('.')
-            .map(|s| s.to_string())
-            .collect();
         self.ops.iter().for_each(|(op, b)| {
-            match_derive_schema_for_op(path.clone(), *op, b, state);
+            match_derive_schema_for_op(&self.field, *op, b, state);
         });
     }
 }
 
 // this function simply applies the intersection to a field if it exists, otherwise does nothing..
 // this is useful for applying the constraints of certain match operations to the overall result set schema
-fn intersect_if_exists(path: Vec<String>, state: &mut ResultSetState, schema: Schema) {
-    if let Some(field_schema) = get_schema_for_path_mut(&mut state.result_set_schema, path) {
-        *field_schema = schema.intersection(field_schema);
+fn intersect_if_exists(reference: &Ref, state: &mut ResultSetState, input_schema: Schema) {
+    let ref_schema: Option<&mut Schema> = match reference {
+        Ref::FieldRef(reference) => {
+            let path = reference
+                .as_str()
+                .split('.')
+                .map(|s| s.to_string())
+                .collect();
+            get_schema_for_path_mut(&mut state.result_set_schema, path)
+        }
+        Ref::VariableRef(v) => state.variables.get_mut(v),
+    };
+    if let Some(schema) = ref_schema {
+        *schema = schema.intersection(&input_schema);
     }
 }
 
 // match_derive_schema_for_op derives the schema for a single match operation, since a given field
 // may be nested above multiple match operations. This is a helper function for MatchField::match_derive_schema.
 fn match_derive_schema_for_op(
-    path: Vec<String>,
+    reference: &Ref,
     op: MatchBinaryOp,
     b: &Bson,
     state: &mut ResultSetState,
 ) {
-    macro_rules! schema_difference {
-        ($path:expr, $state:expr, $schemas:expr) => {
-            let field_schema = get_schema_for_path_mut(&mut $state.result_set_schema, $path);
-            match field_schema {
-                Some(field_schema) => {
-                    schema_difference(field_schema, $schemas);
-                }
-                None => (),
-            }
-        };
-    }
     match op {
         MatchBinaryOp::Eq | MatchBinaryOp::Gte | MatchBinaryOp::Lte => {
             let schema = schema_for_match_bson_literal(b, true);
-            intersect_if_exists(path, state, schema);
+            intersect_if_exists(reference, state, schema);
         }
         MatchBinaryOp::Gt | MatchBinaryOp::Lt => {
             let schema = schema_for_match_bson_literal(b, false);
-            intersect_if_exists(path, state, schema);
+            intersect_if_exists(reference, state, schema);
         }
         // Ne actually does not tell us anything about Schema except for types that are
         // unitary-valued: Null, MinKey, MaxKey, Undefined.
         MatchBinaryOp::Ne => {
             let schema = schema_for_match_bson_literal(b, true);
             if is_unitary_schema(&schema) {
-                schema_difference!(path, state, set![schema]);
+                result_set_schema_difference(reference, state, set![schema]);
             } else if let Schema::AnyOf(schemas) = schema {
                 let to_remove = schemas.into_iter().filter(is_unitary_schema).collect();
-                schema_difference!(path, state, to_remove);
+                result_set_schema_difference(reference, state, to_remove);
             }
         }
         MatchBinaryOp::Exists => {
             if is_exists_true_bson(b) {
-                schema_difference!(path, state, set![Schema::Missing]);
+                result_set_schema_difference(reference, state, set![Schema::Missing]);
             } else {
-                intersect_if_exists(path, state, Schema::Missing);
+                intersect_if_exists(reference, state, Schema::Missing);
             }
         }
         MatchBinaryOp::Type => {
             let schema = schema_for_type_expr(b);
-            intersect_if_exists(path, state, schema);
+            intersect_if_exists(reference, state, schema);
         }
         MatchBinaryOp::In => {
             let schema = schema_for_array_bson_values(b, true);
-            intersect_if_exists(path, state, schema);
+            intersect_if_exists(reference, state, schema);
         }
         MatchBinaryOp::Nin => {
             let schema = schema_for_array_bson_values(b, true);
             if is_unitary_schema(&schema) {
-                schema_difference!(path, state, set![schema]);
+                result_set_schema_difference(reference, state, set![schema]);
             } else if let Schema::AnyOf(schemas) = schema {
                 let to_remove = schemas
                     .iter()
@@ -352,31 +344,31 @@ fn match_derive_schema_for_op(
                     })
                     .filter(is_unitary_schema)
                     .collect();
-                schema_difference!(path, state, to_remove);
+                result_set_schema_difference(reference, state, to_remove);
             }
         }
         MatchBinaryOp::Mod => {
-            intersect_if_exists(path, state, NUMERIC.clone());
+            intersect_if_exists(reference, state, NUMERIC.clone());
         }
         MatchBinaryOp::Size => {
             let schema = Schema::Array(Box::new(Schema::Any));
-            intersect_if_exists(path, state, schema);
+            intersect_if_exists(reference, state, schema);
         }
         MatchBinaryOp::All => {
             let schema = Schema::Array(Box::new(schema_for_array_bson_values(b, false)));
-            intersect_if_exists(path, state, schema);
+            intersect_if_exists(reference, state, schema);
         }
         MatchBinaryOp::BitsAllClear
         | MatchBinaryOp::BitsAnyClear
         | MatchBinaryOp::BitsAllSet
         | MatchBinaryOp::BitsAnySet => {
-            intersect_if_exists(path, state, bits_schema!());
+            intersect_if_exists(reference, state, bits_schema!());
         }
         MatchBinaryOp::Near
         | MatchBinaryOp::GeoWithin
         | MatchBinaryOp::NearSphere
         | MatchBinaryOp::GeoIntersects => {
-            intersect_if_exists(path, state, geo_schema!());
+            intersect_if_exists(reference, state, geo_schema!());
         }
     }
 }
@@ -393,6 +385,19 @@ impl MatchConstrainSchema for Expression {
                     Err(_) => return,
                 }
             };
+        }
+
+        fn match_derive_and(u: &UntaggedOperator, state: &mut ResultSetState) {
+            let mut initial_schema = state.result_set_schema.clone();
+            loop {
+                u.args.iter().for_each(|arg| {
+                    arg.match_derive_schema(state);
+                });
+                if initial_schema == state.result_set_schema {
+                    break;
+                }
+                initial_schema = state.result_set_schema.clone();
+            }
         }
 
         fn match_derive_or(u: &UntaggedOperator, state: &mut ResultSetState) {
@@ -425,9 +430,8 @@ impl MatchConstrainSchema for Expression {
                 // type to determine the set of values the operands can take on.
                 state.null_behavior = schema_intersection.satisfies(&FALSIFIABLE_TYPES.clone());
                 u.args.iter().for_each(|arg| match arg {
-                    Expression::Ref(Ref::FieldRef(r)) => {
-                        let path = r.as_str().split('.').map(|s| s.to_string()).collect();
-                        intersect_if_exists(path, state, schema_intersection.clone());
+                    Expression::Ref(reference) => {
+                        intersect_if_exists(reference, state, schema_intersection.clone());
                     }
                     _ => {
                         arg.match_derive_schema(state);
@@ -436,39 +440,152 @@ impl MatchConstrainSchema for Expression {
             }
         }
 
-        fn match_derive_lte(u: &UntaggedOperator, state: &mut ResultSetState) {
+        fn match_derive_ne(u: &UntaggedOperator, state: &mut ResultSetState) {
+            // we can only constrain the schema for ne with unitary types, for example ne null
             if u.args.len() == 2 {
-                if let Expression::Ref(Ref::FieldRef(r)) = &u.args[0] {
-                    let rhs_schema = unwrap_or_return!(u.args[1].derive_schema(state));
-                    let max_rhs_schema = max_type_for_schema(rhs_schema);
-                    let path = r.as_str().split('.').map(|s| s.to_string()).collect();
-                    if let Some(field_schema) =
-                        get_schema_for_path_mut(&mut state.result_set_schema, path)
-                    {
-                        if field_schema == &mut Schema::Any {
-                            *field_schema = UNFOLDED_ANY.clone();
+                let lhs_schema = unwrap_or_return!(u.args[0].derive_schema(state));
+                let rhs_schema = unwrap_or_return!(u.args[1].derive_schema(state));
+                match (u.args[0].clone(), u.args[1].clone(), lhs_schema, rhs_schema) {
+                    (
+                        Expression::Ref(left_ref),
+                        Expression::Ref(right_ref),
+                        Schema::Atomic(left_atomic),
+                        Schema::Atomic(right_atomic),
+                    ) => {
+                        // if we have an ne that is strictly unsatisfiable, set the schemas for these fields to be unsat
+                        if left_atomic == right_atomic
+                            && is_unitary_schema(&Schema::Atomic(left_atomic))
+                        {
+                            intersect_if_exists(&left_ref, state, Schema::Unsat);
+                            intersect_if_exists(&right_ref, state, Schema::Unsat);
                         }
-                        let mut updated_schema = match field_schema.clone() {
-                            Schema::AnyOf(a) => Schema::AnyOf(
-                                a.into_iter().filter(|x| x <= &max_rhs_schema).collect(),
-                            ),
-                            s => {
-                                if s <= max_rhs_schema {
-                                    s.clone()
-                                } else {
-                                    Schema::Unsat
-                                }
-                            }
-                        };
-                        // because all numerics are comparable, we must include them even if they are greater than the max type of the rhs
-                        if updated_schema.intersection(&NUMERIC.clone()) != Schema::Unsat {
-                            updated_schema =
-                                updated_schema.union(&NUMERIC.clone().intersection(field_schema));
-                        }
-                        *field_schema = updated_schema;
                     }
+                    (Expression::Ref(reference), _, _, Schema::Atomic(a))
+                    | (_, Expression::Ref(reference), Schema::Atomic(a), _) => {
+                        if is_unitary_schema(&Schema::Atomic(a)) {
+                            result_set_schema_difference(
+                                &reference,
+                                state,
+                                set!(Schema::Atomic(a)),
+                            );
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        // this function is a helper for the comparison functions $lt, $lte, $gt, $gte. It is invoked
+        // when we have a field reference to constrain that fields schemas. It assumes the field ref is the
+        // lhs of the operation, and the input_schema is the schema of the rhs. That is, for a field "foo", with
+        // operator $gt, and input schema bar, we are constraining the types of foo according to $foo > bar.
+        fn constrain_schema_for_comparison_reference(
+            reference: &Ref,
+            op: UntaggedOperatorName,
+            state: &mut ResultSetState,
+            input_schema: Schema,
+        ) {
+            let ref_schema: Option<&mut Schema> = match reference {
+                Ref::FieldRef(reference) => {
+                    let path = reference
+                        .as_str()
+                        .split('.')
+                        .map(|s| s.to_string())
+                        .collect();
+                    get_schema_for_path_mut(&mut state.result_set_schema, path)
+                }
+                Ref::VariableRef(v) => state.variables.get_mut(v),
+            };
+            // the limit is the maximum schema ($lt, $lte) or minimum schema ($gt, $gte) that the
+            // given field reference can take on, given the schema we are comparing it to.
+            let limit = match input_schema.clone() {
+                Schema::Any => match op {
+                    UntaggedOperatorName::Lt | UntaggedOperatorName::Lte => {
+                        Schema::Atomic(Atomic::MaxKey)
+                    }
+                    _ => Schema::Atomic(Atomic::MinKey),
+                },
+                Schema::AnyOf(a) => match op {
+                    UntaggedOperatorName::Lt | UntaggedOperatorName::Lte => a
+                        .iter()
+                        .max()
+                        .unwrap_or(&Schema::Atomic(Atomic::MaxKey))
+                        .clone(),
+                    _ => a
+                        .iter()
+                        .min()
+                        .unwrap_or(&Schema::Atomic(Atomic::MinKey))
+                        .clone(),
+                },
+                _ => input_schema.clone(),
+            };
+            if let Some(schema) = ref_schema {
+                if schema == &mut Schema::Any {
+                    *schema = UNFOLDED_ANY.clone();
+                }
+                // use the limit to constrain which types the field reference can take on
+                let mut updated_schema = match schema.clone() {
+                    Schema::AnyOf(a) => Schema::AnyOf(
+                        a.into_iter()
+                            .filter(|x| match op {
+                                UntaggedOperatorName::Lt => {
+                                    x < &limit || (x == &limit && !is_unitary_schema(x))
+                                }
+                                UntaggedOperatorName::Lte => x <= &limit,
+                                UntaggedOperatorName::Gt => {
+                                    x > &limit || (x == &limit && !is_unitary_schema(x))
+                                }
+                                UntaggedOperatorName::Gte => x >= &limit,
+                                _ => true,
+                            })
+                            .collect(),
+                    ),
+                    s => {
+                        if (s < limit
+                            && (op == UntaggedOperatorName::Lt || op == UntaggedOperatorName::Lte))
+                            || (s > limit
+                                && (op == UntaggedOperatorName::Gt
+                                    || op == UntaggedOperatorName::Gte))
+                            || (s == limit
+                                && (op == UntaggedOperatorName::Lte
+                                    || op == UntaggedOperatorName::Gte
+                                    || !is_unitary_schema(&s)))
+                        {
+                            s.clone()
+                        } else {
+                            Schema::Unsat
+                        }
+                    }
+                };
+                // because all numerics are comparable, we must include them even if they are greater than the max type of the rhs
+                if updated_schema.intersection(&NUMERIC.clone()) != Schema::Unsat {
+                    updated_schema = updated_schema.union(&NUMERIC.clone().intersection(schema));
+                }
+                *schema = updated_schema;
+            }
+        }
+
+        fn match_derive_comparison(u: &UntaggedOperator, state: &mut ResultSetState) {
+            if u.args.len() == 2 {
+                let lhs_schema = unwrap_or_return!(u.args[0].derive_schema(state));
+                let rhs_schema = unwrap_or_return!(u.args[1].derive_schema(state));
+                if let Expression::Ref(reference) = &u.args[0] {
+                    constrain_schema_for_comparison_reference(reference, u.op, state, rhs_schema);
                 } else {
                     u.args[0].match_derive_schema(state);
+                }
+                if let Expression::Ref(reference) = &u.args[1] {
+                    // we invert the operator, so that we can treat this field reference as the LHS of the comparison (in order to reuse the helper);
+                    // for example, if we want to constrain bar in the comparison foo < $bar, we can treat it as $bar > foo.
+                    let op = match u.op {
+                        UntaggedOperatorName::Lt => UntaggedOperatorName::Gt,
+                        UntaggedOperatorName::Lte => UntaggedOperatorName::Gte,
+                        UntaggedOperatorName::Gt => UntaggedOperatorName::Lt,
+                        UntaggedOperatorName::Gte => UntaggedOperatorName::Lte,
+                        _ => return,
+                    };
+                    constrain_schema_for_comparison_reference(reference, op, state, lhs_schema);
+                } else {
                     u.args[1].match_derive_schema(state);
                 }
             }
@@ -476,17 +593,16 @@ impl MatchConstrainSchema for Expression {
 
         fn match_derive_numeric(u: &UntaggedOperator, state: &mut ResultSetState) {
             u.args.iter().for_each(|arg| {
-                if let Expression::Ref(Ref::FieldRef(r)) = arg {
-                    let path = r.as_str().split('.').map(|s| s.to_string()).collect();
+                if let Expression::Ref(reference) = arg {
                     match state.null_behavior {
                         Satisfaction::Not => {
-                            intersect_if_exists(path, state, NUMERIC.clone());
+                            intersect_if_exists(reference, state, NUMERIC.clone());
                         }
                         Satisfaction::May => {
-                            intersect_if_exists(path, state, NUMERIC_OR_NULLISH.clone());
+                            intersect_if_exists(reference, state, NUMERIC_OR_NULLISH.clone());
                         }
                         Satisfaction::Must => {
-                            intersect_if_exists(path, state, NULLISH.clone());
+                            intersect_if_exists(reference, state, NULLISH.clone());
                         }
                     };
                 }
@@ -495,12 +611,11 @@ impl MatchConstrainSchema for Expression {
 
         fn match_derive_bit_ops(u: &UntaggedOperator, state: &mut ResultSetState) {
             u.args.iter().for_each(|arg| {
-                if let Expression::Ref(Ref::FieldRef(r)) = arg {
-                    let path = r.as_str().split('.').map(|s| s.to_string()).collect();
+                if let Expression::Ref(reference) = arg {
                     match state.null_behavior {
                         Satisfaction::Not => {
                             intersect_if_exists(
-                                path,
+                                reference,
                                 state,
                                 Schema::AnyOf(set!(
                                     Schema::Atomic(Atomic::Integer),
@@ -509,10 +624,10 @@ impl MatchConstrainSchema for Expression {
                             );
                         }
                         Satisfaction::May => {
-                            intersect_if_exists(path, state, INTEGER_LONG_OR_NULLISH.clone());
+                            intersect_if_exists(reference, state, INTEGER_LONG_OR_NULLISH.clone());
                         }
                         Satisfaction::Must => {
-                            intersect_if_exists(path, state, NULLISH.clone());
+                            intersect_if_exists(reference, state, NULLISH.clone());
                         }
                     }
                 }
@@ -520,26 +635,22 @@ impl MatchConstrainSchema for Expression {
         }
 
         fn match_derive_is_number(u: &UntaggedOperator, state: &mut ResultSetState) {
-            if let Expression::Ref(Ref::FieldRef(r)) = u.args[0].clone() {
-                let path = r.as_str().split('.').map(|s| s.to_string()).collect();
+            if let Expression::Ref(reference) = u.args[0].clone() {
                 match state.null_behavior {
                     Satisfaction::Not => {
-                        intersect_if_exists(path, state, NUMERIC.clone());
+                        intersect_if_exists(&reference, state, NUMERIC.clone());
                     }
                     Satisfaction::Must => {
-                        if let Some(field_schema) =
-                            get_schema_for_path_mut(&mut state.result_set_schema, path)
-                        {
-                            schema_difference(
-                                field_schema,
-                                set!(
-                                    Schema::Atomic(Atomic::Decimal),
-                                    Schema::Atomic(Atomic::Double),
-                                    Schema::Atomic(Atomic::Integer),
-                                    Schema::Atomic(Atomic::Long),
-                                ),
-                            );
-                        }
+                        result_set_schema_difference(
+                            &reference,
+                            state,
+                            set!(
+                                Schema::Atomic(Atomic::Decimal),
+                                Schema::Atomic(Atomic::Double),
+                                Schema::Atomic(Atomic::Integer),
+                                Schema::Atomic(Atomic::Long),
+                            ),
+                        );
                     }
                     _ => {}
                 };
@@ -548,35 +659,32 @@ impl MatchConstrainSchema for Expression {
 
         fn match_derive_range(u: &UntaggedOperator, state: &mut ResultSetState) {
             u.args.iter().for_each(|arg| {
-                if let Expression::Ref(Ref::FieldRef(r)) = arg {
-                    let path = r.as_str().split('.').map(|s| s.to_string()).collect();
-                    intersect_if_exists(path, state, NUMERIC.clone());
+                if let Expression::Ref(reference) = arg {
+                    intersect_if_exists(reference, state, NUMERIC.clone());
                 }
             });
         }
 
         fn match_derive_round(u: &UntaggedOperator, state: &mut ResultSetState) {
-            if let Expression::Ref(Ref::FieldRef(r)) = u.args[0].clone() {
-                let path = r.as_str().split('.').map(|s| s.to_string()).collect();
+            if let Expression::Ref(reference) = u.args[0].clone() {
                 match state.null_behavior {
                     Satisfaction::Not => {
-                        intersect_if_exists(path, state, NUMERIC.clone());
+                        intersect_if_exists(&reference, state, NUMERIC.clone());
                     }
                     Satisfaction::May => {
-                        intersect_if_exists(path, state, NUMERIC_OR_NULLISH.clone());
+                        intersect_if_exists(&reference, state, NUMERIC_OR_NULLISH.clone());
                     }
                     Satisfaction::Must => {
-                        intersect_if_exists(path, state, NULLISH.clone());
+                        intersect_if_exists(&reference, state, NULLISH.clone());
                     }
                 };
             }
             if u.args.len() > 1 {
-                if let Expression::Ref(Ref::FieldRef(r)) = u.args[1].clone() {
-                    let path = r.as_str().split('.').map(|s| s.to_string()).collect();
+                if let Expression::Ref(reference) = u.args[1].clone() {
                     match state.null_behavior {
                         Satisfaction::Not => {
                             intersect_if_exists(
-                                path,
+                                &reference,
                                 state,
                                 Schema::AnyOf(set!(
                                     Schema::Atomic(Atomic::Integer),
@@ -585,10 +693,10 @@ impl MatchConstrainSchema for Expression {
                             );
                         }
                         Satisfaction::May => {
-                            intersect_if_exists(path, state, INTEGER_LONG_OR_NULLISH.clone());
+                            intersect_if_exists(&reference, state, INTEGER_LONG_OR_NULLISH.clone());
                         }
                         Satisfaction::Must => {
-                            intersect_if_exists(path, state, NULLISH.clone());
+                            intersect_if_exists(&reference, state, NULLISH.clone());
                         }
                     };
                 }
@@ -596,8 +704,7 @@ impl MatchConstrainSchema for Expression {
         }
 
         fn match_derive_numeric_conversion(u: &UntaggedOperator, state: &mut ResultSetState) {
-            if let Expression::Ref(Ref::FieldRef(r)) = u.args[0].clone() {
-                let path = r.as_str().split('.').map(|s| s.to_string()).collect();
+            if let Expression::Ref(reference) = u.args[0].clone() {
                 let numeric_convertible = Schema::AnyOf(set!(
                     Schema::Atomic(Atomic::Boolean),
                     Schema::Atomic(Atomic::Decimal),
@@ -608,17 +715,17 @@ impl MatchConstrainSchema for Expression {
                 ));
                 match state.null_behavior {
                     Satisfaction::Not => {
-                        intersect_if_exists(path, state, numeric_convertible);
+                        intersect_if_exists(&reference, state, numeric_convertible);
                     }
                     Satisfaction::May => {
                         intersect_if_exists(
-                            path,
+                            &reference,
                             state,
                             numeric_convertible.union(&NULLISH.clone()),
                         );
                     }
                     Satisfaction::Must => {
-                        intersect_if_exists(path, state, NULLISH.clone());
+                        intersect_if_exists(&reference, state, NULLISH.clone());
                     }
                 };
             }
@@ -630,10 +737,15 @@ impl MatchConstrainSchema for Expression {
             Expression::TaggedOperator(_t) => todo!(),
             Expression::UntaggedOperator(u) => match u.op {
                 // logical ops
+                UntaggedOperatorName::And => match_derive_and(u, state),
                 UntaggedOperatorName::Or => match_derive_or(u, state),
                 // comparison ops
                 UntaggedOperatorName::Eq => match_derive_eq(u, state),
-                UntaggedOperatorName::Lte => match_derive_lte(u, state),
+                UntaggedOperatorName::Cmp | UntaggedOperatorName::Ne => match_derive_ne(u, state),
+                UntaggedOperatorName::Gt
+                | UntaggedOperatorName::Gte
+                | UntaggedOperatorName::Lt
+                | UntaggedOperatorName::Lte => match_derive_comparison(u, state),
                 // numeric ops
                 UntaggedOperatorName::Abs
                 | UntaggedOperatorName::Acos

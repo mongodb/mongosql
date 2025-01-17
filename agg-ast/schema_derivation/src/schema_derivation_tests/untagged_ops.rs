@@ -13,7 +13,7 @@ macro_rules! test_type_conversion_op {
             fn $func_name() {
                 let mut state = ResultSetState {
                     catalog: &BTreeMap::new(),
-                    variables: &BTreeMap::new(),
+                    variables: BTreeMap::new(),
                     result_set_schema: Schema::Document(Document {
                         keys: map! {"foo".to_string() => Schema::Atomic(Atomic::Null)},
                         required: set!{"foo".to_string()},
