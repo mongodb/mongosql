@@ -15,7 +15,7 @@ mongodb = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 mongosql = { path = "../mongosql" }
-schema_derivation = { path = "../agg-ast/schema_derivation" }
+schema_derivation = { path = "../mongosql/agg-ast/schema_derivation" }
 thiserror = { workspace = true }
 lazy_static = { workspace = true }
 glob = { workspace = true }
