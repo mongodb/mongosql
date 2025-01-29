@@ -27,6 +27,11 @@ pub(crate) struct ResultSetState<'a> {
     pub catalog: &'a BTreeMap<String, Schema>,
     pub variables: BTreeMap<String, Schema>,
     pub result_set_schema: Schema,
+    // the null_behavior field allows us to keep track of what behavior we are expecting to be exhibited
+    // by the rows returned by this query. This comes up in both normal schema derivation, where something like
+    // $eq: [null, {$op: ...}] can influence the values returned by the operator), as well as in match schema derivation
+    // where more broadly things like null field references or a falsifiable return type (e.g. {$eq: [{$op: ...}, 0])
+    // may influcence they types of values the underlying result_set_schema can contain.
     pub null_behavior: Satisfaction,
 }
 
@@ -620,7 +625,7 @@ impl DeriveSchema for TaggedOperator {
                 new_state.variables = variables;
                 r.inside.derive_schema(&mut new_state)
             }
-            TaggedOperator::Regex(_) => todo!(),
+            TaggedOperator::Regex(_) => Ok(Schema::Atomic(Atomic::Integer)),
             TaggedOperator::ReplaceAll(_) => todo!(),
             TaggedOperator::ReplaceOne(_) => todo!(),
             TaggedOperator::Shift(_) => todo!(),
@@ -748,7 +753,7 @@ impl DeriveSchema for UntaggedOperator {
             // operators returning constants
             UntaggedOperatorName::AllElementsTrue | UntaggedOperatorName::AnyElementTrue | UntaggedOperatorName::And | UntaggedOperatorName::Eq | UntaggedOperatorName::Gt | UntaggedOperatorName::Gte | UntaggedOperatorName::In
             | UntaggedOperatorName::IsArray | UntaggedOperatorName::IsNumber | UntaggedOperatorName::Lt | UntaggedOperatorName::Lte | UntaggedOperatorName::Not | UntaggedOperatorName::Ne | UntaggedOperatorName::Or
-            | UntaggedOperatorName::RegexMatch | UntaggedOperatorName::SetEquals | UntaggedOperatorName::SetIsSubset => Ok(Schema::Atomic(Atomic::Boolean)),
+            | UntaggedOperatorName::SetEquals | UntaggedOperatorName::SetIsSubset => Ok(Schema::Atomic(Atomic::Boolean)),
             UntaggedOperatorName::BinarySize | UntaggedOperatorName::Cmp | UntaggedOperatorName::Strcasecmp | UntaggedOperatorName::StrLenBytes | UntaggedOperatorName::StrLenCP => {
                 Ok(Schema::Atomic(Atomic::Integer))
             }
@@ -803,18 +808,21 @@ impl DeriveSchema for UntaggedOperator {
             | UntaggedOperatorName::Log10 | UntaggedOperatorName::RadiansToDegrees | UntaggedOperatorName::Sin | UntaggedOperatorName::Sinh | UntaggedOperatorName::Sqrt | UntaggedOperatorName::Tan | UntaggedOperatorName::Tanh =>
                 get_decimal_double_or_nullish(args, state)
             ,
-            // if any of the args are long, long; otherwise int. Int, long only possilbe types
+            // if any of the args are long, long; otherwise int. Int, long only possible types
             UntaggedOperatorName::BitAnd | UntaggedOperatorName::BitNot | UntaggedOperatorName::BitOr | UntaggedOperatorName::BitXor => {
-                Ok(
-                    match arguments_schema_satisfies(&args, state, &Schema::Atomic(Atomic::Long))? {
-                        Satisfaction::Must => Schema::Atomic(Atomic::Long),
-                        Satisfaction::May => Schema::AnyOf(set!(
-                            Schema::Atomic(Atomic::Long),
-                            Schema::Atomic(Atomic::Integer),
-                        )),
-                        _ => Schema::Atomic(Atomic::Integer),
-                    },
-                )
+                let non_null_schema = match arguments_schema_satisfies(&args, state, &Schema::Atomic(Atomic::Long))? {
+                    Satisfaction::Must => Schema::Atomic(Atomic::Long),
+                    Satisfaction::May => Schema::AnyOf(set!(
+                        Schema::Atomic(Atomic::Long),
+                        Schema::Atomic(Atomic::Integer),
+                    )),
+                    _ => Schema::Atomic(Atomic::Integer),
+                };
+                Ok(match state.null_behavior {
+                    Satisfaction::Not => non_null_schema,
+                    Satisfaction::May => Schema::simplify(&Schema::AnyOf(set!(Schema::Atomic(Atomic::Null), non_null_schema))),
+                    Satisfaction::Must => Schema::Atomic(Atomic::Null)
+                })
             }
             UntaggedOperatorName::Add => {
                 let input_schema = get_input_schema(&args, state)?;
@@ -1160,6 +1168,22 @@ impl DeriveSchema for UntaggedOperator {
                         }
                     })
                 )))
+            }
+            UntaggedOperatorName::ObjectToArray => {
+                let document_value_types = self.args.iter().try_fold(Schema::Unsat, |schema , arg| {
+                    let arg_schema = arg.derive_schema(state)?;
+                    Ok(match schema {
+                        Schema::Unsat => arg_schema,
+                        schema => schema.union(&arg_schema)
+                    })
+                })?;
+                let array_type = Schema::Array(Box::new(Schema::Document(Document { keys: map! {
+                        "k".to_string() => Schema::Atomic(Atomic::String),
+                        "v".to_string() => document_value_types
+                    },
+                    ..Default::default()
+                })));
+                Ok(handle_null_satisfaction(vec![args[0]], state, array_type)?)
             }
             _ => Err(Error::InvalidUntaggedOperator(self.op.into())),
         }

@@ -887,16 +887,6 @@ pub enum UntaggedOperatorName {
     DegreesToRadians,
     #[serde(rename = "$count")]
     Count,
-    #[serde(rename = "$dateAdd")]
-    DateAdd,
-    #[serde(rename = "$dateDiff")]
-    DateDiff,
-    #[serde(rename = "$dateTrunc")]
-    DateTrunc,
-    #[serde(rename = "$dayOfMonth")]
-    DayOfMonth,
-    #[serde(rename = "$dayOfYear")]
-    DayOfYear,
     #[serde(rename = "$divide")]
     Divide,
     #[serde(rename = "$eq")]
@@ -911,8 +901,6 @@ pub enum UntaggedOperatorName {
     Gt,
     #[serde(rename = "$gte")]
     Gte,
-    #[serde(rename = "$hour")]
-    Hour,
     #[serde(rename = "$ifNull")]
     IfNull,
     #[serde(rename = "$in")]
@@ -929,14 +917,8 @@ pub enum UntaggedOperatorName {
     IsArray,
     #[serde(rename = "$isNumber")]
     IsNumber,
-    #[serde(rename = "$isoDayOfWeek")]
-    IsoDayOfWeek,
-    #[serde(rename = "$isoWeek")]
-    IsoWeek,
     #[serde(rename = "$last")]
     Last,
-    #[serde(rename = "$let")]
-    Let,
     #[serde(rename = "$literal")]
     Literal,
     #[serde(rename = "$locf")]
@@ -955,18 +937,12 @@ pub enum UntaggedOperatorName {
     Max,
     #[serde(rename = "$meta")]
     Meta,
-    #[serde(rename = "$millisecond")]
-    Millisecond,
     #[serde(rename = "$min")]
     Min,
-    #[serde(rename = "$minute")]
-    Minute,
     #[serde(rename = "$mergeObjects")]
     MergeObjects,
     #[serde(rename = "$mod")]
     Mod,
-    #[serde(rename = "$month")]
-    Month,
     #[serde(rename = "$mqlBetween")]
     MQLBetween,
     #[serde(rename = "$multiply")]
@@ -993,22 +969,14 @@ pub enum UntaggedOperatorName {
     Rand,
     #[serde(rename = "$range")]
     Range,
-    #[serde(rename = "$reduce")]
-    Reduce,
-    #[serde(rename = "$regexMatch")]
-    RegexMatch,
     #[serde(rename = "$reverseArray")]
     ReverseArray,
     #[serde(rename = "$round")]
     Round,
     #[serde(rename = "$sampleRate")]
     SampleRate,
-    #[serde(rename = "$second")]
-    Second,
     #[serde(rename = "$setEquals")]
     SetEquals,
-    #[serde(rename = "$setField")]
-    SetField,
     #[serde(rename = "$setIntersection")]
     SetIntersection,
     #[serde(rename = "$setDifference")]
@@ -1111,8 +1079,6 @@ pub enum UntaggedOperatorName {
     Subtract,
     #[serde(rename = "$sum")]
     Sum,
-    #[serde(rename = "$switch")]
-    Switch,
     #[serde(rename = "$tan")]
     Tan,
     #[serde(rename = "$tanh")]
@@ -1147,10 +1113,6 @@ pub enum UntaggedOperatorName {
     TSSecond,
     #[serde(rename = "$type")]
     Type,
-    #[serde(rename = "$week")]
-    Week,
-    #[serde(rename = "$year")]
-    Year,
 }
 
 impl TryFrom<&str> for UntaggedOperatorName {

@@ -51,6 +51,8 @@ macro_rules! test_derive_schema_for_match_stage {
                 null_behavior: Satisfaction::Not
             };
             let result = input.derive_schema(&mut state);
+            // because we are calling Schema::simplify here, the resulting result set schema should have missing fields removed
+            // from the `required` field as opposed to having Missing explicitly as a schema type.
             let result = result.as_ref().map(Schema::simplify);
             assert_eq!($expected, result);
         }

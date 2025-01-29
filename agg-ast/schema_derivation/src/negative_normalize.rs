@@ -188,6 +188,16 @@ impl NegativeNormalize<Expression> for Expression {
                         inside: Box::new(negated_inside)
                     }))
                 }
+                TaggedOperator::Reduce(_)
+                | TaggedOperator::Switch(_)
+                | TaggedOperator::SetField(_) => Expression::UntaggedOperator(UntaggedOperator {
+                    op: UntaggedOperatorName::Or,
+                    args: vec![
+                        wrap_in_null_or_missing_check!(self.clone()),
+                        wrap_in_zero_check!(self.clone()),
+                        wrap_in_false_check!(self.clone()),
+                    ],
+                }),
                 _ => todo!(),
             },
             Expression::UntaggedOperator(u) => {
@@ -236,8 +246,7 @@ impl NegativeNormalize<Expression> for Expression {
                     }
                     // The following operators may evaluate to the falsy values missing, null, 0, or
                     // false, so the negation asserts equality to any of those values.
-                    UntaggedOperatorName::First | UntaggedOperatorName::IfNull | UntaggedOperatorName::Last | UntaggedOperatorName::Literal | UntaggedOperatorName::Max | UntaggedOperatorName::Min | UntaggedOperatorName::SetField
-                    | UntaggedOperatorName::Reduce | UntaggedOperatorName::Switch => {
+                    UntaggedOperatorName::First | UntaggedOperatorName::IfNull | UntaggedOperatorName::Last | UntaggedOperatorName::Literal | UntaggedOperatorName::Max | UntaggedOperatorName::Min => {
                         let null_check = wrap_in_null_or_missing_check!(self.clone());
                         let zero_check = wrap_in_zero_check!(self.clone());
                         let false_check = wrap_in_false_check!(self.clone());
