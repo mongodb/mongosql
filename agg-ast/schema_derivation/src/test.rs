@@ -144,4 +144,84 @@ mod get_schema_for_path {
         }),
         path = vec!["a".to_string(), "b".to_string()]
     );
+
+    test_get_or_create_schema_for_path!(
+        get_or_create_get_three_levels,
+        expected = Some(&mut Schema::Atomic(Atomic::Integer)),
+        output = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Document(Document {
+                            keys: map! {
+                                "c".to_string() => Schema::Atomic(Atomic::Integer),
+                            },
+                            additional_properties: false,
+                            ..Default::default()
+                        }),
+                    },
+                    additional_properties: false,
+                    ..Default::default()
+                })
+            },
+            required: BTreeSet::new(),
+            additional_properties: false,
+            ..Default::default()
+        }),
+        input = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Document(Document {
+                            keys: map! {
+                                "c".to_string() => Schema::Atomic(Atomic::Integer),
+                            },
+                            additional_properties: false,
+                            ..Default::default()
+                        })
+                    },
+                    additional_properties: false,
+                    ..Default::default()
+                })
+            },
+            required: BTreeSet::new(),
+            additional_properties: false,
+            ..Default::default()
+        }),
+        path = vec!["a".to_string(), "b".to_string(), "c".to_string()]
+    );
+
+    test_get_or_create_schema_for_path!(
+        get_or_create_create_three_levels,
+        expected = Some(&mut Schema::Any),
+        output = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Document(Document {
+                            keys: map! {
+                                "c".to_string() => Schema::Any,
+                            },
+                            additional_properties: true,
+                            ..Default::default()
+                        })
+                    },
+                    additional_properties: true,
+                    ..Default::default()
+                })
+            },
+            required: BTreeSet::new(),
+            additional_properties: false,
+            ..Default::default()
+        }),
+        input = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Any,
+            },
+            required: BTreeSet::new(),
+            additional_properties: false,
+            ..Default::default()
+        }),
+        path = vec!["a".to_string(), "b".to_string(), "c".to_string()]
+    );
 }
