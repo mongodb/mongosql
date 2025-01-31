@@ -1,5 +1,5 @@
 mod get_schema_for_path {
-    use crate::get_schema_for_path_mut;
+    use crate::{get_or_create_schema_for_path_mut, get_schema_for_path_mut};
     use mongosql::{
         map,
         schema::{Atomic, Document, Schema},
@@ -12,7 +12,19 @@ mod get_schema_for_path {
             fn $func_name() {
                 let input_cloned = &mut $input.clone();
                 let result = get_schema_for_path_mut(input_cloned, $path);
-                assert_eq!(result, $expected);
+                assert_eq!($expected, result);
+            }
+        };
+    }
+
+    macro_rules! test_get_or_create_schema_for_path {
+        ($func_name:ident, expected = $expected:expr, output = $output:expr, input = $input:expr, path = $path:expr) => {
+            #[test]
+            fn $func_name() {
+                let input_cloned = &mut $input.clone();
+                let result = get_or_create_schema_for_path_mut(input_cloned, $path);
+                assert_eq!($expected, result);
+                assert_eq!($output, *input_cloned);
             }
         };
     }
@@ -69,5 +81,67 @@ mod get_schema_for_path {
             ..Default::default()
         }),
         path = vec!["d".to_string()]
+    );
+
+    test_get_or_create_schema_for_path!(
+        get_or_create_get_two_levels,
+        expected = Some(&mut Schema::Atomic(Atomic::Integer)),
+        output = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Atomic(Atomic::Integer),
+                    },
+                    additional_properties: false,
+                    ..Default::default()
+                })
+            },
+            required: BTreeSet::new(),
+            additional_properties: false,
+            ..Default::default()
+        }),
+        input = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Atomic(Atomic::Integer),
+                    },
+                    additional_properties: false,
+                    ..Default::default()
+                })
+            },
+            required: BTreeSet::new(),
+            additional_properties: false,
+            ..Default::default()
+        }),
+        path = vec!["a".to_string(), "b".to_string()]
+    );
+
+    test_get_or_create_schema_for_path!(
+        get_or_create_create_two_levels,
+        expected = Some(&mut Schema::Any),
+        output = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Any,
+                    },
+                    additional_properties: true,
+                    ..Default::default()
+                })
+            },
+            required: BTreeSet::new(),
+            additional_properties: false,
+            ..Default::default()
+        }),
+        input = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Any,
+            },
+            required: BTreeSet::new(),
+            additional_properties: false,
+            ..Default::default()
+        }),
+        path = vec!["a".to_string(), "b".to_string()]
     );
 }
