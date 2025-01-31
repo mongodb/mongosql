@@ -151,6 +151,27 @@ pub(crate) fn get_or_create_schema_for_path_mut(
                     _ => unreachable!(),
                 }
             }
+            Some(Schema::AnyOf(schemas)) => {
+                let mut d = None;
+                for s in schemas.iter() {
+                    if let Schema::Document(doc) = s {
+                        // unfortunately, we have to clone here because we couldn't take ownership
+                        // of the schema in the iterator because it is behind a &mut.
+                        d = Some(doc.clone());
+                    }
+                }
+                let Some(mut d) = d else { return None };
+                if !d.keys.contains_key(&field) {
+                    d.keys.insert(field.clone(), Schema::Any);
+                } else {
+                    d.keys.get_mut(&field).unwrap();
+                }
+                **(schema.as_mut().unwrap()) = Schema::Document(d);
+                match schema {
+                    Some(Schema::Document(d)) => d.keys.get_mut(&field),
+                    _ => unreachable!(),
+                }
+            }
             _ => {
                 return None;
             }
