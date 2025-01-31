@@ -162,6 +162,10 @@ pub(crate) fn get_or_create_schema_for_path_mut(
                 }
                 let Some(mut d) = d else { return None };
                 if !d.keys.contains_key(&field) {
+                    // We can only refine this if additionalProperties is true.
+                    if !d.additional_properties {
+                        return None;
+                    }
                     d.keys.insert(field.clone(), Schema::Any);
                 } else {
                     d.keys.get_mut(&field).unwrap();

@@ -3,6 +3,7 @@ mod get_schema_for_path {
     use mongosql::{
         map,
         schema::{Atomic, Document, Schema},
+        set,
     };
     use std::collections::BTreeSet;
 
@@ -223,5 +224,79 @@ mod get_schema_for_path {
             ..Default::default()
         }),
         path = vec!["a".to_string(), "b".to_string(), "c".to_string()]
+    );
+
+    test_get_or_create_schema_for_path!(
+        get_or_create_refine_two_levels_any_of,
+        expected = Some(&mut Schema::Atomic(Atomic::Integer)),
+        output = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Atomic(Atomic::Integer),
+                    },
+                    additional_properties: false,
+                    ..Default::default()
+                })
+            },
+            required: BTreeSet::new(),
+            additional_properties: false,
+            ..Default::default()
+        }),
+        input = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::AnyOf(set!(
+                        Schema::Document(Document {
+                            keys: map! {
+                                "b".to_string() => Schema::Atomic(Atomic::Integer),
+                            },
+                            additional_properties: false,
+                            ..Default::default()
+                        }),
+                        Schema::Atomic(Atomic::Integer)
+                    )),
+            },
+            required: BTreeSet::new(),
+            additional_properties: false,
+            ..Default::default()
+        }),
+        path = vec!["a".to_string(), "b".to_string()]
+    );
+
+    test_get_or_create_schema_for_path!(
+        get_or_create_create_and_refine_two_levels_any_of,
+        expected = Some(&mut Schema::Any),
+        output = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Any,
+                    },
+                    additional_properties: true,
+                    ..Default::default()
+                })
+            },
+            required: BTreeSet::new(),
+            additional_properties: false,
+            ..Default::default()
+        }),
+        input = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::AnyOf(set!(
+                        Schema::Document(Document {
+                            keys: map! {
+                                "b".to_string() => Schema::Any,
+                            },
+                            additional_properties: true,
+                            ..Default::default()
+                        }),
+                        Schema::Atomic(Atomic::Integer)
+                    )),
+            },
+            required: BTreeSet::new(),
+            additional_properties: false,
+            ..Default::default()
+        }),
+        path = vec!["a".to_string(), "b".to_string()]
     );
 }
