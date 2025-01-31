@@ -1117,7 +1117,7 @@ impl Schema {
             ),
             // Any implicitly contains both missing and null, subtract missing from the schema to
             // upconvert missing to null in an Any schema.
-            Schema::Any => Schema::Any.subtract_nullish(),
+            Schema::Any => UNFOLDED_ANY.clone().upconvert_missing_to_null(),
             Schema::Atomic(_) | Schema::Document(_) | Schema::Array(_) | Schema::Unsat => self,
         }
     }

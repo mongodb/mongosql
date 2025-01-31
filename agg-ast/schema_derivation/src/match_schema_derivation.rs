@@ -5,15 +5,15 @@ use crate::{
     ResultSetState,
 };
 use agg_ast::definitions::{
-    Expression, MatchBinaryOp, MatchExpr, MatchExpression, MatchField, MatchLogical,
-    MatchNotExpression, MatchStage, Ref, UntaggedOperator,
+    Expression, Let, MatchBinaryOp, MatchExpr, MatchExpression, MatchField, MatchLogical,
+    MatchNotExpression, MatchStage, Ref, Switch, TaggedOperator, UntaggedOperator,
 };
 use bson::Bson;
 use mongosql::{
     map,
     schema::{
-        Atomic, Document, Satisfaction, Schema, FALSIFIABLE_TYPES, INTEGER_LONG_OR_NULLISH,
-        NULLISH, NUMERIC, NUMERIC_OR_NULLISH, UNFOLDED_ANY,
+        Atomic, Document, Satisfaction, Schema, INTEGER_LONG_OR_NULLISH, NULLISH, NUMERIC,
+        NUMERIC_OR_NULLISH, UNFOLDED_ANY,
     },
     set,
 };
@@ -418,7 +418,11 @@ impl MatchConstrainSchema for Expression {
         }
 
         fn match_derive_eq(u: &UntaggedOperator, state: &mut ResultSetState) {
+            let null_behavior = state.null_behavior;
             if u.args.len() == 2 {
+                // we first check each argument's schema using Satisfaction::May to get the full schema these operators
+                // can return. For example, two operators may only overlap if they both are null, in which case we'd use null_behavior=Must
+                state.null_behavior = Satisfaction::May;
                 let lhs_schema = unwrap_or_return!(u.args[0].derive_schema(state));
                 let rhs_schema = unwrap_or_return!(u.args[1].derive_schema(state));
                 let mut schema_intersection = lhs_schema.intersection(&rhs_schema);
@@ -426,17 +430,18 @@ impl MatchConstrainSchema for Expression {
                 if schema_intersection.satisfies(&NUMERIC.clone()) != Satisfaction::Not {
                     schema_intersection = schema_intersection.union(&NUMERIC.clone());
                 }
-                // falsifiable types include numbers, nullish, and boolean. evaluate if we must, may, or cannot be any nullish
-                // type to determine the set of values the operands can take on.
-                state.null_behavior = schema_intersection.satisfies(&FALSIFIABLE_TYPES.clone());
-                u.args.iter().for_each(|arg| match arg {
-                    Expression::Ref(reference) => {
-                        intersect_if_exists(reference, state, schema_intersection.clone());
-                    }
-                    _ => {
-                        arg.match_derive_schema(state);
-                    }
+                state.null_behavior = schema_intersection.satisfies(&NULLISH.clone());
+                u.args.iter().for_each(|arg| {
+                    match arg {
+                        Expression::Ref(reference) => {
+                            intersect_if_exists(reference, state, schema_intersection.clone());
+                        }
+                        _ => {
+                            arg.match_derive_schema(state);
+                        }
+                    };
                 });
+                state.null_behavior = null_behavior;
             }
         }
 
@@ -445,7 +450,7 @@ impl MatchConstrainSchema for Expression {
             if u.args.len() == 2 {
                 let lhs_schema = unwrap_or_return!(u.args[0].derive_schema(state));
                 let rhs_schema = unwrap_or_return!(u.args[1].derive_schema(state));
-                match (u.args[0].clone(), u.args[1].clone(), lhs_schema, rhs_schema) {
+                match (&u.args[0], &u.args[1], &lhs_schema, &rhs_schema) {
                     (
                         Expression::Ref(left_ref),
                         Expression::Ref(right_ref),
@@ -454,23 +459,31 @@ impl MatchConstrainSchema for Expression {
                     ) => {
                         // if we have an ne that is strictly unsatisfiable, set the schemas for these fields to be unsat
                         if left_atomic == right_atomic
-                            && is_unitary_schema(&Schema::Atomic(left_atomic))
+                            && is_unitary_schema(&Schema::Atomic(*left_atomic))
                         {
-                            intersect_if_exists(&left_ref, state, Schema::Unsat);
-                            intersect_if_exists(&right_ref, state, Schema::Unsat);
+                            intersect_if_exists(left_ref, state, Schema::Unsat);
+                            intersect_if_exists(right_ref, state, Schema::Unsat);
                         }
                     }
                     (Expression::Ref(reference), _, _, Schema::Atomic(a))
                     | (_, Expression::Ref(reference), Schema::Atomic(a), _) => {
-                        if is_unitary_schema(&Schema::Atomic(a)) {
+                        if is_unitary_schema(&Schema::Atomic(*a)) {
                             result_set_schema_difference(
-                                &reference,
+                                reference,
                                 state,
-                                set!(Schema::Atomic(a)),
+                                set!(Schema::Atomic(*a)),
                             );
                         }
                     }
-                    _ => {}
+                    (left, right, _, _) => {
+                        // $ne does not tell us anything if we do not have unitary schemas, so we recurse on each sub-expression
+                        // with null_behavior=May.
+                        let null_behavior = state.null_behavior;
+                        state.null_behavior = Satisfaction::May;
+                        left.match_derive_schema(state);
+                        right.match_derive_schema(state);
+                        state.null_behavior = null_behavior;
+                    }
                 }
             }
         }
@@ -565,28 +578,52 @@ impl MatchConstrainSchema for Expression {
             }
         }
 
+        fn get_comparison_nullability(op: UntaggedOperatorName, schema: Schema) -> Satisfaction {
+            // if we get a comparison that is <= null, this is null or missing. Technically, < null is only missing.
+            // but for the purposes of constraining null we will keep these the same
+            if (op == UntaggedOperatorName::Lt || op == UntaggedOperatorName::Lte)
+                && schema.satisfies(&NULLISH.clone()) == Satisfaction::Must
+            {
+                Satisfaction::Must
+            }
+            // similarly, >= null would exclude missing but include null, but for the sake of constraining the schema
+            // we will ignore gte to be safe since we don't handle missing separately.
+            else if op == UntaggedOperatorName::Gt
+                && schema.satisfies(&NULLISH.clone()) == Satisfaction::Not
+            {
+                Satisfaction::Not
+            } else {
+                Satisfaction::May
+            }
+        }
+
         fn match_derive_comparison(u: &UntaggedOperator, state: &mut ResultSetState) {
+            let null_behavior = state.null_behavior;
             if u.args.len() == 2 {
                 let lhs_schema = unwrap_or_return!(u.args[0].derive_schema(state));
                 let rhs_schema = unwrap_or_return!(u.args[1].derive_schema(state));
                 if let Expression::Ref(reference) = &u.args[0] {
                     constrain_schema_for_comparison_reference(reference, u.op, state, rhs_schema);
                 } else {
+                    state.null_behavior = get_comparison_nullability(u.op, rhs_schema);
                     u.args[0].match_derive_schema(state);
+                    state.null_behavior = null_behavior;
                 }
+                // we invert the operator, so that we can treat this field reference as the LHS of the comparison (in order to reuse the helper);
+                // for example, if we want to constrain bar in the comparison foo < $bar, we can treat it as $bar > foo.
+                let op = match u.op {
+                    UntaggedOperatorName::Lt => UntaggedOperatorName::Gt,
+                    UntaggedOperatorName::Lte => UntaggedOperatorName::Gte,
+                    UntaggedOperatorName::Gt => UntaggedOperatorName::Lt,
+                    UntaggedOperatorName::Gte => UntaggedOperatorName::Lte,
+                    _ => return,
+                };
                 if let Expression::Ref(reference) = &u.args[1] {
-                    // we invert the operator, so that we can treat this field reference as the LHS of the comparison (in order to reuse the helper);
-                    // for example, if we want to constrain bar in the comparison foo < $bar, we can treat it as $bar > foo.
-                    let op = match u.op {
-                        UntaggedOperatorName::Lt => UntaggedOperatorName::Gt,
-                        UntaggedOperatorName::Lte => UntaggedOperatorName::Gte,
-                        UntaggedOperatorName::Gt => UntaggedOperatorName::Lt,
-                        UntaggedOperatorName::Gte => UntaggedOperatorName::Lte,
-                        _ => return,
-                    };
                     constrain_schema_for_comparison_reference(reference, op, state, lhs_schema);
                 } else {
+                    state.null_behavior = get_comparison_nullability(op, lhs_schema);
                     u.args[1].match_derive_schema(state);
+                    state.null_behavior = null_behavior;
                 }
             }
         }
@@ -605,8 +642,212 @@ impl MatchConstrainSchema for Expression {
                             intersect_if_exists(reference, state, NULLISH.clone());
                         }
                     };
+                } else {
+                    arg.match_derive_schema(state);
                 }
             });
+        }
+
+        fn match_derive_add(u: &UntaggedOperator, state: &mut ResultSetState) {
+            u.args.iter().for_each(|arg| {
+                if let Expression::Ref(reference) = arg {
+                    match state.null_behavior {
+                        Satisfaction::Not => {
+                            intersect_if_exists(
+                                reference,
+                                state,
+                                NUMERIC.clone().union(&Schema::Atomic(Atomic::Date)),
+                            );
+                        }
+                        // we cannot infer that if $add must be null, a reference must be null, because it returns null if _any_
+                        // argument is null. Thus, {$add: [$foo, null]} would yield null but tell us nothing about $foo. We could,
+                        // in the future, examine if all other args cannot be null and then enforce something on foo.
+                        Satisfaction::May | Satisfaction::Must => {
+                            intersect_if_exists(
+                                reference,
+                                state,
+                                NUMERIC_OR_NULLISH
+                                    .clone()
+                                    .union(&Schema::Atomic(Atomic::Date)),
+                            );
+                        }
+                    }
+                } else {
+                    arg.match_derive_schema(state);
+                }
+            })
+        }
+
+        fn match_derive_subtract(u: &UntaggedOperator, state: &mut ResultSetState) {
+            if u.args.len() == 2 {
+                if let Expression::Ref(reference) = &u.args[0] {
+                    match state.null_behavior {
+                        Satisfaction::Not => {
+                            intersect_if_exists(
+                                reference,
+                                state,
+                                NUMERIC.clone().union(&Schema::Atomic(Atomic::Date)),
+                            );
+                        }
+                        // we cannot infer that if $add must be null, a reference must be null, because it returns null if _any_
+                        // argument is null. Thus, {$add: [$foo, null]} would yield null but tell us nothing about $foo. We could,
+                        // in the future, examine if all other args cannot be null and then enforce something on foo.
+                        Satisfaction::May | Satisfaction::Must => {
+                            intersect_if_exists(
+                                reference,
+                                state,
+                                NUMERIC_OR_NULLISH
+                                    .clone()
+                                    .union(&Schema::Atomic(Atomic::Date)),
+                            );
+                        }
+                    }
+                } else {
+                    u.args[0].match_derive_schema(state);
+                }
+                if let Expression::Ref(reference) = &u.args[1] {
+                    // iff the first argument can be a date, it is possible the second argument is a date, since subtract [<date>, <date>]
+                    // is valid. Otherwise, the second argument must be numeric, becuase subtract [<int>, <date>] is invalid.
+                    let can_be_date = unwrap_or_return!(u.args[0].derive_schema(state))
+                        .satisfies(&Schema::Atomic(Atomic::Date))
+                        != Satisfaction::Not;
+                    match state.null_behavior {
+                        Satisfaction::Not => {
+                            if can_be_date {
+                                intersect_if_exists(
+                                    reference,
+                                    state,
+                                    NUMERIC.clone().union(&Schema::Atomic(Atomic::Date)),
+                                );
+                            } else {
+                                intersect_if_exists(reference, state, NUMERIC.clone());
+                            }
+                        }
+                        // we cannot infer that if $add must be null, a reference must be null, because it returns null if _any_
+                        // argument is null. Thus, {$add: [$foo, null]} would yield null but tell us nothing about $foo. We could,
+                        // in the future, examine if all other args cannot be null and then enforce something on foo.
+                        Satisfaction::May | Satisfaction::Must => {
+                            if can_be_date {
+                                intersect_if_exists(
+                                    reference,
+                                    state,
+                                    NUMERIC_OR_NULLISH
+                                        .clone()
+                                        .union(&Schema::Atomic(Atomic::Date)),
+                                );
+                            } else {
+                                intersect_if_exists(reference, state, NUMERIC_OR_NULLISH.clone());
+                            }
+                        }
+                    }
+                } else {
+                    u.args[1].match_derive_schema(state);
+                }
+            }
+        }
+
+        fn match_derive_object_to_array(u: &UntaggedOperator, state: &mut ResultSetState) {
+            u.args.iter().for_each(|arg| {
+                if let Expression::Ref(reference) = arg {
+                    match state.null_behavior {
+                        Satisfaction::Not => intersect_if_exists(
+                            reference,
+                            state,
+                            Schema::Document(Document::default()),
+                        ),
+                        Satisfaction::May => intersect_if_exists(
+                            reference,
+                            state,
+                            Schema::AnyOf(set!(
+                                Schema::Document(Document::default()),
+                                Schema::Missing,
+                                Schema::Atomic(Atomic::Null)
+                            )),
+                        ),
+                        Satisfaction::Must => {
+                            intersect_if_exists(reference, state, NULLISH.clone());
+                        }
+                    }
+                } else {
+                    arg.match_derive_schema(state);
+                }
+            });
+        }
+
+        fn match_derive_let(l: &Let, state: &mut ResultSetState) {
+            let mut variables = state.variables.clone();
+            l.vars.iter().for_each(|(var, expression)| {
+                let schema = unwrap_or_return!(expression.derive_schema(state));
+                state.variables.insert(var.to_string(), schema);
+            });
+            l.inside.match_derive_schema(state);
+            l.vars
+                .iter()
+                .for_each(|(var, expression)| match expression {
+                    Expression::Ref(Ref::FieldRef(field_ref)) => {
+                        if let Some(v) = state.variables.get_mut(var) {
+                            let path = field_ref
+                                .as_str()
+                                .split('.')
+                                .map(|s| s.to_string())
+                                .collect();
+                            if let Some(f) =
+                                get_schema_for_path_mut(&mut state.result_set_schema, path)
+                            {
+                                *f = v.clone();
+                            }
+                        }
+                    }
+                    Expression::Ref(Ref::VariableRef(var_ref)) => {
+                        if let Some(v) = state.variables.get(var) {
+                            variables.insert(var_ref.clone(), v.clone());
+                        }
+                    }
+                    expr => expr.match_derive_schema(state),
+                });
+            state.variables = variables;
+        }
+
+        fn match_derive_max_min(u: &UntaggedOperator, state: &mut ResultSetState) {
+            u.args.iter().for_each(|arg| {
+                if let Expression::Ref(reference) = arg {
+                    match state.null_behavior {
+                        Satisfaction::Not => {
+                            result_set_schema_difference(
+                                reference,
+                                state,
+                                set!(Schema::Atomic(Atomic::Null), Schema::Missing),
+                            );
+                        }
+                        Satisfaction::Must => {
+                            intersect_if_exists(
+                                reference,
+                                state,
+                                Schema::AnyOf(set!(
+                                    Schema::Atomic(Atomic::Null),
+                                    Schema::Array(Box::new(Schema::Any)),
+                                    Schema::Missing
+                                )),
+                            );
+                        }
+                        Satisfaction::May => {}
+                    }
+                } else {
+                    arg.match_derive_schema(state);
+                }
+            });
+        }
+
+        fn match_derive_switch(s: &Switch, state: &mut ResultSetState) {
+            s.branches.iter().for_each(|case| {
+                if let Expression::Ref(reference) = case.case.as_ref() {
+                    intersect_if_exists(reference, state, Schema::Atomic(Atomic::Boolean));
+                } else {
+                    case.case.match_derive_schema(state);
+                }
+                case.then.match_derive_schema(state);
+            });
+            s.default.match_derive_schema(state);
         }
 
         fn match_derive_bit_ops(u: &UntaggedOperator, state: &mut ResultSetState) {
@@ -630,6 +871,8 @@ impl MatchConstrainSchema for Expression {
                             intersect_if_exists(reference, state, NULLISH.clone());
                         }
                     }
+                } else {
+                    arg.match_derive_schema(state);
                 }
             });
         }
@@ -654,6 +897,8 @@ impl MatchConstrainSchema for Expression {
                     }
                     _ => {}
                 };
+            } else {
+                u.args.iter().for_each(|arg| arg.match_derive_schema(state));
             }
         }
 
@@ -661,6 +906,8 @@ impl MatchConstrainSchema for Expression {
             u.args.iter().for_each(|arg| {
                 if let Expression::Ref(reference) = arg {
                     intersect_if_exists(reference, state, NUMERIC.clone());
+                } else {
+                    arg.match_derive_schema(state);
                 }
             });
         }
@@ -678,6 +925,8 @@ impl MatchConstrainSchema for Expression {
                         intersect_if_exists(&reference, state, NULLISH.clone());
                     }
                 };
+            } else {
+                u.args[0].match_derive_schema(state);
             }
             if u.args.len() > 1 {
                 if let Expression::Ref(reference) = u.args[1].clone() {
@@ -699,6 +948,8 @@ impl MatchConstrainSchema for Expression {
                             intersect_if_exists(&reference, state, NULLISH.clone());
                         }
                     };
+                } else {
+                    u.args[1].match_derive_schema(state);
                 }
             }
         }
@@ -728,13 +979,19 @@ impl MatchConstrainSchema for Expression {
                         intersect_if_exists(&reference, state, NULLISH.clone());
                     }
                 };
+            } else {
+                u.args[0].match_derive_schema(state);
             }
         }
 
         use agg_ast::definitions::UntaggedOperatorName;
         let null_behavior = state.null_behavior;
         match self {
-            Expression::TaggedOperator(_t) => todo!(),
+            Expression::TaggedOperator(t) => match t {
+                TaggedOperator::Let(l) => match_derive_let(l, state),
+                TaggedOperator::Switch(s) => match_derive_switch(s, state),
+                _ => todo!(),
+            },
             Expression::UntaggedOperator(u) => match u.op {
                 // logical ops
                 UntaggedOperatorName::And => match_derive_and(u, state),
@@ -775,6 +1032,14 @@ impl MatchConstrainSchema for Expression {
                 | UntaggedOperatorName::Trunc
                 | UntaggedOperatorName::Ceil
                 | UntaggedOperatorName::Floor => match_derive_numeric(u, state),
+                // misc ops
+                UntaggedOperatorName::Add => match_derive_add(u, state),
+                UntaggedOperatorName::Subtract => match_derive_subtract(u, state),
+                UntaggedOperatorName::Sum => {}
+                UntaggedOperatorName::ObjectToArray => match_derive_object_to_array(u, state),
+                UntaggedOperatorName::Max | UntaggedOperatorName::Min => {
+                    match_derive_max_min(u, state)
+                }
                 UntaggedOperatorName::BitAnd
                 | UntaggedOperatorName::BitNot
                 | UntaggedOperatorName::BitOr
