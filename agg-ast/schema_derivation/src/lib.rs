@@ -138,6 +138,9 @@ pub(crate) fn get_or_create_schema_for_path_mut(
         schema = match schema {
             Some(Schema::Document(d)) => {
                 if !d.keys.contains_key(&field) {
+                    if !d.additional_properties {
+                        return None;
+                    }
                     d.keys.insert(field.clone(), Schema::Any);
                 }
                 d.keys.get_mut(&field)
