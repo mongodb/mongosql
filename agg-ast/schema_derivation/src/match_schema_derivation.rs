@@ -1,5 +1,5 @@
 use crate::{
-    get_schema_for_path_mut, maybe_any_of,
+    get_or_create_schema_for_path_mut, maybe_any_of,
     negative_normalize::{NegativeNormalize, DECIMAL_ZERO},
     promote_missing, schema_difference, schema_for_bson, schema_for_type_str, DeriveSchema, Result,
     ResultSetState,
@@ -134,7 +134,7 @@ fn result_set_schema_difference(
                 .split('.')
                 .map(|s| s.to_string())
                 .collect();
-            get_schema_for_path_mut(&mut state.result_set_schema, path)
+            get_or_create_schema_for_path_mut(&mut state.result_set_schema, path)
         }
         agg_ast::definitions::Ref::VariableRef(v) => state.variables.get_mut(v),
     };
@@ -247,7 +247,7 @@ fn intersect_if_exists(reference: &Ref, state: &mut ResultSetState, input_schema
                 .split('.')
                 .map(|s| s.to_string())
                 .collect();
-            get_schema_for_path_mut(&mut state.result_set_schema, path)
+            get_or_create_schema_for_path_mut(&mut state.result_set_schema, path)
         }
         Ref::VariableRef(v) => state.variables.get_mut(v),
     };
@@ -673,7 +673,7 @@ impl MatchConstrainSchema for Expression {
                         .split('.')
                         .map(|s| s.to_string())
                         .collect();
-                    get_schema_for_path_mut(&mut state.result_set_schema, path)
+                    get_or_create_schema_for_path_mut(&mut state.result_set_schema, path)
                 }
                 Ref::VariableRef(v) => state.variables.get_mut(v),
             };
@@ -959,9 +959,10 @@ impl MatchConstrainSchema for Expression {
                                 .split('.')
                                 .map(|s| s.to_string())
                                 .collect();
-                            if let Some(f) =
-                                get_schema_for_path_mut(&mut state.result_set_schema, path)
-                            {
+                            if let Some(f) = get_or_create_schema_for_path_mut(
+                                &mut state.result_set_schema,
+                                path,
+                            ) {
                                 *f = v.clone();
                             }
                         }
