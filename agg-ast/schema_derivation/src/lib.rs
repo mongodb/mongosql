@@ -163,7 +163,7 @@ pub(crate) fn get_or_create_schema_for_path_mut(
                         d = Some(doc.clone());
                     }
                 }
-                let Some(mut d) = d else { return None };
+                let mut d = d?;
                 if !d.keys.contains_key(&field) {
                     // We can only refine this if additionalProperties is true.
                     if !d.additional_properties {
