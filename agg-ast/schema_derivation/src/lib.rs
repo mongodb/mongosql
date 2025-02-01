@@ -161,6 +161,7 @@ pub(crate) fn get_or_create_schema_for_path_mut(
                         // unfortunately, we have to clone here because we couldn't take ownership
                         // of the schema in the iterator because it is behind a &mut.
                         d = Some(doc.clone());
+                        break; // there can be only one!
                     }
                 }
                 let mut d = d?;
