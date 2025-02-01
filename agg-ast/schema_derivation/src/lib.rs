@@ -148,6 +148,9 @@ pub(crate) fn get_or_create_schema_for_path_mut(
             Some(Schema::Any) => {
                 let mut d = schema::Document::any();
                 d.keys.insert(field.clone(), Schema::Any);
+                // this is a wonky way to do this, putting it in the map and then getting it back
+                // out with this match, but it's what the borrow checker forces (we can't keep the
+                // reference across the move of ownership into the Schema::Document constructor).
                 **(schema.as_mut().unwrap()) = Schema::Document(d);
                 match schema {
                     Some(Schema::Document(d)) => d.keys.get_mut(&field),
@@ -168,10 +171,11 @@ pub(crate) fn get_or_create_schema_for_path_mut(
                         return None;
                     }
                     d.keys.insert(field.clone(), Schema::Any);
-                } else {
-                    d.keys.get_mut(&field).unwrap();
                 }
                 **(schema.as_mut().unwrap()) = Schema::Document(d);
+                // this is a wonky way to do this, putting it in the map and then getting it back
+                // out with this match, but it's what the borrow checker forces (we can't keep the
+                // reference across the move of ownership into the Schema::Document constructor).
                 match schema {
                     Some(Schema::Document(d)) => d.keys.get_mut(&field),
                     _ => unreachable!(),
