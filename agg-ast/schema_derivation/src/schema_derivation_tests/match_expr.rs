@@ -1264,18 +1264,13 @@ mod date_ops {
                         "second".to_string() => NUMERIC.clone(),
                         "millisecond".to_string() => NUMERIC.clone(),
                     },
-                    required: set!("year".to_string(),
-                                  "month".to_string(),
-                                  "day".to_string(),
-                                  "hour".to_string(),
-                                  "minute".to_string(),
-                                  "second".to_string(),
-                                  "millisecond".to_string(),
-                    ),
+                    required: set!(),
+                    additional_properties: true,
                     ..Default::default()
                 }),
             },
             required: set!("foo".to_string()),
+            additional_properties: false,
             ..Default::default()
         })),
         input = r#"{"$match": {"$expr": {
@@ -1288,19 +1283,7 @@ mod date_ops {
                 "second": "$foo.second", 
                 "millisecond": "$foo.millisecond"
             }}}}"#,
-        ref_schema = Schema::Document(Document {
-            keys: map! {
-                "year".to_string() => Schema::Any,
-                "month".to_string() => Schema::Any,
-                "day".to_string() => Schema::Any,
-                "hour".to_string() => Schema::Any,
-                "minute".to_string() => Schema::Any,
-                "second".to_string() => Schema::Any,
-                "millisecond".to_string() => Schema::Any,
-            },
-            required: set!("year".to_string(), "month".to_string(), "day".to_string()),
-            ..Default::default()
-        })
+        ref_schema = Schema::Any
     );
     test_derive_schema_for_match_stage!(
         date_from_parts_all_iso_fields,
