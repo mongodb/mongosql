@@ -155,16 +155,13 @@ pub(crate) fn get_or_create_schema_for_path_mut(
                 }
             }
             Some(Schema::AnyOf(schemas)) => {
-                let mut d = None;
-                for s in schemas.iter() {
+                let mut d = schemas.iter().find_map(|s| {
                     if let Schema::Document(doc) = s {
-                        // unfortunately, we have to clone here because we couldn't take ownership
-                        // of the schema in the iterator because it is behind a &mut.
-                        d = Some(doc.clone());
-                        break; // there can be only one!
+                        Some(doc.clone())
+                    } else {
+                        None
                     }
-                }
-                let mut d = d?;
+                })?;
                 if !d.keys.contains_key(&field) {
                     // We can only refine this if additionalProperties is true.
                     if !d.additional_properties {
