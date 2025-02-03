@@ -32,6 +32,7 @@ macro_rules! test_derive_schema_for_match_stage {
     ($func_name:ident, expected = $expected:expr, input = $input:expr$(, starting_schema = $starting_schema:expr)?$(, ref_schema = $ref_schema:expr)?$(, variables = $variables:expr)?) => {
         #[test]
         fn $func_name() {
+            println!("input: {}", $input);
             let input: Stage = serde_json::from_str($input).unwrap();
             #[allow(unused_mut, unused_assignments)]
             let mut result_set_schema = Schema::Any;

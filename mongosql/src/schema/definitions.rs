@@ -770,6 +770,30 @@ lazy_static! {
         Schema::Atomic(Atomic::Null),
         Schema::Missing
     ]);
+    pub static ref BITS_APPLICABLE: Schema = Schema::AnyOf(set![
+        Schema::Atomic(Atomic::Integer),
+        Schema::Atomic(Atomic::Long),
+        Schema::Atomic(Atomic::Double),
+        Schema::Atomic(Atomic::Decimal),
+        Schema::Atomic(Atomic::BinData),
+    ]);
+    pub static ref DATE_COERCIBLE: Schema = Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::ObjectId),
+            Schema::Atomic(Atomic::Timestamp),
+    ]);
+    pub static ref GEO: Schema = Schema::AnyOf(set![
+        Schema::Document(Document {
+            keys: map! {
+                "type".to_string() => Schema::Atomic(Atomic::String),
+                "coordinates".to_string() => Schema::Array(Box::new(NUMERIC.clone())),
+            },
+            required: set!["coordinates".to_string()],
+            additional_properties: false,
+            jaccard_index: None,
+        }),
+        Schema::Array(Box::new(NUMERIC.clone())),
+    ]);
 
     // Nullish Schemas (Schemas that additionally allow for Null or Missing).
     pub static ref NULLISH: Schema =
@@ -783,13 +807,49 @@ lazy_static! {
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
     ]);
+    pub static ref BITS_APPLICABLE_OR_NULLISH: Schema = Schema::AnyOf(set![
+        Schema::Atomic(Atomic::Integer),
+        Schema::Atomic(Atomic::Long),
+        Schema::Atomic(Atomic::Double),
+        Schema::Atomic(Atomic::Decimal),
+        Schema::Atomic(Atomic::BinData),
+        Schema::Atomic(Atomic::Null),
+        Schema::Missing,
+    ]);
     pub static ref BOOLEAN_OR_NULLISH: Schema = Schema::AnyOf(set![
         Schema::Atomic(Atomic::Boolean),
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
     ]);
+    pub static ref DATE_COERCIBLE_OR_NULL: Schema = Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::ObjectId),
+            Schema::Atomic(Atomic::Timestamp),
+            Schema::Atomic(Atomic::Null),
+    ]);
+    pub static ref DATE_COERCIBLE_OR_NULLISH: Schema = Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::ObjectId),
+            Schema::Atomic(Atomic::Timestamp),
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing,
+    ]);
     pub static ref DATE_OR_NULLISH: Schema = Schema::AnyOf(set![
         Schema::Atomic(Atomic::Date),
+        Schema::Atomic(Atomic::Null),
+        Schema::Missing,
+    ]);
+    pub static ref GEO_OR_NULLISH: Schema = Schema::AnyOf(set![
+        Schema::Document(Document {
+            keys: map! {
+                "type".to_string() => Schema::Atomic(Atomic::String),
+                "coordinates".to_string() => Schema::Array(Box::new(NUMERIC.clone())),
+            },
+            required: set!["coordinates".to_string()],
+            additional_properties: false,
+            jaccard_index: None,
+        }),
+        Schema::Array(Box::new(NUMERIC.clone())),
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
     ]);
@@ -816,11 +876,22 @@ lazy_static! {
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
     ]);
+    pub static ref NUMERIC_OR_NULL: Schema = Schema::AnyOf(set![
+        Schema::Atomic(Atomic::Integer),
+        Schema::Atomic(Atomic::Long),
+        Schema::Atomic(Atomic::Double),
+        Schema::Atomic(Atomic::Decimal),
+        Schema::Atomic(Atomic::Null),
+    ]);
     pub static ref INTEGER_LONG_OR_NULLISH: Schema = Schema::AnyOf(set![
         Schema::Atomic(Atomic::Integer),
         Schema::Atomic(Atomic::Long),
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
+    ]);
+    pub static ref STRING_OR_NULL: Schema = Schema::AnyOf(set![
+        Schema::Atomic(Atomic::String),
+        Schema::Atomic(Atomic::Null),
     ]);
     pub static ref STRING_OR_NULLISH: Schema = Schema::AnyOf(set![
         Schema::Atomic(Atomic::String),

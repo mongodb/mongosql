@@ -5,15 +5,16 @@ use crate::{
     ResultSetState,
 };
 use agg_ast::definitions::{
-    Expression, Let, MatchBinaryOp, MatchExpr, MatchExpression, MatchField, MatchLogical,
-    MatchNotExpression, MatchStage, Ref, Switch, TaggedOperator, UntaggedOperator,
+    DateExpression, DateFromParts, DateFromString, DateToParts, DateToString, Expression, Let,
+    MatchBinaryOp, MatchExpr, MatchExpression, MatchField, MatchLogical, MatchNotExpression,
+    MatchStage, Ref, Switch, TaggedOperator, UntaggedOperator,
 };
 use bson::Bson;
 use mongosql::{
-    map,
     schema::{
-        Atomic, Document, Satisfaction, Schema, INTEGER_LONG_OR_NULLISH, NULLISH, NUMERIC,
-        NUMERIC_OR_NULLISH, UNFOLDED_ANY,
+        Atomic, Document, Satisfaction, Schema, BITS_APPLICABLE, DATE_COERCIBLE,
+        DATE_COERCIBLE_OR_NULLISH, GEO, INTEGER_LONG_OR_NULLISH, NULLISH, NUMERIC,
+        NUMERIC_OR_NULLISH, STRING_OR_NULLISH, UNFOLDED_ANY,
     },
     set,
 };
@@ -28,35 +29,6 @@ fn is_unitary_schema(schema: &Schema) -> bool {
             | Schema::Atomic(Atomic::MaxKey)
             | Schema::Atomic(Atomic::Undefined)
     )
-}
-
-macro_rules! bits_schema {
-    () => {
-        Schema::AnyOf(set![
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::Long),
-            Schema::Atomic(Atomic::Double),
-            Schema::Atomic(Atomic::Decimal),
-            Schema::Atomic(Atomic::BinData),
-        ])
-    };
-}
-
-macro_rules! geo_schema {
-    () => {
-        Schema::AnyOf(set![
-            Schema::Document(Document {
-                keys: map! {
-                    "type".to_string() => Schema::Atomic(Atomic::String),
-                    "coordinates".to_string() => Schema::Array(Box::new(NUMERIC.clone())),
-                },
-                required: set!["coordinates".to_string()],
-                additional_properties: false,
-                jaccard_index: None,
-            }),
-            Schema::Array(Box::new(NUMERIC.clone())),
-        ])
-    };
 }
 
 // is_exists_true_bson returns true if the BSON value is considered to truthy in exist in a match
@@ -362,13 +334,13 @@ fn match_derive_schema_for_op(
         | MatchBinaryOp::BitsAnyClear
         | MatchBinaryOp::BitsAllSet
         | MatchBinaryOp::BitsAnySet => {
-            intersect_if_exists(reference, state, bits_schema!());
+            intersect_if_exists(reference, state, BITS_APPLICABLE.clone());
         }
         MatchBinaryOp::Near
         | MatchBinaryOp::GeoWithin
         | MatchBinaryOp::NearSphere
         | MatchBinaryOp::GeoIntersects => {
-            intersect_if_exists(reference, state, geo_schema!());
+            intersect_if_exists(reference, state, GEO.clone());
         }
     }
 }
@@ -385,6 +357,202 @@ impl MatchConstrainSchema for Expression {
                     Err(_) => return,
                 }
             };
+        }
+
+        fn match_date_derive_common(
+            d: &Expression,
+            timezone: &Option<Box<Expression>>,
+            state: &mut ResultSetState,
+        ) {
+            let (date_schema, tz_schema) = match (state.null_behavior, timezone) {
+                (Satisfaction::Not, _) => (DATE_COERCIBLE.clone(), Schema::Atomic(Atomic::String)),
+                (Satisfaction::May, _) => {
+                    (DATE_COERCIBLE_OR_NULLISH.clone(), STRING_OR_NULLISH.clone())
+                }
+                (Satisfaction::Must, Some(_)) => {
+                    (DATE_COERCIBLE_OR_NULLISH.clone(), STRING_OR_NULLISH.clone())
+                }
+                (Satisfaction::Must, None) => (NULLISH.clone(), Schema::Any),
+            };
+            if let Expression::Ref(reference) = d {
+                intersect_if_exists(reference, state, date_schema);
+            } else {
+                d.match_derive_schema(state);
+            }
+            if let Some(e) = timezone {
+                if let Expression::Ref(reference) = e.as_ref() {
+                    intersect_if_exists(reference, state, tz_schema);
+                } else {
+                    e.match_derive_schema(state);
+                }
+            }
+        }
+
+        fn match_derive_date_expression(d: &DateExpression, state: &mut ResultSetState) {
+            let DateExpression { date, timezone } = d;
+            match_date_derive_common(date, timezone, state);
+        }
+
+        fn match_derive_date_to_parts(d: &DateToParts, state: &mut ResultSetState) {
+            let DateToParts { date, timezone, .. } = d;
+            match_date_derive_common(date, timezone, state);
+        }
+
+        fn match_derive_date_from_parts(d: &DateFromParts, state: &mut ResultSetState) {
+            macro_rules! handle_date_field_schema {
+                ( $e:expr, $schema:expr ) => {
+                    if let Some(e) = $e {
+                        if let Expression::Ref(reference) = e.as_ref() {
+                            intersect_if_exists(reference, state, $schema);
+                        } else {
+                            e.match_derive_schema(state);
+                        }
+                    }
+                };
+            }
+            let (most_part_schema, tz_schema) = match state.null_behavior {
+                Satisfaction::Not => (NUMERIC.clone(), Schema::Atomic(Atomic::String)),
+                Satisfaction::May | Satisfaction::Must => {
+                    (NUMERIC_OR_NULLISH.clone(), STRING_OR_NULLISH.clone())
+                }
+            };
+            // Since there are so many fields and all of them are optional (ish), we are not going
+            // to do the MUST be NULLISH we see in other date operators because it's combimatorially
+            // expensive for little gain in precision. It's very rare that we would be in a
+            // situation where DateFromParts has exactly one field defined and it must be NULLISH.
+            let DateFromParts {
+                iso_week,
+                iso_week_year,
+                iso_day_of_week,
+                year,
+                month,
+                day,
+                hour,
+                minute,
+                second,
+                millisecond,
+                timezone,
+            } = d;
+            // Note that the reason we use macros here is that the clone will be lazy and only occur,
+            // if the expression is Some and is a Reference.
+            [
+                iso_week,
+                iso_week_year,
+                iso_day_of_week,
+                year,
+                month,
+                day,
+                hour,
+                minute,
+                second,
+                millisecond,
+            ]
+            .into_iter()
+            .for_each(|e| handle_date_field_schema!(e, most_part_schema.clone()));
+            handle_date_field_schema!(timezone, tz_schema);
+        }
+
+        fn match_derive_date_from_string(d: &DateFromString, state: &mut ResultSetState) {
+            macro_rules! handle_date_field_schema {
+                ( $e:expr, $schema:expr ) => {
+                    if let Some(e) = $e {
+                        if let Expression::Ref(reference) = e.as_ref() {
+                            intersect_if_exists(reference, state, $schema);
+                        } else {
+                            e.match_derive_schema(state);
+                        }
+                    }
+                };
+            }
+            let DateFromString {
+                date_string,
+                format,
+                timezone,
+                on_error,
+                on_null,
+            } = d;
+
+            let string_schema = match (state.null_behavior, on_null) {
+                (Satisfaction::Not, None) => Schema::Atomic(Atomic::String),
+                (Satisfaction::Must, None)
+                    if format.is_none() && timezone.is_none() && on_error.is_none() =>
+                {
+                    NULLISH.clone()
+                }
+                _ => STRING_OR_NULLISH.clone(),
+            };
+            if let Expression::Ref(reference) = date_string.as_ref() {
+                intersect_if_exists(reference, state, string_schema.clone());
+            } else {
+                date_string.match_derive_schema(state);
+            }
+            handle_date_field_schema!(format, string_schema.clone());
+            handle_date_field_schema!(timezone, string_schema);
+        }
+
+        fn match_derive_date_to_string(d: &DateToString, state: &mut ResultSetState) {
+            macro_rules! handle_date_field_schema {
+                ( $e:expr, $schema:expr ) => {
+                    if let Some(e) = $e {
+                        if let Expression::Ref(reference) = e.as_ref() {
+                            intersect_if_exists(reference, state, $schema);
+                        } else {
+                            e.match_derive_schema(state);
+                        }
+                    }
+                };
+            }
+            let DateToString {
+                date,
+                format,
+                timezone,
+                on_null,
+            } = d;
+
+            let (date_schema, string_schema) = match (state.null_behavior, on_null) {
+                // if we have an onNull expression, we actually can't be specific on the
+                // nullability of Schemas because it's possible for onNull to be NULL or the
+                // other expressions to be NULL as long as they aren't NULL for the same document.
+                (Satisfaction::Not, Some(_)) => {
+                    // This may not be completely precise, but it is conservative.
+                    (DATE_COERCIBLE_OR_NULLISH.clone(), STRING_OR_NULLISH.clone())
+                }
+                (Satisfaction::Not, None) => {
+                    (DATE_COERCIBLE.clone(), Schema::Atomic(Atomic::String))
+                }
+                (Satisfaction::Must, None) if format.is_none() && timezone.is_none() => {
+                    (NULLISH.clone(), /*will be unused*/ Schema::Any)
+                }
+                _ => (DATE_COERCIBLE_OR_NULLISH.clone(), STRING_OR_NULLISH.clone()),
+            };
+            if let Expression::Ref(reference) = date.as_ref() {
+                intersect_if_exists(reference, state, date_schema);
+            } else {
+                date.match_derive_schema(state);
+            }
+            handle_date_field_schema!(format, string_schema.clone());
+            handle_date_field_schema!(timezone, string_schema);
+        }
+
+        fn match_derive_string_operation(u: &UntaggedOperator, state: &mut ResultSetState) {
+            let schema = match state.null_behavior {
+                Satisfaction::Not => Schema::Atomic(Atomic::String),
+                Satisfaction::May => STRING_OR_NULLISH.clone(),
+                Satisfaction::Must => {
+                    if u.args.len() == 1 {
+                        NULLISH.clone()
+                    } else {
+                        STRING_OR_NULLISH.clone()
+                    }
+                }
+            };
+            u.args.iter().for_each(|arg| {
+                if let Expression::Ref(reference) = arg {
+                    intersect_if_exists(reference, state, schema.clone());
+                } else {
+                    arg.match_derive_schema(state);
+                }
+            });
         }
 
         fn match_derive_and(u: &UntaggedOperator, state: &mut ResultSetState) {
@@ -990,8 +1158,26 @@ impl MatchConstrainSchema for Expression {
             Expression::TaggedOperator(t) => match t {
                 TaggedOperator::Let(l) => match_derive_let(l, state),
                 TaggedOperator::Switch(s) => match_derive_switch(s, state),
+                TaggedOperator::Year(d)
+                | TaggedOperator::Month(d)
+                | TaggedOperator::IsoWeekYear(d)
+                | TaggedOperator::Week(d)
+                | TaggedOperator::IsoWeek(d)
+                | TaggedOperator::DayOfWeek(d)
+                | TaggedOperator::IsoDayOfWeek(d)
+                | TaggedOperator::DayOfYear(d)
+                | TaggedOperator::DayOfMonth(d)
+                | TaggedOperator::Hour(d)
+                | TaggedOperator::Minute(d)
+                | TaggedOperator::Second(d)
+                | TaggedOperator::Millisecond(d) => match_derive_date_expression(d, state),
+                TaggedOperator::DateToParts(d) => match_derive_date_to_parts(d, state),
+                TaggedOperator::DateFromParts(d) => match_derive_date_from_parts(d, state),
+                TaggedOperator::DateFromString(d) => match_derive_date_from_string(d, state),
+                TaggedOperator::DateToString(d) => match_derive_date_to_string(d, state),
                 _ => todo!(),
             },
+
             Expression::UntaggedOperator(u) => match u.op {
                 // logical ops
                 UntaggedOperatorName::And => match_derive_and(u, state),
@@ -1051,6 +1237,7 @@ impl MatchConstrainSchema for Expression {
                 | UntaggedOperatorName::ToDouble
                 | UntaggedOperatorName::ToDecimal
                 | UntaggedOperatorName::ToLong => match_derive_numeric_conversion(u, state),
+                UntaggedOperatorName::Concat => match_derive_string_operation(u, state),
                 _ => todo!(),
             },
             _ => {}
