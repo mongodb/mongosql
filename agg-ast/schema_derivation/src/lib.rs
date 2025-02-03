@@ -177,10 +177,11 @@ pub(crate) fn get_or_create_schema_for_path_mut(
                         None
                     }
                 })?;
-                if !d.keys.contains_key(&field) 
+                if !d.keys.contains_key(&field)
                     // We can only add keys, if additionalProperties is true.
-                    && d.additional_properties {
-                        d.keys.insert(field.clone(), Schema::Any);
+                    && d.additional_properties
+                {
+                    d.keys.insert(field.clone(), Schema::Any);
                 }
                 // this is a wonky way to do this, putting it in the map and then getting it back
                 // out with this match, but it's what the borrow checker forces (we can't keep the
