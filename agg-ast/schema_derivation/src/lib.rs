@@ -151,11 +151,8 @@ pub(crate) fn get_or_create_schema_for_path_mut(
                 // this is a wonky way to do this, putting it in the map and then getting it back
                 // out with this match, but it's what the borrow checker forces (we can't keep the
                 // reference across the move of ownership into the Schema::Document constructor).
-                **(schema.as_mut().unwrap()) = Schema::Document(d);
-                match schema {
-                    Some(Schema::Document(d)) => d.keys.get_mut(&field),
-                    _ => unreachable!(),
-                }
+                **(schema.as_mut()?) = Schema::Document(d);
+                schema?.get_key_mut(&field)
             }
             Some(Schema::AnyOf(schemas)) => {
                 // By first checking to see if there is a Document in the AnyOf, we can avoid
@@ -188,12 +185,8 @@ pub(crate) fn get_or_create_schema_for_path_mut(
                 // this is a wonky way to do this, putting it in the map and then getting it back
                 // out with this match, but it's what the borrow checker forces (we can't keep the
                 // reference across the move of ownership into the Schema::Document constructor).
-                **(schema.as_mut().unwrap()) = Schema::Document(d);
-                match schema {
-                    // Note that this can return None now, if d.additional_properties is false.
-                    Some(Schema::Document(d)) => d.keys.get_mut(&field),
-                    _ => unreachable!(),
-                }
+                **(schema.as_mut()?) = Schema::Document(d);
+                schema?.get_key_mut(&field)
             }
             _ => {
                 return None;
