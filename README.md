@@ -163,3 +163,17 @@ and will be the same for corresponding visit and walk files.
 ## Dependencies
 
 All are managed by Go modules for Go, and Cargo for Rust
+
+## Contributing
+
+We encourage and would happily accept contributions in the form of GitHub pull requests.
+Before opening one, be sure to run the tests locally; check out our `everygreen.yml` file for how we run
+specific tests (usually just `cargo test`). Once you open a pull request,
+your branch will be run against the same testing matrix that we use for our continuous integration system,
+so it is usually sufficient to only run the integration tests locally against a standalone.
+Remember to always ensure there are no clippy or rustfmt issues prior to submitting your patch.
+
+## License
+
+This project is licensed under the [Apache License 2.0](/LICENSE).
+This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit (<http://www.openssl.org/>).
