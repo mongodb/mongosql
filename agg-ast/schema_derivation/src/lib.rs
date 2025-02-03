@@ -190,7 +190,7 @@ pub(crate) fn get_or_create_schema_for_path_mut(
                 // reference across the move of ownership into the Schema::Document constructor).
                 **(schema.as_mut().unwrap()) = Schema::Document(d);
                 match schema {
-                    // Note that this can return None now if d.additional_properties is false.
+                    // Note that this can return None now, if d.additional_properties is false.
                     Some(Schema::Document(d)) => d.keys.get_mut(&field),
                     _ => unreachable!(),
                 }
