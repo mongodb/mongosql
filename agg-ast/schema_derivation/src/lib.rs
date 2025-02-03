@@ -121,14 +121,14 @@ pub(crate) fn get_schema_for_path_mut(
     schema
 }
 
-/// Gets or creates a mutable reference to a specific field or document path in the schema.
-/// This should only be used in $match context where can can refine the schema. For example,
-/// we could think a field has type Any, or AnyOf([String, Document]), and a $match stage can
-/// only evaluate to true if that field is specifically a Document. In this case, we can
-/// refined that schema to Document, and this can recurse to any depth in the Schema. Note that
-/// this still returns an Option because if the field is known to have the Schema String, we cannot
-/// create a path! This would mean that the aggregation pipeline in question will return no results,
-/// in fact, because the $match stage will never evaluate to true.
+/// Gets or creates a mutable reference to a specific field or document path in the schema. This
+/// should only be used in $match context where can can refine the schema. For example, we could
+/// think a field has type Any, or AnyOf([String, Document]), and a $match stage can only evaluate
+/// to true if that field is specifically a Document. In this case, we can refined that schema to
+/// Document, and this can recurse to any depth in the Schema. Note that this still returns an
+/// Option because if the field is known to have a Schema that cannot be a Document, we cannot
+/// create a path! This would mean that the aggregation pipeline in question will return no
+/// results, in fact, because the $match stage will never evaluate to true.
 pub(crate) fn get_or_create_schema_for_path_mut(
     schema: &mut Schema,
     path: Vec<String>,
