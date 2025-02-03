@@ -166,13 +166,15 @@ pub(crate) fn get_or_create_schema_for_path_mut(
                 if !schemas.iter().any(|s| matches!(s, &Schema::Document(_))) {
                     return None;
                 }
-                // This is how we avoid the clone. By doing a std::mem::replace here, we can take ownership
+                // This is how we avoid the clone. By doing a std::mem::take here, we can take ownership
                 // of the schemas, and thus the Document schema. Sadly, we still have to allocate
-                // an empty BTreeSet. There is a price to pay for safety sometimes.
-                let schemas = std::mem::replace(schemas, BTreeSet::new());
+                // an empty BTreeSet. There is a price to pay for safety sometimes, but, there is a
+                // good chance the compiler will be smart enough to know that
+                // BTreeSet::default() is never used and optimize it out.
+                let schemas = std::mem::take(schemas);
                 let mut d = schemas.into_iter().find_map(|s| {
                     if let Schema::Document(doc) = s {
-                        // we would have to clone here without the std::mem::replace above.
+                        // we would have to clone here without the std::mem::take above.
                         Some(doc)
                     } else {
                         None
