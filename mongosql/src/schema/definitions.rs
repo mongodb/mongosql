@@ -933,6 +933,26 @@ impl Schema {
         }
     }
 
+    /// get_key returns the &Schema for the given key if this Schema is a Document. If the Schema
+    /// is not a Document or the key does not exist, it returns None.
+    /// This is not completely consistent with keys because it does not work with AnyOf.
+    pub fn get_key(&self, key: &str) -> Option<&Schema> {
+        match self {
+            Schema::Document(d) => d.keys.get(key),
+            _ => None,
+        }
+    }
+
+    /// get_key_mut returns the &mut Schema for the given key if this Schema is a Document. If the Schema
+    /// is not a Document or the key does not exist, it returns None.
+    /// This is not completely consistent with keys because it does not work with AnyOf.
+    pub fn get_key_mut(&mut self, key: &str) -> Option<&mut Schema> {
+        match self {
+            Schema::Document(d) => d.keys.get_mut(key),
+            _ => None,
+        }
+    }
+
     /// returns a simplified version of this schema.
     pub fn simplify(schema: &Schema) -> Schema {
         // remove_missing removes all Missing types from the given Schema. It should
