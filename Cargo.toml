@@ -6,6 +6,7 @@ members = [
     "agg-ast/schema_derivation",
     "benchmark/pipeline_generator",
     "benchmark/profiler",
+    "mongosql-cli",
     "e2e-tests",
     "evergreen/create-tasks",
     "mongosql-datastructures",
