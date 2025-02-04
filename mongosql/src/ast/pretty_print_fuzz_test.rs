@@ -73,7 +73,7 @@ Reparsed AST:
 mod arbitrary {
     use crate::ast::definitions::*;
     use quickcheck::{Arbitrary, Gen};
-    use rand::{thread_rng, Rng};
+    use rand::{rng, Rng};
 
     // For SELECT, GROUP BY, and ORDER BY clauses
     static MIN_CLAUSE_EXPRS: u32 = 1; // minimum number of expressions in an arbitrary clause
@@ -145,12 +145,12 @@ mod arbitrary {
     }
 
     fn rand_len(low: u32, high: u32) -> u32 {
-        let mut rng = thread_rng();
-        rng.gen_range(low..high)
+        let mut rng = rng();
+        rng.random_range(low..high)
     }
 
     fn nested_gen(g: &mut Gen) -> Gen {
-        let nested_size = g.size() + thread_rng().gen_range(NEST_LOWER_BOUND..NEST_UPPER_BOUND);
+        let nested_size = g.size() + rng().random_range(NEST_LOWER_BOUND..NEST_UPPER_BOUND);
         Gen::new(nested_size)
     }
 
