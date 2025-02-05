@@ -1600,6 +1600,36 @@ impl Schema {
             _ => Schema::Unsat,
         }
     }
+
+    /// Turns a Schema into a set of the Schema it matches. Any and AnyOf return the underlying set,
+    /// all other types return singleton sets containing themselves. This is useful for getting the
+    /// cartesian product between two Schemas.
+    fn schema_set(&self) -> BTreeSet<Schema> {
+        match self {
+            Unsat
+            | Schema::Missing
+            | Schema::Atomic(_)
+            | Schema::Array(_)
+            | Schema::Document(_) => set! {self.clone()},
+            AnyOf(ao) => ao.clone(),
+            Schema::Any => UNFOLDED_ANY.schema_set(),
+        }
+    }
+
+    /// Computes the cartesian product of two Schemas. The inputs are simplified as part of this
+    /// process.
+    pub fn cartesian_product(&self, other: &Schema) -> BTreeSet<(Self, Self)> {
+        let self_schema = Schema::simplify(self);
+        let other_schema = Schema::simplify(other);
+
+        let self_set = self_schema.schema_set();
+        let other_set = other_schema.schema_set();
+
+        self_set
+            .into_iter()
+            .flat_map(|l| other_set.clone().into_iter().map(move |r| (l.clone(), r)))
+            .collect()
+    }
 }
 
 impl From<Type> for Schema {
