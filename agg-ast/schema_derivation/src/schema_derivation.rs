@@ -826,10 +826,18 @@ impl DeriveSchema for UntaggedOperator {
             }
             UntaggedOperatorName::Add => {
                 // Separate any possible Date arguments from non-Date arguments.
-                let arg_schemas = args.iter().map(|arg| arg.derive_schema(state).map(|schema| schema.upconvert_missing_to_null())).collect::<Result<BTreeSet<_>>>()?;
-                let (dates, mut non_dates): (BTreeSet<_>, BTreeSet<_>) = arg_schemas.into_iter().partition(|arg_schema| {
-                    arg_schema.satisfies(&Schema::Atomic(Atomic::Date)) != Satisfaction::Not
-                });
+                let arg_schemas = args
+                    .iter()
+                    .map(|arg| arg
+                        .derive_schema(state)
+                        .map(|schema| schema.upconvert_missing_to_null())
+                    )
+                    .collect::<Result<BTreeSet<_>>>()?;
+                let (dates, mut non_dates): (BTreeSet<_>, BTreeSet<_>) = arg_schemas
+                    .into_iter()
+                    .partition(|arg_schema| {
+                        arg_schema.satisfies(&Schema::Atomic(Atomic::Date)) != Satisfaction::Not
+                    });
 
                 // If there are any Date arguments, if any MUST be (nullable) Date,
                 // then we know the result is (nullable) Date. If any MAY be Date or
@@ -868,24 +876,37 @@ impl DeriveSchema for UntaggedOperator {
                 }
             }
             UntaggedOperatorName::Subtract => {
-                let input_schema = get_input_schema(&args, state)?;
-                if input_schema.satisfies(&DATE_OR_NULLISH) == Satisfaction::Must {
-                    // If both are (nullable) Dates, the result is (nullable) Long
-                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
-                } else if input_schema.satisfies(&DATE_OR_NULLISH) == Satisfaction::May && input_schema.satisfies(&NUMERIC_OR_NULLISH) == Satisfaction::May {
-                    // If only one is a (nullable) Date and the other is a (nullable) number,
-                    // the result is a (nullable) Date
-                    // TODO: what about { $subtract: ["$date", "$date_or_int"] }
-                    //   - this could be a Long when it is Date-Date
-                    //   - this could be a Date when it is Date-Int
-                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Date))
-                } else if input_schema.satisfies(&INTEGER_OR_NULLISH) == Satisfaction::Must {
-                    handle_null_satisfaction(args, state, INTEGRAL.clone())
-                } else if input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
-                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
-                } else {
-                    get_decimal_double_or_nullish(args, state)
-                }
+                let left_schema = args.first().unwrap().derive_schema(state)?.upconvert_missing_to_null();
+                let right_schema = args.get(1).unwrap().derive_schema(state)?.upconvert_missing_to_null();
+
+                let cp = left_schema.cartesian_product(&right_schema);
+
+                Ok(Schema::simplify(&Schema::AnyOf(cp.into_iter().filter_map(|(l, r)| match (l, r) {
+                    // If either operand is Null, the result may be Null
+                    (Schema::Atomic(Atomic::Null), _) | (_, Schema::Atomic(Atomic::Null)) => Some(Schema::Atomic(Atomic::Null)),
+                    // If both are Date, the result may be Long
+                    (Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Date)) => Some(Schema::Atomic(Atomic::Long)),
+                    // If the first is a Date and the second is numeric, the result may be Date
+                    (Schema::Atomic(Atomic::Date), _) => Some(Schema::Atomic(Atomic::Date)),
+                    // If the first is a numeric and the second is a Date, this is invalid agg so
+                    // we do not compute schema in this case. We include this case here to avoid
+                    // accidentally hitting any of the numeric patterns below.
+                    (_, Schema::Atomic(Atomic::Date)) => None,
+                    // At this point, we (safely) assume only numeric pairs. Anything else is
+                    // invalid agg which will produce a runtime error and therefore not require a
+                    // schema computation.
+                    // If either is a Decimal, the result may be Decimal
+                    (Schema::Atomic(Atomic::Decimal), _) | (_, Schema::Atomic(Atomic::Decimal)) => Some(Schema::Atomic(Atomic::Decimal)),
+                    // If either is a Double, the result may be Double
+                    (Schema::Atomic(Atomic::Double), _) | (_, Schema::Atomic(Atomic::Double)) => Some(Schema::Atomic(Atomic::Double)),
+                    // If either is a Long, the result may be Long
+                    (Schema::Atomic(Atomic::Long), _) | (_, Schema::Atomic(Atomic::Long)) => Some(Schema::Atomic(Atomic::Long)),
+                    // If either is an Integer, the result may be Integer or Long
+                    (Schema::Atomic(Atomic::Integer), _) | (_, Schema::Atomic(Atomic::Integer)) => Some(INTEGRAL.clone()),
+                    // Again, anything else is invalid agg. Therefore, we do not compute schema
+                    // for any other cases.
+                    _ => None
+                }).collect())))
             }
             // int + int -> int or long; int + long, long + long -> long,
             UntaggedOperatorName::Multiply => {
