@@ -865,10 +865,12 @@ impl DeriveSchema for UntaggedOperator {
             // int + int -> int or long; int + long, long + long -> long,
             UntaggedOperatorName::Multiply => {
                 let input_schema = get_input_schema(&args, state)?;
-                if input_schema.satisfies(&Schema::Atomic(Atomic::Integer)) == Satisfaction::Must {
-                    Ok(INTEGRAL.clone())
-                } else if input_schema.satisfies(&INTEGRAL) == Satisfaction::Must {
-                    Ok(Schema::Atomic(Atomic::Long))
+                if input_schema.satisfies(&INTEGER_OR_NULLISH) == Satisfaction::Must {
+                    // If both are (nullable) Ints, the result is (nullable) Int or Long
+                    handle_null_satisfaction(args, state, INTEGRAL.clone())
+                } else if input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
+                    // If both are (nullable) Ints or Longs, the result is (nullable) Long
+                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
                 } else {
                     get_decimal_double_or_nullish(args, state)
                 }

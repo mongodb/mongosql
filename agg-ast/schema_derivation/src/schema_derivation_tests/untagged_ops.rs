@@ -403,6 +403,31 @@ mod numeric_ops {
         ))
     );
     test_derive_schema!(
+        multiply_nullable_int,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$multiply": [1, "$foo"]}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_schema!(
+        multiply_nullable_long,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$multiply": [1, "$foo"]}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_schema!(
         multiply_integral,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
