@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/10gen/mongosql-rs/go/mongosql/internal/util"
+	"github.com/mongodb/mongosql/go/mongosql/internal/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
