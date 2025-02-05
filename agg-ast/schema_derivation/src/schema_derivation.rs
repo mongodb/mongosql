@@ -825,21 +825,46 @@ impl DeriveSchema for UntaggedOperator {
                 })
             }
             UntaggedOperatorName::Add => {
-                let input_schema = get_input_schema(&args, state)?;
-                if input_schema.satisfies(&INTEGER_OR_NULLISH) == Satisfaction::Must {
-                    // If both are (nullable) Ints, the result is (nullable) Int or Long
+                // Separate any possible Date arguments from non-Date arguments.
+                let arg_schemas = args.iter().map(|arg| arg.derive_schema(state).map(|schema| schema.upconvert_missing_to_null())).collect::<Result<BTreeSet<_>>>()?;
+                let (dates, mut non_dates): (BTreeSet<_>, BTreeSet<_>) = arg_schemas.into_iter().partition(|arg_schema| {
+                    arg_schema.satisfies(&Schema::Atomic(Atomic::Date)) != Satisfaction::Not
+                });
+
+                // If there are any Date arguments, if any MUST be (nullable) Date,
+                // then we know the result is (nullable) Date. If any MAY be Date or
+                // any numeric type, then the result is either Date or the appropriate
+                // numeric type based on the rules below. We add the non-Date types to
+                // the non_dates set and proceed. At the end, we include Date as a
+                // possible result type.
+                let mut may_be_date = false;
+                for date_schema in dates {
+                    if date_schema.satisfies(&DATE_OR_NULLISH.clone()) == Satisfaction::Must {
+                        return handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Date))
+                    } else {
+                        let with_date_removed = date_schema.intersection(&NUMERIC_OR_NULLISH.clone());
+                        non_dates.insert(with_date_removed);
+                        may_be_date = true;
+                    }
+                }
+
+                // Here, we (safely) assume (nullable) numeric types for all non-Date arguments.
+                let numeric_input_schema = Schema::simplify(&Schema::AnyOf(non_dates));
+                let numeric_schema = if numeric_input_schema.satisfies(&INTEGER_OR_NULLISH) == Satisfaction::Must {
+                    // If all args are (nullable) Ints, the result is (nullable) Int or Long
                     handle_null_satisfaction(args, state, INTEGRAL.clone())
-                } else if input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
-                    // If both are (nullable) Ints or Longs, the result is (nullable) Long
+                } else if numeric_input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
+                    // If all args are (nullable) Ints or Longs, the result is (nullable) Long
                     handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
-                } else if input_schema.satisfies(&Schema::Atomic(Atomic::Date)) == Satisfaction::May {
-                    // TODO: this is not exactly correct. Consider { $add: ["$date_or_int", "$int"] }
-                    //  - this could be a Date when the first is a date
-                    //  - but could also be an Int when the first is an int
-                    //  - I think we need to analyze the args separately to get the most accurate schema.
-                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Date))
                 } else {
+                    // Otherwise, the result is (nullable) Double or Decimal
                     get_decimal_double_or_nullish(args, state)
+                };
+
+                if may_be_date {
+                    Ok(Schema::simplify(&Schema::AnyOf(set!{numeric_schema?, Schema::Atomic(Atomic::Date)})))
+                } else {
+                    numeric_schema
                 }
             }
             UntaggedOperatorName::Subtract => {

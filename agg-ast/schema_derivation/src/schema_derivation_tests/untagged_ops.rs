@@ -514,6 +514,31 @@ mod numeric_ops {
         input = r#"{"$mod": [1, 123]}"#
     );
     test_derive_schema!(
+        add_nullable_int,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$add": [1, "$foo"]}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_schema!(
+        add_nullable_long,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$add": [1, "$foo"]}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_schema!(
         add_integral,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -554,6 +579,19 @@ mod numeric_ops {
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Date),
             Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_schema!(
+        add_date_or_numeric,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ))),
+        input = r#"{"$add": [1, "$foo"]}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Integer),
         ))
     );
     test_derive_schema!(
