@@ -3,8 +3,9 @@ use crate::{
     schema_for_type_numeric, schema_for_type_str, Error, Result,
 };
 use agg_ast::definitions::{
-    Expression, LiteralValue, Ref, Stage, TaggedOperator, UntaggedOperator, UntaggedOperatorName,
+    Densify, Expression, GeoNear, LiteralValue, Ref, Stage, TaggedOperator, UntaggedOperator, UntaggedOperatorName
 };
+use linked_hash_map::LinkedHashMap;
 use mongosql::{
     map,
     schema::{
@@ -35,19 +36,101 @@ pub(crate) struct ResultSetState<'a> {
     pub null_behavior: Satisfaction,
 }
 
+fn derive_schema_for_pipeline(pipeline: Vec<Stage>, state: &mut ResultSetState) -> Result<Schema> {
+    pipeline.iter().try_for_each(|stage| {
+        state.result_set_schema = stage.derive_schema(state)?;
+        Ok(())
+    })?;
+    Ok(state.result_set_schema.clone())
+}
+
 impl DeriveSchema for Stage {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
-        match *self {
+
+        fn densify_derive_schema(densify: &Densify, state: &mut ResultSetState) -> Result<Schema> {
+            let schema: Schema = state.result_set_schema.clone();
+            // let path = densify.field.split(".").map(|s| s.to_string()).collect::<Vec<String>>();
+            // loop {
+            //     if let Some(key) = path.first() {
+            //         match 
+            //     } else { break }
+            // }
+            Ok(schema)
+        }
+
+        fn documents_derive_schema(documents: &Vec<LinkedHashMap<String, Expression>>, state: &mut ResultSetState) -> Result<Schema> {
+            let schema = documents.iter().try_fold(None, |schema: Option<Schema>, document: &LinkedHashMap<String, Expression>| {
+                let doc_fields = document.into_iter()
+                .map(|(field, expr)| {
+                    let field_schema = expr.derive_schema(state)?;
+                    Ok((field.clone(), field_schema))
+                })
+                .collect::<Result<BTreeMap<String, Schema>>>()?;
+                let doc_schema = Schema::Document(Document {
+                    required: doc_fields.keys().into_iter().map(|x| x.clone()).collect(),
+                    keys: doc_fields,
+                    ..Default::default()
+                });
+                Ok(match schema {
+                    None => Some(doc_schema),
+                    Some(schema) => Some(schema.union(&doc_schema)),
+                })
+            });
+            Ok(schema?.unwrap_or(Schema::Unsat))
+        }
+
+        fn facet_derive_schema(
+            facet: &LinkedHashMap<String, Vec<Stage>>,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            let facet_schema = facet
+                .into_iter()
+                .map(|(field, pipeline)| {
+                    let mut field_state = state.clone();
+                    let field_schema =
+                        derive_schema_for_pipeline(pipeline.clone(), &mut field_state)?;
+                    Ok((field.clone(), field_schema))
+                })
+                .collect::<Result<BTreeMap<String, Schema>>>()?;
+            Ok(Schema::Document(Document {
+                required: facet_schema.keys().into_iter().map(|x| x.clone()).collect(),
+                keys: facet_schema,
+                ..Default::default()
+            }))
+        }
+
+        // fn geo_near_derive_schema(geo_near: GeoNear, state: &mut ResultSetState) -> Result<Schema> {
+        //     // geo near compares the points defined by the 2d index to the input specified in the stage. If we had access to the
+        //     // index, we could assert that the indexed field is not null; for now, we will just union in the new fields added by this stage.
+        //     state.result_set_schema.
+        //     Ok(schema)
+        // }
+
+        fn sort_by_count_derive_schema(
+            sort_expr: &Expression,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            Ok(Schema::Document(Document {
+                keys: map! {
+                    "_id".to_string() => sort_expr.derive_schema(state)?,
+                    "count".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long)))
+                },
+                required: set!("_id".to_string(), "count".to_string()),
+                ..Default::default()
+            }))
+        }
+
+        match self {
             Stage::AddFields(_) => todo!(),
             Stage::AtlasSearchStage(_) => todo!(),
             Stage::Bucket(_) => todo!(),
             Stage::BucketAuto(_) => todo!(),
             Stage::Collection(_) => todo!(),
             Stage::Count(_) => todo!(),
-            Stage::Densify(_) => todo!(),
-            Stage::Documents(_) => todo!(),
+            Stage::Densify(d) => densify_derive_schema(d, state),
+            Stage::Documents(d) => documents_derive_schema(d, state),
             Stage::EquiJoin(_) => todo!(),
-            Stage::Facet(_) => todo!(),
+            Stage::Facet(f) => facet_derive_schema(f, state),
             Stage::Fill(_) => todo!(),
             Stage::GeoNear(_) => todo!(),
             Stage::GraphLookup(_) => todo!(),
@@ -63,7 +146,7 @@ impl DeriveSchema for Stage {
             Stage::SetWindowFields(_) => todo!(),
             Stage::Skip(_) => todo!(),
             Stage::Sort(_) => todo!(),
-            Stage::SortByCount(_) => todo!(),
+            Stage::SortByCount(s) => sort_by_count_derive_schema(s.as_ref(), state),
             Stage::UnionWith(_) => todo!(),
             Stage::Unset(_) => todo!(),
             Stage::Unwind(_) => todo!(),

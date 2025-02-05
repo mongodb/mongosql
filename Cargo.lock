@@ -4432,6 +4432,7 @@ version = "0.0.0"
 dependencies = [
  "agg-ast",
  "bson",
+ "linked-hash-map",
  "mongosql",
  "serde_json",
  "thiserror 2.0.11",
