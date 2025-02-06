@@ -1652,18 +1652,24 @@ mod is_comparable_with {
             }
         };
     }
-    // Disallowed comparability tests (arrays and documents).
+    // Array comparability
     test_is_comparable_with!(
-        array_not_comparable_with_another_array,
-        expected = Not,
+        array_is_comparable_with_array_based_on_inner_type,
+        expected = Must,
+        _self = Array(Box::new(Atomic(Integer))),
+        other = Array(Box::new(Atomic(Integer))),
+    );
+    test_is_comparable_with!(
+        array_maybe_comparable_with_array_based_on_inner_type,
+        expected = May,
         _self = ANY_ARRAY,
         other = ANY_ARRAY,
     );
     test_is_comparable_with!(
-        document_not_comparable_with_another_document,
+        array_not_comparable_with_array_based_on_inner_type,
         expected = Not,
-        _self = ANY_DOCUMENT,
-        other = ANY_DOCUMENT,
+        _self = Array(Box::new(Atomic(Integer))),
+        other = Array(Box::new(Atomic(String))),
     );
     test_is_comparable_with!(
         array_not_comparable_with_document,
@@ -1671,12 +1677,29 @@ mod is_comparable_with {
         _self = ANY_ARRAY,
         other = ANY_DOCUMENT,
     );
-
     test_is_comparable_with!(
-        array_not_comparable_with_any,
-        expected = Not,
+        array_maybe_comparable_with_any,
+        expected = May,
         _self = ANY_ARRAY,
         other = Any,
+    );
+    test_is_comparable_with!(
+        array_is_comparable_with_null,
+        expected = Must,
+        _self = ANY_ARRAY,
+        other = Atomic(Null),
+    );
+    test_is_comparable_with!(
+        array_is_comparable_with_missing,
+        expected = Must,
+        _self = ANY_ARRAY,
+        other = Missing,
+    );
+    test_is_comparable_with!(
+        array_is_comparable_with_unsat,
+        expected = Must,
+        _self = ANY_ARRAY,
+        other = Unsat,
     );
     test_is_comparable_with!(
         array_not_comparable_with_another_type,
@@ -1684,54 +1707,43 @@ mod is_comparable_with {
         _self = ANY_ARRAY,
         other = Atomic(Integer),
     );
+
+    // Document comparability
     test_is_comparable_with!(
-        array_not_comparable_with_null,
-        expected = Not,
-        _self = ANY_ARRAY,
+        document_is_comparable_with_another_document,
+        expected = Must,
+        _self = ANY_DOCUMENT,
+        other = ANY_DOCUMENT,
+    );
+    test_is_comparable_with!(
+        document_maybe_comparable_with_any_type,
+        expected = May,
+        _self = ANY_DOCUMENT,
+        other = Any,
+    );
+    test_is_comparable_with!(
+        document_is_comparable_with_null,
+        expected = Must,
+        _self = ANY_DOCUMENT,
         other = Atomic(Null),
     );
     test_is_comparable_with!(
-        array_not_comparable_with_missing,
-        expected = Not,
-        _self = ANY_ARRAY,
+        document_is_comparable_with_missing,
+        expected = Must,
+        _self = ANY_DOCUMENT,
         other = Missing,
     );
     test_is_comparable_with!(
-        array_not_comparable_with_unsat,
-        expected = Not,
-        _self = ANY_ARRAY,
-        other = Unsat,
-    );
-
-    test_is_comparable_with!(
-        document_not_comparable_with_any_type,
-        expected = Not,
+        document_is_comparable_with_unsat,
+        expected = Must,
         _self = ANY_DOCUMENT,
-        other = Any,
+        other = Unsat,
     );
     test_is_comparable_with!(
         document_not_comparable_with_a_type,
         expected = Not,
         _self = ANY_DOCUMENT,
         other = Atomic(Integer),
-    );
-    test_is_comparable_with!(
-        document_not_comparable_with_null,
-        expected = Not,
-        _self = ANY_DOCUMENT,
-        other = Atomic(Null),
-    );
-    test_is_comparable_with!(
-        document_not_comparable_with_missing,
-        expected = Not,
-        _self = ANY_DOCUMENT,
-        other = Missing,
-    );
-    test_is_comparable_with!(
-        document_not_comparable_with_unsat,
-        expected = Not,
-        _self = ANY_DOCUMENT,
-        other = Unsat,
     );
 
     // Any comparison tests.
@@ -1959,6 +1971,18 @@ mod is_comparable_with {
         expected = Not,
         _self = AnyOf(set![Atomic(String), Atomic(Boolean)]),
         other = AnyOf(set![Atomic(Date), Atomic(Integer)]),
+    );
+    test_is_comparable_with!(
+        a_set_containing_array_maybe_comparable_with_set_containing_array,
+        expected = May,
+        _self = AnyOf(set![ANY_ARRAY.clone(), Atomic(Boolean)]),
+        other = AnyOf(set![ANY_ARRAY.clone(), Atomic(Integer)]),
+    );
+    test_is_comparable_with!(
+        a_set_containing_document_maybe_comparable_with_set_containing_document,
+        expected = May,
+        _self = AnyOf(set![ANY_DOCUMENT.clone(), Atomic(Boolean)]),
+        other = AnyOf(set![ANY_DOCUMENT.clone(), Atomic(Integer)]),
     );
 }
 
