@@ -1113,29 +1113,40 @@ impl Schema {
         use Schema::*;
 
         match (&self, &other) {
-            // We currently disallow arrays and documents in comparisons.
-            (Array(_), _) | (_, Array(_)) => Not,
-            (Document(_), _) | (_, Document(_)) => Not,
-
             // Comparing with an Any schema will always result in a May.
             (Any, _) | (_, Any) => May,
+
+            // Any type is comparable to null
+            (Atomic(crate::schema::Atomic::Null), _) | (_, Atomic(crate::schema::Atomic::Null)) => {
+                Must
+            }
 
             // Missing behaves like null, in that any type is comparable to it.
             (Missing, _) | (_, Missing) => Must,
 
             // Unsat behaves like null, in that any type is comparable to it.
             // However, this likely does not matter at the moment given that Unsat
-            // can only be found in arrays, for which we currently disallow comparisons.
+            // can only be found in arrays, and we allow array-self-comparison.
             (Unsat, _) | (_, Unsat) => Must,
-
-            // Atomics have their own criteria for comparability involving numerics and null.
-            (Atomic(a1), Atomic(a2)) => a1.is_comparable_with(a2),
 
             // Use the meet logic if we have an AnyOf regardless of which side the AnyOf is on,
             // since comparison is a commutative operation that type satisfaction must reflect.
             (AnyOf(anyof_vs), v) | (v, AnyOf(anyof_vs)) => {
                 Schema::schema_predicate_meet(anyof_vs, &|s: &Schema| s.is_comparable_with(v))
             }
+
+            // Atomics have their own criteria for comparability involving numerics and null.
+            (Atomic(a1), Atomic(a2)) => a1.is_comparable_with(a2),
+
+            // Arrays can be compared to other arrays if their elements
+            // are comparable.
+            (Array(l), Array(r)) => l.is_comparable_with(r),
+
+            // Documents can be compared to other documents.
+            (Document(_), Document(_)) => Must,
+
+            // Documents and arrays cannot be compared to any other remaining types
+            (Array(_), _) | (_, Array(_)) | (Document(_), _) | (_, Document(_)) => Not,
         }
     }
 
