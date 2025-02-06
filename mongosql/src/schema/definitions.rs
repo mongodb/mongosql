@@ -1626,8 +1626,9 @@ impl Schema {
         let other_set = other_schema.schema_set();
 
         self_set
-            .into_iter()
-            .flat_map(|l| other_set.clone().into_iter().map(move |r| (l.clone(), r)))
+            .iter()
+            .cloned()
+            .cartesian_product(other_set.iter().cloned())
             .collect()
     }
 }

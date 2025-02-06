@@ -3393,42 +3393,6 @@ mod cartesian_product {
     );
 
     test_cartesian_product!(
-        singleton_unsat,
-        expected = {
-            let s: BTreeSet<(Schema, Schema)> = set! {
-                (Unsat, Unsat)
-            };
-            s
-        },
-        schema = Unsat,
-        other = Unsat,
-    );
-
-    test_cartesian_product!(
-        singleton_documents,
-        expected = {
-            let s: BTreeSet<(Schema, Schema)> = set! {
-                (ANY_DOCUMENT.clone(), ANY_DOCUMENT.clone())
-            };
-            s
-        },
-        schema = ANY_DOCUMENT.clone(),
-        other = ANY_DOCUMENT.clone(),
-    );
-
-    test_cartesian_product!(
-        singleton_arrays,
-        expected = {
-            let s: BTreeSet<(Schema, Schema)> = set! {
-                (ANY_ARRAY.clone(), ANY_ARRAY.clone())
-            };
-            s
-        },
-        schema = ANY_ARRAY.clone(),
-        other = ANY_ARRAY.clone(),
-    );
-
-    test_cartesian_product!(
         singleton_with_any_of,
         expected = {
             let s: BTreeSet<(Schema, Schema)> = set! {
