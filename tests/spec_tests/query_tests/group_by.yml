@@ -289,6 +289,7 @@ tests:
       - { "": { "n": { "$numberInt": "1" } } }
 
   - description: group keys must be mutually comparable types
+    skip_reason: "SQL-2623: update GROUP BY spec tests (this one should removed since all types are now self-comparable)"
     query: "SELECT * FROM foo.baz AS a GROUP BY {'out': a.a} AS doc"
     should_compile: false
     algebrize_error: "group key at position 0 is not statically comparable to itself"
@@ -528,6 +529,7 @@ tests:
     algebrize_error: "* argument only valid in COUNT function"
 
   - description: ADD_TO_SET requires all elements have statically mutually comparable type
+    skip_reason: "SQL-2623: update GROUP BY spec tests (this one should removed since all types are now self-comparable)"
     query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE ADD_TO_SET(a) AS gset"
     should_compile: false
     algebrize_error: 'cannot have "AddToArray DISTINCT" aggregations over the schema: Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false }) as it is not comparable to itself'
@@ -654,6 +656,7 @@ tests:
     algebrize_error: "* argument only valid in COUNT function"
 
   - description: MAX must have statically mutually comparable type
+    skip_reason: "SQL-2623: update GROUP BY spec tests (this one should removed since all types are now self-comparable)"
     query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE MAX(a) AS gmax"
     should_compile: false
     algebrize_error: 'cannot have "Max" aggregations over the schema: Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false }) as it is not comparable to itself'
@@ -691,6 +694,7 @@ tests:
     algebrize_error: "* argument only valid in COUNT function"
 
   - description: MIN must have statically mutually comparable type
+    skip_reason: "SQL-2623: update GROUP BY spec tests (this one should removed since all types are now self-comparable)"
     query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE MIN(a) AS gmin"
     should_compile: false
     algebrize_error: 'cannot have "Min" aggregations over the schema: Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false }) as it is not comparable to itself'
