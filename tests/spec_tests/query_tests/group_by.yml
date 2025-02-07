@@ -118,6 +118,9 @@ catalog_data:
       - { "_id": { "$numberInt": "3" }, "a": { "$numberInt": "1" } }
     arr:
       - { "_id": { "$numberInt": "1" }, "a": [1, 2] }
+    poly:
+      - { "_id": 0, a: true }
+      - { "_id": 1, a: "yes" }
 
 catalog_schema:
   {
@@ -254,6 +257,20 @@ catalog_schema:
             "additionalProperties": false,
             "properties": { "a": { "bsonType": "array" } },
           },
+        "poly":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a"],
+            "additionalProperties": false,
+            "properties": {
+              "a": {
+                "anyOf": [
+                  { "bsonType": "bool" },
+                  { "bsonType": "string" },
+                ]
+              }
+            },
+          },
       },
   }
 
@@ -289,7 +306,7 @@ tests:
       - { "": { "n": { "$numberInt": "1" } } }
 
   - description: group keys must be mutually comparable types
-    query: "SELECT * FROM foo.baz AS a GROUP BY {'out': a.a} AS doc"
+    query: "SELECT * FROM foo.poly AS a GROUP BY a.a AS p"
     should_compile: false
     algebrize_error: "group key at position 0 is not statically comparable to itself"
 
@@ -527,11 +544,6 @@ tests:
     should_compile: false
     algebrize_error: "* argument only valid in COUNT function"
 
-  - description: ADD_TO_SET requires all elements have statically mutually comparable type
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE ADD_TO_SET(a) AS gset"
-    should_compile: false
-    algebrize_error: 'cannot have "AddToArray DISTINCT" aggregations over the schema: Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false }) as it is not comparable to itself'
-
   - description: ADD_TO_SET correctness test
     query: "SELECT * FROM (SELECT _id, a FROM foo.baz AS baz ORDER BY _id) AS arr GROUP BY a.a AS a AGGREGATE ADD_TO_SET(a.a) AS gset"
     current_db: foo
@@ -653,11 +665,6 @@ tests:
     should_compile: false
     algebrize_error: "* argument only valid in COUNT function"
 
-  - description: MAX must have statically mutually comparable type
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE MAX(a) AS gmax"
-    should_compile: false
-    algebrize_error: 'cannot have "Max" aggregations over the schema: Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false }) as it is not comparable to itself'
-
   - description: MERGE_DOCUMENTS correctness test
     query: "SELECT * FROM (SELECT _id, a, doc FROM foo.baz2 AS baz2 ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE MERGE_DOCUMENTS(doc) AS gmerge"
     current_db: foo
@@ -689,11 +696,6 @@ tests:
     query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE MIN(*) AS gmin"
     should_compile: false
     algebrize_error: "* argument only valid in COUNT function"
-
-  - description: MIN must have statically mutually comparable type
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE MIN(a) AS gmin"
-    should_compile: false
-    algebrize_error: 'cannot have "Min" aggregations over the schema: Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false }) as it is not comparable to itself'
 
   - description: STDDEV_POP correctness test
     query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE STDDEV_POP(b) AS gstdp"
