@@ -246,7 +246,12 @@ pub fn create_catalog(schemas: Vec<Schema>) -> Result<Catalog, Error> {
 ///
 /// This function assumes that [`types[i]`] describes the type of the i`th
 /// argument in the query.
-fn validate_algebrization(types: Vec<String>, ast: Query, is_valid: bool, test_name: String) -> Result<(), Error> {
+fn validate_algebrization(
+    types: Vec<String>,
+    ast: Query,
+    is_valid: bool,
+    test_name: String,
+) -> Result<(), Error> {
     let schemas = types
         .clone()
         .into_iter()
@@ -334,7 +339,12 @@ pub fn run_type_constraint_tests() -> Result<(), Error> {
                             .cloned()
                             .collect::<BTreeSet<Vec<String>>>();
                         cross_product.into_iter().try_for_each(|types| {
-                            validate_algebrization(types, ast.clone(), true, test.description.clone())
+                            validate_algebrization(
+                                types,
+                                ast.clone(),
+                                true,
+                                test.description.clone(),
+                            )
                         })?;
                     }
                     // Ensure that algebrization fails for all invalid type combinations
@@ -343,7 +353,12 @@ pub fn run_type_constraint_tests() -> Result<(), Error> {
                         .unwrap()
                         .difference(&all_valid_permutations)
                         .try_for_each(|types| {
-                            validate_algebrization(types.clone(), ast.clone(), false, test.description.clone())
+                            validate_algebrization(
+                                types.clone(),
+                                ast.clone(),
+                                false,
+                                test.description.clone(),
+                            )
                         })?;
                 }
             }
