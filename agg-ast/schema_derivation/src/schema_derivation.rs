@@ -950,6 +950,91 @@ impl DeriveSchema for UntaggedOperator {
                 })
             }
             UntaggedOperatorName::Add => {
+                // Separate any possible Date arguments from non-Date arguments.
+                let arg_schemas = args
+                    .iter()
+                    .map(|arg| arg
+                        .derive_schema(state)
+                        .map(|schema| schema.upconvert_missing_to_null())
+                    )
+                    .collect::<Result<BTreeSet<_>>>()?;
+                let (dates, mut non_dates): (BTreeSet<_>, BTreeSet<_>) = arg_schemas
+                    .into_iter()
+                    .partition(|arg_schema| {
+                        arg_schema.satisfies(&Schema::Atomic(Atomic::Date)) != Satisfaction::Not
+                    });
+
+                // If there are any Date arguments, if any MUST be (nullable) Date,
+                // then we know the result is (nullable) Date. If any MAY be Date or
+                // any numeric type, then the result is either Date or the appropriate
+                // numeric type based on the rules below. We add the non-Date types to
+                // the non_dates set and proceed. At the end, we include Date as a
+                // possible result type.
+                let mut may_be_date = false;
+                for date_schema in dates {
+                    if date_schema.satisfies(&DATE_OR_NULLISH.clone()) == Satisfaction::Must {
+                        return handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Date))
+                    } else {
+                        let with_date_removed = date_schema.intersection(&NUMERIC_OR_NULLISH.clone());
+                        non_dates.insert(with_date_removed);
+                        may_be_date = true;
+                    }
+                }
+
+                // Here, we (safely) assume (nullable) numeric types for all non-Date arguments.
+                let numeric_input_schema = Schema::simplify(&Schema::AnyOf(non_dates));
+                let numeric_schema = if numeric_input_schema.satisfies(&INTEGER_OR_NULLISH) == Satisfaction::Must {
+                    // If all args are (nullable) Ints, the result is (nullable) Int or Long
+                    handle_null_satisfaction(args, state, INTEGRAL.clone())
+                } else if numeric_input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
+                    // If all args are (nullable) Ints or Longs, the result is (nullable) Long
+                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
+                } else {
+                    // Otherwise, the result is (nullable) Double or Decimal
+                    get_decimal_double_or_nullish(args, state)
+                };
+
+                if may_be_date {
+                    Ok(Schema::simplify(&Schema::AnyOf(set!{numeric_schema?, Schema::Atomic(Atomic::Date)})))
+                } else {
+                    numeric_schema
+                }
+            }
+            UntaggedOperatorName::Subtract => {
+                let left_schema = args.first().unwrap().derive_schema(state)?.upconvert_missing_to_null();
+                let right_schema = args.get(1).unwrap().derive_schema(state)?.upconvert_missing_to_null();
+
+                let cp = left_schema.cartesian_product(&right_schema);
+
+                Ok(Schema::simplify(&Schema::AnyOf(cp.into_iter().filter_map(|(l, r)| match (l, r) {
+                    // If either operand is Null, the result may be Null
+                    (Schema::Atomic(Atomic::Null), _) | (_, Schema::Atomic(Atomic::Null)) => Some(Schema::Atomic(Atomic::Null)),
+                    // If both are Date, the result may be Long
+                    (Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Date)) => Some(Schema::Atomic(Atomic::Long)),
+                    // If the first is a Date and the second is numeric, the result may be Date
+                    (Schema::Atomic(Atomic::Date), _) => Some(Schema::Atomic(Atomic::Date)),
+                    // If the first is a numeric and the second is a Date, this is invalid agg so
+                    // we do not compute schema in this case. We include this case here to avoid
+                    // accidentally hitting any of the numeric patterns below.
+                    (_, Schema::Atomic(Atomic::Date)) => None,
+                    // At this point, we (safely) assume only numeric pairs. Anything else is
+                    // invalid agg which will produce a runtime error and therefore not require a
+                    // schema computation.
+                    // If either is a Decimal, the result may be Decimal
+                    (Schema::Atomic(Atomic::Decimal), _) | (_, Schema::Atomic(Atomic::Decimal)) => Some(Schema::Atomic(Atomic::Decimal)),
+                    // If either is a Double, the result may be Double
+                    (Schema::Atomic(Atomic::Double), _) | (_, Schema::Atomic(Atomic::Double)) => Some(Schema::Atomic(Atomic::Double)),
+                    // If either is a Long, the result may be Long
+                    (Schema::Atomic(Atomic::Long), _) | (_, Schema::Atomic(Atomic::Long)) => Some(Schema::Atomic(Atomic::Long)),
+                    // If either is an Integer, the result may be Integer or Long
+                    (Schema::Atomic(Atomic::Integer), _) | (_, Schema::Atomic(Atomic::Integer)) => Some(INTEGRAL.clone()),
+                    // Again, anything else is invalid agg. Therefore, we do not compute schema
+                    // for any other cases.
+                    _ => None
+                }).collect())))
+            }
+            // int + int -> int or long; int + long, long + long -> long,
+            UntaggedOperatorName::Multiply => {
                 let input_schema = get_input_schema(&args, state)?;
                 if input_schema.satisfies(&INTEGER_OR_NULLISH) == Satisfaction::Must {
                     // If both are (nullable) Ints, the result is (nullable) Int or Long
@@ -957,43 +1042,6 @@ impl DeriveSchema for UntaggedOperator {
                 } else if input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
                     // If both are (nullable) Ints or Longs, the result is (nullable) Long
                     handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
-                } else if input_schema.satisfies(&Schema::Atomic(Atomic::Date)) == Satisfaction::May {
-                    // TODO: this is not exactly correct. Consider { $add: ["$date_or_int", "$int"] }
-                    //  - this could be a Date when the first is a date
-                    //  - but could also be an Int when the first is an int
-                    //  - I think we need to analyze the args separately to get the most accurate schema.
-                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Date))
-                } else {
-                    get_decimal_double_or_nullish(args, state)
-                }
-            }
-            UntaggedOperatorName::Subtract => {
-                let input_schema = get_input_schema(&args, state)?;
-                if input_schema.satisfies(&DATE_OR_NULLISH) == Satisfaction::Must {
-                    // If both are (nullable) Dates, the result is (nullable) Long
-                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
-                } else if input_schema.satisfies(&DATE_OR_NULLISH) == Satisfaction::May && input_schema.satisfies(&NUMERIC_OR_NULLISH) == Satisfaction::May {
-                    // If only one is a (nullable) Date and the other is a (nullable) number,
-                    // the result is a (nullable) Date
-                    // TODO: what about { $subtract: ["$date", "$date_or_int"] }
-                    //   - this could be a Long when it is Date-Date
-                    //   - this could be a Date when it is Date-Int
-                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Date))
-                } else if input_schema.satisfies(&INTEGER_OR_NULLISH) == Satisfaction::Must {
-                    handle_null_satisfaction(args, state, INTEGRAL.clone())
-                } else if input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
-                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
-                } else {
-                    get_decimal_double_or_nullish(args, state)
-                }
-            }
-            // int + int -> int or long; int + long, long + long -> long,
-            UntaggedOperatorName::Multiply => {
-                let input_schema = get_input_schema(&args, state)?;
-                if input_schema.satisfies(&Schema::Atomic(Atomic::Integer)) == Satisfaction::Must {
-                    Ok(INTEGRAL.clone())
-                } else if input_schema.satisfies(&INTEGRAL) == Satisfaction::Must {
-                    Ok(Schema::Atomic(Atomic::Long))
                 } else {
                     get_decimal_double_or_nullish(args, state)
                 }

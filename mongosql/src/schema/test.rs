@@ -3351,3 +3351,178 @@ mod intersection {
         )),
     );
 }
+
+mod cartesian_product {
+    use crate::{
+        schema::{Atomic, Schema, Schema::*, ANY_ARRAY, ANY_DOCUMENT},
+        set,
+    };
+    use std::collections::BTreeSet;
+
+    macro_rules! test_cartesian_product {
+        ($func_name:ident, expected = $expected:expr, schema = $schema:expr, other = $other:expr,) => {
+            #[test]
+            fn $func_name() {
+                assert_eq!($expected, $schema.cartesian_product(&$other));
+            }
+        };
+    }
+
+    test_cartesian_product!(
+        singleton_atomics,
+        expected = {
+            let s: BTreeSet<(Schema, Schema)> = set! {
+                (Atomic(Atomic::Integer), Atomic(Atomic::String))
+            };
+            s
+        },
+        schema = Atomic(Atomic::Integer),
+        other = Atomic(Atomic::String),
+    );
+
+    test_cartesian_product!(
+        singleton_missing,
+        expected = {
+            let s: BTreeSet<(Schema, Schema)> = set! {
+                (Missing, Missing)
+            };
+            s
+        },
+        schema = Missing,
+        other = Missing,
+    );
+
+    test_cartesian_product!(
+        singleton_with_any_of,
+        expected = {
+            let s: BTreeSet<(Schema, Schema)> = set! {
+                (Atomic(Atomic::Integer), Atomic(Atomic::String)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::Null)),
+            };
+            s
+        },
+        schema = Atomic(Atomic::Integer),
+        other = AnyOf(set! {Atomic(Atomic::String), Atomic(Atomic::Null)}),
+    );
+
+    test_cartesian_product!(
+        any_of_with_singleton,
+        expected = {
+            let s: BTreeSet<(Schema, Schema)> = set! {
+                (Atomic(Atomic::String), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::Null), Atomic(Atomic::Integer)),
+            };
+            s
+        },
+        schema = AnyOf(set! {Atomic(Atomic::String), Atomic(Atomic::Null)}),
+        other = Atomic(Atomic::Integer),
+    );
+
+    test_cartesian_product!(
+        any_ofs,
+        expected = {
+            let s: BTreeSet<(Schema, Schema)> = set! {
+                (Atomic(Atomic::String), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::String), Missing),
+                (Atomic(Atomic::Null), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::Null), Missing),
+            };
+            s
+        },
+        schema = AnyOf(set! {Atomic(Atomic::String), Atomic(Atomic::Null)}),
+        other = AnyOf(set! {Atomic(Atomic::Integer), Missing}),
+    );
+
+    test_cartesian_product!(
+        nested_any_ofs,
+        expected = {
+            let s: BTreeSet<(Schema, Schema)> = set! {
+                (Atomic(Atomic::String), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::String), Missing),
+                (Atomic(Atomic::String), Atomic(Atomic::Double)),
+                (Atomic(Atomic::Date), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::Date), Missing),
+                (Atomic(Atomic::Date), Atomic(Atomic::Double)),
+                (Missing, Atomic(Atomic::Integer)),
+                (Missing, Missing),
+                (Missing, Atomic(Atomic::Double)),
+                (Atomic(Atomic::Null), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::Null), Missing),
+                (Atomic(Atomic::Null), Atomic(Atomic::Double)),
+            };
+            s
+        },
+        schema = AnyOf(
+            set! {Atomic(Atomic::String), AnyOf(set!{Atomic(Atomic::Date), Missing}), Atomic(Atomic::Null)}
+        ),
+        other = AnyOf(
+            set! {Atomic(Atomic::Integer), Missing, AnyOf(set!{Atomic(Atomic::Double), Missing})}
+        ),
+    );
+
+    test_cartesian_product!(
+        any_with_singleton,
+        expected = {
+            let s: BTreeSet<(Schema, Schema)> = set! {
+                (Atomic(Atomic::MinKey), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::Null), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::Long), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::Double), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::Decimal), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::Symbol), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::String), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::BinData), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::Undefined), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::ObjectId), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::Boolean), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::Date), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::Timestamp), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::Regex), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::DbPointer), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::Javascript), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::JavascriptWithScope), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::MaxKey), Atomic(Atomic::Integer)),
+                (Missing, Atomic(Atomic::Integer)),
+                (ANY_ARRAY.clone(), Atomic(Atomic::Integer)),
+                (ANY_DOCUMENT.clone(), Atomic(Atomic::Integer)),
+            };
+            s
+        },
+        schema = Any,
+        other = Atomic(Atomic::Integer),
+    );
+
+    test_cartesian_product!(
+        singleton_with_any,
+        expected = {
+            let s: BTreeSet<(Schema, Schema)> = set! {
+                (Atomic(Atomic::Integer), Atomic(Atomic::MinKey)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::Null)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::Integer)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::Long)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::Double)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::Decimal)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::Symbol)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::String)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::BinData)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::Undefined)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::ObjectId)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::Boolean)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::Date)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::Timestamp)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::Regex)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::DbPointer)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::Javascript)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::JavascriptWithScope)),
+                (Atomic(Atomic::Integer), Atomic(Atomic::MaxKey)),
+                (Atomic(Atomic::Integer), Missing),
+                (Atomic(Atomic::Integer), ANY_ARRAY.clone()),
+                (Atomic(Atomic::Integer), ANY_DOCUMENT.clone()),
+            };
+            s
+        },
+        schema = Atomic(Atomic::Integer),
+        other = Any,
+    );
+}

@@ -1,4 +1,4 @@
-module github.com/10gen/mongosql-rs/go
+module github.com/mongodb/mongosql/go
 
 go 1.19
 

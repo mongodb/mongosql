@@ -933,6 +933,26 @@ impl Schema {
         }
     }
 
+    /// get_key returns the &Schema for the given key if this Schema is a Document. If the Schema
+    /// is not a Document or the key does not exist, it returns None.
+    /// This is not completely consistent with keys because it does not work with AnyOf.
+    pub fn get_key(&self, key: &str) -> Option<&Schema> {
+        match self {
+            Schema::Document(d) => d.keys.get(key),
+            _ => None,
+        }
+    }
+
+    /// get_key_mut returns the &mut Schema for the given key if this Schema is a Document. If the Schema
+    /// is not a Document or the key does not exist, it returns None.
+    /// This is not completely consistent with keys because it does not work with AnyOf.
+    pub fn get_key_mut(&mut self, key: &str) -> Option<&mut Schema> {
+        match self {
+            Schema::Document(d) => d.keys.get_mut(key),
+            _ => None,
+        }
+    }
+
     /// returns a simplified version of this schema.
     pub fn simplify(schema: &Schema) -> Schema {
         // remove_missing removes all Missing types from the given Schema. It should
@@ -1599,6 +1619,37 @@ impl Schema {
             // that no such schema R exists.
             _ => Schema::Unsat,
         }
+    }
+
+    /// Turns a Schema into a set of the Schema it matches. Any and AnyOf return the underlying set,
+    /// all other types return singleton sets containing themselves. This is useful for getting the
+    /// cartesian product between two Schemas.
+    fn schema_set(&self) -> BTreeSet<Schema> {
+        match self {
+            Unsat
+            | Schema::Missing
+            | Schema::Atomic(_)
+            | Schema::Array(_)
+            | Schema::Document(_) => set! {self.clone()},
+            AnyOf(ao) => ao.clone(),
+            Schema::Any => UNFOLDED_ANY.schema_set(),
+        }
+    }
+
+    /// Computes the cartesian product of two Schemas. The inputs are simplified as part of this
+    /// process.
+    pub fn cartesian_product(&self, other: &Schema) -> BTreeSet<(Self, Self)> {
+        let self_schema = Schema::simplify(self);
+        let other_schema = Schema::simplify(other);
+
+        let self_set = self_schema.schema_set();
+        let other_set = other_schema.schema_set();
+
+        self_set
+            .iter()
+            .cloned()
+            .cartesian_product(other_set.iter().cloned())
+            .collect()
     }
 }
 

@@ -403,6 +403,31 @@ mod numeric_ops {
         ))
     );
     test_derive_expression_schema!(
+        multiply_nullable_int,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$multiply": [1, "$foo"]}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_expression_schema!(
+        multiply_nullable_long,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$multiply": [1, "$foo"]}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_expression_schema!(
         multiply_integral,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -489,6 +514,31 @@ mod numeric_ops {
         input = r#"{"$mod": [1, 123]}"#
     );
     test_derive_expression_schema!(
+        add_nullable_int,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$add": [1, "$foo"]}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_expression_schema!(
+        add_nullable_long,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$add": [1, "$foo"]}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_expression_schema!(
         add_integral,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -531,6 +581,20 @@ mod numeric_ops {
             Schema::Atomic(Atomic::Null),
         ))
     );
+
+    test_derive_expression_schema!(
+        add_date_or_numeric,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ))),
+        input = r#"{"$add": [1, "$foo"]}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Integer),
+        ))
+    );
     test_derive_expression_schema!(
         subtract_integral,
         expected = Ok(Schema::AnyOf(set!(
@@ -568,7 +632,7 @@ mod numeric_ops {
             Schema::Atomic(Atomic::Date),
             Schema::Atomic(Atomic::Null),
         ))),
-        input = r#"{"$subtract": [1, "$foo"]}"#,
+        input = r#"{"$subtract": ["$foo", 1]}"#,
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Date),
             Schema::Atomic(Atomic::Null),
@@ -579,6 +643,44 @@ mod numeric_ops {
         expected = Ok(Schema::Atomic(Atomic::Long)),
         input = r#"{"$subtract": ["$foo", "$foo"]}"#,
         ref_schema = Schema::Atomic(Atomic::Date)
+    );
+    test_derive_expression_schema!(
+        subtract_date_or_numeric,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ))),
+        input = r#"{"$subtract": ["$foo", 1]}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Integer),
+        ))
+    );
+    test_derive_expression_schema!(
+        subtract_multiple_numeric_pairings,
+        expected = Ok(Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Null), // since either can be missing
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
+        })),
+        input = r#"{"$subtract": ["$foo", "$bar"]}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!{
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Double),
+                }),
+                "bar".to_string() => Schema::AnyOf(set!{
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                }),
+            },
+            // Nullability implied by lack of requirement
+            required: set! {},
+            additional_properties: false,
+            jaccard_index: None,
+        })
     );
 }
 
