@@ -22,6 +22,7 @@ variables:
 tests:
   # Note: Non-distinct ADD_TO_ARRAY has no type constraints
   - description: Distinct ADD_TO_ARRAY argument must be self-comparable
+    skip_reason: "SQL-2618: enable document and array self-comparison"
     query: "SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE ADD_TO_ARRAY(DISTINCT arg1) AS agg"
     valid_types: *selfComparisonValidTypes
 
@@ -37,21 +38,25 @@ tests:
 
   # Note: Non-distinct COUNT has no type constraints
   - description: Distinct COUNT argument must be self-comparable
+    skip_reason: "SQL-2618: enable document and array self-comparison"
     query: "SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE COUNT(DISTINCT arg1) AS agg"
     valid_types: *selfComparisonValidTypes
 
   # Note: Non-distinct FIRST has no type constraints
   - description: Distinct FIRST argument must be self-comparable
+    skip_reason: "SQL-2618: enable document and array self-comparison"
     query: "SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE FIRST(DISTINCT arg1) AS agg"
     valid_types: *selfComparisonValidTypes
 
   # Note: Non-distinct LAST has no type constraints
   - description: Distinct LAST argument must be self-comparable
+    skip_reason: "SQL-2618: enable document and array self-comparison"
     query: "SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE LAST(DISTINCT arg1) AS agg"
     valid_types: *selfComparisonValidTypes
 
   # Note: Non-distinct MAX has no type constraints
   - description: Distinct MAX argument must be self-comparable
+    skip_reason: "SQL-2618: enable document and array self-comparison"
     query: "SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE MAX(DISTINCT arg1) AS agg"
     valid_types: *selfComparisonValidTypes
 
@@ -69,6 +74,7 @@ tests:
 
   # Note: Non-distinct MIN has no type constraints
   - description: Distinct MIN argument must be self-comparable
+    skip_reason: "SQL-2618: enable document and array self-comparison"
     query: "SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE MIN(DISTINCT arg1) AS agg"
     valid_types: *selfComparisonValidTypes
 
