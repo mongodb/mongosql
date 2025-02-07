@@ -24,6 +24,14 @@ pub enum Error {
     TokioError(tokio::task::JoinError),
     #[error("Inital schema for {0} is not valid")]
     InitialSchemaError(String),
+    #[error("The following error occurred while trying to make a Glob::Pattern: {0}")]
+    GlobPatternError(glob::PatternError),
+    #[error(
+        "The glob::Pattern `{0}` has an opening bracket (`[`) without a closing bracket (`]`)."
+    )]
+    InclusionBracketPatternIsMissingClosingBracket(String),
+    #[error("The `{0}` contains the following invalid pattern: `{1}`. All patterns must be in `<database_pattern>.<collection_pattern>` format")]
+    IncludeOrExcludeListContainsInvalidPatterns(String, String),
 }
 
 impl From<mongodb::error::Error> for Error {

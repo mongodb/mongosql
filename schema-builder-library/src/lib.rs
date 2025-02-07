@@ -7,7 +7,7 @@ use std::{
     sync::Arc,
 };
 use tokio::sync::RwLock;
-use tracing::{debug, instrument, span, Level};
+use tracing::{debug, error, instrument, span, Level};
 
 pub mod client_util;
 mod consts;
@@ -109,7 +109,30 @@ impl Display for NamespaceType {
 /// This function parallelizes handling each database, collection, collection partition, and
 /// view by using asynchronous tokio tasks which are spawned using the provided runtime::Handle.
 #[instrument(name = "schema builder", level = "info")]
-pub async fn build_schema(options: BuilderOptions) {
+pub async fn build_schema(options: BuilderOptions) -> Result<()> {
+    // Ensure that the `include_list` only contains valid patterns.
+    for pattern in &options.include_list {
+        let pat_as_str = pattern.as_str();
+        if !pat_as_str.contains(".") {
+            error!("The `include_list` contains the following invalid pattern: `{pat_as_str}`. All patterns must be in `<database_pattern>.<collection_pattern>` format");
+            return Err(Error::IncludeOrExcludeListContainsInvalidPatterns(
+                "include_list".to_string(),
+                pat_as_str.to_string(),
+            ));
+        }
+    }
+    // Ensure that the `exclude_list` only contains valid patterns.
+    for pattern in &options.exclude_list {
+        let pat_as_str = pattern.as_str();
+        if !pat_as_str.contains(".") {
+            error!("The `exclude_list` contains the following invalid pattern: `{pat_as_str}`. All patterns must be in `<database_pattern>.<collection_pattern>` format");
+            return Err(Error::IncludeOrExcludeListContainsInvalidPatterns(
+                "exclude_list".to_string(),
+                pat_as_str.to_string(),
+            ));
+        }
+    }
+
     // To start computing the schema for all databases, we need to wait for the
     // list_database_names method to finish.
     match options.client.list_database_names().await {
@@ -121,10 +144,11 @@ pub async fn build_schema(options: BuilderOptions) {
                 .filter(|db| !DISALLOWED_DB_NAMES.contains(&db.as_str()))
                 .collect();
 
-            process_databases(options, valid_databases).await
+            process_databases(options, valid_databases).await;
+            Ok(())
         }
         // If listing the databases fails, there is nothing to do so we report an
-        // error, drop all channels, and return.
+        // error, drop all channels, and return the error.
         Err(e) => {
             notify!(
                 &options.tx_notifications,
@@ -138,7 +162,7 @@ pub async fn build_schema(options: BuilderOptions) {
             );
             drop(options.tx_notifications);
             drop(options.tx_schemata);
-            return;
+            Err(Error::from(e))
         }
     }
 }
