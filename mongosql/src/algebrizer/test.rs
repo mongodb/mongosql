@@ -5146,7 +5146,7 @@ mod aggregation {
     use crate::{
         ast, map, mir, multimap,
         schema::{Atomic, Schema, ANY_DOCUMENT, NUMERIC_OR_NULLISH},
-        unchecked_unique_linked_hash_map,
+        set, unchecked_unique_linked_hash_map,
         usererror::UserError,
     };
     test_algebrize!(
@@ -5214,7 +5214,10 @@ mod aggregation {
         expected = Err(Error::SchemaChecking(
             mir::schema::Error::AggregationArgumentMustBeSelfComparable(
                 "Count DISTINCT".into(),
-                Schema::Any
+                Schema::AnyOf(set! {
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::String),
+                })
             )
         )),
         expected_error_code = 1003,
@@ -5224,7 +5227,10 @@ mod aggregation {
             set_quantifier: Some(ast::SetQuantifier::Distinct),
         },
         env = map! {
-            ("d", 1u16).into() => ANY_DOCUMENT.clone(),
+            ("d", 1u16).into() => Schema::AnyOf(set! {
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::String),
+            }),
         },
     );
     test_algebrize!(
