@@ -1,7 +1,7 @@
 catalog_data:
   db:
     foo:
-      - { '_id': 0, 'a': 1, 'b': 2, 'c': "foo", 'd': { 'a': 1 } }
+      - { '_id': 0, 'a': 1, 'b': 2, 'c': "foo", 'd': { 'a': 1 }, p: true }
     bar:
       - { '_id': 0, 'a': 1, 'b': 2, 'c': "bar", 'd': { 'a': 2 } }
 
@@ -10,7 +10,7 @@ catalog_schema:
     'db': {
       'foo': {
         'bsonType': 'object',
-        "required": [ "_id", "a", "b", "c", "d" ],
+        "required": [ "_id", "a", "b", "c", "d", "p" ],
         "additionalProperties": false,
         "properties":
           {
@@ -26,6 +26,14 @@ catalog_schema:
                   "a": { "bsonType": "int" }
                 }
               },
+            "p":
+              {
+                "anyOf":
+                  [
+                    { "bsonType": "string" },
+                    { "bsonType": "bool" },
+                  ]
+              }
           },
       },
       'bar': {
@@ -77,10 +85,10 @@ tests:
     algebrize_error: 'Error 1002: Incorrect argument type for `Round`. Required: nullable numeric type. Found: any type. An `any type` schema may indicate that schema is not set for the relevant collection or field. Please verify that the schema is set as expected.'
 
   - description: Error 1003 AggregationArgumentMustBeSelfComparable
-    query: "SELECT * FROM foo GROUP BY a AGGREGATE min(d) AS min"
+    query: "SELECT * FROM foo GROUP BY a AGGREGATE min(p) AS min"
     current_db: db
     should_compile: false
-    algebrize_error: 'Error 1003: Cannot perform `Min` aggregation over the type `object type` as it is not comparable to itself.'
+    algebrize_error: 'Error 1003: Cannot perform `Min` aggregation over the type `polymorphic type` as it is not comparable to itself.'
 
   - description: Error 1003 AggregationArgumentMustBeSelfComparable with Any value
     query: "SELECT * FROM any_sch GROUP BY _id AGGREGATE min(d) AS min"
@@ -119,10 +127,10 @@ tests:
     algebrize_error: "Error 1008: cardinality of the subquery's result set may be greater than 1"
 
   - description: Error 1010 SortKeyNotSelfComparable
-    query: "SELECT * FROM foo ORDER BY d"
+    query: "SELECT * FROM foo ORDER BY p"
     current_db: db
     should_compile: false
-    algebrize_error: "Error 1010: Cannot sort by key because `object type` can't be compared against itself."
+    algebrize_error: "Error 1010: Cannot sort by key because `polymorphic type` can't be compared against itself."
 
   - description: Error 1010 SortKeyNotSelfComparable with Any value
     query: "SELECT * FROM any_sch ORDER BY d"
@@ -131,10 +139,10 @@ tests:
     algebrize_error: "Error 1010: Cannot sort by key because `any type` can't be compared against itself. An `any type` schema may indicate that schema is not set for the relevant collection or field. Please verify that the schema is set as expected."
 
   - description: Error 1011 GroupKeyNotSelfComparable
-    query: "SELECT * FROM foo GROUP BY d"
+    query: "SELECT * FROM foo GROUP BY p"
     current_db: db
     should_compile: false
-    algebrize_error: "Error 1011: Cannot group by key because `object type` can't be compared against itself."
+    algebrize_error: "Error 1011: Cannot group by key because `polymorphic type` can't be compared against itself."
 
   - description: Error 1011 GroupKeyNotSelfComparable with Any value
     query: "SELECT * FROM any_sch GROUP BY d"
