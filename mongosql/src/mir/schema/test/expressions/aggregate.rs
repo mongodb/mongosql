@@ -4,6 +4,14 @@ use crate::{
     schema::{Atomic, Document, Schema, ANY_DOCUMENT, NUMERIC_OR_NULLISH},
     set, test_schema,
 };
+use std::sync::LazyLock;
+
+static NON_SELF_COMPARABLE_SCHEMA: LazyLock<Schema> = LazyLock::new(|| {
+    Schema::AnyOf(set! {
+        Schema::Atomic(Atomic::Integer),
+        Schema::Atomic(Atomic::String),
+    })
+});
 
 mod add_to_array {
     use super::*;
@@ -183,20 +191,21 @@ mod avg {
 
 mod count {
     use super::*;
+    // todo: use AnyOf to force non-self-comparability
 
     test_schema!(
         distinct_count_args_must_be_comparable,
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Count DISTINCT".into(),
-            ANY_DOCUMENT.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone()
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Count,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: true,
         }),
-        schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+        schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
 
     test_schema!(
@@ -234,14 +243,14 @@ mod first {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "First DISTINCT".into(),
-            ANY_DOCUMENT.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone()
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::First,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: true,
         }),
-        schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+        schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
 
     test_schema!(
@@ -270,14 +279,14 @@ mod last {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Last DISTINCT".into(),
-            ANY_DOCUMENT.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone()
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Last,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: true,
         }),
-        schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+        schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
 
     test_schema!(
@@ -306,14 +315,14 @@ mod max {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Max".into(),
-            ANY_DOCUMENT.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone()
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Max,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
         }),
-        schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+        schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
 
     test_schema!(
@@ -321,14 +330,14 @@ mod max {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Max DISTINCT".into(),
-            ANY_DOCUMENT.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone()
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Max,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: true,
         }),
-        schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+        schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
 
     test_schema!(
@@ -404,14 +413,14 @@ mod min {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Min".into(),
-            ANY_DOCUMENT.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone()
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Min,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
         }),
-        schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+        schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
 
     test_schema!(
@@ -419,14 +428,14 @@ mod min {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Min DISTINCT".into(),
-            ANY_DOCUMENT.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone()
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Min,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: true,
         }),
-        schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+        schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
 
     test_schema!(
@@ -455,14 +464,14 @@ mod stddev_pop {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "StddevPop DISTINCT".into(),
-            ANY_DOCUMENT.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone()
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::StddevPop,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: true,
         }),
-        schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+        schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
 
     test_schema!(
@@ -540,14 +549,14 @@ mod stddev_samp {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "StddevSamp DISTINCT".into(),
-            ANY_DOCUMENT.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone()
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::StddevSamp,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: true,
         }),
-        schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+        schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
 
     test_schema!(
@@ -625,14 +634,14 @@ mod sum {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Sum DISTINCT".into(),
-            ANY_DOCUMENT.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone()
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Sum,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: true,
         }),
-        schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+        schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
 
     test_schema!(
