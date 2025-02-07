@@ -3,7 +3,8 @@ use crate::{
     schema_for_type_numeric, schema_for_type_str, Error, Result,
 };
 use agg_ast::definitions::{
-    Densify, Expression, GeoNear, LiteralValue, Ref, Stage, TaggedOperator, UntaggedOperator, UntaggedOperatorName
+    Densify, Expression, GeoNear, LiteralValue, Ref, Stage, TaggedOperator, UntaggedOperator,
+    UntaggedOperatorName, Unwind, UnwindExpr,
 };
 use linked_hash_map::LinkedHashMap;
 use mongosql::{
@@ -46,37 +47,43 @@ fn derive_schema_for_pipeline(pipeline: Vec<Stage>, state: &mut ResultSetState) 
 
 impl DeriveSchema for Stage {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
-
         fn densify_derive_schema(densify: &Densify, state: &mut ResultSetState) -> Result<Schema> {
             let schema: Schema = state.result_set_schema.clone();
             // let path = densify.field.split(".").map(|s| s.to_string()).collect::<Vec<String>>();
             // loop {
             //     if let Some(key) = path.first() {
-            //         match 
+            //         match
             //     } else { break }
             // }
             Ok(schema)
         }
 
-        fn documents_derive_schema(documents: &Vec<LinkedHashMap<String, Expression>>, state: &mut ResultSetState) -> Result<Schema> {
-            let schema = documents.iter().try_fold(None, |schema: Option<Schema>, document: &LinkedHashMap<String, Expression>| {
-                let doc_fields = document.into_iter()
-                .map(|(field, expr)| {
-                    let field_schema = expr.derive_schema(state)?;
-                    Ok((field.clone(), field_schema))
-                })
-                .collect::<Result<BTreeMap<String, Schema>>>()?;
-                let doc_schema = Schema::Document(Document {
-                    required: doc_fields.keys().into_iter().map(|x| x.clone()).collect(),
-                    keys: doc_fields,
-                    ..Default::default()
-                });
-                Ok(match schema {
-                    None => Some(doc_schema),
-                    Some(schema) => Some(schema.union(&doc_schema)),
-                })
-            });
-            Ok(schema?.unwrap_or(Schema::Unsat))
+        fn documents_derive_schema(
+            documents: &Vec<LinkedHashMap<String, Expression>>,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            let schema = documents.iter().try_fold(
+                None,
+                |schema: Option<Schema>, document: &LinkedHashMap<String, Expression>| {
+                    let doc_fields = document
+                        .into_iter()
+                        .map(|(field, expr)| {
+                            let field_schema = expr.derive_schema(state)?;
+                            Ok((field.clone(), field_schema))
+                        })
+                        .collect::<Result<BTreeMap<String, Schema>>>()?;
+                    let doc_schema = Schema::Document(Document {
+                        required: doc_fields.keys().into_iter().map(|x| x.clone()).collect(),
+                        keys: doc_fields,
+                        ..Default::default()
+                    });
+                    Ok(match schema {
+                        None => Some(doc_schema),
+                        Some(schema) => Some(schema.union(&doc_schema)),
+                    })
+                },
+            );
+            Ok(schema?.unwrap_or(Schema::Document(Document::default())))
         }
 
         fn facet_derive_schema(
@@ -120,6 +127,41 @@ impl DeriveSchema for Stage {
             }))
         }
 
+        fn unwind_derive_schema(unwind: &Unwind, state: &mut ResultSetState) -> Result<Schema> {
+            let mut schema = state.result_set_schema.clone();
+            let path = match unwind {
+                Unwind::FieldPath(Expression::Ref(Ref::FieldRef(r))) => {
+                    Some(r.split(".").map(|s| s.to_string()).collect::<Vec<String>>())
+                }
+                Unwind::Document(d) => {
+                    if let Expression::Ref(Ref::FieldRef(r)) = d.path.as_ref() {
+                        Some(r.split(".").map(|s| s.to_string()).collect::<Vec<String>>())
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            };
+            if let Some(path) = path {
+                if let Some(s) = get_schema_for_path_mut(&mut schema, path) {
+                    // the schema of the field being unwound goes from type Array[X] to type X
+                    match s {
+                        Schema::Array(a) => {
+                            *s = *a.clone();
+                        }
+                        _ => {}
+                    }
+                    if let Unwind::Document(d) = unwind {
+                        if d.preserve_null_and_empty_arrays == Some(true) {}
+                        // if let Some(field) = d.include_array_index {
+
+                        // }
+                    }
+                }
+            }
+            Ok(schema)
+        }
+
         match self {
             Stage::AddFields(_) => todo!(),
             Stage::AtlasSearchStage(_) => todo!(),
@@ -149,7 +191,7 @@ impl DeriveSchema for Stage {
             Stage::SortByCount(s) => sort_by_count_derive_schema(s.as_ref(), state),
             Stage::UnionWith(_) => todo!(),
             Stage::Unset(_) => todo!(),
-            Stage::Unwind(_) => todo!(),
+            Stage::Unwind(u) => unwind_derive_schema(u, state),
         }
     }
 }
