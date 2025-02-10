@@ -20,29 +20,31 @@ mod densify {
                         "a".to_string() => Schema::Atomic(Atomic::String),
                         "b".to_string() => Schema::Document(Document { keys:
                             map! {
-                                "c".to_string() => Schema::Atomic(Atomic::BinData),
-                                "d".to_string() => Schema::Atomic(Atomic::Boolean)
+                                "x".to_string() => Schema::Atomic(Atomic::Boolean),
+                                "y".to_string() => Schema::Atomic(Atomic::Integer)
                             },
-                            required: set!("c".to_string()),
+                            // y is the field being densified so it should be kept. x is not referenced as a partition by field nor a densified
+                            // field, so it is no longer required
+                            required: set!("y".to_string()),
+                            // additional_properties: true,
                             ..Default::default()
-                        })
+                        }),
+                        "partition_one".to_string() => Schema::Atomic(Atomic::Double),
                     },
-                    required: set!("b".to_string()),
+                    // a should no longer be required, because it is not the densified field, nor one of the partition by fields
+                    // b should be kept as required because it is part of the path of the densified field; partition_one should be kept
+                    // because it is one of the partition by fields
+                    required: set!("b".to_string(), "partition_one".to_string()),
+                    // additional_properties: true,
                     ..Default::default()
                 }),
-                "x".to_string() => Schema::Atomic(Atomic::Date),
-                "y".to_string() => Schema::Document(Document {
-                    keys: map! {
-                        "z".to_string() => Schema::Atomic(Atomic::Double)
-                    },
-                    required: set!("z".to_string()),
-                    ..Default::default()
-                })
+                "partition_two".to_string() => Schema::Atomic(Atomic::Double)
             },
-            required: set!("bar".to_string(), "x".to_string(), "y".to_string()),
+            // partition_two does not become required just because it is a partition by field
+            required: set!("bar".to_string()),
             ..Default::default()
         })),
-        input = r#"{"$densify": {"field": "bar.b.c", "partitionByFields": ["x", "y.z"], "range": { "step": 1, "bounds": "full", "unit": "second" }}}"#,
+        input = r#"{"$densify": {"field": "bar.b.y", "partitionByFields": ["bar.partition_one", "partition_two"], "range": { "step": 1, "bounds": "full" }}}"#,
         starting_schema = Schema::Document(Document {
             keys: map! {
                 "foo".to_string() => Schema::Atomic(Atomic::Integer),
@@ -51,25 +53,20 @@ mod densify {
                         "a".to_string() => Schema::Atomic(Atomic::String),
                         "b".to_string() => Schema::Document(Document { keys:
                             map! {
-                                "c".to_string() => Schema::Atomic(Atomic::BinData),
-                                "d".to_string() => Schema::Atomic(Atomic::Boolean)
+                                "x".to_string() => Schema::Atomic(Atomic::Boolean),
+                                "y".to_string() => Schema::Atomic(Atomic::Integer)
                             },
-                            required: set!("c".to_string(), "d".to_string()),
+                            required: set!("x".to_string(), "y".to_string()),
                             ..Default::default()
-                        })
+                        }),
+                        "partition_one".to_string() => Schema::Atomic(Atomic::Double),
                     },
-                    required: set!("a".to_string()),
+                    required: set!("a".to_string(), "b".to_string(), "partition_one".to_string()),
                     ..Default::default()
                 }),
-                "x".to_string() => Schema::Atomic(Atomic::Date),
-                "y".to_string() => Schema::Document(Document {
-                    keys: map! {
-                        "z".to_string() => Schema::Atomic(Atomic::Double)
-                    },
-                    ..Default::default()
-                })
+                "partition_two".to_string() => Schema::Atomic(Atomic::Double)
             },
-            required: set!("foo".to_string()),
+            required: set!("foo".to_string(), "bar".to_string()),
             ..Default::default()
         })
     );
@@ -203,129 +200,6 @@ mod documents {
 //     );
 // }
 
-mod geo_near {
-    use super::*;
-
-    test_derive_stage_schema!(
-        geo_near_no_options,
-        expected = Ok(Schema::Document(Document {
-            keys: map! {
-                "name".to_string() => Schema::Atomic(Atomic::String),
-                "location".to_string() => Schema::Document(Document {
-                    keys: map! {
-                        "type".to_string() => Schema::Atomic(Atomic::String),
-                        "coordinates".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Double)))
-                    },
-                    required: set!("type".to_string(), "coordinates".to_string()),
-                    ..Default::default()
-                }),
-                "category".to_string() => Schema::Atomic(Atomic::String),
-                "f".to_string() => Schema::Atomic(Atomic::Double)
-            },
-            required: set!(
-                "name".to_string(),
-                "location".to_string(),
-                "category".to_string()
-            ),
-            ..Default::default()
-        })),
-        input = r#"{"$geoNear": {
-                   "distanceField": "f",
-                   "near": {
-                       "type": "Point",
-                       "coordinates": [-73.856077, 40.848447],
-                   }
-        }}"#,
-        starting_schema = Schema::Document(Document {
-            keys: map! {
-                "name".to_string() => Schema::Atomic(Atomic::String),
-                "location".to_string() => Schema::Document(Document {
-                    keys: map! {
-                        "type".to_string() => Schema::Atomic(Atomic::String),
-                        "coordinates".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Double)))
-                    },
-                    required: set!("type".to_string(), "coordinates".to_string()),
-                    ..Default::default()
-                }),
-                "category".to_string() => Schema::Atomic(Atomic::String)
-            },
-            required: set!(
-                "name".to_string(),
-                "location".to_string(),
-                "category".to_string()
-            ),
-            ..Default::default()
-        })
-    );
-
-    test_derive_stage_schema!(
-        geo_near_include_loc,
-        expected = Ok(Schema::Document(Document {
-            keys: map! {
-                "name".to_string() => Schema::Atomic(Atomic::String),
-                "location".to_string() => Schema::Document(Document {
-                    keys: map! {
-                        "type".to_string() => Schema::Atomic(Atomic::String),
-                        "coordinates".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Double)))
-                    },
-                    required: set!("type".to_string(), "coordinates".to_string()),
-                    ..Default::default()
-                }),
-                "category".to_string() => Schema::Atomic(Atomic::String),
-                "dist".to_string() => Schema::Document(Document {
-                    keys: map! {
-                        "calculated".to_string() => Schema::Atomic(Atomic::Double),
-                        "location".to_string() => Schema::Document(Document {
-                            keys: map! {
-                                "type".to_string() => Schema::Atomic(Atomic::String),
-                                "coordinates".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Double)))
-                            },
-                            required: set!("type".to_string(), "coordinates".to_string()),
-                            ..Default::default()
-                        })
-                    },
-                    required: set!("type".to_string(), "coordinates".to_string()),
-                    ..Default::default()
-                })
-            },
-            required: set!(
-                "name".to_string(),
-                "location".to_string(),
-                "category".to_string()
-            ),
-            ..Default::default()
-        })),
-        input = r#"{"$geoNear": {
-                   "distanceField": "dist.calculated",
-                   "near": {
-                       "type": "Point",
-                       "coordinates": [-73.856077, 40.848447],
-                   },
-                   "includeLocs": "dist.location"
-        }}"#,
-        starting_schema = Schema::Document(Document {
-            keys: map! {
-                "name".to_string() => Schema::Atomic(Atomic::String),
-                "location".to_string() => Schema::Document(Document {
-                    keys: map! {
-                        "type".to_string() => Schema::Atomic(Atomic::String),
-                        "coordinates".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Double)))
-                    },
-                    required: set!("type".to_string(), "coordinates".to_string()),
-                    ..Default::default()
-                }),
-                "category".to_string() => Schema::Atomic(Atomic::String)
-            },
-            required: set!(
-                "name".to_string(),
-                "location".to_string(),
-                "category".to_string()
-            ),
-            ..Default::default()
-        })
-    );
-}
-
 mod sort_by_count {
     use super::*;
 
@@ -358,6 +232,33 @@ mod unwind {
         })),
         input = r#"{ "$unwind": "$foo" }"#,
         ref_schema = Schema::Array(Box::new(Schema::Atomic(Atomic::Double)))
+    );
+
+    test_derive_stage_schema!(
+        field_ref_multiple_different_array_types,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::BinData),
+                    Schema::Atomic(Atomic::Boolean),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::String),
+                ))
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{ "$unwind": "$foo" }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::BinData),
+            Schema::Array(Box::new(Schema::Atomic(Atomic::Double))),
+            Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
+            Schema::Array(Box::new(Schema::AnyOf(set!(
+                Schema::Atomic(Atomic::String),
+                Schema::Atomic(Atomic::Boolean),
+            ))))
+        ))
     );
 
     test_derive_stage_schema!(
@@ -405,7 +306,7 @@ mod unwind {
                 "foo".to_string() => Schema::Atomic(Atomic::Double),
                 "i".to_string() => Schema::Atomic(Atomic::Integer)
             },
-            required: set!("foo".to_string()),
+            required: set!("foo".to_string(), "i".to_string()),
             ..Default::default()
         })),
         input = r#"{"$unwind": {"path": "$foo", "includeArrayIndex": "i"}}"#,
@@ -417,16 +318,16 @@ mod unwind {
         expected = Ok(Schema::Document(Document {
             keys: map! {
                 "foo".to_string() => Schema::AnyOf(set!(
-                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Double),
                     Schema::Atomic(Atomic::Null)
                 )),
-                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "bar".to_string() => Schema::Atomic(Atomic::ObjectId),
                 "i".to_string() => Schema::AnyOf(set!(
                     Schema::Atomic(Atomic::Integer),
                     Schema::Atomic(Atomic::Null)
                 )),
             },
-            required: set!("bar".to_string()),
+            required: set!("bar".to_string(), "i".to_string()),
             ..Default::default()
         })),
         input = r#"{"$unwind": {"path": "$foo", "includeArrayIndex": "i", "preserveNullAndEmptyArrays": true }}"#,

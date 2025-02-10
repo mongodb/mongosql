@@ -1,10 +1,10 @@
 use crate::{
-    get_schema_for_path_mut, promote_missing, remove_field, schema_difference,
-    schema_for_type_numeric, schema_for_type_str, Error, Result,
+    get_schema_for_path_mut, insert_required_key_into_document, promote_missing, remove_field,
+    schema_difference, schema_for_type_numeric, schema_for_type_str, Error, Result,
 };
 use agg_ast::definitions::{
-    Densify, Expression, GeoNear, LiteralValue, Ref, Stage, TaggedOperator, UntaggedOperator,
-    UntaggedOperatorName, Unwind, UnwindExpr,
+    Densify, Expression, LiteralValue, Ref, Stage, TaggedOperator, UntaggedOperator,
+    UntaggedOperatorName, Unwind,
 };
 use linked_hash_map::LinkedHashMap;
 use mongosql::{
@@ -48,14 +48,40 @@ fn derive_schema_for_pipeline(pipeline: Vec<Stage>, state: &mut ResultSetState) 
 impl DeriveSchema for Stage {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
         fn densify_derive_schema(densify: &Densify, state: &mut ResultSetState) -> Result<Schema> {
-            let schema: Schema = state.result_set_schema.clone();
-            // let path = densify.field.split(".").map(|s| s.to_string()).collect::<Vec<String>>();
-            // loop {
-            //     if let Some(key) = path.first() {
-            //         match
-            //     } else { break }
-            // }
-            Ok(schema)
+            let mut schema: Schema = state.result_set_schema.clone();
+            let mut paths: Vec<Vec<String>> = densify
+                .partition_by_fields
+                .clone()
+                .unwrap_or(vec![])
+                .iter()
+                .map(|field| {
+                    field
+                        .split(".")
+                        .map(|s| s.to_string())
+                        .collect::<Vec<String>>()
+                })
+                .collect();
+            paths.push(
+                densify
+                    .field
+                    .split(".")
+                    .map(|s| s.to_string())
+                    .collect::<Vec<String>>(),
+            );
+            let mut required_doc = Schema::Document(Document {
+                additional_properties: false,
+                ..Default::default()
+            });
+            paths.into_iter().for_each(|path| {
+                if let Some(field_schema) = get_schema_for_path_mut(&mut schema, path.clone()) {
+                    insert_required_key_into_document(
+                        &mut required_doc,
+                        field_schema.clone(),
+                        path.clone(),
+                    );
+                }
+            });
+            Ok(schema.document_union(required_doc))
         }
 
         fn documents_derive_schema(
@@ -106,13 +132,6 @@ impl DeriveSchema for Stage {
             }))
         }
 
-        // fn geo_near_derive_schema(geo_near: GeoNear, state: &mut ResultSetState) -> Result<Schema> {
-        //     // geo near compares the points defined by the 2d index to the input specified in the stage. If we had access to the
-        //     // index, we could assert that the indexed field is not null; for now, we will just union in the new fields added by this stage.
-        //     state.result_set_schema.
-        //     Ok(schema)
-        // }
-
         fn sort_by_count_derive_schema(
             sort_expr: &Expression,
             state: &mut ResultSetState,
@@ -149,13 +168,43 @@ impl DeriveSchema for Stage {
                         Schema::Array(a) => {
                             *s = *a.clone();
                         }
+                        Schema::AnyOf(ao) => {
+                            *s = Schema::simplify(&Schema::AnyOf(
+                                ao.iter()
+                                    .map(|x| match x {
+                                        Schema::Array(a) => *a.clone(),
+                                        schema => schema.clone(),
+                                    })
+                                    .collect(),
+                            ));
+                        }
                         _ => {}
                     }
                     if let Unwind::Document(d) = unwind {
-                        if d.preserve_null_and_empty_arrays == Some(true) {}
-                        // if let Some(field) = d.include_array_index {
+                        let nullish = d.preserve_null_and_empty_arrays == Some(true);
 
-                        // }
+                        if let Some(field) = d.include_array_index.clone() {
+                            let path = field
+                                .split(".")
+                                .map(|s| s.to_string())
+                                .collect::<Vec<String>>();
+                            if nullish {
+                                insert_required_key_into_document(
+                                    &mut schema,
+                                    Schema::AnyOf(set!(
+                                        Schema::Atomic(Atomic::Integer),
+                                        Schema::Atomic(Atomic::Null)
+                                    )),
+                                    path,
+                                );
+                            } else {
+                                insert_required_key_into_document(
+                                    &mut schema,
+                                    Schema::Atomic(Atomic::Integer),
+                                    path,
+                                );
+                            }
+                        }
                     }
                 }
             }
@@ -174,7 +223,6 @@ impl DeriveSchema for Stage {
             Stage::EquiJoin(_) => todo!(),
             Stage::Facet(f) => facet_derive_schema(f, state),
             Stage::Fill(_) => todo!(),
-            Stage::GeoNear(_) => todo!(),
             Stage::GraphLookup(_) => todo!(),
             Stage::Group(_) => todo!(),
             Stage::Join(_) => todo!(),
@@ -192,6 +240,9 @@ impl DeriveSchema for Stage {
             Stage::UnionWith(_) => todo!(),
             Stage::Unset(_) => todo!(),
             Stage::Unwind(u) => unwind_derive_schema(u, state),
+            // the following stages are not derivable, because they rely on udnerlying index information, which we do not have by
+            // default given the schemas and aggregation pipelines
+            Stage::GeoNear(_) => Err(Error::InvalidStage(self.clone())),
         }
     }
 }

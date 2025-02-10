@@ -6,7 +6,6 @@ macro_rules! test_derive_stage_schema {
         #[test]
         fn $func_name() {
             let input: Stage = serde_json::from_str($input).unwrap();
-            println!("{:?}", input);
             #[allow(unused_mut, unused_assignments)]
             let mut result_set_schema = Schema::Any;
             $(result_set_schema = Schema::Document(Document { keys: map! {"foo".to_string() => $ref_schema }, required: set! {"foo".to_string()}, ..Default::default()});)?

@@ -32,6 +32,8 @@ pub enum Error {
     InvalidUntaggedOperator(String),
     #[error("Cannot derive schema for unsupported operator: {0:?}")]
     InvalidTaggedOperator(agg_ast::definitions::TaggedOperator),
+    #[error("Cannot derive schema for unsupported stage: {0:?}")]
+    InvalidStage(agg_ast::definitions::Stage),
     #[error("Unknown reference in current context: {0}")]
     UnknownReference(String),
 }
@@ -196,6 +198,72 @@ pub(crate) fn get_or_create_schema_for_path_mut(
         };
     }
     schema
+}
+
+fn insert_required_key_into_document_helper(
+    mut schema: Option<&mut Schema>,
+    field_schema: Schema,
+    field: String,
+) -> Option<&mut Schema> {
+    match schema {
+        Some(Schema::Document(d)) => {
+            if !d.keys.contains_key(&field) {
+                d.keys.insert(field.clone(), field_schema);
+            }
+            d.required.insert(field.clone());
+            d.keys.get_mut(&field)
+        }
+        Some(Schema::AnyOf(schemas)) => {
+            // By first checking to see if there is a Document in the AnyOf, we can avoid
+            // cloning the Document. In general, I expect that the AnyOf will be smaller than
+            // the size of the Document schema, meaning this is more efficient than cloning
+            // even ignoring "constant factors". This is especially true given that cloning
+            // means memory allocation, which is quite a large "constant factor".
+            if !schemas.iter().any(|s| matches!(s, &Schema::Document(_))) {
+                return None;
+            }
+            // This is how we avoid the clone. By doing a std::mem::take here, we can take
+            // ownership of the schemas, and thus the Document schema. Sadly, we still have to
+            // allocate a BTreeSet::default(), semantically. There is a price to pay for safety
+            // sometimes, but, there is a good chance the compiler will be smart enough to know
+            // that BTreeSet::default() is never used and optimize it out.
+            let schemas = std::mem::take(schemas);
+            let mut d = schemas.into_iter().find_map(|s| {
+                if let Schema::Document(doc) = s {
+                    // we would have to clone here without the std::mem::take above.
+                    Some(doc)
+                } else {
+                    None
+                }
+            })?;
+            if !d.keys.contains_key(&field) {
+                d.keys.insert(field.clone(), Schema::Any);
+            }
+            d.required.insert(field.clone());
+            // this is a wonky way to do this, putting it in the map and then getting it back
+            // out with this match, but it's what the borrow checker forces (we can't keep the
+            // reference across the move of ownership into the Schema::Document constructor).
+            **(schema.as_mut()?) = Schema::Document(d);
+            schema?.get_key_mut(&field)
+        }
+        _ => None,
+    }
+}
+
+pub(crate) fn insert_required_key_into_document(
+    schema: &mut Schema,
+    field_schema: Schema,
+    path: Vec<String>,
+) {
+    let mut schema = Some(schema);
+    for field in &path[..path.len() - 1] {
+        schema = insert_required_key_into_document_helper(
+            schema,
+            Schema::Document(schema::Document::default()),
+            field.clone(),
+        );
+    }
+    insert_required_key_into_document_helper(schema, field_schema, path.last().unwrap().clone());
 }
 
 /// remove field is a helper based on get_schema_for_path_mut which removes a field given a field path.
