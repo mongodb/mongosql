@@ -165,6 +165,16 @@ tasks:
       - func: "compile libmongosqltranslate"
       - func: "mciuploads mongosqltranslate"
 
+  - name: mongosqltranslate-sbom
+    commands:
+      - func: "install rust toolchain"
+      - func: "generate SBOM"
+        vars:
+          project_folder: "mongosqltranslate"
+      - func: "scan SBOM"
+        vars:
+          project_folder: "mongosqltranslate"
+
 buildvariants:
   - name: mongosqltranslate-release
     display_name: "Mongosqltranslate Release"
@@ -211,3 +221,9 @@ buildvariants:
     tasks:
       - name: compile-mongosqltranslate
       - name: test-mongosqltranslate
+
+  - name: mongosqltranslate-code-quality-security
+    display_name: "Mongosqltranslate Code Quality and Security"
+    run_on: [ubuntu2204-small]
+    tasks:
+      - name: mongosqltranslate-sbom
