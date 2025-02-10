@@ -23,7 +23,7 @@ const TYPE_CONSTRAINT_DIR: &str = "../tests/spec_tests/type_constraint_tests";
 const TEST_DB: &str = "test";
 lazy_static! {
     static ref TYPE_TO_SCHEMA: BTreeMap<&'static str, Schema> = map! {
-        "ARRAY" => Schema::Array(Box::new(Schema::Any)),
+        "ARRAY" => Schema::Array(Box::new(Schema::Unsat)),
         "BINDATA" => Schema::Atomic(Atomic::BinData),
         "BOOL" => Schema::Atomic(Atomic::Boolean),
         "BSON_DATE" => Schema::Atomic(Atomic::Date),
@@ -44,6 +44,7 @@ lazy_static! {
         "REGEX" => Schema::Atomic(Atomic::Regex),
         "STRING" => Schema::Atomic(Atomic::String),
         "SYMBOL" => Schema::Atomic(Atomic::Symbol),
+        "UNDEFINED" => Schema::Atomic(Atomic::Undefined),
     };
 }
 
