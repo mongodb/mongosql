@@ -8,4 +8,9 @@ if [[ -z "$DRIVERS_TOOLS" ]]; then
 fi
 
 rm -rf $DRIVERS_TOOLS
+# until global git config is updated directly in hosts, we need this to avoid trying
+# to clone over ssh
+git config --global --get-regexp '^url\.' | while read -r key _; do
+    git config --global --unset "$key"
+done
 git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
