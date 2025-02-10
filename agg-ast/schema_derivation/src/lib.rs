@@ -121,6 +121,83 @@ pub(crate) fn get_schema_for_path_mut(
     schema
 }
 
+/// Gets or creates a mutable reference to a specific field or document path in the schema. This
+/// should only be used in a $match context or in some other context where the MQL operator can
+/// actually create fields. Consider a $match: we could think a field has type Any, or
+/// AnyOf([String, Document]) before the $match, and the $match stage can only evaluate to true, if
+/// that field is specifically a Document. In this case, we can refine that schema to Document, and
+/// this can recurse to any depth in the Schema. Note that this still returns an Option because, if
+/// the field is known to have a Schema that cannot be a Document, we cannot create a path! This
+/// would mean that the aggregation pipeline in question will return no results, in fact, because
+/// the $match stage will never evaluate to true.
+pub(crate) fn get_or_create_schema_for_path_mut(
+    schema: &mut Schema,
+    path: Vec<String>,
+) -> Option<&mut Schema> {
+    let mut schema = Some(schema);
+    for field in path {
+        schema = match schema {
+            Some(Schema::Document(d)) => {
+                if !d.keys.contains_key(&field) {
+                    if !d.additional_properties {
+                        return None;
+                    }
+                    d.keys.insert(field.clone(), Schema::Any);
+                }
+                d.keys.get_mut(&field)
+            }
+            Some(Schema::Any) => {
+                let mut d = schema::Document::any();
+                d.keys.insert(field.clone(), Schema::Any);
+                // this is a wonky way to do this, putting it in the map and then getting it back
+                // out with this match, but it's what the borrow checker forces (we can't keep the
+                // reference across the move of ownership into the Schema::Document constructor).
+                **(schema.as_mut()?) = Schema::Document(d);
+                schema?.get_key_mut(&field)
+            }
+            Some(Schema::AnyOf(schemas)) => {
+                // By first checking to see if there is a Document in the AnyOf, we can avoid
+                // cloning the Document. In general, I expect that the AnyOf will be smaller than
+                // the size of the Document schema, meaning this is more efficient than cloning
+                // even ignoring "constant factors". This is especially true given that cloning
+                // means memory allocation, which is quite a large "constant factor".
+                if !schemas.iter().any(|s| matches!(s, &Schema::Document(_))) {
+                    return None;
+                }
+                // This is how we avoid the clone. By doing a std::mem::take here, we can take
+                // ownership of the schemas, and thus the Document schema. Sadly, we still have to
+                // allocate a BTreeSet::default(), semantically. There is a price to pay for safety
+                // sometimes, but, there is a good chance the compiler will be smart enough to know
+                // that BTreeSet::default() is never used and optimize it out.
+                let schemas = std::mem::take(schemas);
+                let mut d = schemas.into_iter().find_map(|s| {
+                    if let Schema::Document(doc) = s {
+                        // we would have to clone here without the std::mem::take above.
+                        Some(doc)
+                    } else {
+                        None
+                    }
+                })?;
+                if !d.keys.contains_key(&field)
+                    // We can only add keys, if additionalProperties is true.
+                    && d.additional_properties
+                {
+                    d.keys.insert(field.clone(), Schema::Any);
+                }
+                // this is a wonky way to do this, putting it in the map and then getting it back
+                // out with this match, but it's what the borrow checker forces (we can't keep the
+                // reference across the move of ownership into the Schema::Document constructor).
+                **(schema.as_mut()?) = Schema::Document(d);
+                schema?.get_key_mut(&field)
+            }
+            _ => {
+                return None;
+            }
+        };
+    }
+    schema
+}
+
 /// remove field is a helper based on get_schema_for_path_mut which removes a field given a field path.
 /// this is useful for operators that operate on specific fields, such as $unsetField, or operators
 /// involving variables like $$REMOVE.

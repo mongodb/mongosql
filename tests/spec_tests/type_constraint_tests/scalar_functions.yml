@@ -27,6 +27,7 @@ variables:
 tests:
   - description: NULLIF operands must have comparable types (NULL and MISSING are always allowed)
     query: "SELECT NULLIF(arg1, arg2) FROM foo"
+    skip_reason: "SQL-2625: Update spec tests for NULLIF (comparisonValidTypes needs to be updated to include document and array)"
     valid_types: *comparisonValidTypes
 
   - description: SIZE operand must have type ARRAY or NULL, or be MISSING

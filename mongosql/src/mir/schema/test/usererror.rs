@@ -155,24 +155,33 @@ mod cannot_merge_objects {
 }
 
 mod aggregation_argument_must_be_self_comparable {
-    use crate::schema::{Schema, ANY_DOCUMENT};
+    use crate::{
+        schema::{Atomic, Schema},
+        set,
+    };
 
     test_user_error_messages! {
         max,
         input = Error::AggregationArgumentMustBeSelfComparable(
             "Max".into(),
-            ANY_DOCUMENT.clone()
+            Schema::AnyOf(set! {
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::String),
+            }),
         ),
-        expected = "Cannot perform `Max` aggregation over the type `object type` as it is not comparable to itself."
+        expected = "Cannot perform `Max` aggregation over the type `polymorphic type` as it is not comparable to itself."
     }
 
     test_user_error_messages! {
         max_distinct,
         input = Error::AggregationArgumentMustBeSelfComparable(
             "Max DISTINCT".into(),
-            ANY_DOCUMENT.clone()
+            Schema::AnyOf(set! {
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::String),
+            }),
         ),
-        expected = "Cannot perform `Max DISTINCT` aggregation over the type `object type` as it is not comparable to itself."
+        expected = "Cannot perform `Max DISTINCT` aggregation over the type `polymorphic type` as it is not comparable to itself."
     }
 
     test_user_error_messages! {
