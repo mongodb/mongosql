@@ -48,6 +48,8 @@ fn derive_schema_for_pipeline(pipeline: Vec<Stage>, state: &mut ResultSetState) 
 impl DeriveSchema for Stage {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
         fn densify_derive_schema(densify: &Densify, state: &mut ResultSetState) -> Result<Schema> {
+            // create a list of all the fields that densify references explicitly -- that is the partition by fields and
+            // the actual field being densified.
             let mut paths: Vec<Vec<String>> = densify
                 .partition_by_fields
                 .clone()
@@ -67,6 +69,11 @@ impl DeriveSchema for Stage {
                     .map(|s| s.to_string())
                     .collect::<Vec<String>>(),
             );
+            // we create a doc that contains all the required fields with their schemas, marking the full path to each
+            // field as required. unioning this document with the existing schema will function like a mask on the required
+            // fields, removing any field not part of the $densify as required (but preserving the required fields  that are part
+            // of the stage). Fields that are part of the stage but not required do not become required, because the original documents
+            // still persist.
             let mut required_doc = Schema::Document(Document {
                 additional_properties: false,
                 ..Default::default()
