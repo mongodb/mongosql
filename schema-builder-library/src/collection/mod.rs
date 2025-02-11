@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     sync::{Arc, LazyLock, OnceLock},
+    time::Duration,
 };
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{info, instrument};
@@ -151,9 +152,42 @@ impl CollectionInfo {
                         return;
                     }
 
+                    // start a heartbeat to notify the user that we are getting partitions
+                    let (heartbeat_tx, heartbeat_rx) = tokio::sync::watch::channel(false);
+                    let tx_hb_notifications = tx_notifications.clone();
+                    let db_name = db.name().to_string();
+                    let coll_name = coll.name().to_string();
+                    tokio::spawn(async move {
+                        let mut interval = tokio::time::interval(Duration::from_secs(60));
+                        let mut h_rx = heartbeat_rx.clone();
+                        let mut counter = 0;
+                        loop {
+                            tokio::select! {
+                                // notify the user every 60 seconds that we are getting partitions
+                                _ = interval.tick() => {
+                                    counter += 1;
+                                    notify!(&tx_hb_notifications,
+                                        SamplerNotification {
+                                            db: db_name.clone(),
+                                            collection_or_view: coll_name.clone(),
+                                            action: SamplerAction::Info {
+                                                message: format!("Update {counter}: Getting partitions for collection:"),
+                                            },
+                                        },
+                                    );
+                                }
+                                _ = h_rx.changed() => {
+                                    break;
+                                }
+                            }
+                        }
+                    });
+
                     // To start computing the schema for a collection, we need
                     // to determine the partitions of this collection.
                     let partitions = get_partitions(&coll).await;
+                    // Once we have the partitions, we can stop the heartbeat
+                    heartbeat_tx.send(true).unwrap_or_default();
 
                     match partitions {
                         Err(Error::EmptyCollection(name)) => {

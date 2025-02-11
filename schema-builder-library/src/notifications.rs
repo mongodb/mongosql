@@ -11,6 +11,9 @@ macro_rules! notify {
             SamplerAction::Error { .. } => {
                 tracing::error!("{}", $notification);
             }
+            SamplerAction::Info { .. } => {
+                tracing::info!("{}", $notification);
+            }
             SamplerAction::Querying { .. }
             | SamplerAction::Processing { .. }
             | SamplerAction::Partitioning { .. }
@@ -30,6 +33,7 @@ pub enum SamplerAction {
     UsingInitialSchema,
     Warning { message: String },
     Error { message: String },
+    Info { message: String },
     SamplingView,
 }
 
@@ -57,6 +61,7 @@ impl Display for SamplerAction {
             }
             SamplerAction::Warning { message } => write!(f, "Warning: {}", message),
             SamplerAction::Error { message } => write!(f, "Error: {}", message),
+            SamplerAction::Info { message } => write!(f, "Info: {}", message),
             SamplerAction::SamplingView => write!(f, "Sampling view "),
         }
     }

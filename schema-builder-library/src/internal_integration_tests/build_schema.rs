@@ -58,7 +58,11 @@ macro_rules! test_build_schema {
                                 SamplerAction::UsingInitialSchema => {
                                     assert!(schema_collection.is_some(), "unexpected use of initial schema: {notification}");
                                     actual_num_init_schemas_used += 1;
-                                }
+                                },
+                                // We should see this notification for each collection.
+                                SamplerAction::Info{ message } => {
+                                    assert!(message.contains("Getting partitions for"))
+                                },
                                 // Fail on warnings and errors. In this test
                                 // environment, neither should be encountered.
                                 SamplerAction::Warning{ .. }
