@@ -581,6 +581,14 @@ tests:
       - { "": { "a": { "$numberInt": "2" }, "gcount": { "$numberInt": "2" } } }
       - { "": { "a": null, "gcount": { "$numberInt": "0" } } }
 
+  - description: COUNT(*) correctness test
+    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE COUNT(*) AS gcount"
+    current_db: foo
+    result:
+      - { "": { "a": { "$numberInt": "1" }, "gcount": { "$numberInt": "1" } } }
+      - { "": { "a": { "$numberInt": "2" }, "gcount": { "$numberInt": "2" } } }
+      - { "": { "a": null, "gcount": { "$numberInt": "0" } } }
+
   - description: COUNT(MISSING) and COUNT(NULL) skip MISSING and NULL values
     query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE COUNT(a.a) AS gcounta, COUNT(NULL) AS gcountn"
     current_db: foo
