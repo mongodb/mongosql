@@ -48,11 +48,10 @@ fn derive_schema_for_pipeline(pipeline: Vec<Stage>, state: &mut ResultSetState) 
 impl DeriveSchema for Stage {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
         fn densify_derive_schema(densify: &Densify, state: &mut ResultSetState) -> Result<Schema> {
-            let mut schema: Schema = state.result_set_schema.clone();
             let mut paths: Vec<Vec<String>> = densify
                 .partition_by_fields
                 .clone()
-                .unwrap_or(vec![])
+                .unwrap_or_default()
                 .iter()
                 .map(|field| {
                     field
@@ -73,7 +72,9 @@ impl DeriveSchema for Stage {
                 ..Default::default()
             });
             paths.into_iter().for_each(|path| {
-                if let Some(field_schema) = get_schema_for_path_mut(&mut schema, path.clone()) {
+                if let Some(field_schema) =
+                    get_schema_for_path_mut(&mut state.result_set_schema, path.clone())
+                {
                     insert_required_key_into_document(
                         &mut required_doc,
                         field_schema.clone(),
@@ -81,16 +82,22 @@ impl DeriveSchema for Stage {
                     );
                 }
             });
-            Ok(schema.document_union(required_doc))
+            Ok(state
+                .result_set_schema
+                .to_owned()
+                .document_union(required_doc))
         }
 
         fn documents_derive_schema(
-            documents: &Vec<LinkedHashMap<String, Expression>>,
+            documents: &[LinkedHashMap<String, Expression>],
             state: &mut ResultSetState,
         ) -> Result<Schema> {
+            // we use folding to get the schema for each document, and union them together, to get the resulting schema
             let schema = documents.iter().try_fold(
                 None,
                 |schema: Option<Schema>, document: &LinkedHashMap<String, Expression>| {
+                    // here we convert the map of field name - expression to a resulting map of
+                    // field name - field schema. We collect in such a way that we can get the error from any derivation.
                     let doc_fields = document
                         .into_iter()
                         .map(|(field, expr)| {
@@ -99,7 +106,7 @@ impl DeriveSchema for Stage {
                         })
                         .collect::<Result<BTreeMap<String, Schema>>>()?;
                     let doc_schema = Schema::Document(Document {
-                        required: doc_fields.keys().into_iter().map(|x| x.clone()).collect(),
+                        required: doc_fields.keys().cloned().collect(),
                         keys: doc_fields,
                         ..Default::default()
                     });
@@ -116,6 +123,9 @@ impl DeriveSchema for Stage {
             facet: &LinkedHashMap<String, Vec<Stage>>,
             state: &mut ResultSetState,
         ) -> Result<Schema> {
+            // facet contains key - value pairs where the key is the name of a field in the output document,
+            // and the value is an aggregation pipeline. We can use the same generic helper for aggregating over a whole pipeline
+            // to get the sch ema for each field, cloning the incoming state.
             let facet_schema = facet
                 .into_iter()
                 .map(|(field, pipeline)| {
@@ -126,7 +136,7 @@ impl DeriveSchema for Stage {
                 })
                 .collect::<Result<BTreeMap<String, Schema>>>()?;
             Ok(Schema::Document(Document {
-                required: facet_schema.keys().into_iter().map(|x| x.clone()).collect(),
+                required: facet_schema.keys().cloned().collect(),
                 keys: facet_schema,
                 ..Default::default()
             }))
@@ -147,7 +157,6 @@ impl DeriveSchema for Stage {
         }
 
         fn unwind_derive_schema(unwind: &Unwind, state: &mut ResultSetState) -> Result<Schema> {
-            let mut schema = state.result_set_schema.clone();
             let path = match unwind {
                 Unwind::FieldPath(Expression::Ref(Ref::FieldRef(r))) => {
                     Some(r.split(".").map(|s| s.to_string()).collect::<Vec<String>>())
@@ -162,7 +171,7 @@ impl DeriveSchema for Stage {
                 _ => None,
             };
             if let Some(path) = path {
-                if let Some(s) = get_schema_for_path_mut(&mut schema, path) {
+                if let Some(s) = get_schema_for_path_mut(&mut state.result_set_schema, path) {
                     // the schema of the field being unwound goes from type Array[X] to type X
                     match s {
                         Schema::Array(a) => {
@@ -183,6 +192,8 @@ impl DeriveSchema for Stage {
                     if let Unwind::Document(d) = unwind {
                         let nullish = d.preserve_null_and_empty_arrays == Some(true);
 
+                        // include_array_index will specify an output field to put the index; it can be nullish if
+                        // preserve_null_and_empty_arrays is included
                         if let Some(field) = d.include_array_index.clone() {
                             let path = field
                                 .split(".")
@@ -190,7 +201,7 @@ impl DeriveSchema for Stage {
                                 .collect::<Vec<String>>();
                             if nullish {
                                 insert_required_key_into_document(
-                                    &mut schema,
+                                    &mut state.result_set_schema,
                                     Schema::AnyOf(set!(
                                         Schema::Atomic(Atomic::Integer),
                                         Schema::Atomic(Atomic::Null)
@@ -199,7 +210,7 @@ impl DeriveSchema for Stage {
                                 );
                             } else {
                                 insert_required_key_into_document(
-                                    &mut schema,
+                                    &mut state.result_set_schema,
                                     Schema::Atomic(Atomic::Integer),
                                     path,
                                 );
@@ -208,7 +219,7 @@ impl DeriveSchema for Stage {
                     }
                 }
             }
-            Ok(schema)
+            Ok(state.result_set_schema.to_owned())
         }
 
         match self {

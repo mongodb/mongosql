@@ -200,6 +200,9 @@ pub(crate) fn get_or_create_schema_for_path_mut(
     schema
 }
 
+// this helper simply checks for document schemas and inserts a field with a given schema into
+// that document, ensuring it is required. It follows the same structure as get_or_create_schema_for_path_mut,
+// except that we ignore Schema::Any's.
 fn insert_required_key_into_document_helper(
     mut schema: Option<&mut Schema>,
     field_schema: Schema,
@@ -210,27 +213,19 @@ fn insert_required_key_into_document_helper(
             if !d.keys.contains_key(&field) {
                 d.keys.insert(field.clone(), field_schema);
             }
+            // even if the document already included the key, we want to mark it as required.
+            // this enables nested field paths to be marked as required down to the required
+            // key being inserted.
             d.required.insert(field.clone());
             d.keys.get_mut(&field)
         }
         Some(Schema::AnyOf(schemas)) => {
-            // By first checking to see if there is a Document in the AnyOf, we can avoid
-            // cloning the Document. In general, I expect that the AnyOf will be smaller than
-            // the size of the Document schema, meaning this is more efficient than cloning
-            // even ignoring "constant factors". This is especially true given that cloning
-            // means memory allocation, which is quite a large "constant factor".
             if !schemas.iter().any(|s| matches!(s, &Schema::Document(_))) {
                 return None;
             }
-            // This is how we avoid the clone. By doing a std::mem::take here, we can take
-            // ownership of the schemas, and thus the Document schema. Sadly, we still have to
-            // allocate a BTreeSet::default(), semantically. There is a price to pay for safety
-            // sometimes, but, there is a good chance the compiler will be smart enough to know
-            // that BTreeSet::default() is never used and optimize it out.
             let schemas = std::mem::take(schemas);
             let mut d = schemas.into_iter().find_map(|s| {
                 if let Schema::Document(doc) = s {
-                    // we would have to clone here without the std::mem::take above.
                     Some(doc)
                 } else {
                     None
@@ -239,10 +234,8 @@ fn insert_required_key_into_document_helper(
             if !d.keys.contains_key(&field) {
                 d.keys.insert(field.clone(), Schema::Any);
             }
+            // see comment above for why we require the field even if it existed in the document
             d.required.insert(field.clone());
-            // this is a wonky way to do this, putting it in the map and then getting it back
-            // out with this match, but it's what the borrow checker forces (we can't keep the
-            // reference across the move of ownership into the Schema::Document constructor).
             **(schema.as_mut()?) = Schema::Document(d);
             schema?.get_key_mut(&field)
         }
@@ -250,12 +243,18 @@ fn insert_required_key_into_document_helper(
     }
 }
 
+/// This function inserts a field into an existing document schema (or anyof containing a document).
+/// It creates default documents as needed to populate the field path to the field, and marks the path
+/// to the field as required, so that the field inserted is guaranteed to exist in the schema. This is
+/// used to additively insert fields into schemas for stage schema derivation.
 pub(crate) fn insert_required_key_into_document(
     schema: &mut Schema,
     field_schema: Schema,
     path: Vec<String>,
 ) {
     let mut schema = Some(schema);
+    // create a required nested path of document schemas to the field we are trying to insert. For any field
+    // that doesn't already exist, just create a default document, since we will add keys to it in the next iteration.
     for field in &path[..path.len() - 1] {
         schema = insert_required_key_into_document_helper(
             schema,
@@ -263,6 +262,7 @@ pub(crate) fn insert_required_key_into_document(
             field.clone(),
         );
     }
+    // with a reference to the nested document that the field exists in, finally, insert the field with its type.
     insert_required_key_into_document_helper(schema, field_schema, path.last().unwrap().clone());
 }
 
