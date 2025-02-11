@@ -4,11 +4,14 @@ variables:
   numerics: &numerics ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL", "MISSING"]
   comparisonValidTypes: &comparisonValidTypes
     - { "arg1": *string, "arg2": *string }
+    - { "arg1": ["DOCUMENT", "NULL", "MISSING"], "arg2": ["DOCUMENT", "NULL", "MISSING"] }
+    - { "arg1": ["ARRAY", "NULL", "MISSING"], "arg2": ["ARRAY", "NULL", "MISSING"] }
     - { "arg1": ["BINDATA", "NULL", "MISSING"], "arg2": ["BINDATA", "NULL", "MISSING"] }
-    - { "arg1": ["NULL", "MISSING"], "arg2": ["NULL", "MISSING"] }
+    - { "arg1": ["UNDEFINED", "NULL", "MISSING"], "arg2": ["UNDEFINED", "NULL", "MISSING"] }
     - { "arg1": ["OBJECTID", "NULL", "MISSING"], "arg2": ["OBJECTID", "NULL", "MISSING"] }
     - { "arg1": *bool, "arg2": *bool }
     - { "arg1": ["BSON_DATE", "NULL", "MISSING"], "arg2": ["BSON_DATE", "NULL", "MISSING"] }
+    - { "arg1": ["NULL", "MISSING"], "arg2": ["NULL", "MISSING"] }
     - { "arg1": ["REGEX", "NULL", "MISSING"], "arg2": ["REGEX", "NULL", "MISSING"] }
     - { "arg1": ["DBPOINTER", "NULL", "MISSING"], "arg2": ["NULL", "MISSING"] }
     - { "arg1": ["NULL", "MISSING"], "arg2": ["DBPOINTER", "NULL", "MISSING"] }
@@ -85,32 +88,26 @@ tests:
 
   - description: "< operands must have comparable types (NULL and MISSING are always allowed)"
     query: "SELECT arg1 < arg2 FROM foo"
-    skip_reason: "SQL-2624: Update spec tests for binary comparison operators (comparisonValidTypes needs to be updated to include document and array)"
     valid_types: *comparisonValidTypes
 
   - description: "<= operands must have comparable types (NULL and MISSING are always allowed)"
     query: "SELECT arg1 <= arg2 FROM foo"
-    skip_reason: "SQL-2624: Update spec tests for binary comparison operators (comparisonValidTypes needs to be updated to include document and array)"
     valid_types: *comparisonValidTypes
 
   - description: "<> operands must have comparable types (NULL and MISSING are always allowed)"
     query: "SELECT arg1 <> arg2 FROM foo"
-    skip_reason: "SQL-2624: Update spec tests for binary comparison operators (comparisonValidTypes needs to be updated to include document and array)"
     valid_types: *comparisonValidTypes
 
   - description: = operands must have comparable types (NULL and MISSING are always allowed)
     query: "SELECT arg1 = arg2 FROM foo"
-    skip_reason: "SQL-2624: Update spec tests for binary comparison operators (comparisonValidTypes needs to be updated to include document and array)"
     valid_types: *comparisonValidTypes
 
   - description: "> operands must have comparable types (NULL and MISSING are always allowed)"
     query: "SELECT arg1 > arg2 FROM foo"
-    skip_reason: "SQL-2624: Update spec tests for binary comparison operators (comparisonValidTypes needs to be updated to include document and array)"
     valid_types: *comparisonValidTypes
 
   - description: ">= operands must have comparable types (NULL and MISSING are always allowed)"
     query: "SELECT arg1 >= arg2 FROM foo"
-    skip_reason: "SQL-2624: Update spec tests for binary comparison operators (comparisonValidTypes needs to be updated to include document and array)"
     valid_types: *comparisonValidTypes
 
   - description: Simple CASE expression WHEN operands must have comparable type to CASE operand
