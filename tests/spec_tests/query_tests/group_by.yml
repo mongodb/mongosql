@@ -13,6 +13,7 @@ catalog_data:
       - { "_id": 3, "a": 2, "b": 2, "c": 3 }
       - { "_id": 4, "a": 2, "b": 3, "c": 4 }
       - { "_id": 5, "a": 1, "b": 2, "c": 5 }
+      - { "_id": 6, "a": null, "b": null, "c": null}
 
     nullAndMissing:
       - { "_id": 1, "n": null }
@@ -74,9 +75,30 @@ catalog_schema:
             "properties":
               {
                 "_id": { "bsonType": "int" },
-                "a": { "bsonType": "int" },
-                "b": { "bsonType": "int" },
-                "c": { "bsonType": "int" },
+                "a":
+                  {
+                    "anyOf":
+                      [
+                        { "bsonType": "int" },
+                        { "bsonType": !!str "null" },
+                      ]
+                  },
+                "b":
+                  {
+                    "anyOf":
+                      [
+                        { "bsonType": "int" },
+                        { "bsonType": !!str "null" },
+                      ]
+                  },
+                "c":
+                  {
+                    "anyOf":
+                      [
+                        { "bsonType": "int" },
+                        { "bsonType": !!str "null" },
+                      ]
+                  },
               },
           },
         "nullAndMissing":
@@ -364,9 +386,17 @@ tests:
               "sumc": { "$numberInt": "4" },
             },
         }
+      - {
+          "":
+            {
+              "a": null,
+              "b": null,
+              "sumc": 0,
+            },
+        }
 
   - description: multi-item group key with HAVING correctness test
-    query: "SELECT * FROM foo.multi AS multi GROUP BY a AS a, b AS b AGGREGATE SUM(c) AS sumc HAVING a != 1 AND sumc != 4"
+    query: "SELECT * FROM foo.multi AS multi GROUP BY a AS a, b AS b AGGREGATE SUM(c) AS sumc HAVING a IS NOT NULL AND a != 1 AND sumc != 4"
     current_db: foo
     result:
       - {
@@ -508,19 +538,21 @@ tests:
       - { "": { "a": { "$numberInt": "2" }, "gcount": { "$numberInt": "2" } } }
       - { "": { "a": null, "gcount": { "$numberInt": "0" } } }
 
-  - description: COUNT(*) correctness test
+  - description: COUNT(*) correctness test unconditionally count rows
     query: "SELECT * FROM (SELECT a, b FROM foo.multi AS m) AS arr GROUP BY a AS a AGGREGATE COUNT(*) AS gcount"
     current_db: foo
     result:
       - { "": { "a": 1, "gcount": 2 } }
       - { "": { "a": 2, "gcount": 3 } }
+      - { "": { "a": null, "gcount": 1 } }
 
-  - description: COUNT(DISTINCT *) correctness test
+  - description: COUNT(DISTINCT *) correctness test unconditionally count distinct rows
     query: "SELECT * FROM (SELECT a, b FROM foo.multi AS m) AS arr GROUP BY a AS a AGGREGATE COUNT(DISTINCT *) AS gcount"
     current_db: foo
     result:
       - { "": { "a": 1, "gcount": 1 } }
       - { "": { "a": 2, "gcount": 2 } }
+      - { "": { "a": null, "gcount": 1 } }
 
   - description: COUNT(MISSING) and COUNT(NULL) skip MISSING and NULL values
     query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE COUNT(a.a) AS gcounta, COUNT(NULL) AS gcountn"
