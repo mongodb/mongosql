@@ -5159,13 +5159,10 @@ mod aggregation {
             set_quantifier: Some(ast::SetQuantifier::All),
         },
     );
-    test_algebrize_expr_and_schema_check!(
-        count_distinct_star_is_error,
+    test_algebrize!(
+        count_distinct_star,
         method = algebrize_aggregation,
-        expected = Err(Error::SchemaChecking(
-            mir::schema::Error::CountDistinctStarNotSupported
-        )),
-        expected_error_code = 1004,
+        expected = Ok(mir::AggregationExpr::CountStar(true)),
         input = ast::FunctionExpr {
             function: ast::FunctionName::Count,
             args: ast::FunctionArguments::Star,

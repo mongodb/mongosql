@@ -196,18 +196,18 @@ mod group {
                     expr: ROOT.clone()
                 },],
                 aggregations: vec![
-                    // Count(*) is traslated as Count(1).
+                    // Count(*) is translated as Count(ROOT).
                     air::AccumulatorExpr {
                         alias: "c_distinct".into(),
                         function: air::AggregationFunction::Count,
                         distinct: true,
-                        arg: air::Expression::Literal(air::LiteralValue::Integer(1)).into(),
+                        arg: ROOT.clone().into(),
                     },
                     air::AccumulatorExpr {
                         alias: "c_nondistinct".into(),
                         function: air::AggregationFunction::Count,
                         distinct: false,
-                        arg: air::Expression::Literal(air::LiteralValue::Integer(1)).into(),
+                        arg: ROOT.clone().into(),
                     },
                 ]
             })
@@ -376,7 +376,7 @@ mod group {
                     alias: "__id".into(),
                     function: air::AggregationFunction::Count,
                     distinct: false,
-                    arg: air::Expression::Literal(air::LiteralValue::Integer(1)).into(),
+                    arg: ROOT.clone().into(),
                 },]
             })
             .into(),

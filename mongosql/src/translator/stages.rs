@@ -3,11 +3,11 @@ use crate::{
     mapping_registry::{Key, MqlMappingRegistry, MqlMappingRegistryValue, MqlReferenceType},
     mir,
     translator::{Error, MqlTranslator, Result},
-    util::ROOT_NAME,
+    util::{ROOT, ROOT_NAME},
 };
-use mongosql_datastructures::binding_tuple::DatasourceName;
 use mongosql_datastructures::{
-    unique_linked_hash_map, unique_linked_hash_map::UniqueLinkedHashMap,
+    binding_tuple::DatasourceName, unique_linked_hash_map,
+    unique_linked_hash_map::UniqueLinkedHashMap,
 };
 use std::collections::BTreeSet;
 
@@ -585,10 +585,10 @@ impl MqlTranslator {
                 alias.clone()
             };
             let (function, distinct, arg) = match a.agg_expr {
-                mir::AggregationExpr::CountStar(b) => (
+                mir::AggregationExpr::CountStar(distinct) => (
                     air::AggregationFunction::Count,
-                    b,
-                    Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
+                    distinct,
+                    Box::new(ROOT.clone()),
                 ),
                 mir::AggregationExpr::Function(afa) => (
                     Self::translate_agg_function(afa.function),
