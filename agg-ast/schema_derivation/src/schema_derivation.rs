@@ -1233,6 +1233,13 @@ impl DeriveSchema for UntaggedOperator {
                 })));
                 Ok(handle_null_satisfaction(vec![args[0]], state, array_type)?)
             }
+            UntaggedOperatorName::First | UntaggedOperatorName::Last => {
+                let schema = self.args[0].derive_schema(state)?;
+                Ok(match schema {
+                    Schema::Array(a) => *a,
+                    schema => schema
+                })
+            }
             _ => Err(Error::InvalidUntaggedOperator(self.op.into())),
         }
     }

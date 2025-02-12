@@ -1153,6 +1153,55 @@ impl MatchConstrainSchema for Expression {
             }
         }
 
+        fn match_derive_first_last(u: &UntaggedOperator, state: &mut ResultSetState) {
+            if let Expression::Ref(reference) = u.args[0].clone() {
+                match state.null_behavior {
+                    Satisfaction::Not => {
+                        intersect_if_exists(
+                            &reference,
+                            state,
+                            Schema::Array(Box::new(Schema::Any)),
+                        );
+                    }
+                    Satisfaction::May | Satisfaction::Must => {
+                        intersect_if_exists(
+                            &reference,
+                            state,
+                            Schema::AnyOf(set!(
+                                Schema::Array(Box::new(Schema::Any)),
+                                Schema::Atomic(Atomic::Null),
+                                Schema::Missing
+                            )),
+                        );
+                    }
+                };
+            } else {
+                u.args[0].match_derive_schema(state);
+            }
+        }
+
+        fn match_derive_reverse_array(u: &UntaggedOperator, state: &mut ResultSetState) {
+            if let Expression::Ref(r) = u.args[0].clone() {
+                match state.null_behavior {
+                    Satisfaction::Not => {
+                        intersect_if_exists(&r, state, Schema::Array(Box::new(Schema::Any)));
+                    }
+                    Satisfaction::May => {
+                        intersect_if_exists(
+                            &r,
+                            state,
+                            NULLISH.clone().union(&Schema::Array(Box::new(Schema::Any))),
+                        );
+                    }
+                    Satisfaction::Must => {
+                        intersect_if_exists(&r, state, NULLISH.clone());
+                    }
+                }
+            } else {
+                u.args[0].match_derive_schema(state);
+            }
+        }
+
         use agg_ast::definitions::UntaggedOperatorName;
         let null_behavior = state.null_behavior;
         match self {
@@ -1219,6 +1268,11 @@ impl MatchConstrainSchema for Expression {
                 | UntaggedOperatorName::Trunc
                 | UntaggedOperatorName::Ceil
                 | UntaggedOperatorName::Floor => match_derive_numeric(u, state),
+                // array ops
+                UntaggedOperatorName::First | UntaggedOperatorName::Last => {
+                    match_derive_first_last(u, state)
+                }
+                UntaggedOperatorName::ReverseArray => match_derive_reverse_array(u, state),
                 // misc ops
                 UntaggedOperatorName::Add => match_derive_add(u, state),
                 UntaggedOperatorName::Subtract => match_derive_subtract(u, state),

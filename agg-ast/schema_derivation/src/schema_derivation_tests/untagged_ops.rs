@@ -150,6 +150,18 @@ mod array_ops {
             Schema::Atomic(Atomic::Double)
         ))))
     );
+    test_derive_schema!(
+        first_array,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Double),
+        ))),
+        input = r#"{"$first": ["$foo", [42, 53]]}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Double)
+        ))
+    );
 }
 
 mod group_ops {
@@ -352,6 +364,11 @@ mod window_ops {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null),
         ))
+    );
+    test_derive_schema!(
+        first_non_array,
+        expected = Ok(Schema::Atomic(Atomic::String)),
+        input = r#"{"$first": "hello world"}"#
     );
 }
 mod numeric_ops {
