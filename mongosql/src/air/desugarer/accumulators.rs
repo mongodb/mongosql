@@ -79,65 +79,23 @@ impl AccumulatorsDesugarerVisitor {
     /// and follow it with a projection assignment that does the counting (via $size). If it is
     /// non-distinct, we rewrite the accumulator to use $sum. The conditions described above for
     /// each case are applied to the $addToSet or $sum, depending on the value of distinct.
-    fn rewrite_count(count_expr: AccumulatorExpr) -> (AccumulatorExpr, ProjectItem) {
+    fn rewrite_count(count_expr: &AccumulatorExpr) -> (AccumulatorExpr, ProjectItem) {
         let new_acc_expr = match count_expr.arg.as_ref() {
-            // *
             Variable(v) if v.parent.is_none() && v.name == ROOT_NAME.to_string() => {
-                let (function, arg) = if count_expr.distinct {
-                    (AggregationFunction::AddToSet, Box::new(ROOT.clone()))
-                } else {
-                    (
-                        AggregationFunction::Sum,
-                        Box::new(Literal(LiteralValue::Integer(1))),
-                    )
-                };
-                AccumulatorExpr {
-                    alias: count_expr.alias.clone(),
-                    function,
-                    distinct: false,
-                    arg,
-                }
+                Self::rewrite_count_star(count_expr.distinct, count_expr.alias.clone())
             }
-            // Multi-column
-            Document(doc) => todo!("SQL-2622"),
-            // Single expr
+            Document(_doc) => {
+                Self::rewrite_count_multi_col(count_expr.distinct, count_expr.alias.clone())
+            }
             arg => {
-                let (agg_func, then, r#else) = if count_expr.distinct {
-                    (
-                        // When distinct, we rewrite to AddToSet.
-                        AggregationFunction::AddToSet,
-                        // In the case the condition evaluates to true, we include the argument in
-                        // the set.
-                        arg.clone(),
-                        // In the case the condition evaluates to false, we include "$$REMOVE" in
-                        // the set, which effectively doesn't add to the set.
-                        REMOVE.clone(),
-                    )
-                } else {
-                    (
-                        // When not distinct, we rewrite to Sum.
-                        AggregationFunction::Sum,
-                        // In the case the condition evaluates to true, we count this argument.
-                        Literal(LiteralValue::Integer(1)),
-                        // In the case the condition evaluates to false, we do not count this
-                        // argument.
-                        Literal(LiteralValue::Integer(0)),
-                    )
-                };
-
-                AccumulatorExpr {
-                    alias: count_expr.alias.clone(),
-                    function: agg_func,
-                    distinct: false,
-                    arg: make_single_expr_count_conditional!(arg.clone(), then, r#else),
-                }
+                Self::rewrite_count_single_expr(count_expr.distinct, count_expr.alias.clone(), arg)
             }
         };
 
         let project_item = if count_expr.distinct {
             ProjectItem::Assignment(MQLSemanticOperator(MQLSemanticOperator {
                 op: MQLOperator::Size,
-                args: vec![FieldRef(count_expr.alias.into())],
+                args: vec![FieldRef(count_expr.alias.clone().into())],
             }))
         } else {
             ProjectItem::Inclusion
@@ -146,10 +104,67 @@ impl AccumulatorsDesugarerVisitor {
         (new_acc_expr, project_item)
     }
 
+    fn rewrite_count_star(distinct: bool, alias: String) -> AccumulatorExpr {
+        let (function, arg) = if distinct {
+            (AggregationFunction::AddToSet, Box::new(ROOT.clone()))
+        } else {
+            (
+                AggregationFunction::Sum,
+                Box::new(Literal(LiteralValue::Integer(1))),
+            )
+        };
+        AccumulatorExpr {
+            alias,
+            function,
+            distinct: false,
+            arg,
+        }
+    }
+
+    fn rewrite_count_multi_col(_distinct: bool, _alias: String) -> AccumulatorExpr {
+        todo!("SQL-2622")
+    }
+
+    fn rewrite_count_single_expr(
+        distinct: bool,
+        alias: String,
+        arg: &Expression,
+    ) -> AccumulatorExpr {
+        let (agg_func, then, r#else) = if distinct {
+            (
+                // When distinct, we rewrite to AddToSet.
+                AggregationFunction::AddToSet,
+                // In the case the condition evaluates to true, we include the argument in
+                // the set.
+                arg.clone(),
+                // In the case the condition evaluates to false, we include "$$REMOVE" in
+                // the set, which effectively doesn't add to the set.
+                REMOVE.clone(),
+            )
+        } else {
+            (
+                // When not distinct, we rewrite to Sum.
+                AggregationFunction::Sum,
+                // In the case the condition evaluates to true, we count this argument.
+                Literal(LiteralValue::Integer(1)),
+                // In the case the condition evaluates to false, we do not count this
+                // argument.
+                Literal(LiteralValue::Integer(0)),
+            )
+        };
+
+        AccumulatorExpr {
+            alias,
+            function: agg_func,
+            distinct: false,
+            arg: make_single_expr_count_conditional!(arg.clone(), then, r#else),
+        }
+    }
+
     /// Rewrites distinct non-count accumulators into the appropriate new accumulator expression and
     /// project item. These accumulators are rewritten into AddToSet accumulators which are followed
     /// by $project assignment expressions that perform the actual accumulator operation on the set.
-    fn rewrite_distinct_non_count(acc_expr: AccumulatorExpr) -> (AccumulatorExpr, ProjectItem) {
+    fn rewrite_distinct_non_count(acc_expr: &AccumulatorExpr) -> (AccumulatorExpr, ProjectItem) {
         let new_acc_expr = AccumulatorExpr {
             alias: acc_expr.alias.clone(),
             function: AggregationFunction::AddToSet,
@@ -172,7 +187,7 @@ impl AccumulatorsDesugarerVisitor {
                 AggregationFunction::StddevSamp => MQLOperator::StddevSamp,
                 AggregationFunction::Sum => MQLOperator::Sum,
             },
-            args: vec![FieldRef(acc_expr.alias.into())],
+            args: vec![FieldRef(acc_expr.alias.clone().into())],
         }));
 
         (new_acc_expr, project_item)
@@ -189,13 +204,13 @@ impl Visitor for AccumulatorsDesugarerVisitor {
                     "_id".into() => ProjectItem::Inclusion
                 };
                 let mut needs_project = false;
-                for acc_expr in group.aggregations.clone().into_iter() {
+                for acc_expr in group.aggregations.iter() {
                     needs_project = needs_project || acc_expr.distinct;
                     let (new_acc_expr, project_item) =
                         if acc_expr.function == AggregationFunction::Count {
-                            Self::rewrite_count(acc_expr.clone())
+                            Self::rewrite_count(acc_expr)
                         } else if acc_expr.distinct {
-                            Self::rewrite_distinct_non_count(acc_expr.clone())
+                            Self::rewrite_distinct_non_count(acc_expr)
                         } else {
                             (acc_expr.clone(), ProjectItem::Inclusion)
                         };
