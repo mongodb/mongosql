@@ -81,7 +81,7 @@ impl AccumulatorsDesugarerVisitor {
     /// each case are applied to the $addToSet or $sum, depending on the value of distinct.
     fn rewrite_count(count_expr: &AccumulatorExpr) -> (AccumulatorExpr, ProjectItem) {
         let new_acc_expr = match count_expr.arg.as_ref() {
-            Variable(v) if v.parent.is_none() && v.name == ROOT_NAME.to_string() => {
+            Variable(v) if v.parent.is_none() && v.name == *ROOT_NAME => {
                 Self::rewrite_count_star(count_expr.distinct, count_expr.alias.clone())
             }
             Document(_doc) => {
