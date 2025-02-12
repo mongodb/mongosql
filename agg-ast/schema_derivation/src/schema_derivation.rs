@@ -132,7 +132,7 @@ impl DeriveSchema for Stage {
         ) -> Result<Schema> {
             // facet contains key - value pairs where the key is the name of a field in the output document,
             // and the value is an aggregation pipeline. We can use the same generic helper for aggregating over a whole pipeline
-            // to get the sch ema for each field, cloning the incoming state.
+            // to get the schema for each field, cloning the incoming state.
             let facet_schema = facet
                 .into_iter()
                 .map(|(field, pipeline)| {
