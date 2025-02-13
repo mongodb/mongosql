@@ -304,6 +304,19 @@ impl CollectionInfo {
                                     );
                                 }
                                 Ok(Some(coll_schema)) => {
+                                    // Check for empty keys in the schema and warn the user
+                                    if coll_schema.keys().iter().any(|key| key.is_empty()) {
+                                        notify!(
+                                            &tx_notifications,
+                                            SamplerNotification {
+                                                db: db.name().to_string(),
+                                                collection_or_view: coll.name().to_string(),
+                                                action: SamplerAction::Warning {
+                                                    message: "Found empty keys".to_string()
+                                                },
+                                            },
+                                        );
+                                    }
                                     // If deriving schema succeeds, we send
                                     // the schema over the schemata channel.
                                     let _ = tx_schemata.send(SchemaResult::FullSchema(

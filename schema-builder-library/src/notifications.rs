@@ -48,16 +48,16 @@ impl Display for SamplerAction {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             SamplerAction::Querying { partition } => {
-                write!(f, "Querying partition {} in collection", partition)
+                write!(f, "Querying partition {}", partition)
             }
             SamplerAction::Processing { partition } => {
-                write!(f, "Processing partition {} in collection", partition)
+                write!(f, "Processing partition {}", partition)
             }
             SamplerAction::Partitioning { partitions } => {
-                write!(f, "Partitioning into {} parts for collection", partitions)
+                write!(f, "Partitioning into {} parts", partitions)
             }
             SamplerAction::UsingInitialSchema => {
-                write!(f, "Using initial schema for collection")
+                write!(f, "Using initial schema")
             }
             SamplerAction::Warning { message } => write!(f, "Warning: {}", message),
             SamplerAction::Error { message } => write!(f, "Error: {}", message),
@@ -71,7 +71,7 @@ impl Display for SamplerNotification {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
             f,
-            "{} {} in database: {}",
+            "{} in collection: {} in database: {}",
             self.action, self.collection_or_view, self.db
         )
     }
