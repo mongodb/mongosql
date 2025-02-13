@@ -8,7 +8,7 @@ use crate::{
     set,
 };
 use enum_iterator::IntoEnumIterator;
-use itertools::Itertools;
+use itertools::{Either, Itertools};
 use lazy_static::lazy_static;
 use std::collections::{HashMap, HashSet};
 use std::{
@@ -983,16 +983,11 @@ impl Schema {
                     })
                     .collect();
                 // Merge any document schemata in an AnyOf.
-                let (doc_schemata, non_doc_schemata): (BTreeSet<_>, BTreeSet<_>) = ret
-                    .into_iter()
-                    .partition(|s| matches!(s, Schema::Document(_)));
-                let docs = doc_schemata
-                    .into_iter()
-                    .map(|s| match s {
-                        Schema::Document(d) => d,
-                        _ => unreachable!(),
-                    })
-                    .collect::<Vec<_>>();
+                let (docs, non_doc_schemata): (Vec<_>, BTreeSet<_>) =
+                    ret.into_iter().partition_map(|s| match s {
+                        Schema::Document(d) => Either::Left(d),
+                        _ => Either::Right(s),
+                    });
                 let ret = if !docs.is_empty() {
                     let doc_schema = Schema::Document(
                         docs.into_iter()
