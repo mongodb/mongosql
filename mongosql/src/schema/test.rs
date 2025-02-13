@@ -2253,6 +2253,42 @@ mod simplify {
         })
     );
     test_simplify!(
+        any_of_documents,
+        expected = Document(Document {
+            keys: map![
+            "a".to_string() => AnyOf(set![
+                Atomic(Null),
+                Atomic(String),
+                Atomic(Integer)
+                ]),
+            "b".to_string() => Atomic(String),
+            ],
+            required: set!["a".to_string(), "b".to_string()],
+            additional_properties: true,
+            ..Default::default()
+        }),
+        input = AnyOf(set! {
+            Document(Document {
+                keys: map![
+                    "a".to_string() => AnyOf(set![
+                    AnyOf(set![Atomic(Null), Atomic(String)]),
+                    Atomic(Integer)
+                ])],
+                required: set!["a".to_string()],
+                additional_properties: true,
+                ..Default::default()
+            }),
+            Document(Document {
+                keys: map![
+                    "b".to_string() => Atomic(String),
+                ],
+                required: set!["b".to_string()],
+                additional_properties: true,
+                ..Default::default()
+            }),
+        })
+    );
+    test_simplify!(
         missing_in_documents,
         expected = Document(Document {
             keys: map! {
