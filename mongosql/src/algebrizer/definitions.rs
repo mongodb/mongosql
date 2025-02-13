@@ -493,6 +493,7 @@ impl<'a> Algebrizer<'a> {
             group_stage.schema(&self.schema_inference_state())?;
             group_stage
         } else {
+            project_stage.schema(&self.schema_inference_state())?;
             project_stage
         })
     }
