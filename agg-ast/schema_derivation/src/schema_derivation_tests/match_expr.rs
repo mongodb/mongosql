@@ -1745,4 +1745,31 @@ mod array_ops {
         input = r#"{"$match": {"$expr": {"$not": {"$reverseArray": "$foo"}}}}"#,
         ref_schema = Schema::Any
     );
+    test_derive_schema_for_match_stage!(
+        concat_arrays_not_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Array(Box::new(Schema::Any))
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$concatArrays": "$foo"}}}"#,
+        ref_schema = Schema::Any
+    );
+    test_derive_schema_for_match_stage!(
+        concat_arrays_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Null)
+            },
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$not": {"$concatArrays": [[1,2,3], "$foo"]}}}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing,
+            Schema::Array(Box::new(Schema::Atomic(Atomic::Integer)))
+        ))
+    );
 }

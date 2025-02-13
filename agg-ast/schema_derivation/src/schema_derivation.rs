@@ -997,14 +997,33 @@ impl DeriveSchema for UntaggedOperator {
             }
             UntaggedOperatorName::ConcatArrays | UntaggedOperatorName::SetUnion => {
                 let mut array_schema = Schema::Unsat;
+                let mut null_schema: Option<Schema> = None;
                 for (i, arg) in self.args.iter().enumerate() {
                     let schema = arg.derive_schema(state)?;
                     match schema {
                         Schema::Array(a) => array_schema = array_schema.union(a.as_ref()),
+                        // anyofs can capture nullish behavior in these operators
+                        Schema::AnyOf(ao) => {
+                            ao.iter().for_each(|ao_schema| {
+                                match ao_schema {
+                                    s @ (Schema::Atomic(Atomic::Null) | Schema::Missing) => {
+                                        if let Some(ns) = null_schema.as_ref() {
+                                            null_schema = Some(ns.union(&s));
+                                        }
+                                    }
+                                    Schema::Array(a) => array_schema = array_schema.union(a.as_ref()),
+                                    _ => {},
+                                }
+                            });
+                        }
                         _ => return Err(Error::InvalidType(schema, i)),
                     };
                 }
-                Ok(Schema::Array(Box::new(array_schema)))
+                if let Some(null_schema) = null_schema {
+                    Ok(null_schema.union(&Schema::Array(Box::new(array_schema))))
+                } else {
+                    Ok(Schema::Array(Box::new(array_schema)))
+                }
             }
             UntaggedOperatorName::SetIntersection => {
                 if args.is_empty() {
