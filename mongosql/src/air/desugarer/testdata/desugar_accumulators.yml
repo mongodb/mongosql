@@ -50,9 +50,9 @@ tests:
                   {
                     "$cond":
                       [
-                        { "$not": { "$in": [{ "$type": "$a" }, ["missing", "null"]] } },
-                        1,
+                        { "$in": [{ "$type": "$a" }, ["missing", "null"]] },
                         0,
+                        1,
                       ],
                   },
               },
@@ -79,9 +79,9 @@ tests:
                   {
                     "$cond":
                       [
-                        { "$not": { "$in": [{ "$type": "$a" }, ["missing", "null"]] } },
-                        "$a",
+                        { "$in": [{ "$type": "$a" }, ["missing", "null"]] },
                         "$$REMOVE",
+                        "$a",
                       ]
                   }
               }

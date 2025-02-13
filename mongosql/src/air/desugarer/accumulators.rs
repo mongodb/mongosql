@@ -16,20 +16,17 @@ macro_rules! make_single_expr_count_conditional {
     ($arg:expr, $then:expr, $else:expr) => {
         Box::new(make_cond_expr!(
             MQLSemanticOperator(MQLSemanticOperator {
-                op: MQLOperator::Not,
-                args: vec![MQLSemanticOperator(MQLSemanticOperator {
-                    op: MQLOperator::In,
-                    args: vec![
-                        MQLSemanticOperator(MQLSemanticOperator {
-                            op: MQLOperator::Type,
-                            args: vec![$arg],
-                        }),
-                        Array(vec![
-                            Literal(LiteralValue::String("missing".to_string())),
-                            Literal(LiteralValue::String("null".to_string())),
-                        ]),
-                    ],
-                })],
+                op: MQLOperator::In,
+                args: vec![
+                    MQLSemanticOperator(MQLSemanticOperator {
+                        op: MQLOperator::Type,
+                        args: vec![$arg],
+                    }),
+                    Array(vec![
+                        Literal(LiteralValue::String("missing".to_string())),
+                        Literal(LiteralValue::String("null".to_string())),
+                    ]),
+                ],
             }),
             $then,
             $else
@@ -134,22 +131,20 @@ impl AccumulatorsDesugarerVisitor {
             (
                 // When distinct, we rewrite to AddToSet.
                 AggregationFunction::AddToSet,
-                // In the case the condition evaluates to true, we include the argument in
-                // the set.
-                arg.clone(),
-                // In the case the condition evaluates to false, we include "$$REMOVE" in
-                // the set, which effectively doesn't add to the set.
+                // In the case the condition evaluates to true, we include "$$REMOVE" in the set,
+                // which effectively doesn't add to the set.
                 REMOVE.clone(),
+                // In the case the condition evaluates to false, we include the argument in the set.
+                arg.clone(),
             )
         } else {
             (
                 // When not distinct, we rewrite to Sum.
                 AggregationFunction::Sum,
-                // In the case the condition evaluates to true, we count this argument.
-                Literal(LiteralValue::Integer(1)),
-                // In the case the condition evaluates to false, we do not count this
-                // argument.
+                // In the case the condition evaluates to true, we do not count this argument.
                 Literal(LiteralValue::Integer(0)),
+                // In the case the condition evaluates to false, we count this argument.
+                Literal(LiteralValue::Integer(1)),
             )
         };
 
