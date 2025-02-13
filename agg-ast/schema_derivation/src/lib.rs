@@ -143,7 +143,7 @@ pub(crate) fn get_or_create_schema_for_path_mut(
                 if !d.keys.contains_key(&field) && !d.additional_properties {
                     return None;
                 }
-                d.insert_if_not_exists(field.clone(), Schema::Any);
+                d.keys.entry(field.clone()).or_insert(Schema::Any);
                 d.keys.get_mut(&field)
             }
             Some(Schema::Any) => {
@@ -180,7 +180,7 @@ pub(crate) fn get_or_create_schema_for_path_mut(
                 })?;
                 // We can only add keys, if additionalProperties is true.
                 if d.additional_properties {
-                    d.insert_if_not_exists(field.clone(), Schema::Any);
+                    d.keys.entry(field.clone()).or_insert(Schema::Any);
                 }
                 // this is a wonky way to do this, putting it in the map and then getting it back
                 // out with this match, but it's what the borrow checker forces (we can't keep the
@@ -206,7 +206,7 @@ fn insert_required_key_into_document_helper(
 ) -> Option<&mut Schema> {
     match schema {
         Some(Schema::Document(d)) => {
-            d.insert_if_not_exists(field.clone(), field_schema);
+            d.keys.entry(field.clone()).or_insert(field_schema);
             // even if the document already included the key, we want to mark it as required.
             // this enables nested field paths to be marked as required down to the required
             // key being inserted.
@@ -225,7 +225,7 @@ fn insert_required_key_into_document_helper(
                     None
                 }
             })?;
-            d.insert_if_not_exists(field.clone(), Schema::Any);
+            d.keys.entry(field.clone()).or_insert(Schema::Any);
             // see comment above for why we require the field even if it existed in the document
             d.required.insert(field.clone());
             **(schema.as_mut()?) = Schema::Document(d);
