@@ -982,6 +982,22 @@ impl Schema {
                         _ => set![x],
                     })
                     .collect();
+                // Merge any document schemata in an AnyOf.
+                let (doc_schemata, non_doc_schemata): (BTreeSet<_>, BTreeSet<_>) = ret
+                    .into_iter()
+                    .partition(|s| matches!(s, Schema::Document(_)));
+                let docs = doc_schemata.into_iter().map(|s| match s {
+                    Schema::Document(d) => d,
+                    _ => unreachable!(),
+                });
+                let doc_schema = Schema::Document(
+                    docs.into_iter()
+                        .fold(Document::any(), |acc, s| acc.merge(s)),
+                );
+                let ret: BTreeSet<_> = non_doc_schemata
+                    .into_iter()
+                    .chain(std::iter::once(doc_schema))
+                    .collect();
                 if ret.is_empty() {
                     Unsat
                 } else if ret.contains(&Schema::Any) {
