@@ -299,7 +299,7 @@ impl ResultSet {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Default)]
 pub enum Schema {
     Unsat,
     Missing,
@@ -307,6 +307,7 @@ pub enum Schema {
     Array(Box<Schema>),
     Document(Document),
     AnyOf(BTreeSet<Schema>),
+    #[default]
     Any,
 }
 
@@ -554,6 +555,15 @@ impl Document {
             false => Some(self.keys.len()),
         };
         (min, max)
+    }
+
+    /// this function is just used for ergonomics in cases where we want to create
+    /// a key with a given schema only if it doesn't exist. This comes up largely in
+    /// schema derivation, where we are regularly mutating documents.
+    pub fn insert_if_not_exists(&mut self, key: String, schema: Schema) {
+        if !self.keys.contains_key(&key) {
+            self.keys.insert(key, schema);
+        }
     }
 }
 

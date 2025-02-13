@@ -42,7 +42,7 @@ fn derive_schema_for_pipeline(pipeline: Vec<Stage>, state: &mut ResultSetState) 
         state.result_set_schema = stage.derive_schema(state)?;
         Ok(())
     })?;
-    Ok(state.result_set_schema.clone())
+    Ok(std::mem::take(&mut state.result_set_schema))
 }
 
 impl DeriveSchema for Stage {
@@ -182,7 +182,7 @@ impl DeriveSchema for Stage {
                     // the schema of the field being unwound goes from type Array[X] to type X
                     match s {
                         Schema::Array(a) => {
-                            *s = *a.clone();
+                            *s = std::mem::take(a);
                         }
                         Schema::AnyOf(ao) => {
                             *s = Schema::simplify(&Schema::AnyOf(
