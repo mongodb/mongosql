@@ -14,8 +14,7 @@ These errors often occur when you use data types in an incorrect or invalid way.
 | ---------- |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [Error 1001](#error-1001)  | A function (e.g., Sin, Abs, Round) has the incorrect number of arguments.                                                                                                               |
 | [Error 1002](#error-1002)  | The specified operation (e.g., Sub, And, Substring) has argument(s) of the incorrect type (e.g., string, int).                                                                                |
-| [Error 1003](#error-1003)  | The argument provided to the aggregation is not of a type that is comparable to itself.                                                                                           |
-| [Error 1004](#error-1004)  | `COUNT(DISTINCT *)` is not supported.                                                                                                                                             |
+| [Error 1003](#error-1003)  | The argument provided to the aggregation is not of a type that is comparable to itself.                                                                                           |                                                                                                                                             |
 | [Error 1005](#error-1005)  | The specified comparison operation (e.g., Lte, Between) could not be done due to incomparable types of their operands (e.g., comparing an int to a string).                                   |
 | [Error 1007](#error-1007)  | Cannot access field, because it cannot be found (and likely doesn't exist).                                                                                                 |
 | [Error 1008](#error-1008)  | The cardinality of a subquery's result set may be greater than 1. The result set MUST have a cardinality of 0 or 1.                                                               |
@@ -104,12 +103,6 @@ The following errors occur when something goes wrong while using the excludeName
 - **Resolution Steps:** Only use AGGREGATE functions on columns of the appropriate type.
   If you want to AGGREGATE on a value within an `array` or `object`, use the UNWIND or FLATTEN data source keywords.
   Corrected example query: `SELECT * FROM myCol GROUP BY a AGGREGATE MIN(a) as min` where `a` is an `int`.
-
-### Error 1004
-
-- **Description:** `COUNT(DISTINCT *)` is not supported.
-- **Common Causes:** Any use of `COUNT(DISTINCT *)` (`SELECT COUNT(DISTINCT *) FROM foo`) is not supported.
-- **Resolution Steps:** Remove any use of `COUNT(DISTINCT *)` from your queries.
 
 ### Error 1005
 
