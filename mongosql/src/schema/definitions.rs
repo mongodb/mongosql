@@ -983,23 +983,19 @@ impl Schema {
                     })
                     .collect();
                 // Merge any document schemata in an AnyOf.
-                let (docs, non_doc_schemata): (Vec<_>, BTreeSet<_>) =
+                let (docs, mut non_doc_schemata): (Vec<_>, BTreeSet<_>) =
                     ret.into_iter().partition_map(|s| match s {
                         Schema::Document(d) => Either::Left(d),
                         _ => Either::Right(s),
                     });
-                let ret = if !docs.is_empty() {
+                if !docs.is_empty() {
                     let doc_schema = Schema::Document(
                         docs.into_iter()
                             .fold(Document::any(), |acc, s| acc.merge(s)),
                     );
-                    non_doc_schemata
-                        .into_iter()
-                        .chain(std::iter::once(doc_schema))
-                        .collect()
-                } else {
-                    non_doc_schemata
+                    non_doc_schemata.insert(doc_schema);
                 };
+                let ret = non_doc_schemata;
                 if ret.is_empty() {
                     Unsat
                 } else if ret.contains(&Schema::Any) {
