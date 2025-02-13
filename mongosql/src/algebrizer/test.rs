@@ -5651,7 +5651,7 @@ mod select_clause {
     use super::catalog;
     use crate::{
         ast, map,
-        mir::{self, binding_tuple::Key, schema::SchemaCache},
+        mir::{self, binding_tuple::Key, schema::SchemaCache, Expression, Project, Stage},
         multimap,
         schema::ANY_DOCUMENT,
         unchecked_unique_linked_hash_map,
@@ -5667,20 +5667,72 @@ mod select_clause {
     }
 
     test_algebrize!(
-        select_distinct_not_allowed,
+        select_values_distinct,
         method = algebrize_select_clause,
-        expected = Err(Error::DistinctSelect),
-        expected_error_code = 3005,
+        expected = Ok(Stage::Group(mir::Group {
+            source: Box::new(Stage::Project(Project {
+                is_add_fields: false,
+                source: Box::new(source()),
+                expression: map! {
+                    ("foo", 1u16).into() => Expression::Reference(("foo", 0u16).into()),
+                    ("bar", 1u16).into() => Expression::Reference(("bar", 0u16).into()),
+                },
+                cache: SchemaCache::new(),
+            })),
+            keys: vec![],
+            aggregations: vec![],
+            cache: SchemaCache::new(),
+            scope: 1,
+        })),
         input = ast::SelectClause {
             set_quantifier: ast::SetQuantifier::Distinct,
-            body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
-                ast::Expression::Identifier("foo".into())
-            ),]),
+            body: ast::SelectBody::Values(vec![
+                ast::SelectValuesExpression::Substar("foo".into()),
+                ast::SelectValuesExpression::Substar("bar".into())
+            ]),
+        },
+        source = source(),
+        env = map! {
+            ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
+            ("bar", 0u16).into() => ANY_DOCUMENT.clone(),
+        },
+        catalog = catalog(vec![("test", "baz")]),
+        is_add_fields = false,
+    );
+
+    test_algebrize!(
+        select_star_distinct,
+        method = algebrize_select_clause,
+        expected = Ok(Stage::Project(Project {
+            is_add_fields: false,
+            cache: SchemaCache::new(),
+            source: Box::new(Stage::Group(mir::Group {
+                source: Box::new(source()),
+                keys: vec![mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
+                    alias: "baz".into(),
+                    expr: Expression::Reference(("baz", 1u16).into()),
+                }),],
+                aggregations: vec![],
+                cache: SchemaCache::new(),
+                scope: 1,
+            })),
+            expression: map! {
+                ("baz", 1u16).into() => Expression::FieldAccess(mir::FieldAccess {
+                    expr: Box::new(Expression::Reference(Key::bot(1u16).into())),
+                    field: "baz".into(),
+                    is_nullable: false,
+                })
+            },
+        })),
+        input = ast::SelectClause {
+            set_quantifier: ast::SetQuantifier::Distinct,
+            body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star])
         },
         source = source(),
         env = map! {
             ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
         },
+        catalog = catalog(vec![("test", "baz")]),
         is_add_fields = false,
     );
     test_algebrize!(
