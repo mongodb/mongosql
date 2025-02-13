@@ -274,7 +274,7 @@ fn include_namespace_in_result_set_schema_keys(
         .map(|(k, v)| {
             let registry_value = mapping_registry.get(&k);
             match registry_value {
-                Some(registry_value) => Ok((registry_value.name.clone(), Schema::simplify(&v))),
+                Some(registry_value) => Ok((registry_value.name.clone(), v)),
                 None => Err(result::Error::Translator(
                     translator::Error::ReferenceNotFound(k),
                 )),
@@ -294,7 +294,7 @@ fn exclude_namespace_in_result_set_schema_keys(
                 if let Schema::Document(doc) = v {
                     doc.keys
                         .into_iter()
-                        .map(|(key, schema)| Ok((key, Schema::simplify(&schema))))
+                        .map(|(key, schema)| Ok((key, schema)))
                         .collect::<Vec<_>>()
                 } else {
                     vec![Err(result::Error::Translator(
