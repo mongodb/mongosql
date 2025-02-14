@@ -1342,7 +1342,7 @@ mod arithmetic {
             function: AggregationFunction::Sum,
             arg: Box::new(Expression::Reference(("foo", 0u16).into())),
             distinct: true,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::Any,

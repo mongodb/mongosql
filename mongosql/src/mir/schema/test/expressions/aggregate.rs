@@ -26,7 +26,7 @@ mod add_to_array {
             function: AggregationFunction::AddToArray,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -44,7 +44,7 @@ mod add_to_array {
             function: AggregationFunction::AddToArray,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: true,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -71,7 +71,7 @@ mod avg {
             function: AggregationFunction::Avg,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -86,7 +86,7 @@ mod avg {
             function: AggregationFunction::Avg,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -104,7 +104,7 @@ mod avg {
             function: AggregationFunction::Avg,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -122,7 +122,7 @@ mod avg {
             function: AggregationFunction::Avg,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Decimal),
@@ -140,7 +140,7 @@ mod avg {
             function: AggregationFunction::Avg,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Long),
@@ -161,7 +161,7 @@ mod avg {
             function: AggregationFunction::Avg,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Decimal),
@@ -177,7 +177,7 @@ mod avg {
             function: AggregationFunction::Avg,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -191,7 +191,7 @@ mod avg {
             function: AggregationFunction::Avg,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Decimal),
@@ -214,7 +214,7 @@ mod count {
             function: AggregationFunction::Count,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: true,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
@@ -238,7 +238,7 @@ mod count {
             function: AggregationFunction::Count,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -261,7 +261,7 @@ mod first {
             function: AggregationFunction::First,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: true,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
@@ -276,7 +276,7 @@ mod first {
             function: AggregationFunction::First,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -299,7 +299,7 @@ mod last {
             function: AggregationFunction::Last,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: true,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
@@ -314,7 +314,7 @@ mod last {
             function: AggregationFunction::Last,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -337,7 +337,7 @@ mod max {
             function: AggregationFunction::Max,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
@@ -353,7 +353,7 @@ mod max {
             function: AggregationFunction::Max,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: true,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
@@ -368,7 +368,7 @@ mod max {
             function: AggregationFunction::Max,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -395,7 +395,7 @@ mod merge_documents {
             function: AggregationFunction::MergeDocuments,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -415,7 +415,7 @@ mod merge_documents {
             function: AggregationFunction::MergeDocuments,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Document(Document {
         keys: map!{"foo".into() => Schema::Atomic(Atomic::Integer)},
@@ -440,7 +440,7 @@ mod min {
             function: AggregationFunction::Min,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
@@ -456,7 +456,7 @@ mod min {
             function: AggregationFunction::Min,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: true,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
@@ -471,7 +471,7 @@ mod min {
             function: AggregationFunction::Min,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -494,7 +494,7 @@ mod stddev_pop {
             function: AggregationFunction::StddevPop,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: true,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
@@ -514,7 +514,7 @@ mod stddev_pop {
             function: AggregationFunction::StddevPop,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -529,7 +529,7 @@ mod stddev_pop {
             function: AggregationFunction::StddevPop,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -547,7 +547,7 @@ mod stddev_pop {
             function: AggregationFunction::StddevPop,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -562,7 +562,7 @@ mod stddev_pop {
             function: AggregationFunction::StddevPop,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Decimal),
@@ -584,7 +584,7 @@ mod stddev_samp {
             function: AggregationFunction::StddevSamp,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: true,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
@@ -604,7 +604,7 @@ mod stddev_samp {
             function: AggregationFunction::StddevSamp,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -619,7 +619,7 @@ mod stddev_samp {
             function: AggregationFunction::StddevSamp,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -637,7 +637,7 @@ mod stddev_samp {
             function: AggregationFunction::StddevSamp,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -652,7 +652,7 @@ mod stddev_samp {
             function: AggregationFunction::StddevSamp,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Decimal),
@@ -674,7 +674,7 @@ mod sum {
             function: AggregationFunction::Sum,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: true,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => NON_SELF_COMPARABLE_SCHEMA.clone()},
     );
@@ -694,7 +694,7 @@ mod sum {
             function: AggregationFunction::Sum,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -712,7 +712,7 @@ mod sum {
             function: AggregationFunction::Sum,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -730,7 +730,7 @@ mod sum {
             function: AggregationFunction::Sum,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -748,7 +748,7 @@ mod sum {
             function: AggregationFunction::Sum,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
             distinct: false,
-            arg_is_possible_doc: false,
+            arg_is_possibly_doc: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),

@@ -1,3 +1,4 @@
+use crate::schema::ANY_DOCUMENT;
 use crate::{
     algebrizer::errors::Error,
     ast::{self, pretty_print::PrettyPrint},
@@ -1106,16 +1107,19 @@ impl<'a> Algebrizer<'a> {
                 return Err(Error::StarInNonCount);
             }
             ast::FunctionArguments::Args(ve) => {
+                let arg = if ve.len() != 1 {
+                    return Err(Error::AggregationFunctionMustHaveOneArgument);
+                } else {
+                    self.algebrize_expression(ve[0].clone(), false)?
+                };
                 mir::AggregationExpr::Function(mir::AggregationFunctionApplication {
                     function: mir::AggregationFunction::try_from(function)?,
-                    arg: Box::new({
-                        if ve.len() != 1 {
-                            return Err(Error::AggregationFunctionMustHaveOneArgument);
-                        }
-                        self.algebrize_expression(ve[0].clone(), false)?
-                    }),
+                    arg: Box::new(arg.clone()),
                     distinct,
-                    arg_is_possible_doc: false,
+                    arg_is_possibly_doc: arg
+                        .schema(&self.schema_inference_state())?
+                        .satisfies(&ANY_DOCUMENT.clone())
+                        != Satisfaction::Not,
                 })
             }
         };

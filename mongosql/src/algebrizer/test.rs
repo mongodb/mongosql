@@ -5177,7 +5177,7 @@ mod aggregation {
                 function: mir::AggregationFunction::Count,
                 distinct: false,
                 arg: mir::Expression::Literal(mir::LiteralValue::Integer(42)).into(),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -5196,7 +5196,7 @@ mod aggregation {
                 function: mir::AggregationFunction::Count,
                 distinct: true,
                 arg: mir::Expression::Literal(mir::LiteralValue::Integer(42)).into(),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -5245,7 +5245,7 @@ mod aggregation {
                 function: mir::AggregationFunction::Sum,
                 distinct: false,
                 arg: mir::Expression::Literal(mir::LiteralValue::Integer(42)).into(),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -5264,7 +5264,7 @@ mod aggregation {
                 function: mir::AggregationFunction::Sum,
                 distinct: true,
                 arg: mir::Expression::Literal(mir::LiteralValue::Integer(42)).into(),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -5301,7 +5301,7 @@ mod aggregation {
                 function: mir::AggregationFunction::Avg,
                 distinct: false,
                 arg: mir::Expression::Literal(mir::LiteralValue::Integer(42)).into(),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -5320,7 +5320,7 @@ mod aggregation {
                 function: mir::AggregationFunction::Avg,
                 distinct: true,
                 arg: mir::Expression::Literal(mir::LiteralValue::Integer(42)).into(),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -5358,7 +5358,7 @@ mod aggregation {
                 function: mir::AggregationFunction::StddevPop,
                 distinct: false,
                 arg: mir::Expression::Literal(mir::LiteralValue::Integer(42)).into(),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -5377,7 +5377,7 @@ mod aggregation {
                 function: mir::AggregationFunction::StddevPop,
                 distinct: true,
                 arg: mir::Expression::Literal(mir::LiteralValue::Integer(42)).into(),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -5414,7 +5414,7 @@ mod aggregation {
                 function: mir::AggregationFunction::StddevSamp,
                 distinct: false,
                 arg: mir::Expression::Literal(mir::LiteralValue::Integer(42)).into(),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -5433,7 +5433,7 @@ mod aggregation {
                 function: mir::AggregationFunction::StddevSamp,
                 distinct: true,
                 arg: mir::Expression::Literal(mir::LiteralValue::Integer(42)).into(),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -5470,7 +5470,7 @@ mod aggregation {
                 function: mir::AggregationFunction::AddToArray,
                 distinct: false,
                 arg: mir::Expression::Literal(mir::LiteralValue::Integer(42)).into(),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -5489,7 +5489,7 @@ mod aggregation {
                 function: mir::AggregationFunction::AddToArray,
                 distinct: true,
                 arg: mir::Expression::Literal(mir::LiteralValue::Integer(42)).into(),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -5509,7 +5509,7 @@ mod aggregation {
                 function: mir::AggregationFunction::AddToArray,
                 distinct: true,
                 arg: mir::Expression::Literal(mir::LiteralValue::Integer(42)).into(),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -5528,7 +5528,7 @@ mod aggregation {
                 function: mir::AggregationFunction::AddToArray,
                 distinct: true,
                 arg: mir::Expression::Literal(mir::LiteralValue::Integer(42)).into(),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -5548,7 +5548,7 @@ mod aggregation {
                 function: mir::AggregationFunction::First,
                 distinct: false,
                 arg: mir::Expression::Literal(mir::LiteralValue::Integer(42)).into(),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -5567,7 +5567,7 @@ mod aggregation {
                 function: mir::AggregationFunction::First,
                 distinct: true,
                 arg: mir::Expression::Literal(mir::LiteralValue::Integer(42)).into(),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -5587,7 +5587,7 @@ mod aggregation {
                 function: mir::AggregationFunction::Last,
                 distinct: false,
                 arg: mir::Expression::Literal(mir::LiteralValue::Integer(42)).into(),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -5606,7 +5606,7 @@ mod aggregation {
                 function: mir::AggregationFunction::Last,
                 distinct: true,
                 arg: mir::Expression::Literal(mir::LiteralValue::Integer(42)).into(),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -5632,7 +5632,7 @@ mod aggregation {
                     }
                     .into()
                 )),
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }
         )),
         input = ast::FunctionExpr {
@@ -7629,7 +7629,7 @@ mod group_by_clause {
                     is_nullable: false,
                 })),
                 distinct: true,
-                arg_is_possible_doc: false,
+                arg_is_possibly_doc: false,
             }),
         }
     }
