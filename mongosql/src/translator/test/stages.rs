@@ -294,6 +294,7 @@ mod group {
                             key: Key::named("foo", 0u16),
                         })
                         .into(),
+                        arg_is_possible_doc: false,
                     }),
                 },
                 mir::AliasedAggregation {
@@ -305,6 +306,7 @@ mod group {
                             key: Key::named("foo", 0u16),
                         })
                         .into(),
+                        arg_is_possible_doc: false,
                     }),
                 },
             ],

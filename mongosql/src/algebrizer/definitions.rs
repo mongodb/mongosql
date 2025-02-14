@@ -1115,6 +1115,7 @@ impl<'a> Algebrizer<'a> {
                         self.algebrize_expression(ve[0].clone(), false)?
                     }),
                     distinct,
+                    arg_is_possible_doc: false,
                 })
             }
         };

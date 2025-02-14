@@ -285,6 +285,7 @@ test_schema!(
                     function: AggregationFunction::First,
                     distinct: false,
                     arg: Expression::Literal(LiteralValue::Boolean(true)).into(),
+                    arg_is_possible_doc: false,
                 }),
             },
             AliasedAggregation {
@@ -293,6 +294,7 @@ test_schema!(
                     function: AggregationFunction::First,
                     distinct: false,
                     arg: Expression::Literal(LiteralValue::String("abc".into())).into(),
+                    arg_is_possible_doc: false,
                 }),
             },
         ],

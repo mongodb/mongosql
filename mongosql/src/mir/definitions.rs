@@ -219,6 +219,11 @@ pub struct AggregationFunctionApplication {
     pub function: AggregationFunction,
     pub distinct: bool,
     pub arg: Box<Expression>,
+
+    // Indicates if the argument is possibly a document. This is relevant
+    // for how COUNT works since we want to skip counting empty documents
+    // and documents that contain only null values.
+    pub arg_is_possible_doc: bool,
 }
 
 #[derive(PartialEq, Debug, Clone)]
