@@ -1510,6 +1510,8 @@ mod expression {
     mod untagged_operators {
         use crate::air;
         use agg_ast::definitions as agg_ast;
+        use linked_hash_map::LinkedHashMap;
+        use mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap;
 
         test_from_expr!(
             sql_op_one_arg,
@@ -1572,6 +1574,15 @@ mod expression {
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("b".to_string())),
                 ],
+            })
+        );
+
+        test_from_expr!(
+            dollar_literal_doc_becomes_document,
+            expected = air::Expression::Document(UniqueLinkedHashMap::new()),
+            input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
+                op: agg_ast::UntaggedOperatorName::Literal,
+                args: vec![agg_ast::Expression::Document(LinkedHashMap::new())],
             })
         );
 

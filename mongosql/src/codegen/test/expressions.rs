@@ -944,6 +944,15 @@ mod mql_semantic_operator {
     );
 
     test_codegen_expression!(
+        object_to_array,
+        expected = Ok(bson!({ "$objectToArray": [{ "$literal": "foo" }]})),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: ObjectToArray,
+            args: vec![Literal(String("foo".to_string())),],
+        })
+    );
+
+    test_codegen_expression!(
         is_number,
         expected = Ok(bson!({ "$isNumber": [{ "$literal": "foo" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -1025,6 +1034,15 @@ mod mql_semantic_operator {
         expected = Ok(bson!({ "$last": ["$foo"]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
             op: Last,
+            args: vec![FieldRef("foo".to_string().into())],
+        })
+    );
+
+    test_codegen_expression!(
+        all_elements_true,
+        expected = Ok(bson!({ "$allElementsTrue": ["$foo"]})),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: AllElementsTrue,
             args: vec![FieldRef("foo".to_string().into())],
         })
     );
@@ -1933,6 +1951,34 @@ mod regex_match {
             options: Some(Box::new(Literal(LiteralValue::String(
                 "options".to_string()
             ))),)
+        })
+    );
+}
+
+mod map {
+    use crate::air::{Expression::*, LiteralValue, Map};
+    use bson::bson;
+
+    test_codegen_expression!(
+        without_as,
+        expected =
+            Ok(bson!({ "$map": {"input": {"$literal": "input"}, "in": {"$literal": "inside"}}})),
+        input = Map(Map {
+            input: Box::new(Literal(LiteralValue::String("input".to_string()))),
+            as_name: None,
+            inside: Box::new(Literal(LiteralValue::String("inside".to_string()))),
+        })
+    );
+
+    test_codegen_expression!(
+        with_as,
+        expected = Ok(
+            bson!({ "$map": {"input": {"$literal": "input"}, "as": "x", "in": {"$literal": "inside"}}})
+        ),
+        input = Map(Map {
+            input: Box::new(Literal(LiteralValue::String("input".to_string()))),
+            as_name: Some("x".to_string()),
+            inside: Box::new(Literal(LiteralValue::String("inside".to_string()))),
         })
     );
 }

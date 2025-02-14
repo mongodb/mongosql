@@ -522,6 +522,11 @@ impl From<TaggedOperator> for air::Expression {
                     .into(),
             }),
             // Array operators
+            TaggedOperator::Map(m) => air::Expression::Map(air::Map {
+                input: m.input.into(),
+                as_name: m._as,
+                inside: m.inside.into(),
+            }),
             TaggedOperator::Reduce(r) => air::Expression::Reduce(air::Reduce {
                 input: r.input.into(),
                 init_value: r.initial_value.into(),
@@ -601,7 +606,7 @@ impl From<UntaggedOperator> for air::Expression {
             ast_op.args.into_iter().map(air::Expression::from).collect();
 
         // Special cases:
-        //   - $literal becomes a Literal
+        //   - $literal becomes a Literal or Document
         //   - $is/$sqlIs become an Is
         //   - $nullIf and $coalesce are SQL operators but don't start with $sql
         use agg_ast::definitions::UntaggedOperatorName;
@@ -610,6 +615,7 @@ impl From<UntaggedOperator> for air::Expression {
                 let arg = args.first().unwrap();
                 match arg {
                     air::Expression::Literal(_) => return arg.clone(),
+                    air::Expression::Document(_) => return arg.clone(),
                     _ => panic!("invalid $literal"),
                 }
             }
@@ -716,6 +722,7 @@ impl From<UntaggedOperator> for air::Expression {
             UntaggedOperatorName::In => mql_op!(air::MQLOperator::In),
             UntaggedOperatorName::First => mql_op!(air::MQLOperator::First),
             UntaggedOperatorName::Last => mql_op!(air::MQLOperator::Last),
+            UntaggedOperatorName::AllElementsTrue => mql_op!(air::MQLOperator::AllElementsTrue),
             UntaggedOperatorName::IndexOfCP => mql_op!(air::MQLOperator::IndexOfCP),
             UntaggedOperatorName::IndexOfBytes => mql_op!(air::MQLOperator::IndexOfBytes),
             UntaggedOperatorName::StrLenCP => mql_op!(air::MQLOperator::StrLenCP),
@@ -745,6 +752,7 @@ impl From<UntaggedOperator> for air::Expression {
             UntaggedOperatorName::ToLower => mql_op!(air::MQLOperator::ToLower),
             UntaggedOperatorName::Split => mql_op!(air::MQLOperator::Split),
             UntaggedOperatorName::MergeObjects => mql_op!(air::MQLOperator::MergeObjects),
+            UntaggedOperatorName::ObjectToArray => mql_op!(air::MQLOperator::ObjectToArray),
             UntaggedOperatorName::Type => mql_op!(air::MQLOperator::Type),
             UntaggedOperatorName::IsArray => mql_op!(air::MQLOperator::IsArray),
             UntaggedOperatorName::IsNumber => mql_op!(air::MQLOperator::IsNumber),

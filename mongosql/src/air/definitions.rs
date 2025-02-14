@@ -225,6 +225,7 @@ pub enum Expression {
     RegexMatch(RegexMatch),
     SqlDivide(SqlDivide),
     Trim(Trim),
+    Map(Map),
     Reduce(Reduce),
     Subquery(Subquery),
     SubqueryComparison(SubqueryComparison),
@@ -270,6 +271,7 @@ pub enum MQLOperator {
     In,
     First,
     Last,
+    AllElementsTrue,
 
     // Numeric value scalar functions
     IndexOfCP,
@@ -323,6 +325,9 @@ pub enum MQLOperator {
 
     // MergeObjects merges an array of objects
     MergeObjects,
+
+    // Object functions
+    ObjectToArray,
 
     // Type operators
     IsArray,
@@ -686,6 +691,13 @@ pub struct Trim {
     pub op: TrimOperator,
     pub input: Box<Expression>,
     pub chars: Box<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct Map {
+    pub input: Box<Expression>,
+    pub as_name: Option<String>,
+    pub inside: Box<Expression>,
 }
 
 #[derive(PartialEq, Debug, Clone)]

@@ -92,6 +92,7 @@ impl MqlCodeGenerator {
             In => "$in",
             First => "$first",
             Last => "$last",
+            AllElementsTrue => "$allElementsTrue",
 
             // Numeric value scalar functions
             IndexOfCP => "$indexOfCP",
@@ -145,6 +146,9 @@ impl MqlCodeGenerator {
 
             // MergeObjects merges an array of objects
             MergeObjects => "$mergeObjects",
+
+            // Object functions
+            ObjectToArray => "$objectToArray",
 
             //Type operators
             Type => "$type",
