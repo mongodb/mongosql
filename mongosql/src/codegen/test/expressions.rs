@@ -1973,7 +1973,7 @@ mod map {
     test_codegen_expression!(
         with_as,
         expected = Ok(
-            bson!({ "$map": {"input": {"$literal": "input"}, "as": "x", "in": {"$literal": "inside"}}})
+            bson!({ "$map": {"input": {"$literal": "input"}, "in": {"$literal": "inside"}, "as": "x"}})
         ),
         input = Map(Map {
             input: Box::new(Literal(LiteralValue::String("input".to_string()))),
