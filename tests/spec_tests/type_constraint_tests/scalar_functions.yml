@@ -1,27 +1,27 @@
 variables:
-  bson_date: &bson_date ["BSON_DATE", "NULL", "MISSING"]
-  string: &string ["STRING", "NULL", "MISSING"]
-  int: &int ["INT", "NULL", "MISSING"]
-  int_long: &int_long ["INT", "LONG", "NULL", "MISSING"]
-  numerics: &numerics ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL", "MISSING"]
+  bson_date: &bson_date ["BSON_DATE", "NULL"]
+  string: &string ["STRING", "NULL"]
+  int: &int ["INT", "NULL"]
+  int_long: &int_long ["INT", "LONG", "NULL"]
+  numerics: &numerics ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL"]
   comparisonValidTypes: &comparisonValidTypes
       - { "arg1": *string, "arg2": *string }
-      - { "arg1": ["BINDATA", "NULL", "MISSING"], "arg2": ["BINDATA", "NULL", "MISSING"] }
-      - { "arg1": ["NULL", "MISSING"], "arg2": ["NULL", "MISSING"] }
-      - { "arg1": ["OBJECTID", "NULL", "MISSING"], "arg2": ["OBJECTID", "NULL", "MISSING"] }
-      - { "arg1": ["BOOL", "NULL", "MISSING"], "arg2": ["BOOL", "NULL", "MISSING"] }
+      - { "arg1": ["BINDATA", "NULL"], "arg2": ["BINDATA", "NULL"] }
+      - { "arg1": ["NULL"], "arg2": ["NULL"] }
+      - { "arg1": ["OBJECTID", "NULL"], "arg2": ["OBJECTID", "NULL"] }
+      - { "arg1": ["BOOL", "NULL"], "arg2": ["BOOL", "NULL"] }
       - { "arg1": *bson_date, "arg2": *bson_date }
-      - { "arg1": ["REGEX", "NULL", "MISSING"], "arg2": ["REGEX", "NULL", "MISSING"] }
-      - { "arg1": ["DBPOINTER", "NULL", "MISSING"], "arg2": ["NULL", "MISSING"] }
-      - { "arg1": ["NULL", "MISSING"], "arg2": ["DBPOINTER", "NULL", "MISSING"] }
-      - { "arg1": ["JAVASCRIPT", "NULL", "MISSING"], "arg2": ["NULL", "MISSING"] }
-      - { "arg1": ["NULL", "MISSING"], "arg2": ["JAVASCRIPT", "NULL", "MISSING"] }
-      - { "arg1": ["SYMBOL", "NULL", "MISSING"], "arg2": ["SYMBOL", "NULL", "MISSING"] }
-      - { "arg1": ["JAVASCRIPTWITHSCOPE", "NULL", "MISSING"], "arg2": ["NULL", "MISSING"] }
-      - { "arg1": ["NULL", "MISSING"], "arg2": ["JAVASCRIPTWITHSCOPE", "NULL", "MISSING"] }
-      - { "arg1": ["BSON_TIMESTAMP", "NULL", "MISSING"], "arg2": ["BSON_TIMESTAMP", "NULL", "MISSING"] }
-      - { "arg1": ["MINKEY", "NULL", "MISSING"], "arg2": ["MINKEY", "NULL", "MISSING"] }
-      - { "arg1": ["MAXKEY", "NULL", "MISSING"], "arg2": ["MAXKEY", "NULL", "MISSING"] }
+      - { "arg1": ["REGEX", "NULL"], "arg2": ["REGEX", "NULL"] }
+      - { "arg1": ["DBPOINTER", "NULL"], "arg2": ["NULL"] }
+      - { "arg1": ["NULL"], "arg2": ["DBPOINTER", "NULL"] }
+      - { "arg1": ["JAVASCRIPT", "NULL"], "arg2": ["NULL"] }
+      - { "arg1": ["NULL"], "arg2": ["JAVASCRIPT", "NULL"] }
+      - { "arg1": ["SYMBOL", "NULL"], "arg2": ["SYMBOL", "NULL"] }
+      - { "arg1": ["JAVASCRIPTWITHSCOPE", "NULL"], "arg2": ["NULL"] }
+      - { "arg1": ["NULL"], "arg2": ["JAVASCRIPTWITHSCOPE", "NULL"] }
+      - { "arg1": ["BSON_TIMESTAMP", "NULL"], "arg2": ["BSON_TIMESTAMP", "NULL"] }
+      - { "arg1": ["MINKEY", "NULL"], "arg2": ["MINKEY", "NULL"] }
+      - { "arg1": ["MAXKEY", "NULL"], "arg2": ["MAXKEY", "NULL"] }
       - { "arg1": *numerics, "arg2": *numerics }
 
 tests:
@@ -33,7 +33,7 @@ tests:
   - description: SIZE operand must have type ARRAY or NULL, or be MISSING
     query: "SELECT SIZE(arg1) FROM foo"
     valid_types:
-      - { "arg1": ["ARRAY", "NULL", "MISSING"] }
+      - { "arg1": ["ARRAY", "NULL"] }
 
   - description: POSITION operands must have type STRING or NULL, or be MISSING
     query: "SELECT POSITION(arg1 IN arg2) FROM foo"

@@ -1,28 +1,28 @@
 variables:
-  bool: &bool ["BOOL", "NULL", "MISSING"]
-  string: &string ["STRING", "NULL", "MISSING"]
-  numerics: &numerics ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL", "MISSING"]
+  bool: &bool ["BOOL", "NULL"]
+  string: &string ["STRING", "NULL"]
+  numerics: &numerics ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL"]
   comparisonValidTypes: &comparisonValidTypes
     - { "arg1": *string, "arg2": *string }
-    - { "arg1": ["DOCUMENT", "NULL", "MISSING"], "arg2": ["DOCUMENT", "NULL", "MISSING"] }
-    - { "arg1": ["ARRAY", "NULL", "MISSING"], "arg2": ["ARRAY", "NULL", "MISSING"] }
-    - { "arg1": ["BINDATA", "NULL", "MISSING"], "arg2": ["BINDATA", "NULL", "MISSING"] }
-    - { "arg1": ["UNDEFINED", "NULL", "MISSING"], "arg2": ["UNDEFINED", "NULL", "MISSING"] }
-    - { "arg1": ["OBJECTID", "NULL", "MISSING"], "arg2": ["OBJECTID", "NULL", "MISSING"] }
+    - { "arg1": ["DOCUMENT", "NULL"], "arg2": ["DOCUMENT", "NULL"] }
+    - { "arg1": ["ARRAY", "NULL"], "arg2": ["ARRAY", "NULL"] }
+    - { "arg1": ["BINDATA", "NULL"], "arg2": ["BINDATA", "NULL"] }
+    - { "arg1": ["UNDEFINED", "NULL"], "arg2": ["UNDEFINED", "NULL"] }
+    - { "arg1": ["OBJECTID", "NULL"], "arg2": ["OBJECTID", "NULL"] }
     - { "arg1": *bool, "arg2": *bool }
-    - { "arg1": ["BSON_DATE", "NULL", "MISSING"], "arg2": ["BSON_DATE", "NULL", "MISSING"] }
-    - { "arg1": ["NULL", "MISSING"], "arg2": ["NULL", "MISSING"] }
-    - { "arg1": ["REGEX", "NULL", "MISSING"], "arg2": ["REGEX", "NULL", "MISSING"] }
-    - { "arg1": ["DBPOINTER", "NULL", "MISSING"], "arg2": ["NULL", "MISSING"] }
-    - { "arg1": ["NULL", "MISSING"], "arg2": ["DBPOINTER", "NULL", "MISSING"] }
-    - { "arg1": ["JAVASCRIPT", "NULL", "MISSING"], "arg2": ["NULL", "MISSING"] }
-    - { "arg1": ["NULL", "MISSING"], "arg2": ["JAVASCRIPT", "NULL", "MISSING"] }
-    - { "arg1": ["SYMBOL", "NULL", "MISSING"], "arg2": ["SYMBOL", "NULL", "MISSING"] }
-    - { "arg1": ["JAVASCRIPTWITHSCOPE", "NULL", "MISSING"], "arg2": ["NULL", "MISSING"] }
-    - { "arg1": ["NULL", "MISSING"], "arg2": ["JAVASCRIPTWITHSCOPE", "NULL", "MISSING"] }
-    - { "arg1": ["BSON_TIMESTAMP", "NULL", "MISSING"], "arg2": ["BSON_TIMESTAMP", "NULL", "MISSING"] }
-    - { "arg1": ["MINKEY", "NULL", "MISSING"], "arg2": ["MINKEY", "NULL", "MISSING"] }
-    - { "arg1": ["MAXKEY", "NULL", "MISSING"], "arg2": ["MAXKEY", "NULL", "MISSING"] }
+    - { "arg1": ["BSON_DATE", "NULL"], "arg2": ["BSON_DATE", "NULL"] }
+    - { "arg1": ["NULL"], "arg2": ["NULL"] }
+    - { "arg1": ["REGEX", "NULL"], "arg2": ["REGEX", "NULL"] }
+    - { "arg1": ["DBPOINTER", "NULL"], "arg2": ["NULL"] }
+    - { "arg1": ["NULL"], "arg2": ["DBPOINTER", "NULL"] }
+    - { "arg1": ["JAVASCRIPT", "NULL"], "arg2": ["NULL"] }
+    - { "arg1": ["NULL"], "arg2": ["JAVASCRIPT", "NULL"] }
+    - { "arg1": ["SYMBOL", "NULL"], "arg2": ["SYMBOL", "NULL"] }
+    - { "arg1": ["JAVASCRIPTWITHSCOPE", "NULL"], "arg2": ["NULL"] }
+    - { "arg1": ["NULL"], "arg2": ["JAVASCRIPTWITHSCOPE", "NULL"] }
+    - { "arg1": ["BSON_TIMESTAMP", "NULL"], "arg2": ["BSON_TIMESTAMP", "NULL"] }
+    - { "arg1": ["MINKEY", "NULL"], "arg2": ["MINKEY", "NULL"] }
+    - { "arg1": ["MAXKEY", "NULL"], "arg2": ["MAXKEY", "NULL"] }
     - { "arg1": *numerics, "arg2": *numerics }
 
 tests:

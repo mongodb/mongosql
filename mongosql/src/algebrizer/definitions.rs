@@ -2062,14 +2062,14 @@ impl<'a> Algebrizer<'a> {
         // If we find exactly one datasource that May or Must contain
         // the field `i`, we return `datasource.i`. If there is more
         // than one, it is an ambiguous error.
-        let mut i_containing_datasources = dbg!(&self.schema_env)
+        let mut i_containing_datasources = self
+            .schema_env
             .iter()
             .filter(|(_, schema)| {
                 let sat = schema.contains_field(i.as_ref());
                 sat == Satisfaction::May || sat == Satisfaction::Must
             })
             .collect::<Vec<_>>();
-        dbg!(&i_containing_datasources);
         // If there is no datasource containing the field, the field is not found.
         if i_containing_datasources.is_empty() {
             let all_keys = self
