@@ -95,6 +95,42 @@ tests:
           },
       }
 
+  - name: "desugar non-distinct $sqlCount single column arg literal non-null value gets optimized"
+    input:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sqlCount": { "var": { "$literal": 1 }, "distinct": false } },
+          },
+      }
+    expected:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sum": { "$literal": 1 } }
+          },
+      }
+
+  - name: "desugar non-distinct $sqlCount single column arg literal null value gets optimized"
+    input:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sqlCount": { "var": { "$literal": null }, "distinct": false } },
+          },
+      }
+    expected:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sum": { "$literal": 0 } }
+          },
+      }
+
   - name: "desugar non-distinct $sqlCount multi-column arg"
     input:
       - {

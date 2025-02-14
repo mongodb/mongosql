@@ -15,23 +15,29 @@ use mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap;
 
 macro_rules! make_single_expr_count_conditional {
     ($arg:expr, $then:expr, $else:expr) => {
-        Box::new(make_cond_expr!(
-            MQLSemanticOperator(MQLSemanticOperator {
-                op: MQLOperator::In,
-                args: vec![
-                    MQLSemanticOperator(MQLSemanticOperator {
-                        op: MQLOperator::Type,
-                        args: vec![$arg],
-                    }),
-                    Array(vec![
-                        Literal(LiteralValue::String("missing".to_string())),
-                        Literal(LiteralValue::String("null".to_string())),
-                    ]),
-                ],
-            }),
-            $then,
-            $else
-        ))
+        Box::new(match $arg {
+            // No need to create a conditional if the argument is a literal value.
+            // We know null will result in 0 and non-null will result in 1.
+            Literal(LiteralValue::Null) => Literal(LiteralValue::Integer(0)),
+            Literal(_) => Literal(LiteralValue::Integer(1)),
+            _ => make_cond_expr!(
+                MQLSemanticOperator(MQLSemanticOperator {
+                    op: MQLOperator::In,
+                    args: vec![
+                        MQLSemanticOperator(MQLSemanticOperator {
+                            op: MQLOperator::Type,
+                            args: vec![$arg],
+                        }),
+                        Array(vec![
+                            Literal(LiteralValue::String("missing".to_string())),
+                            Literal(LiteralValue::String("null".to_string())),
+                        ]),
+                    ],
+                }),
+                $then,
+                $else
+            ),
+        })
     };
 }
 
