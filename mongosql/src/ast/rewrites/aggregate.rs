@@ -3,6 +3,7 @@ use crate::ast::{
     pretty_print::PrettyPrint,
     rewrites::{Error, Pass, Result},
     visitor::Visitor,
+    GroupByClause,
 };
 use linked_hash_map::LinkedHashMap;
 
@@ -18,8 +19,16 @@ impl Pass for AggregateRewritePass {
             return Err(visitor.error.unwrap());
         }
 
-        // If there's no error from the first visitor, use the second
-        // visitor to safely create aliases for any aggregation functions.
+        // Next, if there is no error from the first visitor, use the second
+        // visitor to rewrite multi-arg COUNT operations to single-arg versions.
+        let mut visitor = MultiArgCountVisitor::default();
+        let query = visitor.visit_query(query);
+        if visitor.error.is_some() {
+            return Err(visitor.error.unwrap());
+        }
+
+        // Finally, if there's no error from either previous visitor, use the
+        // third visitor to safely create aliases for any aggregation functions.
         let query = AggregateAliasingVisitor::default().visit_query(query);
 
         // Use the third visitor to rewrite aggregation functions that
@@ -161,6 +170,59 @@ impl Visitor for AggregateUsageCheckVisitor {
                 e
             }
             _ => e.walk(self),
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct MultiArgCountVisitor {
+    pub error: Option<Error>,
+}
+
+impl Visitor for MultiArgCountVisitor {
+    fn visit_group_by_clause(&mut self, node: GroupByClause) -> GroupByClause {
+        let aggregations = node
+            .aggregations
+            .into_iter()
+            .map(|agg_func| match agg_func.expr {
+                ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::Count,
+                    args: ast::FunctionArguments::Args(args),
+                    set_quantifier,
+                }) if args.len() > 1 => {
+                    let doc: Vec<ast::DocumentPair> = args
+                        .into_iter()
+                        .map(|arg| {
+                            let ast::Expression::Identifier(key) = arg.clone() else {
+                                self.error = Some(Error::InvalidMultiArgCountArg);
+                                // Doesn't matter what we return since the error is now set.
+                                return ast::DocumentPair {
+                                    key: "".to_string(),
+                                    value: arg,
+                                };
+                            };
+                            ast::DocumentPair { key, value: arg }
+                        })
+                        .collect();
+
+                    ast::AliasedExpr {
+                        alias: agg_func.alias.clone(),
+                        expr: ast::Expression::Function(ast::FunctionExpr {
+                            function: ast::FunctionName::Count,
+                            args: ast::FunctionArguments::Args(vec![ast::Expression::Document(
+                                doc,
+                            )]),
+                            set_quantifier: set_quantifier.clone(),
+                        }),
+                    }
+                }
+                _ => agg_func,
+            })
+            .collect();
+
+        GroupByClause {
+            keys: node.keys,
+            aggregations,
         }
     }
 }
