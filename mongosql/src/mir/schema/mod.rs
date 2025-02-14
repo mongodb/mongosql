@@ -413,7 +413,7 @@ impl CachedSchema for Stage {
                 let schema_env = merge_bot_any_of_document_schemas(state.scope_level, schema_env);
 
                 Ok(ResultSet {
-                    schema_env,
+                    schema_env: schema_env.simplify(),
                     min_size: source_result_set.min_size,
                     max_size,
                 })

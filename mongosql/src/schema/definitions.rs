@@ -104,6 +104,17 @@ mod user_schema_error {
 pub struct SchemaEnvironment(BindingTuple<Schema>);
 
 impl SchemaEnvironment {
+    /// Simplifies the SchemaEnvironment by calling Schema::simplify on each
+    /// Schema in the SchemaEnvironment.
+    pub fn simplify(self) -> Self {
+        SchemaEnvironment(
+            self.0
+                .into_iter()
+                .map(|(k, v)| (k, Schema::simplify(&v)))
+                .collect(),
+        )
+    }
+
     /// Takes all Datasource-Schema key-value pairs from a SchemaEnvironment
     /// and adds them to the current SchemaEnvironment, returning the modified
     /// SchemaEnvironment.
@@ -991,7 +1002,7 @@ impl Schema {
                 if !docs.is_empty() {
                     let doc_schema = Schema::Document(
                         docs.into_iter()
-                            .fold(Document::any(), |acc, s| acc.merge(s)),
+                            .fold(Document::default(), |acc, s| acc.merge(s)),
                     );
                     non_doc_schemata.insert(doc_schema);
                 };
