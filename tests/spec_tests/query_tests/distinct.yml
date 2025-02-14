@@ -1,0 +1,132 @@
+catalog_data:
+  db:
+    foo:
+      - { _id: 1, a: 1, b: 2 }
+      - { _id: 2, a: 1, b: 2 }
+      - { _id: 3, a: 2, b: 2 }
+      - { _id: 4, b: 2, a: 1 }
+      - { _id: 5, a: 2, b: 2, c: true, d: "a", e: null }
+      - { _id: 6, a: 2, b: 2, c: true, d: "a", e: null }
+
+    documents:
+      - { _id: 1, doc: { a: 1, b: 2 } }
+      - { _id: 2, doc: { a: 1, b: 2 } }
+      - { _id: 3, doc: { a: 2, b: 2 } }
+      - { _id: 4, doc: { a: 2, b: 3 } }
+      - { _id: 5, doc: { b: 2, a: 1 } }
+
+    arrays:
+      - { _id: 1, arr: [1, 2, 3] }
+      - { _id: 2, arr: [1, 2, 3] }
+      - { _id: 3, arr: [2, 3, 4] }
+      - { _id: 4, arr: [3, 2, 1] }
+
+catalog_schema:
+  {
+    "db": {
+      "foo": {
+        "bsonType": "object",
+        "required": ["_id", "a", "b"],
+        "additionalProperties": false,
+        "properties": {
+          "_id":   { "bsonType": "int" },
+          "a":     { "bsonType": "int" },
+          "b":     { "bsonType": "int" },
+          "c": {
+            "anyOf": [
+              { "bsonType": "bool" },
+              { "bsonType": "null" }
+            ]
+          },
+          "d": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": "null" }
+            ]
+          },
+          "e": {
+            "bsonType": "null"
+          }
+        }
+      },
+      "documents": {
+        "bsonType": "object",
+        "required": ["_id", "doc"],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "doc": {
+            "bsonType": "object",
+            "required": ["a", "b"],
+            "properties": {
+              "a": { "bsonType": "int" },
+              "b": { "bsonType": "int" }
+            }
+          }
+        }
+      },
+      "arrays": {
+        "bsonType": "object",
+        "required": ["_id", "arr"],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "arr": {
+            "bsonType": "array",
+            "items": { "bsonType": "int" }
+          }
+        }
+      }
+    }
+  }
+
+tests:
+  - description: "SELECT DISTINCT * from distinct ensures unique rows for entire document"
+    query: "SELECT DISTINCT * FROM db.foo"
+    result:
+      - { 'foo': { "_id": 1, "a": 1, "b": 2 } }
+      - { 'foo': { "_id": 2, "a": 1, "b": 2 } }
+      - { 'foo': { "_id": 3, "a": 2, "b": 2 } }
+      - { 'foo': { "_id": 4, "a": 1, "b": 2 } }
+      - { 'foo': { "_id": 5, "a": 2, "b": 2, "c": true, "d": "a", "e": null } }
+      - { 'foo': { "_id": 6, "a": 2, "b": 2, "c": true, "d": "a", "e": null } }
+
+  - description: "SELECT DISTINCT * on derived table omitting _id selects unique rows"
+    query: |
+      SELECT DISTINCT *
+      FROM (
+        SELECT a, b, c
+        FROM db.foo
+      ) AS t
+    result:
+      - { 't': { "a": 1, "b": 2 } }
+      - { 't': { "a": 2, "b": 2 } }
+      - { 't': { "a": 2, "b": 2, "c": true } }
+
+  - description: "SELECT DISTINCT columns ensures we see unique values"
+    query: "SELECT DISTINCT a, b FROM db.foo"
+    result:
+      - { '': { "a": 1, "b": 2 } }
+      - { '': { "a": 2, "b": 2 } }
+
+  - description: "SELECT DISTINCT columns with alias"
+    query: "SELECT DISTINCT a as col1, b as col2 FROM db.foo"
+    result:
+      - { '': { "col1": 1, "col2": 2 } }
+      - { '': { "col1": 2, "col2": 2 } }
+
+  - description: "SELECT DISTINCT document column of repeated documents"
+    query: "SELECT DISTINCT doc FROM db.documents"
+    result:
+      - { '': { "doc": { "a": 1, "b": 2 } } }
+      - { '': { "doc": { "a": 2, "b": 2 } } }
+      - { '': { "doc": { "a": 2, "b": 3 } } }
+      - { '': { "doc": { "b": 2, "a": 1 } } }
+
+  - description: "SELECT DISTINCT arr checking deduplication of repeated arrays"
+    query: "SELECT DISTINCT arr FROM db.arrays"
+    result:
+      - { '': { "arr": [1, 2, 3] } }
+      - { '': { "arr": [2, 3, 4] } }
+      - { '': { "arr": [3, 2, 1] } }
+

@@ -1,3 +1,4 @@
+use crate::mir::{AliasedExpr, DocumentExpr, Expression, OptionallyAliasedExpr, ReferenceExpr};
 use crate::{
     algebrizer::errors::Error,
     ast::{self, pretty_print::PrettyPrint},
@@ -384,6 +385,7 @@ impl<'a> Algebrizer<'a> {
         exprs: Vec<ast::SelectValuesExpression>,
         source: mir::Stage,
         is_add_fields: bool,
+        is_distinct: bool,
     ) -> Result<mir::Stage> {
         let expression_algebrizer = self.clone();
         // Algebrization for every node that has a source should get the schema for the source.
@@ -475,14 +477,61 @@ impl<'a> Algebrizer<'a> {
         }
 
         // Build the Project Stage using the source and built expression.
-        let stage = mir::Stage::Project(mir::Project {
+        let project_stage = mir::Stage::Project(mir::Project {
             source: Box::new(source),
-            expression,
+            expression: expression.clone(),
             is_add_fields,
             cache: SchemaCache::new(),
         });
-        stage.schema(&self.schema_inference_state())?;
-        Ok(stage)
+        project_stage.schema(&self.schema_inference_state())?;
+        Ok(if is_distinct {
+            let group_stage = Self::build_distinct_values_group_stage(
+                &expression,
+                project_stage,
+                self.scope_level,
+            );
+            group_stage.schema(&self.schema_inference_state())?;
+            group_stage
+        } else {
+            project_stage
+        })
+    }
+
+    fn build_distinct_values_group_stage(
+        project_tuple: &BindingTuple<Expression>,
+        source_stage: mir::Stage,
+        scope_level: u16,
+    ) -> mir::Stage {
+        let mut group_keys: Vec<OptionallyAliasedExpr> = Vec::new();
+
+        for (key, expr) in project_tuple.iter() {
+            if key.datasource == DatasourceName::Bottom && key.scope == scope_level {
+                if let Expression::Document(DocumentExpr { document }) = expr {
+                    for (field_name, field_expr) in document.iter() {
+                        let alias = field_name.to_string();
+                        let group_key_expr = Expression::FieldAccess(FieldAccess {
+                            expr: Box::new(Expression::Reference(ReferenceExpr {
+                                key: key.clone(),
+                            })),
+                            field: field_name.to_string(),
+                            is_nullable: field_expr.is_nullable(),
+                        });
+                        let group_key = OptionallyAliasedExpr::Aliased(AliasedExpr {
+                            alias: alias.clone(),
+                            expr: group_key_expr,
+                        });
+                        group_keys.push(group_key);
+                    }
+                }
+            }
+        }
+        mir::Stage::Group(mir::Group {
+            source: Box::new(source_stage),
+            keys: group_keys,
+            aggregations: vec![],
+            cache: Default::default(),
+            scope: scope_level,
+        })
     }
 
     pub fn algebrize_from_clause(&self, ast_node: Option<ast::Datasource>) -> Result<mir::Stage> {
@@ -904,30 +953,87 @@ impl<'a> Algebrizer<'a> {
         is_add_fields: bool,
     ) -> Result<mir::Stage> {
         *self.clause_type.borrow_mut() = ClauseType::Select;
-        match ast_node.set_quantifier {
-            ast::SetQuantifier::All => (),
-            ast::SetQuantifier::Distinct => return Err(Error::DistinctSelect),
-        };
 
-        match ast_node.body {
-            // Standard Select bodies must be only *, otherwise this is an
-            // error.
-            ast::SelectBody::Standard(exprs) => match exprs.as_slice() {
-                [ast::SelectExpression::Star] => {
-                    source.schema(&self.schema_inference_state())?;
-                    Ok(source)
+        match ast_node.set_quantifier {
+            ast::SetQuantifier::All => match ast_node.body {
+                // Standard Select bodies must be only *, otherwise this is an
+                // error.
+                ast::SelectBody::Standard(exprs) => match exprs.as_slice() {
+                    [ast::SelectExpression::Star] => {
+                        source.schema(&self.schema_inference_state())?;
+                        Ok(source)
+                    }
+                    _ => Err(Error::NonStarStandardSelectBody),
+                },
+                // SELECT VALUES expressions must be Substar expressions or normal Expressions that are
+                // Documents, i.e., that have Schema that Must satisfy ANY_DOCUMENT.
+                //
+                // All normal Expressions will be mapped as Datasource Bottom, and all Substars will be mapped
+                // as their name as a Datasource.
+                ast::SelectBody::Values(exprs) => {
+                    self.algebrize_select_values_body(exprs, source, is_add_fields, false)
                 }
-                _ => Err(Error::NonStarStandardSelectBody),
             },
-            // SELECT VALUES expressions must be Substar expressions or normal Expressions that are
-            // Documents, i.e., that have Schema that Must satisfy ANY_DOCUMENT.
-            //
-            // All normal Expressions will be mapped as Datasource Bottom, and all Substars will be mapped
-            // as their name as a Datasource.
-            ast::SelectBody::Values(exprs) => {
-                self.algebrize_select_values_body(exprs, source, is_add_fields)
-            }
+            ast::SetQuantifier::Distinct => match ast_node.body {
+                ast::SelectBody::Standard(exprs) => match exprs.as_slice() {
+                    [ast::SelectExpression::Star] => self.build_distinct_star_project_stage(source),
+                    _ => Err(Error::NonStarStandardSelectBody),
+                },
+                ast::SelectBody::Values(exprs) => {
+                    self.algebrize_select_values_body(exprs, source, is_add_fields, true)
+                }
+            },
         }
+    }
+
+    fn build_distinct_star_project_stage(&self, source: mir::Stage) -> Result<mir::Stage> {
+        source.schema(&self.schema_inference_state())?;
+
+        let source_result_set = source.schema(&self.schema_inference_state())?;
+        let mut ds_names = source_result_set
+            .schema_env
+            .keys()
+            .filter_map(|key| match &key.datasource {
+                DatasourceName::Named(n) => Some((n.clone(), key.clone())),
+                DatasourceName::Bottom => None,
+            })
+            .collect::<Vec<(String, Key)>>();
+
+        let (table_name, _) = ds_names.remove(0);
+        let group_stage = mir::Stage::Group(mir::Group {
+            source: Box::new(source),
+            keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
+                alias: table_name.clone(),
+                expr: Expression::Reference(ReferenceExpr {
+                    key: Key::named(table_name.as_str(), self.scope_level),
+                }),
+            })],
+            aggregations: vec![],
+            cache: SchemaCache::new(),
+            scope: self.scope_level,
+        });
+
+        let project = mir::Stage::Project(mir::Project {
+            source: Box::new(group_stage),
+            expression: {
+                let mut bt = BindingTuple::new();
+                bt.insert(
+                    Key::named(table_name.as_str(), self.scope_level),
+                    Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(ReferenceExpr {
+                            key: Key::bot(self.scope_level),
+                        })),
+                        field: table_name.clone(),
+                        is_nullable: false,
+                    }),
+                );
+                bt
+            },
+            is_add_fields: false,
+            cache: SchemaCache::new(),
+        });
+        project.schema(&self.schema_inference_state())?;
+        Ok(project)
     }
 
     // This function is used to algebrize a Select and Order By clause together. This is necessary
