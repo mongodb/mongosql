@@ -800,6 +800,48 @@ functions:
           echo "---------------------------------------------"
           echo "<<<< Done scanning SBOM"
 
+  "generate static code analysis":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+          export SEMGREP_APP_TOKEN=${semgrep_app_token}
+          echo "Running static code analysis with Semgrep..."
+          
+          # Setup or use the existing virtualenv for semgrep
+          if [[ -f "venv/bin/activate" ]]; then
+              echo 'using existing virtualenv'
+              . venv/bin/activate
+          else
+              echo 'Creating new virtualenv'
+              python3 -m virtualenv venv
+              echo 'Activating new virtualenv'
+              . venv/bin/activate
+          fi
+          python3 -m pip install semgrep
+          # Confirm semgrep version
+          semgrep --version
+          set +e
+          timestamp=$(date +'%Y-%m-%dT%H_%M_%S')
+          semgrep --config p/rust --metrics=off --sarif --exclude "benchmark" --verbose --error --severity=ERROR --sarif-output=mongosqltranslate_$timestamp.sast.sarif > mongosqltranslate.sast.cmd.verbose.out 2>&1
+          SCAN_RESULT=$?
+          set -e
+          # Exit with a failure if the scan found an issue
+          exit $SCAN_RESULT
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_files_include_filter:
+          - mongosqltranslate*.sast.*
+        remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/
+        content_type: text/plain
+        bucket: mciuploads
+        permissions: public-read
+
 tasks:
   - name: clippy
     commands:
@@ -1198,6 +1240,10 @@ tasks:
     commands:
       - func: "generate memory usage tasks"
 
+  - name: semgrep
+    commands:
+      - func: "generate static code analysis"
+
 buildvariants:
   - name: static-analysis
     display_name: "* Static Analysis"
@@ -1318,3 +1364,9 @@ buildvariants:
     run_on: [ubuntu1804-large]
     tasks:
       - name: release
+
+  - name: code-security
+    display_name: "Code Security"
+    run_on: [ubuntu2204-small]
+    tasks:
+      - name: semgrep
