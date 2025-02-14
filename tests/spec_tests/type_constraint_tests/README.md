@@ -42,7 +42,7 @@ A type constraint test is specified as a three field yaml structure:
                multiple maps.
 
                The type lists are specified as arrays of strings. Each element
-               must be either a MongoSQL type name (i.e. "INT", "BOOL", "NULL", etc.)
+               must be a MongoSQL type name (i.e. "INT", "BOOL", "NULL", etc.)
 
                See the example at the end of this section for reference.
 ```
