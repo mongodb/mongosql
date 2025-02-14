@@ -3,8 +3,8 @@ This directory contains type constraint tests for MongoSQL clauses and expressio
 A type constraint test verifies that an expression meets static type requirements.
 For example, the arithmetic operators (`+`, `-`, `*`, `/`) statically require that
 their operands' types be numeric or `NULL`. Because these tests generate Schema for
-every value, we cannot handle MISSING because MISSING would imply that a field never exists.
-MISSING can only occur in conjunction with other Schema.
+every value, we cannot handle MISSING because MISSING would imply that a field
+never exists. MISSING can only occur in conjunction with other Schema.
 
 There are many MongoSQL expressions and clauses that have static type constraints,
 and each one has many valid type combinations. To avoid an explosion in the number
