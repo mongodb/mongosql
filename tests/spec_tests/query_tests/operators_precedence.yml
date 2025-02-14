@@ -199,7 +199,7 @@ tests:
   - description: comparison ops bind tighter than BETWEEN
     current_db: db
     query: "SELECT VALUE {'v': a = b BETWEEN c AND d} FROM [{'a': 1.5, 'b': 1.5, 'c': 1, 'd': 2}] AS arr"
-    algebrize_error: "invalid comparison for Between: Atomic(Boolean) cannot be compared to AnyOf({Atomic(Integer)})"
+    algebrize_error: "failed to translate query: algebrize error: Error 1005: Invalid use of `Between` due to incomparable types: `boolean` cannot be compared to `int`"
 
   # The expression
   #
