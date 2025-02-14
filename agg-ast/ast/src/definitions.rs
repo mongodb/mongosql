@@ -1115,6 +1115,12 @@ pub enum UntaggedOperatorName {
     Type,
 }
 
+impl std::fmt::Display for UntaggedOperatorName {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", serde_json::to_string(self).unwrap())
+    }
+}
+
 impl TryFrom<&str> for UntaggedOperatorName {
     type Error = String;
 
@@ -1150,6 +1156,10 @@ pub enum TaggedOperator {
     Like(Like),
     #[serde(rename = "$regexMatch")]
     Regex(RegexAggExpression),
+    #[serde(rename = "$regexFind")]
+    RegexFind(RegexAggExpression),
+    #[serde(rename = "$regexFindAll")]
+    RegexFindAll(RegexAggExpression),
     #[serde(rename = "$sqlDivide")]
     SQLDivide(SQLDivide),
     #[serde(rename = "$trim")]
@@ -1158,16 +1168,12 @@ pub enum TaggedOperator {
     LTrim(Trim),
     #[serde(rename = "$rtrim")]
     RTrim(Trim),
+    #[serde(rename = "$replaceAll")]
+    ReplaceAll(Replace),
+    #[serde(rename = "$replaceOne")]
+    ReplaceOne(Replace),
 
     // Subquery Operators (extended from MQL)
-    #[serde(rename = "$regexFind")]
-    RegexFind(RegexFind),
-    #[serde(rename = "$regexFindAll")]
-    RegexFindAll(RegexFindAll),
-    #[serde(rename = "$replaceAll")]
-    ReplaceAll(ReplaceAll),
-    #[serde(rename = "$replaceOne")]
-    ReplaceOne(ReplaceOne),
     #[serde(rename = "$subquery")]
     Subquery(Subquery),
     #[serde(rename = "$subqueryComparison")]
@@ -1415,35 +1421,7 @@ pub struct MinNArrayElement {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct RegexMatch {
-    pub input: Box<Expression>,
-    pub regex: Box<Expression>,
-    pub options: Option<Box<Expression>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct RegexFind {
-    pub input: Box<Expression>,
-    pub regex: Box<Expression>,
-    pub options: Option<Box<Expression>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct RegexFindAll {
-    pub input: Box<Expression>,
-    pub regex: Box<Expression>,
-    pub options: Option<Box<Expression>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct ReplaceAll {
-    pub input: Box<Expression>,
-    pub find: Box<Expression>,
-    pub replacement: Box<Expression>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct ReplaceOne {
+pub struct Replace {
     pub input: Box<Expression>,
     pub find: Box<Expression>,
     pub replacement: Box<Expression>,

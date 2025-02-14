@@ -820,8 +820,13 @@ impl DeriveSchema for TaggedOperator {
                 r.inside.derive_schema(&mut new_state)
             }
             TaggedOperator::Regex(_) => Ok(Schema::Atomic(Atomic::Integer)),
-            TaggedOperator::ReplaceAll(_) => todo!(),
-            TaggedOperator::ReplaceOne(_) => todo!(),
+            TaggedOperator::ReplaceAll(r) | TaggedOperator::ReplaceOne(r) => {
+                handle_null_satisfaction(
+                    vec![r.input.as_ref(), r.find.as_ref(), r.replacement.as_ref()],
+                    state,
+                    Schema::Atomic(Atomic::String),
+                )
+            }
             TaggedOperator::Shift(_) => todo!(),
             TaggedOperator::Subquery(_) => todo!(),
             TaggedOperator::SubqueryComparison(_) => todo!(),
@@ -948,7 +953,7 @@ impl DeriveSchema for UntaggedOperator {
             UntaggedOperatorName::AllElementsTrue | UntaggedOperatorName::AnyElementTrue | UntaggedOperatorName::And | UntaggedOperatorName::Eq | UntaggedOperatorName::Gt | UntaggedOperatorName::Gte | UntaggedOperatorName::In
             | UntaggedOperatorName::IsArray | UntaggedOperatorName::IsNumber | UntaggedOperatorName::Lt | UntaggedOperatorName::Lte | UntaggedOperatorName::Not | UntaggedOperatorName::Ne | UntaggedOperatorName::Or
             | UntaggedOperatorName::SetEquals | UntaggedOperatorName::SetIsSubset => Ok(Schema::Atomic(Atomic::Boolean)),
-            UntaggedOperatorName::BinarySize | UntaggedOperatorName::Cmp | UntaggedOperatorName::Strcasecmp | UntaggedOperatorName::StrLenBytes | UntaggedOperatorName::StrLenCP => {
+            | UntaggedOperatorName::Cmp | UntaggedOperatorName::Strcasecmp | UntaggedOperatorName::StrLenBytes | UntaggedOperatorName::StrLenCP => {
                 Ok(Schema::Atomic(Atomic::Integer))
             }
             UntaggedOperatorName::Count => Ok(Schema::AnyOf(set!(
@@ -962,7 +967,8 @@ impl DeriveSchema for UntaggedOperator {
             }
             UntaggedOperatorName::ToHashedIndexKey => Ok(Schema::Atomic(Atomic::Long)),
             // Ops that return a constant schema but must handle nullability
-            UntaggedOperatorName::BsonSize | UntaggedOperatorName::IndexOfArray | UntaggedOperatorName::IndexOfBytes | UntaggedOperatorName::IndexOfCP | UntaggedOperatorName::Size | UntaggedOperatorName::ToInt => {
+            UntaggedOperatorName::BinarySize |  UntaggedOperatorName::BsonSize | UntaggedOperatorName::IndexOfArray
+            | UntaggedOperatorName::IndexOfBytes | UntaggedOperatorName::IndexOfCP | UntaggedOperatorName::Size | UntaggedOperatorName::ToInt => {
                 handle_null_satisfaction(
                     args, state,
                     Schema::Atomic(Atomic::Integer),

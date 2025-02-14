@@ -2176,10 +2176,10 @@ mod expression_test {
                 DateFromParts, DateFromString, DateSubtract, DateToParts, DateToString, DateTrunc,
                 Expression, Filter, FirstN, Function, GetField, LastN, Let, Like, LiteralValue,
                 Map, MaxNArrayElement, Median, MinNArrayElement, Percentile, ProjectItem,
-                ProjectStage, Reduce, Ref, RegexFind, RegexFindAll, ReplaceAll, ReplaceOne,
-                SQLConvert, SQLDivide, SetField, SortArray, SortArraySpec, Stage, Subquery,
-                SubqueryComparison, SubqueryExists, Switch, SwitchCase, TaggedOperator, Top, TopN,
-                Trim, UnsetField, UntaggedOperator, UntaggedOperatorName, Zip,
+                ProjectStage, Reduce, Ref, RegexAggExpression, Replace, SQLConvert, SQLDivide,
+                SetField, SortArray, SortArraySpec, Stage, Subquery, SubqueryComparison,
+                SubqueryExists, Switch, SwitchCase, TaggedOperator, Top, TopN, Trim, UnsetField,
+                UntaggedOperator, UntaggedOperatorName, Zip,
             },
             map,
         };
@@ -2472,7 +2472,7 @@ mod expression_test {
 
         test_serde_expr!(
             regex_find_with_options,
-            expected = Expression::TaggedOperator(TaggedOperator::RegexFind(RegexFind {
+            expected = Expression::TaggedOperator(TaggedOperator::RegexFind(RegexAggExpression {
                 input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 regex: Box::new(Expression::Literal(LiteralValue::String(
                     "pattern".to_string()
@@ -2490,7 +2490,7 @@ mod expression_test {
 
         test_serde_expr!(
             regex_find_without_options,
-            expected = Expression::TaggedOperator(TaggedOperator::RegexFind(RegexFind {
+            expected = Expression::TaggedOperator(TaggedOperator::RegexFind(RegexAggExpression {
                 input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 regex: Box::new(Expression::Literal(LiteralValue::String(
                     "/pattern/i".to_string()
@@ -2505,15 +2505,16 @@ mod expression_test {
 
         test_serde_expr!(
             regex_find_all_with_options,
-            expected = Expression::TaggedOperator(TaggedOperator::RegexFindAll(RegexFindAll {
-                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
-                regex: Box::new(Expression::Literal(LiteralValue::String(
-                    "pattern".to_string()
-                ))),
-                options: Some(Box::new(Expression::Literal(LiteralValue::String(
-                    "imxs".to_string()
-                )))),
-            })),
+            expected =
+                Expression::TaggedOperator(TaggedOperator::RegexFindAll(RegexAggExpression {
+                    input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
+                    regex: Box::new(Expression::Literal(LiteralValue::String(
+                        "pattern".to_string()
+                    ))),
+                    options: Some(Box::new(Expression::Literal(LiteralValue::String(
+                        "imxs".to_string()
+                    )))),
+                })),
             input = r#"expr: {"$regexFindAll": {
                                 "input": "$a",
                                 "regex": "pattern",
@@ -2523,13 +2524,14 @@ mod expression_test {
 
         test_serde_expr!(
             regex_find_all_without_options,
-            expected = Expression::TaggedOperator(TaggedOperator::RegexFindAll(RegexFindAll {
-                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
-                regex: Box::new(Expression::Literal(LiteralValue::String(
-                    "/pattern/i".to_string()
-                ))),
-                options: None,
-            })),
+            expected =
+                Expression::TaggedOperator(TaggedOperator::RegexFindAll(RegexAggExpression {
+                    input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
+                    regex: Box::new(Expression::Literal(LiteralValue::String(
+                        "/pattern/i".to_string()
+                    ))),
+                    options: None,
+                })),
             input = r#"expr: {"$regexFindAll": {
                                 "input": "$a",
                                 "regex": "/pattern/i"
@@ -2538,7 +2540,7 @@ mod expression_test {
 
         test_serde_expr!(
             replace_all,
-            expected = Expression::TaggedOperator(TaggedOperator::ReplaceAll(ReplaceAll {
+            expected = Expression::TaggedOperator(TaggedOperator::ReplaceAll(Replace {
                 input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 find: Box::new(Expression::Literal(LiteralValue::String(
                     "pattern".to_string()
@@ -2554,7 +2556,7 @@ mod expression_test {
 
         test_serde_expr!(
             replace_one,
-            expected = Expression::TaggedOperator(TaggedOperator::ReplaceOne(ReplaceOne {
+            expected = Expression::TaggedOperator(TaggedOperator::ReplaceOne(Replace {
                 input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 find: Box::new(Expression::Literal(LiteralValue::String(
                     "pattern".to_string()

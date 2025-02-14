@@ -165,6 +165,52 @@ mod array_ops {
         )),
         input = r#"{"$reduce": {"input": "hello", "initialValue": "stuff", "in": "foo"}}"#
     );
+    test_derive_expression_schema!(
+        replace_one,
+        expected = Ok(Schema::Atomic(Atomic::String)),
+        input = r#"{"$replaceOne": {"input": "$foo", "find": "x", "replacement": "y"}}"#,
+        ref_schema = Schema::Atomic(Atomic::String)
+    );
+    test_derive_expression_schema!(
+        replace_one_nullish,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$replaceOne": {"input": "$foo", "find": "$bar", "replacement": "$car"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "bar".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null))),
+                "car".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null))),
+            },
+            required: set!(),
+            ..Default::default()
+        })
+    );
+    test_derive_expression_schema!(
+        replace_all,
+        expected = Ok(Schema::Atomic(Atomic::String)),
+        input = r#"{"$replaceAll": {"input": "$foo", "find": "x", "replacement": "y"}}"#,
+        ref_schema = Schema::Atomic(Atomic::String)
+    );
+    test_derive_expression_schema!(
+        replace_all_nullish,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$replaceAll": {"input": "$foo", "find": "$bar", "replacement": "$car"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "bar".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null))),
+                "car".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null))),
+            },
+            required: set!(),
+            ..Default::default()
+        })
+    );
 }
 
 mod group_ops {

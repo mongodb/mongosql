@@ -36,6 +36,8 @@ pub enum Error {
     InvalidStage(agg_ast::definitions::Stage),
     #[error("Unknown reference in current context: {0}")]
     UnknownReference(String),
+    #[error("Not enough arguments for expression: {0}")]
+    NotEnoughArguments(String),
 }
 
 #[macro_export]
