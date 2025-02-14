@@ -155,11 +155,22 @@ impl AccumulatorsDesugarerVisitor {
 
     fn rewrite_count_multi_col(distinct: bool, alias: String, arg: &Expression) -> AccumulatorExpr {
         let (agg_func, then, r#else) = if distinct {
-            (AggregationFunction::AddToSet, arg.clone(), REMOVE.clone())
+            (
+                // When distinct, we rewrite to AddToSet.
+                AggregationFunction::AddToSet,
+                // In the case the condition evaluates to true, we include the argument in the set.
+                arg.clone(),
+                // In the case the condition evaluates to false, we include "$$REMOVE" in the set,
+                // which effectively doesn't add to the set.
+                REMOVE.clone(),
+            )
         } else {
             (
+                // When not distinct, we rewrite to Sum.
                 AggregationFunction::Sum,
+                // In the case the condition evaluates to true, we count this argument.
                 Literal(LiteralValue::Integer(1)),
+                // In the case the condition evaluates to false, we do not count this argument.
                 Literal(LiteralValue::Integer(0)),
             )
         };
@@ -177,6 +188,11 @@ impl AccumulatorsDesugarerVisitor {
         alias: String,
         arg: &Expression,
     ) -> AccumulatorExpr {
+        // Note that the then and else values are opposite to the multi-col version. This is a
+        // consequence of the condition expressions we decided to use. We could make these match
+        // each other by negating one or the other, but the runtime overhead of that is, although
+        // minimal, is probably not worth it. Careful testing and documentation here ensures correct
+        // intended behavior.
         let (agg_func, then, r#else) = if distinct {
             (
                 // When distinct, we rewrite to AddToSet.
