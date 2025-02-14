@@ -859,16 +859,10 @@ impl CachedSchema for Stage {
 impl AggregationExpr {
     pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
         match self {
-            AggregationExpr::CountStar(distinct) => {
-                if *distinct {
-                    Err(Error::CountDistinctStarNotSupported)
-                } else {
-                    Ok(Schema::AnyOf(set![
-                        Schema::Atomic(Atomic::Integer),
-                        Schema::Atomic(Atomic::Long)
-                    ]))
-                }
-            }
+            AggregationExpr::CountStar(_) => Ok(Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long)
+            ])),
             AggregationExpr::Function(a) => a.schema(state),
         }
     }

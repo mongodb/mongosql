@@ -1,123 +1,51 @@
 catalog_data:
   foo:
     bar:
-      - {
-          "_id": { "$numberInt": "1" },
-          "a": { "$numberInt": "1" },
-          "b": { "$numberInt": "2" },
-          "c": { "$numberInt": "3" },
-        }
-      - {
-          "_id": { "$numberInt": "2" },
-          "a": { "$numberInt": "1" },
-          "b": { "$numberInt": "12" },
-          "c": { "$numberInt": "3" },
-        }
-      - {
-          "_id": { "$numberInt": "3" },
-          "a": { "$numberInt": "11" },
-          "b": { "$numberInt": "22" },
-          "c": { "$numberInt": "3" },
-        }
-      - {
-          "_id": { "$numberInt": "4" },
-          "a": { "$numberInt": "1" },
-          "b": { "$numberInt": "42" },
-          "c": { "$numberInt": "3" },
-        }
-      - {
-          "_id": { "$numberInt": "5" },
-          "a": { "$numberInt": "111" },
-          "b": { "$numberInt": "142" },
-          "c": { "$numberInt": "13" },
-        }
+      - { "_id": 1, "a": 1, "b": 2, "c": 3 }
+      - { "_id": 2, "a": 1, "b": 12, "c": 3 }
+      - { "_id": 3, "a": 11, "b": 22, "c": 3 }
+      - { "_id": 4, "a": 1, "b": 42, "c": 3 }
+      - { "_id": 5, "a": 111, "b": 142, "c": 13 }
 
     multi:
-      - {
-          "_id": { "$numberInt": "1" },
-          "a": { "$numberInt": "1" },
-          "b": { "$numberInt": "2" },
-          "c": { "$numberInt": "1" },
-        }
-      - {
-          "_id": { "$numberInt": "2" },
-          "a": { "$numberInt": "2" },
-          "b": { "$numberInt": "2" },
-          "c": { "$numberInt": "2" },
-        }
-      - {
-          "_id": { "$numberInt": "3" },
-          "a": { "$numberInt": "2" },
-          "b": { "$numberInt": "2" },
-          "c": { "$numberInt": "3" },
-        }
-      - {
-          "_id": { "$numberInt": "4" },
-          "a": { "$numberInt": "2" },
-          "b": { "$numberInt": "3" },
-          "c": { "$numberInt": "4" },
-        }
-      - {
-          "_id": { "$numberInt": "5" },
-          "a": { "$numberInt": "1" },
-          "b": { "$numberInt": "2" },
-          "c": { "$numberInt": "5" },
-        }
+      - { "_id": 1, "a": 1, "b": 2, "c": 1 }
+      - { "_id": 2, "a": 2, "b": 2, "c": 2 }
+      - { "_id": 3, "a": 2, "b": 2, "c": 3 }
+      - { "_id": 4, "a": 2, "b": 3, "c": 4 }
+      - { "_id": 5, "a": 1, "b": 2, "c": 5 }
+      - { "_id": 6, "a": null, "b": null, "c": null}
 
     nullAndMissing:
-      - { "_id": { "$numberInt": "1" }, "n": null }
-      - { "_id": { "$numberInt": "2" }, "n": null }
-      - { "_id": { "$numberInt": "3" } }
-      - { "_id": { "$numberInt": "4" }, "n": { "$numberInt": "1" } }
+      - { "_id": 1, "n": null }
+      - { "_id": 2, "n": null }
+      - { "_id": 3 }
+      - { "_id": 4, "n": 1 }
 
     baz:
-      - {
-          "_id": { "$numberInt": "1" },
-          "a": { "a": { "$numberInt": "1" }, "b": { "$numberInt": "2" } },
-        }
-      - {
-          "_id": { "$numberInt": "2" },
-          "a": { "a": { "$numberInt": "2" }, "b": { "$numberInt": "2" } },
-        }
-      - {
-          "_id": { "$numberInt": "3" },
-          "a": { "a": { "$numberInt": "2" }, "b": { "$numberInt": "3" } },
-        }
-      - { "_id": { "$numberInt": "4" }, "a": { "a": null, "b": null } }
+      - { "_id": 1, "a": { "a": 1, "b": 2 } }
+      - { "_id": 2, "a": { "a": 2, "b": 2 } }
+      - { "_id": 3, "a": { "a": 2, "b": 3 } }
+      - { "_id": 4, "a": { "a": null, "b": null } }
 
     baz2:
-      - {
-          "_id": { "$numberInt": "1" },
-          "a": { "$numberInt": "1" },
-          "doc": { "a": "a" },
-        }
-      - {
-          "_id": { "$numberInt": "2" },
-          "a": { "$numberInt": "1" },
-          "doc": { "b": "b" },
-        }
-      - {
-          "_id": { "$numberInt": "3" },
-          "a": { "$numberInt": "2" },
-          "doc": { "a": "c" },
-        }
-      - {
-          "_id": { "$numberInt": "4" },
-          "a": { "$numberInt": "2" },
-          "doc": { "a": "d" },
-        }
+      - { "_id": 1, "a": 1, "doc": { "a": "a" } }
+      - { "_id": 2, "a": 1, "doc": { "b": "b" } }
+      - { "_id": 3, "a": 2, "doc": { "a": "c" } }
+      - { "_id": 4, "a": 2, "doc": { "a": "d" } }
 
     numerics:
-      - { "_id": { "$numberInt": "1" }, "a": { "$numberDecimal": "3.0" } }
-      - { "_id": { "$numberInt": "2" }, "a": { "$numberDouble": "3.0" } }
-      - { "_id": { "$numberInt": "3" }, "a": { "$numberInt": "3" } }
+      - { "_id": 1, "a": { "$numberDecimal": "3.0" } }
+      - { "_id": 2, "a": { "$numberDouble": "3.0" } }
+      - { "_id": 3, "a": { "$numberInt": "3" } }
 
     dupes:
-      - { "_id": { "$numberInt": "1" }, "a": { "$numberInt": "1" } }
-      - { "_id": { "$numberInt": "2" }, "a": { "$numberInt": "2" } }
-      - { "_id": { "$numberInt": "3" }, "a": { "$numberInt": "1" } }
+      - { "_id": 1, "a": 1 }
+      - { "_id": 2, "a": 2 }
+      - { "_id": 3, "a": 1 }
+
     arr:
-      - { "_id": { "$numberInt": "1" }, "a": [1, 2] }
+      - { "_id": 1, "a": [1, 2] }
+
     poly:
       - { "_id": 0, a: true }
       - { "_id": 1, a: "yes" }
@@ -147,9 +75,30 @@ catalog_schema:
             "properties":
               {
                 "_id": { "bsonType": "int" },
-                "a": { "bsonType": "int" },
-                "b": { "bsonType": "int" },
-                "c": { "bsonType": "int" },
+                "a":
+                  {
+                    "anyOf":
+                      [
+                        { "bsonType": "int" },
+                        { "bsonType": !!str "null" },
+                      ]
+                  },
+                "b":
+                  {
+                    "anyOf":
+                      [
+                        { "bsonType": "int" },
+                        { "bsonType": !!str "null" },
+                      ]
+                  },
+                "c":
+                  {
+                    "anyOf":
+                      [
+                        { "bsonType": "int" },
+                        { "bsonType": !!str "null" },
+                      ]
+                  },
               },
           },
         "nullAndMissing":
@@ -437,9 +386,17 @@ tests:
               "sumc": { "$numberInt": "4" },
             },
         }
+      - {
+          "":
+            {
+              "a": null,
+              "b": null,
+              "sumc": 0,
+            },
+        }
 
   - description: multi-item group key with HAVING correctness test
-    query: "SELECT * FROM foo.multi AS multi GROUP BY a AS a, b AS b AGGREGATE SUM(c) AS sumc HAVING a != 1 AND sumc != 4"
+    query: "SELECT * FROM foo.multi AS multi GROUP BY a AS a, b AS b AGGREGATE SUM(c) AS sumc HAVING a IS NOT NULL AND a != 1 AND sumc != 4"
     current_db: foo
     result:
       - {
@@ -580,6 +537,22 @@ tests:
       - { "": { "a": { "$numberInt": "1" }, "gcount": { "$numberInt": "1" } } }
       - { "": { "a": { "$numberInt": "2" }, "gcount": { "$numberInt": "2" } } }
       - { "": { "a": null, "gcount": { "$numberInt": "0" } } }
+
+  - description: COUNT(*) correctness test unconditionally count rows
+    query: "SELECT * FROM (SELECT a, b FROM foo.multi AS m) AS arr GROUP BY a AS a AGGREGATE COUNT(*) AS gcount"
+    current_db: foo
+    result:
+      - { "": { "a": 1, "gcount": 2 } }
+      - { "": { "a": 2, "gcount": 3 } }
+      - { "": { "a": null, "gcount": 1 } }
+
+  - description: COUNT(DISTINCT *) correctness test unconditionally count distinct rows
+    query: "SELECT * FROM (SELECT a, b FROM foo.multi AS m) AS arr GROUP BY a AS a AGGREGATE COUNT(DISTINCT *) AS gcount"
+    current_db: foo
+    result:
+      - { "": { "a": 1, "gcount": 1 } }
+      - { "": { "a": 2, "gcount": 2 } }
+      - { "": { "a": null, "gcount": 1 } }
 
   - description: COUNT(MISSING) and COUNT(NULL) skip MISSING and NULL values
     query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE COUNT(a.a) AS gcounta, COUNT(NULL) AS gcountn"

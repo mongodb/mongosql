@@ -3,11 +3,16 @@ use lazy_static::lazy_static;
 pub use mongosql_datastructures::unique_linked_hash_map;
 
 pub const ROOT_NAME: &str = "ROOT";
+pub const REMOVE_NAME: &str = "REMOVE";
 
 lazy_static! {
     pub static ref ROOT: air::Expression = air::Expression::Variable(air::Variable {
         parent: None,
         name: ROOT_NAME.to_string()
+    });
+    pub static ref REMOVE: air::Expression = air::Expression::Variable(air::Variable {
+        parent: None,
+        name: REMOVE_NAME.to_string()
     });
     // https://www.mongodb.com/docs/manual/reference/operator/query/regex/#mongodb-query-op.-options
     // `s` allows '.' to match all characters including newline characters

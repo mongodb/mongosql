@@ -30,7 +30,7 @@ tests:
       - { "$group": { "_id": null, "acc": { "$addToSet": "$a" } } }
       - { "$project": { "_id": 1, "acc": { "$avg": "$acc" } } }
 
-  - name: "desugar non-distinct $sqlCount"
+  - name: "desugar non-distinct $sqlCount single column arg"
     input:
       - {
         "$group":
@@ -59,7 +59,7 @@ tests:
           },
       }
 
-  - name: "desugar distinct $sqlCount"
+  - name: "desugar distinct $sqlCount single column arg"
     input:
       - {
         "$group":
@@ -69,40 +69,173 @@ tests:
           },
       }
     expected:
-      - { "$group": { "_id": null, "acc": { "$addToSet": "$a" } } }
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc":
+              {
+                "$addToSet":
+                  {
+                    "$cond":
+                      [
+                        { "$in": [{ "$type": "$a" }, ["missing", "null"]] },
+                        "$$REMOVE",
+                        "$a",
+                      ]
+                  }
+              }
+          }
+      }
       - {
         "$project":
           {
             "_id": 1,
+            "acc": { "$size": "$acc" },
+          },
+      }
+
+  - name: "desugar non-distinct $sqlCount multi-column arg"
+    skip_reason: "SQL-2622: implement count(multi-col)"
+    input:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sqlCount": { "var": {"a": "$a", "b": "$b"}, "distinct": false } },
+          },
+      }
+    expected:
+      - {
+        "$group":
+          {
+            "_id": null,
             "acc":
               {
-                "$reduce":
+                "$sum":
                   {
-                    "input": "$acc",
-                    "initialValue": 0,
-                    "in":
-                      {
-                        "$add":
-                          [
-                            "$$value",
-                            {
-                              "$cond":
-                                [
-                                  {
-                                    "$in":
-                                      [
-                                        { "$type": "$$this" },
-                                        ["missing", "null"],
-                                      ],
-                                  },
-                                  0,
-                                  1,
-                                ],
-                            },
-                          ],
-                      },
+                    "$cond":
+                      [
+                        {
+                          "$and":
+                            [
+                              { "$ne": [{"a": "$a", "b": "$b"}, { "$literal": {}}] },
+                              {
+                                "$allElementsTrue":
+                                  [
+                                    {
+                                      "$map":
+                                        {
+                                          "input": { "$objectToArray": {"a": "$a", "b": "$b"} },
+                                          "in": { "$ne": ["$$this.v", null] }
+                                        }
+                                    }
+                                  ]
+                              }
+                            ]
+                        },
+                        1,
+                        0,
+                      ],
                   },
               },
+          },
+      }
+
+  - name: "desugar distinct $sqlCount multi-column arg"
+    skip_reason: "SQL-2622: implement count(multi-col)"
+    input:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sqlCount": { "var": {"a": "$a", "b": "$b"}, "distinct": true } },
+          },
+      }
+    expected:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc":
+              {
+                "$addToSet":
+                  {
+                    "$cond":
+                      [
+                        {
+                          "$and":
+                            [
+                              { "$ne": [{ "a": "$a", "b": "$b" }, { "$literal": {} }] },
+                              {
+                                "$allElementsTrue":
+                                  [
+                                    {
+                                      "$map":
+                                        {
+                                          "input": { "$objectToArray": { "a": "$a", "b": "$b" } },
+                                          "in": { "$ne": ["$$this.v", null] }
+                                        }
+                                    }
+                                  ]
+                              }
+                            ]
+                        },
+                        { "a": "$a", "b": "$b" },
+                        "$$REMOVE",
+                      ]
+                  }
+              }
+          }
+      }
+      - {
+        "$project":
+          {
+            "_id": 1,
+            "acc": { "$size": "$acc" },
+          },
+      }
+
+  - name: "desugar non-distinct $sqlCount * arg (ROOT)"
+    input:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sqlCount": { "var": "$$ROOT", "distinct": false } },
+          },
+      }
+    expected:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sum": 1 }
+          },
+      }
+
+  - name: "desugar distinct $sqlCount * arg (ROOT)"
+    input:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sqlCount": { "var": "$$ROOT", "distinct": true } },
+          },
+      }
+    expected:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$addToSet": "$$ROOT" },
+          }
+      }
+      - {
+        "$project":
+          {
+            "_id": 1,
+            "acc": { "$size": "$acc" },
           },
       }
 

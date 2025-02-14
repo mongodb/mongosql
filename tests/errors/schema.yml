@@ -96,12 +96,6 @@ tests:
     should_compile: false
     algebrize_error: 'Error 1003: Cannot perform `Min` aggregation over the type `any type` as it is not comparable to itself. An `any type` schema may indicate that schema is not set for the relevant collection or field. Please verify that the schema is set as expected.'
 
-  - description: Error 1004 CountDistinctStarNotSupported
-    query: "SELECT COUNT(DISTINCT *) FROM foo"
-    current_db: db
-    should_compile: false
-    algebrize_error: 'Error 1004: COUNT(DISTINCT *) is not supported'
-
   - description: Error 1005 InvalidComparison
     query: "SELECT * FROM foo WHERE a <= c"
     current_db: db

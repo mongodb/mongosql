@@ -27,7 +27,6 @@ pub enum Error {
     },
     InvalidBinaryDataType,
     AggregationArgumentMustBeSelfComparable(String, Schema),
-    CountDistinctStarNotSupported,
     InvalidComparison(&'static str, Schema, Schema),
     CannotMergeObjects(Schema, Schema, Satisfaction),
     AccessMissingField(String, Option<Vec<String>>),
@@ -45,7 +44,6 @@ impl UserError for Error {
             Error::IncorrectArgumentCount { .. } => 1001,
             Error::SchemaChecking { .. } => 1002,
             Error::AggregationArgumentMustBeSelfComparable(_, _) => 1003,
-            Error::CountDistinctStarNotSupported => 1004,
             Error::InvalidComparison(_, _, _) => 1005,
             Error::CannotMergeObjects(_, _, _) => 1006,
             Error::AccessMissingField(_, _) => 1007,
@@ -97,7 +95,6 @@ impl UserError for Error {
                     Some(error_msg)
                 }
             }
-            Error::CountDistinctStarNotSupported => None,
             Error::InvalidComparison(func, s1, s2) => {
                 let simplified_s1 = Schema::simplify(s1);
                 let simplified_s2 = Schema::simplify(s2);
@@ -198,7 +195,6 @@ impl UserError for Error {
             Error::IncorrectArgumentCount {name, required, found} => format!("incorrect argument count for {name}: required {required}, found {found}"),
             Error::SchemaChecking {name, required, found } => format!("schema checking failed for {name}: required {required:?}, found {found:?}"),
             Error::AggregationArgumentMustBeSelfComparable(aggs, schema) => format!("cannot have {0:?} aggregations over the schema: {1:?} as it is not comparable to itself", aggs, schema),
-            Error::CountDistinctStarNotSupported => "COUNT(DISTINCT *) is not supported".to_string(),
             Error::InvalidComparison(func, s1, s2) => format!("invalid comparison for {0}: {1:?} cannot be compared to {2:?}", func, s1, s2),
             Error::CannotMergeObjects(s1, s2, sat) => format!("cannot merge objects {0:?} and {1:?} as they {2:?} have overlapping keys", s1, s2, sat),
             Error::AccessMissingField(field, _) => format!("cannot access field {0} because it does not exist", field),
