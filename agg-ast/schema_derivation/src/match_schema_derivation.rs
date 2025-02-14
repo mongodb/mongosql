@@ -6,8 +6,8 @@ use crate::{
 };
 use agg_ast::definitions::{
     DateExpression, DateFromParts, DateFromString, DateToParts, DateToString, Expression, Let,
-    MatchBinaryOp, MatchExpr, MatchExpression, MatchField, MatchLogical, MatchNotExpression,
-    MatchStage, NArrayOp, Ref, Switch, TaggedOperator, UntaggedOperator, Zip,
+    LiteralValue, MatchBinaryOp, MatchExpr, MatchExpression, MatchField, MatchLogical,
+    MatchNotExpression, MatchStage, NArrayOp, Ref, Switch, TaggedOperator, UntaggedOperator, Zip,
 };
 use bson::Bson;
 use mongosql::{
@@ -1302,6 +1302,58 @@ impl MatchConstrainSchema for Expression {
             });
         }
 
+        fn match_derive_all_elements_true(u: &UntaggedOperator, state: &mut ResultSetState) {
+            match u.args[0].clone() {
+                Expression::Array(a) => {
+                    for expr in a {
+                        if let Expression::Ref(r) = expr {
+                            result_set_schema_difference(
+                                &r,
+                                state,
+                                set!(Schema::Atomic(Atomic::Null), Schema::Missing),
+                            );
+                        }
+                    }
+                }
+                Expression::Ref(r) => {
+                    intersect_if_exists(&r, state, Schema::Array(Box::new(Schema::Any)));
+                }
+                expr => {
+                    expr.match_derive_schema(state);
+                }
+            }
+        }
+
+        fn match_derive_in(u: &UntaggedOperator, state: &mut ResultSetState) {
+            u.args[0].match_derive_schema(state);
+            if let Expression::Ref(r) = u.args[1].clone() {
+                intersect_if_exists(&r, state, Schema::Array(Box::new(Schema::Any)));
+            } else {
+                u.args[1].match_derive_schema(state);
+            }
+        }
+
+        fn match_derive_array_elem_at(u: &UntaggedOperator, state: &mut ResultSetState) {
+            if let Expression::Ref(r) = u.args[0].clone() {
+                let mut schema = Schema::Array(Box::new(Schema::Any));
+                if state.null_behavior != Satisfaction::Not {
+                    schema = schema.union(&NULLISH.clone());
+                }
+                intersect_if_exists(&r, state, schema);
+            } else {
+                u.args[0].match_derive_schema(state);
+            }
+            if let Expression::Ref(r) = u.args[1].clone() {
+                let schema = match state.null_behavior {
+                    Satisfaction::Not => NUMERIC.clone(),
+                    Satisfaction::May | Satisfaction::Must => NUMERIC_OR_NULLISH.clone()
+                };
+                intersect_if_exists(&r, state, schema);
+            } else {
+                u.args[1].match_derive_schema(state);
+            }
+        }
+
         use agg_ast::definitions::UntaggedOperatorName;
         let null_behavior = state.null_behavior;
         match self {
@@ -1389,6 +1441,9 @@ impl MatchConstrainSchema for Expression {
                 | UntaggedOperatorName::SetUnion
                 | UntaggedOperatorName::Size => match_derive_non_nullish_array_ops(u, state),
                 UntaggedOperatorName::IndexOfArray => match_derive_index_of_array(u, state),
+                UntaggedOperatorName::AllElementsTrue => match_derive_all_elements_true(u, state),
+                UntaggedOperatorName::In => match_derive_in(u, state),
+                UntaggedOperatorName::ArrayElemAt => match_derive_array_elem_at(u, state),
                 // misc ops
                 UntaggedOperatorName::Add => match_derive_add(u, state),
                 UntaggedOperatorName::Subtract => match_derive_subtract(u, state),

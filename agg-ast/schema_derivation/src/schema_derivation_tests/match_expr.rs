@@ -2063,4 +2063,86 @@ mod array_ops {
         input = r#"{"$match": {"$expr": {"$eq": [null, {"$indexOfArray": ["$foo", 1, 2, 3]}]}}}"#,
         ref_schema = Schema::Any
     );
+    test_derive_schema_for_match_stage!(
+        all_elements_true_ref_array,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Array(Box::new(Schema::Any))
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$allElementsTrue": "$foo"}}}"#,
+        ref_schema = Schema::Any
+    );
+    test_derive_schema_for_match_stage!(
+        all_elements_true_ref_value,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$allElementsTrue": [[1, 2, "$foo"]]}}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing
+        ))
+    );
+    test_derive_schema_for_match_stage!(
+        in_ref,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Array(Box::new(Schema::Any))
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$in": [1, "$foo"]}}}"#,
+        ref_schema = Schema::Any
+    );
+    test_derive_schema_for_match_stage!(
+        array_elem_at_not_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Array(Box::new(Schema::Any)),
+                "bar".to_string() => NUMERIC.clone(),
+            },
+            required: set!("bar".to_string(), "foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$arrayElemAt": ["$foo", "$bar"]}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Any,
+                "bar".to_string() => Schema::Any
+            },
+            required: set!("foo".to_string(), "bar".to_string()),
+            ..Default::default()
+        })
+    );
+    test_derive_schema_for_match_stage!(
+        array_elem_at_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Array(Box::new(Schema::Any)),
+                    Schema::Atomic(Atomic::Null)
+                )),
+                "bar".to_string() => NUMERIC_OR_NULL.clone(),
+            },
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$eq": [null, {"$arrayElemAt": ["$foo", "$bar"]}]}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Any,
+                "bar".to_string() => Schema::Any
+            },
+            required: set!("foo".to_string(), "bar".to_string()),
+            ..Default::default()
+        })
+    );
 }
