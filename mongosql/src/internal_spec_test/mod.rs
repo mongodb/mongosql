@@ -38,7 +38,6 @@ lazy_static! {
         "LONG" => Schema::Atomic(Atomic::Long),
         "MAXKEY" => Schema::Atomic(Atomic::MaxKey),
         "MINKEY" => Schema::Atomic(Atomic::MinKey),
-        "MISSING" => Schema::Missing,
         "NULL" => Schema::Atomic(Atomic::Null),
         "OBJECTID" => Schema::Atomic(Atomic::ObjectId),
         "REGEX" => Schema::Atomic(Atomic::Regex),
