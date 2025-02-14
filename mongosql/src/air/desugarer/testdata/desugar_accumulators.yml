@@ -96,7 +96,6 @@ tests:
       }
 
   - name: "desugar non-distinct $sqlCount multi-column arg"
-    skip_reason: "SQL-2622: implement count(multi-col)"
     input:
       - {
         "$group":
@@ -143,7 +142,6 @@ tests:
       }
 
   - name: "desugar distinct $sqlCount multi-column arg"
-    skip_reason: "SQL-2622: implement count(multi-col)"
     input:
       - {
         "$group":

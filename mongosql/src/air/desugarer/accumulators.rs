@@ -4,13 +4,14 @@ use crate::{
         visitor::Visitor,
         AccumulatorExpr, AggregationFunction, Expression,
         Expression::*,
-        Group, LiteralValue, MQLOperator, MQLSemanticOperator, Project, ProjectItem, Stage,
+        Group, LiteralValue, MQLOperator, MQLSemanticOperator, Map, Project, ProjectItem, Stage,
         Stage::*,
     },
     make_cond_expr, map,
     util::{REMOVE, ROOT, ROOT_NAME},
 };
 use linked_hash_map::LinkedHashMap;
+use mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap;
 
 macro_rules! make_single_expr_count_conditional {
     ($arg:expr, $then:expr, $else:expr) => {
@@ -26,6 +27,38 @@ macro_rules! make_single_expr_count_conditional {
                         Literal(LiteralValue::String("missing".to_string())),
                         Literal(LiteralValue::String("null".to_string())),
                     ]),
+                ],
+            }),
+            $then,
+            $else
+        ))
+    };
+}
+
+macro_rules! make_doc_expr_count_conditional {
+    ($arg:expr, $then:expr, $else:expr) => {
+        Box::new(make_cond_expr!(
+            MQLSemanticOperator(MQLSemanticOperator {
+                op: MQLOperator::And,
+                args: vec![
+                    MQLSemanticOperator(MQLSemanticOperator {
+                        op: MQLOperator::Ne,
+                        args: vec![$arg, Document(UniqueLinkedHashMap::new()),],
+                    }),
+                    MQLSemanticOperator(MQLSemanticOperator {
+                        op: MQLOperator::AllElementsTrue,
+                        args: vec![Map(Map {
+                            input: Box::new(MQLSemanticOperator(MQLSemanticOperator {
+                                op: MQLOperator::ObjectToArray,
+                                args: vec![$arg],
+                            })),
+                            as_name: None,
+                            inside: Box::new(MQLSemanticOperator(MQLSemanticOperator {
+                                op: MQLOperator::Ne,
+                                args: vec![Variable("this.v".into()), Literal(LiteralValue::Null)],
+                            })),
+                        }),]
+                    })
                 ],
             }),
             $then,
@@ -81,9 +114,11 @@ impl AccumulatorsDesugarerVisitor {
             Variable(v) if v.parent.is_none() && v.name == *ROOT_NAME => {
                 Self::rewrite_count_star(count_expr.distinct, count_expr.alias.clone())
             }
-            Document(_doc) => {
-                Self::rewrite_count_multi_col(count_expr.distinct, count_expr.alias.clone())
-            }
+            Document(_) => Self::rewrite_count_multi_col(
+                count_expr.distinct,
+                count_expr.alias.clone(),
+                count_expr.arg.as_ref(),
+            ),
             arg => {
                 Self::rewrite_count_single_expr(count_expr.distinct, count_expr.alias.clone(), arg)
             }
@@ -118,8 +153,23 @@ impl AccumulatorsDesugarerVisitor {
         }
     }
 
-    fn rewrite_count_multi_col(_distinct: bool, _alias: String) -> AccumulatorExpr {
-        todo!("SQL-2622")
+    fn rewrite_count_multi_col(distinct: bool, alias: String, arg: &Expression) -> AccumulatorExpr {
+        let (agg_func, then, r#else) = if distinct {
+            (AggregationFunction::AddToSet, arg.clone(), REMOVE.clone())
+        } else {
+            (
+                AggregationFunction::Sum,
+                Literal(LiteralValue::Integer(1)),
+                Literal(LiteralValue::Integer(0)),
+            )
+        };
+
+        AccumulatorExpr {
+            alias,
+            function: agg_func,
+            distinct: false,
+            arg: make_doc_expr_count_conditional!(arg.clone(), then, r#else),
+        }
     }
 
     fn rewrite_count_single_expr(
