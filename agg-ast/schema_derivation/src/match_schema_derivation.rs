@@ -7,7 +7,7 @@ use crate::{
 use agg_ast::definitions::{
     DateExpression, DateFromParts, DateFromString, DateToParts, DateToString, Expression, Let,
     MatchBinaryOp, MatchExpr, MatchExpression, MatchField, MatchLogical, MatchNotExpression,
-    MatchStage, Ref, Switch, TaggedOperator, UntaggedOperator,
+    MatchStage, NArrayOp, Ref, Switch, TaggedOperator, UntaggedOperator, Zip,
 };
 use bson::Bson;
 use mongosql::{
@@ -1180,7 +1180,7 @@ impl MatchConstrainSchema for Expression {
             }
         }
 
-        fn match_derive_array_expression(u: &UntaggedOperator, state: &mut ResultSetState) {
+        fn match_derive_array_op(u: &UntaggedOperator, state: &mut ResultSetState) {
             u.args.iter().for_each(|arg| {
                 if let Expression::Ref(r) = arg {
                     match state.null_behavior {
@@ -1202,6 +1202,104 @@ impl MatchConstrainSchema for Expression {
                     arg.match_derive_schema(state);
                 }
             })
+        }
+
+        fn match_derive_zip(z: &Zip, state: &mut ResultSetState) {
+            if let Expression::Array(v) = z.inputs.as_ref() {
+                v.iter().for_each(|input| {
+                    if let Expression::Ref(r) = input {
+                        match state.null_behavior {
+                            Satisfaction::Not => {
+                                intersect_if_exists(&r, state, Schema::Array(Box::new(Schema::Any)))
+                            }
+                            Satisfaction::May | Satisfaction::Must => intersect_if_exists(
+                                &r,
+                                state,
+                                Schema::AnyOf(set!(
+                                    Schema::Array(Box::new(Schema::Any)),
+                                    Schema::Atomic(Atomic::Null),
+                                    Schema::Missing
+                                )),
+                            ),
+                        }
+                    }
+                });
+            }
+            if let Some(a) = z.defaults.clone() {
+                if let Expression::Array(v) = a.as_ref() {
+                    v.iter().for_each(|input| {
+                        if let Expression::Ref(r) = input {
+                            intersect_if_exists(
+                                &r,
+                                state,
+                                Schema::AnyOf(set!(
+                                    Schema::Array(Box::new(Schema::Any)),
+                                    Schema::Atomic(Atomic::Null),
+                                    Schema::Missing
+                                )),
+                            )
+                        }
+                    });
+                }
+            }
+        }
+
+        fn match_derive_non_nullish_array_ops(u: &UntaggedOperator, state: &mut ResultSetState) {
+            u.args.iter().for_each(|arg| {
+                if let Expression::Ref(r) = arg {
+                    intersect_if_exists(&r, state, Schema::Array(Box::new(Schema::Any)));
+                } else {
+                    arg.match_derive_schema(state);
+                }
+            })
+        }
+
+        fn match_derive_n_array_op(n: &NArrayOp, state: &mut ResultSetState) {
+            if let Expression::Ref(r) = n.input.as_ref() {
+                intersect_if_exists(&r, state, Schema::Array(Box::new(Schema::Any)));
+            } else {
+                n.input.match_derive_schema(state);
+            }
+            if let Expression::Ref(r) = n.n.as_ref() {
+                intersect_if_exists(&r, state, NUMERIC.clone());
+            } else {
+                n.input.match_derive_schema(state);
+            }
+        }
+
+        fn match_derive_index_of_array(u: &UntaggedOperator, state: &mut ResultSetState) {
+            if let Expression::Ref(r) = u.args[0].clone() {
+                match state.null_behavior {
+                    Satisfaction::Not => {
+                        intersect_if_exists(&r, state, Schema::Array(Box::new(Schema::Any)))
+                    }
+                    Satisfaction::May => intersect_if_exists(
+                        &r,
+                        state,
+                        Schema::AnyOf(set!(
+                            Schema::Array(Box::new(Schema::Any)),
+                            Schema::Atomic(Atomic::Null),
+                            Schema::Missing
+                        )),
+                    ),
+                    Satisfaction::Must => intersect_if_exists(&r, state, NULLISH.clone()),
+                }
+            }
+            u.args[1].match_derive_schema(state);
+            u.args[2..].iter().for_each(|arg| {
+                if let Expression::Ref(r) = arg {
+                    intersect_if_exists(
+                        &r,
+                        state,
+                        Schema::AnyOf(set!(
+                            Schema::Atomic(Atomic::Integer),
+                            Schema::Atomic(Atomic::Long)
+                        )),
+                    );
+                } else {
+                    arg.match_derive_schema(state);
+                }
+            });
         }
 
         use agg_ast::definitions::UntaggedOperatorName;
@@ -1227,6 +1325,11 @@ impl MatchConstrainSchema for Expression {
                 TaggedOperator::DateFromParts(d) => match_derive_date_from_parts(d, state),
                 TaggedOperator::DateFromString(d) => match_derive_date_from_string(d, state),
                 TaggedOperator::DateToString(d) => match_derive_date_to_string(d, state),
+                TaggedOperator::Zip(z) => match_derive_zip(z, state),
+                TaggedOperator::FirstN(n)
+                | TaggedOperator::LastN(n)
+                | TaggedOperator::MaxNArrayElement(n)
+                | TaggedOperator::MinNArrayElement(n) => match_derive_n_array_op(n, state),
                 _ => todo!(),
             },
 
@@ -1274,8 +1377,18 @@ impl MatchConstrainSchema for Expression {
                 UntaggedOperatorName::First | UntaggedOperatorName::Last => {
                     match_derive_first_last(u, state)
                 }
-                UntaggedOperatorName::ConcatArrays
-                | UntaggedOperatorName::ReverseArray => match_derive_array_expression(u, state),
+                UntaggedOperatorName::ConcatArrays | UntaggedOperatorName::ReverseArray => {
+                    match_derive_array_op(u, state)
+                }
+                UntaggedOperatorName::AnyElementTrue
+                | UntaggedOperatorName::IsArray
+                | UntaggedOperatorName::SetDifference
+                | UntaggedOperatorName::SetEquals
+                | UntaggedOperatorName::SetIntersection
+                | UntaggedOperatorName::SetIsSubset
+                | UntaggedOperatorName::SetUnion
+                | UntaggedOperatorName::Size => match_derive_non_nullish_array_ops(u, state),
+                UntaggedOperatorName::IndexOfArray => match_derive_index_of_array(u, state),
                 // misc ops
                 UntaggedOperatorName::Add => match_derive_add(u, state),
                 UntaggedOperatorName::Subtract => match_derive_subtract(u, state),
