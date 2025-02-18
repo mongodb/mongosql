@@ -8,7 +8,7 @@ use crate::{
     set,
 };
 use enum_iterator::IntoEnumIterator;
-use itertools::Itertools;
+use itertools::{Either, Itertools};
 use lazy_static::lazy_static;
 use std::collections::{HashMap, HashSet};
 use std::{
@@ -104,6 +104,17 @@ mod user_schema_error {
 pub struct SchemaEnvironment(BindingTuple<Schema>);
 
 impl SchemaEnvironment {
+    /// Simplifies the SchemaEnvironment by calling Schema::simplify on each
+    /// Schema in the SchemaEnvironment.
+    pub fn simplify(self) -> Self {
+        SchemaEnvironment(
+            self.0
+                .into_iter()
+                .map(|(k, v)| (k, Schema::simplify(&v)))
+                .collect(),
+        )
+    }
+
     /// Takes all Datasource-Schema key-value pairs from a SchemaEnvironment
     /// and adds them to the current SchemaEnvironment, returning the modified
     /// SchemaEnvironment.
@@ -299,7 +310,7 @@ impl ResultSet {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Default)]
 pub enum Schema {
     Unsat,
     Missing,
@@ -307,6 +318,7 @@ pub enum Schema {
     Array(Box<Schema>),
     Document(Document),
     AnyOf(BTreeSet<Schema>),
+    #[default]
     Any,
 }
 
@@ -981,6 +993,20 @@ impl Schema {
                         _ => set![x],
                     })
                     .collect();
+                // Merge any document schemata in an AnyOf.
+                let (docs, mut non_doc_schemata): (Vec<_>, BTreeSet<_>) =
+                    ret.into_iter().partition_map(|s| match s {
+                        Schema::Document(d) => Either::Left(d),
+                        _ => Either::Right(s),
+                    });
+                if !docs.is_empty() {
+                    let doc_schema = Schema::Document(
+                        docs.into_iter()
+                            .fold(Document::default(), |acc, s| acc.merge(s)),
+                    );
+                    non_doc_schemata.insert(doc_schema);
+                };
+                let ret = non_doc_schemata;
                 if ret.is_empty() {
                     Unsat
                 } else if ret.contains(&Schema::Any) {
@@ -1592,9 +1618,9 @@ impl Schema {
             }
             (Schema::Document(a), Schema::Document(b)) => {
                 if a == Document::any() {
-                    return Schema::Document(a)
+                    return Schema::Document(a);
                 } else if b == Document::any() {
-                    return Schema::Document(b)
+                    return Schema::Document(b);
                 }
                 let mut doc_intersection = Document::default();
                 a.keys.clone().into_iter().for_each(|(key, schema)| {
@@ -1619,7 +1645,8 @@ impl Schema {
                         }
                     });
                 }
-                doc_intersection.additional_properties = a.additional_properties && b.additional_properties;
+                doc_intersection.additional_properties =
+                    a.additional_properties && b.additional_properties;
                 if doc_intersection.keys.is_empty() {
                     Schema::Unsat
                 } else {

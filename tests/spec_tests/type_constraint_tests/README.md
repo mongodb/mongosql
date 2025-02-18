@@ -2,7 +2,9 @@
 This directory contains type constraint tests for MongoSQL clauses and expressions.
 A type constraint test verifies that an expression meets static type requirements.
 For example, the arithmetic operators (`+`, `-`, `*`, `/`) statically require that
-their operands' types be numeric or `NULL`, and they may be missing.
+their operands' types be numeric or `NULL`. Because these tests generate Schema for
+every value, we cannot handle MISSING because MISSING would imply that a field
+never exists. MISSING can only occur in conjunction with other Schema.
 
 There are many MongoSQL expressions and clauses that have static type constraints,
 and each one has many valid type combinations. To avoid an explosion in the number
@@ -40,9 +42,7 @@ A type constraint test is specified as a three field yaml structure:
                multiple maps.
 
                The type lists are specified as arrays of strings. Each element
-               must be either:
-                 1. A MongoSQL type name (i.e. "INT", "BOOL", "NULL", etc.)
-                 2. "MISSING" to indicate the operand may be missing 
+               must be a MongoSQL type name (i.e. "INT", "BOOL", "NULL", etc.)
 
                See the example at the end of this section for reference.
 ```
@@ -53,8 +53,8 @@ Here is an example of such a test, followed by a brief explanation:
   query: "SELECT arg1 + arg2"
   valid_types:
       - {
-          "arg1": ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL", "MISSING"],
-          "arg2": ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL", "MISSING"]
+          "arg1": ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL"],
+          "arg2": ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL"]
         }
 ```
 In this example, the query contains the expression `arg1 + arg2`, an addition operation.

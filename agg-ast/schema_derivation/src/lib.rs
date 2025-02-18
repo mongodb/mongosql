@@ -32,8 +32,12 @@ pub enum Error {
     InvalidUntaggedOperator(String),
     #[error("Cannot derive schema for unsupported operator: {0:?}")]
     InvalidTaggedOperator(agg_ast::definitions::TaggedOperator),
+    #[error("Cannot derive schema for unsupported stage: {0:?}")]
+    InvalidStage(agg_ast::definitions::Stage),
     #[error("Unknown reference in current context: {0}")]
     UnknownReference(String),
+    #[error("Not enough arguments for expression: {0}")]
+    NotEnoughArguments(String),
 }
 
 #[macro_export]
@@ -138,12 +142,10 @@ pub(crate) fn get_or_create_schema_for_path_mut(
     for field in path {
         schema = match schema {
             Some(Schema::Document(d)) => {
-                if !d.keys.contains_key(&field) {
-                    if !d.additional_properties {
-                        return None;
-                    }
-                    d.keys.insert(field.clone(), Schema::Any);
+                if !d.keys.contains_key(&field) && !d.additional_properties {
+                    return None;
                 }
+                d.keys.entry(field.clone()).or_insert(Schema::Any);
                 d.keys.get_mut(&field)
             }
             Some(Schema::Any) => {
@@ -178,11 +180,9 @@ pub(crate) fn get_or_create_schema_for_path_mut(
                         None
                     }
                 })?;
-                if !d.keys.contains_key(&field)
-                    // We can only add keys, if additionalProperties is true.
-                    && d.additional_properties
-                {
-                    d.keys.insert(field.clone(), Schema::Any);
+                // We can only add keys, if additionalProperties is true.
+                if d.additional_properties {
+                    d.keys.entry(field.clone()).or_insert(Schema::Any);
                 }
                 // this is a wonky way to do this, putting it in the map and then getting it back
                 // out with this match, but it's what the borrow checker forces (we can't keep the
@@ -196,6 +196,68 @@ pub(crate) fn get_or_create_schema_for_path_mut(
         };
     }
     schema
+}
+
+// this helper simply checks for document schemas and inserts a field with a given schema into
+// that document, ensuring it is required. It follows the same structure as get_or_create_schema_for_path_mut,
+// except that we ignore Schema::Any's.
+fn insert_required_key_into_document_helper(
+    mut schema: Option<&mut Schema>,
+    field_schema: Schema,
+    field: String,
+) -> Option<&mut Schema> {
+    match schema {
+        Some(Schema::Document(d)) => {
+            d.keys.entry(field.clone()).or_insert(field_schema);
+            // even if the document already included the key, we want to mark it as required.
+            // this enables nested field paths to be marked as required down to the required
+            // key being inserted.
+            d.required.insert(field.clone());
+            d.keys.get_mut(&field)
+        }
+        Some(Schema::AnyOf(schemas)) => {
+            if !schemas.iter().any(|s| matches!(s, &Schema::Document(_))) {
+                return None;
+            }
+            let schemas = std::mem::take(schemas);
+            let mut d = schemas.into_iter().find_map(|s| {
+                if let Schema::Document(doc) = s {
+                    Some(doc)
+                } else {
+                    None
+                }
+            })?;
+            d.keys.entry(field.clone()).or_insert(Schema::Any);
+            // see comment above for why we require the field even if it existed in the document
+            d.required.insert(field.clone());
+            **(schema.as_mut()?) = Schema::Document(d);
+            schema?.get_key_mut(&field)
+        }
+        _ => None,
+    }
+}
+
+/// This function inserts a field into an existing document schema (or anyof containing a document).
+/// It creates default documents as needed to populate the field path to the field, and marks the path
+/// to the field as required, so that the field inserted is guaranteed to exist in the schema. This is
+/// used to additively insert fields into schemas for stage schema derivation.
+pub(crate) fn insert_required_key_into_document(
+    schema: &mut Schema,
+    field_schema: Schema,
+    path: Vec<String>,
+) {
+    let mut schema = Some(schema);
+    // create a required nested path of document schemas to the field we are trying to insert. For any field
+    // that doesn't already exist, just create a default document, since we will add keys to it in the next iteration.
+    for field in &path[..path.len() - 1] {
+        schema = insert_required_key_into_document_helper(
+            schema,
+            Schema::Document(schema::Document::default()),
+            field.clone(),
+        );
+    }
+    // with a reference to the nested document that the field exists in, finally, insert the field with its type.
+    insert_required_key_into_document_helper(schema, field_schema, path.last().unwrap().clone());
 }
 
 /// remove field is a helper based on get_schema_for_path_mut which removes a field given a field path.

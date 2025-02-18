@@ -696,7 +696,7 @@ functions:
           echo "------------------------------------"
 
           # Install CycloneDX CLI and JQ
-          JQ_URL="https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-arm64"
+          JQ_URL="https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64"
           echo "-- Downloading JQ $JQ_URL --"
           curl -L -o $SBOM_DIR/jq "$JQ_URL" \
             --silent \

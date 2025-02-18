@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 mod misc_ops {
     use super::*;
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         constant_integral,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -20,7 +20,7 @@ mod misc_ops {
     );
 
     // $cond
-    test_derive_schema!(
+    test_derive_expression_schema!(
         cond,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -32,7 +32,7 @@ mod misc_ops {
 
 mod window_ops {
     use super::*;
-    test_derive_schema!(
+    test_derive_expression_schema!(
         window_func_decimal,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Decimal),
@@ -42,7 +42,7 @@ mod window_ops {
         ref_schema = Schema::Atomic(Atomic::Decimal)
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         window_func_double_by_default,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Double),
@@ -51,13 +51,13 @@ mod window_ops {
         input = r#"{ "$derivative": { "input": 123, "unit": "hour" } }"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         window_func_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
         input = r#"{ "$derivative": { "input": null, "unit": "hour" } }"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         window_func_possibly_missing,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Double),
@@ -67,7 +67,7 @@ mod window_ops {
         ref_schema = Schema::AnyOf(set!(Schema::Missing, Schema::Atomic(Atomic::Integer)))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         locf,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -80,7 +80,7 @@ mod window_ops {
 
 mod array_ops {
     use super::*;
-    test_derive_schema!(
+    test_derive_expression_schema!(
         zip_no_defaults,
         expected = Ok(Schema::Array(Box::new(Schema::Array(Box::new(
             Schema::AnyOf(set!(
@@ -94,7 +94,7 @@ mod array_ops {
             Schema::Atomic(Atomic::String),
         ))))
     );
-    test_derive_schema!(
+    test_derive_expression_schema!(
         zip_defaults,
         expected = Ok(Schema::Array(Box::new(Schema::Array(Box::new(
             Schema::AnyOf(set!(
@@ -105,7 +105,7 @@ mod array_ops {
         input = r#"{"$zip": {"inputs": ["$foo", [1,2,3]], "defaults": ["hello"]}}"#,
         ref_schema = Schema::Array(Box::new(Schema::Atomic(Atomic::Integer)))
     );
-    test_derive_schema!(
+    test_derive_expression_schema!(
         zip_error,
         expected = Err(crate::Error::InvalidExpressionForField(
             "Literal(String(\"hello\"))".to_string(),
@@ -113,7 +113,7 @@ mod array_ops {
         )),
         input = r#"{"$zip": {"inputs": "hello"}}"#
     );
-    test_derive_schema!(
+    test_derive_expression_schema!(
         map_this,
         expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -125,7 +125,7 @@ mod array_ops {
             Schema::Atomic(Atomic::Double),
         ))))
     );
-    test_derive_schema!(
+    test_derive_expression_schema!(
         map_as,
         expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -137,7 +137,7 @@ mod array_ops {
             Schema::Atomic(Atomic::Double),
         ))))
     );
-    test_derive_schema!(
+    test_derive_expression_schema!(
         map_error,
         expected = Err(crate::Error::InvalidExpressionForField(
             "Literal(String(\"hello\"))".to_string(),
@@ -145,7 +145,7 @@ mod array_ops {
         )),
         input = r#"{"$map": {"input": "hello", "in": "foo"}}"#
     );
-    test_derive_schema!(
+    test_derive_expression_schema!(
         reduce,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -157,7 +157,7 @@ mod array_ops {
             Schema::Atomic(Atomic::Double),
         ))))
     );
-    test_derive_schema!(
+    test_derive_expression_schema!(
         reduce_error,
         expected = Err(crate::Error::InvalidExpressionForField(
             "Literal(String(\"hello\"))".to_string(),
@@ -165,11 +165,57 @@ mod array_ops {
         )),
         input = r#"{"$reduce": {"input": "hello", "initialValue": "stuff", "in": "foo"}}"#
     );
+    test_derive_expression_schema!(
+        replace_one,
+        expected = Ok(Schema::Atomic(Atomic::String)),
+        input = r#"{"$replaceOne": {"input": "$foo", "find": "x", "replacement": "y"}}"#,
+        ref_schema = Schema::Atomic(Atomic::String)
+    );
+    test_derive_expression_schema!(
+        replace_one_nullish,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$replaceOne": {"input": "$foo", "find": "$bar", "replacement": "$car"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "bar".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null))),
+                "car".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null))),
+            },
+            required: set!(),
+            ..Default::default()
+        })
+    );
+    test_derive_expression_schema!(
+        replace_all,
+        expected = Ok(Schema::Atomic(Atomic::String)),
+        input = r#"{"$replaceAll": {"input": "$foo", "find": "x", "replacement": "y"}}"#,
+        ref_schema = Schema::Atomic(Atomic::String)
+    );
+    test_derive_expression_schema!(
+        replace_all_nullish,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$replaceAll": {"input": "$foo", "find": "$bar", "replacement": "$car"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "bar".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null))),
+                "car".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null))),
+            },
+            required: set!(),
+            ..Default::default()
+        })
+    );
 }
 
 mod group_ops {
     use super::*;
-    test_derive_schema!(
+    test_derive_expression_schema!(
         top_expression,
         expected = Ok(Schema::Array(Box::new(Schema::AnyOf(
             set! {Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)}
@@ -180,7 +226,7 @@ mod group_ops {
                    }}"#,
         ref_schema = Schema::Atomic(Atomic::Integer)
     );
-    test_derive_schema!(
+    test_derive_expression_schema!(
         top_n_expression,
         expected = Ok(Schema::Array(Box::new(Schema::Array(Box::new(
             Schema::AnyOf(set! {Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)})
@@ -192,7 +238,7 @@ mod group_ops {
                    }}"#,
         ref_schema = Schema::Atomic(Atomic::Integer)
     );
-    test_derive_schema!(
+    test_derive_expression_schema!(
         bottom_expression,
         expected = Ok(Schema::Array(Box::new(Schema::AnyOf(
             set! {Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)}
@@ -203,7 +249,7 @@ mod group_ops {
                    }}"#,
         ref_schema = Schema::Atomic(Atomic::Integer)
     );
-    test_derive_schema!(
+    test_derive_expression_schema!(
         bottom_n_expression,
         expected = Ok(Schema::Array(Box::new(Schema::Array(Box::new(
             Schema::AnyOf(set! {Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)})
@@ -215,7 +261,7 @@ mod group_ops {
                    }}"#,
         ref_schema = Schema::Atomic(Atomic::Integer)
     );
-    test_derive_schema!(
+    test_derive_expression_schema!(
         max_n,
         expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set! {
             Schema::Atomic(Atomic::Integer),
@@ -237,7 +283,7 @@ mod group_ops {
             Schema::Atomic(Atomic::MaxKey),
         })
     );
-    test_derive_schema!(
+    test_derive_expression_schema!(
         min_n,
         expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set! {
             Schema::Atomic(Atomic::Integer),
@@ -259,7 +305,7 @@ mod group_ops {
             Schema::Atomic(Atomic::MaxKey),
         })
     );
-    test_derive_schema!(
+    test_derive_expression_schema!(
         push,
         expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -273,7 +319,7 @@ mod group_ops {
             Schema::Atomic(Atomic::Null),
         ))
     );
-    test_derive_schema!(
+    test_derive_expression_schema!(
         add_to_set,
         expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -292,13 +338,13 @@ mod group_ops {
 mod numeric_ops {
     use super::*;
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         median_double,
         expected = Ok(Schema::Atomic(Atomic::Double)),
         input = r#"{ "$median": { "input": 123, "method": "approximate" } }"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         median_double_nullish,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Double),
@@ -311,7 +357,7 @@ mod numeric_ops {
         ))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         median_possibly_missing,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Double),
@@ -321,7 +367,7 @@ mod numeric_ops {
         ref_schema = Schema::AnyOf(set!(Schema::Atomic(Atomic::Integer), Schema::Missing))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         median_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
         input = r#"{ "$median": { "input": null, "method": "approximate" } }"#
@@ -330,7 +376,7 @@ mod numeric_ops {
 
 mod string_ops {
     use super::*;
-    test_derive_schema!(
+    test_derive_expression_schema!(
         regex_find,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Null),
@@ -347,7 +393,7 @@ mod string_ops {
         input = r#"{ "$regexFind": { "input": "$category", "regex": "/cafe/" }  }"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         regex_find_all,
         expected = Ok(Schema::Array(Box::new(Schema::Document(Document {
             keys: map! {
@@ -361,25 +407,25 @@ mod string_ops {
         input = r#"{ "$regexFindAll": { "input": "$category", "regex": "/cafe/" }  }"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         trim_string,
         expected = Ok(Schema::Atomic(Atomic::String)),
         input = r#"{ "$trim": { "input": "hi friend", "chars": "hi" }  }"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         trim_input_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
         input = r#"{ "$trim": { "input": null, "chars": "hi" }  }"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         trim_chars_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
         input = r#"{ "$trim": { "input": "hi", "chars": null } }"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         trim_nullish,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::String),
@@ -392,7 +438,7 @@ mod string_ops {
         ))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         trim_possibly_missing,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::String),
@@ -405,19 +451,19 @@ mod string_ops {
 
 mod date_operators {
     use super::*;
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
         input = r#"{ "$hour": null }"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_integer,
         expected = Ok(Schema::Atomic(Atomic::Integer)),
         input = r#"{ "$hour": {"$date": {"$numberLong": "123"}} }"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_nullish,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Null),
@@ -430,7 +476,7 @@ mod date_operators {
         ))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_possibly_missing,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Null),
@@ -440,31 +486,31 @@ mod date_operators {
         ref_schema = Schema::AnyOf(set!(Schema::Missing, Schema::Atomic(Atomic::Date),))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_timezone_specified_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
         input = r#"{ "$hour": {"date": {"$date": {"$numberLong": "123"}}, "timezone": null }}"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_from_string_simple,
         expected = Ok(Schema::Atomic(Atomic::Date)),
         input = r#"{ "$dateFromString": {"dateString": "hello" }}"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_from_string_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
         input = r#"{ "$dateFromString": {"dateString": null }}"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_from_string_null_with_on_null,
         expected = Ok(Schema::Atomic(Atomic::Integer)),
         input = r#"{ "$dateFromString": {"dateString": null, "onNull": 1 }}"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_from_string_nullish,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Date),
@@ -477,7 +523,7 @@ mod date_operators {
         ))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_from_string_possibly_missing,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Date),
@@ -487,13 +533,13 @@ mod date_operators {
         ref_schema = Schema::AnyOf(set!(Schema::Atomic(Atomic::String), Schema::Missing))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_from_parts_simple,
         expected = Ok(Schema::Atomic(Atomic::Date)),
         input = r#"{ "$dateFromParts": {"year": 2022, "month": 1, "day": 1 }}"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_from_parts_one_arg_nullish,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Date),
@@ -506,7 +552,7 @@ mod date_operators {
         ))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_from_parts_one_arg_possibly_missing,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Date),
@@ -516,13 +562,13 @@ mod date_operators {
         ref_schema = Schema::AnyOf(set!(Schema::Atomic(Atomic::Integer), Schema::Missing))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_from_parts_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
         input = r#"{ "$dateFromParts": {"year": 2022, "month": 1, "day": 3, "hour": null, "minute": 2, "second": 4}}"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_from_string_with_on_error,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Date),
@@ -531,13 +577,13 @@ mod date_operators {
         input = r#"{ "$dateFromString": {"dateString": "hello", "onError": 1 }}"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_from_string_not_null_ignores_on_null,
         expected = Ok(Schema::Atomic(Atomic::Date)),
         input = r#"{ "$dateFromString": {"dateString": "hello", "onNull": 1 }}"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_from_string_nullish_fully_specified,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Date),
@@ -551,7 +597,7 @@ mod date_operators {
         ))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_to_parts_standard,
         expected = Ok(Schema::Document(Document {
             keys: map! {
@@ -577,7 +623,7 @@ mod date_operators {
         input = r#"{ "$dateToParts": {"date": {"$date": {"$numberLong": "123"}} }}"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_to_parts_iso8601,
         expected = Ok(Schema::Document(Document {
             keys: map! {
@@ -603,20 +649,20 @@ mod date_operators {
         input = r#"{"$dateToParts": {"date":{"$date": {"$numberLong": "123"}}, "iso8601": true }}"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_to_parts_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
         input = r#"{"$dateToParts": {"date": null, "iso8601": true }}"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_to_string,
         expected = Ok(Schema::Atomic(Atomic::String)),
         input = r#"{"$dateToString": {"date": "$foo"}}"#,
         ref_schema = Schema::Atomic(Atomic::Date)
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_to_string_nullish,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::String),
@@ -629,7 +675,7 @@ mod date_operators {
         ))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_to_string_possibly_missing,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::String),
@@ -639,14 +685,14 @@ mod date_operators {
         ref_schema = Schema::AnyOf(set!(Schema::Atomic(Atomic::Date), Schema::Missing))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_to_string_not_null_ignores_on_null,
         expected = Ok(Schema::Atomic(Atomic::String)),
         input = r#"{"$dateToString": {"date": "$foo", "onNull": 1}}"#,
         ref_schema = Schema::Atomic(Atomic::Date)
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_to_string_nullish_fully_specified,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::String),
@@ -659,19 +705,19 @@ mod date_operators {
         ))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_addition_all_args,
         expected = Ok(Schema::Atomic(Atomic::Date)),
         input = r#"{"$dateAdd": {"startDate": {"$date": {"$numberLong": "123"}}, "unit": "hour", "amount": "1", "timezone": "America/New_York"}}"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_addition_one_arg_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
         input = r#"{"$dateAdd": {"startDate": null, "unit": "hour", "amount": "1", "timezone": "America/New_York"}}"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_addition_one_arg_nullish,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Date),
@@ -684,7 +730,7 @@ mod date_operators {
         ))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_addition_one_arg_possibly_missing,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Date),
@@ -694,7 +740,7 @@ mod date_operators {
         ref_schema = Schema::AnyOf(set!(Schema::Atomic(Atomic::Date), Schema::Missing))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_trunc_one_arg_nullish,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Date),
@@ -707,7 +753,7 @@ mod date_operators {
         ))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_trunc_one_arg_possibly_missing,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Date),
@@ -717,19 +763,19 @@ mod date_operators {
         ref_schema = Schema::AnyOf(set!(Schema::Atomic(Atomic::Date), Schema::Missing))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_trunc_all_args,
         expected = Ok(Schema::Atomic(Atomic::Date)),
         input = r#"{"$dateTrunc": {"date": {"$date": {"$numberLong": "123"}}, "unit": "hour", "binSize": "1", "startOfWeek": "mon", "timezone": "America/New_York"}}"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_trunc_one_arg_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
         input = r#"{"$dateTrunc": {"date": null, "unit": "hour", "binSize": "1", "startOfWeek": "mon", "timezone": "America/New_York"}}"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_diff_one_arg_nullish,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Date),
@@ -742,7 +788,7 @@ mod date_operators {
         ))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_diff_one_arg_possibly_missing,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Date),
@@ -752,13 +798,13 @@ mod date_operators {
         ref_schema = Schema::AnyOf(set!(Schema::Atomic(Atomic::Date), Schema::Missing))
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_diff_all_args,
         expected = Ok(Schema::Atomic(Atomic::Date)),
         input = r#"{"$dateDiff": {"startDate": {"$date": {"$numberLong": "121"}}, "endDate": {"$date": {"$numberLong": "123"}}, "unit": "hour", "startOfWeek": "mon", "timezone": "America/New_York"}}"#
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         date_diff_one_arg_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
         input = r#"{"$dateDiff": {"startDate": {"$date": {"$numberLong": "123"}}, "endDate": null, "unit": "hour", "startOfWeek": "mon", "timezone": "America/New_York"}}"#
@@ -768,7 +814,7 @@ mod date_operators {
 mod field_setter_ops {
     use super::*;
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         get_field,
         expected = Ok(Schema::Atomic(Atomic::String)),
         input = r#"{ "$getField": { "input": "$foo", "field": "x" } }"#,
@@ -782,7 +828,7 @@ mod field_setter_ops {
         })
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         get_field_missing,
         expected = Ok(Schema::Missing),
         input = r#"{ "$getField": { "input": "$foo", "field": "z" } }"#,
@@ -796,7 +842,7 @@ mod field_setter_ops {
         })
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         set_field,
         expected = Ok(Schema::Document(Document {
             keys: map! {
@@ -817,7 +863,7 @@ mod field_setter_ops {
         })
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         set_field_root,
         expected = Ok(Schema::Document(Document {
             keys: map! {
@@ -831,7 +877,7 @@ mod field_setter_ops {
         ref_schema = Schema::Atomic(Atomic::Integer)
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         set_field_new_field,
         expected = Ok(Schema::Document(Document {
             keys: map! {
@@ -853,7 +899,7 @@ mod field_setter_ops {
         })
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         set_field_remove,
         expected = Ok(Schema::Document(Document {
             keys: map! {
@@ -873,7 +919,7 @@ mod field_setter_ops {
         })
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         set_field_remove_non_existing_field,
         expected = Ok(Schema::Document(Document {
             keys: map! {
@@ -894,7 +940,7 @@ mod field_setter_ops {
         })
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         unset_field,
         expected = Ok(Schema::Document(Document {
             keys: map! {
@@ -914,7 +960,7 @@ mod field_setter_ops {
         })
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         unset_field_non_exising_field,
         expected = Ok(Schema::Document(Document {
             keys: map! {
@@ -935,14 +981,14 @@ mod field_setter_ops {
         })
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         let_simple,
         expected = Ok(Schema::Atomic(Atomic::Decimal)),
         input = r#"{ "$let": { "vars": {"x": {"$numberDecimal": "1"}}, "in": {"$multiply": ["$$x", "$foo"]}} }"#,
         ref_schema = Schema::Atomic(Atomic::Integer)
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         let_accesses_existing_variables,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Decimal),
@@ -958,7 +1004,7 @@ mod field_setter_ops {
         }
     );
 
-    test_derive_schema!(
+    test_derive_expression_schema!(
         let_overwrites_existing_variables,
         expected = Ok(Schema::Atomic(Atomic::Decimal)),
         input = r#"{ "$let": { "vars": {"x": {"$numberDecimal": "1"}}, "in": {"$multiply": ["$$x", "$foo"]}} }"#,

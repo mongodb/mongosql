@@ -1,25 +1,25 @@
 tests:
-  - description: JOIN condition must have type BOOL or NULL, or be MISSING
+  - description: JOIN condition must have type BOOL or NULL
     query: "SELECT * FROM foo JOIN bar ON arg1"
     valid_types:
-      - { "arg1": ["BOOL", "NULL", "MISSING"] }
+      - { "arg1": ["BOOL", "NULL"] }
 
   - description: Columns in USING must have constrained types for equality to work
     query: "SELECT * FROM foo JOIN bar USING arg1"
     skip_reason: "DROP support for USING Clause initially"
     valid_types:
-      - { "arg1": ["STRING", "NULL", "MISSING"] }
-      - { "arg1": ["BINDATA", "NULL", "MISSING"] }
-      - { "arg1": ["NULL", "MISSING"] }
-      - { "arg1": ["OBJECTID", "NULL", "MISSING"] }
-      - { "arg1": ["BOOL", "NULL", "MISSING"] }
-      - { "arg1": ["BSON_DATE", "NULL", "MISSING"] }
-      - { "arg1": ["REGEX", "NULL", "MISSING"] }
-      - { "arg1": ["DBPOINTER", "NULL", "MISSING"] }
-      - { "arg1": ["JAVASCRIPT", "NULL", "MISSING"] }
-      - { "arg1": ["SYMBOL", "NULL", "MISSING"] }
-      - { "arg1": ["JAVASCRIPTWITHSCOPE", "NULL", "MISSING"] }
-      - { "arg1": ["BSON_TIMESTAMP", "NULL", "MISSING"] }
-      - { "arg1": ["MINKEY", "NULL", "MISSING"] }
-      - { "arg1": ["MAXKEY", "NULL", "MISSING"] }
-      - { "arg1": ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL", "MISSING"] }
+      - { "arg1": ["STRING", "NULL"] }
+      - { "arg1": ["BINDATA", "NULL"] }
+      - { "arg1": ["NULL"] }
+      - { "arg1": ["OBJECTID", "NULL"] }
+      - { "arg1": ["BOOL", "NULL"] }
+      - { "arg1": ["BSON_DATE", "NULL"] }
+      - { "arg1": ["REGEX", "NULL"] }
+      - { "arg1": ["DBPOINTER", "NULL"] }
+      - { "arg1": ["JAVASCRIPT", "NULL"] }
+      - { "arg1": ["SYMBOL", "NULL"] }
+      - { "arg1": ["JAVASCRIPTWITHSCOPE", "NULL"] }
+      - { "arg1": ["BSON_TIMESTAMP", "NULL"] }
+      - { "arg1": ["MINKEY", "NULL"] }
+      - { "arg1": ["MAXKEY", "NULL"] }
+      - { "arg1": ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL"] }

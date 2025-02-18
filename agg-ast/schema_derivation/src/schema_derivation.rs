@@ -1,10 +1,12 @@
 use crate::{
-    get_schema_for_path_mut, promote_missing, remove_field, schema_difference,
-    schema_for_type_numeric, schema_for_type_str, Error, Result,
+    get_schema_for_path_mut, insert_required_key_into_document, promote_missing, remove_field,
+    schema_difference, schema_for_type_numeric, schema_for_type_str, Error, Result,
 };
 use agg_ast::definitions::{
-    Expression, LiteralValue, Ref, Stage, TaggedOperator, UntaggedOperator, UntaggedOperatorName,
+    Densify, Expression, LiteralValue, Ref, Stage, TaggedOperator, UntaggedOperator,
+    UntaggedOperatorName, Unwind,
 };
+use linked_hash_map::LinkedHashMap;
 use mongosql::{
     map,
     schema::{
@@ -35,21 +37,210 @@ pub(crate) struct ResultSetState<'a> {
     pub null_behavior: Satisfaction,
 }
 
+fn derive_schema_for_pipeline(pipeline: Vec<Stage>, state: &mut ResultSetState) -> Result<Schema> {
+    pipeline.iter().try_for_each(|stage| {
+        state.result_set_schema = stage.derive_schema(state)?;
+        Ok(())
+    })?;
+    Ok(std::mem::take(&mut state.result_set_schema))
+}
+
 impl DeriveSchema for Stage {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
-        match *self {
+        fn densify_derive_schema(densify: &Densify, state: &mut ResultSetState) -> Result<Schema> {
+            // create a list of all the fields that densify references explicitly -- that is the partition by fields and
+            // the actual field being densified.
+            let mut paths: Vec<Vec<String>> = densify
+                .partition_by_fields
+                .clone()
+                .unwrap_or_default()
+                .iter()
+                .map(|field| {
+                    field
+                        .split(".")
+                        .map(|s| s.to_string())
+                        .collect::<Vec<String>>()
+                })
+                .collect();
+            paths.push(
+                densify
+                    .field
+                    .split(".")
+                    .map(|s| s.to_string())
+                    .collect::<Vec<String>>(),
+            );
+            // we create a doc that contains all the required fields with their schemas, marking the full path to each
+            // field as required. unioning this document with the existing schema will function like a mask on the required
+            // fields, removing any field not part of the $densify as required (but preserving the required fields  that are part
+            // of the stage). Fields that are part of the stage but not required do not become required, because the original documents
+            // still persist.
+            let mut required_doc = Schema::Document(Document {
+                additional_properties: false,
+                ..Default::default()
+            });
+            paths.into_iter().for_each(|path| {
+                if let Some(field_schema) =
+                    get_schema_for_path_mut(&mut state.result_set_schema, path.clone())
+                {
+                    insert_required_key_into_document(
+                        &mut required_doc,
+                        field_schema.clone(),
+                        path.clone(),
+                    );
+                }
+            });
+            Ok(state
+                .result_set_schema
+                .to_owned()
+                .document_union(required_doc))
+        }
+
+        fn documents_derive_schema(
+            documents: &[LinkedHashMap<String, Expression>],
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            // we use folding to get the schema for each document, and union them together, to get the resulting schema
+            let schema = documents.iter().try_fold(
+                None,
+                |schema: Option<Schema>, document: &LinkedHashMap<String, Expression>| {
+                    // here we convert the map of field name - expression to a resulting map of
+                    // field name - field schema. We collect in such a way that we can get the error from any derivation.
+                    let doc_fields = document
+                        .into_iter()
+                        .map(|(field, expr)| {
+                            let field_schema = expr.derive_schema(state)?;
+                            Ok((field.clone(), field_schema))
+                        })
+                        .collect::<Result<BTreeMap<String, Schema>>>()?;
+                    let doc_schema = Schema::Document(Document {
+                        required: doc_fields.keys().cloned().collect(),
+                        keys: doc_fields,
+                        ..Default::default()
+                    });
+                    Ok(match schema {
+                        None => Some(doc_schema),
+                        Some(schema) => Some(schema.union(&doc_schema)),
+                    })
+                },
+            );
+            Ok(schema?.unwrap_or(Schema::Document(Document::default())))
+        }
+
+        fn facet_derive_schema(
+            facet: &LinkedHashMap<String, Vec<Stage>>,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            // facet contains key - value pairs where the key is the name of a field in the output document,
+            // and the value is an aggregation pipeline. We can use the same generic helper for aggregating over a whole pipeline
+            // to get the schema for each field, cloning the incoming state.
+            let facet_schema = facet
+                .into_iter()
+                .map(|(field, pipeline)| {
+                    let mut field_state = state.clone();
+                    let field_schema =
+                        derive_schema_for_pipeline(pipeline.clone(), &mut field_state)?;
+                    Ok((field.clone(), field_schema))
+                })
+                .collect::<Result<BTreeMap<String, Schema>>>()?;
+            Ok(Schema::Document(Document {
+                required: facet_schema.keys().cloned().collect(),
+                keys: facet_schema,
+                ..Default::default()
+            }))
+        }
+
+        fn sort_by_count_derive_schema(
+            sort_expr: &Expression,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            Ok(Schema::Document(Document {
+                keys: map! {
+                    "_id".to_string() => sort_expr.derive_schema(state)?,
+                    "count".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long)))
+                },
+                required: set!("_id".to_string(), "count".to_string()),
+                ..Default::default()
+            }))
+        }
+
+        fn unwind_derive_schema(unwind: &Unwind, state: &mut ResultSetState) -> Result<Schema> {
+            let path = match unwind {
+                Unwind::FieldPath(Expression::Ref(Ref::FieldRef(r))) => {
+                    Some(r.split(".").map(|s| s.to_string()).collect::<Vec<String>>())
+                }
+                Unwind::Document(d) => {
+                    if let Expression::Ref(Ref::FieldRef(r)) = d.path.as_ref() {
+                        Some(r.split(".").map(|s| s.to_string()).collect::<Vec<String>>())
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            };
+            if let Some(path) = path {
+                if let Some(s) = get_schema_for_path_mut(&mut state.result_set_schema, path) {
+                    // the schema of the field being unwound goes from type Array[X] to type X
+                    match s {
+                        Schema::Array(a) => {
+                            *s = std::mem::take(a);
+                        }
+                        Schema::AnyOf(ao) => {
+                            *s = Schema::simplify(&Schema::AnyOf(
+                                ao.iter()
+                                    .map(|x| match x {
+                                        Schema::Array(a) => *a.clone(),
+                                        schema => schema.clone(),
+                                    })
+                                    .collect(),
+                            ));
+                        }
+                        _ => {}
+                    }
+                    if let Unwind::Document(d) = unwind {
+                        let nullish = d.preserve_null_and_empty_arrays == Some(true);
+
+                        // include_array_index will specify an output field to put the index; it can be nullish if
+                        // preserve_null_and_empty_arrays is included
+                        if let Some(field) = d.include_array_index.clone() {
+                            let path = field
+                                .split(".")
+                                .map(|s| s.to_string())
+                                .collect::<Vec<String>>();
+                            if nullish {
+                                insert_required_key_into_document(
+                                    &mut state.result_set_schema,
+                                    Schema::AnyOf(set!(
+                                        Schema::Atomic(Atomic::Integer),
+                                        Schema::Atomic(Atomic::Null)
+                                    )),
+                                    path,
+                                );
+                            } else {
+                                insert_required_key_into_document(
+                                    &mut state.result_set_schema,
+                                    Schema::Atomic(Atomic::Integer),
+                                    path,
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+            Ok(state.result_set_schema.to_owned())
+        }
+
+        match self {
             Stage::AddFields(_) => todo!(),
             Stage::AtlasSearchStage(_) => todo!(),
             Stage::Bucket(_) => todo!(),
             Stage::BucketAuto(_) => todo!(),
             Stage::Collection(_) => todo!(),
             Stage::Count(_) => todo!(),
-            Stage::Densify(_) => todo!(),
-            Stage::Documents(_) => todo!(),
+            Stage::Densify(d) => densify_derive_schema(d, state),
+            Stage::Documents(d) => documents_derive_schema(d, state),
             Stage::EquiJoin(_) => todo!(),
-            Stage::Facet(_) => todo!(),
+            Stage::Facet(f) => facet_derive_schema(f, state),
             Stage::Fill(_) => todo!(),
-            Stage::GeoNear(_) => todo!(),
             Stage::GraphLookup(_) => todo!(),
             Stage::Group(_) => todo!(),
             Stage::Join(_) => todo!(),
@@ -63,10 +254,13 @@ impl DeriveSchema for Stage {
             Stage::SetWindowFields(_) => todo!(),
             Stage::Skip(_) => todo!(),
             Stage::Sort(_) => todo!(),
-            Stage::SortByCount(_) => todo!(),
+            Stage::SortByCount(s) => sort_by_count_derive_schema(s.as_ref(), state),
             Stage::UnionWith(_) => todo!(),
             Stage::Unset(_) => todo!(),
-            Stage::Unwind(_) => todo!(),
+            Stage::Unwind(u) => unwind_derive_schema(u, state),
+            // the following stages are not derivable, because they rely on udnerlying index information, which we do not have by
+            // default given the schemas and aggregation pipelines
+            Stage::GeoNear(_) => Err(Error::InvalidStage(self.clone())),
         }
     }
 }
@@ -626,8 +820,13 @@ impl DeriveSchema for TaggedOperator {
                 r.inside.derive_schema(&mut new_state)
             }
             TaggedOperator::Regex(_) => Ok(Schema::Atomic(Atomic::Integer)),
-            TaggedOperator::ReplaceAll(_) => todo!(),
-            TaggedOperator::ReplaceOne(_) => todo!(),
+            TaggedOperator::ReplaceAll(r) | TaggedOperator::ReplaceOne(r) => {
+                handle_null_satisfaction(
+                    vec![r.input.as_ref(), r.find.as_ref(), r.replacement.as_ref()],
+                    state,
+                    Schema::Atomic(Atomic::String),
+                )
+            }
             TaggedOperator::Shift(_) => todo!(),
             TaggedOperator::Subquery(_) => todo!(),
             TaggedOperator::SubqueryComparison(_) => todo!(),
@@ -754,7 +953,7 @@ impl DeriveSchema for UntaggedOperator {
             UntaggedOperatorName::AllElementsTrue | UntaggedOperatorName::AnyElementTrue | UntaggedOperatorName::And | UntaggedOperatorName::Eq | UntaggedOperatorName::Gt | UntaggedOperatorName::Gte | UntaggedOperatorName::In
             | UntaggedOperatorName::IsArray | UntaggedOperatorName::IsNumber | UntaggedOperatorName::Lt | UntaggedOperatorName::Lte | UntaggedOperatorName::Not | UntaggedOperatorName::Ne | UntaggedOperatorName::Or
             | UntaggedOperatorName::SetEquals | UntaggedOperatorName::SetIsSubset => Ok(Schema::Atomic(Atomic::Boolean)),
-            UntaggedOperatorName::BinarySize | UntaggedOperatorName::Cmp | UntaggedOperatorName::Strcasecmp | UntaggedOperatorName::StrLenBytes | UntaggedOperatorName::StrLenCP => {
+            | UntaggedOperatorName::Cmp | UntaggedOperatorName::Strcasecmp | UntaggedOperatorName::StrLenBytes | UntaggedOperatorName::StrLenCP => {
                 Ok(Schema::Atomic(Atomic::Integer))
             }
             UntaggedOperatorName::Count => Ok(Schema::AnyOf(set!(
@@ -768,7 +967,8 @@ impl DeriveSchema for UntaggedOperator {
             }
             UntaggedOperatorName::ToHashedIndexKey => Ok(Schema::Atomic(Atomic::Long)),
             // Ops that return a constant schema but must handle nullability
-            UntaggedOperatorName::BsonSize | UntaggedOperatorName::IndexOfArray | UntaggedOperatorName::IndexOfBytes | UntaggedOperatorName::IndexOfCP | UntaggedOperatorName::Size | UntaggedOperatorName::ToInt => {
+            UntaggedOperatorName::BinarySize |  UntaggedOperatorName::BsonSize | UntaggedOperatorName::IndexOfArray
+            | UntaggedOperatorName::IndexOfBytes | UntaggedOperatorName::IndexOfCP | UntaggedOperatorName::Size | UntaggedOperatorName::ToInt => {
                 handle_null_satisfaction(
                     args, state,
                     Schema::Atomic(Atomic::Integer),
@@ -1008,7 +1208,7 @@ impl DeriveSchema for UntaggedOperator {
                                 match ao_schema {
                                     s @ (Schema::Atomic(Atomic::Null) | Schema::Missing) => {
                                         if let Some(ns) = null_schema.as_ref() {
-                                            null_schema = Some(ns.union(&s));
+                                            null_schema = Some(ns.union(s));
                                         }
                                     }
                                     Schema::Array(a) => array_schema = array_schema.union(a.as_ref()),

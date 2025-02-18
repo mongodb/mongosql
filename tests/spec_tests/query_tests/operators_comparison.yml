@@ -41,6 +41,36 @@ catalog_data:
       - { "_id": 1, "a": null }
       - { "_id": 2, "b": null }
       - { "_id": 3 }
+    documents:
+      - { "_id": 0, "a": { }, "b": { }, "comment": "empty empty" }
+      - { "_id": 1, "a": { }, "b": { x: 1 }, "comment": "empty non-empty" }
+      - { "_id": 2, "a": { "x": 1 }, "b": { }, "comment": "non-empty empty" }
+      - { "_id": 3, "a": { "x": 1, "y": "abc" }, "b": { "x": 1, "y": "abc" }, "comment": "same keys in same order with same values" }
+      - { "_id": 4, "a": { "x": 1, "y": "abc" }, "b": { "x": 2, "y": "xyz" }, "comment": "same keys in same order with different values" }
+      - { "_id": 5, "a": { "x": 1, "y": "abc" }, "b": { "y": "abc", "x": 1 }, "comment": "same keys in different order with same values" }
+      - { "_id": 6, "a": { "x": 1, "y": "abc" }, "b": { "y": "xyz", "x": 2 }, "comment": "same keys in different order with different values" }
+      - { "_id": 7, "a": { "x": 1, "y": "abc" }, "b": { "n": 1, "m": "abc" }, "comment": "different keys with same values" }
+      - { "_id": 8, "a": { "x": 1, "y": "abc" }, "b": { "n": 2, "m": "xyz" }, "comment": "different keys with different values" }
+      - { "_id": 9, "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "abc"}, "comment": "different number of keys with overlapping names and same values" }
+      - { "_id": 10, "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "xyz" }, "comment": "different number of keys with overlapping names and different values" }
+      - { "_id": 11, "a": null, "b": { }, "comment": "left null" }
+      - { "_id": 12, "a": { }, "b": null, "comment": "right null" }
+      - { "_id": 13, "b": { }, "comment": "left missing" }
+      - { "_id": 14, "a": { }, "comment": "right missing" }
+    arrays:
+      - { "_id": 0, "a": [ ], "b": [ ], "comment": "empty empty" }
+      - { "_id": 1, "a": [ ], "b": [1], "comment": "empty non-empty" }
+      - { "_id": 2, "a": [1], "b": [ ], "comment": "non-empty empty" }
+      - { "_id": 3, "a": [1, 2, 3], "b": [1, 2, 3], "comment": "same length, same values"}
+      - { "_id": 4, "a": [1, 2, 3], "b": [500, 2, 3], "comment": "same length, different first values"}
+      - { "_id": 5, "a": [1, 2, 3, 4, 5], "b": [1, 2, 3, -10, 5], "comment": "same length, same prefix and suffix, different later values"}
+      - { "_id": 6, "a": [1, 2], "b": [1, 2, 3], "comment": "different length, one is a prefix of the other"}
+      - { "_id": 7, "a": [1, 2], "b": [24, 2, 3], "comment": "different length, different first values"}
+      - { "_id": 8, "a": [1, 2, 3], "b": [1, 2, 0, 1, 2], "comment": "different length, same prefix, different later values"}
+      - { "_id": 9, "a": null, "b": [], "comment": "left null" }
+      - { "_id": 10, "a": [], "b": null, "comment": "right null" }
+      - { "_id": 11, "b": [], "comment": "left missing" }
+      - { "_id": 12, "a": [], "comment": "right missing" }
     betweenNumeric:
       - { "_id": 0, "a": { "$numberInt": "2" }, "b": { "$numberLong": "1" }, "c": { "$numberDouble": "3.1" } }
       - { "_id": 1, "a": { "$numberInt": "1" }, "b": { "$numberLong": "1" }, "c": { "$numberDecimal": "3.1" } }
@@ -203,6 +233,60 @@ catalog_schema:
           },
           "b": {
             "bsonType": !!str "null"
+          }
+        }
+      },
+      "documents": {
+        "bsonType": "object",
+        "required": [ "_id", "comment" ],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "comment": { "bsonType": "string" },
+          "a": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              }
+            ]
+          }
+        }
+      },
+      "arrays": {
+        "bsonType": "object",
+        "required": [ "_id", "comment" ],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "comment": { "bsonType": "string" },
+          "a": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "array",
+                "items": { "bsonType": "int" },
+              }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "array",
+                "items": { "bsonType": "int" },
+              }
+            ]
           }
         }
       },
@@ -692,6 +776,234 @@ tests:
       - {'': { "a": null, "c": null } }
       - {'': { "b": null, "c": null } }
       - {'': { "c": null } }
+
+  - description: correctness test for lt for documents
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b, 'comment': comment } FROM documents AS documents"
+    result:
+      - { '': { "a": { }, "b": { }, "c": false, "comment": "empty empty" } }
+      - { '': { "a": { }, "b": { "x": 1 }, "c": true, "comment": "empty non-empty" } }
+      - { '': { "a": { "x": 1 }, "b": { }, "c": false, "comment": "non-empty empty" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 1, "y": "abc" }, "c": false, "comment": "same keys in same order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 2, "y": "xyz" }, "c": true, "comment": "same keys in same order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "abc", "x": 1 }, "c": true, "comment": "same keys in different order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "xyz", "x": 2 }, "c": true, "comment": "same keys in different order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 1, "m": "abc" }, "c": false, "comment": "different keys with same values" } } # note b's keys are lexicographically less than a's keys
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 2, "m": "xyz" }, "c": false, "comment": "different keys with different values" } } # note b's keys are lexicographically less than a's keys
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "abc"}, "c": false, "comment": "different number of keys with overlapping names and same values" } }
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "xyz" }, "c": true, "comment": "different number of keys with overlapping names and different values" } }
+      - { '': { "a": null, "b": { }, "c": null, "comment": "left null" } }
+      - { '': { "a": { }, "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": { }, "c": null, "comment": "left missing" } }
+      - { '': { "a": { }, "c": null, "comment": "right missing" } }
+
+  - description: correctness test for lte for documents
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b, 'comment': comment } FROM documents AS documents"
+    result:
+      - { '': { "a": { }, "b": { }, "c": true, "comment": "empty empty" } }
+      - { '': { "a": { }, "b": { "x": 1 }, "c": true, "comment": "empty non-empty" } }
+      - { '': { "a": { "x": 1 }, "b": { }, "c": false, "comment": "non-empty empty" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 1, "y": "abc" }, "c": true, "comment": "same keys in same order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 2, "y": "xyz" }, "c": true, "comment": "same keys in same order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "abc", "x": 1 }, "c": true, "comment": "same keys in different order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "xyz", "x": 2 }, "c": true, "comment": "same keys in different order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 1, "m": "abc" }, "c": false, "comment": "different keys with same values" } } # note b's keys are lexicographically less than a's keys
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 2, "m": "xyz" }, "c": false, "comment": "different keys with different values" } } # note b's keys are lexicographically less than a's keys
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "abc"}, "c": false, "comment": "different number of keys with overlapping names and same values" } }
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "xyz" }, "c": true, "comment": "different number of keys with overlapping names and different values" } }
+      - { '': { "a": null, "b": { }, "c": null, "comment": "left null" } }
+      - { '': { "a": { }, "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": { }, "c": null, "comment": "left missing" } }
+      - { '': { "a": { }, "c": null, "comment": "right missing" } }
+
+  - description: correctness test for neq for documents
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b, 'comment': comment } FROM documents AS documents"
+    result:
+      - { '': { "a": { }, "b": { }, "c": false, "comment": "empty empty" } }
+      - { '': { "a": { }, "b": { "x": 1 }, "c": true, "comment": "empty non-empty" } }
+      - { '': { "a": { "x": 1 }, "b": { }, "c": true, "comment": "non-empty empty" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 1, "y": "abc" }, "c": false, "comment": "same keys in same order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 2, "y": "xyz" }, "c": true, "comment": "same keys in same order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "abc", "x": 1 }, "c": true, "comment": "same keys in different order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "xyz", "x": 2 }, "c": true, "comment": "same keys in different order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 1, "m": "abc" }, "c": true, "comment": "different keys with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 2, "m": "xyz" }, "c": true, "comment": "different keys with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "abc"}, "c": true, "comment": "different number of keys with overlapping names and same values" } }
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "xyz" }, "c": true, "comment": "different number of keys with overlapping names and different values" } }
+      - { '': { "a": null, "b": { }, "c": null, "comment": "left null" } }
+      - { '': { "a": { }, "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": { }, "c": null, "comment": "left missing" } }
+      - { '': { "a": { }, "c": null, "comment": "right missing" } }
+
+  - description: correctness test for eq for documents
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b, 'comment': comment } FROM documents AS documents"
+    result:
+      - { '': { "a": { }, "b": { }, "c": true, "comment": "empty empty" } }
+      - { '': { "a": { }, "b": { "x": 1 }, "c": false, "comment": "empty non-empty" } }
+      - { '': { "a": { "x": 1 }, "b": { }, "c": false, "comment": "non-empty empty" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 1, "y": "abc" }, "c": true, "comment": "same keys in same order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 2, "y": "xyz" }, "c": false, "comment": "same keys in same order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "abc", "x": 1 }, "c": false, "comment": "same keys in different order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "xyz", "x": 2 }, "c": false, "comment": "same keys in different order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 1, "m": "abc" }, "c": false, "comment": "different keys with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 2, "m": "xyz" }, "c": false, "comment": "different keys with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "abc"}, "c": false, "comment": "different number of keys with overlapping names and same values" } }
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "xyz" }, "c": false, "comment": "different number of keys with overlapping names and different values" } }
+      - { '': { "a": null, "b": { }, "c": null, "comment": "left null" } }
+      - { '': { "a": { }, "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": { }, "c": null, "comment": "left missing" } }
+      - { '': { "a": { }, "c": null, "comment": "right missing" } }
+
+  - description: correctness test for gt for documents
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b, 'comment': comment } FROM documents AS documents"
+    result:
+      - { '': { "a": { }, "b": { }, "c": false, "comment": "empty empty" } }
+      - { '': { "a": { }, "b": { "x": 1 }, "c": false, "comment": "empty non-empty" } }
+      - { '': { "a": { "x": 1 }, "b": { }, "c": true, "comment": "non-empty empty" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 1, "y": "abc" }, "c": false, "comment": "same keys in same order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 2, "y": "xyz" }, "c": false, "comment": "same keys in same order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "abc", "x": 1 }, "c": false, "comment": "same keys in different order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "xyz", "x": 2 }, "c": false, "comment": "same keys in different order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 1, "m": "abc" }, "c": true, "comment": "different keys with same values" } } # note b's keys are lexicographically less than a's keys
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 2, "m": "xyz" }, "c": true, "comment": "different keys with different values" } } # note b's keys are lexicographically less than a's keys
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "abc"}, "c": true, "comment": "different number of keys with overlapping names and same values" } }
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "xyz" }, "c": false, "comment": "different number of keys with overlapping names and different values" } }
+      - { '': { "a": null, "b": { }, "c": null, "comment": "left null" } }
+      - { '': { "a": { }, "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": { }, "c": null, "comment": "left missing" } }
+      - { '': { "a": { }, "c": null, "comment": "right missing" } }
+
+  - description: correctness test for gte for documents
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b, 'comment': comment } FROM documents AS documents"
+    result:
+      - { '': { "a": { }, "b": { }, "c": true, "comment": "empty empty" } }
+      - { '': { "a": { }, "b": { "x": 1 }, "c": false, "comment": "empty non-empty" } }
+      - { '': { "a": { "x": 1 }, "b": { }, "c": true, "comment": "non-empty empty" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 1, "y": "abc" }, "c": true, "comment": "same keys in same order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 2, "y": "xyz" }, "c": false, "comment": "same keys in same order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "abc", "x": 1 }, "c": false, "comment": "same keys in different order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "xyz", "x": 2 }, "c": false, "comment": "same keys in different order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 1, "m": "abc" }, "c": true, "comment": "different keys with same values" } } # note b's keys are lexicographically less than a's keys
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 2, "m": "xyz" }, "c": true, "comment": "different keys with different values" } } # note b's keys are lexicographically less than a's keys
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "abc"}, "c": true, "comment": "different number of keys with overlapping names and same values" } }
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "xyz" }, "c": false, "comment": "different number of keys with overlapping names and different values" } }
+      - { '': { "a": null, "b": { }, "c": null, "comment": "left null" } }
+      - { '': { "a": { }, "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": { }, "c": null, "comment": "left missing" } }
+      - { '': { "a": { }, "c": null, "comment": "right missing" } }
+
+  - description: correctness test for lt for arrays
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b, 'comment': comment } FROM arrays AS arrays"
+    result:
+      - { '': { "a": [ ], "b": [ ], "c": false, "comment": "empty empty" } }
+      - { '': { "a": [ ], "b": [1], "c": true, "comment": "empty non-empty" } }
+      - { '': { "a": [1], "b": [ ], "c": false, "comment": "non-empty empty" } }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 3], "c": false, "comment": "same length, same values"} }
+      - { '': { "a": [1, 2, 3], "b": [500, 2, 3], "c": true, "comment": "same length, different first values"} }
+      - { '': { "a": [1, 2, 3, 4, 5], "b": [1, 2, 3, -10, 5], "c": false, "comment": "same length, same prefix and suffix, different later values"} }
+      - { '': { "a": [1, 2], "b": [1, 2, 3], "c": true, "comment": "different length, one is a prefix of the other"} }
+      - { '': { "a": [1, 2], "b": [24, 2, 3], "c": true, "comment": "different length, different first values"} }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 0, 1, 2], "c": false, "comment": "different length, same prefix, different later values"} }
+      - { '': { "a": null, "b": [], "c": null, "comment": "left null" } }
+      - { '': { "a": [], "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": [], "c": null, "comment": "left missing" } }
+      - { '': { "a": [], "c": null, "comment": "right missing" } }
+
+  - description: correctness test for lte for arrays
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b, 'comment': comment } FROM arrays AS arrays"
+    result:
+      - { '': { "a": [ ], "b": [ ], "c": true, "comment": "empty empty" } }
+      - { '': { "a": [ ], "b": [1], "c": true, "comment": "empty non-empty" } }
+      - { '': { "a": [1], "b": [ ], "c": false, "comment": "non-empty empty" } }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 3], "c": true, "comment": "same length, same values"} }
+      - { '': { "a": [1, 2, 3], "b": [500, 2, 3], "c": true, "comment": "same length, different first values"} }
+      - { '': { "a": [1, 2, 3, 4, 5], "b": [1, 2, 3, -10, 5], "c": false, "comment": "same length, same prefix and suffix, different later values"} }
+      - { '': { "a": [1, 2], "b": [1, 2, 3], "c": true, "comment": "different length, one is a prefix of the other"} }
+      - { '': { "a": [1, 2], "b": [24, 2, 3], "c": true, "comment": "different length, different first values"} }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 0, 1, 2], "c": false, "comment": "different length, same prefix, different later values"} }
+      - { '': { "a": null, "b": [], "c": null, "comment": "left null" } }
+      - { '': { "a": [], "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": [], "c": null, "comment": "left missing" } }
+      - { '': { "a": [], "c": null, "comment": "right missing" } }
+
+  - description: correctness test for neq for arrays
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b, 'comment': comment } FROM arrays AS arrays"
+    result:
+      - { '': { "a": [ ], "b": [ ], "c": false, "comment": "empty empty" } }
+      - { '': { "a": [ ], "b": [1], "c": true, "comment": "empty non-empty" } }
+      - { '': { "a": [1], "b": [ ], "c": true, "comment": "non-empty empty" } }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 3], "c": false, "comment": "same length, same values"} }
+      - { '': { "a": [1, 2, 3], "b": [500, 2, 3], "c": true, "comment": "same length, different first values"} }
+      - { '': { "a": [1, 2, 3, 4, 5], "b": [1, 2, 3, -10, 5], "c": true, "comment": "same length, same prefix and suffix, different later values"} }
+      - { '': { "a": [1, 2], "b": [1, 2, 3], "c": true, "comment": "different length, one is a prefix of the other"} }
+      - { '': { "a": [1, 2], "b": [24, 2, 3], "c": true, "comment": "different length, different first values"} }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 0, 1, 2], "c": true, "comment": "different length, same prefix, different later values"} }
+      - { '': { "a": null, "b": [], "c": null, "comment": "left null" } }
+      - { '': { "a": [], "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": [], "c": null, "comment": "left missing" } }
+      - { '': { "a": [], "c": null, "comment": "right missing" } }
+
+  - description: correctness test for eq for arrays
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b, 'comment': comment } FROM arrays AS arrays"
+    result:
+      - { '': { "a": [ ], "b": [ ], "c": true, "comment": "empty empty" } }
+      - { '': { "a": [ ], "b": [1], "c": false, "comment": "empty non-empty" } }
+      - { '': { "a": [1], "b": [ ], "c": false, "comment": "non-empty empty" } }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 3], "c": true, "comment": "same length, same values"} }
+      - { '': { "a": [1, 2, 3], "b": [500, 2, 3], "c": false, "comment": "same length, different first values"} }
+      - { '': { "a": [1, 2, 3, 4, 5], "b": [1, 2, 3, -10, 5], "c": false, "comment": "same length, same prefix and suffix, different later values"} }
+      - { '': { "a": [1, 2], "b": [1, 2, 3], "c": false, "comment": "different length, one is a prefix of the other"} }
+      - { '': { "a": [1, 2], "b": [24, 2, 3], "c": false, "comment": "different length, different first values"} }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 0, 1, 2], "c": false, "comment": "different length, same prefix, different later values"} }
+      - { '': { "a": null, "b": [], "c": null, "comment": "left null" } }
+      - { '': { "a": [], "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": [], "c": null, "comment": "left missing" } }
+      - { '': { "a": [], "c": null, "comment": "right missing" } }
+
+  - description: correctness test for gt for arrays
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b, 'comment': comment } FROM arrays AS arrays"
+    result:
+      - { '': { "a": [ ], "b": [ ], "c": false, "comment": "empty empty" } }
+      - { '': { "a": [ ], "b": [1], "c": false, "comment": "empty non-empty" } }
+      - { '': { "a": [1], "b": [ ], "c": true, "comment": "non-empty empty" } }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 3], "c": false, "comment": "same length, same values"} }
+      - { '': { "a": [1, 2, 3], "b": [500, 2, 3], "c": false, "comment": "same length, different first values"} }
+      - { '': { "a": [1, 2, 3, 4, 5], "b": [1, 2, 3, -10, 5], "c": true, "comment": "same length, same prefix and suffix, different later values"} }
+      - { '': { "a": [1, 2], "b": [1, 2, 3], "c": false, "comment": "different length, one is a prefix of the other"} }
+      - { '': { "a": [1, 2], "b": [24, 2, 3], "c": false, "comment": "different length, different first values"} }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 0, 1, 2], "c": true, "comment": "different length, same prefix, different later values"} }
+      - { '': { "a": null, "b": [], "c": null, "comment": "left null" } }
+      - { '': { "a": [], "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": [], "c": null, "comment": "left missing" } }
+      - { '': { "a": [], "c": null, "comment": "right missing" } }
+
+  - description: correctness test for gte for arrays
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b, 'comment': comment } FROM arrays AS arrays"
+    result:
+      - { '': { "a": [ ], "b": [ ], "c": true, "comment": "empty empty" } }
+      - { '': { "a": [ ], "b": [1], "c": false, "comment": "empty non-empty" } }
+      - { '': { "a": [1], "b": [ ], "c": true, "comment": "non-empty empty" } }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 3], "c": true, "comment": "same length, same values"} }
+      - { '': { "a": [1, 2, 3], "b": [500, 2, 3], "c": false, "comment": "same length, different first values"} }
+      - { '': { "a": [1, 2, 3, 4, 5], "b": [1, 2, 3, -10, 5], "c": true, "comment": "same length, same prefix and suffix, different later values"} }
+      - { '': { "a": [1, 2], "b": [1, 2, 3], "c": false, "comment": "different length, one is a prefix of the other"} }
+      - { '': { "a": [1, 2], "b": [24, 2, 3], "c": false, "comment": "different length, different first values"} }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 0, 1, 2], "c": true, "comment": "different length, same prefix, different later values"} }
+      - { '': { "a": null, "b": [], "c": null, "comment": "left null" } }
+      - { '': { "a": [], "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": [], "c": null, "comment": "left missing" } }
+      - { '': { "a": [], "c": null, "comment": "right missing" } }
 
   - description: correctness test for BETWEEN for numeric types
     current_db: foo
