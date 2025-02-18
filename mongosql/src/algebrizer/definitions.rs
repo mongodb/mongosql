@@ -613,6 +613,9 @@ impl<'a> Algebrizer<'a> {
                 cache: SchemaCache::new(),
             }),
         };
+        // We always add the condition as a separate filter to facilitate optimization of constant
+        // join conditions. The stage movement optimization will move the filter back into the join
+        // condition when necessary.
         let stage = if let Some(condition) = condition {
             mir::Stage::Filter(mir::Filter {
                 source: Box::new(stage),
