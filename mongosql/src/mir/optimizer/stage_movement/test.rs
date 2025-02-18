@@ -140,9 +140,9 @@ macro_rules! test_move_stage_no_op {
     };
 }
 
-test_move_stage!(
+test_move_stage_no_op!(
     limit_does_not_move_above_filter,
-    expected = Stage::Limit(Limit {
+    Stage::Limit(Limit {
         source: Stage::Filter(Filter {
             source: mir_collection("foo", "bar"),
             condition: Expression::ScalarFunction(
@@ -164,31 +164,7 @@ test_move_stage!(
         .into(),
         limit: 10,
         cache: SchemaCache::new(),
-    }),
-    expected_changed = false,
-    input = Stage::Limit(Limit {
-        source: Stage::Filter(Filter {
-            source: mir_collection("foo", "bar"),
-            condition: Expression::ScalarFunction(
-                mir::ScalarFunctionApplication {
-                    function: mir::ScalarFunction::Lt,
-                    args: vec![
-                        mir::Expression::Document(
-                            unchecked_unique_linked_hash_map! {
-                                "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42)),
-                            }.into()
-                        ),
-                        mir::Expression::Literal(mir::LiteralValue::Integer(42)),
-                    ],
-                    is_nullable: false,
-                }
-            ),
-            cache: SchemaCache::new(),
-        })
-        .into(),
-        limit: 10,
-        cache: SchemaCache::new(),
-    }),
+    })
 );
 
 test_move_stage!(

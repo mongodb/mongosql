@@ -39,6 +39,18 @@ impl Stage {
     /// `is_limit_or_offset_invalidating` is used for moving Limit and Offset stages
     /// as high as possible. They can be moved ahead of any Stage that
     /// is not defined as invalidating.
+    ///
+    /// Offset and Limit are currently treated as never safe to move above eachother.
+    /// We will already rewrite something like:
+    ///
+    /// `SELECT a from bar limit 1 offset 1`
+    /// to
+    ///
+    /// `$skip, $limit, $project,...`
+    ///
+    /// However it would be incorrect to move the offset above the limit in the following:
+    ///
+    /// `SELECT * from (SELECT a from bar limit 1) as t offset 1`
     fn is_limit_or_offset_invalidating(&self) -> bool {
         match self {
             // A tautological Filter will not invalidate offset, but we don't have a SAT solver.
@@ -48,11 +60,10 @@ impl Stage {
             // an offset, but we can consider that a very rare occurrence.
             Stage::Group(_) => true,
             // ordering of two Limits does not matter. Limit 5, Limit 3 = Limit 3, Limit 5.
-            // MongoDB coalesces two Limits into one
+            // MongoDB coalesces two Limits into one (Limit 3).
             Stage::Limit(_) => true,
             // ordering of two Offsets does not matter. Offset 5, Offset 3 = Offset 3, Offset 5.
-            // However, Limit should not be moved above an Offset.
-            // MongoDB coalesces two Offsets($skip) into one
+            // MongoDB coalesces two Offsets($skip) into one (Offset(8))
             Stage::Offset(_) => true,
             Stage::Sort(_) => true,
             Stage::Collection(_) => true,
