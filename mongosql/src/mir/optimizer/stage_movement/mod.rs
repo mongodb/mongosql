@@ -36,9 +36,10 @@ use crate::{
 use std::collections::HashSet;
 
 impl Stage {
-    // This is used for moving Offset as high as possible. They can be moved ahead of Any
-    // Stage that is not defined as offset invalidating.
-    fn is_offset_invalidating(&self) -> bool {
+    /// `is_pagination_invalidating` is used for moving Pagination stages - Offset
+    /// and Limit - as high as possible. They can be moved ahead of any Stage that
+    /// is not defined as pagination invalidating.
+    fn is_pagination_invalidating(&self) -> bool {
         match self {
             // A tautological Filter will not invalidate offset, but we don't have a SAT solver.
             Stage::Filter(_) => true,
@@ -398,21 +399,28 @@ impl StageMovementVisitor<'_> {
         }
     }
 
-    fn handle_offset(&mut self, node: Stage) -> (Stage, bool) {
-        if let Stage::Offset(ref o) = node {
-            return if o.source.is_offset_invalidating() {
-                (node, false)
-            } else {
-                // We actually cannot bubble_up Offset past any Stage that has two sources,
-                // but we use BubbleUpSide::Both as a placeholder.
-                (
-                    self.bubble_up(Self::handle_offset, node, BubbleUpSide::Both),
-                    true,
-                )
-            };
+    /// `handle_pagination` handles the movement of Offset and Limit stages.
+    /// It returns a tuple containing the updated Stage and a boolean indicating
+    /// whether a change was made.
+    ///
+    /// # Safety
+    /// This method panics if the node is not an Offset or Limit stage.
+    fn handle_pagination(&mut self, node: Stage) -> (Stage, bool) {
+        let source = match node {
+            Stage::Offset(ref n) => &n.source,
+            Stage::Limit(ref n) => &n.source,
+            _ => unreachable!(),
+        };
+        if source.is_pagination_invalidating() {
+            (node, false)
+        } else {
+            // We actually cannot bubble_up Offset or Limit past any Stage that has two sources,
+            // but we use BubbleUpSide::Both as a placeholder.
+            (
+                self.bubble_up(Self::handle_pagination, node, BubbleUpSide::Both),
+                true,
+            )
         }
-        // handle_offset should only be called with Offset Stages
-        unreachable!()
     }
 
     fn has_collection_or_array_source(&self, stage: &Stage) -> Option<bool> {
@@ -708,8 +716,8 @@ impl Visitor for StageMovementVisitor<'_> {
     fn visit_stage(&mut self, node: Stage) -> Stage {
         let node = node.walk(self);
         match node {
-            Stage::Offset(_) => {
-                let (new_node, changed) = self.handle_offset(node);
+            Stage::Offset(_) | Stage::Limit(_) => {
+                let (new_node, changed) = self.handle_pagination(node);
                 self.changed |= changed;
                 new_node
             }
