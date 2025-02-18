@@ -6156,11 +6156,11 @@ mod from_clause {
         left_join,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Join(mir::Join {
-                join_type: JoinType::Left,
-                left: Box::new(mir_source_foo()),
-                right: Box::new(mir_source_bar()),
-                condition: Some(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
-                cache: SchemaCache::new(),
+            join_type: JoinType::Left,
+            left: Box::new(mir_source_foo()),
+            right: Box::new(mir_source_bar()),
+            condition: Some(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
+            cache: SchemaCache::new(),
         })),
         input = Some(ast::Datasource::Join(JoinSource {
             join_type: ast::JoinType::Left,
@@ -6174,11 +6174,11 @@ mod from_clause {
         right_join,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Join(mir::Join {
-                join_type: JoinType::Left,
-                left: Box::new(mir_source_bar()),
-                right: Box::new(mir_source_foo()),
-                condition: Some(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
-                cache: SchemaCache::new(),
+            join_type: JoinType::Left,
+            left: Box::new(mir_source_bar()),
+            right: Box::new(mir_source_foo()),
+            condition: Some(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
+            cache: SchemaCache::new(),
         })),
         input = Some(ast::Datasource::Join(JoinSource {
             join_type: ast::JoinType::Right,
