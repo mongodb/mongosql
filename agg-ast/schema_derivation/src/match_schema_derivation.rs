@@ -5,9 +5,10 @@ use crate::{
     ResultSetState,
 };
 use agg_ast::definitions::{
-    DateExpression, DateFromParts, DateFromString, DateToParts, DateToString, Expression, Let,
-    LiteralValue, MatchBinaryOp, MatchExpr, MatchExpression, MatchField, MatchLogical,
-    MatchNotExpression, MatchStage, NArrayOp, Ref, Switch, TaggedOperator, UntaggedOperator, Zip,
+    DateExpression, DateFromParts, DateFromString, DateToParts, DateToString, Expression, Filter,
+    Let, Map, MatchBinaryOp, MatchExpr, MatchExpression, MatchField, MatchLogical,
+    MatchNotExpression, MatchStage, Median, NArrayOp, Reduce, Ref, SortArray,
+    Switch, TaggedOperator, UntaggedOperator, Zip,
 };
 use bson::Bson;
 use mongosql::{
@@ -1346,11 +1347,177 @@ impl MatchConstrainSchema for Expression {
             if let Expression::Ref(r) = u.args[1].clone() {
                 let schema = match state.null_behavior {
                     Satisfaction::Not => NUMERIC.clone(),
-                    Satisfaction::May | Satisfaction::Must => NUMERIC_OR_NULLISH.clone()
+                    Satisfaction::May | Satisfaction::Must => NUMERIC_OR_NULLISH.clone(),
                 };
                 intersect_if_exists(&r, state, schema);
             } else {
                 u.args[1].match_derive_schema(state);
+            }
+        }
+
+        fn match_derive_array_to_object(u: &UntaggedOperator, state: &mut ResultSetState) {
+            if let Expression::Ref(r) = u.args[0].clone() {
+                match state.null_behavior {
+                    Satisfaction::Not => {
+                        intersect_if_exists(
+                            &r,
+                            state,
+                            Schema::Array(Box::new(Schema::Array(Box::new(Schema::Any)))),
+                        );
+                    }
+                    Satisfaction::May => {
+                        intersect_if_exists(
+                            &r,
+                            state,
+                            Schema::AnyOf(set!(
+                                Schema::Array(Box::new(Schema::Array(Box::new(Schema::Any)))),
+                                Schema::Atomic(Atomic::Null),
+                                Schema::Missing
+                            )),
+                        );
+                    }
+                    Satisfaction::Must => {
+                        intersect_if_exists(&r, state, NULLISH.clone());
+                    }
+                }
+            } else {
+                u.args[0].match_derive_schema(state);
+            }
+        }
+
+        fn match_derive_merge_objects(u: &UntaggedOperator, state: &mut ResultSetState) {
+            if let Expression::Ref(r) = u.args[0].clone() {
+                intersect_if_exists(
+                    &r,
+                    state,
+                    Schema::AnyOf(set!(
+                        Schema::Array(Box::new(Schema::Document(Document::any()))),
+                        Schema::Document(Document::any()),
+                    )),
+                );
+            } else {
+                u.args[0].match_derive_schema(state);
+            }
+        }
+
+        fn match_derive_sort_array(s: &SortArray, state: &mut ResultSetState) {
+            if let Expression::Ref(r) = s.input.as_ref() {
+                match state.null_behavior {
+                    Satisfaction::Not => {
+                        intersect_if_exists(&r, state, Schema::Array(Box::new(Schema::Any)))
+                    }
+                    Satisfaction::May => intersect_if_exists(
+                        &r,
+                        state,
+                        Schema::AnyOf(set!(
+                            Schema::Array(Box::new(Schema::Any)),
+                            Schema::Atomic(Atomic::Null),
+                            Schema::Missing
+                        )),
+                    ),
+                    Satisfaction::Must => intersect_if_exists(&r, state, NULLISH.clone()),
+                }
+            }
+        }
+
+        fn match_derive_filter(f: &Filter, state: &mut ResultSetState) {
+            if let Expression::Ref(r) = f.input.as_ref() {
+                match state.null_behavior {
+                    Satisfaction::Not => {
+                        intersect_if_exists(&r, state, Schema::Array(Box::new(Schema::Any)))
+                    }
+                    Satisfaction::May => intersect_if_exists(
+                        &r,
+                        state,
+                        Schema::AnyOf(set!(
+                            Schema::Array(Box::new(Schema::Any)),
+                            Schema::Atomic(Atomic::Null),
+                            Schema::Missing
+                        )),
+                    ),
+                    Satisfaction::Must => intersect_if_exists(&r, state, NULLISH.clone()),
+                }
+            }
+        }
+
+        fn match_derive_map(m: &Map, state: &mut ResultSetState) {
+            if let Expression::Ref(r) = m.input.as_ref() {
+                match state.null_behavior {
+                    Satisfaction::Not => {
+                        intersect_if_exists(&r, state, Schema::Array(Box::new(Schema::Any)))
+                    }
+                    Satisfaction::May => intersect_if_exists(
+                        &r,
+                        state,
+                        Schema::AnyOf(set!(
+                            Schema::Array(Box::new(Schema::Any)),
+                            Schema::Atomic(Atomic::Null),
+                            Schema::Missing
+                        )),
+                    ),
+                    Satisfaction::Must => intersect_if_exists(&r, state, NULLISH.clone()),
+                }
+            }
+        }
+
+        fn match_derive_median(m: &Median, state: &mut ResultSetState) {
+            if let Expression::Ref(r) = m.input.as_ref() {
+                match state.null_behavior {
+                    Satisfaction::Not => {
+                        intersect_if_exists(&r, state, Schema::Array(Box::new(Schema::Any)))
+                    }
+                    Satisfaction::May | Satisfaction::Must => intersect_if_exists(
+                        &r,
+                        state,
+                        Schema::AnyOf(set!(
+                            Schema::Array(Box::new(Schema::Any)),
+                            Schema::Atomic(Atomic::Null),
+                            Schema::Missing
+                        )),
+                    ),
+                }
+            }
+        }
+
+        fn match_derive_reduce(r: &Reduce, state: &mut ResultSetState) {
+            println!("here");
+            if let Expression::Ref(r) = r.input.as_ref() {
+                match state.null_behavior {
+                    Satisfaction::Not => {
+                        intersect_if_exists(&r, state, Schema::Array(Box::new(Schema::Any)))
+                    }
+                    Satisfaction::May | Satisfaction::Must => intersect_if_exists(
+                        &r,
+                        state,
+                        Schema::AnyOf(set!(
+                            Schema::Array(Box::new(Schema::Any)),
+                            Schema::Atomic(Atomic::Null),
+                            Schema::Missing
+                        )),
+                    ),
+                }
+            }
+        }
+
+        fn match_reduce_slice(u: &UntaggedOperator, state: &mut ResultSetState) {
+            if let Expression::Ref(r) = u.args[0].clone() {
+                let mut schema = Schema::Array(Box::new(Schema::Any));
+                if state.null_behavior != Satisfaction::Not {
+                    schema = schema.union(&NULLISH.clone());
+                }
+                intersect_if_exists(&r, state, schema);
+            }
+            for arg in u.args[1..].iter() {
+                if let Expression::Ref(r) = arg {
+                    match state.null_behavior {
+                        Satisfaction::Not => {
+                            intersect_if_exists(&r, state, NUMERIC.clone());
+                        }
+                        Satisfaction::May | Satisfaction::Must => {
+                            intersect_if_exists(&r, state, NUMERIC_OR_NULLISH.clone());
+                        }
+                    }
+                }
             }
         }
 
@@ -1382,6 +1549,11 @@ impl MatchConstrainSchema for Expression {
                 | TaggedOperator::LastN(n)
                 | TaggedOperator::MaxNArrayElement(n)
                 | TaggedOperator::MinNArrayElement(n) => match_derive_n_array_op(n, state),
+                TaggedOperator::SortArray(s) => match_derive_sort_array(s, state),
+                TaggedOperator::Filter(f) => match_derive_filter(f, state),
+                TaggedOperator::Map(m) => match_derive_map(m, state),
+                TaggedOperator::Median(m) => match_derive_median(m, state),
+                TaggedOperator::Reduce(r) => match_derive_reduce(r, state),
                 _ => todo!(),
             },
 
@@ -1444,10 +1616,12 @@ impl MatchConstrainSchema for Expression {
                 UntaggedOperatorName::AllElementsTrue => match_derive_all_elements_true(u, state),
                 UntaggedOperatorName::In => match_derive_in(u, state),
                 UntaggedOperatorName::ArrayElemAt => match_derive_array_elem_at(u, state),
+                UntaggedOperatorName::ArrayToObject => match_derive_array_to_object(u, state),
+                UntaggedOperatorName::MergeObjects => match_derive_merge_objects(u, state),
+                UntaggedOperatorName::Slice => match_reduce_slice(u, state),
                 // misc ops
                 UntaggedOperatorName::Add => match_derive_add(u, state),
                 UntaggedOperatorName::Subtract => match_derive_subtract(u, state),
-                UntaggedOperatorName::Sum => {}
                 UntaggedOperatorName::ObjectToArray => match_derive_object_to_array(u, state),
                 UntaggedOperatorName::Max | UntaggedOperatorName::Min => {
                     match_derive_max_min(u, state)
@@ -1464,6 +1638,11 @@ impl MatchConstrainSchema for Expression {
                 | UntaggedOperatorName::ToDecimal
                 | UntaggedOperatorName::ToLong => match_derive_numeric_conversion(u, state),
                 UntaggedOperatorName::Concat => match_derive_string_operation(u, state),
+                UntaggedOperatorName::CovariancePop
+                | UntaggedOperatorName::CovarianceSamp
+                | UntaggedOperatorName::StdDevPop
+                | UntaggedOperatorName::StdDevSamp
+                | UntaggedOperatorName::Sum => {}
                 _ => todo!(),
             },
             _ => {}
