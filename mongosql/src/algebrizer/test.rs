@@ -6155,16 +6155,12 @@ mod from_clause {
     test_algebrize!(
         left_join,
         method = algebrize_from_clause,
-        expected = Ok(mir::Stage::Filter(mir::Filter {
-            source: Box::new(mir::Stage::Join(mir::Join {
+        expected = Ok(mir::Stage::Join(mir::Join {
                 join_type: JoinType::Left,
                 left: Box::new(mir_source_foo()),
                 right: Box::new(mir_source_bar()),
                 condition: Some(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
                 cache: SchemaCache::new(),
-            })),
-            condition: mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
-            cache: SchemaCache::new(),
         })),
         input = Some(ast::Datasource::Join(JoinSource {
             join_type: ast::JoinType::Left,
@@ -6177,16 +6173,12 @@ mod from_clause {
     test_algebrize!(
         right_join,
         method = algebrize_from_clause,
-        expected = Ok(mir::Stage::Filter(mir::Filter {
-            source: Box::new(mir::Stage::Join(mir::Join {
+        expected = Ok(mir::Stage::Join(mir::Join {
                 join_type: JoinType::Left,
                 left: Box::new(mir_source_bar()),
                 right: Box::new(mir_source_foo()),
                 condition: Some(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
                 cache: SchemaCache::new(),
-            })),
-            condition: mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
-            cache: SchemaCache::new(),
         })),
         input = Some(ast::Datasource::Join(JoinSource {
             join_type: ast::JoinType::Right,
@@ -6565,8 +6557,37 @@ mod from_clause {
         join_condition_referencing_non_correlated_fields,
         method = algebrize_from_clause,
         expected = Ok(
-            mir::Stage::Filter(mir::Filter {
-                condition: mir::Expression::ScalarFunction(
+            mir::Stage::Join(mir::Join {
+            join_type: mir::JoinType::Left,
+            left: Box::new(mir::Stage::Project(mir::Project {
+                            is_add_fields: false,
+                source: Box::new(mir::Stage::Array(mir::ArraySource {
+                    array: vec![mir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {"a".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1))}
+                    .into())],
+                    alias: "foo".to_string(),
+                    cache: SchemaCache::new(),
+                })),
+                expression: map! {
+                    ("foo", 0u16).into() => mir::Expression::Reference(("foo", 0u16).into()),
+                },
+                cache: SchemaCache::new(),
+            })),
+            right: Box::new(mir::Stage::Project(mir::Project {
+                            is_add_fields: false,
+                source: Box::new(mir::Stage::Array(mir::ArraySource {
+                    array: vec![mir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {"b".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(4))}
+                    .into())],
+                    alias: "bar".to_string(),
+                    cache: SchemaCache::new(),
+                })),
+                expression: map! {
+                    ("bar", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
+                },
+                cache: SchemaCache::new(),
+            })),
+            condition: Some(mir::Expression::ScalarFunction(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::Eq,
                     args: vec![
@@ -6582,58 +6603,8 @@ mod from_clause {
                         })
                     ],
                     is_nullable: false,
-                }),
-            source:
-                mir::Stage::Join(mir::Join {
-                join_type: mir::JoinType::Left,
-                left: Box::new(mir::Stage::Project(mir::Project {
-                                is_add_fields: false,
-                    source: Box::new(mir::Stage::Array(mir::ArraySource {
-                        array: vec![mir::Expression::Document(
-                            unchecked_unique_linked_hash_map! {"a".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1))}
-                        .into())],
-                        alias: "foo".to_string(),
-                        cache: SchemaCache::new(),
-                    })),
-                    expression: map! {
-                        ("foo", 0u16).into() => mir::Expression::Reference(("foo", 0u16).into()),
-                    },
-                    cache: SchemaCache::new(),
-                })),
-                right: Box::new(mir::Stage::Project(mir::Project {
-                                is_add_fields: false,
-                    source: Box::new(mir::Stage::Array(mir::ArraySource {
-                        array: vec![mir::Expression::Document(
-                            unchecked_unique_linked_hash_map! {"b".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(4))}
-                        .into())],
-                        alias: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    })),
-                    expression: map! {
-                        ("bar", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
-                    },
-                    cache: SchemaCache::new(),
-                })),
-                condition: Some(mir::Expression::ScalarFunction(
-                    mir::ScalarFunctionApplication {
-                        function: mir::ScalarFunction::Eq,
-                        args: vec![
-                            mir::Expression::FieldAccess(mir::FieldAccess {
-                                expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-                                field: "a".to_string(),
-                                is_nullable: false,
-                            }),
-                            mir::Expression::FieldAccess(mir::FieldAccess {
-                                expr: Box::new(mir::Expression::Reference(("bar", 0u16).into())),
-                                field: "b".to_string(),
-                                is_nullable: false,
-                            })
-                        ],
-                        is_nullable: false,
-                    })
-                ),
-                cache: SchemaCache::new(),
-            }).into(),
+                })
+            ),
             cache: SchemaCache::new(),
         })),
         input = Some(ast::Datasource::Join(JoinSource {

@@ -589,7 +589,7 @@ impl<'a> Algebrizer<'a> {
                     join_type: mir::JoinType::Left,
                     left: Box::new(left_src),
                     right: Box::new(right_src),
-                    condition: condition.clone(),
+                    condition,
                     cache: SchemaCache::new(),
                 })
             }
@@ -601,7 +601,7 @@ impl<'a> Algebrizer<'a> {
                     join_type: mir::JoinType::Left,
                     left: Box::new(right_src),
                     right: Box::new(left_src),
-                    condition: condition.clone(),
+                    condition,
                     cache: SchemaCache::new(),
                 })
             }
