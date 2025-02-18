@@ -756,7 +756,8 @@ mod stage {
                     alias: "acc".to_string(),
                     function: air::AggregationFunction::Sum,
                     distinct: true,
-                    arg: Box::new(air::Expression::FieldRef("a".to_string().into()))
+                    arg: Box::new(air::Expression::FieldRef("a".to_string().into())),
+                    arg_is_possibly_doc: false,
                 }]
             }),
             input = agg_ast::Stage::Group(agg_ast::Group {
@@ -786,13 +787,15 @@ mod stage {
                         alias: "acc_one".to_string(),
                         function: air::AggregationFunction::Sum,
                         distinct: true,
-                        arg: Box::new(air::Expression::FieldRef("a".to_string().into()))
+                        arg: Box::new(air::Expression::FieldRef("a".to_string().into())),
+                        arg_is_possibly_doc: false,
                     },
                     air::AccumulatorExpr {
                         alias: "acc_two".to_string(),
                         function: air::AggregationFunction::Avg,
                         distinct: true,
-                        arg: Box::new(air::Expression::FieldRef("b".to_string().into()))
+                        arg: Box::new(air::Expression::FieldRef("b".to_string().into())),
+                        arg_is_possibly_doc: false,
                     },
                 ]
             }),
@@ -828,7 +831,8 @@ mod stage {
                     alias: "acc".to_string(),
                     function: air::AggregationFunction::AddToSet,
                     distinct: false,
-                    arg: Box::new(air::Expression::FieldRef("a".to_string().into()))
+                    arg: Box::new(air::Expression::FieldRef("a".to_string().into())),
+                    arg_is_possibly_doc: false,
                 }]
             }),
             input = agg_ast::Stage::Group(agg_ast::Group {

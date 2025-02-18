@@ -46,6 +46,14 @@ catalog_data:
     arr:
       - { "_id": 1, "a": [1, 2] }
 
+    docs:
+      - { "_id": 1, d: { a: 1 } }
+      - { "_id": 2, d: {} }
+      - { "_id": 3, d: { a: null } }
+      - { "_id": 4, d: null }
+      - { "_id": 5, d: { a: 2 } }
+      - { "_id": 6 }
+
     poly:
       - { "_id": 0, a: true }
       - { "_id": 1, a: "yes" }
@@ -205,6 +213,38 @@ catalog_schema:
             "required": ["_id", "a"],
             "additionalProperties": false,
             "properties": { "a": { "bsonType": "array" } },
+          },
+        "docs":
+          {
+            "bsonType": "object",
+            "required": ["_id"],
+            "additionalProperties": false,
+            "properties": {
+              "_id": { "bsonType": "int" },
+              "d":
+                {
+                  "anyOf":
+                    [
+                      { "bsonType": !!str "null" },
+                      {
+                        "bsonType": "object",
+                        required: [ ],
+                        additionalProperties: false,
+                        properties:
+                          {
+                            "a":
+                              {
+                                "anyOf":
+                                  [
+                                    { "bsonType": "int" },
+                                    { "bsonType": !!str "null" }
+                                  ]
+                              }
+                          }
+                      }
+                    ]
+                }
+            },
           },
         "poly":
           {
@@ -545,6 +585,12 @@ tests:
       - { "": { "a": 1, "gcount": 1 } }
       - { "": { "a": 2, "gcount": 2 } }
       - { "": { "a": null, "gcount": 0 } }
+
+  - description: COUNT single document column -- only counts values with at least one non-nullish field
+    query: "SELECT * FROM foo.docs AS d GROUP BY NULL AS n AGGREGATE COUNT(d) AS gcount"
+    current_db: foo
+    result:
+      - { "": { "n": null, "gcount": 2 } }
 
   - description: COUNT multi column correctness test -- only counts rows with at least one non-nullish value
     query: "SELECT * FROM foo.multi AS m GROUP BY a AS a AGGREGATE COUNT(b, c) AS gcount"

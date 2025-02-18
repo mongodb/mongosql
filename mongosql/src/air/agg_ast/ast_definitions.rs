@@ -121,6 +121,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                                 function: accumulator_expr.function.into(),
                                 distinct,
                                 arg: Box::new(air::Expression::from(*var)),
+                                arg_is_possibly_doc: false,
                             }
                         }
                         // accumulators of form: $<acc>: <expr>
@@ -129,6 +130,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                             function: accumulator_expr.function.into(),
                             distinct: false,
                             arg: Box::new(expr.into()),
+                            arg_is_possibly_doc: false,
                         },
                     })
                     .collect();

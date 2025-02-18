@@ -13,32 +13,83 @@ use crate::{
 use linked_hash_map::LinkedHashMap;
 use mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap;
 
+macro_rules! count_single_expr_not_null_or_missing_cond {
+    ($arg:expr) => {
+        MQLSemanticOperator(MQLSemanticOperator {
+            op: MQLOperator::In,
+            args: vec![
+                MQLSemanticOperator(MQLSemanticOperator {
+                    op: MQLOperator::Type,
+                    args: vec![$arg],
+                }),
+                Array(vec![
+                    Literal(LiteralValue::String("missing".to_string())),
+                    Literal(LiteralValue::String("null".to_string())),
+                ]),
+            ],
+        })
+    };
+}
+
+macro_rules! count_doc_arg_not_empty_cond {
+    ($arg:expr) => {
+        MQLSemanticOperator(MQLSemanticOperator {
+            op: MQLOperator::Ne,
+            args: vec![$arg, Document(UniqueLinkedHashMap::new())],
+        })
+    };
+}
+
+macro_rules! count_doc_arg_not_all_null_values_cond {
+    ($arg:expr) => {
+        MQLSemanticOperator(MQLSemanticOperator {
+            op: MQLOperator::AllElementsTrue,
+            args: vec![MQLSemanticOperator(MQLSemanticOperator {
+                op: MQLOperator::IfNull,
+                args: vec![
+                    Map(Map {
+                        input: Box::new(MQLSemanticOperator(MQLSemanticOperator {
+                            op: MQLOperator::ObjectToArray,
+                            args: vec![$arg],
+                        })),
+                        as_name: None,
+                        inside: Box::new(MQLSemanticOperator(MQLSemanticOperator {
+                            op: MQLOperator::Ne,
+                            args: vec![Variable("this.v".into()), Literal(LiteralValue::Null)],
+                        })),
+                    }),
+                    Array(vec![Literal(LiteralValue::Boolean(false))]),
+                ],
+            })],
+        })
+    };
+}
+
 macro_rules! make_single_expr_count_conditional {
-    ($arg:expr, $then:expr, $else:expr) => {
+    ($arg:expr, $arg_is_possibly_doc:expr, $then:expr, $else:expr) => {{
+        let mut cond = count_single_expr_not_null_or_missing_cond!($arg);
+        if $arg_is_possibly_doc {
+            cond = MQLSemanticOperator(MQLSemanticOperator {
+                op: MQLOperator::Or,
+                args: vec![
+                    cond,
+                    // TODO: actually, need to negate these! might be better to
+                    //       make the then/elses consistent across single- and
+                    //       multi-arg so that we don't have to worry about this
+                    //       situation.
+                    count_doc_arg_not_empty_cond!($arg),
+                    count_doc_arg_not_all_null_values_cond!($arg),
+                ],
+            });
+        }
         Box::new(match $arg {
             // No need to create a conditional if the argument is a literal value.
             // We know null will result in 0 and non-null will result in 1.
             Literal(LiteralValue::Null) => Literal(LiteralValue::Integer(0)),
             Literal(_) => Literal(LiteralValue::Integer(1)),
-            _ => make_cond_expr!(
-                MQLSemanticOperator(MQLSemanticOperator {
-                    op: MQLOperator::In,
-                    args: vec![
-                        MQLSemanticOperator(MQLSemanticOperator {
-                            op: MQLOperator::Type,
-                            args: vec![$arg],
-                        }),
-                        Array(vec![
-                            Literal(LiteralValue::String("missing".to_string())),
-                            Literal(LiteralValue::String("null".to_string())),
-                        ]),
-                    ],
-                }),
-                $then,
-                $else
-            ),
+            _ => make_cond_expr!(cond, $then, $else),
         })
-    };
+    }};
 }
 
 macro_rules! make_doc_expr_count_conditional {
@@ -47,24 +98,8 @@ macro_rules! make_doc_expr_count_conditional {
             MQLSemanticOperator(MQLSemanticOperator {
                 op: MQLOperator::And,
                 args: vec![
-                    MQLSemanticOperator(MQLSemanticOperator {
-                        op: MQLOperator::Ne,
-                        args: vec![$arg, Document(UniqueLinkedHashMap::new()),],
-                    }),
-                    MQLSemanticOperator(MQLSemanticOperator {
-                        op: MQLOperator::AllElementsTrue,
-                        args: vec![Map(Map {
-                            input: Box::new(MQLSemanticOperator(MQLSemanticOperator {
-                                op: MQLOperator::ObjectToArray,
-                                args: vec![$arg],
-                            })),
-                            as_name: None,
-                            inside: Box::new(MQLSemanticOperator(MQLSemanticOperator {
-                                op: MQLOperator::Ne,
-                                args: vec![Variable("this.v".into()), Literal(LiteralValue::Null)],
-                            })),
-                        }),]
-                    })
+                    count_doc_arg_not_empty_cond!($arg),
+                    count_doc_arg_not_all_null_values_cond!($arg),
                 ],
             }),
             $then,
@@ -125,9 +160,12 @@ impl AccumulatorsDesugarerVisitor {
                 count_expr.alias.clone(),
                 count_expr.arg.as_ref(),
             ),
-            arg => {
-                Self::rewrite_count_single_expr(count_expr.distinct, count_expr.alias.clone(), arg)
-            }
+            arg => Self::rewrite_count_single_expr(
+                count_expr.distinct,
+                count_expr.alias.clone(),
+                arg,
+                count_expr.arg_is_possibly_doc,
+            ),
         };
 
         let project_item = if count_expr.distinct {
@@ -156,6 +194,7 @@ impl AccumulatorsDesugarerVisitor {
             function,
             distinct: false,
             arg,
+            arg_is_possibly_doc: false,
         }
     }
 
@@ -186,6 +225,7 @@ impl AccumulatorsDesugarerVisitor {
             function: agg_func,
             distinct: false,
             arg: make_doc_expr_count_conditional!(arg.clone(), then, r#else),
+            arg_is_possibly_doc: false,
         }
     }
 
@@ -193,6 +233,7 @@ impl AccumulatorsDesugarerVisitor {
         distinct: bool,
         alias: String,
         arg: &Expression,
+        arg_is_possibly_doc: bool,
     ) -> AccumulatorExpr {
         // Note that the then and else values are opposite to the multi-col version. This is a
         // consequence of the condition expressions we decided to use. We could make these match
@@ -224,7 +265,13 @@ impl AccumulatorsDesugarerVisitor {
             alias,
             function: agg_func,
             distinct: false,
-            arg: make_single_expr_count_conditional!(arg.clone(), then, r#else),
+            arg: make_single_expr_count_conditional!(
+                arg.clone(),
+                arg_is_possibly_doc,
+                then,
+                r#else
+            ),
+            arg_is_possibly_doc: false,
         }
     }
 
@@ -237,6 +284,7 @@ impl AccumulatorsDesugarerVisitor {
             function: AggregationFunction::AddToSet,
             distinct: false,
             arg: acc_expr.arg.clone(),
+            arg_is_possibly_doc: false,
         };
 
         let project_item = ProjectItem::Assignment(MQLSemanticOperator(MQLSemanticOperator {
@@ -322,7 +370,8 @@ impl Visitor for AccumulatorExpressionConverter {
                 alias: _,
                 function: AggregationFunction::AddToArray,
                 distinct: true,
-                arg: _
+                arg: _,
+                arg_is_possibly_doc: _,
             }
         ) {
             AccumulatorExpr {
@@ -330,6 +379,7 @@ impl Visitor for AccumulatorExpressionConverter {
                 function: AggregationFunction::AddToSet,
                 distinct: false,
                 arg: node.arg,
+                arg_is_possibly_doc: false,
             }
         } else {
             node

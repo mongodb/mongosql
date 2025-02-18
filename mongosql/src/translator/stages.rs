@@ -584,16 +584,18 @@ impl MqlTranslator {
             } else {
                 alias.clone()
             };
-            let (function, distinct, arg) = match a.agg_expr {
+            let (function, distinct, arg, arg_is_possibly_doc) = match a.agg_expr {
                 mir::AggregationExpr::CountStar(distinct) => (
                     air::AggregationFunction::Count,
                     distinct,
                     Box::new(ROOT.clone()),
+                    false,
                 ),
                 mir::AggregationExpr::Function(afa) => (
                     Self::translate_agg_function(afa.function),
                     afa.distinct,
                     Box::new(self.translate_expression(*afa.arg)?),
+                    afa.arg_is_possibly_doc,
                 ),
             };
             bot_body.insert(
@@ -605,6 +607,7 @@ impl MqlTranslator {
                 function,
                 distinct,
                 arg,
+                arg_is_possibly_doc,
             });
         }
 

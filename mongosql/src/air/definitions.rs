@@ -62,6 +62,11 @@ pub struct AccumulatorExpr {
     pub function: AggregationFunction,
     pub distinct: bool,
     pub arg: Box<Expression>,
+
+    // Indicates if the argument is possibly a document. This is relevant
+    // for how COUNT works since we want to skip counting empty documents
+    // and documents that contain only null values.
+    pub arg_is_possibly_doc: bool,
 }
 
 #[allow(dead_code)]

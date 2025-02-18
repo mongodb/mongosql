@@ -367,6 +367,7 @@ mod group {
                     function: AggregationFunction::Min,
                     distinct: false,
                     arg: Expression::FieldRef("x".into()).into(),
+                    arg_is_possibly_doc: false,
                 },
                 AccumulatorExpr {
                     alias: "y".into(),
@@ -379,6 +380,7 @@ mod group {
                             Expression::Literal(LiteralValue::Integer(1i32))
                         ],
                     }).into(),
+                    arg_is_possibly_doc: false,
                 },
             ],
         }),
@@ -410,6 +412,7 @@ mod group {
                     function: AggregationFunction::Min,
                     distinct: true,
                     arg: Expression::FieldRef("x".into()).into(),
+                    arg_is_possibly_doc: false,
                 },
             ],
         }),
@@ -441,6 +444,7 @@ mod group {
                     function: AggregationFunction::Count,
                     distinct: false,
                     arg: Expression::FieldRef("x".into()).into(),
+                    arg_is_possibly_doc: false,
                 },
             ],
         }),

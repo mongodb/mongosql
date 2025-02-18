@@ -202,12 +202,14 @@ mod group {
                         function: air::AggregationFunction::Count,
                         distinct: true,
                         arg: ROOT.clone().into(),
+                        arg_is_possibly_doc: false,
                     },
                     air::AccumulatorExpr {
                         alias: "c_nondistinct".into(),
                         function: air::AggregationFunction::Count,
                         distinct: false,
                         arg: ROOT.clone().into(),
+                        arg_is_possibly_doc: false,
                     },
                 ]
             })
@@ -258,12 +260,14 @@ mod group {
                         function: air::AggregationFunction::Max,
                         distinct: true,
                         arg: Box::new(ROOT.clone()),
+                        arg_is_possibly_doc: false,
                     },
                     air::AccumulatorExpr {
                         alias: "min_nondistinct".into(),
                         function: air::AggregationFunction::Min,
                         distinct: false,
                         arg: Box::new(ROOT.clone()),
+                        arg_is_possibly_doc: false,
                     }
                 ]
             })
@@ -379,6 +383,7 @@ mod group {
                     function: air::AggregationFunction::Count,
                     distinct: false,
                     arg: ROOT.clone().into(),
+                    arg_is_possibly_doc: false,
                 },]
             })
             .into(),
