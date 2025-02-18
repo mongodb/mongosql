@@ -49,7 +49,8 @@ impl Stage {
             Stage::Group(_) => true,
             Stage::Limit(_) => true,
             // ordering of two Offsets does not matter. Offset 5, Offset 3 = Offset 3, Offset 5.
-            Stage::Offset(_) => false,
+            // However, Limit should not be moved above an Offset.
+            Stage::Offset(_) => true,
             Stage::Sort(_) => true,
             Stage::Collection(_) => true,
             Stage::Array(_) => true,

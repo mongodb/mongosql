@@ -262,10 +262,10 @@ test_move_stage!(
             source: Stage::Offset(Offset {
                 source: Stage::Offset(Offset {
                     source: mir_collection("foo", "bar"),
-                    offset: 44,
+                    offset: 42,
                     cache: SchemaCache::new(),
                 }).into(),
-                offset: 42,
+                offset: 44,
                 cache: SchemaCache::new(),
             }).into(),
             expression: BindingTuple(map! {
