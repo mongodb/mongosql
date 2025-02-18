@@ -483,6 +483,7 @@ impl StageMovementVisitor<'_> {
 
         // unfortunately, due to the borrow checker, we compute uses we may not need.
         let (field_uses, node) = node.field_uses();
+        println!("node: {:?}, field_uses: {:?}", node, field_uses);
         let (datasource_uses, node) = node.datasource_uses();
         let source = match node {
             Stage::Sort(ref n) => &n.source,
@@ -684,8 +685,12 @@ impl StageMovementVisitor<'_> {
                         (_, true) => {
                             side = BubbleUpSide::Right;
                         }
-                        // This case should be impossible, but best to be safe
-                        (false, false) => return (node, false),
+                        // This case is when we have a TRUE or FALSE filter, we want this to bubble
+                        // up both sides.
+                        (false, false) => {
+                            println!("!!!!!!!!!!!!!!!");
+                            side = BubbleUpSide::Both;
+                        }
                     }
                 }
             }

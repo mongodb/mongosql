@@ -1231,6 +1231,23 @@ mod mql_intrinsic {
                 cache: mir::schema::SchemaCache::new(),
             }))
         );
+
+        test_translate_stage!(
+            false_stage,
+            expected = Ok(air::Stage::Match(air::Match::MatchLanguage(
+                air::MatchLanguage {
+                    source: util::air_project_collection(None, "foo", Some("f")),
+                    expr: Box::new(air::MatchQuery::False),
+                }
+            ))),
+            input = mir::Stage::MQLIntrinsic(mir::MQLStage::MatchFilter(mir::MatchFilter {
+                source: util::mir_project_collection(None, "foo", Some("f"), None),
+                condition: mir::MatchQuery::False(mir::MatchFalse {
+                    cache: mir::schema::SchemaCache::new(),
+                }),
+                cache: mir::schema::SchemaCache::new(),
+            }))
+        );
     }
 }
 

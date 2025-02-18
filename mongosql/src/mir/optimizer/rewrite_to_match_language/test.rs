@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::{
     catalog::{Catalog, Namespace},
     map,
@@ -305,5 +307,97 @@ test_rewrite_to_match_language!(
     input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
         ScalarFunction::Or,
         vec![valid_like(), valid_is()],
+    )))
+);
+
+test_rewrite_to_match_language!(
+    rewrite_null,
+    expected = match_filter_stage(MatchQuery::False(MatchFalse {
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::Literal(LiteralValue::Null))
+);
+
+test_rewrite_to_match_language!(
+    rewrite_undefined,
+    expected = match_filter_stage(MatchQuery::False(MatchFalse {
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::Literal(LiteralValue::Undefined))
+);
+
+test_rewrite_to_match_language!(
+    rewrite_false_bool,
+    expected = match_filter_stage(MatchQuery::False(MatchFalse {
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::Literal(LiteralValue::Boolean(false)))
+);
+
+test_rewrite_to_match_language_no_op!(
+    rewrite_true_bool_is_noop,
+    filter_stage(Expression::Literal(LiteralValue::Boolean(true)))
+);
+
+test_rewrite_to_match_language!(
+    rewrite_0_int,
+    expected = match_filter_stage(MatchQuery::False(MatchFalse {
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::Literal(LiteralValue::Integer(0)))
+);
+
+test_rewrite_to_match_language_no_op!(
+    rewrite_1_int_is_noop,
+    filter_stage(Expression::Literal(LiteralValue::Integer(1)))
+);
+
+test_rewrite_to_match_language!(
+    rewrite_0_long,
+    expected = match_filter_stage(MatchQuery::False(MatchFalse {
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::Literal(LiteralValue::Long(0)))
+);
+
+test_rewrite_to_match_language_no_op!(
+    rewrite_1_long_is_noop,
+    filter_stage(Expression::Literal(LiteralValue::Long(1)))
+);
+
+test_rewrite_to_match_language!(
+    rewrite_0_double,
+    expected = match_filter_stage(MatchQuery::False(MatchFalse {
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::Literal(LiteralValue::Double(0.0)))
+);
+
+test_rewrite_to_match_language_no_op!(
+    rewrite_1_double_is_noop,
+    filter_stage(Expression::Literal(LiteralValue::Double(1.0)))
+);
+
+test_rewrite_to_match_language!(
+    rewrite_0_decimal,
+    expected = match_filter_stage(MatchQuery::False(MatchFalse {
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::Literal(LiteralValue::Decimal128(
+        bson::Decimal128::from_str("0.0").unwrap()
+    )))
+);
+
+test_rewrite_to_match_language_no_op!(
+    rewrite_1_decimal_is_noop,
+    filter_stage(Expression::Literal(LiteralValue::Decimal128(
+        bson::Decimal128::from_str("1.0").unwrap()
     )))
 );

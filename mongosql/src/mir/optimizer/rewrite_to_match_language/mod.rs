@@ -24,7 +24,7 @@ use crate::{
         optimizer::Optimizer,
         schema::{SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        Expression, FieldPath, IsExpr, LikeExpr, LiteralValue, MQLStage, MatchFilter,
+        Expression, FieldPath, IsExpr, LikeExpr, LiteralValue, MQLStage, MatchFalse, MatchFilter,
         MatchLanguageComparison, MatchLanguageComparisonOp, MatchLanguageLogical,
         MatchLanguageLogicalOp, MatchLanguageRegex, MatchLanguageType, MatchQuery, ScalarFunction,
         Stage, Type, TypeOrMissing,
@@ -126,6 +126,9 @@ impl MatchLanguageRewriterVisitor {
                 ScalarFunction::Or => Self::rewrite_logical(MatchLanguageLogicalOp::Or, sf.args),
                 _ => None,
             },
+            Expression::Literal(l) if l.is_falsy() => Some(MatchQuery::False(MatchFalse {
+                cache: SchemaCache::new(),
+            })),
             _ => None,
         }
     }

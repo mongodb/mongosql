@@ -29,6 +29,7 @@ impl MqlCodeGenerator {
             Regex(r) => self.codegen_match_regex(r),
             ElemMatch(em) => self.codegen_match_elem_match(em),
             Comparison(c) => self.codegen_match_comparison(c),
+            False => Ok(bson!({"_id": Bson::MinKey, "$expr": false})),
         }
     }
 

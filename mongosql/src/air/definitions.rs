@@ -703,6 +703,7 @@ pub enum MatchQuery {
     Regex(MatchLanguageRegex),
     ElemMatch(ElemMatch),
     Comparison(MatchLanguageComparison),
+    False,
 }
 
 #[derive(PartialEq, Debug, Clone)]
