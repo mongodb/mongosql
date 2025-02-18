@@ -36,10 +36,10 @@ use crate::{
 use std::collections::HashSet;
 
 impl Stage {
-    /// `is_pagination_invalidating` is used for moving Pagination stages - Offset
-    /// and Limit - as high as possible. They can be moved ahead of any Stage that
-    /// is not defined as pagination invalidating.
-    fn is_pagination_invalidating(&self) -> bool {
+    /// `is_limit_or_offset_invalidating` is used for moving Limit and Offset stages
+    /// as high as possible. They can be moved ahead of any Stage that
+    /// is not defined as invalidating.
+    fn is_limit_or_offset_invalidating(&self) -> bool {
         match self {
             // A tautological Filter will not invalidate offset, but we don't have a SAT solver.
             Stage::Filter(_) => true,
@@ -47,9 +47,12 @@ impl Stage {
             // It's possible to have a Group that does not modify cardinality and thus invalidate
             // an offset, but we can consider that a very rare occurrence.
             Stage::Group(_) => true,
+            // ordering of two Limits does not matter. Limit 5, Limit 3 = Limit 3, Limit 5.
+            // MongoDB coalesces two Limits into one
             Stage::Limit(_) => true,
             // ordering of two Offsets does not matter. Offset 5, Offset 3 = Offset 3, Offset 5.
             // However, Limit should not be moved above an Offset.
+            // MongoDB coalesces two Offsets($skip) into one
             Stage::Offset(_) => true,
             Stage::Sort(_) => true,
             Stage::Collection(_) => true,
@@ -400,25 +403,25 @@ impl StageMovementVisitor<'_> {
         }
     }
 
-    /// `handle_pagination` handles the movement of Offset and Limit stages.
+    /// `handle_limit_and_offset` handles the movement of Offset and Limit stages.
     /// It returns a tuple containing the updated Stage and a boolean indicating
     /// whether a change was made.
     ///
     /// # Safety
     /// This method panics if the node is not an Offset or Limit stage.
-    fn handle_pagination(&mut self, node: Stage) -> (Stage, bool) {
+    fn handle_limit_and_offset(&mut self, node: Stage) -> (Stage, bool) {
         let source = match node {
             Stage::Offset(ref n) => &n.source,
             Stage::Limit(ref n) => &n.source,
             _ => unreachable!(),
         };
-        if source.is_pagination_invalidating() {
+        if source.is_limit_or_offset_invalidating() {
             (node, false)
         } else {
             // We actually cannot bubble_up Offset or Limit past any Stage that has two sources,
             // but we use BubbleUpSide::Both as a placeholder.
             (
-                self.bubble_up(Self::handle_pagination, node, BubbleUpSide::Both),
+                self.bubble_up(Self::handle_limit_and_offset, node, BubbleUpSide::Both),
                 true,
             )
         }
@@ -718,7 +721,7 @@ impl Visitor for StageMovementVisitor<'_> {
         let node = node.walk(self);
         match node {
             Stage::Offset(_) | Stage::Limit(_) => {
-                let (new_node, changed) = self.handle_pagination(node);
+                let (new_node, changed) = self.handle_limit_and_offset(node);
                 self.changed |= changed;
                 new_node
             }
