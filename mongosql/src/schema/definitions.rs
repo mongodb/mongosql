@@ -1591,6 +1591,11 @@ impl Schema {
                 self.schema_from_anyof_intersection(ret)
             }
             (Schema::Document(a), Schema::Document(b)) => {
+                if a == Document::any() {
+                    return Schema::Document(a)
+                } else if b == Document::any() {
+                    return Schema::Document(b)
+                }
                 let mut doc_intersection = Document::default();
                 a.keys.clone().into_iter().for_each(|(key, schema)| {
                     if let Some(b_schema) = b.keys.get(&key) {
@@ -1603,8 +1608,18 @@ impl Schema {
                                 }
                             }
                         }
+                    } else if b.additional_properties {
+                        doc_intersection.keys.insert(key.clone(), schema);
                     }
                 });
+                if a.additional_properties {
+                    b.keys.clone().into_iter().for_each(|(key, schema)| {
+                        if !doc_intersection.keys.contains_key(&key) {
+                            doc_intersection.keys.insert(key.clone(), schema);
+                        }
+                    });
+                }
+                doc_intersection.additional_properties = a.additional_properties && b.additional_properties;
                 if doc_intersection.keys.is_empty() {
                     Schema::Unsat
                 } else {
