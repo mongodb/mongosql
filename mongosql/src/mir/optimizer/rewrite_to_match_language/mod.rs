@@ -5,6 +5,11 @@
 /// match language (mir::MatchQuery) and the Filter stage replaced with a
 /// MatchFilter stage.
 ///
+/// Also optimizes constant false conditions to a MatchFalse filter. This filter
+/// can be then treated specially in codegen because certain versions of mongodb
+/// require a bit of finesse to ensure that {$match: {$expr: false}} is not
+/// treated as a COLLSCAN.
+///
 /// Note that although comparison operators _can_ be rewritten to use match
 /// language, this optimization does not perform such rewrites. LIKE and IS
 /// ultimately translate to $regexMatch and $eq/$type in aggregation language.
@@ -126,6 +131,8 @@ impl MatchLanguageRewriterVisitor {
                 ScalarFunction::Or => Self::rewrite_logical(MatchLanguageLogicalOp::Or, sf.args),
                 _ => None,
             },
+            // Note this relies on ConstantFolding to ensure that the a constant expression becomes
+            // a LiteralValue.
             Expression::Literal(l) if l.is_falsy() => Some(MatchQuery::False(MatchFalse {
                 cache: SchemaCache::new(),
             })),
