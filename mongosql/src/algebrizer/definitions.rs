@@ -589,7 +589,7 @@ impl<'a> Algebrizer<'a> {
                     join_type: mir::JoinType::Left,
                     left: Box::new(left_src),
                     right: Box::new(right_src),
-                    condition,
+                    condition: None,
                     cache: SchemaCache::new(),
                 })
             }
@@ -601,7 +601,7 @@ impl<'a> Algebrizer<'a> {
                     join_type: mir::JoinType::Left,
                     left: Box::new(right_src),
                     right: Box::new(left_src),
-                    condition,
+                    condition: None,
                     cache: SchemaCache::new(),
                 })
             }
@@ -609,9 +609,18 @@ impl<'a> Algebrizer<'a> {
                 join_type: mir::JoinType::Inner,
                 left: Box::new(left_src),
                 right: Box::new(right_src),
-                condition,
+                condition: None,
                 cache: SchemaCache::new(),
             }),
+        };
+        let stage = if let Some(condition) = condition {
+            mir::Stage::Filter(mir::Filter {
+                source: Box::new(stage),
+                condition,
+                cache: SchemaCache::new(),
+            })
+        } else {
+            stage
         };
         stage.schema(&self.schema_inference_state())?;
         Ok(stage)
