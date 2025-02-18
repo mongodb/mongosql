@@ -613,6 +613,8 @@ impl<'a> Algebrizer<'a> {
                     condition: None,
                     cache: SchemaCache::new(),
                 });
+                // The stage_movement optimization will place this condition in the Join if it makes sense. Otherwise,
+                // it will move it as early in the pipeline as possible.
                 if let Some(condition) = condition {
                     mir::Stage::Filter(mir::Filter {
                         source: Box::new(join),
