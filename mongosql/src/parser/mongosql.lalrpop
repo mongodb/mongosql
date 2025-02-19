@@ -92,9 +92,16 @@ UnwindDatasource: Datasource = {
 }
 
 UnwindOption: UnwindOption = {
-  PATH ARROW <p:Tier14Expr> =>? parse_unwind_path(*p),
+  PATH ARROW <p:Period<UnwindPathPart>> => UnwindOption(p),
   INDEX ARROW <i:Identifier> => UnwindOption::Index(i),
   OUTER ARROW <o:Boolean> => UnwindOption::Outer(o)
+}
+
+UnwindPathPart: UnwindPathPart = {
+    <i:Identifier> <b:(LEFT_BRACKET RIGHT_BRACKET)?> => UnwindPathPart {
+        field: i, should_unwind:
+        b.is_some() 
+    }
 }
 
 Datasource: Datasource = {
@@ -720,6 +727,16 @@ CommaPlus<T>: Vec<T> = {
     v.push(e);
     v
   }
+};
+
+Period<T>: Vec<T> = { // (1)
+    <mut v:(<T> DOT)*> <e:T?> => match e { // (2)
+        None => v,
+        Some(e) => {
+            v.push(e);
+            v
+        }
+    }
 };
 
 match {

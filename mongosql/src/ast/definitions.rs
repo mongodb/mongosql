@@ -236,7 +236,7 @@ pub struct UnwindSource {
 
 #[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum UnwindOption {
-    Path(Expression),
+    Path(Vec<UnwindPathPart>),
     Index(String),
     Outer(bool),
 }
@@ -759,6 +759,13 @@ pub struct SubpathExpr {
     pub expr: Box<Expression>,
     pub subpath: String,
 }
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct UnwindPathPart {
+    pub field: String,
+    pub should_unwind: bool,
+}
+
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, VariantCount)]
 pub enum TypeOrMissing {
