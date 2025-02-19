@@ -38,7 +38,7 @@ functions:
         content_type: application/octet-stream
 
   "upload mongosqltranslate release":
-    #macos x86_64
+    # macos x86_64
     - command: s3.get
       params:
         aws_key: ${aws_key}
@@ -51,12 +51,12 @@ functions:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/mongosqltranslate-macos/libmongosqltranslate-signed.dylib
-        remote_file: mongosqltranslate/libmongosqltranslate-v${release_version}-macos-x86_64-signed.dylib
+        remote_file: mongosqltranslate/libmongosqltranslate-v${release_version}-macos-x86_64.dylib
         bucket: translators-connectors-releases
         permissions: public-read
         content_type: application/octet-stream
-        display_name: libmongosqltranslate-v${release_version}-macos-x86_64-signed.dylib
-    #macos arm64
+        display_name: libmongosqltranslate-v${release_version}-macos-x86_64.dylib
+    # macos arm64
     - command: s3.get
       params:
         aws_key: ${aws_key}
@@ -69,12 +69,30 @@ functions:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/mongosqltranslate-macos-arm/libmongosqltranslate-signed.dylib
-        remote_file: mongosqltranslate/libmongosqltranslate-v${release_version}-macos-arm-signed.dylib
+        remote_file: mongosqltranslate/libmongosqltranslate-v${release_version}-macos-arm.dylib
         bucket: translators-connectors-releases
         permissions: public-read
         content_type: application/octet-stream
-        display_name: libmongosqltranslate-v${release_version}-macos-arm-signed.dylib
+        display_name: libmongosqltranslate-v${release_version}-macos-arm.dylib
     # rhel x86_64
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/mongosqltranslate-linux-x86_64/libmongosqltranslate.so
+        local_file: mongosql-rs/release/mongosqltranslate-linux-x86_64/libmongosqltranslate.so
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/mongosqltranslate-linux-x86_64/libmongosqltranslate.so
+        remote_file: mongosqltranslate/libmongosqltranslate-v${release_version}-linux-x86_64.so
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+        display_name: libmongosqltranslate-v${release_version}-linux-x86_64.so
+    # rhel x86_64 signature file
     - command: s3.get
       params:
         aws_key: ${aws_key}
@@ -93,6 +111,24 @@ functions:
         content_type: application/octet-stream
         display_name: libmongosqltranslate-v${release_version}-linux-x86_64.so.sig
     # amazon2 arm64
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/mongosqltranslate-linux-arm64/libmongosqltranslate.so
+        local_file: mongosql-rs/release/mongosqltranslate-linux-arm64/libmongosqltranslate.so
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/mongosqltranslate-linux-arm64/libmongosqltranslate.so
+        remote_file: mongosqltranslate/libmongosqltranslate-v${release_version}-linux-arm.so
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+        display_name: libmongosqltranslate-v${release_version}-linux-arm.so
+    # amazon2 arm64 signature file
     - command: s3.get
       params:
         aws_key: ${aws_key}
@@ -123,11 +159,11 @@ functions:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/mongosqltranslate-windows-64/mongosqltranslate-signed.dll
-        remote_file: mongosqltranslate/mongosqltranslate-v${release_version}-win-x86_64-signed.dll
+        remote_file: mongosqltranslate/mongosqltranslate-v${release_version}-win-x86_64.dll
         bucket: translators-connectors-releases
         permissions: public-read
         content_type: application/octet-stream
-        display_name: mongosqltranslate-v${release_version}-win-x86_64-signed.dll
+        display_name: mongosqltranslate-v${release_version}-win-x86_64.dll
 
   "run mongosqltranslate tests":
     - command: shell.exec
