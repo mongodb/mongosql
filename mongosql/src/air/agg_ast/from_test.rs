@@ -749,7 +749,63 @@ mod stage {
         );
 
         test_from_stage!(
-            group_with_single_acc,
+            group_with_single_acc_possibly_doc_must,
+            expected = air::Stage::Group(air::Group {
+                source: Box::new(default_source()),
+                keys: vec![],
+                aggregations: vec![air::AccumulatorExpr {
+                    alias: "acc".to_string(),
+                    function: air::AggregationFunction::Sum,
+                    distinct: true,
+                    arg: Box::new(air::Expression::FieldRef("a".to_string().into())),
+                    arg_is_possibly_doc: Satisfaction::Must,
+                }]
+            }),
+            input = agg_ast::Stage::Group(agg_ast::Group {
+                keys: agg_ast::Expression::Literal(agg_ast::LiteralValue::Null),
+                aggregations: map! {
+                    "acc".to_string() => agg_ast::GroupAccumulator {
+                        function: agg_ast::GroupAccumulatorName::SQLSum,
+                        expr: agg_ast::GroupAccumulatorExpr::SQLAccumulator {
+                            distinct: true,
+                            var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string()))),
+                            arg_is_possibly_doc: Some("must".to_string()),
+                        }
+                    }
+                }
+            })
+        );
+
+        test_from_stage!(
+            group_with_single_acc_possibly_doc_may,
+            expected = air::Stage::Group(air::Group {
+                source: Box::new(default_source()),
+                keys: vec![],
+                aggregations: vec![air::AccumulatorExpr {
+                    alias: "acc".to_string(),
+                    function: air::AggregationFunction::Sum,
+                    distinct: true,
+                    arg: Box::new(air::Expression::FieldRef("a".to_string().into())),
+                    arg_is_possibly_doc: Satisfaction::May,
+                }]
+            }),
+            input = agg_ast::Stage::Group(agg_ast::Group {
+                keys: agg_ast::Expression::Literal(agg_ast::LiteralValue::Null),
+                aggregations: map! {
+                    "acc".to_string() => agg_ast::GroupAccumulator {
+                        function: agg_ast::GroupAccumulatorName::SQLSum,
+                        expr: agg_ast::GroupAccumulatorExpr::SQLAccumulator {
+                            distinct: true,
+                            var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string()))),
+                            arg_is_possibly_doc: Some("may".to_string()),
+                        }
+                    }
+                }
+            })
+        );
+
+        test_from_stage!(
+            group_with_single_acc_possibly_doc_not,
             expected = air::Stage::Group(air::Group {
                 source: Box::new(default_source()),
                 keys: vec![],
@@ -768,7 +824,8 @@ mod stage {
                         function: agg_ast::GroupAccumulatorName::SQLSum,
                         expr: agg_ast::GroupAccumulatorExpr::SQLAccumulator {
                             distinct: true,
-                            var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())))
+                            var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string()))),
+                            arg_is_possibly_doc: Some("not".to_string()),
                         }
                     }
                 }
@@ -809,14 +866,16 @@ mod stage {
                         function: agg_ast::GroupAccumulatorName::SQLSum,
                         expr: agg_ast::GroupAccumulatorExpr::SQLAccumulator {
                             distinct: true,
-                            var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())))
+                            var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string()))),
+                            arg_is_possibly_doc: None,
                         },
                     },
                     "acc_two".to_string() => agg_ast::GroupAccumulator {
                         function: agg_ast::GroupAccumulatorName::SQLAvg,
                         expr: agg_ast::GroupAccumulatorExpr::SQLAccumulator {
                             distinct: true,
-                            var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("b".to_string())))
+                            var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("b".to_string()))),
+                            arg_is_possibly_doc: None,
                         },
                     },
                 }

@@ -116,13 +116,22 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                     .sorted_by(|a, b| Ord::cmp(&a.0, &b.0))
                     .map(|(key, accumulator_expr)| match accumulator_expr.expr {
                         // accumulators of form: $<acc>: {"var": <expr>, "distinct": <bool>}
-                        GroupAccumulatorExpr::SQLAccumulator { distinct, var } => {
+                        GroupAccumulatorExpr::SQLAccumulator {
+                            distinct,
+                            var,
+                            arg_is_possibly_doc,
+                        } => {
+                            let arg_is_possibly_doc = match arg_is_possibly_doc {
+                                Some(s) if s.to_lowercase() == "must" => Satisfaction::Must,
+                                Some(s) if s.to_lowercase() == "may" => Satisfaction::May,
+                                _ => Satisfaction::Not,
+                            };
                             air::AccumulatorExpr {
                                 alias: key,
                                 function: accumulator_expr.function.into(),
                                 distinct,
                                 arg: Box::new(air::Expression::from(*var)),
-                                arg_is_possibly_doc: Satisfaction::Not,
+                                arg_is_possibly_doc,
                             }
                         }
                         // accumulators of form: $<acc>: <expr>

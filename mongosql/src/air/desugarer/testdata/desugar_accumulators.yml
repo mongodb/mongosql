@@ -30,7 +30,7 @@ tests:
       - { "$group": { "_id": null, "acc": { "$addToSet": "$a" } } }
       - { "$project": { "_id": 1, "acc": { "$avg": "$acc" } } }
 
-  - name: "desugar non-distinct $sqlCount single column arg"
+  - name: "desugar non-distinct $sqlCount single column arg not possibly doc"
     input:
       - {
         "$group":
@@ -51,6 +51,111 @@ tests:
                     "$cond":
                       [
                         { "$in": [{ "$type": "$a" }, ["missing", "null"]] },
+                        0,
+                        1,
+                      ],
+                  },
+              },
+          },
+      }
+
+  - name: "desugar non-distinct $sqlCount single column arg must be doc"
+    input:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sqlCount": { "var": "$a", "distinct": false, "arg_is_possibly_doc": "must" } },
+          },
+      }
+    expected:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc":
+              {
+                "$sum":
+                  {
+                    "$cond":
+                      [
+                        {
+                          "$or":
+                            [
+                              { "$eq": [ "$a", { "$literal": { } } ] },
+                              {
+                                "$allElementsTrue":
+                                  [
+                                    {
+                                      "$ifNull":
+                                        [
+                                          {
+                                            "$map":
+                                              {
+                                                "input": { "$objectToArray": "$a" },
+                                                "in": { "$eq": [ "$$this.v", null ] }
+                                              }
+                                          },
+                                          [ ]
+                                        ]
+                                    }
+                                  ]
+                              }
+                            ]
+                        },
+                        0,
+                        1,
+                      ],
+                  },
+              },
+          },
+      }
+
+  - name: "desugar non-distinct $sqlCount single column arg may be doc"
+    input:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sqlCount": { "var": "$a", "distinct": false, "arg_is_possibly_doc": "may" } },
+          },
+      }
+    expected:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc":
+              {
+                "$sum":
+                  {
+                    "$cond":
+                      [
+                        {
+                          "$or":
+                            [
+                              { "$in": [{ "$type": "$a" }, ["missing", "null"]] },
+                              { "$eq": ["$a", { "$literal": { } }] },
+                              {
+                                "$allElementsTrue":
+                                  [
+                                    {
+                                      "$ifNull":
+                                        [
+                                          {
+                                            "$map":
+                                              {
+                                                "input": { "$objectToArray": "$a" },
+                                                "in": { "$eq": ["$$this.v", null] }
+                                              }
+                                          },
+                                          [ ]
+                                        ]
+                                    }
+                                  ]
+                              }
+                            ]
+                        },
                         0,
                         1,
                       ],
@@ -137,7 +242,7 @@ tests:
         "$group":
           {
             "_id": null,
-            "acc": { "$sqlCount": { "var": {"a": "$a", "b": "$b"}, "distinct": false } },
+            "acc": { "$sqlCount": { "var": {"a": "$a", "b": "$b"}, "distinct": false, "arg_is_possibly_doc": "must" } },
           },
       }
     expected:
@@ -152,25 +257,31 @@ tests:
                     "$cond":
                       [
                         {
-                          "$and":
+                          "$or":
                             [
-                              { "$ne": [{"a": "$a", "b": "$b"}, { "$literal": {}}] },
+                              { "$eq": [{"a": "$a", "b": "$b"}, { "$literal": {}}] },
                               {
                                 "$allElementsTrue":
                                   [
                                     {
-                                      "$map":
-                                        {
-                                          "input": { "$objectToArray": {"a": "$a", "b": "$b"} },
-                                          "in": { "$ne": ["$$this.v", null] }
-                                        }
+                                      "$ifNull":
+                                        [
+                                          {
+                                            "$map":
+                                              {
+                                                "input": { "$objectToArray": { "a": "$a", "b": "$b" } },
+                                                "in": { "$eq": ["$$this.v", null] }
+                                              }
+                                          },
+                                          []
+                                        ]
                                     }
                                   ]
                               }
                             ]
                         },
-                        1,
                         0,
+                        1,
                       ],
                   },
               },
@@ -183,7 +294,7 @@ tests:
         "$group":
           {
             "_id": null,
-            "acc": { "$sqlCount": { "var": {"a": "$a", "b": "$b"}, "distinct": true } },
+            "acc": { "$sqlCount": { "var": {"a": "$a", "b": "$b"}, "distinct": true, "arg_is_possibly_doc": "must" } },
           },
       }
     expected:
@@ -198,25 +309,31 @@ tests:
                     "$cond":
                       [
                         {
-                          "$and":
+                          "$or":
                             [
-                              { "$ne": [{ "a": "$a", "b": "$b" }, { "$literal": {} }] },
+                              { "$eq": [{ "a": "$a", "b": "$b" }, { "$literal": {} }] },
                               {
                                 "$allElementsTrue":
                                   [
                                     {
-                                      "$map":
-                                        {
-                                          "input": { "$objectToArray": { "a": "$a", "b": "$b" } },
-                                          "in": { "$ne": ["$$this.v", null] }
-                                        }
+                                      "$ifNull":
+                                        [
+                                          {
+                                            "$map":
+                                              {
+                                                "input": { "$objectToArray": { "a": "$a", "b": "$b" } },
+                                                "in": { "$eq": [ "$$this.v", null ] }
+                                              }
+                                          },
+                                          []
+                                        ]
                                     }
                                   ]
                               }
                             ]
                         },
-                        { "a": "$a", "b": "$b" },
                         "$$REMOVE",
+                        { "a": "$a", "b": "$b" },
                       ]
                   }
               }
