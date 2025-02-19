@@ -440,6 +440,37 @@ impl DeriveSchema for TaggedOperator {
                     })
             }};
         }
+        macro_rules! array_schema_or_error {
+            ($input_schema:expr,$input:expr) => {{
+                match $input_schema {
+                    Schema::Array(a) => *a,
+                    Schema::AnyOf(ao) => {
+                        let mut array_type = None;
+                        for schema in ao.iter() {
+                            if let Schema::Array(a) = schema {
+                                array_type = Some(*a.clone());
+                                break;
+                            }
+                        }
+                        match array_type {
+                            Some(t) => t,
+                            None => {
+                                return Err(Error::InvalidExpressionForField(
+                                    format!("{:?}", $input),
+                                    "input",
+                                ))
+                            }
+                        }
+                    }
+                    _ => {
+                        return Err(Error::InvalidExpressionForField(
+                            format!("{:?}", $input),
+                            "input",
+                        ))
+                    }
+                }
+            }};
+        }
         match self {
             TaggedOperator::Convert(c) => match c.to.as_ref() {
                 Expression::Literal(LiteralValue::String(s)) => Ok(schema_for_type_str(s.as_str())),
@@ -773,22 +804,23 @@ impl DeriveSchema for TaggedOperator {
                 let var = m._as.clone();
                 let var = var.unwrap_or("this".to_string());
                 let input_schema = m.input.derive_schema(state)?;
-                let array_schema = match input_schema {
-                    Schema::Array(a) => *a,
-                    _ => {
-                        return Err(Error::InvalidExpressionForField(
-                            format!("{:?}", m.input),
-                            "input",
-                        ))
-                    }
-                };
+                if input_schema.satisfies(&NULLISH.clone()) == Satisfaction::Must {
+                    return Ok(Schema::Atomic(Atomic::Null));
+                }
+                let array_schema = array_schema_or_error!(input_schema.clone(), m.input);
                 let mut new_state = state.clone();
                 let mut variables = state.variables.clone();
                 variables.insert(var, array_schema);
                 new_state.variables = variables;
-                Ok(
+                let not_null_schema =
                     Schema::Array(Box::new(m.inside.derive_schema(&mut new_state)?))
-                        .upconvert_missing_to_null(),
+                        .upconvert_missing_to_null();
+                Ok(
+                    if input_schema.satisfies(&NULLISH.clone()) != Satisfaction::Not {
+                        not_null_schema.union(&Schema::Atomic(Atomic::Null))
+                    } else {
+                        not_null_schema
+                    },
                 )
             }
             // Unfortunately, unlike $max and $min, $maxN and $minN cannot
@@ -802,22 +834,23 @@ impl DeriveSchema for TaggedOperator {
             }
             TaggedOperator::Reduce(r) => {
                 let input_schema = r.input.derive_schema(state)?;
-                let array_schema = match input_schema {
-                    Schema::Array(a) => *a,
-                    _ => {
-                        return Err(Error::InvalidExpressionForField(
-                            format!("{:?}", r.input),
-                            "input",
-                        ))
-                    }
-                };
+                if input_schema.satisfies(&NULLISH.clone()) == Satisfaction::Must {
+                    return Ok(Schema::Atomic(Atomic::Null));
+                }
+                let array_schema = array_schema_or_error!(input_schema.clone(), r.input);
                 let initial_schema = r.initial_value.derive_schema(state)?;
                 let mut new_state = state.clone();
                 let mut variables = state.variables.clone();
                 variables.insert("this".to_string(), array_schema);
                 variables.insert("value".to_string(), initial_schema);
                 new_state.variables = variables;
-                r.inside.derive_schema(&mut new_state)
+                if input_schema.satisfies(&NULLISH.clone()) == Satisfaction::Not {
+                    r.inside.derive_schema(&mut new_state)
+                } else {
+                    Ok(r.inside
+                        .derive_schema(&mut new_state)?
+                        .union(&Schema::Atomic(Atomic::Null)))
+                }
             }
             TaggedOperator::Regex(_) => Ok(Schema::Atomic(Atomic::Integer)),
             TaggedOperator::ReplaceAll(r) | TaggedOperator::ReplaceOne(r) => {
@@ -1184,6 +1217,8 @@ impl DeriveSchema for UntaggedOperator {
                     _ => {
                         if input_schema.satisfies(&NULLISH_OR_UNDEFINED) == Satisfaction::Must {
                             Ok(Schema::Atomic(Atomic::Null))
+                        } else if input_schema.satisfies(&NULLISH_OR_UNDEFINED.union(&Schema::Array(Box::new(Schema::Any)))) == Satisfaction::Must {
+                            Ok(input_schema.intersection(&Schema::Array(Box::new(Schema::Any))).union(&Schema::Atomic(Atomic::Null)))
                         } else {
                             Err(Error::InvalidType(input_schema, 0usize))
                         }

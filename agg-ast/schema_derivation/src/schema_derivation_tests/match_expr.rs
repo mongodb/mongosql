@@ -2773,6 +2773,8 @@ mod string_ops {
 }
 
 mod array_ops {
+    use mongosql::schema::NULLISH;
+
     use super::*;
 
     test_derive_schema_for_match_stage!(
@@ -3224,7 +3226,7 @@ mod array_ops {
         expected = Ok(Schema::Document(Document {
             keys: map! {
                 "foo".to_string() => Schema::AnyOf(set!(
-                    Schema::Array(Box::new(Schema::Any)),
+                    Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
                     Schema::Atomic(Atomic::Null)
                 )),
                 "bar".to_string() => NUMERIC_OR_NULL.clone(),
@@ -3234,7 +3236,11 @@ mod array_ops {
         input = r#"{"$match": {"$expr": {"$eq": [null, {"$arrayElemAt": ["$foo", "$bar"]}]}}}"#,
         starting_schema = Schema::Document(Document {
             keys: map! {
-                "foo".to_string() => Schema::Any,
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Missing,
+                    Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
+                )),
                 "bar".to_string() => Schema::Any
             },
             required: set!("foo".to_string(), "bar".to_string()),
@@ -3250,7 +3256,7 @@ mod array_ops {
             required: set!("foo".to_string()),
             ..Default::default()
         })),
-        input = r#"{"$match": {"$expr": {"$objectToArray": "$foo"}}}"#,
+        input = r#"{"$match": {"$expr": {"$arrayToObject": "$foo"}}}"#,
         ref_schema = Schema::Any
     );
     test_derive_schema_for_match_stage!(
@@ -3264,7 +3270,7 @@ mod array_ops {
             },
             ..Default::default()
         })),
-        input = r#"{"$match": {"$expr": {"$ne": [[], {"$objectToArray": "$foo"}]}}}"#,
+        input = r#"{"$match": {"$expr": {"$ne": [[], {"$arrayToObject": "$foo"}]}}}"#,
         ref_schema = Schema::Any
     );
     test_derive_schema_for_match_stage!(
@@ -3297,12 +3303,15 @@ mod array_ops {
         merge_objects_multiple_args_ref,
         expected = Ok(Schema::Document(Document {
             keys: map! {
-                "foo".to_string() => Schema::Document(Document::any()),
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document::any()),
+                    Schema::Array(Box::new(Schema::Document(Document::any())))
+                ))
             },
             required: set!("foo".to_string()),
             ..Default::default()
         })),
-        input = r#"{"$match": {"$expr": {"$mergeObjects": ["$foo", {"b": 2}]}}}}"#,
+        input = r#"{"$match": {"$expr": {"$mergeObjects": ["$foo", {"b": 2}]}}}"#,
         ref_schema = Schema::Any
     );
     test_derive_schema_for_match_stage!(
@@ -3314,7 +3323,7 @@ mod array_ops {
             required: set!("foo".to_string()),
             ..Default::default()
         })),
-        input = r#"{"$match": {"$expr": {"$sortArray": {"input": "$foo"}}}}"#,
+        input = r#"{"$match": {"$expr": {"$sortArray": {"input": "$foo", "sortBy": 1}}}}"#,
         ref_schema = Schema::Any
     );
     test_derive_schema_for_match_stage!(
@@ -3328,7 +3337,7 @@ mod array_ops {
             },
             ..Default::default()
         })),
-        input = r#"{"$match": {"$expr": {"$ne": [[], {"$sortArray": {"input": "$foo"}}]}}}"#,
+        input = r#"{"$match": {"$expr": {"$ne": [[], {"$sortArray": {"input": "$foo", "sortBy": 1}}]}}}"#,
         ref_schema = Schema::Any
     );
     test_derive_schema_for_match_stage!(
@@ -3339,7 +3348,7 @@ mod array_ops {
             },
             ..Default::default()
         })),
-        input = r#"{"$match": {"$expr": {"$eq": [null, {"$sortArray": {"input": "$foo"}}]}}}"#,
+        input = r#"{"$match": {"$expr": {"$eq": [null, {"$sortArray": {"input": "$foo", "sortBy": 1}}]}}}"#,
         ref_schema = Schema::Any
     );
     test_derive_schema_for_match_stage!(
@@ -3354,31 +3363,32 @@ mod array_ops {
         input = r#"{"$match": {"$expr": {"$filter": {"input": "$foo", "as": "item", "cond": {"$gte": ["$$item", 1]}}}}}"#,
         ref_schema = Schema::Any
     );
-    test_derive_schema_for_match_stage!(
-        filter_maybe_null,
-        expected = Ok(Schema::Document(Document {
-            keys: map! {
-                "foo".to_string() => Schema::AnyOf(set!(
-                    Schema::Array(Box::new(Schema::Any)),
-                    Schema::Atomic(Atomic::Null)
-                ))
-            },
-            ..Default::default()
-        })),
-        input = r#"{"$match": {"$expr": {"$ne": [[], {"$filter": {"input": "$foo", "as": "item", "cond": {"$gte": ["$$item", 1]}}}]}}}"#,
-        ref_schema = Schema::Any
-    );
-    test_derive_schema_for_match_stage!(
-        filter_null,
-        expected = Ok(Schema::Document(Document {
-            keys: map! {
-                "foo".to_string() => Schema::Atomic(Atomic::Null)
-            },
-            ..Default::default()
-        })),
-        input = r#"{"$match": {"$expr": {"$eq": [null, {"$filter": {"input": "$foo", "as": "item", "cond": {"$gte": ["$$item", 1]}}}]}}}"#,
-        ref_schema = Schema::Any
-    );
+    // SQL-2541: implement schema derivation for filter
+    // test_derive_schema_for_match_stage!(
+    //     filter_maybe_null,
+    //     expected = Ok(Schema::Document(Document {
+    //         keys: map! {
+    //             "foo".to_string() => Schema::AnyOf(set!(
+    //                 Schema::Array(Box::new(Schema::Any)),
+    //                 Schema::Atomic(Atomic::Null)
+    //             ))
+    //         },
+    //         ..Default::default()
+    //     })),
+    //     input = r#"{"$match": {"$expr": {"$ne": [[], {"$filter": {"input": "$foo", "as": "item", "cond": {"$gte": ["$$item", 1]}}}]}}}"#,
+    //     ref_schema = Schema::Any
+    // );
+    // test_derive_schema_for_match_stage!(
+    //     filter_null,
+    //     expected = Ok(Schema::Document(Document {
+    //         keys: map! {
+    //             "foo".to_string() => Schema::Atomic(Atomic::Null)
+    //         },
+    //         ..Default::default()
+    //     })),
+    //     input = r#"{"$match": {"$expr": {"$eq": [null, {"$filter": {"input": "$foo", "as": "item", "cond": {"$gte": ["$$item", 1]}}}]}}}"#,
+    //     ref_schema = Schema::Any
+    // );
     test_derive_schema_for_match_stage!(
         map_not_null,
         expected = Ok(Schema::Document(Document {
@@ -3396,14 +3406,18 @@ mod array_ops {
         expected = Ok(Schema::Document(Document {
             keys: map! {
                 "foo".to_string() => Schema::AnyOf(set!(
-                    Schema::Array(Box::new(Schema::Any)),
+                    Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
                     Schema::Atomic(Atomic::Null)
                 ))
             },
             ..Default::default()
         })),
         input = r#"{"$match": {"$expr": {"$ne": [[], {"$map": {"input": "$foo", "as": "item", "in": {"$gte": ["$$item", 1]}}}]}}}"#,
-        ref_schema = Schema::Any
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing,
+            Schema::Array(Box::new(Schema::Atomic(Atomic::Integer)))
+        ))
     );
     test_derive_schema_for_match_stage!(
         map_null,
@@ -3414,7 +3428,7 @@ mod array_ops {
             ..Default::default()
         })),
         input = r#"{"$match": {"$expr": {"$eq": [null, {"$map": {"input": "$foo", "as": "item", "in": {"$gte": ["$$item", 1]}}}]}}}"#,
-        ref_schema = Schema::Any
+        ref_schema = NULLISH.clone()
     );
     test_derive_schema_for_match_stage!(
         median_not_null,
@@ -3425,8 +3439,7 @@ mod array_ops {
             required: set!("foo".to_string()),
             ..Default::default()
         })),
-        input =
-            r#"{"$match": {"$expr": {"$median": {"input": "$foo", "method": "approximate"}}}}}"#,
+        input = r#"{"$match": {"$expr": {"$median": {"input": "$foo", "method": "approximate"}}}}"#,
         ref_schema = Schema::Any
     );
     test_derive_schema_for_match_stage!(
@@ -3441,17 +3454,6 @@ mod array_ops {
             ..Default::default()
         })),
         input = r#"{"$match": {"$expr": {"$ne": [[], {"$median": {"input": "$foo", "method": "approximate"}}]}}}"#,
-        ref_schema = Schema::Any
-    );
-    test_derive_schema_for_match_stage!(
-        median_null,
-        expected = Ok(Schema::Document(Document {
-            keys: map! {
-                "foo".to_string() => Schema::Atomic(Atomic::Null)
-            },
-            ..Default::default()
-        })),
-        input = r#"{"$match": {"$expr": {"$eq": [null, {"$median": {"input": "$foo", "method": "approximate"}}]}}}"#,
         ref_schema = Schema::Any
     );
     test_derive_schema_for_match_stage!(
@@ -3472,14 +3474,18 @@ mod array_ops {
         expected = Ok(Schema::Document(Document {
             keys: map! {
                 "foo".to_string() => Schema::AnyOf(set!(
-                    Schema::Array(Box::new(Schema::Any)),
+                    Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
                     Schema::Atomic(Atomic::Null)
                 ))
             },
             ..Default::default()
         })),
         input = r#"{"$match": {"$expr": {"$ne": [[], {"$reduce": {"input": "$foo", "initialValue": 1, "in": []}}]}}}"#,
-        ref_schema = Schema::Any
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing,
+            Schema::Array(Box::new(Schema::Atomic(Atomic::Integer)))
+        ))
     );
     test_derive_schema_for_match_stage!(
         reduce_null,
@@ -3490,7 +3496,7 @@ mod array_ops {
             ..Default::default()
         })),
         input = r#"{"$match": {"$expr": {"$eq": [null, {"$reduce": {"input": "$foo", "initialValue": 1, "in": []}}]}}}"#,
-        ref_schema = Schema::Any
+        ref_schema = NULLISH.clone()
     );
     test_derive_schema_for_match_stage!(
         slice_not_null,

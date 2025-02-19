@@ -2175,10 +2175,10 @@ mod expression_test {
                 Accumulator, Bottom, BottomN, Convert, DateAdd, DateDiff, DateExpression,
                 DateFromParts, DateFromString, DateSubtract, DateToParts, DateToString, DateTrunc,
                 Expression, Filter, Function, GetField, Let, Like, LiteralValue, Map, Median,
-                NArrayOp, Percentile, ProjectItem, ProjectStage, Reduce, Ref, SQLConvert,
-                SQLDivide, SetField, SortArray, SortArraySpec, Stage, Subquery, SubqueryComparison,
-                SubqueryExists, Switch, SwitchCase, TaggedOperator, Top, TopN, Trim, UnsetField,
-                UntaggedOperator, UntaggedOperatorName, Zip, RegexAggExpression, Replace
+                NArrayOp, Percentile, ProjectItem, ProjectStage, Reduce, Ref, RegexAggExpression,
+                Replace, SQLConvert, SQLDivide, SetField, SortArray, SortArraySpec, Stage,
+                Subquery, SubqueryComparison, SubqueryExists, Switch, SwitchCase, TaggedOperator,
+                Top, TopN, Trim, UnsetField, UntaggedOperator, UntaggedOperatorName, Zip,
             },
             map,
         };

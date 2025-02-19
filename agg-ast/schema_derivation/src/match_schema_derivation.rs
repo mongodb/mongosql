@@ -1486,7 +1486,7 @@ impl MatchConstrainSchema for Expression {
         }
 
         fn match_derive_array_op(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
-           for arg in u.args.iter() {
+            for arg in u.args.iter() {
                 if let Expression::Ref(r) = arg {
                     match state.null_behavior {
                         Satisfaction::Not => {
@@ -1506,7 +1506,7 @@ impl MatchConstrainSchema for Expression {
                 } else {
                     arg.match_derive_schema(state)?;
                 }
-            };
+            }
             Ok(())
         }
 
@@ -1561,7 +1561,7 @@ impl MatchConstrainSchema for Expression {
                 } else {
                     arg.match_derive_schema(state)?;
                 }
-            };
+            }
             Ok(())
         }
 
@@ -1614,7 +1614,7 @@ impl MatchConstrainSchema for Expression {
                 } else {
                     arg.match_derive_schema(state)?;
                 }
-            };
+            }
             Ok(())
         }
 
@@ -1816,7 +1816,6 @@ impl MatchConstrainSchema for Expression {
         }
 
         fn match_derive_reduce(r: &Reduce, state: &mut ResultSetState) -> Result<()> {
-            println!("here");
             if let Expression::Ref(r) = r.input.as_ref() {
                 match state.null_behavior {
                     Satisfaction::Not => {
@@ -2000,7 +1999,7 @@ impl MatchConstrainSchema for Expression {
                 UntaggedOperatorName::IndexOfCP | UntaggedOperatorName::IndexOfBytes => {
                     match_derive_index_of(u, state)?
                 }
-                _ => todo!()
+                _ => todo!(),
             },
             _ => {}
         }
