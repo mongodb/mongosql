@@ -842,14 +842,7 @@ impl<'a> Algebrizer<'a> {
 
     /// Ensure an unwind PATH is exactly a compound identifier.
     ///
-    /// A compound identifier is defined in the MongoSQL grammar as
-    ///
-    ///   <compound identifer> ::= <identifier> ("." <compound identifier>)?
-    ///
-    /// so this includes the case when it is just a simple, single-part
-    /// identifier. Here, this means the algebrized expression is a FieldAccess
-    /// expression which consists of only other FieldAccess expressions up the
-    /// chain of exprs until it hits a Reference expression.
+    /// TODO: Make this actually handle possible qualification, update comment
     fn algebrize_unwind_path(&self, path: Vec<ast::UnwindPathPart>) -> Result<mir::UnwindPath> {
         if path.is_empty() {
             return Err(Error::InvalidUnwindPath);
