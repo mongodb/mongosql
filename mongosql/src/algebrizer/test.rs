@@ -5632,7 +5632,7 @@ mod aggregation {
                     }
                     .into()
                 )),
-                arg_is_possibly_doc: Satisfaction::Not,
+                arg_is_possibly_doc: Satisfaction::Must,
             }
         )),
         input = ast::FunctionExpr {

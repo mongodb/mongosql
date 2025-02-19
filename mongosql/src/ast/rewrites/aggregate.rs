@@ -212,7 +212,7 @@ impl Visitor for MultiArgCountVisitor {
                             args: ast::FunctionArguments::Args(vec![ast::Expression::Document(
                                 doc,
                             )]),
-                            set_quantifier: set_quantifier.clone(),
+                            set_quantifier,
                         }),
                     }
                 }
