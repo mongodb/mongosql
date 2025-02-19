@@ -327,7 +327,7 @@ mod add_fields {
 }
 
 mod group {
-    use crate::{air::*, util::air_collection_stage};
+    use crate::{air::*, schema::Satisfaction, util::air_collection_stage};
     use bson::doc;
 
     test_codegen_stage!(
@@ -367,7 +367,7 @@ mod group {
                     function: AggregationFunction::Min,
                     distinct: false,
                     arg: Expression::FieldRef("x".into()).into(),
-                    arg_is_possibly_doc: false,
+                    arg_is_possibly_doc: Satisfaction::Not,
                 },
                 AccumulatorExpr {
                     alias: "y".into(),
@@ -380,7 +380,7 @@ mod group {
                             Expression::Literal(LiteralValue::Integer(1i32))
                         ],
                     }).into(),
-                    arg_is_possibly_doc: false,
+                    arg_is_possibly_doc: Satisfaction::Not,
                 },
             ],
         }),
@@ -412,7 +412,7 @@ mod group {
                     function: AggregationFunction::Min,
                     distinct: true,
                     arg: Expression::FieldRef("x".into()).into(),
-                    arg_is_possibly_doc: false,
+                    arg_is_possibly_doc: Satisfaction::Not,
                 },
             ],
         }),
@@ -444,7 +444,7 @@ mod group {
                     function: AggregationFunction::Count,
                     distinct: false,
                     arg: Expression::FieldRef("x".into()).into(),
-                    arg_is_possibly_doc: false,
+                    arg_is_possibly_doc: Satisfaction::Not,
                 },
             ],
         }),

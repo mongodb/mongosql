@@ -1,5 +1,6 @@
 use crate::{
     mir::{self, optimizer::use_def_analysis::FieldPath},
+    schema::Satisfaction,
     unchecked_unique_linked_hash_map,
     util::{mir_collection, mir_field_access, mir_field_access_multi_part, mir_field_path},
 };
@@ -617,7 +618,7 @@ mod datasource_uses {
                     function: AggregationFunction::Avg,
                     distinct: false,
                     arg: mir_reference("z").into(),
-                    arg_is_possibly_doc: false,
+                    arg_is_possibly_doc: Satisfaction::Not,
                 }),
             }],
             scope: 0u16,
@@ -747,7 +748,7 @@ mod substitute {
                     function: AggregationFunction::Avg,
                     distinct: false,
                     arg: mir_int_expr(0).into(),
-                    arg_is_possibly_doc: false,
+                    arg_is_possibly_doc: Satisfaction::Not,
                 }),
             }],
             scope: 0,
@@ -768,7 +769,7 @@ mod substitute {
                     function: AggregationFunction::Avg,
                     distinct: false,
                     arg: mir_reference("z").into(),
-                    arg_is_possibly_doc: false,
+                    arg_is_possibly_doc: Satisfaction::Not,
                 }),
             }],
             scope: 0,

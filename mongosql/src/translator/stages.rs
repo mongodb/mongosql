@@ -2,6 +2,7 @@ use crate::{
     air,
     mapping_registry::{Key, MqlMappingRegistry, MqlMappingRegistryValue, MqlReferenceType},
     mir,
+    schema::Satisfaction,
     translator::{Error, MqlTranslator, Result},
     util::{ROOT, ROOT_NAME},
 };
@@ -589,7 +590,7 @@ impl MqlTranslator {
                     air::AggregationFunction::Count,
                     distinct,
                     Box::new(ROOT.clone()),
-                    false,
+                    Satisfaction::Not,
                 ),
                 mir::AggregationExpr::Function(afa) => (
                     Self::translate_agg_function(afa.function),

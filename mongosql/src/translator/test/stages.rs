@@ -183,7 +183,9 @@ mod project {
 }
 
 mod group {
-    use crate::{translator::Error, unchecked_unique_linked_hash_map, util::ROOT};
+    use crate::{
+        schema::Satisfaction, translator::Error, unchecked_unique_linked_hash_map, util::ROOT,
+    };
     use mongosql_datastructures::binding_tuple::Key;
 
     test_translate_stage!(
@@ -202,14 +204,14 @@ mod group {
                         function: air::AggregationFunction::Count,
                         distinct: true,
                         arg: ROOT.clone().into(),
-                        arg_is_possibly_doc: false,
+                        arg_is_possibly_doc: Satisfaction::Not,
                     },
                     air::AccumulatorExpr {
                         alias: "c_nondistinct".into(),
                         function: air::AggregationFunction::Count,
                         distinct: false,
                         arg: ROOT.clone().into(),
-                        arg_is_possibly_doc: false,
+                        arg_is_possibly_doc: Satisfaction::Not,
                     },
                 ]
             })
@@ -260,14 +262,14 @@ mod group {
                         function: air::AggregationFunction::Max,
                         distinct: true,
                         arg: Box::new(ROOT.clone()),
-                        arg_is_possibly_doc: false,
+                        arg_is_possibly_doc: Satisfaction::Not,
                     },
                     air::AccumulatorExpr {
                         alias: "min_nondistinct".into(),
                         function: air::AggregationFunction::Min,
                         distinct: false,
                         arg: Box::new(ROOT.clone()),
-                        arg_is_possibly_doc: false,
+                        arg_is_possibly_doc: Satisfaction::Not,
                     }
                 ]
             })
@@ -298,7 +300,7 @@ mod group {
                             key: Key::named("foo", 0u16),
                         })
                         .into(),
-                        arg_is_possibly_doc: false,
+                        arg_is_possibly_doc: Satisfaction::Not,
                     }),
                 },
                 mir::AliasedAggregation {
@@ -310,7 +312,7 @@ mod group {
                             key: Key::named("foo", 0u16),
                         })
                         .into(),
-                        arg_is_possibly_doc: false,
+                        arg_is_possibly_doc: Satisfaction::Not,
                     }),
                 },
             ],
@@ -383,7 +385,7 @@ mod group {
                     function: air::AggregationFunction::Count,
                     distinct: false,
                     arg: ROOT.clone().into(),
-                    arg_is_possibly_doc: false,
+                    arg_is_possibly_doc: Satisfaction::Not,
                 },]
             })
             .into(),

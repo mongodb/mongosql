@@ -1,5 +1,6 @@
 use crate::air;
 use crate::air::{MQLOperator, MQLSemanticOperator};
+use crate::schema::Satisfaction;
 use agg_ast::definitions::{
     Expression, GroupAccumulatorExpr, GroupAccumulatorName, JoinType, LiteralValue, Lookup,
     LookupFrom, MatchExpr, MatchExpression, ProjectItem, Ref, Stage, Subquery, SubqueryExists,
@@ -121,7 +122,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                                 function: accumulator_expr.function.into(),
                                 distinct,
                                 arg: Box::new(air::Expression::from(*var)),
-                                arg_is_possibly_doc: false,
+                                arg_is_possibly_doc: Satisfaction::Not,
                             }
                         }
                         // accumulators of form: $<acc>: <expr>
@@ -130,7 +131,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                             function: accumulator_expr.function.into(),
                             distinct: false,
                             arg: Box::new(expr.into()),
-                            arg_is_possibly_doc: false,
+                            arg_is_possibly_doc: Satisfaction::Not,
                         },
                     })
                     .collect();

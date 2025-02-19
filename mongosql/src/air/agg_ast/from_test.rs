@@ -731,6 +731,7 @@ mod stage {
         use crate::{
             air::{self, agg_ast::from_test::default_source},
             map,
+            schema::Satisfaction,
         };
         use agg_ast::definitions as agg_ast;
 
@@ -757,7 +758,7 @@ mod stage {
                     function: air::AggregationFunction::Sum,
                     distinct: true,
                     arg: Box::new(air::Expression::FieldRef("a".to_string().into())),
-                    arg_is_possibly_doc: false,
+                    arg_is_possibly_doc: Satisfaction::Not,
                 }]
             }),
             input = agg_ast::Stage::Group(agg_ast::Group {
@@ -788,14 +789,14 @@ mod stage {
                         function: air::AggregationFunction::Sum,
                         distinct: true,
                         arg: Box::new(air::Expression::FieldRef("a".to_string().into())),
-                        arg_is_possibly_doc: false,
+                        arg_is_possibly_doc: Satisfaction::Not,
                     },
                     air::AccumulatorExpr {
                         alias: "acc_two".to_string(),
                         function: air::AggregationFunction::Avg,
                         distinct: true,
                         arg: Box::new(air::Expression::FieldRef("b".to_string().into())),
-                        arg_is_possibly_doc: false,
+                        arg_is_possibly_doc: Satisfaction::Not,
                     },
                 ]
             }),
@@ -832,7 +833,7 @@ mod stage {
                     function: air::AggregationFunction::AddToSet,
                     distinct: false,
                     arg: Box::new(air::Expression::FieldRef("a".to_string().into())),
-                    arg_is_possibly_doc: false,
+                    arg_is_possibly_doc: Satisfaction::Not,
                 }]
             }),
             input = agg_ast::Stage::Group(agg_ast::Group {

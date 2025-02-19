@@ -1118,8 +1118,7 @@ impl<'a> Algebrizer<'a> {
                     distinct,
                     arg_is_possibly_doc: arg
                         .schema(&self.schema_inference_state())?
-                        .satisfies(&ANY_DOCUMENT.clone())
-                        != Satisfaction::Not,
+                        .satisfies(&ANY_DOCUMENT.clone()),
                 })
             }
         };

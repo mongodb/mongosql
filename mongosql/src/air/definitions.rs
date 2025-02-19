@@ -1,4 +1,4 @@
-use crate::util::unique_linked_hash_map::UniqueLinkedHashMap;
+use crate::{schema::Satisfaction, util::unique_linked_hash_map::UniqueLinkedHashMap};
 use bson::{oid::ObjectId, DateTime, Decimal128};
 
 visitgen::generate_visitors! {
@@ -66,7 +66,7 @@ pub struct AccumulatorExpr {
     // Indicates if the argument is possibly a document. This is relevant
     // for how COUNT works since we want to skip counting empty documents
     // and documents that contain only null values.
-    pub arg_is_possibly_doc: bool,
+    pub arg_is_possibly_doc: Satisfaction,
 }
 
 #[allow(dead_code)]
