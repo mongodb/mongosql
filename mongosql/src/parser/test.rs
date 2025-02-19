@@ -3452,6 +3452,11 @@ mod unwind {
         input = "SELECT * FROM UNWIND(foo WITH PATH => arr)"
     );
     parsable!(
+        path_multi_arrays,
+        expected = true,
+        input = "SELECT * FROM UNWIND(foo WITH PATH => arr[].b[].c.d[].e)"
+    );
+    parsable!(
         index,
         expected = true,
         input = "SELECT * FROM UNWIND(foo WITH PATH => arr, INDEX => i)"

@@ -92,7 +92,7 @@ UnwindDatasource: Datasource = {
 }
 
 UnwindOption: UnwindOption = {
-  PATH ARROW <p:Period<UnwindPathPart>> => UnwindOption(p),
+  PATH ARROW <p:Period<UnwindPathPart>> => UnwindOption::Path(p),
   INDEX ARROW <i:Identifier> => UnwindOption::Index(i),
   OUTER ARROW <o:Boolean> => UnwindOption::Outer(o)
 }

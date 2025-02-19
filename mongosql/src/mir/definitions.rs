@@ -1020,16 +1020,29 @@ impl TryFrom<&FieldAccess> for FieldPath {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, new)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash, new)]
 pub struct UnwindPath {
     pub key: Key,
     pub fields: Vec<UnwindField>,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, new)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash, new)]
 pub enum UnwindField {
     Scalar(String),
     Unwind(String),
+}
+
+impl From<UnwindPath> for FieldPath {
+    fn from(u: UnwindPath) -> FieldPath {
+        FieldPath {
+            key: u.key,
+            fields: u.fields.into_iter().map(|f| match f {
+                UnwindField::Scalar(s) => s,
+                UnwindField::Unwind(s) => s,
+            }).collect(),
+            is_nullable: true,
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]

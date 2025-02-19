@@ -329,7 +329,7 @@ impl MqlTranslator {
     fn translate_unwind(&mut self, mir_unwind: mir::Unwind) -> Result<air::Stage> {
         Ok(air::Stage::Unwind(air::Unwind {
             source: Box::new(self.translate_stage(*mir_unwind.source)?),
-            path: self.translate_field_path_to_expression(mir_unwind.path, false)?,
+            path: self.translate_field_path_to_expression(mir_unwind.path.into(), false)?,
             index: mir_unwind.index,
             outer: mir_unwind.outer,
         }))
