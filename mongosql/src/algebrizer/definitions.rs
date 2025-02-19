@@ -847,10 +847,19 @@ impl<'a> Algebrizer<'a> {
         if path.is_empty() {
             return Err(Error::InvalidUnwindPath);
         }
-        let key = Key::named(&path.first().unwrap().field, self.scope_level);
+        let (key, skip) = match self.algebrize_unqualified_identifier(path[0].field.clone()) {
+            // TODO: I don't think this can actually ever return a Reference
+            Ok(mir::Expression::Reference(mir::ReferenceExpr { key })) => (key, 1),
+            Ok(mir::Expression::FieldAccess(fa)) => {
+                (fa.get_key_if_pure().ok_or(Error::InvalidUnwindPath)?, 0)
+            }
+            Ok(_) => return Err(Error::InvalidUnwindPath),
+            Err(_) => (Key::named(path[0].field.as_str(), self.scope_level), 1),
+        };
+
         let fields = path
             .into_iter()
-            .skip(1)
+            .skip(skip)
             .map(|mut part| {
                 if part.should_unwind {
                     mir::UnwindField::Unwind(std::mem::take(&mut part.field))

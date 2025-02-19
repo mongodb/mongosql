@@ -475,6 +475,16 @@ pub struct FieldAccess {
     pub is_nullable: bool,
 }
 
+impl FieldAccess {
+    pub(crate) fn get_key_if_pure(&self) -> Option<Key> {
+        match &*self.expr {
+            Expression::Reference(r) => Some(r.key.clone()),
+            Expression::FieldAccess(fa) => fa.get_key_if_pure(),
+            _ => None,
+        }
+    }
+}
+
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum AggregationFunction {
