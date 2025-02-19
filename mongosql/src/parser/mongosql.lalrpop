@@ -99,8 +99,8 @@ UnwindOption: UnwindOption = {
 
 UnwindPathPart: UnwindPathPart = {
     <i:Identifier> <b:(LEFT_BRACKET RIGHT_BRACKET)?> => UnwindPathPart {
-        field: i, should_unwind:
-        b.is_some() 
+        field: i, 
+        should_unwind: b.is_some() 
     }
 }
 

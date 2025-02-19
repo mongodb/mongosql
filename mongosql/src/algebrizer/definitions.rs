@@ -850,9 +850,23 @@ impl<'a> Algebrizer<'a> {
     /// identifier. Here, this means the algebrized expression is a FieldAccess
     /// expression which consists of only other FieldAccess expressions up the
     /// chain of exprs until it hits a Reference expression.
-    fn algebrize_unwind_path(&self, path: ast::Expression) -> Result<mir::FieldPath> {
-        let path = self.algebrize_expression(path, false)?;
-        (&path).try_into().map_err(|_| Error::InvalidUnwindPath)
+    fn algebrize_unwind_path(&self, path: Vec<ast::UnwindPathPart>) -> Result<mir::UnwindPath> {
+        if path.is_empty() {
+            return Err(Error::InvalidUnwindPath);
+        }
+        let key = Key::named(&path.first().unwrap().field, self.scope_level);
+        let fields = path
+            .into_iter()
+            .skip(1)
+            .map(|mut part| {
+                if part.should_unwind {
+                    mir::UnwindField::Unwind(std::mem::take(&mut part.field))
+                } else {
+                    mir::UnwindField::Scalar(std::mem::take(&mut part.field))
+                }
+            })
+            .collect::<Vec<_>>();
+        Ok(mir::UnwindPath { key, fields })
     }
 
     #[allow(clippy::only_used_in_recursion)] // false positive

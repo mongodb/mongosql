@@ -132,7 +132,7 @@ pub struct Derived {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Unwind {
     pub source: Box<Stage>,
-    pub path: FieldPath,
+    pub path: UnwindPath,
     pub index: Option<String>,
     pub outer: bool,
     pub cache: SchemaCache<ResultSet>,
@@ -1018,6 +1018,18 @@ impl TryFrom<&FieldAccess> for FieldPath {
             }
         }
     }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, new)]
+pub struct UnwindPath {
+    pub key: Key,
+    pub fields: Vec<UnwindField>,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, new)]
+pub enum UnwindField {
+    Scalar(String),
+    Unwind(String),
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]

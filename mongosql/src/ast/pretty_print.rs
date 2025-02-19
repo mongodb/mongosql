@@ -447,6 +447,21 @@ impl PrettyPrint for UnwindOption {
     }
 }
 
+impl PrettyPrint for Vec<UnwindPathPart> {
+    fn pretty_print(&self) -> Result<String> {
+        self.iter()
+            .map(|p| {
+                if p.should_unwind {
+                    format!("{}[]", p.field)
+                } else {
+                    p.field.clone()
+                }
+            })
+            .reduce(|a, b| format!("{a}.{b}"))
+            .ok_or_else(|| unreachable!())
+    }
+}
+
 impl PrettyPrint for GroupByClause {
     fn pretty_print(&self) -> Result<String> {
         Ok(format!(
