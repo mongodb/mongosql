@@ -848,14 +848,20 @@ impl<'a> Algebrizer<'a> {
             return Err(Error::InvalidUnwindPath);
         }
         let (key, skip) = match self.algebrize_unqualified_identifier(path[0].field.clone()) {
-            // TODO: I don't think this can actually ever return a Reference
-            Ok(mir::Expression::Reference(mir::ReferenceExpr { key })) => (key, 1),
             Ok(mir::Expression::FieldAccess(fa)) => {
                 (fa.get_key_if_pure().ok_or(Error::InvalidUnwindPath)?, 0)
             }
             Ok(_) => return Err(Error::InvalidUnwindPath),
-            Err(_) => (Key::named(path[0].field.as_str(), self.scope_level), 1),
+            Err(_) => {
+                let possible_key = Key::named(path[0].field.as_str(), self.scope_level);
+                if self.schema_env.get(&possible_key).is_none() {
+                    return Err(Error::NoSuchDatasource(possible_key.datasource.into()));
+                }
+                (possible_key, 1)
+            }
         };
+
+        // TODO: check that field actually exists
 
         let fields = path
             .into_iter()
