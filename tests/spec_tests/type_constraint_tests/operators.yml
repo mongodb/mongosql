@@ -112,5 +112,4 @@ tests:
 
   - description: Simple CASE expression WHEN operands must have comparable type to CASE operand
     query: "SELECT CASE arg1 WHEN arg2 THEN 1 ELSE NULL END FROM foo"
-    skip_reason: "SQL-2625: Update spec tests for CASE operator (comparisonValidTypes needs to be updated to include document and array)"
     valid_types: *comparisonValidTypes
