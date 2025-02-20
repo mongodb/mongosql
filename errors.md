@@ -218,12 +218,6 @@ The following errors occur when something goes wrong while using the excludeName
 - **Common Causes:** Accessing a field in an array data source as shown by this query: `SELECT * FROM [{'a': foo.a}] AS arr`.
 - **Resolution Steps:** Modify your array data source to only contain constants. Corrected example query: `SELECT * FROM [{'a': 34}] AS arr`.
 
-### Error 3005
-
-- **Description:** SELECT DISTINCT is not allowed.
-- **Common Causes:** `SELECT DISTINCT` was used in a query. For example, the query `SELECT DISTINCT * from foo` causes this error.
-- **Resolution Steps:** Don't use `SELECT DISTINCT` in a query.
-
 ### Error 3006
 
 - **Description:** Distinct UNION is not allowed. You can only do `UNION ALL` (i.e., duplicate values always have to be allowed).
