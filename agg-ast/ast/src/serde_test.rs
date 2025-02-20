@@ -1113,7 +1113,11 @@ mod stage_test {
                 aggregations: map! {
                     "acc".to_string() => GroupAccumulator {
                         function: GroupAccumulatorName::SQLSum,
-                        expr: GroupAccumulatorExpr::SQLAccumulator { distinct: true, var: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))) }
+                        expr: GroupAccumulatorExpr::SQLAccumulator {
+                            distinct: true,
+                            var: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
+                            arg_is_possibly_doc: Some("not".to_string()),
+                        }
                     }
                 }
             }),
@@ -1121,7 +1125,7 @@ mod stage_test {
                 "$group":
                   {
                     "_id": null,
-                    "acc": { "$sqlSum": { "var": "$a", "distinct": true } },
+                    "acc": { "$sqlSum": { "var": "$a", "distinct": true, "arg_is_possibly_doc": "not" } },
                   }
               }"#
         );
@@ -1135,11 +1139,19 @@ mod stage_test {
                 aggregations: map! {
                     "acc_one".to_string() => GroupAccumulator {
                         function: GroupAccumulatorName::SQLSum,
-                        expr: GroupAccumulatorExpr::SQLAccumulator { distinct: true, var: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))) },
+                        expr: GroupAccumulatorExpr::SQLAccumulator {
+                            distinct: true,
+                            var: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
+                            arg_is_possibly_doc: None,
+                        },
                     },
                     "acc_two".to_string() => GroupAccumulator {
                         function: GroupAccumulatorName::SQLAvg,
-                        expr: GroupAccumulatorExpr::SQLAccumulator { distinct: true, var: Box::new(Expression::Ref(Ref::FieldRef("b".to_string()))) },
+                        expr: GroupAccumulatorExpr::SQLAccumulator {
+                            distinct: true,
+                            var: Box::new(Expression::Ref(Ref::FieldRef("b".to_string()))),
+                            arg_is_possibly_doc: None,
+                        },
                     },
                 }
             }),
