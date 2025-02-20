@@ -436,3 +436,29 @@ mod lookup {
         })
     );
 }
+
+mod union {
+    use super::*;
+
+    test_derive_stage_schema!(
+        union_simple,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                "food".to_string() => Schema::Atomic(Atomic::String),
+                "baz".to_string() => Schema::Atomic(Atomic::String),
+                "qux".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!(),
+            ..Default::default()
+        })),
+        input = r#"{"$unionWith": "bar"}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "food".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
+}

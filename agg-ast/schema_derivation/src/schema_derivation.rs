@@ -322,6 +322,40 @@ impl DeriveSchema for Stage {
             }))
         }
 
+        fn union_with_derive_schema(
+            union: &UnionWith,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            match union {
+                UnionWith::Collection(c) => {
+                    let from_name = format!("{}.{}", state.current_db, c);
+                    let from_schema = state
+                        .catalog
+                        .get(&from_name)
+                        .ok_or_else(|| Error::UnknownReference(from_name))?;
+                    state.result_set_schema = state.result_set_schema.union(from_schema);
+                    Ok(state.result_set_schema.to_owned())
+                }
+                UnionWith::Pipeline(p) => {
+                    let from_name = format!("{}.{}", state.current_db, p.collection);
+                    let from_schema = state
+                        .catalog
+                        .get(&from_name)
+                        .ok_or_else(|| Error::UnknownReference(from_name))?;
+                    let state = &mut ResultSetState {
+                        catalog: state.catalog,
+                        variables: state.variables.clone(),
+                        result_set_schema: from_schema.clone(),
+                        current_db: state.current_db.clone(),
+                        null_behavior: state.null_behavior,
+                    };
+                    let pipeline_schema = derive_schema_for_pipeline(p.pipeline.clone(), state)?;
+                    state.result_set_schema = state.result_set_schema.union(&pipeline_schema);
+                    Ok(state.result_set_schema.to_owned())
+                }
+            }
+        }
+
         fn unwind_derive_schema(unwind: &Unwind, state: &mut ResultSetState) -> Result<Schema> {
             let path = match unwind {
                 Unwind::FieldPath(Expression::Ref(Ref::FieldRef(r))) => {
@@ -414,7 +448,7 @@ impl DeriveSchema for Stage {
             Stage::Skip(_) => todo!(),
             Stage::Sort(_) => todo!(),
             Stage::SortByCount(s) => sort_by_count_derive_schema(s.as_ref(), state),
-            Stage::UnionWith(_) => todo!(),
+            Stage::UnionWith(u) => union_with_derive_schema(u, state),
             Stage::Unset(_) => todo!(),
             Stage::Unwind(u) => unwind_derive_schema(u, state),
             // the following stages are not derivable, because they rely on udnerlying index information, which we do not have by
