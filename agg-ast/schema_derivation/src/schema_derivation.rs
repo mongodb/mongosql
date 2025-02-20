@@ -320,7 +320,7 @@ impl DeriveSchema for Stage {
                 variables,
                 result_set_schema: from_schema.clone(),
                 current_db: state.current_db.clone(),
-                null_behavior: Satisfaction::Not,
+                null_behavior: state.null_behavior,
             };
             let lookup_schema = derive_schema_for_pipeline(pipeline.to_owned(), &mut lookup_state)?;
             insert_required_key_into_document(
@@ -912,7 +912,7 @@ impl DeriveSchema for TaggedOperator {
                     catalog: state.catalog,
                     variables,
                     current_db: state.current_db.clone(),
-                    null_behavior: Satisfaction::Not,
+                    null_behavior: state.null_behavior,
                 };
                 l.inside.derive_schema(&mut let_state)
             }
