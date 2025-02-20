@@ -8,6 +8,12 @@ catalog_data:
       - { _id: 5, a: 2, b: 2, c: true, d: "a", e: null }
       - { _id: 6, a: 2, b: 2, c: true, d: "a", e: null }
 
+    bar:
+      - { _id: 1, a: 1, b: 2 }
+      - { _id: 2, a: 2, b: 2 }
+      - { _id: 3, a: 2, b: 2 }
+      - { _id: 4, a: 2, b: 4 }
+
     documents:
       - { _id: 1, doc: { a: 1, b: 2 } }
       - { _id: 2, doc: { a: 1, b: 2 } }
@@ -29,24 +35,22 @@ catalog_schema:
         "required": ["_id", "a", "b"],
         "additionalProperties": false,
         "properties": {
-          "_id":   { "bsonType": "int" },
-          "a":     { "bsonType": "int" },
-          "b":     { "bsonType": "int" },
-          "c": {
-            "anyOf": [
-              { "bsonType": "bool" },
-              { "bsonType": "null" }
-            ]
-          },
-          "d": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": "null" }
-            ]
-          },
-          "e": {
-            "bsonType": "null"
-          }
+          "_id": { "bsonType": "int" },
+          "a":   { "bsonType": "int" },
+          "b":   { "bsonType": "int" },
+          "c":   { "bsonType": "bool" },
+          "d":   { "bsonType": "string" },
+          "e":   { "bsonType": "null" }
+        }
+      },
+      "bar": {
+        "bsonType": "object",
+        "required": [ "_id", "a", "b" ],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "a": { "bsonType": "int" },
+          "b": { "bsonType": "int" }
         }
       },
       "documents": {
@@ -81,7 +85,7 @@ catalog_schema:
   }
 
 tests:
-  - description: "SELECT DISTINCT * from distinct ensures unique rows for entire document"
+  - description: "SELECT DISTINCT * ensures unique rows for entire document"
     query: "SELECT DISTINCT * FROM db.foo"
     result:
       - { 'foo': { "_id": 1, "a": 1, "b": 2 } }
@@ -91,17 +95,35 @@ tests:
       - { 'foo': { "_id": 5, "a": 2, "b": 2, "c": true, "d": "a", "e": null } }
       - { 'foo': { "_id": 6, "a": 2, "b": 2, "c": true, "d": "a", "e": null } }
 
-  - description: "SELECT DISTINCT * on derived table omitting _id selects unique rows"
+  - description: "SELECT DISTINCT in nested subquery omitting _id selects unique rows"
     query: |
-      SELECT DISTINCT *
-      FROM (
-        SELECT a, b, c
-        FROM db.foo
-      ) AS t
+      SELECT *
+        FROM (
+          SELECT DISTINCT *
+          FROM (
+            SELECT a, b, c
+            FROM db.foo
+          ) AS t1
+        ) AS t2
     result:
-      - { 't': { "a": 1, "b": 2 } }
-      - { 't': { "a": 2, "b": 2 } }
-      - { 't': { "a": 2, "b": 2, "c": true } }
+      - { 't2': { "a": 1, "b": 2 } }
+      - { 't2': { "a": 2, "b": 2 } }
+      - { 't2': { "a": 2, "b": 2, "c": true } }
+
+  - description: "SELECT DISTINCT * on joined tables unique rows for entire document"
+    query: "SELECT DISTINCT * FROM db.foo,db.bar WHERE foo._id = bar._id"
+    result:
+      - { 'foo': { "_id": 1, "a": 1, "b": 2 }, 'bar': { "_id": 1, "a": 1, "b": 2 } }
+      - { 'foo': { "_id": 2, "a": 1, "b": 2 }, 'bar': { "_id": 2, "a": 2, "b": 2 } }
+      - { 'foo': { "_id": 3, "a": 2, "b": 2 }, 'bar': { "_id": 3, "a": 2, "b": 2 } }
+      - { 'foo': { "_id": 4, "a": 1, "b": 2 }, 'bar': { "_id": 4, "a": 2, "b": 1 } }
+
+  - description: "SELECT DISTINCT specific columns from joined tables"
+    query: "SELECT DISTINCT foo.a, bar.b FROM db.foo, db.bar WHERE foo._id = bar._id"
+    result:
+      - { '': { "a": 1, "b": 1 } }
+      - { '': { "a": 2, "b": 2 } }
+      - { '': { "a": 2, "b": 4 } }
 
   - description: "SELECT DISTINCT columns ensures we see unique values"
     query: "SELECT DISTINCT a, b FROM db.foo"

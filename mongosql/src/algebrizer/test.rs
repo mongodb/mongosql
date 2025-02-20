@@ -5669,20 +5669,45 @@ mod select_clause {
     test_algebrize!(
         select_values_distinct,
         method = algebrize_select_clause,
-        expected = Ok(Stage::Group(mir::Group {
-            source: Box::new(Stage::Project(Project {
-                is_add_fields: false,
-                source: Box::new(source()),
-                expression: map! {
-                    ("foo", 1u16).into() => Expression::Reference(("foo", 0u16).into()),
-                    ("bar", 1u16).into() => Expression::Reference(("bar", 0u16).into()),
-                },
+        expected = Ok(Stage::Project(Project {
+            is_add_fields: false,
+            source: Box::new(Stage::Group(mir::Group {
+                source: Box::new(Stage::Project(Project {
+                    is_add_fields: false,
+                    source: Box::new(source()),
+                    expression: map! {
+                        ("foo", 1u16).into() => Expression::Reference(("foo", 0u16).into()),
+                        ("bar", 1u16).into() => Expression::Reference(("bar", 0u16).into()),
+                    },
+                    cache: SchemaCache::new(),
+                })),
+                keys: vec![
+                    mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
+                        alias: "bar".into(),
+                        expr: Expression::Reference(("bar", 1u16).into()),
+                    }),
+                    mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
+                        alias: "foo".into(),
+                        expr: Expression::Reference(("foo", 1u16).into()),
+                    }),
+                ],
+                aggregations: vec![],
                 cache: SchemaCache::new(),
+                scope: 1,
             })),
-            keys: vec![],
-            aggregations: vec![],
+            expression: map! {
+                ("bar", 1u16).into() => Expression::FieldAccess(mir::FieldAccess {
+                    expr: Box::new(Expression::Reference(Key::bot(1u16).into())),
+                    field: "bar".into(),
+                    is_nullable: false,
+                }),
+                ("foo", 1u16).into() => Expression::FieldAccess(mir::FieldAccess {
+                    expr: Box::new(Expression::Reference(Key::bot(1u16).into())),
+                    field: "foo".into(),
+                    is_nullable: false,
+                }),
+            },
             cache: SchemaCache::new(),
-            scope: 1,
         })),
         input = ast::SelectClause {
             set_quantifier: ast::SetQuantifier::Distinct,

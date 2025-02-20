@@ -3,6 +3,7 @@ use lazy_static::lazy_static;
 pub use mongosql_datastructures::unique_linked_hash_map;
 
 pub const ROOT_NAME: &str = "ROOT";
+pub const BOTTOM_ALIAS: &str = "__bot";
 
 lazy_static! {
     pub static ref ROOT: air::Expression = air::Expression::Variable(air::Variable {

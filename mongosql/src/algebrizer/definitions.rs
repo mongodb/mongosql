@@ -1,4 +1,5 @@
-use crate::mir::{AliasedExpr, DocumentExpr, Expression, OptionallyAliasedExpr, ReferenceExpr};
+use crate::mir::{AliasedExpr, Expression, OptionallyAliasedExpr, ReferenceExpr};
+use crate::util::BOTTOM_ALIAS;
 use crate::{
     algebrizer::errors::Error,
     ast::{self, pretty_print::PrettyPrint},
@@ -390,7 +391,7 @@ impl<'a> Algebrizer<'a> {
         let expression_algebrizer = self.clone();
         // Algebrization for every node that has a source should get the schema for the source.
         // The SchemaEnvironment from the source is merged into the SchemaEnvironment from the
-        // current Algebrizer, correctly giving us the the correlated bindings with the bindings
+        // current Algebrizer, correctly giving us the correlated bindings with the bindings
         // available from the current query level.
         #[allow(unused_variables)]
         let expression_algebrizer = expression_algebrizer
@@ -485,10 +486,10 @@ impl<'a> Algebrizer<'a> {
         });
         project_stage.schema(&self.schema_inference_state())?;
         Ok(if is_distinct {
-            let group_stage = Self::build_distinct_values_group_stage(
-                &expression,
+            let group_stage = Self::build_distinct_values_group_and_project_stage(
                 project_stage,
                 self.scope_level,
+                datasources,
             );
             group_stage.schema(&self.schema_inference_state())?;
             group_stage
@@ -497,40 +498,84 @@ impl<'a> Algebrizer<'a> {
         })
     }
 
-    fn build_distinct_values_group_stage(
-        project_tuple: &BindingTuple<Expression>,
+    pub fn build_distinct_values_group_and_project_stage(
         source_stage: mir::Stage,
         scope_level: u16,
+        datasources: BTreeSet<Key>,
     ) -> mir::Stage {
-        let mut group_keys: Vec<OptionallyAliasedExpr> = Vec::new();
+        let mut group_keys = Vec::new();
+        let mut bottom: Option<AliasedExpr> = None;
+        let mut datasource_aliases = Vec::new();
 
-        for (key, expr) in project_tuple.iter() {
-            if key.datasource == DatasourceName::Bottom && key.scope == scope_level {
-                if let Expression::Document(DocumentExpr { document }) = expr {
-                    for (field_name, field_expr) in document.iter() {
-                        let alias = field_name.to_string();
-                        let group_key_expr = Expression::FieldAccess(FieldAccess {
-                            expr: Box::new(Expression::Reference(ReferenceExpr {
-                                key: key.clone(),
-                            })),
-                            field: field_name.to_string(),
-                            is_nullable: field_expr.is_nullable(),
+        // Identify data sources and build group keys for deduplication
+        for key in datasources.iter() {
+            if key.scope == scope_level {
+                match &key.datasource {
+                    DatasourceName::Named(name) => {
+                        group_keys.push(OptionallyAliasedExpr::Aliased(AliasedExpr {
+                            alias: name.clone(),
+                            expr: Expression::Reference(ReferenceExpr { key: key.clone() }),
+                        }));
+                        datasource_aliases.push(name.clone());
+                    }
+                    DatasourceName::Bottom => {
+                        bottom = Some(AliasedExpr {
+                            alias: BOTTOM_ALIAS.to_string(),
+                            expr: Expression::Reference(ReferenceExpr { key: key.clone() }),
                         });
-                        let group_key = OptionallyAliasedExpr::Aliased(AliasedExpr {
-                            alias: alias.clone(),
-                            expr: group_key_expr,
-                        });
-                        group_keys.push(group_key);
                     }
                 }
             }
         }
-        mir::Stage::Group(mir::Group {
+
+        if let Some(ref bot) = bottom {
+            group_keys.push(OptionallyAliasedExpr::Aliased(bot.clone()));
+        }
+
+        let group_stage = mir::Stage::Group(mir::Group {
             source: Box::new(source_stage),
             keys: group_keys,
             aggregations: vec![],
             cache: Default::default(),
             scope: scope_level,
+        });
+
+        // Build the projection expressions to map the grouped data back to the original structure
+        let mut project_expressions = BindingTuple::new();
+        for datasource_alias in datasource_aliases {
+            project_expressions.insert(
+                Key::named(datasource_alias.as_str(), scope_level),
+                Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(ReferenceExpr {
+                        key: Key::bot(scope_level).clone(),
+                    })),
+                    field: datasource_alias.clone(),
+                    is_nullable: false,
+                }),
+            );
+        }
+
+        if let Some(_) = bottom {
+            project_expressions.insert(
+                Key {
+                    datasource: DatasourceName::Bottom,
+                    scope: scope_level,
+                },
+                Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(ReferenceExpr {
+                        key: Key::bot(scope_level),
+                    })),
+                    field: BOTTOM_ALIAS.to_string(),
+                    is_nullable: false,
+                }),
+            );
+        }
+
+        mir::Stage::Project(mir::Project {
+            source: Box::new(group_stage),
+            expression: project_expressions,
+            is_add_fields: false,
+            cache: Default::default(),
         })
     }
 
@@ -976,7 +1021,9 @@ impl<'a> Algebrizer<'a> {
             },
             ast::SetQuantifier::Distinct => match ast_node.body {
                 ast::SelectBody::Standard(exprs) => match exprs.as_slice() {
-                    [ast::SelectExpression::Star] => self.build_distinct_star_project_stage(source),
+                    [ast::SelectExpression::Star] => {
+                        self.build_distinct_star_group_and_project_stage(source)
+                    }
                     _ => Err(Error::NonStarStandardSelectBody),
                 },
                 ast::SelectBody::Values(exprs) => {
@@ -986,53 +1033,90 @@ impl<'a> Algebrizer<'a> {
         }
     }
 
-    fn build_distinct_star_project_stage(&self, source: mir::Stage) -> Result<mir::Stage> {
-        source.schema(&self.schema_inference_state())?;
-
+    fn build_distinct_star_group_and_project_stage(
+        &self,
+        source: mir::Stage,
+    ) -> Result<mir::Stage> {
         let source_result_set = source.schema(&self.schema_inference_state())?;
-        let mut ds_names = source_result_set
-            .schema_env
-            .keys()
-            .filter_map(|key| match &key.datasource {
-                DatasourceName::Named(n) => Some((n.clone(), key.clone())),
-                DatasourceName::Bottom => None,
-            })
-            .collect::<Vec<(String, Key)>>();
+        let mut bottom = None;
+        let mut datasource_names = Vec::new();
 
-        let (table_name, _) = ds_names.remove(0);
+        // Identify data sources from the result set schema
+        for key in source_result_set.schema_env.keys() {
+            match &key.datasource {
+                DatasourceName::Named(n) => {
+                    datasource_names.push((n.clone(), key.clone()));
+                }
+                DatasourceName::Bottom => {
+                    bottom = Some(Key::bot(self.scope_level));
+                }
+            }
+        }
+
+        let mut group_keys: Vec<OptionallyAliasedExpr> = datasource_names
+            .iter()
+            .map(|(datasource_name, key)| {
+                OptionallyAliasedExpr::Aliased(AliasedExpr {
+                    alias: datasource_name.clone(),
+                    expr: Expression::Reference(ReferenceExpr { key: key.clone() }),
+                })
+            })
+            .collect();
+
+        if let Some(bottom_key) = &bottom {
+            group_keys.push(OptionallyAliasedExpr::Aliased(AliasedExpr {
+                alias: BOTTOM_ALIAS.to_string(),
+                expr: Expression::Reference(ReferenceExpr {
+                    key: bottom_key.clone(),
+                }),
+            }));
+        }
+
+        // Adding the group stage to deduplicate rows
         let group_stage = mir::Stage::Group(mir::Group {
             source: Box::new(source),
-            keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
-                alias: table_name.clone(),
-                expr: Expression::Reference(ReferenceExpr {
-                    key: Key::named(table_name.as_str(), self.scope_level),
-                }),
-            })],
+            keys: group_keys,
             aggregations: vec![],
             cache: SchemaCache::new(),
             scope: self.scope_level,
         });
 
+        let mut expression = BindingTuple::new();
+        for (datasource_name, _) in &datasource_names {
+            expression.insert(
+                Key::named(datasource_name, self.scope_level),
+                Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(ReferenceExpr {
+                        key: Key::bot(self.scope_level),
+                    })),
+                    field: datasource_name.clone().to_string(),
+                    is_nullable: false,
+                }),
+            );
+        }
+
+        if bottom.is_some() {
+            expression.insert(
+                Key {
+                    datasource: DatasourceName::Bottom,
+                    scope: self.scope_level,
+                },
+                Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(ReferenceExpr {
+                        key: Key::bot(self.scope_level),
+                    })),
+                    field: BOTTOM_ALIAS.to_string(),
+                    is_nullable: false,
+                }),
+            );
+        }
+        // Create the final project stage to output the original data sources
         let project = mir::Stage::Project(mir::Project {
             source: Box::new(group_stage),
-            expression: {
-                let mut bt = BindingTuple::new();
-                bt.insert(
-                    Key::named(table_name.as_str(), self.scope_level),
-                    Expression::FieldAccess(FieldAccess {
-                        expr: Box::new(Expression::Reference(ReferenceExpr {
-                            key: Key::bot(self.scope_level),
-                        })),
-                        field: table_name.clone(),
-                        is_nullable: false,
-                    }),
-                );
-                bt
-            },
+            expression,
             is_add_fields: false,
             cache: SchemaCache::new(),
         });
-        project.schema(&self.schema_inference_state())?;
         Ok(project)
     }
 
