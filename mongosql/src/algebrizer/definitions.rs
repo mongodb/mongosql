@@ -555,7 +555,7 @@ impl<'a> Algebrizer<'a> {
             );
         }
 
-        if let Some(_) = bottom {
+        if bottom.is_some() {
             project_expressions.insert(
                 Key {
                     datasource: DatasourceName::Bottom,
