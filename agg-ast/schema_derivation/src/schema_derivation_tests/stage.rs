@@ -356,10 +356,11 @@ mod lookup {
                 "arr".to_string() => Schema::Array(
                     Box::new(Schema::Document(Document {
                         keys: map! {
+                            "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
                             "baz".to_string() => Schema::Atomic(Atomic::String),
                             "qux".to_string() => Schema::Atomic(Atomic::Integer)
                         },
-                        required: set!("baz".to_string(), "qux".to_string()),
+                        required: set!("baz".to_string(), "qux".to_string(), "_id".to_string()),
                         ..Default::default()
                     }))
                 ),
@@ -385,9 +386,10 @@ mod lookup {
                 "arr".to_string() => Schema::Array(
                     Box::new(Schema::Document(Document {
                         keys: map! {
+                            "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
                             "out".to_string() => Schema::Atomic(Atomic::String),
                         },
-                        required: set!("out".to_string()),
+                        required: set!("out".to_string(), "_id".to_string()),
                         ..Default::default()
                     }))
                 ),
@@ -412,9 +414,10 @@ mod lookup {
                 "arr".to_string() => Schema::Array(
                     Box::new(Schema::Document(Document {
                         keys: map! {
+                            "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
                             "out".to_string() => Schema::Atomic(Atomic::String),
                         },
-                        required: set!("out".to_string()),
+                        required: set!("out".to_string(), "_id".to_string()),
                         ..Default::default()
                     }))
                 ),
