@@ -437,6 +437,70 @@ mod lookup {
     );
 }
 
+mod graphlookup {
+    use super::*;
+
+    test_derive_stage_schema!(
+        graphlookup_simple,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "arr".to_string() => Schema::Array(
+                    Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                            "baz".to_string() => Schema::Atomic(Atomic::String),
+                            "qux".to_string() => Schema::Atomic(Atomic::Integer)
+                        },
+                        required: set!("baz".to_string(), "qux".to_string(), "_id".to_string()),
+                        ..Default::default()
+                    }))
+                ),
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string(), "arr".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$graphLookup": {"from": "bar", "startWith": "$foo", "connectFromField": "foo", "connectToField": "baz", "as": "arr"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
+    test_derive_stage_schema!(
+        graphlookup_depth_field,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "arr".to_string() => Schema::Array(
+                    Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                            "baz".to_string() => Schema::Atomic(Atomic::String),
+                            "qux".to_string() => Schema::Atomic(Atomic::Integer),
+                            "DEPTH".to_string() => Schema::Atomic(Atomic::Long)
+                        },
+                        required: set!("baz".to_string(), "qux".to_string(), "_id".to_string(), "DEPTH".to_string()),
+                        ..Default::default()
+                    }))
+                ),
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string(), "arr".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$graphLookup": {"from": "bar", "startWith": "$foo", "connectFromField": "foo", "connectToField": "baz", "depthField": "DEPTH", "as": "arr"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
+}
+
 mod union {
     use super::*;
 

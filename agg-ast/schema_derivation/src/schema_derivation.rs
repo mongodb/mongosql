@@ -151,6 +151,32 @@ impl DeriveSchema for Stage {
             }))
         }
 
+        fn graph_lookup_derive_schema(
+            graph_lookup: &GraphLookup,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            let from_name = format!("{}.{}", state.current_db, graph_lookup.from);
+            let mut from_schema = state
+                .catalog
+                .get(&from_name)
+                .ok_or_else(|| Error::UnknownReference(from_name))?
+                .clone();
+            if let Some(ref depth_field) = graph_lookup.depth_field {
+                let depth_field_schema = Schema::Atomic(Atomic::Long);
+                insert_required_key_into_document(
+                    &mut from_schema,
+                    depth_field_schema,
+                    vec![depth_field.clone()],
+                );
+            }
+            insert_required_key_into_document(
+                &mut state.result_set_schema,
+                Schema::Array(Box::new(from_schema.clone())),
+                vec![graph_lookup.r#as.to_string()],
+            );
+            Ok(state.result_set_schema.to_owned())
+        }
+
         fn project_derive_schema(
             project: &ProjectStage,
             state: &mut ResultSetState,
@@ -435,7 +461,7 @@ impl DeriveSchema for Stage {
             Stage::EquiJoin(_) => todo!(),
             Stage::Facet(f) => facet_derive_schema(f, state),
             Stage::Fill(_) => todo!(),
-            Stage::GraphLookup(_) => todo!(),
+            Stage::GraphLookup(g) => graph_lookup_derive_schema(g, state),
             Stage::Group(_) => todo!(),
             Stage::Join(_) => todo!(),
             Stage::Limit(_) => todo!(),
