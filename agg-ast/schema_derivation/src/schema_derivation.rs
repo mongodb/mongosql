@@ -258,14 +258,11 @@ impl DeriveSchema for Stage {
                 .catalog
                 .get(&from_name)
                 .ok_or_else(|| Error::UnknownReference(from_name))?;
-            println!("from_schema: {:?}", from_schema);
-            println!("rs: {:?}", state.result_set_schema);
             insert_required_key_into_document(
                 &mut state.result_set_schema,
                 Schema::Array(Box::new(from_schema.clone())),
                 vec![lookup.as_var.to_string()],
             );
-            println!("rs: {:?}", state.result_set_schema);
             Ok(state.result_set_schema.to_owned())
         }
 
