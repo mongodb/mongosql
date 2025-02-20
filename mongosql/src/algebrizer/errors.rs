@@ -14,7 +14,6 @@ use std::collections::HashSet;
 pub enum Error {
     NonStarStandardSelectBody,
     ArrayDatasourceMustBeLiteral,
-    DistinctSelect,
     DistinctUnion,
     NoSuchDatasource(DatasourceName),
     FieldNotFound(String, Option<Vec<String>>, ClauseType, u16),
@@ -65,7 +64,6 @@ impl UserError for Error {
         match self {
             Error::NonStarStandardSelectBody => 3002,
             Error::ArrayDatasourceMustBeLiteral => 3004,
-            Error::DistinctSelect => 3005,
             Error::DistinctUnion => 3006,
             Error::NoSuchDatasource(_) => 3007,
             Error::FieldNotFound(_, _, _, _) => 3008,
@@ -97,7 +95,6 @@ impl UserError for Error {
         match self {
             Error::NonStarStandardSelectBody => None,
             Error::ArrayDatasourceMustBeLiteral => None,
-            Error::DistinctSelect => None,
             Error::DistinctUnion => None,
             Error::NoSuchDatasource(_) => None,
             Error::FieldNotFound(field, found_fields, clause_type, scope_level) => {
@@ -186,7 +183,6 @@ impl UserError for Error {
         match self{
             Error::NonStarStandardSelectBody => "standard SELECT expressions can only contain *".to_string(),
             Error::ArrayDatasourceMustBeLiteral => "array datasource must be constant".to_string(),
-            Error::DistinctSelect => "SELECT DISTINCT not allowed".to_string(),
             Error::DistinctUnion => "UNION DISTINCT not allowed".to_string(),
             Error::NoSuchDatasource(datasource_name) => format!("no such datasource: {0:?}", datasource_name),
             Error::FieldNotFound(field, _, clause_type, scope_level) => format!("field `{}` in the `{}` clause at the {} scope level cannot be resolved to any datasource", field, clause_type, scope_level),
