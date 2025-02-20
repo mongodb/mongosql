@@ -348,6 +348,10 @@ tasks:
         vars:
           project_folder: "mongosqltranslate"
 
+  - name: mongosqltranslate-static-code-analysis
+    commands:
+      - func: "generate static code analysis"
+
   - name: sign-mongosqltranslate
     allowed_requesters: ["github_tag", "ad_hoc", "patch"]
     depends_on:
@@ -423,3 +427,4 @@ buildvariants:
     run_on: [ubuntu2204-small]
     tasks:
       - name: mongosqltranslate-sbom
+      - name: mongosqltranslate-static-code-analysis
