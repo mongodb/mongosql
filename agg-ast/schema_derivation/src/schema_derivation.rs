@@ -342,14 +342,15 @@ impl DeriveSchema for Stage {
                         .catalog
                         .get(&from_name)
                         .ok_or_else(|| Error::UnknownReference(from_name))?;
-                    let state = &mut ResultSetState {
+                    let pipeline_state = &mut ResultSetState {
                         catalog: state.catalog,
                         variables: state.variables.clone(),
                         result_set_schema: from_schema.clone(),
                         current_db: state.current_db.clone(),
                         null_behavior: state.null_behavior,
                     };
-                    let pipeline_schema = derive_schema_for_pipeline(p.pipeline.clone(), state)?;
+                    let pipeline_schema =
+                        derive_schema_for_pipeline(p.pipeline.clone(), pipeline_state)?;
                     state.result_set_schema = state.result_set_schema.union(&pipeline_schema);
                     Ok(state.result_set_schema.to_owned())
                 }

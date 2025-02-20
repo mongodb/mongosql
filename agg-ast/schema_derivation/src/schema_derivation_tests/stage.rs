@@ -461,4 +461,24 @@ mod union {
             ..Default::default()
         })
     );
+    test_derive_stage_schema!(
+        union_pipeline,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                "food".to_string() => Schema::Atomic(Atomic::String),
+                "out".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!(),
+            ..Default::default()
+        })),
+        input = r#"{"$unionWith": {"collection": "bar", "pipeline": [{"$project": {"out": {"$concat": ["$baz", "$baz"]}}}]}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "food".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
 }
