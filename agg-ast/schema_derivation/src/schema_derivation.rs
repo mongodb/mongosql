@@ -300,7 +300,7 @@ impl DeriveSchema for Stage {
             // internal helper function.
             let_body: &Option<LinkedHashMap<String, Expression>>,
             from: &Option<LookupFrom>,
-            pipeline: &Vec<Stage>,
+            pipeline: &[Stage],
             as_var: &str,
             state: &mut ResultSetState,
         ) -> Result<Schema> {
@@ -325,7 +325,7 @@ impl DeriveSchema for Stage {
                 current_db: state.current_db.clone(),
                 null_behavior: Satisfaction::Not,
             };
-            let lookup_schema = derive_schema_for_pipeline(pipeline.clone(), &mut lookup_state)?;
+            let lookup_schema = derive_schema_for_pipeline(pipeline.to_owned(), &mut lookup_state)?;
             insert_required_key_into_document(
                 &mut state.result_set_schema,
                 Schema::Array(Box::new(lookup_schema.clone())),
