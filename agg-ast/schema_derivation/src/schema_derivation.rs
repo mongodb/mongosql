@@ -3,8 +3,9 @@ use crate::{
     schema_difference, schema_for_type_numeric, schema_for_type_str, Error, Result,
 };
 use agg_ast::definitions::{
-    Densify, Expression, LiteralValue, Ref, Stage, TaggedOperator, UntaggedOperator,
-    UntaggedOperatorName, Unwind,
+    ConciseSubqueryLookup, Densify, EqualityLookup, Expression, GraphLookup, LiteralValue, Lookup,
+    LookupFrom, ProjectItem, ProjectStage, Ref, Stage, SubqueryLookup, TaggedOperator, UnionWith,
+    UntaggedOperator, UntaggedOperatorName, Unwind,
 };
 use linked_hash_map::LinkedHashMap;
 use mongosql::{
@@ -29,6 +30,7 @@ pub(crate) struct ResultSetState<'a> {
     pub catalog: &'a BTreeMap<String, Schema>,
     pub variables: BTreeMap<String, Schema>,
     pub result_set_schema: Schema,
+    pub current_db: String,
     // the null_behavior field allows us to keep track of what behavior we are expecting to be exhibited
     // by the rows returned by this query. This comes up in both normal schema derivation, where something like
     // $eq: [null, {$op: ...}] can influence the values returned by the operator), as well as in match schema derivation
@@ -149,6 +151,163 @@ impl DeriveSchema for Stage {
             }))
         }
 
+        fn project_derive_schema(
+            project: &ProjectStage,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            if project
+                .items
+                .iter()
+                .all(|(k, p)| matches!(p, ProjectItem::Exclusion) || k == "_id")
+            {
+                // TODO: handle exclusion $project stages
+                todo!();
+            }
+            // determine if the _id field should be included in the schema. This is the case, if the $project does not have _id: 0.
+            let include_id = project
+                .items
+                .iter()
+                .all(|(k, p)| k != "_id" || !matches!(p, ProjectItem::Exclusion));
+            // project is a map of field name to expression. We can derive the schema for each expression
+            // and then union them together to get the resulting schema.
+            let mut keys = project
+                .items
+                .iter()
+                .filter(|(_k, p)| !matches!(p, ProjectItem::Exclusion))
+                .map(|(k, p)| match p {
+                    ProjectItem::Assignment(e) => {
+                        let field_schema = e.derive_schema(state)?;
+                        Ok((k.to_string(), field_schema))
+                    }
+                    ProjectItem::Inclusion => {
+                        let field_schema = state
+                            .result_set_schema
+                            .get_key(k)
+                            .cloned()
+                            .unwrap_or(Schema::Missing);
+                        Ok((k.to_string(), field_schema))
+                    }
+                    _ => unreachable!(),
+                })
+                .collect::<Result<BTreeMap<String, Schema>>>()?;
+            // if _id has not been excluded and has not been redefined, include it from the original schema
+            if include_id && !keys.contains_key("_id") {
+                keys.insert(
+                    "_id".to_string(),
+                    state
+                        .result_set_schema
+                        .get_key("_id")
+                        .cloned()
+                        .unwrap_or(Schema::Missing),
+                );
+            }
+            Ok(Schema::Document(Document {
+                required: keys.keys().cloned().collect(),
+                keys,
+                ..Default::default()
+            }))
+        }
+
+        fn lookup_derive_schema(lookup: &Lookup, state: &mut ResultSetState) -> Result<Schema> {
+            match lookup {
+                Lookup::Equality(le) => derive_equality_lookup_schema(le, state),
+                Lookup::ConciseSubquery(le) => derive_concise_lookup_schema(le, state),
+                Lookup::Subquery(le) => derive_subquery_lookup_schema(le, state),
+            }
+        }
+
+        fn from_to_ns_string(from: &LookupFrom, state: &ResultSetState) -> String {
+            match from {
+                LookupFrom::Collection(ref c) => format!("{}.{}", state.current_db, c),
+                LookupFrom::Namespace(ref n) => format!("{}.{}", n.db, n.coll),
+            }
+        }
+
+        fn derive_equality_lookup_schema(
+            lookup: &EqualityLookup,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            let from_name = from_to_ns_string(&lookup.from, state);
+            let from_schema = state
+                .catalog
+                .get(&from_name)
+                .ok_or_else(|| Error::UnknownReference(from_name))?;
+            println!("from_schema: {:?}", from_schema);
+            println!("rs: {:?}", state.result_set_schema);
+            insert_required_key_into_document(
+                &mut state.result_set_schema,
+                Schema::Array(Box::new(from_schema.clone())),
+                vec![lookup.as_var.to_string()],
+            );
+            println!("rs: {:?}", state.result_set_schema);
+            Ok(state.result_set_schema.to_owned())
+        }
+
+        fn derive_concise_lookup_schema(
+            lookup: &ConciseSubqueryLookup,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            derive_subquery_lookup_schema_helper(
+                &lookup.let_body,
+                &lookup.from,
+                &lookup.pipeline,
+                &lookup.as_var,
+                state,
+            )
+        }
+
+        fn derive_subquery_lookup_schema(
+            lookup: &SubqueryLookup,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            derive_subquery_lookup_schema_helper(
+                &lookup.let_body,
+                &lookup.from,
+                &lookup.pipeline,
+                &lookup.as_var,
+                state,
+            )
+        }
+
+        fn derive_subquery_lookup_schema_helper(
+            // generally, we do not pass &Option<Type> but usually Option<&Type>, but this is an
+            // internal helper function.
+            let_body: &Option<LinkedHashMap<String, Expression>>,
+            from: &Option<LookupFrom>,
+            pipeline: &Vec<Stage>,
+            as_var: &str,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            // the output of the lookup stage is the current result with the result of the pipeline
+            // nested under the as_var. We can derive the schema for the from collection, and then
+            // apply the pipeline to that schema to get the result.
+            let mut variables = let_body
+                .iter()
+                .flatten()
+                .map(|(k, v)| Ok((k.clone(), v.derive_schema(state)?)))
+                .collect::<Result<BTreeMap<String, Schema>>>()?;
+            let from_name = from_to_ns_string(from.as_ref().ok_or(Error::MissingFromField)?, state);
+            let from_schema = state
+                .catalog
+                .get(&from_name)
+                .ok_or_else(|| Error::UnknownReference(from_name))?;
+            variables.extend(state.variables.clone());
+            let mut lookup_state = ResultSetState {
+                catalog: state.catalog,
+                variables,
+                result_set_schema: from_schema.clone(),
+                current_db: state.current_db.clone(),
+                null_behavior: Satisfaction::Not,
+            };
+            let lookup_schema = derive_schema_for_pipeline(pipeline.clone(), &mut lookup_state)?;
+            insert_required_key_into_document(
+                &mut state.result_set_schema,
+                Schema::Array(Box::new(lookup_schema.clone())),
+                vec![as_var.to_string()],
+            );
+            Ok(state.result_set_schema.to_owned())
+        }
+
         fn sort_by_count_derive_schema(
             sort_expr: &Expression,
             state: &mut ResultSetState,
@@ -245,9 +404,9 @@ impl DeriveSchema for Stage {
             Stage::Group(_) => todo!(),
             Stage::Join(_) => todo!(),
             Stage::Limit(_) => todo!(),
-            Stage::Lookup(_) => todo!(),
+            Stage::Lookup(l) => lookup_derive_schema(l, state),
             Stage::Match(ref m) => m.derive_schema(state),
-            Stage::Project(_) => todo!(),
+            Stage::Project(p) => project_derive_schema(p, state),
             Stage::Redact(_) => todo!(),
             Stage::ReplaceWith(_) => todo!(),
             Stage::Sample(_) => todo!(),
@@ -694,6 +853,7 @@ impl DeriveSchema for TaggedOperator {
                     result_set_schema: state.result_set_schema.clone(),
                     catalog: state.catalog,
                     variables,
+                    current_db: state.current_db.clone(),
                     null_behavior: Satisfaction::Not,
                 };
                 l.inside.derive_schema(&mut let_state)

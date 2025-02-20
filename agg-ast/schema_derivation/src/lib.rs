@@ -38,6 +38,8 @@ pub enum Error {
     UnknownReference(String),
     #[error("Not enough arguments for expression: {0}")]
     NotEnoughArguments(String),
+    #[error("Missing from field in lookup")]
+    MissingFromField,
 }
 
 #[macro_export]

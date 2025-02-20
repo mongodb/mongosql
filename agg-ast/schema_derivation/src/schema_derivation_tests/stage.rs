@@ -345,3 +345,65 @@ mod unwind {
         })
     );
 }
+
+mod lookup {
+    use super::*;
+
+    test_derive_stage_schema!(
+        eq_lookup,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "arr".to_string() => Schema::Array(
+                    Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "baz".to_string() => Schema::Atomic(Atomic::String),
+                            "qux".to_string() => Schema::Atomic(Atomic::Integer)
+                        },
+                        required: set!("baz".to_string(), "qux".to_string()),
+                        ..Default::default()
+                    }))
+                ),
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string(), "arr".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$lookup": {"from": "bar", "localField": "foo", "foreignField": "baz", "as": "arr"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        concise_subquery_lookup,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "arr".to_string() => Schema::Array(
+                    Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "baz".to_string() => Schema::Atomic(Atomic::String),
+                            "qux".to_string() => Schema::Atomic(Atomic::Integer)
+                        },
+                        required: set!("baz".to_string(), "qux".to_string()),
+                        ..Default::default()
+                    }))
+                ),
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string(), "arr".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$lookup": {"from": "bar", "localField": "foo", "foreignField": "baz", "let": {"x": "foo"}, "pipeline": [{"$project": {"out": {"$concat": ["$$x", "$baz"]}}}], "as": "arr"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
+}
