@@ -378,7 +378,41 @@ mod lookup {
             ..Default::default()
         })
     );
-
+    test_derive_stage_schema!(
+        eq_lookup_nested_as,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "arr".to_string() =>
+                    Schema::Document(Document {
+                        keys: map! {
+                            "arr".to_string() => Schema::Array(
+                                Box::new(Schema::Document(Document {
+                                keys: map! {
+                                    "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                                    "baz".to_string() => Schema::Atomic(Atomic::String),
+                                    "qux".to_string() => Schema::Atomic(Atomic::Integer)
+                                },
+                                required: set!("baz".to_string(), "qux".to_string(), "_id".to_string()),
+                                ..Default::default()
+                            }))),
+                        },
+                        required: set!("arr".to_string()),
+                        ..Default::default()
+                    }),
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string(), "arr".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$lookup": {"from": "bar", "localField": "foo", "foreignField": "baz", "as": "arr.arr"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
     test_derive_stage_schema!(
         eq_lookup_overwrite_as,
         expected = Ok(Schema::Document(Document {
