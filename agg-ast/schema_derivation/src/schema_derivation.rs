@@ -186,13 +186,22 @@ impl DeriveSchema for Stage {
                 insert_required_key_into_document(
                     &mut from_schema,
                     depth_field_schema,
-                    depth_field.as_str().split('.').map(|s| s.to_string()).collect(),
+                    depth_field
+                        .as_str()
+                        .split('.')
+                        .map(|s| s.to_string())
+                        .collect(),
                 );
             }
             insert_required_key_into_document(
                 &mut state.result_set_schema,
                 Schema::Array(Box::new(from_schema.clone())),
-                vec![graph_lookup.r#as.to_string()],
+                graph_lookup
+                    .r#as
+                    .as_str()
+                    .split('.')
+                    .map(|s| s.to_string())
+                    .collect(),
             );
             Ok(state.result_set_schema.to_owned())
         }
@@ -277,7 +286,12 @@ impl DeriveSchema for Stage {
             insert_required_key_into_document(
                 &mut state.result_set_schema,
                 Schema::Array(Box::new(from_schema.clone())),
-                vec![lookup.as_var.to_string()],
+                lookup
+                    .as_var
+                    .as_str()
+                    .split('.')
+                    .map(|s| s.to_string())
+                    .collect(),
             );
             Ok(state.result_set_schema.to_owned())
         }
@@ -342,7 +356,7 @@ impl DeriveSchema for Stage {
             insert_required_key_into_document(
                 &mut state.result_set_schema,
                 Schema::Array(Box::new(lookup_schema.clone())),
-                vec![as_var.to_string()],
+                as_var.split('.').map(|s| s.to_string()).collect(),
             );
             Ok(state.result_set_schema.to_owned())
         }
