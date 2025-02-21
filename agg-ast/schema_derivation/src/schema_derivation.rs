@@ -186,7 +186,7 @@ impl DeriveSchema for Stage {
                 insert_required_key_into_document(
                     &mut from_schema,
                     depth_field_schema,
-                    vec![depth_field.clone()],
+                    depth_field.as_str().split('.').map(|s| s.to_string()).collect(),
                 );
             }
             insert_required_key_into_document(
