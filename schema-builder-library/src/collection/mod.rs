@@ -10,7 +10,7 @@ use crate::{
 use futures::TryStreamExt;
 use mongodb::{
     bson::{self, doc, Document},
-    error, Cursor, Database,
+    Cursor, Database,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -97,7 +97,7 @@ impl CollectionInfo {
         let collection_info_cursor = db
             .run_cursor_command(doc! { "listCollections": 1.0, "authorizedCollections": true})
             .await
-            .map_err(error::Error::from)?;
+            .map_err(Error::from)?;
 
         CollectionInfo::separate_views_from_collections(
             db_name,
