@@ -196,18 +196,15 @@ impl MqlTranslator {
     ) -> Result<air::Expression> {
         let mut doc_expr = UniqueLinkedHashMap::new();
 
-        // Separate the "normal" fields from the "special" fields. Normal fields
-        // are fields that do not contain a '$' or '.'. Special fields are fields
+        // Separate the "normal" fields from the "set" fields. Normal fields
+        // are fields that do not contain a '$' or '.'. Set fields are fields
         // that start with a '$' or contain a '.'.
-        let (normal_fields, special_fields): (Vec<_>, Vec<_>) = mir_document
+        let (normal_fields, set_fields): (Vec<_>, Vec<_>) = mir_document
             .into_iter()
             .partition(|(k, _)| !k.starts_with('$') && !k.contains('.'));
 
-        // We first process "normal" fields, which are fields that do not
-        // contain a '$' or '.'. We separate these fields from the "special"
-        // fields for processing later. This allows us to build the document
-        // expression that will then be handed into the SetField expression(s)
-        // if they are needed.
+        // normal fields are processed first since they do not require any special
+        // handling.
         for (k, v) in normal_fields {
             if k.is_empty() {
                 return Err(Error::InvalidDocumentKey(k));
@@ -217,23 +214,23 @@ impl MqlTranslator {
             doc_expr.insert(k.to_string(), translated_v)?;
         }
 
-        // If there are no special fields, we can return the document expression
-        if special_fields.is_empty() {
+        // If there are no set fields, we can return the document expression
+        if set_fields.is_empty() {
             return Ok(air::Expression::Document(doc_expr));
         }
 
-        // Special fields are fields that start with a '$' or contain a '.'.
-        // We process these fields separately from the normal fields. We build
-        // the SetField expression(s) that will be used to set the special fields
-        // on the document expression.
+        // set fields are required to be set inside a SetField expression.
+        // The document expression calculated above is the initial input to the
+        // SetField expression(s). The SetField expression is
+        // chained with other SetField expressions for each set field.
         let mut set_field_expr = air::Expression::Document(doc_expr);
-        for (k, v) in special_fields {
+        for (k, v) in set_fields {
             if k.is_empty() {
                 return Err(Error::InvalidDocumentKey(k));
             }
             let translated_v = self.translate_expression(v)?;
             set_field_expr = air::Expression::SetField(air::SetField {
-                field: k.clone(),
+                field: k,
                 input: Box::new(set_field_expr),
                 value: Box::new(translated_v),
             })
