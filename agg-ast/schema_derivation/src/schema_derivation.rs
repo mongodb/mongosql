@@ -123,8 +123,8 @@ impl DeriveSchema for Stage {
             let schema = documents.iter().try_fold(
                 None,
                 |schema: Option<Schema>, document: &LinkedHashMap<String, Expression>| {
-                    // here we convert the map of field field - expression to a resulting map of
-                    // field field - field schema. We collect in such a way that we can get the error from any derivation.
+                    // here we convert the map of field namespace - expression to a resulting map of
+                    // field namespace - field schema. We collect in such a way that we can get the error from any derivation.
                     let doc_fields = document
                         .into_iter()
                         .map(|(field, expr)| {
@@ -214,7 +214,7 @@ impl DeriveSchema for Stage {
                 .items
                 .iter()
                 .all(|(k, p)| k != "_id" || !matches!(p, ProjectItem::Exclusion));
-            // project is a map of field field to expression. We can derive the schema for each expression
+            // project is a map of field namespace to expression. We can derive the schema for each expression
             // and then union them together to get the resulting schema.
             let mut keys = project
                 .items
