@@ -197,8 +197,8 @@ impl MqlTranslator {
         let mut doc_expr = UniqueLinkedHashMap::new();
 
         // Separate the "normal" fields from the "set" fields. Normal fields
-        // are fields that do not contain a '$' or '.'. Set fields are fields
-        // that start with a '$' or contain a '.'.
+        // are fields that do not start with a '$' or contain a '.'.
+        // Set fields are fields that start with a '$' or contain a '.'.
         let (normal_fields, set_fields): (Vec<_>, Vec<_>) = mir_document
             .into_iter()
             .partition(|(k, _)| !k.starts_with('$') && !k.contains('.'));
