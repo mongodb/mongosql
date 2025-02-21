@@ -1183,14 +1183,14 @@ impl MatchConstrainSchema for Expression {
         }
 
         fn match_derive_is_number(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
-            if let Expression::Ref(reference) = u.args[0].clone() {
+            if let Expression::Ref(reference) = &u.args[0] {
                 match state.null_behavior {
                     Satisfaction::Not => {
                         intersect_if_exists(&reference, state, NUMERIC.clone());
                     }
                     Satisfaction::Must => {
                         result_set_schema_difference(
-                            &reference,
+                            reference,
                             state,
                             set!(
                                 Schema::Atomic(Atomic::Decimal),
@@ -1401,7 +1401,7 @@ impl MatchConstrainSchema for Expression {
             if u.args.is_empty() {
                 return Err(Error::NotEnoughArguments(u.op.to_string()));
             }
-            if let Expression::Ref(reference) = u.args[0].clone() {
+            if let Expression::Ref(reference) = &u.args[0] {
                 let schema = match state.null_behavior {
                     Satisfaction::Not => Schema::AnyOf(set! {
                         Schema::Atomic(Atomic::BinData),
@@ -1458,14 +1458,10 @@ impl MatchConstrainSchema for Expression {
         }
 
         fn match_derive_first_last(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
-            if let Expression::Ref(reference) = u.args[0].clone() {
+            if let Expression::Ref(reference) = &u.args[0] {
                 match state.null_behavior {
                     Satisfaction::Not => {
-                        intersect_if_exists(
-                            &reference,
-                            state,
-                            Schema::Array(Box::new(Schema::Any)),
-                        );
+                        intersect_if_exists(reference, state, Schema::Array(Box::new(Schema::Any)));
                     }
                     Satisfaction::May | Satisfaction::Must => {
                         intersect_if_exists(
@@ -1531,7 +1527,7 @@ impl MatchConstrainSchema for Expression {
                     }
                 });
             }
-            if let Some(a) = z.defaults.clone() {
+            if let Some(ref a) = z.defaults {
                 if let Expression::Array(v) = a.as_ref() {
                     v.iter().for_each(|input| {
                         if let Expression::Ref(r) = input {
@@ -1583,13 +1579,13 @@ impl MatchConstrainSchema for Expression {
             u: &UntaggedOperator,
             state: &mut ResultSetState,
         ) -> Result<()> {
-            if let Expression::Ref(r) = u.args[0].clone() {
+            if let Expression::Ref(reference) = &u.args[0] {
                 match state.null_behavior {
                     Satisfaction::Not => {
-                        intersect_if_exists(&r, state, Schema::Array(Box::new(Schema::Any)))
+                        intersect_if_exists(reference, state, Schema::Array(Box::new(Schema::Any)))
                     }
                     Satisfaction::May => intersect_if_exists(
-                        &r,
+                        reference,
                         state,
                         Schema::AnyOf(set!(
                             Schema::Array(Box::new(Schema::Any)),
@@ -1597,7 +1593,7 @@ impl MatchConstrainSchema for Expression {
                             Schema::Missing
                         )),
                     ),
-                    Satisfaction::Must => intersect_if_exists(&r, state, NULLISH.clone()),
+                    Satisfaction::Must => intersect_if_exists(reference, state, NULLISH.clone()),
                 }
             }
             u.args[1].match_derive_schema(state)?;
@@ -1622,7 +1618,7 @@ impl MatchConstrainSchema for Expression {
             u: &UntaggedOperator,
             state: &mut ResultSetState,
         ) -> Result<()> {
-            match u.args[0].clone() {
+            match &u.args[0] {
                 Expression::Array(a) => {
                     for expr in a {
                         if state.null_behavior == Satisfaction::Not {
@@ -1640,13 +1636,13 @@ impl MatchConstrainSchema for Expression {
                         }
                     }
                 }
-                Expression::Ref(r) => match state.null_behavior {
+                Expression::Ref(reference) => match state.null_behavior {
                     Satisfaction::Not => {
-                        intersect_if_exists(&r, state, Schema::Array(Box::new(Schema::Any)));
+                        intersect_if_exists(reference, state, Schema::Array(Box::new(Schema::Any)));
                     }
                     Satisfaction::May | Satisfaction::Must => {
                         intersect_if_exists(
-                            &r,
+                            reference,
                             state,
                             Schema::AnyOf(set!(
                                 Schema::Array(Box::new(Schema::Any)),
@@ -1665,8 +1661,8 @@ impl MatchConstrainSchema for Expression {
 
         fn match_derive_in(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             u.args[0].match_derive_schema(state)?;
-            if let Expression::Ref(r) = u.args[1].clone() {
-                intersect_if_exists(&r, state, Schema::Array(Box::new(Schema::Any)));
+            if let Expression::Ref(reference) = &u.args[1] {
+                intersect_if_exists(reference, state, Schema::Array(Box::new(Schema::Any)));
             } else {
                 u.args[1].match_derive_schema(state)?;
             }
@@ -1677,21 +1673,21 @@ impl MatchConstrainSchema for Expression {
             u: &UntaggedOperator,
             state: &mut ResultSetState,
         ) -> Result<()> {
-            if let Expression::Ref(r) = u.args[0].clone() {
+            if let Expression::Ref(reference) = &u.args[0] {
                 let mut schema = Schema::Array(Box::new(Schema::Any));
                 if state.null_behavior != Satisfaction::Not {
                     schema = schema.union(&NULLISH.clone());
                 }
-                intersect_if_exists(&r, state, schema);
+                intersect_if_exists(reference, state, schema);
             } else {
                 u.args[0].match_derive_schema(state)?;
             }
-            if let Expression::Ref(r) = u.args[1].clone() {
+            if let Expression::Ref(reference) = &u.args[1] {
                 let schema = match state.null_behavior {
                     Satisfaction::Not => NUMERIC.clone(),
                     Satisfaction::May | Satisfaction::Must => NUMERIC_OR_NULLISH.clone(),
                 };
-                intersect_if_exists(&r, state, schema);
+                intersect_if_exists(reference, state, schema);
             } else {
                 u.args[1].match_derive_schema(state)?;
             }
@@ -1702,18 +1698,18 @@ impl MatchConstrainSchema for Expression {
             u: &UntaggedOperator,
             state: &mut ResultSetState,
         ) -> Result<()> {
-            if let Expression::Ref(r) = u.args[0].clone() {
+            if let Expression::Ref(reference) = &u.args[0] {
                 match state.null_behavior {
                     Satisfaction::Not => {
                         intersect_if_exists(
-                            &r,
+                            reference,
                             state,
                             Schema::Array(Box::new(Schema::Array(Box::new(Schema::Any)))),
                         );
                     }
                     Satisfaction::May => {
                         intersect_if_exists(
-                            &r,
+                            reference,
                             state,
                             Schema::AnyOf(set!(
                                 Schema::Array(Box::new(Schema::Array(Box::new(Schema::Any)))),
@@ -1723,7 +1719,7 @@ impl MatchConstrainSchema for Expression {
                         );
                     }
                     Satisfaction::Must => {
-                        intersect_if_exists(&r, state, NULLISH.clone());
+                        intersect_if_exists(reference, state, NULLISH.clone());
                     }
                 }
             } else {
@@ -1736,9 +1732,9 @@ impl MatchConstrainSchema for Expression {
             u: &UntaggedOperator,
             state: &mut ResultSetState,
         ) -> Result<()> {
-            if let Expression::Ref(r) = u.args[0].clone() {
+            if let Expression::Ref(reference) = &u.args[0] {
                 intersect_if_exists(
-                    &r,
+                    reference,
                     state,
                     Schema::AnyOf(set!(
                         Schema::Array(Box::new(Schema::Document(Document::any()))),
@@ -1865,23 +1861,23 @@ impl MatchConstrainSchema for Expression {
         }
 
         fn match_derive_slice(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
-            if let Expression::Ref(r) = u.args[0].clone() {
+            if let Expression::Ref(reference) = &u.args[0] {
                 let mut schema = Schema::Array(Box::new(Schema::Any));
                 if state.null_behavior != Satisfaction::Not {
                     schema = schema.union(&NULLISH.clone());
                 }
-                intersect_if_exists(&r, state, schema);
+                intersect_if_exists(reference, state, schema);
             } else {
                 u.args[0].match_derive_schema(state)?;
             }
             for arg in u.args[1..].iter() {
-                if let Expression::Ref(r) = arg {
+                if let Expression::Ref(reference) = arg {
                     match state.null_behavior {
                         Satisfaction::Not => {
-                            intersect_if_exists(r, state, NUMERIC.clone());
+                            intersect_if_exists(reference, state, NUMERIC.clone());
                         }
                         Satisfaction::May | Satisfaction::Must => {
-                            intersect_if_exists(r, state, NUMERIC_OR_NULLISH.clone());
+                            intersect_if_exists(reference, state, NUMERIC_OR_NULLISH.clone());
                         }
                     }
                 } else {
