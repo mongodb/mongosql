@@ -238,14 +238,10 @@ impl DeriveSchema for Stage {
                 .collect::<Result<BTreeMap<String, Schema>>>()?;
             // if _id has not been excluded and has not been redefined, include it from the original schema
             if include_id && !keys.contains_key("_id") {
-                keys.insert(
-                    "_id".to_string(),
-                    state
-                        .result_set_schema
-                        .get_key("_id")
-                        .cloned()
-                        .unwrap_or(Schema::Missing),
-                );
+                // Only insert _id if it exists in the incoming schema
+                if let Some(id_value) = state.result_set_schema.get_key("_id") {
+                    keys.insert("_id".to_string(), id_value.clone());
+                }
             }
             Ok(Schema::Document(Document {
                 required: keys.keys().cloned().collect(),

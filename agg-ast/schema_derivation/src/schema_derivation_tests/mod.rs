@@ -31,7 +31,7 @@ macro_rules! test_derive_stage_schema {
                 current_db: "test".to_string(),
                 null_behavior: Satisfaction::Not
             };
-            let result = input.derive_schema(&mut state).map(|s| Schema::simplify(&s));
+            let result = input.derive_schema(&mut state);
             assert_eq!($expected, result);
         }
     };
