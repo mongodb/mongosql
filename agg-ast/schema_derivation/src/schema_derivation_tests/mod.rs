@@ -14,15 +14,15 @@ macro_rules! test_derive_stage_schema {
             let mut variables = BTreeMap::new();
             $(variables = $variables;)?
             let catalog = map!{
-                    "test.bar".to_string() => Schema::Document(Document {
-                        keys: map!{
-                            "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
-                            "baz".to_string() => Schema::Atomic(Atomic::String),
-                            "qux".to_string() => Schema::Atomic(Atomic::Integer)
-                        },
-                        required: set!{"baz".to_string(), "qux".to_string(), "_id".to_string()},
-                        ..Default::default()
-                    }),
+                crate::Namespace("test".to_string(), "bar".to_string()) => Schema::Document(Document {
+                    keys: map!{
+                        "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                        "baz".to_string() => Schema::Atomic(Atomic::String),
+                        "qux".to_string() => Schema::Atomic(Atomic::Integer)
+                    },
+                    required: set!{"baz".to_string(), "qux".to_string(), "_id".to_string()},
+                    ..Default::default()
+               }),
             };
             let mut state = ResultSetState {
                 catalog: &catalog,

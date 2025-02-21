@@ -17,17 +17,35 @@ use mongosql::{
     },
     set,
 };
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt::{Display, Formatter},
+};
 
 #[allow(dead_code)]
 pub(crate) trait DeriveSchema {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema>;
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Namespace(pub String, pub String);
+
+impl Display for Namespace {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}", self.0, self.1)
+    }
+}
+
+impl From<Namespace> for String {
+    fn from(ns: Namespace) -> Self {
+        ns.to_string()
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct ResultSetState<'a> {
-    pub catalog: &'a BTreeMap<String, Schema>,
+    pub catalog: &'a BTreeMap<Namespace, Schema>,
     pub variables: BTreeMap<String, Schema>,
     pub result_set_schema: Schema,
     pub current_db: String,
@@ -105,8 +123,8 @@ impl DeriveSchema for Stage {
             let schema = documents.iter().try_fold(
                 None,
                 |schema: Option<Schema>, document: &LinkedHashMap<String, Expression>| {
-                    // here we convert the map of field name - expression to a resulting map of
-                    // field name - field schema. We collect in such a way that we can get the error from any derivation.
+                    // here we convert the map of field field - expression to a resulting map of
+                    // field field - field schema. We collect in such a way that we can get the error from any derivation.
                     let doc_fields = document
                         .into_iter()
                         .map(|(field, expr)| {
@@ -132,7 +150,7 @@ impl DeriveSchema for Stage {
             facet: &LinkedHashMap<String, Vec<Stage>>,
             state: &mut ResultSetState,
         ) -> Result<Schema> {
-            // facet contains key - value pairs where the key is the name of a field in the output document,
+            // facet contains key - value pairs where the key is the field of a field in the output document,
             // and the value is an aggregation pipeline. We can use the same generic helper for aggregating over a whole pipeline
             // to get the schema for each field, cloning the incoming state.
             let facet_schema = facet
@@ -155,11 +173,13 @@ impl DeriveSchema for Stage {
             graph_lookup: &GraphLookup,
             state: &mut ResultSetState,
         ) -> Result<Schema> {
-            let from_name = format!("{}.{}", state.current_db, graph_lookup.from);
+            // it is a bit annoying that we need to clone these Strings just to do a lookup, but I
+            // don't think there is a way around that.
+            let from_field = Namespace(state.current_db.clone(), graph_lookup.from.clone());
             let mut from_schema = state
                 .catalog
-                .get(&from_name)
-                .ok_or_else(|| Error::UnknownReference(from_name))?
+                .get(&from_field)
+                .ok_or_else(|| Error::UnknownReference(from_field.to_string()))?
                 .clone();
             if let Some(ref depth_field) = graph_lookup.depth_field {
                 let depth_field_schema = Schema::Atomic(Atomic::Long);
@@ -194,7 +214,7 @@ impl DeriveSchema for Stage {
                 .items
                 .iter()
                 .all(|(k, p)| k != "_id" || !matches!(p, ProjectItem::Exclusion));
-            // project is a map of field name to expression. We can derive the schema for each expression
+            // project is a map of field field to expression. We can derive the schema for each expression
             // and then union them together to get the resulting schema.
             let mut keys = project
                 .items
@@ -242,10 +262,10 @@ impl DeriveSchema for Stage {
             }
         }
 
-        fn from_to_ns_string(from: &LookupFrom, state: &ResultSetState) -> String {
+        fn from_to_ns(from: &LookupFrom, state: &ResultSetState) -> Namespace {
             match from {
-                LookupFrom::Collection(ref c) => format!("{}.{}", state.current_db, c),
-                LookupFrom::Namespace(ref n) => format!("{}.{}", n.db, n.coll),
+                LookupFrom::Collection(ref c) => Namespace(state.current_db.clone(), c.clone()),
+                LookupFrom::Namespace(ref n) => Namespace(n.db.clone(), n.coll.clone()),
             }
         }
 
@@ -253,11 +273,11 @@ impl DeriveSchema for Stage {
             lookup: &EqualityLookup,
             state: &mut ResultSetState,
         ) -> Result<Schema> {
-            let from_name = from_to_ns_string(&lookup.from, state);
+            let from_ns = from_to_ns(&lookup.from, state);
             let from_schema = state
                 .catalog
-                .get(&from_name)
-                .ok_or_else(|| Error::UnknownReference(from_name))?;
+                .get(&from_ns)
+                .ok_or_else(|| Error::UnknownReference(from_ns.into()))?;
             insert_required_key_into_document(
                 &mut state.result_set_schema,
                 Schema::Array(Box::new(from_schema.clone())),
@@ -309,11 +329,11 @@ impl DeriveSchema for Stage {
                 .flatten()
                 .map(|(k, v)| Ok((k.clone(), v.derive_schema(state)?)))
                 .collect::<Result<BTreeMap<String, Schema>>>()?;
-            let from_name = from_to_ns_string(from.as_ref().ok_or(Error::MissingFromField)?, state);
+            let from_ns = from_to_ns(from.as_ref().ok_or(Error::MissingFromField)?, state);
             let from_schema = state
                 .catalog
-                .get(&from_name)
-                .ok_or_else(|| Error::UnknownReference(from_name))?;
+                .get(&from_ns)
+                .ok_or_else(|| Error::UnknownReference(from_ns.into()))?;
             variables.extend(state.variables.clone());
             let mut lookup_state = ResultSetState {
                 catalog: state.catalog,
@@ -351,20 +371,20 @@ impl DeriveSchema for Stage {
         ) -> Result<Schema> {
             match union {
                 UnionWith::Collection(c) => {
-                    let from_name = format!("{}.{}", state.current_db, c);
+                    let from_ns = Namespace(state.current_db.clone(), c.clone());
                     let from_schema = state
                         .catalog
-                        .get(&from_name)
-                        .ok_or_else(|| Error::UnknownReference(from_name))?;
+                        .get(&from_ns)
+                        .ok_or_else(|| Error::UnknownReference(from_ns.into()))?;
                     state.result_set_schema = state.result_set_schema.union(from_schema);
                     Ok(state.result_set_schema.to_owned())
                 }
                 UnionWith::Pipeline(p) => {
-                    let from_name = format!("{}.{}", state.current_db, p.collection);
+                    let from_ns = Namespace(state.current_db.clone(), p.collection.clone());
                     let from_schema = state
                         .catalog
-                        .get(&from_name)
-                        .ok_or_else(|| Error::UnknownReference(from_name))?;
+                        .get(&from_ns)
+                        .ok_or_else(|| Error::UnknownReference(from_ns.into()))?;
                     let pipeline_state = &mut ResultSetState {
                         catalog: state.catalog,
                         variables: state.variables.clone(),
