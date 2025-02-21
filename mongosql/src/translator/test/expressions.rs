@@ -345,7 +345,7 @@ mod document {
         ),
     );
     test_translate_expression!(
-        multiple_keys_become_set_field_if_at_least_one_requires,
+        set_field_nesting_is_limited_to_fields_needing_set_field,
         expected = Ok(air::Expression::SetField(air::SetField {
             field: "$foo".to_string(),
             input: Box::new(air::Expression::SetField(air::SetField {
