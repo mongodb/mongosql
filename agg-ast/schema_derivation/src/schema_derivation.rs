@@ -106,7 +106,7 @@ impl DeriveSchema for Stage {
                         &mut required_doc,
                         field_schema.clone(),
                         path.clone(),
-                        true,
+                        false,
                     );
                 }
             });
