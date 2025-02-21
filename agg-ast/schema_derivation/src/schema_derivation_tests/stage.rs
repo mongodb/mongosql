@@ -531,17 +531,21 @@ mod union {
             keys: map! {
                 "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
                 "food".to_string() => Schema::Atomic(Atomic::String),
-                "out".to_string() => Schema::Atomic(Atomic::String),
+                "out".to_string() => Schema::AnyOf(set!{
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Decimal),
+                }),
             },
-            required: set!(),
+            required: set!("out".to_string()),
             ..Default::default()
         })),
         input = r#"{"$unionWith": {"collection": "bar", "pipeline": [{"$project": {"out": {"$concat": ["$baz", "$baz"]}}}]}}"#,
         starting_schema = Schema::Document(Document {
             keys: map! {
-                "food".to_string() => Schema::Atomic(Atomic::String)
+                "food".to_string() => Schema::Atomic(Atomic::String),
+                "out".to_string() => Schema::Atomic(Atomic::Decimal),
             },
-            required: set!("foo".to_string()),
+            required: set!("foo".to_string(), "out".to_string()),
             ..Default::default()
         })
     );
