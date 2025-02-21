@@ -345,25 +345,20 @@ mod document {
         ),
     );
     test_translate_expression!(
-        multiple_keys_become_set_field_if_at_least_one_requires,
+        set_field_nesting_is_limited_to_fields_needing_set_field,
         expected = Ok(air::Expression::SetField(air::SetField {
-            field: "y".to_string(),
+            field: "$foo".to_string(),
             input: Box::new(air::Expression::SetField(air::SetField {
-                field: "$foo".to_string(),
-                input: Box::new(air::Expression::SetField(air::SetField {
-                    field: "x".to_string(),
-                    input: Box::new(air::Expression::SetField(air::SetField {
-                        field: "foo.bar".to_string(),
-                        input: Box::new(air::Expression::Document(
-                            unchecked_unique_linked_hash_map! {}
-                        )),
-                        value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
-                    })),
-                    value: Box::new(air::Expression::FieldRef("f.x".to_string().into())),
-                })),
-                value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(2))),
+                field: "foo.bar".to_string(),
+                input: Box::new(air::Expression::Document(
+                    unchecked_unique_linked_hash_map! {
+                        "x".to_string() => air::Expression::FieldRef("f.x".to_string().into()),
+                        "y".to_string() => air::Expression::Literal(air::LiteralValue::Integer(3)),
+                    }
+                )),
+                value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
             })),
-            value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(3))),
+            value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(2))),
         })),
         input = mir::Expression::Document(
             unchecked_unique_linked_hash_map! {
