@@ -199,17 +199,25 @@ impl MqlTranslator {
         // Separate the "normal" fields from the "set" fields. Normal fields
         // are fields that do not start with a '$' or contain a '.'.
         // Set fields are fields that start with a '$' or contain a '.'.
-        let (normal_fields, set_fields): (Vec<_>, Vec<_>) = mir_document
-            .into_iter()
-            .partition(|(k, _)| !k.starts_with('$') && !k.contains('.'));
+        // Empty fields are invalid.
+        let (normal_fields, set_fields): (Vec<_>, Vec<_>) = mir_document.into_iter().try_fold(
+            (Vec::new(), Vec::new()),
+            |(mut normal_fields, mut set_fields), (k, v)| {
+                if k.is_empty() {
+                    return Err(Error::InvalidDocumentKey(k));
+                }
+                if k.starts_with('$') || k.contains('.') {
+                    set_fields.push((k, v));
+                } else {
+                    normal_fields.push((k, v));
+                }
+                Ok((normal_fields, set_fields))
+            },
+        )?;
 
         // normal fields are processed first since they do not require any special
         // handling.
         for (k, v) in normal_fields {
-            if k.is_empty() {
-                return Err(Error::InvalidDocumentKey(k));
-            }
-
             let translated_v = self.translate_expression(v)?;
             doc_expr.insert(k.to_string(), translated_v)?;
         }
@@ -225,9 +233,6 @@ impl MqlTranslator {
         // chained with other SetField expressions for each set field.
         let mut set_field_expr = air::Expression::Document(doc_expr);
         for (k, v) in set_fields {
-            if k.is_empty() {
-                return Err(Error::InvalidDocumentKey(k));
-            }
             let translated_v = self.translate_expression(v)?;
             set_field_expr = air::Expression::SetField(air::SetField {
                 field: k,
