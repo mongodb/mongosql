@@ -253,8 +253,8 @@ impl DeriveSchema for Stage {
         fn lookup_derive_schema(lookup: &Lookup, state: &mut ResultSetState) -> Result<Schema> {
             match lookup {
                 Lookup::Equality(le) => derive_equality_lookup_schema(le, state),
-                Lookup::ConciseSubquery(le) => derive_concise_lookup_schema(le, state),
-                Lookup::Subquery(le) => derive_subquery_lookup_schema(le, state),
+                Lookup::ConciseSubquery(lc) => derive_concise_lookup_schema(lc, state),
+                Lookup::Subquery(ls) => derive_subquery_lookup_schema(ls, state),
             }
         }
 
