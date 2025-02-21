@@ -440,6 +440,7 @@ pub enum GroupAccumulatorExpr {
     SQLAccumulator {
         distinct: bool,
         var: Box<Expression>,
+        arg_is_possibly_doc: Option<String>,
     },
     NonSQLAccumulator(Expression),
 }

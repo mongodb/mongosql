@@ -9,7 +9,7 @@ catalog_data:
 
     multi:
       - { "_id": 1, "a": 1, "b": 2, "c": 1 }
-      - { "_id": 2, "a": 2, "b": 2, "c": 2 }
+      - { "_id": 2, "a": 2, "b": 2, "c": 3 }
       - { "_id": 3, "a": 2, "b": 2, "c": 3 }
       - { "_id": 4, "a": 2, "b": 3, "c": 4 }
       - { "_id": 5, "a": 1, "b": 2, "c": 5 }
@@ -45,6 +45,14 @@ catalog_data:
 
     arr:
       - { "_id": 1, "a": [1, 2] }
+
+    docs:
+      - { "_id": 1, d: { a: 1 } }
+      - { "_id": 2, d: {} }
+      - { "_id": 3, d: { a: null } }
+      - { "_id": 4, d: null }
+      - { "_id": 5, d: { a: 2 } }
+      - { "_id": 6 }
 
     poly:
       - { "_id": 0, a: true }
@@ -205,6 +213,38 @@ catalog_schema:
             "required": ["_id", "a"],
             "additionalProperties": false,
             "properties": { "a": { "bsonType": "array" } },
+          },
+        "docs":
+          {
+            "bsonType": "object",
+            "required": ["_id"],
+            "additionalProperties": false,
+            "properties": {
+              "_id": { "bsonType": "int" },
+              "d":
+                {
+                  "anyOf":
+                    [
+                      { "bsonType": !!str "null" },
+                      {
+                        "bsonType": "object",
+                        required: [ ],
+                        additionalProperties: false,
+                        properties:
+                          {
+                            "a":
+                              {
+                                "anyOf":
+                                  [
+                                    { "bsonType": "int" },
+                                    { "bsonType": !!str "null" }
+                                  ]
+                              }
+                          }
+                      }
+                    ]
+                }
+            },
           },
         "poly":
           {
@@ -375,7 +415,7 @@ tests:
             {
               "a": { "$numberInt": "2" },
               "b": { "$numberInt": "2" },
-              "sumc": { "$numberInt": "5" },
+              "sumc": { "$numberInt": "6" },
             },
         }
       - {
@@ -404,7 +444,7 @@ tests:
             {
               "a": { "$numberInt": "2" },
               "b": { "$numberInt": "2" },
-              "sumc": { "$numberInt": "5" },
+              "sumc": { "$numberInt": "6" },
             },
         }
 
@@ -530,13 +570,43 @@ tests:
     should_compile: false
     algebrize_error: 'schema checking failed for Avg: required AnyOf({Missing, Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal), Atomic(Null)}), found Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false })'
 
-  - description: COUNT correctness test
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE COUNT(a.a) AS gcount"
+  - description: COUNT single column correctness test -- ignores nullish values
+    query: "SELECT * FROM foo.multi AS m GROUP BY a AS a AGGREGATE COUNT(b) AS gcount"
     current_db: foo
     result:
-      - { "": { "a": { "$numberInt": "1" }, "gcount": { "$numberInt": "1" } } }
-      - { "": { "a": { "$numberInt": "2" }, "gcount": { "$numberInt": "2" } } }
-      - { "": { "a": null, "gcount": { "$numberInt": "0" } } }
+      - { "": { "a": 1, "gcount": 2 } }
+      - { "": { "a": 2, "gcount": 3 } }
+      - { "": { "a": null, "gcount": 0 } }
+
+  - description: COUNT distinct single column correctness test -- ignores nullish values
+    query: "SELECT * FROM foo.multi AS m GROUP BY a AS a AGGREGATE COUNT(DISTINCT b) AS gcount"
+    current_db: foo
+    result:
+      - { "": { "a": 1, "gcount": 1 } }
+      - { "": { "a": 2, "gcount": 2 } }
+      - { "": { "a": null, "gcount": 0 } }
+
+  - description: COUNT single document column -- only counts values with at least one non-nullish field
+    query: "SELECT * FROM foo.docs AS d GROUP BY NULL AS n AGGREGATE COUNT(d) AS gcount"
+    current_db: foo
+    result:
+      - { "": { "n": null, "gcount": 2 } }
+
+  - description: COUNT multi column correctness test -- only counts rows with at least one non-nullish value
+    query: "SELECT * FROM foo.multi AS m GROUP BY a AS a AGGREGATE COUNT(b, c) AS gcount"
+    current_db: foo
+    result:
+      - { "": { "a": 1, "gcount": 2 } }
+      - { "": { "a": 2, "gcount": 3 } }
+      - { "": { "a": null, "gcount": 0 } }
+
+  - description: COUNT distinct multi column correctness test -- only counts rows with at least one non-nullish value
+    query: "SELECT * FROM foo.multi AS m GROUP BY a AS a AGGREGATE COUNT(DISTINCT b, c) AS gcount"
+    current_db: foo
+    result:
+      - { "": { "a": 1, "gcount": 2 } }
+      - { "": { "a": 2, "gcount": 2 } }
+      - { "": { "a": null, "gcount": 0 } }
 
   - description: COUNT(*) correctness test unconditionally count rows
     query: "SELECT * FROM (SELECT a, b FROM foo.multi AS m) AS arr GROUP BY a AS a AGGREGATE COUNT(*) AS gcount"
