@@ -197,7 +197,7 @@ impl DeriveSchema for Stage {
                 &mut state.result_set_schema,
                 Schema::Array(Box::new(from_schema.clone())),
                 graph_lookup
-                    .r#as
+                    .as_var
                     .as_str()
                     .split('.')
                     .map(|s| s.to_string())
