@@ -1625,18 +1625,37 @@ impl MatchConstrainSchema for Expression {
             match u.args[0].clone() {
                 Expression::Array(a) => {
                     for expr in a {
-                        if let Expression::Ref(r) = expr {
-                            result_set_schema_difference(
-                                &r,
-                                state,
-                                set!(Schema::Atomic(Atomic::Null), Schema::Missing),
-                            );
+                        if state.null_behavior == Satisfaction::Not {
+                            if let Expression::Ref(r) = expr {
+                                result_set_schema_difference(
+                                    &r,
+                                    state,
+                                    set!(Schema::Atomic(Atomic::Null), Schema::Missing),
+                                );
+                            } else {
+                                expr.match_derive_schema(state)?;
+                            }
+                        } else {
+                            expr.match_derive_schema(state)?;
                         }
                     }
                 }
-                Expression::Ref(r) => {
-                    intersect_if_exists(&r, state, Schema::Array(Box::new(Schema::Any)));
-                }
+                Expression::Ref(r) => match state.null_behavior {
+                    Satisfaction::Not => {
+                        intersect_if_exists(&r, state, Schema::Array(Box::new(Schema::Any)));
+                    }
+                    Satisfaction::May | Satisfaction::Must => {
+                        intersect_if_exists(
+                            &r,
+                            state,
+                            Schema::AnyOf(set!(
+                                Schema::Array(Box::new(Schema::Any)),
+                                Schema::Atomic(Atomic::Null),
+                                Schema::Missing
+                            )),
+                        );
+                    }
+                },
                 expr => {
                     expr.match_derive_schema(state)?;
                 }

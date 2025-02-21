@@ -3190,6 +3190,31 @@ mod array_ops {
         ))
     );
     test_derive_schema_for_match_stage!(
+        all_elements_true_ref_array_nullish,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Array(Box::new(Schema::Any)),
+                    Schema::Atomic(Atomic::Null)
+                ))
+            },
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$not": {"$allElementsTrue": "$foo"}}}}"#,
+        ref_schema = Schema::Any
+    );
+    test_derive_schema_for_match_stage!(
+        all_elements_true_ref_nullish,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Any
+            },
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$not": {"$allElementsTrue": [[1, 2, "$foo"]]}}}}"#,
+        ref_schema = Schema::Any
+    );
+    test_derive_schema_for_match_stage!(
         in_ref,
         expected = Ok(Schema::Document(Document {
             keys: map! {
