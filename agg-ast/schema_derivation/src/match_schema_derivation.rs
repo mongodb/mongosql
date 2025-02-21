@@ -1749,49 +1749,53 @@ impl MatchConstrainSchema for Expression {
                     ),
                     Satisfaction::Must => intersect_if_exists(r, state, NULLISH.clone()),
                 }
+            } else {
+                s.input.match_derive_schema(state)?;
             }
             Ok(())
         }
 
-        fn match_derive_filter(f: &Filter, state: &mut ResultSetState) -> Result<()> {
-            if let Expression::Ref(r) = f.input.as_ref() {
-                match state.null_behavior {
-                    Satisfaction::Not => {
-                        intersect_if_exists(r, state, Schema::Array(Box::new(Schema::Any)))
+        macro_rules! derive_map_filter_input {
+            ($input:expr, $state:expr, $inside:expr) => {
+                if let Expression::Ref(r) = $input.input.as_ref() {
+                    match $state.null_behavior {
+                        Satisfaction::Not => {
+                            intersect_if_exists(r, $state, Schema::Array(Box::new(Schema::Any)))
+                        }
+                        Satisfaction::May => intersect_if_exists(
+                            r,
+                            $state,
+                            Schema::AnyOf(set!(
+                                Schema::Array(Box::new(Schema::Any)),
+                                Schema::Atomic(Atomic::Null),
+                                Schema::Missing
+                            )),
+                        ),
+                        Satisfaction::Must => intersect_if_exists(r, $state, NULLISH.clone()),
                     }
-                    Satisfaction::May => intersect_if_exists(
-                        r,
-                        state,
-                        Schema::AnyOf(set!(
-                            Schema::Array(Box::new(Schema::Any)),
-                            Schema::Atomic(Atomic::Null),
-                            Schema::Missing
-                        )),
-                    ),
-                    Satisfaction::Must => intersect_if_exists(r, state, NULLISH.clone()),
+                } else {
+                    $input.input.match_derive_schema($state)?;
                 }
+                let variable_name = $input._as.clone().unwrap_or("this".to_string());
+                let variable_schema = $input.input.derive_schema($state)?;
+                $state
+                    .variables
+                    .insert(variable_name.clone(), variable_schema);
+                $inside.match_derive_schema($state)?;
+                $state.variables.remove(&variable_name);
+            };
+        }
+
+        fn match_derive_filter(f: &Filter, state: &mut ResultSetState) -> Result<()> {
+            derive_map_filter_input!(f, state, f.cond);
+            if let Some(limit) = f.limit.as_ref() {
+                limit.match_derive_schema(state)?;
             }
             Ok(())
         }
 
         fn match_derive_map(m: &Map, state: &mut ResultSetState) -> Result<()> {
-            if let Expression::Ref(r) = m.input.as_ref() {
-                match state.null_behavior {
-                    Satisfaction::Not => {
-                        intersect_if_exists(r, state, Schema::Array(Box::new(Schema::Any)))
-                    }
-                    Satisfaction::May => intersect_if_exists(
-                        r,
-                        state,
-                        Schema::AnyOf(set!(
-                            Schema::Array(Box::new(Schema::Any)),
-                            Schema::Atomic(Atomic::Null),
-                            Schema::Missing
-                        )),
-                    ),
-                    Satisfaction::Must => intersect_if_exists(r, state, NULLISH.clone()),
-                }
-            }
+            derive_map_filter_input!(m, state, m.inside);
             Ok(())
         }
 
@@ -1811,6 +1815,8 @@ impl MatchConstrainSchema for Expression {
                         )),
                     ),
                 }
+            } else {
+                m.input.match_derive_schema(state)?;
             }
             Ok(())
         }
@@ -1831,17 +1837,23 @@ impl MatchConstrainSchema for Expression {
                         )),
                     ),
                 }
+            } else {
+                r.input.match_derive_schema(state)?;
             }
+            r.initial_value.match_derive_schema(state)?;
+            r.inside.match_derive_schema(state)?;
             Ok(())
         }
 
-        fn match_reduce_slice(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
+        fn match_derive_slice(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             if let Expression::Ref(r) = u.args[0].clone() {
                 let mut schema = Schema::Array(Box::new(Schema::Any));
                 if state.null_behavior != Satisfaction::Not {
                     schema = schema.union(&NULLISH.clone());
                 }
                 intersect_if_exists(&r, state, schema);
+            } else {
+                u.args[0].match_derive_schema(state)?;
             }
             for arg in u.args[1..].iter() {
                 if let Expression::Ref(r) = arg {
@@ -1853,6 +1865,8 @@ impl MatchConstrainSchema for Expression {
                             intersect_if_exists(r, state, NUMERIC_OR_NULLISH.clone());
                         }
                     }
+                } else {
+                    arg.match_derive_schema(state)?;
                 }
             }
             Ok(())
@@ -1965,10 +1979,11 @@ impl MatchConstrainSchema for Expression {
                 UntaggedOperatorName::ArrayElemAt => match_derive_array_elem_at(u, state)?,
                 UntaggedOperatorName::ArrayToObject => match_derive_array_to_object(u, state)?,
                 UntaggedOperatorName::MergeObjects => match_derive_merge_objects(u, state)?,
-                UntaggedOperatorName::Slice => match_reduce_slice(u, state)?,
+                UntaggedOperatorName::Slice => match_derive_slice(u, state)?,
                 // misc ops
                 UntaggedOperatorName::Add => match_derive_add(u, state)?,
                 UntaggedOperatorName::Subtract => match_derive_subtract(u, state)?,
+                UntaggedOperatorName::Sum => {}
                 UntaggedOperatorName::ObjectToArray => match_derive_object_to_array(u, state)?,
                 UntaggedOperatorName::Max | UntaggedOperatorName::Min => {
                     match_derive_max_min(u, state)?

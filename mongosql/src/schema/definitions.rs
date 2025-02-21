@@ -1634,10 +1634,14 @@ impl Schema {
                                 }
                             }
                         }
+                    // if the other document has additional_properties=true, we will treat fields in the first
+                    // document as implicitly intersecting, ie, intersecting but not required.
                     } else if b.additional_properties {
                         doc_intersection.keys.insert(key.clone(), schema);
                     }
                 });
+                // in the case that a has addtional_properties=true, we will similarly want to add all of the non-explicitly
+                // intersecting keys of the second document as non-required
                 if a.additional_properties {
                     b.keys.clone().into_iter().for_each(|(key, schema)| {
                         if !doc_intersection.keys.contains_key(&key) {

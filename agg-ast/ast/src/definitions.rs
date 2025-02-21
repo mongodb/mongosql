@@ -1400,20 +1400,6 @@ pub struct RegexAggExpression {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MaxNArrayElement {
-    pub input: Box<Expression>,
-    pub n: Box<Expression>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MinNArrayElement {
-    pub input: Box<Expression>,
-    pub n: Box<Expression>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Replace {
     pub input: Box<Expression>,
     pub find: Box<Expression>,
