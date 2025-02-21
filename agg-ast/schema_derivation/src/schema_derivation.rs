@@ -106,6 +106,7 @@ impl DeriveSchema for Stage {
                         &mut required_doc,
                         field_schema.clone(),
                         path.clone(),
+                        false,
                     );
                 }
             });
@@ -182,15 +183,15 @@ impl DeriveSchema for Stage {
                 .ok_or_else(|| Error::UnknownReference(from_field.to_string()))?
                 .clone();
             if let Some(ref depth_field) = graph_lookup.depth_field {
-                let depth_field_schema = Schema::Atomic(Atomic::Long);
                 insert_required_key_into_document(
                     &mut from_schema,
-                    depth_field_schema,
+                    Schema::Atomic(Atomic::Long),
                     depth_field
                         .as_str()
                         .split('.')
                         .map(|s| s.to_string())
                         .collect(),
+                    true,
                 );
             }
             insert_required_key_into_document(
@@ -202,6 +203,7 @@ impl DeriveSchema for Stage {
                     .split('.')
                     .map(|s| s.to_string())
                     .collect(),
+                true,
             );
             Ok(state.result_set_schema.to_owned())
         }
@@ -292,6 +294,7 @@ impl DeriveSchema for Stage {
                     .split('.')
                     .map(|s| s.to_string())
                     .collect(),
+                true,
             );
             Ok(state.result_set_schema.to_owned())
         }
@@ -357,6 +360,7 @@ impl DeriveSchema for Stage {
                 &mut state.result_set_schema,
                 Schema::Array(Box::new(lookup_schema.clone())),
                 as_var.split('.').map(|s| s.to_string()).collect(),
+                true,
             );
             Ok(state.result_set_schema.to_owned())
         }
@@ -461,12 +465,14 @@ impl DeriveSchema for Stage {
                                         Schema::Atomic(Atomic::Null)
                                     )),
                                     path,
+                                    true,
                                 );
                             } else {
                                 insert_required_key_into_document(
                                     &mut state.result_set_schema,
                                     Schema::Atomic(Atomic::Integer),
                                     path,
+                                    true,
                                 );
                             }
                         }
