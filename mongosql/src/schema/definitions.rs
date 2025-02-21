@@ -1617,6 +1617,11 @@ impl Schema {
                 self.schema_from_anyof_intersection(ret)
             }
             (Schema::Document(a), Schema::Document(b)) => {
+                if a == Document::any() {
+                    return Schema::Document(a);
+                } else if b == Document::any() {
+                    return Schema::Document(b);
+                }
                 let mut doc_intersection = Document::default();
                 a.keys.clone().into_iter().for_each(|(key, schema)| {
                     if let Some(b_schema) = b.keys.get(&key) {
@@ -1629,8 +1634,23 @@ impl Schema {
                                 }
                             }
                         }
+                    // if the other document has additional_properties=true, we will treat fields in the first
+                    // document as implicitly intersecting, ie, intersecting but not required.
+                    } else if b.additional_properties {
+                        doc_intersection.keys.insert(key.clone(), schema);
                     }
                 });
+                // in the case that a has addtional_properties=true, we will similarly want to add all of the non-explicitly
+                // intersecting keys of the second document as non-required
+                if a.additional_properties {
+                    b.keys.clone().into_iter().for_each(|(key, schema)| {
+                        if !doc_intersection.keys.contains_key(&key) {
+                            doc_intersection.keys.insert(key.clone(), schema);
+                        }
+                    });
+                }
+                doc_intersection.additional_properties =
+                    a.additional_properties && b.additional_properties;
                 if doc_intersection.keys.is_empty() {
                     Schema::Unsat
                 } else {

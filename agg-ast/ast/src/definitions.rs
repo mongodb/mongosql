@@ -1197,17 +1197,17 @@ pub enum TaggedOperator {
 
     // Array Operators
     #[serde(rename = "$firstN")]
-    FirstN(FirstN),
+    FirstN(NArrayOp),
     #[serde(rename = "$lastN")]
-    LastN(LastN),
+    LastN(NArrayOp),
     #[serde(rename = "$filter")]
     Filter(Filter),
     #[serde(rename = "$map")]
     Map(Map),
     #[serde(rename = "$maxN")]
-    MaxNArrayElement(MaxNArrayElement),
+    MaxNArrayElement(NArrayOp),
     #[serde(rename = "$minN")]
-    MinNArrayElement(MinNArrayElement),
+    MinNArrayElement(NArrayOp),
     #[serde(rename = "$reduce")]
     Reduce(Reduce),
     #[serde(rename = "$sortArray")]
@@ -1369,14 +1369,7 @@ pub struct Filter {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct FirstN {
-    pub input: Box<Expression>,
-    pub n: Box<Expression>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LastN {
+pub struct NArrayOp {
     pub input: Box<Expression>,
     pub n: Box<Expression>,
 }
@@ -1404,20 +1397,6 @@ pub struct RegexAggExpression {
     pub input: Box<Expression>,
     pub regex: Box<Expression>,
     pub options: Option<Box<Expression>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MaxNArrayElement {
-    pub input: Box<Expression>,
-    pub n: Box<Expression>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MinNArrayElement {
-    pub input: Box<Expression>,
-    pub n: Box<Expression>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
