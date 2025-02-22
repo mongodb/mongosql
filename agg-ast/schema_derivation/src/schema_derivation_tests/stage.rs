@@ -345,3 +345,356 @@ mod unwind {
         })
     );
 }
+
+mod lookup {
+    use super::*;
+
+    test_derive_stage_schema!(
+        eq_lookup,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "arr".to_string() => Schema::Array(
+                    Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                            "baz".to_string() => Schema::Atomic(Atomic::String),
+                            "qux".to_string() => Schema::Atomic(Atomic::Integer)
+                        },
+                        required: set!("baz".to_string(), "qux".to_string(), "_id".to_string()),
+                        ..Default::default()
+                    }))
+                ),
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string(), "arr".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$lookup": {"from": "bar", "localField": "foo", "foreignField": "baz", "as": "arr"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
+    test_derive_stage_schema!(
+        eq_lookup_nested_as,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "arr".to_string() =>
+                    Schema::Document(Document {
+                        keys: map! {
+                            "arr".to_string() => Schema::Array(
+                                Box::new(Schema::Document(Document {
+                                keys: map! {
+                                    "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                                    "baz".to_string() => Schema::Atomic(Atomic::String),
+                                    "qux".to_string() => Schema::Atomic(Atomic::Integer)
+                                },
+                                required: set!("baz".to_string(), "qux".to_string(), "_id".to_string()),
+                                ..Default::default()
+                            }))),
+                        },
+                        required: set!("arr".to_string()),
+                        ..Default::default()
+                    }),
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string(), "arr".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$lookup": {"from": "bar", "localField": "foo", "foreignField": "baz", "as": "arr.arr"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
+    test_derive_stage_schema!(
+        eq_lookup_overwrite_as,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Array(
+                    Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                            "baz".to_string() => Schema::Atomic(Atomic::String),
+                            "qux".to_string() => Schema::Atomic(Atomic::Integer)
+                        },
+                        required: set!("baz".to_string(), "qux".to_string(), "_id".to_string()),
+                        ..Default::default()
+                    }))
+                ),
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$lookup": {"from": "bar", "localField": "foo", "foreignField": "baz", "as": "foo"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        concise_subquery_lookup,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "arr".to_string() => Schema::Array(
+                    Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                            "out".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("out".to_string(), "_id".to_string()),
+                        ..Default::default()
+                    }))
+                ),
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string(), "arr".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$lookup": {"from": "bar", "localField": "foo", "foreignField": "baz", "let": {"x": "$foo"}, "pipeline": [{"$project": {"out": {"$concat": ["$$x", "$baz"]}}}], "as": "arr"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
+    test_derive_stage_schema!(
+        subquery_lookup,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "arr".to_string() => Schema::Array(
+                    Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                            "out".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("out".to_string(), "_id".to_string()),
+                        ..Default::default()
+                    }))
+                ),
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string(), "arr".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$lookup": {"from": "bar", "let": {"x": "$foo"}, "pipeline": [{"$project": {"out": {"$concat": ["$$x", "$baz"]}}}], "as": "arr"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
+    test_derive_stage_schema!(
+        subquery_lookup_overwrite_as,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Array(
+                    Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                            "out".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("out".to_string(), "_id".to_string()),
+                        ..Default::default()
+                    }))
+                ),
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$lookup": {"from": "bar", "let": {"x": "foo"}, "pipeline": [{"$project": {"out": {"$concat": ["$$x", "$baz"]}}}], "as": "foo"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
+}
+
+mod graphlookup {
+    use super::*;
+
+    test_derive_stage_schema!(
+        graphlookup_simple,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "arr".to_string() => Schema::Array(
+                    Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                            "baz".to_string() => Schema::Atomic(Atomic::String),
+                            "qux".to_string() => Schema::Atomic(Atomic::Integer)
+                        },
+                        required: set!("baz".to_string(), "qux".to_string(), "_id".to_string()),
+                        ..Default::default()
+                    }))
+                ),
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string(), "arr".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$graphLookup": {"from": "bar", "startWith": "$foo", "connectFromField": "foo", "connectToField": "baz", "as": "arr"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
+    test_derive_stage_schema!(
+        graphlookup_depth_field,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "arr".to_string() => Schema::Array(
+                    Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                            "baz".to_string() => Schema::Atomic(Atomic::String),
+                            "qux".to_string() => Schema::Atomic(Atomic::Integer),
+                            "DEPTH".to_string() => Schema::Atomic(Atomic::Long)
+                        },
+                        required: set!("baz".to_string(), "qux".to_string(), "_id".to_string(), "DEPTH".to_string()),
+                        ..Default::default()
+                    }))
+                ),
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string(), "arr".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$graphLookup": {"from": "bar", "startWith": "$foo", "connectFromField": "foo", "connectToField": "baz", "depthField": "DEPTH", "as": "arr"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
+    test_derive_stage_schema!(
+        graphlookup_overwrite_depth_field,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "arr".to_string() => Schema::Array(
+                    Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                            "baz".to_string() => Schema::Atomic(Atomic::Long),
+                            "qux".to_string() => Schema::Atomic(Atomic::Integer),
+                        },
+                        required: set!("baz".to_string(), "qux".to_string(), "_id".to_string()),
+                        ..Default::default()
+                    }))
+                ),
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string(), "arr".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$graphLookup": {"from": "bar", "startWith": "$foo", "connectFromField": "foo", "connectToField": "baz", "depthField": "baz", "as": "arr"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
+    test_derive_stage_schema!(
+        graphlookup_overwrite_as,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Array(
+                    Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                            "baz".to_string() => Schema::Atomic(Atomic::String),
+                            "qux".to_string() => Schema::Atomic(Atomic::Integer),
+                            "DEPTH".to_string() => Schema::Atomic(Atomic::Long)
+                        },
+                        required: set!("baz".to_string(), "qux".to_string(), "_id".to_string(), "DEPTH".to_string()),
+                        ..Default::default()
+                    }))
+                ),
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$graphLookup": {"from": "bar", "startWith": "$foo", "connectFromField": "foo", "connectToField": "baz", "depthField": "DEPTH", "as": "foo"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
+}
+
+mod union {
+    use super::*;
+
+    test_derive_stage_schema!(
+        union_simple,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                "food".to_string() => Schema::Atomic(Atomic::String),
+                "baz".to_string() => Schema::Atomic(Atomic::String),
+                "qux".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!(),
+            ..Default::default()
+        })),
+        input = r#"{"$unionWith": "bar"}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "food".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
+    test_derive_stage_schema!(
+        union_pipeline,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                "food".to_string() => Schema::Atomic(Atomic::String),
+                "out".to_string() => Schema::AnyOf(set!{
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Decimal),
+                }),
+            },
+            required: set!("out".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$unionWith": {"collection": "bar", "pipeline": [{"$project": {"out": {"$concat": ["$baz", "$baz"]}}}]}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "food".to_string() => Schema::Atomic(Atomic::String),
+                "out".to_string() => Schema::Atomic(Atomic::Decimal),
+            },
+            required: set!("foo".to_string(), "out".to_string()),
+            ..Default::default()
+        })
+    );
+}
