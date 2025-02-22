@@ -13,10 +13,22 @@ macro_rules! test_derive_stage_schema {
             #[allow(unused_mut, unused_assignments)]
             let mut variables = BTreeMap::new();
             $(variables = $variables;)?
+            let catalog = map!{
+                crate::Namespace("test".to_string(), "bar".to_string()) => Schema::Document(Document {
+                    keys: map!{
+                        "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                        "baz".to_string() => Schema::Atomic(Atomic::String),
+                        "qux".to_string() => Schema::Atomic(Atomic::Integer)
+                    },
+                    required: set!{"baz".to_string(), "qux".to_string(), "_id".to_string()},
+                    ..Default::default()
+               }),
+            };
             let mut state = ResultSetState {
-                catalog: &BTreeMap::new(),
+                catalog: &catalog,
                 variables,
                 result_set_schema,
+                current_db: "test".to_string(),
                 null_behavior: Satisfaction::Not
             };
             let result = input.derive_schema(&mut state);
@@ -44,6 +56,7 @@ macro_rules! test_derive_expression_schema {
                 catalog: &BTreeMap::new(),
                 variables,
                 result_set_schema,
+                current_db: "test".to_string(),
                 null_behavior: Satisfaction::Not
             };
             let result = input.derive_schema(&mut state);
@@ -76,6 +89,7 @@ macro_rules! test_derive_schema_for_match_stage {
                 catalog: &BTreeMap::new(),
                 variables,
                 result_set_schema,
+                current_db: "test".to_string(),
                 null_behavior: Satisfaction::Not
             };
             let result = input.derive_schema(&mut state);
