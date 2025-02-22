@@ -379,21 +379,24 @@ mod aggregate {
     test_rewrite!(
         one_multi_arg_count_rewritten_to_doc_arg,
         pass = AggregateRewritePass,
-        expected =
-            Ok("SELECT * FROM foo GROUP BY NULL AS n AGGREGATE COUNT({'a': a, 'b': b}) AS c"),
+        expected = Ok(
+            "SELECT * FROM foo GROUP BY NULL AS n AGGREGATE COUNT({'_arg0': a, '_arg1': b}) AS c"
+        ),
         input = "SELECT * FROM foo GROUP BY NULL AS n AGGREGATE COUNT(a, b) AS c",
     );
     test_rewrite!(
         multiple_multi_arg_counts_rewritten_to_doc_arg,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT * FROM foo GROUP BY NULL AS n AGGREGATE COUNT({'a': a, 'b': b}) AS c1, COUNT({'b': b, 'c': c, 'e': e}) AS c2"),
-        input = "SELECT * FROM foo GROUP BY NULL AS n AGGREGATE COUNT(a, b) AS c1, COUNT(b, c, e) AS c2",
+        expected = Ok("SELECT * FROM foo GROUP BY NULL AS n AGGREGATE COUNT({'_arg0': a, '_arg1': b}) AS c1, COUNT({'_arg0': b, '_arg1': c, '_arg2': e.f}) AS c2"),
+        input = "SELECT * FROM foo GROUP BY NULL AS n AGGREGATE COUNT(a, b) AS c1, COUNT(b, c, e.f) AS c2",
     );
     test_rewrite!(
-        invalid_multi_arg_count,
+        multi_arg_count_in_different_clause_full_rewritten,
         pass = AggregateRewritePass,
-        expected = Err(Error::InvalidMultiArgCountArg),
-        input = "SELECT * FROM foo GROUP BY NULL AS n AGGREGATE COUNT(a, b + 1) AS c",
+        expected = Ok(
+            "SELECT _agg1 FROM foo GROUP BY NULL AS n AGGREGATE COUNT(DISTINCT {'_arg0': a, '_arg1': b}) AS _agg1"
+        ),
+        input = "SELECT COUNT(DISTINCT a, b) FROM foo GROUP BY NULL AS n",
     );
 }
 

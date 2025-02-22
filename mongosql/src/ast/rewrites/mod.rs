@@ -45,10 +45,6 @@ pub enum Error {
     AggregationFunctionInGroupByKeyList,
     #[error("cannot specify aggregation functions in GROUP BY AGGREGATE clause and elsewhere")]
     AggregationFunctionInGroupByAggListAndElsewhere,
-    #[error(
-        "cannot specify a non-identifier expression as argument in multi-argument COUNT function"
-    )]
-    InvalidMultiArgCountArg,
     #[error("all SELECT expressions must be given aliases before the SelectRewritePass")]
     NoAliasForSelectExpression,
     #[error("the top-level SELECT in a subquery expression must be a standard SELECT")]

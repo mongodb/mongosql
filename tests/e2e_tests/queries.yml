@@ -864,6 +864,12 @@ tests:
       - { "foo": { "_id": 0, "a":  1, "b": 2, "coll": "foo"}, "bar": { "_id": 1, "a":  2, "b": 1, "coll": "bar"} }
       - { "foo": { "_id": 1, "a":  2, "b": 1, "coll": "foo"}, "bar": { "_id": 1, "a":  2, "b": 1, "coll": "bar"} }
 
+  - description: Multiple argument COUNT in non-AGGREGATE phrase works as expected
+    query: "SELECT COUNT(DISTINCT foo, baz) AS c FROM bar2 GROUP BY NULL AS n"
+    current_db: "mydb"
+    result:
+      - { '': { 'c': 2 } }
+
   - description: derived join datasource with filter correctness
     current_db: mydb
     query: "SELECT * FROM ( SELECT OTBL.foo as ofoo, ITBL.foo as ifoo, baz FROM mydb.bar AS OTBL LEFT OUTER JOIN mydb.bar2 AS ITBL ON (OTBL._id = ITBL._id)) AS ITBL WHERE baz > 60"
