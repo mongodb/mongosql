@@ -266,7 +266,7 @@ pub(crate) fn insert_required_key_into_document(
             schema,
             Schema::Document(schema::Document::default()),
             field.clone(),
-            overwrite,
+            false,
         );
     }
     // with a reference to the nested document that the field exists in, finally, insert the field with its type.
