@@ -38,6 +38,8 @@ pub enum Error {
     UnknownReference(String),
     #[error("Not enough arguments for expression: {0}")]
     NotEnoughArguments(String),
+    #[error("Missing from field in lookup")]
+    MissingFromField,
 }
 
 #[macro_export]
@@ -205,10 +207,15 @@ fn insert_required_key_into_document_helper(
     mut schema: Option<&mut Schema>,
     field_schema: Schema,
     field: String,
+    overwrite: bool,
 ) -> Option<&mut Schema> {
     match schema {
         Some(Schema::Document(d)) => {
-            d.keys.entry(field.clone()).or_insert(field_schema);
+            if overwrite {
+                d.keys.insert(field.clone(), field_schema);
+            } else {
+                d.keys.entry(field.clone()).or_insert(field_schema);
+            }
             // even if the document already included the key, we want to mark it as required.
             // this enables nested field paths to be marked as required down to the required
             // key being inserted.
@@ -227,7 +234,11 @@ fn insert_required_key_into_document_helper(
                     None
                 }
             })?;
-            d.keys.entry(field.clone()).or_insert(Schema::Any);
+            if overwrite {
+                d.keys.insert(field.clone(), field_schema);
+            } else {
+                d.keys.entry(field.clone()).or_insert(field_schema);
+            }
             // see comment above for why we require the field even if it existed in the document
             d.required.insert(field.clone());
             **(schema.as_mut()?) = Schema::Document(d);
@@ -245,6 +256,7 @@ pub(crate) fn insert_required_key_into_document(
     schema: &mut Schema,
     field_schema: Schema,
     path: Vec<String>,
+    overwrite: bool,
 ) {
     let mut schema = Some(schema);
     // create a required nested path of document schemas to the field we are trying to insert. For any field
@@ -254,10 +266,16 @@ pub(crate) fn insert_required_key_into_document(
             schema,
             Schema::Document(schema::Document::default()),
             field.clone(),
+            false,
         );
     }
     // with a reference to the nested document that the field exists in, finally, insert the field with its type.
-    insert_required_key_into_document_helper(schema, field_schema, path.last().unwrap().clone());
+    insert_required_key_into_document_helper(
+        schema,
+        field_schema,
+        path.last().unwrap().clone(),
+        overwrite,
+    );
 }
 
 /// remove field is a helper based on get_schema_for_path_mut which removes a field given a field path.

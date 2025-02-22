@@ -708,7 +708,8 @@ pub struct GraphLookup {
     pub start_with: Box<Expression>,
     pub connect_from_field: String,
     pub connect_to_field: String,
-    pub r#as: String,
+    #[serde(rename = "as")]
+    pub as_var: String,
     pub max_depth: Option<i32>,
     pub depth_field: Option<String>,
     pub restrict_search_with_match: Option<Box<Expression>>,

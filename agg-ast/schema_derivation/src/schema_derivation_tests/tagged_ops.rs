@@ -1031,6 +1031,7 @@ mod convert {
                         keys: map! {"foo".to_string() => Schema::Any },
                         ..Default::default()
                     }),
+                    current_db: "test".to_string(),
                     null_behavior: Satisfaction::Not,
                 };
                 let to_values = vec![

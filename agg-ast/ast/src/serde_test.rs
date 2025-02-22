@@ -1921,7 +1921,7 @@ mod stage_test {
                 start_with: Box::new(Expression::Ref(Ref::FieldRef("start".to_string()))),
                 connect_from_field: "start".to_string(),
                 connect_to_field: "end".to_string(),
-                r#as: "path".to_string(),
+                as_var: "path".to_string(),
                 max_depth: Some(5),
                 depth_field: Some("depth".to_string()),
                 restrict_search_with_match: Some(Box::new(Expression::Document(
