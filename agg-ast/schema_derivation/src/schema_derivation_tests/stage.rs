@@ -7,6 +7,24 @@ use mongosql::{
 };
 use std::collections::BTreeMap;
 
+mod collection {
+    use super::*;
+
+    test_derive_stage_schema!(
+        collection,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                "baz".to_string() => Schema::Atomic(Atomic::String),
+                "qux".to_string() => Schema::Atomic(Atomic::Integer)
+            },
+            required: set! {"baz".to_string(), "qux".to_string(), "_id".to_string()},
+            ..Default::default()
+        }),),
+        input = r#"{"$collection": {"db": "test", "collection": "bar"}}"#
+    );
+}
+
 mod count {
     use super::*;
 

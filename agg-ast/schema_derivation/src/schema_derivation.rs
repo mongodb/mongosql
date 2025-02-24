@@ -487,7 +487,15 @@ impl DeriveSchema for Stage {
             Stage::AtlasSearchStage(_) => todo!(),
             Stage::Bucket(_) => todo!(),
             Stage::BucketAuto(_) => todo!(),
-            Stage::Collection(_) => todo!(),
+            Stage::Collection(c) => {
+                let ns = Namespace(c.db.clone(), c.collection.clone());
+                state.result_set_schema = state
+                    .catalog
+                    .get(&ns)
+                    .ok_or(Error::UnknownReference(ns.to_string()))?
+                    .clone();
+                Ok(state.result_set_schema.to_owned())
+            }
             Stage::Count(c) => {
                 state.result_set_schema = Schema::Document(Document {
                     keys: map! {
@@ -506,7 +514,7 @@ impl DeriveSchema for Stage {
             Stage::GraphLookup(g) => graph_lookup_derive_schema(g, state),
             Stage::Group(_) => todo!(),
             Stage::Join(_) => todo!(),
-            Stage::Limit(_) => todo!(),
+            Stage::Limit(_) => Ok(state.result_set_schema.to_owned()),
             Stage::Lookup(l) => lookup_derive_schema(l, state),
             Stage::Match(ref m) => m.derive_schema(state),
             Stage::Project(p) => project_derive_schema(p, state),
@@ -514,8 +522,8 @@ impl DeriveSchema for Stage {
             Stage::ReplaceWith(_) => todo!(),
             Stage::Sample(_) => todo!(),
             Stage::SetWindowFields(_) => todo!(),
-            Stage::Skip(_) => todo!(),
-            Stage::Sort(_) => todo!(),
+            Stage::Skip(_) => Ok(state.result_set_schema.to_owned()),
+            Stage::Sort(_) => Ok(state.result_set_schema.to_owned()),
             Stage::SortByCount(s) => sort_by_count_derive_schema(s.as_ref(), state),
             Stage::UnionWith(u) => union_with_derive_schema(u, state),
             Stage::Unset(_) => todo!(),

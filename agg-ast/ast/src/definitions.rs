@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 /// Stage represents an aggregation pipeline stage.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Stage {
-    #[serde(skip)]
+    #[serde(rename = "$collection")]
     Collection(Collection),
     #[serde(rename = "$documents")]
     Documents(Vec<LinkedHashMap<String, Expression>>),
