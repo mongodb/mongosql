@@ -1752,21 +1752,12 @@ impl DeriveSchema for GroupAccumulator {
         }
 
         fn get_std_type(s: Schema) -> Schema {
-            match s {
-                a @ Schema::AnyOf(_) => {
-                    if a.satisfies(&*NUMERIC) > Satisfaction::Not {
-                        Schema::Atomic(Atomic::Double)
-                    } else {
-                        // Non-numeric types will return null
-                        Schema::Atomic(Atomic::Null)
-                    }
-                }
-                Schema::Atomic(Atomic::Decimal) => Schema::Atomic(Atomic::Decimal),
-                Schema::Atomic(Atomic::Long)
-                | Schema::Atomic(Atomic::Integer)
-                | Schema::Atomic(Atomic::Double) => Schema::Atomic(Atomic::Double),
-                // Non-numeric types will return null
-                _ => Schema::Atomic(Atomic::Null),
+            match get_avg_type(s) {
+                // it seems stdev always returns double even when there are decimal inputs?
+                // it would be slightly more efficient to derive this directly, but this makes the
+                // code cleaner.
+                Schema::Atomic(Atomic::Decimal) => Schema::Atomic(Atomic::Double),
+                s => s,
             }
         }
 
@@ -1850,6 +1841,7 @@ impl DeriveSchema for GroupAccumulator {
                 var.derive_schema(state)
             }};
         }
+
         match self.function {
             GroupAccumulatorName::First | GroupAccumulatorName::Last => {
                 mql_arg_schema!()
