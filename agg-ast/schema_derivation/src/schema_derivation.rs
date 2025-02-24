@@ -488,7 +488,16 @@ impl DeriveSchema for Stage {
             Stage::Bucket(_) => todo!(),
             Stage::BucketAuto(_) => todo!(),
             Stage::Collection(_) => todo!(),
-            Stage::Count(_) => todo!(),
+            Stage::Count(c) => {
+                state.result_set_schema = Schema::Document(Document {
+                    keys: map! {
+                        c.clone() => Schema::AnyOf(set!{Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long), Schema::Atomic(Atomic::Double)})
+                    },
+                    required: set! {c.clone()},
+                    ..Default::default()
+                });
+                Ok(state.result_set_schema.to_owned())
+            }
             Stage::Densify(d) => densify_derive_schema(d, state),
             Stage::Documents(d) => documents_derive_schema(d, state),
             Stage::EquiJoin(_) => todo!(),

@@ -7,6 +7,26 @@ use mongosql::{
 };
 use std::collections::BTreeMap;
 
+mod count {
+    use super::*;
+
+    test_derive_stage_schema!(
+        count,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "count".to_string() => Schema::AnyOf(set!(
+                        Schema::Atomic(Atomic::Integer),
+                        Schema::Atomic(Atomic::Long),
+                        Schema::Atomic(Atomic::Double)
+                ))
+            },
+            required: set!("count".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$count": "count"}"#
+    );
+}
+
 mod densify {
     use super::*;
 
