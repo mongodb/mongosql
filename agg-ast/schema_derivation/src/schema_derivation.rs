@@ -1771,8 +1771,9 @@ impl DeriveSchema for GroupAccumulator {
         }
 
         fn get_sum_type(s: Schema) -> Schema {
-            match s {
-                Schema::AnyOf(a) => Schema::AnyOf(
+            // get the maximum numeric type
+            let s = if let Schema::AnyOf(a) = s {
+                Schema::AnyOf(
                     a.into_iter()
                         .filter(|s| {
                             matches!(
@@ -1785,12 +1786,26 @@ impl DeriveSchema for GroupAccumulator {
                         })
                         .collect(),
                 )
-                .maximum(),
-                Schema::Atomic(Atomic::Integer)
-                | Schema::Atomic(Atomic::Long)
-                | Schema::Atomic(Atomic::Double)
-                | Schema::Atomic(Atomic::Decimal) => s,
-                // Sum returns 0 as an integer if there are no numeric values to sum
+                .maximum()
+            } else {
+                s
+            };
+
+            // now use the maximum numeric type to determine the return type based on possible
+            // overflow (int -> long -> double -> decimal)
+            match s {
+                Schema::Atomic(Atomic::Integer) => NUMERIC.clone(),
+                Schema::Atomic(Atomic::Long) => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal)
+                )),
+                Schema::Atomic(Atomic::Double) => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal)
+                )),
+                Schema::Atomic(Atomic::Decimal) => Schema::Atomic(Atomic::Decimal),
+                // Sum returns 0 as an integer, if there are no numeric values to sum
                 _ => Schema::Atomic(Atomic::Integer),
             }
         }
@@ -1801,11 +1816,11 @@ impl DeriveSchema for GroupAccumulator {
                     .into_iter()
                     .filter(|s| matches!(s, Schema::Document(_)))
                     .collect::<Vec<_>>()
-                    .first()
-                    .unwrap_or(Err(Error::InvalidGroupAccumulator(format!(
+                    .pop()
+                    .ok_or(Error::InvalidGroupAccumulator(format!(
                         "MergeObjects accumulator must have all document arguments: {:?}",
                         self
-                    ))))?),
+                    )))?),
                 _ => Err(Error::InvalidGroupAccumulator(format!(
                     "MergeObjects accumulator must have all document arguments: {:?}",
                     self
@@ -1849,9 +1864,9 @@ impl DeriveSchema for GroupAccumulator {
             GroupAccumulatorName::StdDevPop | GroupAccumulatorName::StdDevSamp => {
                 Ok(get_std_type(mql_arg_schema!()?))
             }
-            GroupAccumulatorName::MergeObjects => Ok(get_mergeobject_type(mql_arg_schema!()?)),
+            GroupAccumulatorName::MergeObjects => get_mergeobject_type(mql_arg_schema!()?),
             GroupAccumulatorName::SQLAvg => Ok(get_avg_type(sql_arg_schema!()?)),
-            GroupAccumulatorName::SQLCount => Ok(Schema::Any),
+            GroupAccumulatorName::SQLCount => Ok(NUMERIC.clone()),
             GroupAccumulatorName::SQLMax => Ok(sql_arg_schema!()?.maximum()),
             GroupAccumulatorName::SQLMin => Ok(sql_arg_schema!()?.minimum()),
             GroupAccumulatorName::SQLFirst | GroupAccumulatorName::SQLLast => sql_arg_schema!(),
