@@ -5683,11 +5683,11 @@ mod select_clause {
                 })),
                 keys: vec![
                     mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
-                        alias: "bar".into(),
+                        alias: "__groupKey0".into(),
                         expr: Expression::Reference(("bar", 1u16).into()),
                     }),
                     mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
-                        alias: "foo".into(),
+                        alias: "__groupKey1".into(),
                         expr: Expression::Reference(("foo", 1u16).into()),
                     }),
                 ],
@@ -5698,13 +5698,13 @@ mod select_clause {
             expression: map! {
                 ("bar", 1u16).into() => Expression::FieldAccess(mir::FieldAccess {
                     expr: Box::new(Expression::Reference(Key::bot(1u16).into())),
-                    field: "bar".into(),
-                    is_nullable: false,
+                field: "__groupKey0".into(),
+                    is_nullable: true,
                 }),
                 ("foo", 1u16).into() => Expression::FieldAccess(mir::FieldAccess {
                     expr: Box::new(Expression::Reference(Key::bot(1u16).into())),
-                    field: "foo".into(),
-                    is_nullable: false,
+                field: "__groupKey1".into(),
+                    is_nullable: true,
                 }),
             },
             cache: SchemaCache::new(),
@@ -5734,7 +5734,7 @@ mod select_clause {
             source: Box::new(Stage::Group(mir::Group {
                 source: Box::new(source()),
                 keys: vec![mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
-                    alias: "baz".into(),
+                    alias: "__groupKey0".into(),
                     expr: Expression::Reference(("baz", 1u16).into()),
                 }),],
                 aggregations: vec![],
@@ -5744,8 +5744,8 @@ mod select_clause {
             expression: map! {
                 ("baz", 1u16).into() => Expression::FieldAccess(mir::FieldAccess {
                     expr: Box::new(Expression::Reference(Key::bot(1u16).into())),
-                    field: "baz".into(),
-                    is_nullable: false,
+                field: "__groupKey0".into(),
+                    is_nullable: true,
                 })
             },
         })),

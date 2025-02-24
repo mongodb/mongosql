@@ -1,5 +1,4 @@
 use crate::mir::{AliasedExpr, Expression, OptionallyAliasedExpr, ReferenceExpr};
-use crate::util::BOTTOM_ALIAS;
 use crate::{
     algebrizer::errors::Error,
     ast::{self, pretty_print::PrettyPrint},
@@ -486,13 +485,13 @@ impl<'a> Algebrizer<'a> {
         });
         project_stage.schema(&self.schema_inference_state())?;
         Ok(if is_distinct {
-            let group_stage = Self::build_distinct_values_group_and_project_stage(
+            let distinct_stages = Self::build_distinct_values_group_and_project_stage(
                 project_stage,
                 self.scope_level,
                 datasources,
             );
-            group_stage.schema(&self.schema_inference_state())?;
-            group_stage
+            distinct_stages.schema(&self.schema_inference_state())?;
+            distinct_stages
         } else {
             project_stage
         })
@@ -504,32 +503,27 @@ impl<'a> Algebrizer<'a> {
         datasources: BTreeSet<Key>,
     ) -> mir::Stage {
         let mut group_keys = Vec::new();
-        let mut bottom: Option<AliasedExpr> = None;
-        let mut datasource_aliases = Vec::new();
+        let mut project_expressions = BindingTuple::new();
 
-        // Identify data sources and build group keys for deduplication
-        for key in datasources.iter() {
-            if key.scope == scope_level {
-                match &key.datasource {
-                    DatasourceName::Named(name) => {
-                        group_keys.push(OptionallyAliasedExpr::Aliased(AliasedExpr {
-                            alias: name.clone(),
-                            expr: Expression::Reference(ReferenceExpr { key: key.clone() }),
-                        }));
-                        datasource_aliases.push(name.clone());
-                    }
-                    DatasourceName::Bottom => {
-                        bottom = Some(AliasedExpr {
-                            alias: BOTTOM_ALIAS.to_string(),
-                            expr: Expression::Reference(ReferenceExpr { key: key.clone() }),
-                        });
-                    }
-                }
-            }
-        }
+        for (counter, key) in datasources.iter().enumerate() {
+            let group_alias = format!("__groupKey{}", counter);
 
-        if let Some(ref bot) = bottom {
-            group_keys.push(OptionallyAliasedExpr::Aliased(bot.clone()));
+            group_keys.push(OptionallyAliasedExpr::Aliased(AliasedExpr {
+                alias: group_alias.clone(),
+                expr: Expression::Reference(ReferenceExpr { key: key.clone() }),
+            }));
+            project_expressions.insert(
+                key.clone(),
+                Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(ReferenceExpr {
+                        key: Key::bot(scope_level),
+                    })),
+                    field: group_alias,
+                    // Setting is_nullable to true because the result set coming into the
+                    // SELECT DISTINCT clause could be empty.
+                    is_nullable: true,
+                }),
+            );
         }
 
         let group_stage = mir::Stage::Group(mir::Group {
@@ -539,37 +533,6 @@ impl<'a> Algebrizer<'a> {
             cache: Default::default(),
             scope: scope_level,
         });
-
-        // Build the projection expressions to map the grouped data back to the original structure
-        let mut project_expressions = BindingTuple::new();
-        for datasource_alias in datasource_aliases {
-            project_expressions.insert(
-                Key::named(datasource_alias.as_str(), scope_level),
-                Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::Reference(ReferenceExpr {
-                        key: Key::bot(scope_level).clone(),
-                    })),
-                    field: datasource_alias.clone(),
-                    is_nullable: false,
-                }),
-            );
-        }
-
-        if bottom.is_some() {
-            project_expressions.insert(
-                Key {
-                    datasource: DatasourceName::Bottom,
-                    scope: scope_level,
-                },
-                Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::Reference(ReferenceExpr {
-                        key: Key::bot(scope_level),
-                    })),
-                    field: BOTTOM_ALIAS.to_string(),
-                    is_nullable: false,
-                }),
-            );
-        }
 
         mir::Stage::Project(mir::Project {
             source: Box::new(group_stage),
@@ -1038,39 +1001,27 @@ impl<'a> Algebrizer<'a> {
         source: mir::Stage,
     ) -> Result<mir::Stage> {
         let source_result_set = source.schema(&self.schema_inference_state())?;
-        let mut bottom = None;
-        let mut datasource_names = Vec::new();
+
+        let mut datasource_counter = 0;
+        let mut datasources = Vec::new();
 
         // Identify data sources from the result set schema
         for key in source_result_set.schema_env.keys() {
-            match &key.datasource {
-                DatasourceName::Named(n) => {
-                    datasource_names.push((n.clone(), key.clone()));
-                }
-                DatasourceName::Bottom => {
-                    bottom = Some(Key::bot(self.scope_level));
-                }
+            if key.scope == self.scope_level {
+                let group_key_name = format!("__groupKey{datasource_counter}");
+                datasources.push((group_key_name, key.clone()));
+                datasource_counter += 1;
             }
         }
-
-        let mut group_keys: Vec<OptionallyAliasedExpr> = datasource_names
+        let group_keys: Vec<OptionallyAliasedExpr> = datasources
             .iter()
-            .map(|(datasource_name, key)| {
+            .map(|(group_key_name, key)| {
                 OptionallyAliasedExpr::Aliased(AliasedExpr {
-                    alias: datasource_name.clone(),
+                    alias: group_key_name.clone(),
                     expr: Expression::Reference(ReferenceExpr { key: key.clone() }),
                 })
             })
             .collect();
-
-        if let Some(bottom_key) = &bottom {
-            group_keys.push(OptionallyAliasedExpr::Aliased(AliasedExpr {
-                alias: BOTTOM_ALIAS.to_string(),
-                expr: Expression::Reference(ReferenceExpr {
-                    key: bottom_key.clone(),
-                }),
-            }));
-        }
 
         // Adding the group stage to deduplicate rows
         let group_stage = mir::Stage::Group(mir::Group {
@@ -1082,31 +1033,17 @@ impl<'a> Algebrizer<'a> {
         });
 
         let mut expression = BindingTuple::new();
-        for (datasource_name, _) in &datasource_names {
+        for (group_key_name, key) in &datasources {
             expression.insert(
-                Key::named(datasource_name, self.scope_level),
+                key.clone(),
                 Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(ReferenceExpr {
                         key: Key::bot(self.scope_level),
                     })),
-                    field: datasource_name.clone().to_string(),
-                    is_nullable: false,
-                }),
-            );
-        }
-
-        if bottom.is_some() {
-            expression.insert(
-                Key {
-                    datasource: DatasourceName::Bottom,
-                    scope: self.scope_level,
-                },
-                Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::Reference(ReferenceExpr {
-                        key: Key::bot(self.scope_level),
-                    })),
-                    field: BOTTOM_ALIAS.to_string(),
-                    is_nullable: false,
+                    field: group_key_name.clone().to_string(),
+                    // Setting is_nullable to true because the result set coming into the
+                    // SELECT DISTINCT clause could be empty.
+                    is_nullable: true,
                 }),
             );
         }

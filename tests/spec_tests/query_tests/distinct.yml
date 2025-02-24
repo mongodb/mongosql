@@ -116,14 +116,14 @@ tests:
       - { 'foo': { "_id": 1, "a": 1, "b": 2 }, 'bar': { "_id": 1, "a": 1, "b": 2 } }
       - { 'foo': { "_id": 2, "a": 1, "b": 2 }, 'bar': { "_id": 2, "a": 2, "b": 2 } }
       - { 'foo': { "_id": 3, "a": 2, "b": 2 }, 'bar': { "_id": 3, "a": 2, "b": 2 } }
-      - { 'foo': { "_id": 4, "a": 1, "b": 2 }, 'bar': { "_id": 4, "a": 2, "b": 1 } }
+      - { 'foo': { "_id": 4, "a": 1, "b": 2 }, 'bar': { "_id": 4, "a": 2, "b": 2 } }
 
   - description: "SELECT DISTINCT specific columns from joined tables"
     query: "SELECT DISTINCT foo.a, bar.b FROM db.foo, db.bar WHERE foo._id = bar._id"
     result:
-      - { '': { "a": 1, "b": 1 } }
+      - { '': { "a": 1, "b": 2 } }
       - { '': { "a": 2, "b": 2 } }
-      - { '': { "a": 2, "b": 4 } }
+      - { '': { "a": 1, "b": 4 } }
 
   - description: "SELECT DISTINCT columns ensures we see unique values"
     query: "SELECT DISTINCT a, b FROM db.foo"
