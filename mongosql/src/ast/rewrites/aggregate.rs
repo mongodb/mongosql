@@ -3,6 +3,7 @@ use crate::ast::{
     pretty_print::PrettyPrint,
     rewrites::{Error, Pass, Result},
     visitor::Visitor,
+    GroupByClause,
 };
 use linked_hash_map::LinkedHashMap;
 
@@ -18,12 +19,16 @@ impl Pass for AggregateRewritePass {
             return Err(visitor.error.unwrap());
         }
 
-        // If there's no error from the first visitor, use the second
-        // visitor to safely create aliases for any aggregation functions.
+        // Next, if there's no error from the previous visitor, use the second
+        // visitor to safely create aliases for any aggregation functions, and
+        // move any aggregation functions into the AGGREGATE phrase that are not
+        // already there.
         let query = AggregateAliasingVisitor::default().visit_query(query);
 
-        // Use the third visitor to rewrite aggregation functions that
-        // use the ALL set quantifier.
+        // Then, rewrite multi-arg COUNT operations to single-arg versions.
+        let query = MultiArgCountVisitor.visit_query(query);
+
+        // Finally, rewrite aggregation functions that use the ALL set quantifier.
         Ok(AggregateSetQuantifierVisitor.visit_query(query))
     }
 }
@@ -312,6 +317,56 @@ impl Visitor for AggregateAliasingVisitor {
                 }
             }
             _ => e.walk(self),
+        }
+    }
+}
+
+///
+/// A visitor that rewrites multi-argument COUNT aggregation functions into single-argument
+/// versions where each of the multiple arguments is turned into a key-value pair in a document.
+/// The resulting document is the single argument to the COUNT function.
+///
+#[derive(Default)]
+pub struct MultiArgCountVisitor;
+
+impl Visitor for MultiArgCountVisitor {
+    fn visit_group_by_clause(&mut self, node: GroupByClause) -> GroupByClause {
+        let aggregations = node
+            .aggregations
+            .into_iter()
+            .map(|agg_func| match agg_func.expr {
+                ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::Count,
+                    args: ast::FunctionArguments::Args(args),
+                    set_quantifier,
+                }) if args.len() > 1 => {
+                    let doc: Vec<ast::DocumentPair> = args
+                        .into_iter()
+                        .enumerate()
+                        .map(|(idx, arg)| ast::DocumentPair {
+                            key: format!("_arg{idx}"),
+                            value: arg,
+                        })
+                        .collect();
+
+                    ast::AliasedExpr {
+                        alias: agg_func.alias.clone(),
+                        expr: ast::Expression::Function(ast::FunctionExpr {
+                            function: ast::FunctionName::Count,
+                            args: ast::FunctionArguments::Args(vec![ast::Expression::Document(
+                                doc,
+                            )]),
+                            set_quantifier,
+                        }),
+                    }
+                }
+                _ => agg_func,
+            })
+            .collect();
+
+        GroupByClause {
+            keys: node.keys,
+            aggregations,
         }
     }
 }

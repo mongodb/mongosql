@@ -4,7 +4,7 @@ use crate::{
         schema::SchemaCache,
         Error,
     },
-    schema::{ResultSet, Schema},
+    schema::{ResultSet, Satisfaction, Schema},
     util::unique_linked_hash_map::UniqueLinkedHashMap,
 };
 use std::sync::LazyLock;
@@ -220,6 +220,11 @@ pub struct AggregationFunctionApplication {
     pub function: AggregationFunction,
     pub distinct: bool,
     pub arg: Box<Expression>,
+
+    // Indicates if the argument is possibly a document. This is relevant
+    // for how COUNT works since we want to skip counting empty documents
+    // and documents that contain only null values.
+    pub arg_is_possibly_doc: Satisfaction,
 }
 
 #[derive(PartialEq, Debug, Clone)]
