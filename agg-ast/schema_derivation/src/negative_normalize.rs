@@ -254,11 +254,11 @@ impl NegativeNormalize<Expression> for Expression {
                     }
                     // the following operators negation depends on the underlying documents -- thus,
                     // for the sake of schema derivation, they function the same way negated as they do normally
-                    UntaggedOperatorName::AllElementsTrue | UntaggedOperatorName::AnyElementTrue | UntaggedOperatorName::Cmp | UntaggedOperatorName::In | UntaggedOperatorName::Size
+                    UntaggedOperatorName::Cmp | UntaggedOperatorName::In | UntaggedOperatorName::Size
                     | UntaggedOperatorName::StrLenBytes | UntaggedOperatorName::StrLenCP | UntaggedOperatorName::Strcasecmp | UntaggedOperatorName::SetEquals
                     | UntaggedOperatorName::SetIsSubset | UntaggedOperatorName::Sum => (u.op, u.args.clone()),
                     // toBool is the only untagged op that is boolean or nullish
-                    UntaggedOperatorName::ToBool => {
+                    UntaggedOperatorName::AllElementsTrue | UntaggedOperatorName::AnyElementTrue | UntaggedOperatorName::ToBool => {
                         let null_check = wrap_in_null_or_missing_check!(self.clone());
                         let false_check = wrap_in_false_check!(self.clone());
                         (UntaggedOperatorName::Or, vec![null_check, false_check])
