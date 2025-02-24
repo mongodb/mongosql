@@ -7,7 +7,7 @@ use crate::{
         AliasedExpr, Collection, Expression, FieldAccess, LiteralValue, OptionallyAliasedExpr,
         Stage,
     },
-    schema::{Schema, ANY_DOCUMENT},
+    schema::{Satisfaction, Schema, ANY_DOCUMENT},
     set, test_schema,
 };
 use mongosql_datastructures::binding_tuple::Key;
@@ -285,6 +285,7 @@ test_schema!(
                     function: AggregationFunction::First,
                     distinct: false,
                     arg: Expression::Literal(LiteralValue::Boolean(true)).into(),
+                    arg_is_possibly_doc: Satisfaction::Not,
                 }),
             },
             AliasedAggregation {
@@ -293,6 +294,7 @@ test_schema!(
                     function: AggregationFunction::First,
                     distinct: false,
                     arg: Expression::Literal(LiteralValue::String("abc".into())).into(),
+                    arg_is_possibly_doc: Satisfaction::Not,
                 }),
             },
         ],

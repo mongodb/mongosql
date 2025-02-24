@@ -4,33 +4,75 @@ use crate::{
         visitor::Visitor,
         AccumulatorExpr, AggregationFunction, Expression,
         Expression::*,
-        Group, LiteralValue, MQLOperator, MQLSemanticOperator, Project, ProjectItem, Stage,
+        Group, LiteralValue, MQLOperator, MQLSemanticOperator, Map, Project, ProjectItem, Stage,
         Stage::*,
     },
     make_cond_expr, map,
+    schema::Satisfaction,
     util::{REMOVE, ROOT, ROOT_NAME},
 };
 use linked_hash_map::LinkedHashMap;
+use mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap;
 
-macro_rules! make_single_expr_count_conditional {
-    ($arg:expr, $then:expr, $else:expr) => {
-        Box::new(make_cond_expr!(
-            MQLSemanticOperator(MQLSemanticOperator {
-                op: MQLOperator::In,
+// Condition used to desugar a $sqlCount when the argument is not a document. This condition asserts
+// that the arg is null or missing.
+macro_rules! count_arg_is_null_or_missing_cond {
+    ($arg:expr) => {
+        MQLSemanticOperator(MQLSemanticOperator {
+            op: MQLOperator::In,
+            args: vec![
+                MQLSemanticOperator(MQLSemanticOperator {
+                    op: MQLOperator::Type,
+                    args: vec![$arg],
+                }),
+                Array(vec![
+                    Literal(LiteralValue::String("missing".to_string())),
+                    Literal(LiteralValue::String("null".to_string())),
+                ]),
+            ],
+        })
+    };
+}
+
+// Condition used to desugar a $sqlCount when the argument is a document. This condition asserts
+// that the arg is an empty document.
+macro_rules! count_doc_arg_is_empty_cond {
+    ($arg:expr) => {
+        MQLSemanticOperator(MQLSemanticOperator {
+            op: MQLOperator::Eq,
+            args: vec![$arg, Document(UniqueLinkedHashMap::new())],
+        })
+    };
+}
+
+// Condition used to desugar a $sqlCount when the argument is a document. This condition asserts
+// that the arg contains only null values.
+macro_rules! count_doc_arg_has_all_null_values_cond {
+    ($arg:expr) => {
+        MQLSemanticOperator(MQLSemanticOperator {
+            op: MQLOperator::AllElementsTrue,
+            args: vec![MQLSemanticOperator(MQLSemanticOperator {
+                // $objectToArray and $map return null if the input is null, but $allElementsTrue
+                // throws a runtime error if the input is null. Therefore, we wrap this expression
+                // in $ifNull.
+                op: MQLOperator::IfNull,
                 args: vec![
-                    MQLSemanticOperator(MQLSemanticOperator {
-                        op: MQLOperator::Type,
-                        args: vec![$arg],
+                    Map(Map {
+                        input: Box::new(MQLSemanticOperator(MQLSemanticOperator {
+                            op: MQLOperator::ObjectToArray,
+                            args: vec![$arg],
+                        })),
+                        as_name: None,
+                        inside: Box::new(MQLSemanticOperator(MQLSemanticOperator {
+                            op: MQLOperator::Eq,
+                            args: vec![Variable("this.v".into()), Literal(LiteralValue::Null)],
+                        })),
                     }),
-                    Array(vec![
-                        Literal(LiteralValue::String("missing".to_string())),
-                        Literal(LiteralValue::String("null".to_string())),
-                    ]),
+                    // If the arg is null, this condition should vacuously evaluate to true.
+                    Array(vec![]),
                 ],
-            }),
-            $then,
-            $else
-        ))
+            })],
+        })
     };
 }
 
@@ -55,22 +97,25 @@ struct AccumulatorsDesugarerVisitor;
 
 impl AccumulatorsDesugarerVisitor {
     /// Rewrites $sqlCount into the appropriate new accumulator expression and project item.
-    /// MongoSQL supports the following cases for COUNT, and each is handled differently.
+    /// MongoSQL supports the following cases for COUNT:
+    ///     - COUNT(DISTINCT? *)
     ///     - COUNT(DISTINCT? <col>)
     ///     - COUNT(DISTINCT? <col1>, <col2>, ...)
-    ///     - COUNT(DISTINCT? *)
     ///
-    /// For the first case, when counting non-documents, we want to omit missing and null values;
-    /// when counting documents, we want to omit empty documents and documents where all values are
-    /// null.
+    /// Note: The third case is rewritten into
+    ///       COUNT(DISTINCT? {'col1': <col1>, 'col2': <col2>, ...})
+    /// which effectively makes it equivalent to the second case.
     ///
-    /// For the second case, we know with certainty that we are counting documents (a column list is
-    /// represented as a document with those columns as fields). In this case, we want to omit empty
-    /// documents and documents where all values are null.
+    /// For the first case, the * is represented as the "$$ROOT" variable in air. The * indicates we
+    /// want to count all documents unconditionally.
     ///
-    /// For the third case, we again know with certainty that we are counting documents (* is
-    /// represented as the "$$ROOT" variable). The * indicates we want to count all documents
-    /// unconditionally.
+    /// For the other case, the count is conditional. If the argument MUST be a Document, we only
+    /// count non-empty documents that contain at least one non-null value. If the argument must NOT
+    /// be a Document, we only count values that are not null or missing. If the argument MAY be a
+    /// Document, we only count values that are not null or missing and are non-empty and contain at
+    /// least one non-null value. Note that this final case depends on the schema-checker to reject
+    /// polymorphic fields in COUNT. The argument could be a nullish Document, but not an AnyOf that
+    /// contains Document and other non-nullish types.
     ///
     /// For all cases, if the count is marked as distinct, we rewrite the accumulator to a $addToSet
     /// and follow it with a projection assignment that does the counting (via $size). If it is
@@ -81,12 +126,12 @@ impl AccumulatorsDesugarerVisitor {
             Variable(v) if v.parent.is_none() && v.name == *ROOT_NAME => {
                 Self::rewrite_count_star(count_expr.distinct, count_expr.alias.clone())
             }
-            Document(_doc) => {
-                Self::rewrite_count_multi_col(count_expr.distinct, count_expr.alias.clone())
-            }
-            arg => {
-                Self::rewrite_count_single_expr(count_expr.distinct, count_expr.alias.clone(), arg)
-            }
+            arg => Self::rewrite_count_non_star(
+                count_expr.distinct,
+                count_expr.alias.clone(),
+                arg,
+                count_expr.arg_is_possibly_doc,
+            ),
         };
 
         let project_item = if count_expr.distinct {
@@ -101,6 +146,8 @@ impl AccumulatorsDesugarerVisitor {
         (new_acc_expr, project_item)
     }
 
+    /// Rewrites COUNT(DISTINCT? *) into the appropriate AccumulatorExpr. AddToSet if it is distinct;
+    /// otherwise, Sum.
     fn rewrite_count_star(distinct: bool, alias: String) -> AccumulatorExpr {
         let (function, arg) = if distinct {
             (AggregationFunction::AddToSet, Box::new(ROOT.clone()))
@@ -115,44 +162,72 @@ impl AccumulatorsDesugarerVisitor {
             function,
             distinct: false,
             arg,
+            arg_is_possibly_doc: Satisfaction::Not,
         }
     }
 
-    fn rewrite_count_multi_col(_distinct: bool, _alias: String) -> AccumulatorExpr {
-        todo!("SQL-2622")
-    }
-
-    fn rewrite_count_single_expr(
+    /// Rewrites COUNT(DISTINCT? <expr>) into the appropriate AccumulatorExpr. AddToSet if it is
+    /// distinct; otherwise, Sum. Note that these are both conditional. A value is only counted if
+    /// it is not null or missing. Additionally, if the expr may be a document, it is only counted
+    /// if it is non-empty and contains at least one non-null value.
+    ///
+    /// Also note the <expr> may be a single column -- in the case of COUNT(col) -- or may be a
+    /// document literal -- in the case of COUNT(col1, col2, ...). Ultimately, these are desugared
+    /// similarly.
+    fn rewrite_count_non_star(
         distinct: bool,
         alias: String,
         arg: &Expression,
+        arg_is_possibly_doc: Satisfaction,
     ) -> AccumulatorExpr {
         let (agg_func, then, r#else) = if distinct {
-            (
-                // When distinct, we rewrite to AddToSet.
-                AggregationFunction::AddToSet,
-                // In the case the condition evaluates to true, we include "$$REMOVE" in the set,
-                // which effectively doesn't add to the set.
-                REMOVE.clone(),
-                // In the case the condition evaluates to false, we include the argument in the set.
-                arg.clone(),
-            )
+            // Including "$$REMOVE" in the set effectively doesn't add to the set.
+            (AggregationFunction::AddToSet, REMOVE.clone(), arg.clone())
         } else {
             (
-                // When not distinct, we rewrite to Sum.
                 AggregationFunction::Sum,
-                // In the case the condition evaluates to true, we do not count this argument.
                 Literal(LiteralValue::Integer(0)),
-                // In the case the condition evaluates to false, we count this argument.
                 Literal(LiteralValue::Integer(1)),
             )
+        };
+
+        let arg = match arg {
+            // No need to create a conditional if the argument is a literal value.
+            // We know null will result in the then case and non-null will result in the else.
+            Literal(LiteralValue::Null) => then,
+            Literal(_) => r#else,
+            _ => {
+                // Create the conditions for counting based on whether the expr is possibly a
+                // Document. If the condition evaluates to true, the expr is NOT counted.
+                let cond = match arg_is_possibly_doc {
+                    Satisfaction::Not => count_arg_is_null_or_missing_cond!(arg.clone()),
+                    Satisfaction::Must => MQLSemanticOperator(MQLSemanticOperator {
+                        op: MQLOperator::Or,
+                        args: vec![
+                            count_doc_arg_is_empty_cond!(arg.clone()),
+                            count_doc_arg_has_all_null_values_cond!(arg.clone()),
+                        ],
+                    }),
+                    Satisfaction::May => MQLSemanticOperator(MQLSemanticOperator {
+                        op: MQLOperator::Or,
+                        args: vec![
+                            count_arg_is_null_or_missing_cond!(arg.clone()),
+                            count_doc_arg_is_empty_cond!(arg.clone()),
+                            count_doc_arg_has_all_null_values_cond!(arg.clone()),
+                        ],
+                    }),
+                };
+
+                make_cond_expr!(cond, then, r#else)
+            }
         };
 
         AccumulatorExpr {
             alias,
             function: agg_func,
             distinct: false,
-            arg: make_single_expr_count_conditional!(arg.clone(), then, r#else),
+            arg: Box::new(arg),
+            arg_is_possibly_doc: Satisfaction::Not,
         }
     }
 
@@ -165,6 +240,7 @@ impl AccumulatorsDesugarerVisitor {
             function: AggregationFunction::AddToSet,
             distinct: false,
             arg: acc_expr.arg.clone(),
+            arg_is_possibly_doc: Satisfaction::Not,
         };
 
         let project_item = ProjectItem::Assignment(MQLSemanticOperator(MQLSemanticOperator {
@@ -250,7 +326,8 @@ impl Visitor for AccumulatorExpressionConverter {
                 alias: _,
                 function: AggregationFunction::AddToArray,
                 distinct: true,
-                arg: _
+                arg: _,
+                arg_is_possibly_doc: _,
             }
         ) {
             AccumulatorExpr {
@@ -258,6 +335,7 @@ impl Visitor for AccumulatorExpressionConverter {
                 function: AggregationFunction::AddToSet,
                 distinct: false,
                 arg: node.arg,
+                arg_is_possibly_doc: Satisfaction::Not,
             }
         } else {
             node

@@ -31,6 +31,7 @@ impl MqlCodeGenerator {
             RegexMatch(r) => self.codegen_regex_match(r),
             SqlDivide(sd) => self.codegen_sql_divide(sd),
             Trim(trim) => self.codegen_trim(trim),
+            Map(m) => self.codegen_map(m),
             Reduce(r) => self.codegen_reduce(r),
             Subquery(s) => self.codegen_subquery_expr(s),
             SubqueryComparison(sc) => self.codegen_subquery_comparison(sc),
@@ -343,6 +344,19 @@ impl MqlCodeGenerator {
             op: {"input": self.codegen_expression(*trim.input)?,
                 "chars": self.codegen_expression(*trim.chars)?}
         }))
+    }
+
+    fn codegen_map(&self, m: air::Map) -> Result<Bson> {
+        let input = self.codegen_expression(*m.input)?;
+        let inside = self.codegen_expression(*m.inside)?;
+
+        let mut doc = doc! {"input": input, "in": inside};
+
+        if let Some(as_name) = m.as_name {
+            doc.insert("as", as_name);
+        }
+
+        Ok(bson!({"$map": doc}))
     }
 
     fn codegen_reduce(&self, reduce: air::Reduce) -> Result<Bson> {

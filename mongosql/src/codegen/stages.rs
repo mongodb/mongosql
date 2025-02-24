@@ -243,6 +243,7 @@ impl MqlCodeGenerator {
                      function,
                      distinct,
                      arg,
+                    arg_is_possibly_doc: _,
                  }| {
                     Ok(if function == AggregationFunction::AddToArray {
                         if distinct {
