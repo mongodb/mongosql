@@ -3,8 +3,9 @@ use crate::{
     schema_difference, schema_for_type_numeric, schema_for_type_str, Error, Result,
 };
 use agg_ast::definitions::{
-    ConciseSubqueryLookup, Densify, EqualityLookup, Expression, GraphLookup, LiteralValue, Lookup,
-    LookupFrom, ProjectItem, ProjectStage, Ref, Stage, SubqueryLookup, TaggedOperator, UnionWith,
+    ConciseSubqueryLookup, Densify, EqualityLookup, Expression, GraphLookup, Group,
+    GroupAccumulator, GroupAccumulatorExpr, GroupAccumulatorName, LiteralValue, Lookup, LookupFrom,
+    ProjectItem, ProjectStage, Ref, Stage, SubqueryLookup, TaggedOperator, UnionWith,
     UntaggedOperator, UntaggedOperatorName, Unwind,
 };
 use linked_hash_map::LinkedHashMap;
@@ -206,6 +207,25 @@ impl DeriveSchema for Stage {
                 true,
             );
             Ok(state.result_set_schema.to_owned())
+        }
+
+        fn group_derive_schema(group: &Group, state: &mut ResultSetState) -> Result<Schema> {
+            // group is a map of field namespace to expression. We can derive the schema for each expression
+            // and then union them together to get the resulting schema.
+            let mut keys = group
+                .aggregations
+                .iter()
+                .map(|(k, e)| {
+                    let field_schema = e.derive_schema(state)?;
+                    Ok((k.to_string(), field_schema))
+                })
+                .collect::<Result<BTreeMap<String, Schema>>>()?;
+            keys.insert("_id".to_string(), group.keys.derive_schema(state)?);
+            Ok(Schema::Document(Document {
+                required: keys.keys().cloned().collect(),
+                keys,
+                ..Default::default()
+            }))
         }
 
         fn project_derive_schema(
@@ -512,7 +532,7 @@ impl DeriveSchema for Stage {
             Stage::Facet(f) => facet_derive_schema(f, state),
             Stage::Fill(_) => todo!(),
             Stage::GraphLookup(g) => graph_lookup_derive_schema(g, state),
-            Stage::Group(_) => todo!(),
+            Stage::Group(g) => group_derive_schema(g, state),
             Stage::Join(_) => todo!(),
             Stage::Limit(_) => Ok(state.result_set_schema.to_owned()),
             Stage::Lookup(l) => lookup_derive_schema(l, state),
@@ -520,10 +540,9 @@ impl DeriveSchema for Stage {
             Stage::Project(p) => project_derive_schema(p, state),
             Stage::Redact(_) => todo!(),
             Stage::ReplaceWith(_) => todo!(),
-            Stage::Sample(_) => todo!(),
+            Stage::Sample(_) => Ok(state.result_set_schema.to_owned()),
             Stage::SetWindowFields(_) => todo!(),
-            Stage::Skip(_) => Ok(state.result_set_schema.to_owned()),
-            Stage::Sort(_) => Ok(state.result_set_schema.to_owned()),
+            Stage::Skip(_) | Stage::Sort(_) => Ok(state.result_set_schema.to_owned()),
             Stage::SortByCount(s) => sort_by_count_derive_schema(s.as_ref(), state),
             Stage::UnionWith(u) => union_with_derive_schema(u, state),
             Stage::Unset(_) => todo!(),
@@ -1705,6 +1724,142 @@ impl DeriveSchema for UntaggedOperator {
                 Ok(handle_null_satisfaction(vec![args[0]], state, array_type)?)
             }
             _ => Err(Error::InvalidUntaggedOperator(self.op.into())),
+        }
+    }
+}
+
+impl DeriveSchema for GroupAccumulator {
+    fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
+        fn get_avg_type(s: Schema) -> Schema {
+            match s {
+                a @ Schema::AnyOf(_) => {
+                    if a.satisfies(&Schema::Atomic(Atomic::Decimal)) > Satisfaction::Not {
+                        Schema::Atomic(Atomic::Decimal)
+                    } else if a.satisfies(&*NUMERIC) > Satisfaction::Not {
+                        Schema::Atomic(Atomic::Double)
+                    } else {
+                        // Non-numeric types will return null
+                        Schema::Atomic(Atomic::Null)
+                    }
+                }
+                Schema::Atomic(Atomic::Decimal) => Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Long)
+                | Schema::Atomic(Atomic::Integer)
+                | Schema::Atomic(Atomic::Double) => Schema::Atomic(Atomic::Double),
+                // Non-numeric types will return null
+                _ => Schema::Atomic(Atomic::Null),
+            }
+        }
+
+        fn get_std_type(s: Schema) -> Schema {
+            match s {
+                a @ Schema::AnyOf(_) => {
+                    if a.satisfies(&*NUMERIC) > Satisfaction::Not {
+                        Schema::Atomic(Atomic::Double)
+                    } else {
+                        // Non-numeric types will return null
+                        Schema::Atomic(Atomic::Null)
+                    }
+                }
+                Schema::Atomic(Atomic::Decimal) => Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Long)
+                | Schema::Atomic(Atomic::Integer)
+                | Schema::Atomic(Atomic::Double) => Schema::Atomic(Atomic::Double),
+                // Non-numeric types will return null
+                _ => Schema::Atomic(Atomic::Null),
+            }
+        }
+
+        fn get_sum_type(s: Schema) -> Schema {
+            match s {
+                Schema::AnyOf(a) => Schema::AnyOf(
+                    a.into_iter()
+                        .filter(|s| {
+                            matches!(
+                                s,
+                                Schema::Atomic(Atomic::Integer)
+                                    | Schema::Atomic(Atomic::Long)
+                                    | Schema::Atomic(Atomic::Double)
+                                    | Schema::Atomic(Atomic::Decimal)
+                            )
+                        })
+                        .collect(),
+                )
+                .maximum(),
+                Schema::Atomic(Atomic::Integer)
+                | Schema::Atomic(Atomic::Long)
+                | Schema::Atomic(Atomic::Double)
+                | Schema::Atomic(Atomic::Decimal) => s,
+                // Sum returns 0 as an integer if there are no numeric values to sum
+                _ => Schema::Atomic(Atomic::Integer),
+            }
+        }
+        let get_mergeobject_type = |s: Schema| -> Result<Schema> {
+            match s {
+                Schema::Document(d) => Ok(Schema::Document(d)),
+                Schema::AnyOf(a) => Ok(a
+                    .into_iter()
+                    .filter(|s| matches!(s, Schema::Document(_)))
+                    .collect::<Vec<_>>()
+                    .first()
+                    .unwrap_or(Err(Error::InvalidGroupAccumulator(format!(
+                        "MergeObjects accumulator must have all document arguments: {:?}",
+                        self
+                    ))))?),
+                _ => Err(Error::InvalidGroupAccumulator(format!(
+                    "MergeObjects accumulator must have all document arguments: {:?}",
+                    self
+                ))),
+            }
+        };
+
+        macro_rules! mql_arg_schema {
+            () => {{
+                let GroupAccumulatorExpr::NonSQLAccumulator(e) = &self.expr else {
+                    return Err(Error::InvalidGroupAccumulator(format!(
+                        "SQL Accumulator argument found in non-SQL Accumulator: {:?}",
+                        self
+                    )));
+                };
+                e.derive_schema(state)
+            }};
+        }
+        macro_rules! sql_arg_schema {
+            () => {{
+                let GroupAccumulatorExpr::SQLAccumulator { var, .. } = &self.expr else {
+                    return Err(Error::InvalidGroupAccumulator(format!(
+                        "Non-SQL Accumulator argument found in SQL Accumulator: {:?}",
+                        self
+                    )));
+                };
+                var.derive_schema(state)
+            }};
+        }
+        match self.function {
+            GroupAccumulatorName::First | GroupAccumulatorName::Last => {
+                mql_arg_schema!()
+            }
+            GroupAccumulatorName::Max => Ok(mql_arg_schema!()?.maximum()),
+            GroupAccumulatorName::Min => Ok(mql_arg_schema!()?.minimum()),
+            GroupAccumulatorName::Push | GroupAccumulatorName::AddToSet => {
+                Ok(Schema::Array(Box::new(mql_arg_schema!()?)))
+            }
+            GroupAccumulatorName::Avg => Ok(get_avg_type(mql_arg_schema!()?)),
+            GroupAccumulatorName::Sum => Ok(get_sum_type(mql_arg_schema!()?)),
+            GroupAccumulatorName::StdDevPop | GroupAccumulatorName::StdDevSamp => {
+                Ok(get_std_type(mql_arg_schema!()?))
+            }
+            GroupAccumulatorName::MergeObjects => Ok(get_mergeobject_type(mql_arg_schema!()?)),
+            GroupAccumulatorName::SQLAvg => Ok(get_avg_type(sql_arg_schema!()?)),
+            GroupAccumulatorName::SQLCount => Ok(Schema::Any),
+            GroupAccumulatorName::SQLMax => Ok(sql_arg_schema!()?.maximum()),
+            GroupAccumulatorName::SQLMin => Ok(sql_arg_schema!()?.minimum()),
+            GroupAccumulatorName::SQLFirst | GroupAccumulatorName::SQLLast => sql_arg_schema!(),
+            GroupAccumulatorName::SQLMergeObjects => Ok(Schema::Any),
+            GroupAccumulatorName::SQLStdDevPop | GroupAccumulatorName::SQLStdDevSamp => {
+                Ok(get_std_type(sql_arg_schema!()?))
+            }
+            GroupAccumulatorName::SQLSum => Ok(get_sum_type(mql_arg_schema!()?)),
         }
     }
 }
