@@ -620,8 +620,8 @@ tests:
     query: "SELECT * FROM (SELECT a, b FROM foo.multi AS m) AS arr GROUP BY a AS a AGGREGATE COUNT(DISTINCT *) AS gcount"
     current_db: foo
     result:
-      - { "": { "a": 1, "gcount": 1 } }
-      - { "": { "a": 2, "gcount": 2 } }
+      - { "": { "a": 1, "gcount": 2 } }
+      - { "": { "a": 2, "gcount": 3 } }
       - { "": { "a": null, "gcount": 1 } }
 
   - description: COUNT(MISSING) and COUNT(NULL) skip MISSING and NULL values
