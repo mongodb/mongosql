@@ -264,4 +264,34 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
+    test_derive_group_accumulator_schema!(
+        last,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))),
+        input = r#"{"$last": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        max,
+        expected = Ok(Schema::Atomic(Atomic::String)),
+        input = r#"{"$max": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        min,
+        expected = Ok(Schema::Atomic(Atomic::Integer)),
+        input = r#"{"$min": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
 }
