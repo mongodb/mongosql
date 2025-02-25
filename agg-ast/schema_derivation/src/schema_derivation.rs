@@ -823,11 +823,11 @@ impl DeriveSchema for TaggedOperator {
                 state,
                 Schema::Atomic(Atomic::Double),
             ),
-            TaggedOperator::Percentile(p) => handle_null_satisfaction(
+            TaggedOperator::Percentile(p) => Ok(Schema::Array(Box::new(handle_null_satisfaction(
                 vec![p.input.as_ref()],
                 state,
                 Schema::Atomic(Atomic::Double),
-            ),
+            )?))),
             TaggedOperator::RegexFind(_) => Ok(Schema::AnyOf(set!(
                 Schema::Atomic(Atomic::Null),
                 Schema::Document(Document {
@@ -1116,10 +1116,12 @@ impl DeriveSchema for TaggedOperator {
                 )))
             }
             TaggedOperator::Filter(_) => todo!(),
-            TaggedOperator::FirstN(_) => todo!(),
+            TaggedOperator::FirstN(n) => Ok(Schema::Array(Box::new(n.input.derive_schema(state)?))),
             TaggedOperator::Function(_) => todo!(),
-            TaggedOperator::Integral(_) => todo!(),
-            TaggedOperator::LastN(_) => todo!(),
+            TaggedOperator::Integral(i) => {
+                get_decimal_double_or_nullish(vec![i.input.as_ref()], state)
+            }
+            TaggedOperator::LastN(n) => Ok(Schema::Array(Box::new(n.input.derive_schema(state)?))),
             TaggedOperator::Like(_) => todo!(),
             TaggedOperator::Map(m) => {
                 let var = m._as.clone();
