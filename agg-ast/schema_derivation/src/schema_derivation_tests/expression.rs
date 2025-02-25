@@ -327,4 +327,66 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
+    test_derive_group_accumulator_schema!(
+        push,
+        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))))),
+        input = r#"{"$push": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        add_to_set,
+        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))))),
+        input = r#"{"$addToSet": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        std_dev_pop,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = r#"{"$stdDevPop": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        std_dev_samp,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = r#"{"$stdDevSamp": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        merge_objects,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("a".to_string(), "b".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$mergeObjects": "$foo"}"#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("a".to_string(), "b".to_string()),
+            ..Default::default()
+        })
+    );
 }
