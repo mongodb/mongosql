@@ -749,6 +749,69 @@ mod graphlookup {
     );
 }
 
+mod set_window_fields {
+    use super::*;
+
+    test_derive_stage_schema!(
+        set_windows_fields,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "output".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "foo".to_string() => Schema::Atomic(Atomic::String),
+                        "documents".to_string() => Schema::AnyOf(set!(
+                            Schema::Atomic(Atomic::Integer),
+                            Schema::Atomic(Atomic::Long),
+                            Schema::Atomic(Atomic::Double),
+                            Schema::Atomic(Atomic::Decimal)
+                        )),
+                        "no_window".to_string() => Schema::AnyOf(set!(
+                            Schema::Atomic(Atomic::Integer),
+                            Schema::Atomic(Atomic::Long),
+                            Schema::Atomic(Atomic::Double),
+                            Schema::Atomic(Atomic::Decimal)
+                        )),
+                        "range_and_unit".to_string() => Schema::AnyOf(set!(
+                            Schema::Atomic(Atomic::Integer),
+                            Schema::Atomic(Atomic::Long),
+                            Schema::Atomic(Atomic::Double),
+                            Schema::Atomic(Atomic::Decimal)
+                        ))
+                    },
+                    required: set!("foo".to_string(), "documents".to_string(), "no_window".to_string(), "range_and_unit".to_string()),
+                    ..Default::default()
+                })
+            },
+            required: set!("output".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$setWindowFields": {
+                        "output": {
+                            "documents": {
+                                "$sum": 1,
+                                "window": {
+                                    "documents": [-1, 1]
+                                }
+                            },
+                            "no_window": {
+                                "$derivative": {
+                                    "input": 1,
+                                    "unit": "seconds"
+                                }
+                            },
+                            "range_and_unit": {
+                                "$denseRank": {},
+                                "window": {
+                                    "range": [-10, 10],
+                                    "unit": "seconds"
+                                }
+                            }
+                        }
+                }}"#,
+        ref_schema = Schema::Atomic(Atomic::String)
+    );
+}
+
 mod union {
     use super::*;
 

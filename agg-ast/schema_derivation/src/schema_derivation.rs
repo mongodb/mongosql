@@ -5,8 +5,8 @@ use crate::{
 use agg_ast::definitions::{
     ConciseSubqueryLookup, Densify, EqualityLookup, Expression, GraphLookup, Group,
     GroupAccumulator, GroupAccumulatorExpr, GroupAccumulatorName, LiteralValue, Lookup, LookupFrom,
-    ProjectItem, ProjectStage, Ref, Stage, SubqueryLookup, TaggedOperator, UnionWith,
-    UntaggedOperator, UntaggedOperatorName, Unwind,
+    ProjectItem, ProjectStage, Ref, SetWindowFields, SetWindowFieldsOutput, Stage, SubqueryLookup,
+    TaggedOperator, UnionWith, UntaggedOperator, UntaggedOperatorName, Unwind,
 };
 use linked_hash_map::LinkedHashMap;
 use mongosql::{
@@ -221,6 +221,69 @@ impl DeriveSchema for Stage {
                 })
                 .collect::<Result<BTreeMap<String, Schema>>>()?;
             keys.insert("_id".to_string(), group.keys.derive_schema(state)?);
+            Ok(Schema::Document(Document {
+                required: keys.keys().cloned().collect(),
+                keys,
+                ..Default::default()
+            }))
+        }
+
+        // add_fields_derive_schema is near set_window_fields_derive_schema because they are necessarily
+        // identical in semantics: they both add fields to the schema incoming from the previous
+        // pipeline stage. The only difference is that add_fields is a map of expressions, while set_window_fields
+        // is a map of window functions.
+        fn add_fields_derive_schema(
+            add_fields: &LinkedHashMap<String, Expression>,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            let mut keys = add_fields
+                .iter()
+                .map(|(k, e)| {
+                    let field_schema = e.derive_schema(state)?;
+                    Ok((k.to_string(), field_schema))
+                })
+                .collect::<Result<BTreeMap<_, _>>>()?;
+            let Schema::Document(Document {
+                keys: ref current_keys,
+                ..
+            }) = state.result_set_schema
+            else {
+                // This should never actually happen
+                return Err(Error::InvalidResultSetSchema(
+                    state.result_set_schema.to_string(),
+                ));
+            };
+            keys.extend(current_keys.clone().into_iter());
+            Ok(Schema::Document(Document {
+                required: keys.keys().cloned().collect(),
+                keys,
+                ..Default::default()
+            }))
+        }
+
+        fn set_window_fields_derive_schema(
+            set_windows: &SetWindowFields,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            let mut keys = set_windows
+                .output
+                .iter()
+                .map(|(k, e)| {
+                    let field_schema = e.window_func.derive_schema(state)?;
+                    Ok((k.to_string(), field_schema))
+                })
+                .collect::<Result<BTreeMap<_, _>>>()?;
+            let Schema::Document(Document {
+                keys: ref current_keys,
+                ..
+            }) = state.result_set_schema
+            else {
+                // This should never actually happen
+                return Err(Error::InvalidResultSetSchema(
+                    state.result_set_schema.to_string(),
+                ));
+            };
+            keys.extend(current_keys.clone().into_iter());
             Ok(Schema::Document(Document {
                 required: keys.keys().cloned().collect(),
                 keys,
@@ -503,7 +566,7 @@ impl DeriveSchema for Stage {
         }
 
         match self {
-            Stage::AddFields(_) => todo!(),
+            Stage::AddFields(a) => add_fields_derive_schema(a, state),
             Stage::AtlasSearchStage(_) => todo!(),
             Stage::Bucket(_) => todo!(),
             Stage::BucketAuto(_) => todo!(),
@@ -541,7 +604,7 @@ impl DeriveSchema for Stage {
             Stage::Redact(_) => todo!(),
             Stage::ReplaceWith(_) => todo!(),
             Stage::Sample(_) => Ok(state.result_set_schema.to_owned()),
-            Stage::SetWindowFields(_) => todo!(),
+            Stage::SetWindowFields(s) => set_window_fields_derive_schema(s, state),
             Stage::Skip(_) | Stage::Sort(_) => Ok(state.result_set_schema.to_owned()),
             Stage::SortByCount(s) => sort_by_count_derive_schema(s.as_ref(), state),
             Stage::UnionWith(u) => union_with_derive_schema(u, state),
