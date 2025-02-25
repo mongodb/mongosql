@@ -7,6 +7,24 @@ use mongosql::{
 };
 use std::collections::BTreeMap;
 
+mod add_fields {
+    use super::*;
+
+    test_derive_stage_schema!(
+        add_fields,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Double),
+                "bar".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string(), "bar".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$addFields": {"bar": "baz"}}"#,
+        ref_schema = Schema::Atomic(Atomic::Double)
+    );
+}
+
 mod collection {
     use super::*;
 

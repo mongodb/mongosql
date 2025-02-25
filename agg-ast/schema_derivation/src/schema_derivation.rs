@@ -5,8 +5,8 @@ use crate::{
 use agg_ast::definitions::{
     ConciseSubqueryLookup, Densify, EqualityLookup, Expression, GraphLookup, Group,
     GroupAccumulator, GroupAccumulatorExpr, GroupAccumulatorName, LiteralValue, Lookup, LookupFrom,
-    ProjectItem, ProjectStage, Ref, SetWindowFields, SetWindowFieldsOutput, Stage, SubqueryLookup,
-    TaggedOperator, UnionWith, UntaggedOperator, UntaggedOperatorName, Unwind,
+    ProjectItem, ProjectStage, Ref, SetWindowFields, Stage, SubqueryLookup, TaggedOperator,
+    UnionWith, UntaggedOperator, UntaggedOperatorName, Unwind,
 };
 use linked_hash_map::LinkedHashMap;
 use mongosql::{
