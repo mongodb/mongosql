@@ -294,4 +294,37 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
+    test_derive_group_accumulator_schema!(
+        avg,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = r#"{"$avg": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        avg_decimal,
+        expected = Ok(Schema::Atomic(Atomic::Decimal)),
+        input = r#"{"$avg": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Decimal)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        sum,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal)
+        ))),
+        input = r#"{"$sum": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
 }
