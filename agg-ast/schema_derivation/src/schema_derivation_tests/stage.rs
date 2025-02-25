@@ -239,6 +239,68 @@ mod facet {
     //     );
 }
 
+mod group {
+    use super::*;
+
+    test_derive_stage_schema!(
+        simple,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::String),
+                "count".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal)
+                ))
+            },
+            required: set!("_id".to_string(), "count".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$group": {"_id": "$foo", "count": {"$sum": 1}}}"#,
+        ref_schema = Schema::Atomic(Atomic::String)
+    );
+
+    test_derive_stage_schema!(
+        multiple_keys,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "foo".to_string() => Schema::Atomic(Atomic::String),
+                        "bar".to_string() => Schema::Atomic(Atomic::Integer)
+                    },
+                    required: set!("foo".to_string(), "bar".to_string()),
+                    ..Default::default()
+                }),
+                "count".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal)
+                )),
+                "sum".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal)
+                ))
+            },
+            required: set!("_id".to_string(), "count".to_string(), "sum".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$group": {"_id": {"foo": "$foo", "bar": "$bar"}, "count": {"$sum": 1}, "sum": {"$sum": "$bar"}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "bar".to_string() => Schema::Atomic(Atomic::Integer)
+            },
+            required: set!("foo".to_string(), "bar".to_string()),
+            ..Default::default()
+        })
+    );
+}
+
 mod sort_by_count {
     use super::*;
 
