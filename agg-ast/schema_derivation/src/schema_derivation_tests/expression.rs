@@ -389,4 +389,133 @@ mod group_accumulator {
             ..Default::default()
         })
     );
+
+    test_derive_group_accumulator_schema!(
+        sql_first,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))),
+        input = r#"{"$sqlFirst": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        sql_last,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))),
+        input = r#"{"$sqlLast": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        sql_max,
+        expected = Ok(Schema::Atomic(Atomic::String)),
+        input = r#"{"$sqlMax": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        sql_min,
+        expected = Ok(Schema::Atomic(Atomic::Integer)),
+        input = r#"{"$sqlMin": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        sql_avg,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = r#"{"$sqlAvg": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        sql_avg_decimal,
+        expected = Ok(Schema::Atomic(Atomic::Decimal)),
+        input = r#"{"$sqlAvg": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Decimal)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        sql_sum,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal)
+        ))),
+        input = r#"{"$sqlSum": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        sql_count,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal)
+        ))),
+        input = r#"{"$sqlCount": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        sql_std_dev_pop,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input =
+            r#"{"$sqlStdDevPop": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        sql_std_dev_samp,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = r#"{"$sqlStdDevSamp": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        sql_merge_objects,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("a".to_string(), "b".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$sqlMergeObjects": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("a".to_string(), "b".to_string()),
+            ..Default::default()
+        })
+    );
 }

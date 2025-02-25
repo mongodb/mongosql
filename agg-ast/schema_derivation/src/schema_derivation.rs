@@ -1862,11 +1862,11 @@ impl DeriveSchema for GroupAccumulator {
             GroupAccumulatorName::SQLMax => Ok(sql_arg_schema!()?.maximum()),
             GroupAccumulatorName::SQLMin => Ok(sql_arg_schema!()?.minimum()),
             GroupAccumulatorName::SQLFirst | GroupAccumulatorName::SQLLast => sql_arg_schema!(),
-            GroupAccumulatorName::SQLMergeObjects => Ok(Schema::Any),
+            GroupAccumulatorName::SQLMergeObjects => get_mergeobject_type(sql_arg_schema!()?),
             GroupAccumulatorName::SQLStdDevPop | GroupAccumulatorName::SQLStdDevSamp => {
                 Ok(get_std_type(sql_arg_schema!()?))
             }
-            GroupAccumulatorName::SQLSum => Ok(get_sum_type(mql_arg_schema!()?)),
+            GroupAccumulatorName::SQLSum => Ok(get_sum_type(sql_arg_schema!()?)),
         }
     }
 }
