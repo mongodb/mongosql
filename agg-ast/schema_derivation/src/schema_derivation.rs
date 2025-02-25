@@ -1786,6 +1786,12 @@ impl DeriveSchema for UntaggedOperator {
                 })));
                 Ok(handle_null_satisfaction(vec![args[0]], state, array_type)?)
             }
+            UntaggedOperatorName::Sum => {
+                GroupAccumulator {
+                    function: GroupAccumulatorName::Sum,
+                    expr: GroupAccumulatorExpr::NonSQLAccumulator(args[0].clone())
+                }.derive_schema(state)
+            }
             _ => Err(Error::InvalidUntaggedOperator(self.op.into())),
         }
     }

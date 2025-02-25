@@ -774,33 +774,32 @@ mod set_window_fields {
         set_windows_fields,
         expected = Ok(Schema::Document(Document {
             keys: map! {
-                "output".to_string() => Schema::Document(Document {
-                    keys: map! {
-                        "foo".to_string() => Schema::Atomic(Atomic::String),
-                        "documents".to_string() => Schema::AnyOf(set!(
-                            Schema::Atomic(Atomic::Integer),
-                            Schema::Atomic(Atomic::Long),
-                            Schema::Atomic(Atomic::Double),
-                            Schema::Atomic(Atomic::Decimal)
-                        )),
-                        "no_window".to_string() => Schema::AnyOf(set!(
-                            Schema::Atomic(Atomic::Integer),
-                            Schema::Atomic(Atomic::Long),
-                            Schema::Atomic(Atomic::Double),
-                            Schema::Atomic(Atomic::Decimal)
-                        )),
-                        "range_and_unit".to_string() => Schema::AnyOf(set!(
-                            Schema::Atomic(Atomic::Integer),
-                            Schema::Atomic(Atomic::Long),
-                            Schema::Atomic(Atomic::Double),
-                            Schema::Atomic(Atomic::Decimal)
-                        ))
-                    },
-                    required: set!("foo".to_string(), "documents".to_string(), "no_window".to_string(), "range_and_unit".to_string()),
-                    ..Default::default()
-                })
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "documents".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal)
+                )),
+                "no_window".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Null)
+                )),
+                "range_and_unit".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long)
+                )),
+                "set".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
+                "push".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
             },
-            required: set!("output".to_string()),
+            required: set!(
+                "foo".to_string(),
+                "documents".to_string(),
+                "no_window".to_string(),
+                "range_and_unit".to_string(),
+                "set".to_string(),
+                "push".to_string()
+            ),
             ..Default::default()
         })),
         input = r#"{"$setWindowFields": {
@@ -823,6 +822,12 @@ mod set_window_fields {
                                     "range": [-10, 10],
                                     "unit": "seconds"
                                 }
+                            },
+                            "set": {
+                                "$addToSet": "$foo"
+                            },
+                            "push": {
+                                "$push": "$foo"
                             }
                         }
                 }}"#,
