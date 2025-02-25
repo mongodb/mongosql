@@ -791,6 +791,9 @@ mod set_window_fields {
                 )),
                 "set".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
                 "push".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
+                "avg".to_string() => Schema::Atomic(Atomic::Null),
+                "bottom".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
+                "bottomN".to_string() => Schema::Array(Box::new(Schema::Array(Box::new(Schema::Atomic(Atomic::String))))),
             },
             required: set!(
                 "foo".to_string(),
@@ -798,7 +801,10 @@ mod set_window_fields {
                 "no_window".to_string(),
                 "range_and_unit".to_string(),
                 "set".to_string(),
-                "push".to_string()
+                "push".to_string(),
+                "avg".to_string(),
+                "bottom".to_string(),
+                "bottomN".to_string()
             ),
             ..Default::default()
         })),
@@ -828,6 +834,24 @@ mod set_window_fields {
                             },
                             "push": {
                                 "$push": "$foo"
+                            },
+                            "avg": {
+                                "$avg": "$foo"
+                            },
+                            "bottom": {
+                                "$bottom":
+                                {
+                                    "output": [ "$foo" ],
+                                    "sortBy": { "score": -1 }
+                                }
+                            },
+                            "bottomN": {
+                                "$bottomN":
+                                {
+                                    "n": 2,
+                                    "output": [ "$foo" ],
+                                    "sortBy": { "score": -1 }
+                                }
                             }
                         }
                 }}"#,

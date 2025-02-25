@@ -252,7 +252,7 @@ mod document {
 mod group_accumulator {
     use super::*;
 
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         first,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -264,7 +264,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         last,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -276,7 +276,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         max,
         expected = Ok(Schema::Atomic(Atomic::String)),
         input = r#"{"$max": "$foo"}"#,
@@ -285,7 +285,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         min,
         expected = Ok(Schema::Atomic(Atomic::Integer)),
         input = r#"{"$min": "$foo"}"#,
@@ -294,7 +294,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         avg,
         expected = Ok(Schema::Atomic(Atomic::Double)),
         input = r#"{"$avg": "$foo"}"#,
@@ -303,7 +303,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         avg_decimal,
         expected = Ok(Schema::Atomic(Atomic::Decimal)),
         input = r#"{"$avg": "$foo"}"#,
@@ -313,7 +313,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::Decimal)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         avg_or_nullish,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Double),
@@ -327,7 +327,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         avg_decimal_or_nullish,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Decimal),
@@ -342,7 +342,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::Decimal)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         sum,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -356,7 +356,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         sum_double,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Double),
@@ -368,7 +368,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         push,
         expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -380,7 +380,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         add_to_set,
         expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -392,7 +392,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         std_dev_pop,
         expected = Ok(Schema::Atomic(Atomic::Double)),
         input = r#"{"$stdDevPop": "$foo"}"#,
@@ -401,7 +401,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         std_dev_samp,
         expected = Ok(Schema::Atomic(Atomic::Double)),
         input = r#"{"$stdDevSamp": "$foo"}"#,
@@ -410,7 +410,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         std_dev_pop_or_nullish,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Double),
@@ -424,7 +424,7 @@ mod group_accumulator {
             Schema::Missing
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         std_dev_samp_or_nullish,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Double),
@@ -438,7 +438,7 @@ mod group_accumulator {
             Schema::Missing
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         merge_objects,
         expected = Ok(Schema::Document(Document {
             keys: map! {
@@ -459,7 +459,7 @@ mod group_accumulator {
         })
     );
 
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         sql_first,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -471,7 +471,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         sql_last,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -483,7 +483,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         sql_max,
         expected = Ok(Schema::Atomic(Atomic::String)),
         input = r#"{"$sqlMax": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
@@ -492,7 +492,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         sql_min,
         expected = Ok(Schema::Atomic(Atomic::Integer)),
         input = r#"{"$sqlMin": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
@@ -501,7 +501,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         sql_avg,
         expected = Ok(Schema::Atomic(Atomic::Double)),
         input = r#"{"$sqlAvg": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
@@ -510,7 +510,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         sql_avg_decimal,
         expected = Ok(Schema::Atomic(Atomic::Decimal)),
         input = r#"{"$sqlAvg": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
@@ -520,7 +520,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::Decimal)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         sql_sum,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -534,7 +534,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         sql_count,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -548,7 +548,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         sql_std_dev_pop,
         expected = Ok(Schema::Atomic(Atomic::Double)),
         input =
@@ -558,7 +558,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         sql_std_dev_samp,
         expected = Ok(Schema::Atomic(Atomic::Double)),
         input = r#"{"$sqlStdDevSamp": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
@@ -567,7 +567,7 @@ mod group_accumulator {
             Schema::Atomic(Atomic::String)
         ))
     );
-    test_derive_group_accumulator_schema!(
+    test_derive_expression_schema!(
         sql_merge_objects,
         expected = Ok(Schema::Document(Document {
             keys: map! {
