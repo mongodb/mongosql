@@ -5,9 +5,10 @@ use crate::{
     Result, ResultSetState,
 };
 use agg_ast::definitions::{
-    DateExpression, DateFromParts, DateFromString, DateToParts, DateToString, Expression, Let,
-    MatchBinaryOp, MatchExpr, MatchExpression, MatchField, MatchLogical, MatchNotExpression,
-    MatchStage, Ref, RegexAggExpression, Replace, Switch, TaggedOperator, Trim, UntaggedOperator,
+    DateExpression, DateFromParts, DateFromString, DateToParts, DateToString, Expression, Filter,
+    Let, Map, MatchBinaryOp, MatchExpr, MatchExpression, MatchField, MatchLogical,
+    MatchNotExpression, MatchStage, Median, NArrayOp, Reduce, Ref, RegexAggExpression, Replace,
+    SortArray, Switch, TaggedOperator, Trim, UntaggedOperator, Zip,
 };
 use bson::Bson;
 use mongosql::{
@@ -1182,14 +1183,14 @@ impl MatchConstrainSchema for Expression {
         }
 
         fn match_derive_is_number(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
-            if let Expression::Ref(reference) = u.args[0].clone() {
+            if let Expression::Ref(reference) = &u.args[0] {
                 match state.null_behavior {
                     Satisfaction::Not => {
-                        intersect_if_exists(&reference, state, NUMERIC.clone());
+                        intersect_if_exists(reference, state, NUMERIC.clone());
                     }
                     Satisfaction::Must => {
                         result_set_schema_difference(
-                            &reference,
+                            reference,
                             state,
                             set!(
                                 Schema::Atomic(Atomic::Decimal),
@@ -1400,7 +1401,7 @@ impl MatchConstrainSchema for Expression {
             if u.args.is_empty() {
                 return Err(Error::NotEnoughArguments(u.op.to_string()));
             }
-            if let Expression::Ref(reference) = u.args[0].clone() {
+            if let Expression::Ref(reference) = &u.args[0] {
                 let schema = match state.null_behavior {
                     Satisfaction::Not => Schema::AnyOf(set! {
                         Schema::Atomic(Atomic::BinData),
@@ -1428,7 +1429,7 @@ impl MatchConstrainSchema for Expression {
                     }),
                     Satisfaction::Must => NULLISH.clone(),
                 };
-                intersect_if_exists(&reference, state, schema);
+                intersect_if_exists(reference, state, schema);
             } else {
                 u.args[0].match_derive_schema(state)?;
             }
@@ -1456,6 +1457,467 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// match_derive_first_last constrains the result_set_schema for any field refs in
+        /// $first or $last operators. These operators work on arrays, and can only return
+        /// null if the field reference itself is null or if the array contains null values.
+        fn match_derive_first_last(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
+            if let Expression::Ref(reference) = &u.args[0] {
+                match state.null_behavior {
+                    Satisfaction::Not => {
+                        intersect_if_exists(reference, state, Schema::Array(Box::new(Schema::Any)));
+                    }
+                    Satisfaction::May | Satisfaction::Must => {
+                        intersect_if_exists(
+                            reference,
+                            state,
+                            Schema::AnyOf(set!(
+                                Schema::Array(Box::new(Schema::Any)),
+                                Schema::Atomic(Atomic::Null),
+                                Schema::Missing
+                            )),
+                        );
+                    }
+                };
+            } else {
+                u.args[0].match_derive_schema(state)?;
+            }
+            Ok(())
+        }
+
+        /// match_derive_array_op generically constrains the result_set_schema for the group
+        /// of array operators that can only return null when the input is null, and can
+        /// only return a value when the input is an array (examples: $concatArrays)
+        fn match_derive_array_op(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
+            for arg in u.args.iter() {
+                if let Expression::Ref(reference) = arg {
+                    match state.null_behavior {
+                        Satisfaction::Not => {
+                            intersect_if_exists(
+                                reference,
+                                state,
+                                Schema::Array(Box::new(Schema::Any)),
+                            );
+                        }
+                        Satisfaction::May => {
+                            intersect_if_exists(
+                                reference,
+                                state,
+                                NULLISH.clone().union(&Schema::Array(Box::new(Schema::Any))),
+                            );
+                        }
+                        Satisfaction::Must => {
+                            intersect_if_exists(reference, state, NULLISH.clone());
+                        }
+                    }
+                } else {
+                    arg.match_derive_schema(state)?;
+                }
+            }
+            Ok(())
+        }
+
+        /// match_derive_zip constrains the result_set_schema for $zip operators in match.
+        /// the inputs is a vec of arrays, but if any element of this vec is null, the whole
+        /// operator can return null. Defaults can be any of an array or nullish
+        fn match_derive_zip(z: &Zip, state: &mut ResultSetState) -> Result<()> {
+            if let Expression::Array(v) = z.inputs.as_ref() {
+                v.iter().for_each(|input| {
+                    if let Expression::Ref(reference) = input {
+                        let mut schema = Schema::Array(Box::new(Schema::Any));
+                        if state.null_behavior != Satisfaction::Not {
+                            schema = schema.union(&NULLISH.clone());
+                        }
+                        intersect_if_exists(reference, state, schema);
+                    }
+                });
+            }
+            if let Some(ref a) = z.defaults {
+                if let Expression::Array(v) = a.as_ref() {
+                    v.iter().for_each(|input| {
+                        if let Expression::Ref(reference) = input {
+                            intersect_if_exists(
+                                reference,
+                                state,
+                                Schema::AnyOf(set!(
+                                    Schema::Array(Box::new(Schema::Any)),
+                                    Schema::Atomic(Atomic::Null),
+                                    Schema::Missing
+                                )),
+                            )
+                        }
+                    });
+                }
+            }
+            Ok(())
+        }
+
+        /// match_derive_non_nullish_array_ops constrains the result_set_schema for
+        /// operators that only deal with arrays, independent of the expected matching type.
+        fn match_derive_non_nullish_array_ops(
+            u: &UntaggedOperator,
+            state: &mut ResultSetState,
+        ) -> Result<()> {
+            for arg in u.args.iter() {
+                if let Expression::Ref(reference) = arg {
+                    intersect_if_exists(reference, state, Schema::Array(Box::new(Schema::Any)));
+                } else {
+                    arg.match_derive_schema(state)?;
+                }
+            }
+            Ok(())
+        }
+
+        /// match_derive_n_array_op constraints the result_set_schema for operators that
+        /// take a fixed number of elements from an array, such as $firstN. The input must
+        /// be an array, and the number must be numeric, regargless of nullability.
+        fn match_derive_n_array_op(n: &NArrayOp, state: &mut ResultSetState) -> Result<()> {
+            if let Expression::Ref(reference) = n.input.as_ref() {
+                intersect_if_exists(reference, state, Schema::Array(Box::new(Schema::Any)));
+            } else {
+                n.input.match_derive_schema(state)?;
+            }
+            if let Expression::Ref(reference) = n.n.as_ref() {
+                intersect_if_exists(reference, state, NUMERIC.clone());
+            } else {
+                n.input.match_derive_schema(state)?;
+            }
+            Ok(())
+        }
+
+        /// match_derive_index_of_array constrains the result_set_schema for $indexOfArray
+        /// operators. The first arg represents the array, and and must be null if the
+        /// operator returns null. The third and fourth args represent the bounds to search
+        /// and must be numeric.
+        fn match_derive_index_of_array(
+            u: &UntaggedOperator,
+            state: &mut ResultSetState,
+        ) -> Result<()> {
+            if let Expression::Ref(reference) = &u.args[0] {
+                match state.null_behavior {
+                    Satisfaction::Not => {
+                        intersect_if_exists(reference, state, Schema::Array(Box::new(Schema::Any)))
+                    }
+                    Satisfaction::May => intersect_if_exists(
+                        reference,
+                        state,
+                        Schema::AnyOf(set!(
+                            Schema::Array(Box::new(Schema::Any)),
+                            Schema::Atomic(Atomic::Null),
+                            Schema::Missing
+                        )),
+                    ),
+                    Satisfaction::Must => intersect_if_exists(reference, state, NULLISH.clone()),
+                }
+            }
+            u.args[1].match_derive_schema(state)?;
+            for arg in u.args[2..].iter() {
+                if let Expression::Ref(reference) = arg {
+                    intersect_if_exists(
+                        reference,
+                        state,
+                        Schema::AnyOf(set!(
+                            Schema::Atomic(Atomic::Integer),
+                            Schema::Atomic(Atomic::Long)
+                        )),
+                    );
+                } else {
+                    arg.match_derive_schema(state)?;
+                }
+            }
+            Ok(())
+        }
+
+        /// match_derive_all_elements_true constrains the result_set_schema for the
+        /// $allElementsTrue operator. If this operator must return true, then we can
+        /// remove null and missing from the types the array can contain.
+        fn match_derive_all_elements_true(
+            u: &UntaggedOperator,
+            state: &mut ResultSetState,
+        ) -> Result<()> {
+            match &u.args[0] {
+                Expression::Array(a) => {
+                    for expr in a {
+                        if state.null_behavior == Satisfaction::Not {
+                            if let Expression::Ref(reference) = expr {
+                                result_set_schema_difference(
+                                    reference,
+                                    state,
+                                    set!(Schema::Atomic(Atomic::Null), Schema::Missing),
+                                );
+                            } else {
+                                expr.match_derive_schema(state)?;
+                            }
+                        } else {
+                            expr.match_derive_schema(state)?;
+                        }
+                    }
+                }
+                Expression::Ref(reference) => match state.null_behavior {
+                    Satisfaction::Not => {
+                        intersect_if_exists(reference, state, Schema::Array(Box::new(Schema::Any)));
+                    }
+                    Satisfaction::May | Satisfaction::Must => {
+                        intersect_if_exists(
+                            reference,
+                            state,
+                            Schema::AnyOf(set!(
+                                Schema::Array(Box::new(Schema::Any)),
+                                Schema::Atomic(Atomic::Null),
+                                Schema::Missing
+                            )),
+                        );
+                    }
+                },
+                expr => {
+                    expr.match_derive_schema(state)?;
+                }
+            }
+            Ok(())
+        }
+
+        /// match_derive_in constrains the result_set_schema for $in operators. The second
+        /// arg must be an array, while the first arg can be anything (the search expr)
+        fn match_derive_in(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
+            u.args[0].match_derive_schema(state)?;
+            if let Expression::Ref(reference) = &u.args[1] {
+                intersect_if_exists(reference, state, Schema::Array(Box::new(Schema::Any)));
+            } else {
+                u.args[1].match_derive_schema(state)?;
+            }
+            Ok(())
+        }
+
+        /// match_derive_array_elem_at constrains the result_set_schema for $arrayElemAt
+        /// operators. The first argument is the array, and the second is the index; either
+        /// can be nullish if null is allowable.
+        fn match_derive_array_elem_at(
+            u: &UntaggedOperator,
+            state: &mut ResultSetState,
+        ) -> Result<()> {
+            if let Expression::Ref(reference) = &u.args[0] {
+                let mut schema = Schema::Array(Box::new(Schema::Any));
+                if state.null_behavior != Satisfaction::Not {
+                    schema = schema.union(&NULLISH.clone());
+                }
+                intersect_if_exists(reference, state, schema);
+            } else {
+                u.args[0].match_derive_schema(state)?;
+            }
+            if let Expression::Ref(reference) = &u.args[1] {
+                let schema = match state.null_behavior {
+                    Satisfaction::Not => NUMERIC.clone(),
+                    Satisfaction::May | Satisfaction::Must => NUMERIC_OR_NULLISH.clone(),
+                };
+                intersect_if_exists(reference, state, schema);
+            } else {
+                u.args[1].match_derive_schema(state)?;
+            }
+            Ok(())
+        }
+
+        /// match_derive_array_to_object constrains the result_set_schema for $arrayToObject
+        /// oeprators. For this operator to return a non-null value, the input must be an
+        /// array of arrays.
+        fn match_derive_array_to_object(
+            u: &UntaggedOperator,
+            state: &mut ResultSetState,
+        ) -> Result<()> {
+            if let Expression::Ref(reference) = &u.args[0] {
+                match state.null_behavior {
+                    Satisfaction::Not => {
+                        intersect_if_exists(
+                            reference,
+                            state,
+                            Schema::Array(Box::new(Schema::Array(Box::new(Schema::Any)))),
+                        );
+                    }
+                    Satisfaction::May => {
+                        intersect_if_exists(
+                            reference,
+                            state,
+                            Schema::AnyOf(set!(
+                                Schema::Array(Box::new(Schema::Array(Box::new(Schema::Any)))),
+                                Schema::Atomic(Atomic::Null),
+                                Schema::Missing
+                            )),
+                        );
+                    }
+                    Satisfaction::Must => {
+                        intersect_if_exists(reference, state, NULLISH.clone());
+                    }
+                }
+            } else {
+                u.args[0].match_derive_schema(state)?;
+            }
+            Ok(())
+        }
+
+        /// match_derive_merge_objects constrains the result_set_schema for $mergeObjects
+        /// operators. The input must always be either a singular document or an array
+        /// of documents.
+        fn match_derive_merge_objects(
+            u: &UntaggedOperator,
+            state: &mut ResultSetState,
+        ) -> Result<()> {
+            if let Expression::Ref(reference) = &u.args[0] {
+                intersect_if_exists(
+                    reference,
+                    state,
+                    Schema::AnyOf(set!(
+                        Schema::Array(Box::new(Schema::Document(Document::any()))),
+                        Schema::Document(Document::any()),
+                    )),
+                );
+            } else {
+                u.args[0].match_derive_schema(state)?;
+            }
+            Ok(())
+        }
+
+        /// match_derive_sort_array constrains the result_set_schema for $sortArray
+        /// operators. This functions the same as match_derive_array_op, however this is a
+        /// tagged operator so needs its own implementation.
+        fn match_derive_sort_array(s: &SortArray, state: &mut ResultSetState) -> Result<()> {
+            if let Expression::Ref(reference) = s.input.as_ref() {
+                match state.null_behavior {
+                    Satisfaction::Not => {
+                        intersect_if_exists(reference, state, Schema::Array(Box::new(Schema::Any)))
+                    }
+                    Satisfaction::May => intersect_if_exists(
+                        reference,
+                        state,
+                        Schema::AnyOf(set!(
+                            Schema::Array(Box::new(Schema::Any)),
+                            Schema::Atomic(Atomic::Null),
+                            Schema::Missing
+                        )),
+                    ),
+                    Satisfaction::Must => intersect_if_exists(reference, state, NULLISH.clone()),
+                }
+            } else {
+                s.input.match_derive_schema(state)?;
+            }
+            Ok(())
+        }
+
+        macro_rules! derive_map_filter_input {
+            ($input:expr, $state:expr, $inside:expr) => {
+                if let Expression::Ref(reference) = $input.input.as_ref() {
+                    match $state.null_behavior {
+                        Satisfaction::Not => intersect_if_exists(
+                            reference,
+                            $state,
+                            Schema::Array(Box::new(Schema::Any)),
+                        ),
+                        Satisfaction::May => intersect_if_exists(
+                            reference,
+                            $state,
+                            Schema::AnyOf(set!(
+                                Schema::Array(Box::new(Schema::Any)),
+                                Schema::Atomic(Atomic::Null),
+                                Schema::Missing
+                            )),
+                        ),
+                        Satisfaction::Must => {
+                            intersect_if_exists(reference, $state, NULLISH.clone())
+                        }
+                    }
+                } else {
+                    $input.input.match_derive_schema($state)?;
+                }
+                let variable_name = $input._as.clone().unwrap_or("this".to_string());
+                let variable_schema = $input.input.derive_schema($state)?;
+                $state
+                    .variables
+                    .insert(variable_name.clone(), variable_schema);
+                $inside.match_derive_schema($state)?;
+                $state.variables.remove(&variable_name);
+            };
+        }
+
+        /// match_derive_filter constrains the result_set_schema for $filter operators. The
+        /// input must be an array to return a non-null value, or nullish to return null.
+        /// We then add the inputs schema to the variable environment before recursing on
+        /// the other arguments to this operator.
+        fn match_derive_filter(f: &Filter, state: &mut ResultSetState) -> Result<()> {
+            derive_map_filter_input!(f, state, f.cond);
+            if let Some(limit) = f.limit.as_ref() {
+                limit.match_derive_schema(state)?;
+            }
+            Ok(())
+        }
+
+        /// match_derive_map constrains the result_set_schema for $map. It functions the
+        /// same as $filter, checking the input and recursing on the additional args.
+        fn match_derive_map(m: &Map, state: &mut ResultSetState) -> Result<()> {
+            derive_map_filter_input!(m, state, m.inside);
+            Ok(())
+        }
+
+        /// match_derive_median constrains the result_set_schema for $median. The input must
+        /// be an array to return a non-null value, but can be an array or nullish to return
+        /// null.
+        fn match_derive_median(m: &Median, state: &mut ResultSetState) -> Result<()> {
+            if let Expression::Ref(reference) = m.input.as_ref() {
+                let mut schema = Schema::Array(Box::new(Schema::Any));
+                if state.null_behavior != Satisfaction::Not {
+                    schema = schema.union(&NULLISH.clone());
+                }
+                intersect_if_exists(reference, state, schema);
+            } else {
+                m.input.match_derive_schema(state)?;
+            }
+            Ok(())
+        }
+
+        /// match_derive_reduce constrains the result_set_schema for $reduce. The input must
+        /// be an array to return a non-null value, but can be an array or nullish to return
+        /// null. Other args can be expressions and so are recursed on.
+        fn match_derive_reduce(r: &Reduce, state: &mut ResultSetState) -> Result<()> {
+            if let Expression::Ref(reference) = r.input.as_ref() {
+                let mut schema = Schema::Array(Box::new(Schema::Any));
+                if state.null_behavior != Satisfaction::Not {
+                    schema = schema.union(&NULLISH.clone());
+                }
+                intersect_if_exists(reference, state, schema);
+            } else {
+                r.input.match_derive_schema(state)?;
+            }
+            r.initial_value.match_derive_schema(state)?;
+            r.inside.match_derive_schema(state)?;
+            Ok(())
+        }
+
+        /// match_derive_slice constrains the result_set_schema for $slice. The input must
+        /// be an array to return a non-null value, but can be an array or nullish to return
+        /// null. Other args represent bounds, and are thus constrained on as numeric.
+        fn match_derive_slice(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
+            if let Expression::Ref(reference) = &u.args[0] {
+                let mut schema = Schema::Array(Box::new(Schema::Any));
+                if state.null_behavior != Satisfaction::Not {
+                    schema = schema.union(&NULLISH.clone());
+                }
+                intersect_if_exists(reference, state, schema);
+            } else {
+                u.args[0].match_derive_schema(state)?;
+            }
+            for arg in u.args[1..].iter() {
+                if let Expression::Ref(reference) = arg {
+                    match state.null_behavior {
+                        Satisfaction::Not => {
+                            intersect_if_exists(reference, state, NUMERIC.clone());
+                        }
+                        Satisfaction::May | Satisfaction::Must => {
+                            intersect_if_exists(reference, state, NUMERIC_OR_NULLISH.clone());
+                        }
+                    }
+                } else {
+                    arg.match_derive_schema(state)?;
+                }
+            }
+            Ok(())
+        }
+
         use agg_ast::definitions::UntaggedOperatorName;
         let null_behavior = state.null_behavior;
         match self {
@@ -1479,6 +1941,16 @@ impl MatchConstrainSchema for Expression {
                 TaggedOperator::DateFromParts(d) => match_derive_date_from_parts(d, state)?,
                 TaggedOperator::DateFromString(d) => match_derive_date_from_string(d, state)?,
                 TaggedOperator::DateToString(d) => match_derive_date_to_string(d, state)?,
+                TaggedOperator::Zip(z) => match_derive_zip(z, state)?,
+                TaggedOperator::FirstN(n)
+                | TaggedOperator::LastN(n)
+                | TaggedOperator::MaxNArrayElement(n)
+                | TaggedOperator::MinNArrayElement(n) => match_derive_n_array_op(n, state)?,
+                TaggedOperator::SortArray(s) => match_derive_sort_array(s, state)?,
+                TaggedOperator::Filter(f) => match_derive_filter(f, state)?,
+                TaggedOperator::Map(m) => match_derive_map(m, state)?,
+                TaggedOperator::Median(m) => match_derive_median(m, state)?,
+                TaggedOperator::Reduce(r) => match_derive_reduce(r, state)?,
                 TaggedOperator::ReplaceOne(r) | TaggedOperator::ReplaceAll(r) => {
                     match_derive_replace(r, state)?
                 }
@@ -1532,6 +2004,28 @@ impl MatchConstrainSchema for Expression {
                 | UntaggedOperatorName::Trunc
                 | UntaggedOperatorName::Ceil
                 | UntaggedOperatorName::Floor => match_derive_numeric(u, state)?,
+                // array ops
+                UntaggedOperatorName::First | UntaggedOperatorName::Last => {
+                    match_derive_first_last(u, state)?
+                }
+                UntaggedOperatorName::ConcatArrays | UntaggedOperatorName::ReverseArray => {
+                    match_derive_array_op(u, state)?
+                }
+                UntaggedOperatorName::AnyElementTrue
+                | UntaggedOperatorName::IsArray
+                | UntaggedOperatorName::SetDifference
+                | UntaggedOperatorName::SetEquals
+                | UntaggedOperatorName::SetIntersection
+                | UntaggedOperatorName::SetIsSubset
+                | UntaggedOperatorName::SetUnion
+                | UntaggedOperatorName::Size => match_derive_non_nullish_array_ops(u, state)?,
+                UntaggedOperatorName::IndexOfArray => match_derive_index_of_array(u, state)?,
+                UntaggedOperatorName::AllElementsTrue => match_derive_all_elements_true(u, state)?,
+                UntaggedOperatorName::In => match_derive_in(u, state)?,
+                UntaggedOperatorName::ArrayElemAt => match_derive_array_elem_at(u, state)?,
+                UntaggedOperatorName::ArrayToObject => match_derive_array_to_object(u, state)?,
+                UntaggedOperatorName::MergeObjects => match_derive_merge_objects(u, state)?,
+                UntaggedOperatorName::Slice => match_derive_slice(u, state)?,
                 // misc ops
                 UntaggedOperatorName::Add => match_derive_add(u, state)?,
                 UntaggedOperatorName::Subtract => match_derive_subtract(u, state)?,
