@@ -2182,12 +2182,11 @@ mod expression_test {
             definitions::{
                 Accumulator, Bottom, BottomN, Convert, DateAdd, DateDiff, DateExpression,
                 DateFromParts, DateFromString, DateSubtract, DateToParts, DateToString, DateTrunc,
-                Expression, Filter, FirstN, Function, GetField, LastN, Let, Like, LiteralValue,
-                Map, MaxNArrayElement, Median, MinNArrayElement, Percentile, ProjectItem,
-                ProjectStage, Reduce, Ref, RegexAggExpression, Replace, SQLConvert, SQLDivide,
-                SetField, SortArray, SortArraySpec, Stage, Subquery, SubqueryComparison,
-                SubqueryExists, Switch, SwitchCase, TaggedOperator, Top, TopN, Trim, UnsetField,
-                UntaggedOperator, UntaggedOperatorName, Zip,
+                Expression, Filter, Function, GetField, Let, Like, LiteralValue, Map, Median,
+                NArrayOp, Percentile, ProjectItem, ProjectStage, Reduce, Ref, RegexAggExpression,
+                Replace, SQLConvert, SQLDivide, SetField, SortArray, SortArraySpec, Stage,
+                Subquery, SubqueryComparison, SubqueryExists, Switch, SwitchCase, TaggedOperator,
+                Top, TopN, Trim, UnsetField, UntaggedOperator, UntaggedOperatorName, Zip,
             },
             map,
         };
@@ -2811,7 +2810,7 @@ mod expression_test {
         // Array Operators
         test_serde_expr!(
             first_n,
-            expected = Expression::TaggedOperator(TaggedOperator::FirstN(FirstN {
+            expected = Expression::TaggedOperator(TaggedOperator::FirstN(NArrayOp {
                 input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 n: Box::new(Expression::Literal(LiteralValue::Int32(3))),
             })),
@@ -2823,7 +2822,7 @@ mod expression_test {
 
         test_serde_expr!(
             last_n,
-            expected = Expression::TaggedOperator(TaggedOperator::LastN(LastN {
+            expected = Expression::TaggedOperator(TaggedOperator::LastN(NArrayOp {
                 input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 n: Box::new(Expression::Literal(LiteralValue::Int32(3))),
             })),
@@ -2899,11 +2898,10 @@ mod expression_test {
 
         test_serde_expr!(
             max_n_array_element,
-            expected =
-                Expression::TaggedOperator(TaggedOperator::MaxNArrayElement(MaxNArrayElement {
-                    input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
-                    n: Box::new(Expression::Literal(LiteralValue::Int32(2))),
-                })),
+            expected = Expression::TaggedOperator(TaggedOperator::MaxNArrayElement(NArrayOp {
+                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
+                n: Box::new(Expression::Literal(LiteralValue::Int32(2))),
+            })),
             input = r#"expr: {"$maxN": {
                                 "input": "$a",
                                 "n": 2
@@ -2912,11 +2910,10 @@ mod expression_test {
 
         test_serde_expr!(
             min_n_array_element,
-            expected =
-                Expression::TaggedOperator(TaggedOperator::MinNArrayElement(MinNArrayElement {
-                    input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
-                    n: Box::new(Expression::Literal(LiteralValue::Int32(2))),
-                })),
+            expected = Expression::TaggedOperator(TaggedOperator::MinNArrayElement(NArrayOp {
+                input: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
+                n: Box::new(Expression::Literal(LiteralValue::Int32(2))),
+            })),
             input = r#"expr: {"$minN": {
                                 "input": "$a",
                                 "n": 2
@@ -2973,7 +2970,9 @@ mod expression_test {
         test_serde_expr!(
             zip,
             expected = Expression::TaggedOperator(TaggedOperator::Zip(Zip {
-                inputs: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
+                inputs: Box::new(Expression::Array(vec![Expression::Ref(Ref::FieldRef(
+                    "a".to_string()
+                ))])),
                 use_longest_length: true,
                 defaults: Some(Box::new(Expression::Array(vec![
                     Expression::Literal(LiteralValue::Int32(1)),
@@ -2982,7 +2981,7 @@ mod expression_test {
                 ]))),
             })),
             input = r#"expr: {"$zip": {
-                                "inputs": "$a",
+                                "inputs": ["$a"],
                                 "useLongestLength": true,
                                 "defaults": [1, 2, 3]
             }}"#
@@ -2991,15 +2990,16 @@ mod expression_test {
         test_serde_expr!(
             zip_default_false,
             expected = Expression::TaggedOperator(TaggedOperator::Zip(Zip {
-                inputs: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
+                inputs: Box::new(Expression::Array(vec![Expression::Ref(Ref::FieldRef(
+                    "a".to_string()
+                ))])),
                 use_longest_length: false,
                 defaults: None,
             })),
             input = r#"expr: {"$zip": {
-                                "inputs": "$a",
+                                "inputs": ["$a"],
             }}"#
         );
-
         // date operators
         test_serde_expr!(
             hour_no_timezone,

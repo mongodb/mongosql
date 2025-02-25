@@ -295,6 +295,30 @@ mod array_ops {
         ))))
     );
     test_derive_expression_schema!(
+        map_maybe_null,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Null),
+            Schema::Array(Box::new(Schema::AnyOf(set!(
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Double),
+            ))))
+        ))),
+        input = r#"{"$map": {"input": "$foo", "as": "bar", "in": "$$bar"}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Null),
+            Schema::Array(Box::new(Schema::AnyOf(set!(
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Double),
+            ))))
+        ))
+    );
+    test_derive_expression_schema!(
+        map_null,
+        expected = Ok(Schema::Atomic(Atomic::Null)),
+        input = r#"{"$map": {"input": "$foo", "as": "bar", "in": "$$bar"}}"#,
+        ref_schema = Schema::Atomic(Atomic::Null)
+    );
+    test_derive_expression_schema!(
         map_error,
         expected = Err(crate::Error::InvalidExpressionForField(
             "Literal(String(\"hello\"))".to_string(),
@@ -313,6 +337,29 @@ mod array_ops {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Double),
         ))))
+    );
+    test_derive_expression_schema!(
+        reduce_maybe_null,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$reduce": {"input": "$foo", "initialValue": 42, "in": "$$this"}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Array(Box::new(Schema::AnyOf(set!(
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Double),
+            )))),
+            Schema::Missing,
+            Schema::Atomic(Atomic::Null)
+        ))
+    );
+    test_derive_expression_schema!(
+        reduce_null,
+        expected = Ok(Schema::Atomic(Atomic::Null)),
+        input = r#"{"$reduce": {"input": "$foo", "initialValue": 42, "in": "$$this"}}"#,
+        ref_schema = Schema::Atomic(Atomic::Null)
     );
     test_derive_expression_schema!(
         reduce_error,
