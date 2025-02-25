@@ -252,7 +252,7 @@ impl DeriveSchema for Stage {
                     state.result_set_schema.to_string(),
                 ));
             };
-            keys.extend(current_keys.clone().into_iter());
+            keys.extend(current_keys.clone());
             Ok(Schema::Document(Document {
                 required: keys.keys().cloned().collect(),
                 keys,
@@ -282,7 +282,7 @@ impl DeriveSchema for Stage {
                     state.result_set_schema.to_string(),
                 ));
             };
-            keys.extend(current_keys.clone().into_iter());
+            keys.extend(current_keys.clone());
             Ok(Schema::Document(Document {
                 required: keys.keys().cloned().collect(),
                 keys,
