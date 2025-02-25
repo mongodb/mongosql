@@ -1688,28 +1688,6 @@ impl Schema {
             .cartesian_product(other_set.iter().cloned())
             .collect()
     }
-
-    // Return the Max possible Schema that can result from this Schema.
-    pub fn maximum(&self) -> Schema {
-        match self {
-            Schema::AnyOf(schemas) => schemas
-                .iter()
-                .fold(&Schema::Unsat, |acc, s| if s > acc { s } else { acc })
-                .clone(),
-            _ => self.clone(),
-        }
-    }
-
-    // Return the Min possible Schema that can result from this Schema.
-    pub fn minimum(&self) -> Schema {
-        match self {
-            Schema::AnyOf(schemas) => schemas
-                .iter()
-                .fold(&Schema::Any, |acc, s| if s < acc { s } else { acc })
-                .clone(),
-            _ => self.clone(),
-        }
-    }
 }
 
 impl From<Type> for Schema {

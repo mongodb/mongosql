@@ -110,7 +110,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                     Expression::Literal(LiteralValue::Null) => vec![],
                     _ => panic!(),
                 };
-                let str_to_sat = |s| match s {
+                let str_to_sat = |s: Option<String>| match s {
                     Some(s) if s.to_lowercase() == "must" => Satisfaction::Must,
                     Some(s) if s.to_lowercase() == "may" => Satisfaction::May,
                     _ => Satisfaction::Not,
@@ -130,7 +130,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                     TaggedOperator::SQLSum(e) => (air::AggregationFunction::Sum, e),
                     _ => panic!("invalid accumulator expression"),
                 };
-                let convert_untagged_op = |u: UntaggedOperator| match u.op {
+                let convert_untagged_op = |u: &UntaggedOperator| match u.op {
                     UntaggedOperatorName::AddToSet => air::AggregationFunction::AddToSet,
                     UntaggedOperatorName::Avg => air::AggregationFunction::Avg,
                     UntaggedOperatorName::First => air::AggregationFunction::First,
@@ -159,7 +159,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                                 arg_is_possibly_doc: str_to_sat(expr.arg_is_possibly_doc),
                             }
                         }
-                        Expression::UntaggedOperator(u) => {
+                        Expression::UntaggedOperator(ref u) => {
                             let function = convert_untagged_op(u);
                             air::AccumulatorExpr {
                                 alias: key,

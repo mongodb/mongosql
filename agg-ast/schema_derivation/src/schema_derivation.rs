@@ -1234,6 +1234,11 @@ impl DeriveSchema for TaggedOperator {
                 args: vec![(*s.var).clone()],
             }
             .derive_schema(state),
+            TaggedOperator::SQLMergeObjects(s) => UntaggedOperator {
+                op: UntaggedOperatorName::MergeObjects,
+                args: vec![(*s.var).clone()],
+            }
+            .derive_schema(state),
             TaggedOperator::SQLMin(s) => UntaggedOperator {
                 op: UntaggedOperatorName::Min,
                 args: vec![(*s.var).clone()],
@@ -1341,20 +1346,18 @@ impl DeriveSchema for UntaggedOperator {
         fn get_sum_type(s: Schema) -> Schema {
             // get the maximum numeric type
             let s = if let Schema::AnyOf(a) = s {
-                Schema::AnyOf(
-                    a.into_iter()
-                        .filter(|s| {
-                            matches!(
-                                s,
-                                Schema::Atomic(Atomic::Integer)
-                                    | Schema::Atomic(Atomic::Long)
-                                    | Schema::Atomic(Atomic::Double)
-                                    | Schema::Atomic(Atomic::Decimal)
-                            )
-                        })
-                        .collect(),
-                )
-                .maximum()
+                a.into_iter()
+                    .filter(|s| {
+                        matches!(
+                            s,
+                            Schema::Atomic(Atomic::Integer)
+                                | Schema::Atomic(Atomic::Long)
+                                | Schema::Atomic(Atomic::Double)
+                                | Schema::Atomic(Atomic::Decimal)
+                        )
+                    })
+                    .max()
+                    .unwrap_or(Schema::Atomic(Atomic::Integer))
             } else {
                 s
             };
@@ -1877,168 +1880,10 @@ impl DeriveSchema for UntaggedOperator {
             UntaggedOperatorName::Sum => {
                 Ok(get_sum_type(self.args[0].derive_schema(state)?))
             }
+            UntaggedOperatorName::First | UntaggedOperatorName::Last => {
+                self.args[0].derive_schema(state)
+            }
             _ => Err(Error::InvalidUntaggedOperator(self.op.into())),
         }
     }
 }
-
-//impl DeriveSchema for GroupAccumulator {
-//    fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
-//        fn get_avg_type(s: Schema) -> Schema {
-//            match s {
-//                a @ Schema::AnyOf(_) => {
-//                    match a.satisfies(&*NULLISH) {
-//                        Satisfaction::Must => Schema::Atomic(Atomic::Null),
-//                        Satisfaction::May => Schema::AnyOf(set!(
-//                            Schema::Atomic(Atomic::Null),
-//                            get_avg_type(a.subtract_nullish())
-//                        )),
-//                        Satisfaction::Not => {
-//                            if a.satisfies(&Schema::Atomic(Atomic::Decimal)) > Satisfaction::Not {
-//                                Schema::Atomic(Atomic::Decimal)
-//                            } else if a.satisfies(&*NUMERIC) > Satisfaction::Not {
-//                                Schema::Atomic(Atomic::Double)
-//                            } else {
-//                                // Non-numeric types will return null
-//                                Schema::Atomic(Atomic::Null)
-//                            }
-//                        }
-//                    }
-//                }
-//                Schema::Atomic(Atomic::Decimal) => Schema::Atomic(Atomic::Decimal),
-//                Schema::Atomic(Atomic::Long)
-//                | Schema::Atomic(Atomic::Integer)
-//                | Schema::Atomic(Atomic::Double) => Schema::Atomic(Atomic::Double),
-//                // Non-numeric types will return null
-//                _ => Schema::Atomic(Atomic::Null),
-//            }
-//        }
-//
-//        fn get_std_type(s: Schema) -> Schema {
-//            match get_avg_type(s) {
-//                // it seems stdev always returns double even when there are decimal inputs?
-//                // it would be slightly more efficient to derive this directly, but this makes the
-//                // code cleaner.
-//                Schema::AnyOf(a) => Schema::AnyOf(
-//                    a.into_iter()
-//                        .map(|s| match s {
-//                            Schema::Atomic(Atomic::Decimal) => Schema::Atomic(Atomic::Double),
-//                            s => s,
-//                        })
-//                        .collect(),
-//                ),
-//                Schema::Atomic(Atomic::Decimal) => Schema::Atomic(Atomic::Double),
-//                s => s,
-//            }
-//        }
-//
-//        fn get_sum_type(s: Schema) -> Schema {
-//            // get the maximum numeric type
-//            let s = if let Schema::AnyOf(a) = s {
-//                Schema::AnyOf(
-//                    a.into_iter()
-//                        .filter(|s| {
-//                            matches!(
-//                                s,
-//                                Schema::Atomic(Atomic::Integer)
-//                                    | Schema::Atomic(Atomic::Long)
-//                                    | Schema::Atomic(Atomic::Double)
-//                                    | Schema::Atomic(Atomic::Decimal)
-//                            )
-//                        })
-//                        .collect(),
-//                )
-//                .maximum()
-//            } else {
-//                s
-//            };
-//
-//            // now use the maximum numeric type to determine the return type based on possible
-//            // overflow (int -> long -> double -> decimal), that is every type generates an AnyOf
-//            // of itself plus the larger types
-//            match s {
-//                Schema::Atomic(Atomic::Integer) => NUMERIC.clone(),
-//                Schema::Atomic(Atomic::Long) => Schema::AnyOf(set!(
-//                    Schema::Atomic(Atomic::Long),
-//                    Schema::Atomic(Atomic::Double),
-//                    Schema::Atomic(Atomic::Decimal)
-//                )),
-//                Schema::Atomic(Atomic::Double) => Schema::AnyOf(set!(
-//                    Schema::Atomic(Atomic::Double),
-//                    Schema::Atomic(Atomic::Decimal)
-//                )),
-//                Schema::Atomic(Atomic::Decimal) => Schema::Atomic(Atomic::Decimal),
-//                // Sum returns 0 as an integer, if there are no numeric values to sum
-//                _ => Schema::Atomic(Atomic::Integer),
-//            }
-//        }
-//        let get_mergeobject_type = |s: Schema| -> Result<Schema> {
-//            match s {
-//                Schema::Document(d) => Ok(Schema::Document(d)),
-//                Schema::AnyOf(a) => Ok(a
-//                    .into_iter()
-//                    .filter(|s| matches!(s, Schema::Document(_)))
-//                    .collect::<Vec<_>>()
-//                    .pop()
-//                    .ok_or(Error::InvalidGroupAccumulator(format!(
-//                        "MergeObjects accumulator must have all document arguments: {:?}",
-//                        self
-//                    )))?),
-//                _ => Err(Error::InvalidGroupAccumulator(format!(
-//                    "MergeObjects accumulator must have all document arguments: {:?}",
-//                    self
-//                ))),
-//            }
-//        };
-//
-//        macro_rules! mql_arg_schema {
-//            () => {{
-//                let GroupAccumulatorExpr::NonSQLAccumulator(e) = &self.expr else {
-//                    return Err(Error::InvalidGroupAccumulator(format!(
-//                        "SQL Accumulator argument found in non-SQL Accumulator: {:?}",
-//                        self
-//                    )));
-//                };
-//                e.derive_schema(state)
-//            }};
-//        }
-//        macro_rules! sql_arg_schema {
-//            () => {{
-//                let GroupAccumulatorExpr::SQLAccumulator { var, .. } = &self.expr else {
-//                    return Err(Error::InvalidGroupAccumulator(format!(
-//                        "Non-SQL Accumulator argument found in SQL Accumulator: {:?}",
-//                        self
-//                    )));
-//                };
-//                var.derive_schema(state)
-//            }};
-//        }
-//
-//        match self.function {
-//            GroupAccumulatorName::First | GroupAccumulatorName::Last => {
-//                mql_arg_schema!()
-//            }
-//            GroupAccumulatorName::Max => Ok(mql_arg_schema!()?.maximum()),
-//            GroupAccumulatorName::Min => Ok(mql_arg_schema!()?.minimum()),
-//            GroupAccumulatorName::Push | GroupAccumulatorName::AddToSet => {
-//                Ok(Schema::Array(Box::new(mql_arg_schema!()?)))
-//            }
-//            GroupAccumulatorName::Avg => Ok(get_avg_type(mql_arg_schema!()?)),
-//            GroupAccumulatorName::Sum => Ok(get_sum_type(mql_arg_schema!()?)),
-//            GroupAccumulatorName::StdDevPop | GroupAccumulatorName::StdDevSamp => {
-//                Ok(get_std_type(mql_arg_schema!()?))
-//            }
-//            GroupAccumulatorName::MergeObjects => get_mergeobject_type(mql_arg_schema!()?),
-//            GroupAccumulatorName::SQLAvg => Ok(get_avg_type(sql_arg_schema!()?)),
-//            GroupAccumulatorName::SQLCount => Ok(NUMERIC.clone()),
-//            GroupAccumulatorName::SQLMax => Ok(sql_arg_schema!()?.maximum()),
-//            GroupAccumulatorName::SQLMin => Ok(sql_arg_schema!()?.minimum()),
-//            GroupAccumulatorName::SQLFirst | GroupAccumulatorName::SQLLast => sql_arg_schema!(),
-//            GroupAccumulatorName::SQLMergeObjects => get_mergeobject_type(sql_arg_schema!()?),
-//            GroupAccumulatorName::SQLStdDevPop | GroupAccumulatorName::SQLStdDevSamp => {
-//                Ok(get_std_type(sql_arg_schema!()?))
-//            }
-//            GroupAccumulatorName::SQLSum => Ok(get_sum_type(sql_arg_schema!()?)),
-//        }
-//    }
-//}
