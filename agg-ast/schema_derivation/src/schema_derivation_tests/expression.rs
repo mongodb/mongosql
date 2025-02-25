@@ -248,3 +248,20 @@ mod document {
         input = r#"{"a": 1, "b": {"c": "hi", "d": [false]}}"#
     );
 }
+
+mod group_accumulator {
+    use super::*;
+
+    test_derive_group_accumulator_schema!(
+        group_accumulator,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))),
+        input = r#"{"$first": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+}
