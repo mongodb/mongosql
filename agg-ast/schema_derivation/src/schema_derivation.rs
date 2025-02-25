@@ -1733,13 +1733,22 @@ impl DeriveSchema for GroupAccumulator {
         fn get_avg_type(s: Schema) -> Schema {
             match s {
                 a @ Schema::AnyOf(_) => {
-                    if a.satisfies(&Schema::Atomic(Atomic::Decimal)) > Satisfaction::Not {
-                        Schema::Atomic(Atomic::Decimal)
-                    } else if a.satisfies(&*NUMERIC) > Satisfaction::Not {
-                        Schema::Atomic(Atomic::Double)
-                    } else {
-                        // Non-numeric types will return null
-                        Schema::Atomic(Atomic::Null)
+                    match a.satisfies(&*NULLISH) {
+                        Satisfaction::Must => Schema::Atomic(Atomic::Null),
+                        Satisfaction::May => Schema::AnyOf(set!(
+                            Schema::Atomic(Atomic::Null),
+                            get_avg_type(a.subtract_nullish())
+                        )),
+                        Satisfaction::Not => {
+                            if a.satisfies(&Schema::Atomic(Atomic::Decimal)) > Satisfaction::Not {
+                                Schema::Atomic(Atomic::Decimal)
+                            } else if a.satisfies(&*NUMERIC) > Satisfaction::Not {
+                                Schema::Atomic(Atomic::Double)
+                            } else {
+                                // Non-numeric types will return null
+                                Schema::Atomic(Atomic::Null)
+                            }
+                        }
                     }
                 }
                 Schema::Atomic(Atomic::Decimal) => Schema::Atomic(Atomic::Decimal),
@@ -1756,6 +1765,14 @@ impl DeriveSchema for GroupAccumulator {
                 // it seems stdev always returns double even when there are decimal inputs?
                 // it would be slightly more efficient to derive this directly, but this makes the
                 // code cleaner.
+                Schema::AnyOf(a) => Schema::AnyOf(
+                    a.into_iter()
+                        .map(|s| match s {
+                            Schema::Atomic(Atomic::Decimal) => Schema::Atomic(Atomic::Double),
+                            s => s,
+                        })
+                        .collect(),
+                ),
                 Schema::Atomic(Atomic::Decimal) => Schema::Atomic(Atomic::Double),
                 s => s,
             }
@@ -1783,7 +1800,8 @@ impl DeriveSchema for GroupAccumulator {
             };
 
             // now use the maximum numeric type to determine the return type based on possible
-            // overflow (int -> long -> double -> decimal)
+            // overflow (int -> long -> double -> decimal), that is every type generates an AnyOf
+            // of itself plus the larger types
             match s {
                 Schema::Atomic(Atomic::Integer) => NUMERIC.clone(),
                 Schema::Atomic(Atomic::Long) => Schema::AnyOf(set!(

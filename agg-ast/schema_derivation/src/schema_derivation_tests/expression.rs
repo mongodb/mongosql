@@ -314,6 +314,35 @@ mod group_accumulator {
         ))
     );
     test_derive_group_accumulator_schema!(
+        avg_or_nullish,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$avg": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing,
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        avg_decimal_or_nullish,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$avg": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing,
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Decimal)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
         sum,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -324,6 +353,18 @@ mod group_accumulator {
         input = r#"{"$sum": "$foo"}"#,
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        sum_double,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal)
+        ))),
+        input = r#"{"$sum": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
             Schema::Atomic(Atomic::String)
         ))
     );
@@ -367,6 +408,34 @@ mod group_accumulator {
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        std_dev_pop_or_nullish,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$stdDevPop": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing
+        ))
+    );
+    test_derive_group_accumulator_schema!(
+        std_dev_samp_or_nullish,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$stdDevSamp": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing
         ))
     );
     test_derive_group_accumulator_schema!(
