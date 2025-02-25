@@ -218,8 +218,8 @@ pub fn compare_documents(expected: &Document, actual: &Document, type_compare: b
     if expected.len() != actual.len() {
         return false;
     }
-    expected.iter().all(|(ek, ev)| {
-        actual.iter().any(|(ak, av)| {
+    expected.iter().all(|(ek, ev)| match actual.get(ek) {
+        Some(av) => {
             if let Bson::Document(d) = ev {
                 if let Bson::Document(ad) = av {
                     return compare_documents(d, ad, type_compare);
@@ -236,15 +236,16 @@ pub fn compare_documents(expected: &Document, actual: &Document, type_compare: b
                 }
             }
             if type_compare {
-                return ek == ak && ev.element_type() == av.element_type();
+                return ev.element_type() == av.element_type();
             }
             if is_numeric(ev) && is_numeric(av) {
                 let d = numeric_to_double(ev);
                 let ad = numeric_to_double(av);
                 return compare_doubles_for_test(d, ad);
             }
-            ev == av && ek == ak
-        })
+            ev == av
+        }
+        None => false,
     })
 }
 
