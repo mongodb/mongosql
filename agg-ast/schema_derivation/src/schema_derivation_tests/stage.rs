@@ -794,6 +794,10 @@ mod set_window_fields {
                 "avg".to_string() => Schema::Atomic(Atomic::Null),
                 "bottom".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
                 "bottomN".to_string() => Schema::Array(Box::new(Schema::Array(Box::new(Schema::Atomic(Atomic::String))))),
+                "count".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long)
+                ))
             },
             required: set!(
                 "foo".to_string(),
@@ -804,7 +808,8 @@ mod set_window_fields {
                 "push".to_string(),
                 "avg".to_string(),
                 "bottom".to_string(),
-                "bottomN".to_string()
+                "bottomN".to_string(),
+                "count".to_string()
             ),
             ..Default::default()
         })),
@@ -852,6 +857,9 @@ mod set_window_fields {
                                     "output": [ "$foo" ],
                                     "sortBy": { "score": -1 }
                                 }
+                            },
+                            "count": {
+                                "$count": {}
                             }
                         }
                 }}"#,
