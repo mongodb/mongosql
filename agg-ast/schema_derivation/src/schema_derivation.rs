@@ -1401,8 +1401,6 @@ impl DeriveSchema for UntaggedOperator {
             UntaggedOperatorName::Count => Ok(Schema::AnyOf(set!(
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Long),
-                Schema::Atomic(Atomic::Double),
-                Schema::Atomic(Atomic::Decimal),
             ))),
             UntaggedOperatorName::Range => Ok(Schema::Array(Box::new(Schema::Atomic(Atomic::Integer)))),
             UntaggedOperatorName::Rand => Ok(Schema::Atomic(Atomic::Double)),

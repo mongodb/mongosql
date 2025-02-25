@@ -305,7 +305,10 @@ mod group_accumulator {
     );
     test_derive_expression_schema!(
         avg_decimal,
-        expected = Ok(Schema::Atomic(Atomic::Decimal)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+        ))),
         input = r#"{"$avg": "$foo"}"#,
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -331,6 +334,7 @@ mod group_accumulator {
         avg_decimal_or_nullish,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Double),
             Schema::Atomic(Atomic::Null),
         ))),
         input = r#"{"$avg": "$foo"}"#,
@@ -394,7 +398,10 @@ mod group_accumulator {
     );
     test_derive_expression_schema!(
         std_dev_pop,
-        expected = Ok(Schema::Atomic(Atomic::Double)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null)
+        ))),
         input = r#"{"$stdDevPop": "$foo"}"#,
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -403,7 +410,10 @@ mod group_accumulator {
     );
     test_derive_expression_schema!(
         std_dev_samp,
-        expected = Ok(Schema::Atomic(Atomic::Double)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null)
+        ))),
         input = r#"{"$stdDevSamp": "$foo"}"#,
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -512,7 +522,10 @@ mod group_accumulator {
     );
     test_derive_expression_schema!(
         sql_avg_decimal,
-        expected = Ok(Schema::Atomic(Atomic::Decimal)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+        ))),
         input = r#"{"$sqlAvg": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -539,8 +552,6 @@ mod group_accumulator {
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long),
-            Schema::Atomic(Atomic::Double),
-            Schema::Atomic(Atomic::Decimal)
         ))),
         input = r#"{"$sqlCount": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
         ref_schema = Schema::AnyOf(set!(
@@ -550,7 +561,10 @@ mod group_accumulator {
     );
     test_derive_expression_schema!(
         sql_std_dev_pop,
-        expected = Ok(Schema::Atomic(Atomic::Double)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null)
+        ))),
         input =
             r#"{"$sqlStdDevPop": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
         ref_schema = Schema::AnyOf(set!(
@@ -560,7 +574,10 @@ mod group_accumulator {
     );
     test_derive_expression_schema!(
         sql_std_dev_samp,
-        expected = Ok(Schema::Atomic(Atomic::Double)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null)
+        ))),
         input = r#"{"$sqlStdDevSamp": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
