@@ -4,9 +4,10 @@ use crate::{
         schema::SchemaCache,
         Error,
     },
-    schema::{ResultSet, Schema},
+    schema::{ResultSet, Satisfaction, Schema},
     util::unique_linked_hash_map::UniqueLinkedHashMap,
 };
+use std::sync::LazyLock;
 
 use derive_new::new;
 
@@ -219,6 +220,11 @@ pub struct AggregationFunctionApplication {
     pub function: AggregationFunction,
     pub distinct: bool,
     pub arg: Box<Expression>,
+
+    // Indicates if the argument is possibly a document. This is relevant
+    // for how COUNT works since we want to skip counting empty documents
+    // and documents that contain only null values.
+    pub arg_is_possibly_doc: Satisfaction,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -363,6 +369,33 @@ pub enum LiteralValue {
     MaxKey,
     MinKey,
     DbPointer(bson::DbPointer),
+}
+
+static DECIMAL_ZERO: LazyLock<bson::Decimal128> = LazyLock::new(|| "0.0".parse().unwrap());
+impl LiteralValue {
+    pub fn is_falsy(&self) -> bool {
+        match self {
+            LiteralValue::Null => true,
+            LiteralValue::Undefined => true,
+            LiteralValue::Boolean(b) => !b,
+            LiteralValue::Integer(i) => *i == 0,
+            LiteralValue::Long(l) => *l == 0,
+            LiteralValue::Double(d) => *d == 0.0,
+            LiteralValue::Decimal128(d) => *d == *DECIMAL_ZERO,
+            LiteralValue::String(_) => false,
+            LiteralValue::RegularExpression(_) => false,
+            LiteralValue::JavaScriptCode(_) => false,
+            LiteralValue::JavaScriptCodeWithScope(_) => false,
+            LiteralValue::Timestamp(_) => false,
+            LiteralValue::Binary(_) => false,
+            LiteralValue::ObjectId(_) => false,
+            LiteralValue::DateTime(_) => false,
+            LiteralValue::Symbol(_) => false,
+            LiteralValue::MaxKey => false,
+            LiteralValue::MinKey => false,
+            LiteralValue::DbPointer(_) => false,
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
@@ -876,6 +909,13 @@ pub enum MatchQuery {
     Regex(MatchLanguageRegex),
     ElemMatch(ElemMatch),
     Comparison(MatchLanguageComparison),
+    // annoyingly, our cache system requires this
+    False(MatchFalse),
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct MatchFalse {
+    pub cache: SchemaCache<Schema>,
 }
 
 #[derive(Eq, Debug, Clone, new)]

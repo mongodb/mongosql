@@ -440,6 +440,7 @@ pub enum GroupAccumulatorExpr {
     SQLAccumulator {
         distinct: bool,
         var: Box<Expression>,
+        arg_is_possibly_doc: Option<String>,
     },
     NonSQLAccumulator(Expression),
 }
@@ -708,7 +709,8 @@ pub struct GraphLookup {
     pub start_with: Box<Expression>,
     pub connect_from_field: String,
     pub connect_to_field: String,
-    pub r#as: String,
+    #[serde(rename = "as")]
+    pub as_var: String,
     pub max_depth: Option<i32>,
     pub depth_field: Option<String>,
     pub restrict_search_with_match: Option<Box<Expression>>,
@@ -1115,6 +1117,12 @@ pub enum UntaggedOperatorName {
     Type,
 }
 
+impl std::fmt::Display for UntaggedOperatorName {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", serde_json::to_string(self).unwrap())
+    }
+}
+
 impl TryFrom<&str> for UntaggedOperatorName {
     type Error = String;
 
@@ -1150,6 +1158,10 @@ pub enum TaggedOperator {
     Like(Like),
     #[serde(rename = "$regexMatch")]
     Regex(RegexAggExpression),
+    #[serde(rename = "$regexFind")]
+    RegexFind(RegexAggExpression),
+    #[serde(rename = "$regexFindAll")]
+    RegexFindAll(RegexAggExpression),
     #[serde(rename = "$sqlDivide")]
     SQLDivide(SQLDivide),
     #[serde(rename = "$trim")]
@@ -1158,16 +1170,12 @@ pub enum TaggedOperator {
     LTrim(Trim),
     #[serde(rename = "$rtrim")]
     RTrim(Trim),
+    #[serde(rename = "$replaceAll")]
+    ReplaceAll(Replace),
+    #[serde(rename = "$replaceOne")]
+    ReplaceOne(Replace),
 
     // Subquery Operators (extended from MQL)
-    #[serde(rename = "$regexFind")]
-    RegexFind(RegexFind),
-    #[serde(rename = "$regexFindAll")]
-    RegexFindAll(RegexFindAll),
-    #[serde(rename = "$replaceAll")]
-    ReplaceAll(ReplaceAll),
-    #[serde(rename = "$replaceOne")]
-    ReplaceOne(ReplaceOne),
     #[serde(rename = "$subquery")]
     Subquery(Subquery),
     #[serde(rename = "$subqueryComparison")]
@@ -1191,17 +1199,17 @@ pub enum TaggedOperator {
 
     // Array Operators
     #[serde(rename = "$firstN")]
-    FirstN(FirstN),
+    FirstN(NArrayOp),
     #[serde(rename = "$lastN")]
-    LastN(LastN),
+    LastN(NArrayOp),
     #[serde(rename = "$filter")]
     Filter(Filter),
     #[serde(rename = "$map")]
     Map(Map),
     #[serde(rename = "$maxN")]
-    MaxNArrayElement(MaxNArrayElement),
+    MaxNArrayElement(NArrayOp),
     #[serde(rename = "$minN")]
-    MinNArrayElement(MinNArrayElement),
+    MinNArrayElement(NArrayOp),
     #[serde(rename = "$reduce")]
     Reduce(Reduce),
     #[serde(rename = "$sortArray")]
@@ -1363,14 +1371,7 @@ pub struct Filter {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct FirstN {
-    pub input: Box<Expression>,
-    pub n: Box<Expression>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LastN {
+pub struct NArrayOp {
     pub input: Box<Expression>,
     pub n: Box<Expression>,
 }
@@ -1401,49 +1402,7 @@ pub struct RegexAggExpression {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MaxNArrayElement {
-    pub input: Box<Expression>,
-    pub n: Box<Expression>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MinNArrayElement {
-    pub input: Box<Expression>,
-    pub n: Box<Expression>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct RegexMatch {
-    pub input: Box<Expression>,
-    pub regex: Box<Expression>,
-    pub options: Option<Box<Expression>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct RegexFind {
-    pub input: Box<Expression>,
-    pub regex: Box<Expression>,
-    pub options: Option<Box<Expression>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct RegexFindAll {
-    pub input: Box<Expression>,
-    pub regex: Box<Expression>,
-    pub options: Option<Box<Expression>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct ReplaceAll {
-    pub input: Box<Expression>,
-    pub find: Box<Expression>,
-    pub replacement: Box<Expression>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct ReplaceOne {
+pub struct Replace {
     pub input: Box<Expression>,
     pub find: Box<Expression>,
     pub replacement: Box<Expression>,

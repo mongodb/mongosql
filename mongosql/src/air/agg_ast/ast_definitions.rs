@@ -1,5 +1,6 @@
 use crate::air;
 use crate::air::{MQLOperator, MQLSemanticOperator};
+use crate::schema::Satisfaction;
 use agg_ast::definitions::{
     Expression, GroupAccumulatorExpr, GroupAccumulatorName, JoinType, LiteralValue, Lookup,
     LookupFrom, MatchExpr, MatchExpression, ProjectItem, Ref, Stage, Subquery, SubqueryExists,
@@ -115,12 +116,22 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                     .sorted_by(|a, b| Ord::cmp(&a.0, &b.0))
                     .map(|(key, accumulator_expr)| match accumulator_expr.expr {
                         // accumulators of form: $<acc>: {"var": <expr>, "distinct": <bool>}
-                        GroupAccumulatorExpr::SQLAccumulator { distinct, var } => {
+                        GroupAccumulatorExpr::SQLAccumulator {
+                            distinct,
+                            var,
+                            arg_is_possibly_doc,
+                        } => {
+                            let arg_is_possibly_doc = match arg_is_possibly_doc {
+                                Some(s) if s.to_lowercase() == "must" => Satisfaction::Must,
+                                Some(s) if s.to_lowercase() == "may" => Satisfaction::May,
+                                _ => Satisfaction::Not,
+                            };
                             air::AccumulatorExpr {
                                 alias: key,
                                 function: accumulator_expr.function.into(),
                                 distinct,
                                 arg: Box::new(air::Expression::from(*var)),
+                                arg_is_possibly_doc,
                             }
                         }
                         // accumulators of form: $<acc>: <expr>
@@ -129,6 +140,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                             function: accumulator_expr.function.into(),
                             distinct: false,
                             arg: Box::new(expr.into()),
+                            arg_is_possibly_doc: Satisfaction::Not,
                         },
                     })
                     .collect();
@@ -522,6 +534,11 @@ impl From<TaggedOperator> for air::Expression {
                     .into(),
             }),
             // Array operators
+            TaggedOperator::Map(m) => air::Expression::Map(air::Map {
+                input: m.input.into(),
+                as_name: m._as,
+                inside: m.inside.into(),
+            }),
             TaggedOperator::Reduce(r) => air::Expression::Reduce(air::Reduce {
                 input: r.input.into(),
                 init_value: r.initial_value.into(),
@@ -601,7 +618,7 @@ impl From<UntaggedOperator> for air::Expression {
             ast_op.args.into_iter().map(air::Expression::from).collect();
 
         // Special cases:
-        //   - $literal becomes a Literal
+        //   - $literal becomes a Literal or Document
         //   - $is/$sqlIs become an Is
         //   - $nullIf and $coalesce are SQL operators but don't start with $sql
         use agg_ast::definitions::UntaggedOperatorName;
@@ -610,6 +627,7 @@ impl From<UntaggedOperator> for air::Expression {
                 let arg = args.first().unwrap();
                 match arg {
                     air::Expression::Literal(_) => return arg.clone(),
+                    air::Expression::Document(_) => return arg.clone(),
                     _ => panic!("invalid $literal"),
                 }
             }
@@ -716,6 +734,7 @@ impl From<UntaggedOperator> for air::Expression {
             UntaggedOperatorName::In => mql_op!(air::MQLOperator::In),
             UntaggedOperatorName::First => mql_op!(air::MQLOperator::First),
             UntaggedOperatorName::Last => mql_op!(air::MQLOperator::Last),
+            UntaggedOperatorName::AllElementsTrue => mql_op!(air::MQLOperator::AllElementsTrue),
             UntaggedOperatorName::IndexOfCP => mql_op!(air::MQLOperator::IndexOfCP),
             UntaggedOperatorName::IndexOfBytes => mql_op!(air::MQLOperator::IndexOfBytes),
             UntaggedOperatorName::StrLenCP => mql_op!(air::MQLOperator::StrLenCP),
@@ -745,6 +764,7 @@ impl From<UntaggedOperator> for air::Expression {
             UntaggedOperatorName::ToLower => mql_op!(air::MQLOperator::ToLower),
             UntaggedOperatorName::Split => mql_op!(air::MQLOperator::Split),
             UntaggedOperatorName::MergeObjects => mql_op!(air::MQLOperator::MergeObjects),
+            UntaggedOperatorName::ObjectToArray => mql_op!(air::MQLOperator::ObjectToArray),
             UntaggedOperatorName::Type => mql_op!(air::MQLOperator::Type),
             UntaggedOperatorName::IsArray => mql_op!(air::MQLOperator::IsArray),
             UntaggedOperatorName::IsNumber => mql_op!(air::MQLOperator::IsNumber),

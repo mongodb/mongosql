@@ -30,7 +30,7 @@ tests:
       - { "$group": { "_id": null, "acc": { "$addToSet": "$a" } } }
       - { "$project": { "_id": 1, "acc": { "$avg": "$acc" } } }
 
-  - name: "desugar non-distinct $sqlCount"
+  - name: "desugar non-distinct $sqlCount single column arg not possibly doc"
     input:
       - {
         "$group":
@@ -59,7 +59,112 @@ tests:
           },
       }
 
-  - name: "desugar distinct $sqlCount"
+  - name: "desugar non-distinct $sqlCount single column arg must be doc"
+    input:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sqlCount": { "var": "$a", "distinct": false, "arg_is_possibly_doc": "must" } },
+          },
+      }
+    expected:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc":
+              {
+                "$sum":
+                  {
+                    "$cond":
+                      [
+                        {
+                          "$or":
+                            [
+                              { "$eq": [ "$a", { "$literal": { } } ] },
+                              {
+                                "$allElementsTrue":
+                                  [
+                                    {
+                                      "$ifNull":
+                                        [
+                                          {
+                                            "$map":
+                                              {
+                                                "input": { "$objectToArray": "$a" },
+                                                "in": { "$eq": [ "$$this.v", null ] }
+                                              }
+                                          },
+                                          [ ]
+                                        ]
+                                    }
+                                  ]
+                              }
+                            ]
+                        },
+                        0,
+                        1,
+                      ],
+                  },
+              },
+          },
+      }
+
+  - name: "desugar non-distinct $sqlCount single column arg may be doc"
+    input:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sqlCount": { "var": "$a", "distinct": false, "arg_is_possibly_doc": "may" } },
+          },
+      }
+    expected:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc":
+              {
+                "$sum":
+                  {
+                    "$cond":
+                      [
+                        {
+                          "$or":
+                            [
+                              { "$in": [{ "$type": "$a" }, ["missing", "null"]] },
+                              { "$eq": ["$a", { "$literal": { } }] },
+                              {
+                                "$allElementsTrue":
+                                  [
+                                    {
+                                      "$ifNull":
+                                        [
+                                          {
+                                            "$map":
+                                              {
+                                                "input": { "$objectToArray": "$a" },
+                                                "in": { "$eq": ["$$this.v", null] }
+                                              }
+                                          },
+                                          [ ]
+                                        ]
+                                    }
+                                  ]
+                              }
+                            ]
+                        },
+                        0,
+                        1,
+                      ],
+                  },
+              },
+          },
+      }
+
+  - name: "desugar distinct $sqlCount single column arg"
     input:
       - {
         "$group":
@@ -69,40 +174,219 @@ tests:
           },
       }
     expected:
-      - { "$group": { "_id": null, "acc": { "$addToSet": "$a" } } }
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc":
+              {
+                "$addToSet":
+                  {
+                    "$cond":
+                      [
+                        { "$in": [{ "$type": "$a" }, ["missing", "null"]] },
+                        "$$REMOVE",
+                        "$a",
+                      ]
+                  }
+              }
+          }
+      }
       - {
         "$project":
           {
             "_id": 1,
+            "acc": { "$size": "$acc" },
+          },
+      }
+
+  - name: "desugar non-distinct $sqlCount single column arg literal non-null value gets optimized"
+    input:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sqlCount": { "var": { "$literal": 1 }, "distinct": false } },
+          },
+      }
+    expected:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sum": { "$literal": 1 } }
+          },
+      }
+
+  - name: "desugar non-distinct $sqlCount single column arg literal null value gets optimized"
+    input:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sqlCount": { "var": { "$literal": null }, "distinct": false } },
+          },
+      }
+    expected:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sum": { "$literal": 0 } }
+          },
+      }
+
+  - name: "desugar non-distinct $sqlCount multi-column arg"
+    input:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sqlCount": { "var": {"a": "$a", "b": "$b"}, "distinct": false, "arg_is_possibly_doc": "must" } },
+          },
+      }
+    expected:
+      - {
+        "$group":
+          {
+            "_id": null,
             "acc":
               {
-                "$reduce":
+                "$sum":
                   {
-                    "input": "$acc",
-                    "initialValue": 0,
-                    "in":
-                      {
-                        "$add":
-                          [
-                            "$$value",
-                            {
-                              "$cond":
-                                [
-                                  {
-                                    "$in":
-                                      [
-                                        { "$type": "$$this" },
-                                        ["missing", "null"],
-                                      ],
-                                  },
-                                  0,
-                                  1,
-                                ],
-                            },
-                          ],
-                      },
+                    "$cond":
+                      [
+                        {
+                          "$or":
+                            [
+                              { "$eq": [{"a": "$a", "b": "$b"}, { "$literal": {}}] },
+                              {
+                                "$allElementsTrue":
+                                  [
+                                    {
+                                      "$ifNull":
+                                        [
+                                          {
+                                            "$map":
+                                              {
+                                                "input": { "$objectToArray": { "a": "$a", "b": "$b" } },
+                                                "in": { "$eq": ["$$this.v", null] }
+                                              }
+                                          },
+                                          []
+                                        ]
+                                    }
+                                  ]
+                              }
+                            ]
+                        },
+                        0,
+                        1,
+                      ],
                   },
               },
+          },
+      }
+
+  - name: "desugar distinct $sqlCount multi-column arg"
+    input:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sqlCount": { "var": {"a": "$a", "b": "$b"}, "distinct": true, "arg_is_possibly_doc": "must" } },
+          },
+      }
+    expected:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc":
+              {
+                "$addToSet":
+                  {
+                    "$cond":
+                      [
+                        {
+                          "$or":
+                            [
+                              { "$eq": [{ "a": "$a", "b": "$b" }, { "$literal": {} }] },
+                              {
+                                "$allElementsTrue":
+                                  [
+                                    {
+                                      "$ifNull":
+                                        [
+                                          {
+                                            "$map":
+                                              {
+                                                "input": { "$objectToArray": { "a": "$a", "b": "$b" } },
+                                                "in": { "$eq": [ "$$this.v", null ] }
+                                              }
+                                          },
+                                          []
+                                        ]
+                                    }
+                                  ]
+                              }
+                            ]
+                        },
+                        "$$REMOVE",
+                        { "a": "$a", "b": "$b" },
+                      ]
+                  }
+              }
+          }
+      }
+      - {
+        "$project":
+          {
+            "_id": 1,
+            "acc": { "$size": "$acc" },
+          },
+      }
+
+  - name: "desugar non-distinct $sqlCount * arg (ROOT)"
+    input:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sqlCount": { "var": "$$ROOT", "distinct": false } },
+          },
+      }
+    expected:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sum": 1 }
+          },
+      }
+
+  - name: "desugar distinct $sqlCount * arg (ROOT)"
+    input:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$sqlCount": { "var": "$$ROOT", "distinct": true } },
+          },
+      }
+    expected:
+      - {
+        "$group":
+          {
+            "_id": null,
+            "acc": { "$addToSet": "$$ROOT" },
+          }
+      }
+      - {
+        "$project":
+          {
+            "_id": 1,
+            "acc": { "$size": "$acc" },
           },
       }
 

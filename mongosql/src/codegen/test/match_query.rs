@@ -205,3 +205,11 @@ mod comp {
         })
     );
 }
+
+mod match_constant_false {
+    test_codegen_match_query!(
+        constant_false,
+        expected = Ok(bson!({"_id": bson::Bson::MinKey, "$expr": false})),
+        input = air::MatchQuery::False
+    );
+}

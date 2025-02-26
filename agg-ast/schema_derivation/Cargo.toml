@@ -9,5 +9,6 @@ bson = { workspace = true, features = ["chrono-0_4"] }
 mongosql = { path = "../../mongosql" }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+linked-hash-map = { workspace = true, features = ["serde_impl"] }
 
 [features]

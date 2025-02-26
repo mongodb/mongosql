@@ -29,6 +29,10 @@ impl MqlCodeGenerator {
             Regex(r) => self.codegen_match_regex(r),
             ElemMatch(em) => self.codegen_match_elem_match(em),
             Comparison(c) => self.codegen_match_comparison(c),
+            // Some versions of MongoDB do not properly optimize {$match: { $expr: false } } so we codegen it
+            // this way to ensure efficient performance. Otherwise, such a query could result in a needless collection
+            // scan.
+            False => Ok(bson!({"_id": Bson::MinKey, "$expr": false})),
         }
     }
 

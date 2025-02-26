@@ -24,6 +24,7 @@ impl MqlTranslator {
             Regex(r) => self.translate_match_regex(r),
             ElemMatch(em) => self.translate_elem_match(em),
             Comparison(c) => self.translate_match_comparison(c),
+            False(_) => Ok(air::MatchQuery::False),
         }
     }
 

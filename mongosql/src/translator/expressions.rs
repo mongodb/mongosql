@@ -187,48 +187,60 @@ impl MqlTranslator {
         ))
     }
 
+    /// translate_document translates a document expression. A document
+    /// expression is a key-value pair where the key is a string and the
+    /// value is an expression.
     fn translate_document(
         &self,
         mir_document: UniqueLinkedHashMap<String, mir::Expression>,
     ) -> Result<air::Expression> {
         let mut doc_expr = UniqueLinkedHashMap::new();
 
-        for (k, v) in mir_document.clone() {
-            if k.is_empty() {
-                return Err(Error::InvalidDocumentKey(k));
-            }
-
-            // If a key starts with a '$' or contains a '.', we must use a
-            // SetField operator to represent this document. Every key-value
-            // pair must be inserted via SetFields, so once we encounter a
-            // key with these properties we start iteration over and build the
-            // SetField expression tree.
-            //
-            // This case is not likely to happen often, which is why we do not
-            // build the set_field_expr simultaneously. This set up allows us
-            // to iterate over the keys once and build the document expr without
-            // extra allocations for _most_ translation cases. If a key _does_
-            // contain a '$' or '.', this method could, in the worst case, take
-            // more time and/or memory, but that is a worthwhile tradeoff.
-            if k.starts_with('$') || k.contains('.') {
-                // Start with an empty document as the initial "input".
-                let mut set_field_expr = air::Expression::Document(UniqueLinkedHashMap::new());
-                for (k, v) in mir_document {
-                    let translated_v = self.translate_expression(v)?;
-                    set_field_expr = air::Expression::SetField(air::SetField {
-                        field: k.clone(),
-                        input: Box::new(set_field_expr),
-                        value: Box::new(translated_v),
-                    })
+        // Separate the "normal" fields from the "set" fields. Normal fields
+        // are fields that do not start with a '$' or contain a '.'.
+        // Set fields are fields that start with a '$' or contain a '.'.
+        // Empty fields are invalid.
+        let (normal_fields, set_fields): (Vec<_>, Vec<_>) = mir_document.into_iter().try_fold(
+            (Vec::new(), Vec::new()),
+            |(mut normal_fields, mut set_fields), (k, v)| {
+                if k.is_empty() {
+                    return Err(Error::InvalidDocumentKey(k));
                 }
-                return Ok(set_field_expr);
-            }
+                if k.starts_with('$') || k.contains('.') {
+                    set_fields.push((k, v));
+                } else {
+                    normal_fields.push((k, v));
+                }
+                Ok((normal_fields, set_fields))
+            },
+        )?;
 
+        // normal fields are processed first since they do not require any special
+        // handling.
+        for (k, v) in normal_fields {
             let translated_v = self.translate_expression(v)?;
-            doc_expr.insert(k, translated_v)?;
+            doc_expr.insert(k.to_string(), translated_v)?;
         }
 
-        Ok(air::Expression::Document(doc_expr))
+        // If there are no set fields, we can return the document expression
+        if set_fields.is_empty() {
+            return Ok(air::Expression::Document(doc_expr));
+        }
+
+        // set fields are required to be set inside a SetField expression.
+        // The document expression calculated above is the initial input to the
+        // SetField expression(s). The SetField expression is
+        // chained with other SetField expressions for each set field.
+        let mut set_field_expr = air::Expression::Document(doc_expr);
+        for (k, v) in set_fields {
+            let translated_v = self.translate_expression(v)?;
+            set_field_expr = air::Expression::SetField(air::SetField {
+                field: k,
+                input: Box::new(set_field_expr),
+                value: Box::new(translated_v),
+            })
+        }
+        Ok(set_field_expr)
     }
 
     fn translate_exists(&self, exists: mir::ExistsExpr) -> Result<air::Expression> {

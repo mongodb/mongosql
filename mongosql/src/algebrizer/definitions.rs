@@ -1,4 +1,3 @@
-use crate::mir::{AliasedExpr, Expression, OptionallyAliasedExpr, ReferenceExpr};
 use crate::{
     algebrizer::errors::Error,
     ast::{self, pretty_print::PrettyPrint},
@@ -8,11 +7,11 @@ use crate::{
         self,
         binding_tuple::{BindingTuple, DatasourceName, Key},
         schema::{CachedSchema, SchemaCache, SchemaInferenceState},
-        FieldAccess,
+        AliasedExpr, Expression, FieldAccess, OptionallyAliasedExpr, ReferenceExpr,
     },
     schema::{
-        self, Satisfaction, SchemaEnvironment, BOOLEAN_OR_NULLISH, INTEGER_LONG_OR_NULLISH,
-        INTEGER_OR_NULLISH, NULLISH, STRING_OR_NULLISH,
+        self, Satisfaction, SchemaEnvironment, ANY_DOCUMENT, BOOLEAN_OR_NULLISH,
+        INTEGER_LONG_OR_NULLISH, INTEGER_OR_NULLISH, NULLISH, STRING_OR_NULLISH,
     },
     util::unique_linked_hash_map::UniqueLinkedHashMap,
     SchemaCheckingMode,
@@ -662,13 +661,26 @@ impl<'a> Algebrizer<'a> {
                     cache: SchemaCache::new(),
                 })
             }
-            ast::JoinType::Cross | ast::JoinType::Inner => mir::Stage::Join(mir::Join {
-                join_type: mir::JoinType::Inner,
-                left: Box::new(left_src),
-                right: Box::new(right_src),
-                condition,
-                cache: SchemaCache::new(),
-            }),
+            ast::JoinType::Cross | ast::JoinType::Inner => {
+                let join = mir::Stage::Join(mir::Join {
+                    join_type: mir::JoinType::Inner,
+                    left: Box::new(left_src),
+                    right: Box::new(right_src),
+                    condition: None,
+                    cache: SchemaCache::new(),
+                });
+                // The stage_movement optimization will place this condition in the Join if it makes sense. Otherwise,
+                // it will move it as early in the pipeline as possible.
+                if let Some(condition) = condition {
+                    mir::Stage::Filter(mir::Filter {
+                        source: Box::new(join),
+                        condition,
+                        cache: SchemaCache::new(),
+                    })
+                } else {
+                    join
+                }
+            }
         };
         stage.schema(&self.schema_inference_state())?;
         Ok(stage)
@@ -1234,15 +1246,18 @@ impl<'a> Algebrizer<'a> {
                 return Err(Error::StarInNonCount);
             }
             ast::FunctionArguments::Args(ve) => {
+                let arg = if ve.len() != 1 {
+                    return Err(Error::AggregationFunctionMustHaveOneArgument);
+                } else {
+                    self.algebrize_expression(ve[0].clone(), false)?
+                };
                 mir::AggregationExpr::Function(mir::AggregationFunctionApplication {
                     function: mir::AggregationFunction::try_from(function)?,
-                    arg: Box::new({
-                        if ve.len() != 1 {
-                            return Err(Error::AggregationFunctionMustHaveOneArgument);
-                        }
-                        self.algebrize_expression(ve[0].clone(), false)?
-                    }),
+                    arg: Box::new(arg.clone()),
                     distinct,
+                    arg_is_possibly_doc: arg
+                        .schema(&self.schema_inference_state())?
+                        .satisfies(&ANY_DOCUMENT.clone()),
                 })
             }
         };

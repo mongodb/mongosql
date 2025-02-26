@@ -18,7 +18,6 @@ members = [
     "visitgen",
     "visitgen-test",
     "mongosqltranslate",
-    "oidc",
 ]
 
 [workspace.dependencies]

@@ -2,4 +2,4 @@ tests:
   - description: WHERE condition must have type BOOL or NULL, or be MISSING
     query: "SELECT * FROM foo WHERE arg1"
     valid_types:
-      - { "arg1": ["BOOL", "NULL", "MISSING"] }
+      - { "arg1": ["BOOL", "NULL"] }

@@ -1,4 +1,4 @@
-use crate::util::unique_linked_hash_map::UniqueLinkedHashMap;
+use crate::{schema::Satisfaction, util::unique_linked_hash_map::UniqueLinkedHashMap};
 use bson::{oid::ObjectId, DateTime, Decimal128};
 
 visitgen::generate_visitors! {
@@ -62,6 +62,11 @@ pub struct AccumulatorExpr {
     pub function: AggregationFunction,
     pub distinct: bool,
     pub arg: Box<Expression>,
+
+    // Indicates if the argument is possibly a document. This is relevant
+    // for how COUNT works since we want to skip counting empty documents
+    // and documents that contain only null values.
+    pub arg_is_possibly_doc: Satisfaction,
 }
 
 #[allow(dead_code)]
@@ -225,6 +230,7 @@ pub enum Expression {
     RegexMatch(RegexMatch),
     SqlDivide(SqlDivide),
     Trim(Trim),
+    Map(Map),
     Reduce(Reduce),
     Subquery(Subquery),
     SubqueryComparison(SubqueryComparison),
@@ -270,6 +276,7 @@ pub enum MQLOperator {
     In,
     First,
     Last,
+    AllElementsTrue,
 
     // Numeric value scalar functions
     IndexOfCP,
@@ -323,6 +330,9 @@ pub enum MQLOperator {
 
     // MergeObjects merges an array of objects
     MergeObjects,
+
+    // Object functions
+    ObjectToArray,
 
     // Type operators
     IsArray,
@@ -689,6 +699,13 @@ pub struct Trim {
 }
 
 #[derive(PartialEq, Debug, Clone)]
+pub struct Map {
+    pub input: Box<Expression>,
+    pub as_name: Option<String>,
+    pub inside: Box<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
 pub struct Reduce {
     pub input: Box<Expression>,
     pub init_value: Box<Expression>,
@@ -703,6 +720,7 @@ pub enum MatchQuery {
     Regex(MatchLanguageRegex),
     ElemMatch(ElemMatch),
     Comparison(MatchLanguageComparison),
+    False,
 }
 
 #[derive(PartialEq, Debug, Clone)]

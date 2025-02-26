@@ -43,7 +43,7 @@ catalog_data:
       - { "_id": 3 }
     documents:
       - { "_id": 0, "a": { }, "b": { }, "comment": "empty empty" }
-      - { "_id": 1, "a": { }, "b": { x: 1 }, "comment": "empty non-empty" }
+      - { "_id": 1, "a": { }, "b": { "x": 1 }, "comment": "empty non-empty" }
       - { "_id": 2, "a": { "x": 1 }, "b": { }, "comment": "non-empty empty" }
       - { "_id": 3, "a": { "x": 1, "y": "abc" }, "b": { "x": 1, "y": "abc" }, "comment": "same keys in same order with same values" }
       - { "_id": 4, "a": { "x": 1, "y": "abc" }, "b": { "x": 2, "y": "xyz" }, "comment": "same keys in same order with different values" }
@@ -88,6 +88,7 @@ catalog_data:
       - { "_id": 1, "a": "x", "b": "x", "c": "z" }
       - { "_id": 2, "a": "z", "b": "x", "c": "z" }
       - { "_id": 3, "a": "w", "b": "x", "c": "z" }
+      - { "_id": 4, "a": "d", "b": "a", "c": "c" }
       - { "_id": 5, "a": null, "b": "x", "c": "z" }
       - { "_id": 6, "a": "y", "b": null, "c": "z" }
       - { "_id": 7, "a": "y", "b": "x", "c": null }
@@ -106,6 +107,30 @@ catalog_data:
       - { "_id": 8, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } } }
       - { "_id": 9, "a": { "$date": { "$numberLong": "10" } }, "c": { "$date": { "$numberLong": "15" } } }
       - { "_id": 10, "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } } }
+    betweenDocuments:
+      - { "_id": 0, "a": { "y": 1 }, "b": { "x": 1 }, "c": { "z": 1 }, "comment": "is between" }
+      - { "_id": 1, "a": { "x": 1 }, "b": { "x": 1 }, "c": { "z": 1 }, "comment": "equals lower bound" }
+      - { "_id": 2, "a": { "z": 1 }, "b": { "x": 1 }, "c": { "z": 1 }, "comment": "equals upper bound" }
+      - { "_id": 3, "a": { "x": 1, "y": 0 }, "b": { "x": 1, "y": 1 }, "c": { "z": 1, "n": 1 }, "comment": "less than lower bound" }
+      - { "_id": 4, "a": { "z": 2, "n": 1 }, "b": { "x": 1, "y": 1 }, "c": { "z": 1, "n": 1 }, "comment": "greater than upper bound" }
+      - { "_id": 5, "a": null, "b": { "x": 1 }, "c": { "z": 1 }, "comment": "first arg null" }
+      - { "_id": 6, "a": { "y": 1 }, "b": null, "c": { "z": 1 }, "comment": "second arg null" }
+      - { "_id": 7, "a": { "y": 1 }, "b": { "x": 1 }, "c": null, "comment": "third arg null" }
+      - { "_id": 8, "b": { "x": 1 }, "c": { "z": 1 }, "comment": "first arg missing" }
+      - { "_id": 9, "a": { "y": 1 }, "c": { "z": 1 }, "comment": "second arg missing" }
+      - { "_id": 10, "a": { "y": 1 }, "b": { "x": 1 }, "comment": "third arg missing" }
+    betweenArrays:
+      - { "_id": 0, "a": [3, 4], "b": [1, 2], "c": [5, 6], "comment": "is between" }
+      - { "_id": 1, "a": [1, 2], "b": [1, 2], "c": [5, 6], "comment": "equals lower bound" }
+      - { "_id": 2, "a": [5, 6], "b": [1, 2], "c": [5, 6], "comment": "equals upper bound" }
+      - { "_id": 3, "a": [0], "b": [1, 2, 3], "c": [5], "comment": "less than lower bound" }
+      - { "_id": 4, "a": [7, 8], "b": [1, 2, 3], "c": [5], "comment": "greater than upper bound" }
+      - { "_id": 5, "a": null, "b": [1, 2], "c": [5, 6], "comment": "first arg null" }
+      - { "_id": 6, "a": [3, 4], "b": null, "c": [5, 6], "comment": "second arg null" }
+      - { "_id": 7, "a": [3, 4], "b": [1, 2], "c": null, "comment": "third arg null" }
+      - { "_id": 8, "b": [1, 2], "c": [5, 6], "comment": "first arg missing" }
+      - { "_id": 9, "a": [3, 4], "c": [5, 6], "comment": "second arg missing" }
+      - { "_id": 10, "a": [3, 4], "b": [1, 2], "comment": "third arg missing" }
 
 catalog_schema:
   {
@@ -382,7 +407,79 @@ catalog_schema:
             ]
           }
         }
-      }
+      },
+      "betweenDocuments": {
+        "bsonType": "object",
+        "required": [ "_id", "comment" ],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "comment": { "bsonType": "string" },
+          "a": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              }
+            ]
+          },
+          "c": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              }
+            ]
+          }
+        }
+      },
+      "betweenArrays": {
+        "bsonType": "object",
+        "required": [ "_id", "comment" ],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "comment": { "bsonType": "string" },
+          "a": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "array",
+                "items": { "bsonType": "int" },
+              }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "array",
+                "items": { "bsonType": "int" },
+              }
+            ]
+          },
+          "c": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "array",
+                "items": { "bsonType": "int" },
+              }
+            ]
+          }
+        }
+      },
     }
   }
 
@@ -1029,6 +1126,7 @@ tests:
       - {'': { "a": "x", "b": "x", "c": "z", "r": true } }
       - {'': { "a": "z", "b": "x", "c": "z", "r": true } }
       - {'': { "a": "w", "b": "x", "c": "z", "r": false } }
+      - {'': { "a": "d", "b": "a", "c": "c", "r": false } }
       - {'': { "a": null, "b": "x", "c": "z", "r": null } }
       - {'': { "a": "y", "b": null, "c": "z", "r": null } }
       - {'': { "a": "y", "b": "x", "c": null, "r": null } }
@@ -1052,3 +1150,34 @@ tests:
       - {'': { "a": { "$date": { "$numberLong": "10" } }, "c": { "$date": { "$numberLong": "15" } }, "r": null } }
       - {'': { "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } }, "r": null } }
 
+  - description: correctness test for BETWEEN for documents
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': a BETWEEN b AND c, 'comment': comment } FROM betweenDocuments AS betweenDocuments"
+    result:
+      - { '': { "a": { "y": 1 }, "b": { "x": 1 }, "c": { "z": 1 }, "r": true, "comment": "is between" } }
+      - { '': { "a": { "x": 1 }, "b": { "x": 1 }, "c": { "z": 1 }, "r": true, "comment": "equals lower bound" } }
+      - { '': { "a": { "z": 1 }, "b": { "x": 1 }, "c": { "z": 1 }, "r": true, "comment": "equals upper bound" } }
+      - { '': { "a": { "x": 1, "y": 0 }, "b": { "x": 1, "y": 1 }, "c": { "z": 1, "n": 1 }, "r": false, "comment": "less than lower bound" } }
+      - { '': { "a": { "z": 2, "n": 1 }, "b": { "x": 1, "y": 1 }, "c": { "z": 1, "n": 1 }, "r": false, "comment": "greater than upper bound" } }
+      - { '': { "a": null, "b": { "x": 1 }, "c": { "z": 1 }, "r": null, "comment": "first arg null" } }
+      - { '': { "a": { "y": 1 }, "b": null, "c": { "z": 1 }, "r": null, "comment": "second arg null" } }
+      - { '': { "a": { "y": 1 }, "b": { "x": 1 }, "c": null, "r": null, "comment": "third arg null" } }
+      - { '': { "b": { "x": 1 }, "c": { "z": 1 }, "r": null, "comment": "first arg missing" } }
+      - { '': { "a": { "y": 1 }, "c": { "z": 1 }, "r": null, "comment": "second arg missing" } }
+      - { '': { "a": { "y": 1 }, "b": { "x": 1 }, "r": null, "comment": "third arg missing" } }
+
+  - description: correctness test for BETWEEN for arrays
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': a BETWEEN b AND c, 'comment': comment } FROM betweenArrays AS betweenArrays"
+    result:
+      - { '': { "a": [3, 4], "b": [1, 2], "c": [5, 6], "r": true, "comment": "is between" } }
+      - { '': { "a": [1, 2], "b": [1, 2], "c": [5, 6], "r": true, "comment": "equals lower bound" } }
+      - { '': { "a": [5, 6], "b": [1, 2], "c": [5, 6], "r": true, "comment": "equals upper bound" } }
+      - { '': { "a": [0], "b": [1, 2, 3], "c": [5], "r": false, "comment": "less than lower bound" } }
+      - { '': { "a": [7, 8], "b": [1, 2, 3], "c": [5], "r": false, "comment": "greater than upper bound" } }
+      - { '': { "a": null, "b": [1, 2], "c": [5, 6], "r": null, "comment": "first arg null" } }
+      - { '': { "a": [3, 4], "b": null, "c": [5, 6], "r": null, "comment": "second arg null" } }
+      - { '': { "a": [3, 4], "b": [1, 2], "c": null, "r": null, "comment": "third arg null" } }
+      - { '': { "b": [1, 2], "c": [5, 6], "r": null, "comment": "first arg missing" } }
+      - { '': { "a": [3, 4], "c": [5, 6], "r": null, "comment": "second arg missing" } }
+      - { '': { "a": [3, 4], "b": [1, 2], "r": null, "comment": "third arg missing" } }

@@ -1,23 +1,23 @@
 variables:
-  bool: &bool ["BOOL", "NULL", "MISSING"]
-  document: &document ["DOCUMENT", "NULL", "MISSING"]
-  numerics: &numerics ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL", "MISSING"]
+  bool: &bool ["BOOL", "NULL"]
+  document: &document ["DOCUMENT", "NULL"]
+  numerics: &numerics ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL"]
   selfComparisonValidTypes: &selfComparisonValidTypes
     - { "arg1": *numerics }
-    - { "arg1": [ "STRING", "NULL", "MISSING" ] }
+    - { "arg1": [ "STRING", "NULL" ] }
     - { "arg1": *document }
-    - { "arg1": [ "ARRAY", "NULL", "MISSING" ] }
-    - { "arg1": [ "BINDATA", "NULL", "MISSING" ] }
-    - { "arg1": [ "UNDEFINED", "NULL", "MISSING" ] }
-    - { "arg1": [ "OBJECTID", "NULL", "MISSING" ] }
+    - { "arg1": [ "ARRAY", "NULL" ] }
+    - { "arg1": [ "BINDATA", "NULL" ] }
+    - { "arg1": [ "UNDEFINED", "NULL" ] }
+    - { "arg1": [ "OBJECTID", "NULL" ] }
     - { "arg1": *bool }
-    - { "arg1": [ "BSON_DATE", "NULL", "MISSING" ] }
-    - { "arg1": [ "NULL", "MISSING" ] }
-    - { "arg1": [ "REGEX", "NULL", "MISSING" ] }
-    - { "arg1": [ "SYMBOL", "NULL", "MISSING" ] }
-    - { "arg1": [ "BSON_TIMESTAMP", "NULL", "MISSING" ] }
-    - { "arg1": [ "MINKEY", "NULL", "MISSING" ] }
-    - { "arg1": [ "MAXKEY", "NULL", "MISSING" ] }
+    - { "arg1": [ "BSON_DATE", "NULL" ] }
+    - { "arg1": [ "NULL" ] }
+    - { "arg1": [ "REGEX", "NULL" ] }
+    - { "arg1": [ "SYMBOL", "NULL" ] }
+    - { "arg1": [ "BSON_TIMESTAMP", "NULL" ] }
+    - { "arg1": [ "MINKEY", "NULL" ] }
+    - { "arg1": [ "MAXKEY", "NULL" ] }
 
 tests:
   # Note: Non-distinct ADD_TO_ARRAY has no type constraints
