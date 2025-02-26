@@ -526,7 +526,7 @@ tests:
                         },
                     },
                 },
-                { "_id": 0, "$project": { "__subquery_result_0": 0 } },
+                { "$project": { "_id": 0, "__subquery_result_0": 0 } },
               ],
             "as": "eca58228-b657-498a-b76e-f48a9161a404",
           },
