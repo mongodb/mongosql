@@ -20,12 +20,14 @@ catalog_data:
       - { _id: 3, doc: { a: 2, b: 2 } }
       - { _id: 4, doc: { a: 2, b: 3 } }
       - { _id: 5, doc: { b: 2, a: 1 } }
+      - { _id: 6, doc: { a: 1, b: 2, c: 3 } }
 
     arrays:
       - { _id: 1, arr: [1, 2, 3] }
       - { _id: 2, arr: [1, 2, 3] }
       - { _id: 3, arr: [2, 3, 4] }
       - { _id: 4, arr: [3, 2, 1] }
+      - { _id: 5, arr: [3, 2, 1, 4] }
 
 catalog_schema:
   {
@@ -64,7 +66,8 @@ catalog_schema:
             "required": ["a", "b"],
             "properties": {
               "a": { "bsonType": "int" },
-              "b": { "bsonType": "int" }
+              "b": { "bsonType": "int" },
+              "c": { "bsonType": "int" }
             }
           }
         }
@@ -144,6 +147,7 @@ tests:
       - { '': { "doc": { "a": 2, "b": 2 } } }
       - { '': { "doc": { "a": 2, "b": 3 } } }
       - { '': { "doc": { "b": 2, "a": 1 } } }
+      - { '': { "doc": { "a": 1, "b":2, "c": 3 } } }
 
   - description: "SELECT DISTINCT arr checking deduplication of repeated arrays"
     query: "SELECT DISTINCT arr FROM db.arrays"
@@ -151,4 +155,5 @@ tests:
       - { '': { "arr": [1, 2, 3] } }
       - { '': { "arr": [2, 3, 4] } }
       - { '': { "arr": [3, 2, 1] } }
+      - { '': { "arr": [3, 2, 1, 4] } }
 

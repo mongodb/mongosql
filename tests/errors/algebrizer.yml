@@ -86,6 +86,12 @@ tests:
     should_compile: false
     algebrize_error: 'Error 3002: standard SELECT expressions can only contain *'
 
+  - description: Error 3002 NonStarStandardSelectBody for DISTINCT
+    query: "SELECT DISTINCT *, a from foo"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3002: standard SELECT expressions can only contain *'
+
   - description: Error 3004 ArrayDatasourceMustBeLiteral
     query: "SELECT * FROM [{'a': foo.a}] AS arr"
     current_db: db
