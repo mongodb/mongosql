@@ -218,34 +218,27 @@ pub fn compare_documents(expected: &Document, actual: &Document, type_compare: b
     if expected.len() != actual.len() {
         return false;
     }
-    expected.iter().all(|(ek, ev)| {
-        actual.iter().any(|(ak, av)| {
-            if let Bson::Document(d) = ev {
-                if let Bson::Document(ad) = av {
-                    return compare_documents(d, ad, type_compare);
-                } else {
-                    return false;
+    expected
+        .iter()
+        .all(|(ek, expected_value)| match actual.get(ek) {
+            Some(actual_value) => match (expected_value, actual_value) {
+                (Bson::Document(expected_document), Bson::Document(actual_document)) => {
+                    compare_documents(expected_document, actual_document, type_compare)
                 }
-            }
-
-            if let Bson::Array(a) = ev {
-                if let Bson::Array(aa) = av {
-                    return compare_arrays(a, aa, type_compare);
-                } else {
-                    return false;
+                (Bson::Array(expected_array), Bson::Array(actual_array)) => {
+                    compare_arrays(expected_array, actual_array, type_compare)
                 }
-            }
-            if type_compare {
-                return ek == ak && ev.element_type() == av.element_type();
-            }
-            if is_numeric(ev) && is_numeric(av) {
-                let d = numeric_to_double(ev);
-                let ad = numeric_to_double(av);
-                return compare_doubles_for_test(d, ad);
-            }
-            ev == av && ek == ak
+                _ if type_compare => expected_value.element_type() == actual_value.element_type(),
+                _ if is_numeric(expected_value) && is_numeric(actual_value) => {
+                    compare_doubles_for_test(
+                        numeric_to_double(expected_value),
+                        numeric_to_double(actual_value),
+                    )
+                }
+                _ => expected_value == actual_value,
+            },
+            None => false,
         })
-    })
 }
 
 /// convert_numerics_in_results converts all numeric values in a Vec of Documents
