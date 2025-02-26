@@ -92,15 +92,29 @@ UnwindDatasource: Datasource = {
 }
 
 UnwindOption: UnwindOption = {
-  PATH ARROW <p:Period<UnwindPathPart>> => UnwindOption::Path(p),
+  PATH ARROW <p:Period<UnwindPathPart>> => UnwindOption::Paths(vec![p]),
+  PATH ARROW LEFT_PAREN <p:CommaPlus<Period<UnwindPathPart>>> RIGHT_PAREN => UnwindOption::Paths(p),
   INDEX ARROW <i:Identifier> => UnwindOption::Index(i),
   OUTER ARROW <o:Boolean> => UnwindOption::Outer(o)
 }
 
+// Only INDEX and OUTER are allowed on a PATH part. Putting a PATH in a PATH part
+// would be confusing
+UnwindPathPartOption: UnwindPathPartOption = {
+  INDEX ARROW <i:Identifier> => UnwindPathPartOption::Index(i),
+  OUTER ARROW <o:Boolean> => UnwindPathPartOption::Outer(o)
+}
+
 UnwindPathPart: UnwindPathPart = {
-    <i:Identifier> <b:(LEFT_BRACKET RIGHT_BRACKET)?> => UnwindPathPart {
+    <i:Identifier> => UnwindPathPart {
         field: i, 
-        should_unwind: b.is_some() 
+        should_unwind: false,
+        options: Vec::default(),
+    },
+    <i:Identifier> LEFT_BRACKET <o:CommaPlus<UnwindPathPartOption>> RIGHT_BRACKET => UnwindPathPart {
+        field: i, 
+        should_unwind: true,
+        options: o,
     }
 }
 
@@ -845,7 +859,7 @@ match {
   r"(?i)or" => OR,
   r"(?i)order" => ORDER,
   r"(?i)outer" => OUTER,
-  r"(?i)path" => PATH,
+  r"(?i)paths?" => PATH,
   r"(?i)position" => POSITION,
   r"(?i)precision" => PRECISION,
   r"(?i)real" => REAL,

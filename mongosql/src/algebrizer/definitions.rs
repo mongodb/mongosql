@@ -798,7 +798,7 @@ impl<'a> Algebrizer<'a> {
             u.options
                 .iter()
                 .fold(Ok((None, None, None)), |acc, opt| match opt {
-                    ast::UnwindOption::Path(p) => match acc? {
+                    ast::UnwindOption::Paths(p) => match acc? {
                         (Some(_), _, _) => Err(Error::DuplicateUnwindOption(opt.clone())),
                         (None, i, o) => Ok((Some(p.clone()), i, o)),
                     },
@@ -824,7 +824,10 @@ impl<'a> Algebrizer<'a> {
 
         let path = match path {
             None => return Err(Error::NoUnwindPath),
-            Some(e) => path_expression_algebrizer.algebrize_unwind_path(e)?,
+            Some(mut e) => match e.len() {
+                1 => path_expression_algebrizer.algebrize_unwind_path(e.remove(0))?,
+                _ => todo!(),
+            },
         };
 
         let stage = mir::Stage::Unwind(mir::Unwind {

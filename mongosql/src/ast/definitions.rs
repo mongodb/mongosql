@@ -236,7 +236,13 @@ pub struct UnwindSource {
 
 #[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum UnwindOption {
-    Path(Vec<UnwindPathPart>),
+    Paths(Vec<Vec<UnwindPathPart>>),
+    Index(String),
+    Outer(bool),
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, VariantCount)]
+pub enum UnwindPathPartOption {
     Index(String),
     Outer(bool),
 }
@@ -764,6 +770,7 @@ pub struct SubpathExpr {
 pub struct UnwindPathPart {
     pub field: String,
     pub should_unwind: bool,
+    pub options: Vec<UnwindPathPartOption>,
 }
 
 
