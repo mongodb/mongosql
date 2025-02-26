@@ -407,7 +407,7 @@ tests:
 
   - description: Sorting by column from RHS of LEFT JOIN orders the entire result set
     current_db: mydb
-    query: "SELECT l._id, f.x FROM local AS l LEFT JOIN foreign AS f ON l._id = f.l_id ORDER BY x ASC"
+    query: "SELECT l._id, f.x FROM local AS l LEFT JOIN foreign AS f ON l._id = f.l_id ORDER BY x, l._id ASC"
     ordered: true
     result:
       - { '': { _id: 2 } }
