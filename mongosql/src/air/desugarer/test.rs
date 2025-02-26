@@ -119,6 +119,7 @@ mod sql_null_semantics {
 
 mod fold_converts {
     use super::*;
+    use crate::air::desugarer::remove_id::RemoveIdDesugarerPass;
     use crate::{
         air::desugarer::fold_converts::FoldConvertsDesugarerPass, unchecked_unique_linked_hash_map,
     };
@@ -499,6 +500,85 @@ mod fold_converts {
             })
             .into(),
             specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Decimal128(*INT_DEC)))}
+        }))
+    );
+
+    test_desugar_manual!(
+    name = nested_projects_get_id_removed,
+    desugarer = RemoveIdDesugarerPass,
+    input = air::Stage::Project(air::Project {
+        source: air::Stage::Project(air::Project {
+            source: air::Stage::Project(air::Project {
+                source: air::Stage::Collection(air::Collection {
+                    db: "test".into(),
+                    collection: "default".into()
+                })
+                .into(),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "project1".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(42)))
+                }
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {
+                "project2".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Boolean(true)))
+            }
+        })
+        .into(),
+        specifications: unchecked_unique_linked_hash_map! {
+            "project3".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::String("value".into())))
+        }
+    }),
+    expected = Ok::<Stage, desugarer::test::Error>(air::Stage::Project(air::Project {
+        source: air::Stage::Project(air::Project {
+            source: air::Stage::Project(air::Project {
+                source: air::Stage::Collection(air::Collection {
+                    db: "test".into(),
+                    collection: "default".into()
+                })
+                .into(),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "project1".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(42))),
+                    "_id".into() => air::ProjectItem::Exclusion
+                }
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {
+                "project2".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Boolean(true))),
+                "_id".into() => air::ProjectItem::Exclusion
+            }
+        })
+        .into(),
+        specifications: unchecked_unique_linked_hash_map! {
+            "project3".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::String("value".into()))),
+            "_id".into() => air::ProjectItem::Exclusion
+        }
+    }))
+);
+
+    test_desugar_manual!(
+        name = id_not_removed_if_present_in_node,
+        desugarer = RemoveIdDesugarerPass,
+        input = air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {
+                "field".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(42))),
+                "_id".into() => air::ProjectItem::Assignment(air::Expression::FieldRef(air::FieldRef::from("_id")))
+            }
+        }),
+        expected = Ok::<Stage, desugarer::test::Error>(air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {
+                "field".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(42))),
+                "_id".into() => air::ProjectItem::Assignment(air::Expression::FieldRef(air::FieldRef::from("_id")))
+            }
         }))
     );
 }
