@@ -1037,6 +1037,7 @@ impl<'a> Algebrizer<'a> {
             expression.insert(
                 key.clone(),
                 Expression::FieldAccess(FieldAccess {
+                    // Group stages always output fields under the Bottom datasource
                     expr: Box::new(Expression::Reference(ReferenceExpr {
                         key: Key::bot(self.scope_level),
                     })),
