@@ -618,7 +618,6 @@ tests:
 
   - description: COUNT(DISTINCT *) correctness test unconditionally count distinct rows
     query: "SELECT * FROM (SELECT a, b FROM foo.multi AS m) AS arr GROUP BY a AS a AGGREGATE COUNT(DISTINCT *) AS gcount"
-    skip_reason: "_id is not being projected out in translation"
     current_db: foo
     result:
       - { "": { "a": 1, "gcount": 1 } }
