@@ -2,9 +2,9 @@ use crate::air;
 use crate::air::{MQLOperator, MQLSemanticOperator};
 use crate::schema::Satisfaction;
 use agg_ast::definitions::{
-    Expression, GroupAccumulatorExpr, GroupAccumulatorName, JoinType, LiteralValue, Lookup,
-    LookupFrom, MatchExpr, MatchExpression, ProjectItem, Ref, Stage, Subquery, SubqueryExists,
-    TaggedOperator, UntaggedOperator, Unwind,
+    Expression, JoinType, LiteralValue, Lookup, LookupFrom, MatchExpr, MatchExpression,
+    ProjectItem, Ref, Stage, Subquery, SubqueryExists, TaggedOperator, UntaggedOperator,
+    UntaggedOperatorName, Unwind,
 };
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
@@ -110,38 +110,66 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                     Expression::Literal(LiteralValue::Null) => vec![],
                     _ => panic!(),
                 };
+                let str_to_sat = |s: Option<String>| match s {
+                    Some(s) if s.to_lowercase() == "must" => Satisfaction::Must,
+                    Some(s) if s.to_lowercase() == "may" => Satisfaction::May,
+                    _ => Satisfaction::Not,
+                };
+                let extract_and_convert_tagged_op = |tagged_op: TaggedOperator| match tagged_op {
+                    TaggedOperator::SQLAvg(e) => (air::AggregationFunction::Avg, e),
+                    TaggedOperator::SQLCount(e) => (air::AggregationFunction::Count, e),
+                    TaggedOperator::SQLFirst(e) => (air::AggregationFunction::First, e),
+                    TaggedOperator::SQLLast(e) => (air::AggregationFunction::Last, e),
+                    TaggedOperator::SQLMax(e) => (air::AggregationFunction::Max, e),
+                    TaggedOperator::SQLMergeObjects(e) => {
+                        (air::AggregationFunction::MergeDocuments, e)
+                    }
+                    TaggedOperator::SQLMin(e) => (air::AggregationFunction::Min, e),
+                    TaggedOperator::SQLStdDevPop(e) => (air::AggregationFunction::StddevPop, e),
+                    TaggedOperator::SQLStdDevSamp(e) => (air::AggregationFunction::StddevSamp, e),
+                    TaggedOperator::SQLSum(e) => (air::AggregationFunction::Sum, e),
+                    _ => panic!("invalid accumulator expression"),
+                };
+                let convert_untagged_op = |u: &UntaggedOperator| match u.op {
+                    UntaggedOperatorName::AddToSet => air::AggregationFunction::AddToSet,
+                    UntaggedOperatorName::Avg => air::AggregationFunction::Avg,
+                    UntaggedOperatorName::First => air::AggregationFunction::First,
+                    UntaggedOperatorName::Last => air::AggregationFunction::Last,
+                    UntaggedOperatorName::Max => air::AggregationFunction::Max,
+                    UntaggedOperatorName::MergeObjects => air::AggregationFunction::MergeDocuments,
+                    UntaggedOperatorName::Min => air::AggregationFunction::Min,
+                    UntaggedOperatorName::Push => air::AggregationFunction::AddToArray,
+                    UntaggedOperatorName::StdDevPop => air::AggregationFunction::StddevPop,
+                    UntaggedOperatorName::StdDevSamp => air::AggregationFunction::StddevSamp,
+                    UntaggedOperatorName::Sum => air::AggregationFunction::Sum,
+                    _ => panic!("invalid accumulator expression"),
+                };
                 let aggregations = g
                     .aggregations
                     .into_iter()
                     .sorted_by(|a, b| Ord::cmp(&a.0, &b.0))
-                    .map(|(key, accumulator_expr)| match accumulator_expr.expr {
-                        // accumulators of form: $<acc>: {"var": <expr>, "distinct": <bool>}
-                        GroupAccumulatorExpr::SQLAccumulator {
-                            distinct,
-                            var,
-                            arg_is_possibly_doc,
-                        } => {
-                            let arg_is_possibly_doc = match arg_is_possibly_doc {
-                                Some(s) if s.to_lowercase() == "must" => Satisfaction::Must,
-                                Some(s) if s.to_lowercase() == "may" => Satisfaction::May,
-                                _ => Satisfaction::Not,
-                            };
+                    .map(|(key, accumulator_expr)| match accumulator_expr {
+                        Expression::TaggedOperator(t) => {
+                            let (function, expr) = extract_and_convert_tagged_op(t);
                             air::AccumulatorExpr {
                                 alias: key,
-                                function: accumulator_expr.function.into(),
-                                distinct,
-                                arg: Box::new(air::Expression::from(*var)),
-                                arg_is_possibly_doc,
+                                function,
+                                distinct: expr.distinct,
+                                arg: Box::new(air::Expression::from(*expr.var)),
+                                arg_is_possibly_doc: str_to_sat(expr.arg_is_possibly_doc),
                             }
                         }
-                        // accumulators of form: $<acc>: <expr>
-                        GroupAccumulatorExpr::NonSQLAccumulator(expr) => air::AccumulatorExpr {
-                            alias: key,
-                            function: accumulator_expr.function.into(),
-                            distinct: false,
-                            arg: Box::new(expr.into()),
-                            arg_is_possibly_doc: Satisfaction::Not,
-                        },
+                        Expression::UntaggedOperator(ref u) => {
+                            let function = convert_untagged_op(u);
+                            air::AccumulatorExpr {
+                                alias: key,
+                                function,
+                                distinct: false,
+                                arg: Box::new(air::Expression::from(u.args[0].clone())),
+                                arg_is_possibly_doc: Satisfaction::Not,
+                            }
+                        }
+                        _ => panic!("invalid accumulator expression"),
                     })
                     .collect();
                 air::Stage::Group(air::Group {
@@ -778,42 +806,5 @@ fn to_type_or_missing(s: String) -> air::TypeOrMissing {
         "missing" => air::TypeOrMissing::Missing,
         "number" => air::TypeOrMissing::Number,
         _ => air::TypeOrMissing::Type(str_to_air_type(s)),
-    }
-}
-
-impl From<GroupAccumulatorName> for air::AggregationFunction {
-    fn from(n: GroupAccumulatorName) -> Self {
-        match n {
-            GroupAccumulatorName::AddToSet => air::AggregationFunction::AddToSet,
-            GroupAccumulatorName::Push => air::AggregationFunction::AddToArray,
-            GroupAccumulatorName::Avg | GroupAccumulatorName::SQLAvg => {
-                air::AggregationFunction::Avg
-            }
-            GroupAccumulatorName::SQLCount => air::AggregationFunction::Count,
-            GroupAccumulatorName::First | GroupAccumulatorName::SQLFirst => {
-                air::AggregationFunction::First
-            }
-            GroupAccumulatorName::Last | GroupAccumulatorName::SQLLast => {
-                air::AggregationFunction::Last
-            }
-            GroupAccumulatorName::Max | GroupAccumulatorName::SQLMax => {
-                air::AggregationFunction::Max
-            }
-            GroupAccumulatorName::MergeObjects | GroupAccumulatorName::SQLMergeObjects => {
-                air::AggregationFunction::MergeDocuments
-            }
-            GroupAccumulatorName::Min | GroupAccumulatorName::SQLMin => {
-                air::AggregationFunction::Min
-            }
-            GroupAccumulatorName::StdDevPop | GroupAccumulatorName::SQLStdDevPop => {
-                air::AggregationFunction::StddevPop
-            }
-            GroupAccumulatorName::StdDevSamp | GroupAccumulatorName::SQLStdDevSamp => {
-                air::AggregationFunction::StddevSamp
-            }
-            GroupAccumulatorName::Sum | GroupAccumulatorName::SQLSum => {
-                air::AggregationFunction::Sum
-            }
-        }
     }
 }

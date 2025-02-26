@@ -7,6 +7,62 @@ use mongosql::{
 };
 use std::collections::BTreeMap;
 
+mod add_fields {
+    use super::*;
+
+    test_derive_stage_schema!(
+        add_fields,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Double),
+                "bar".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string(), "bar".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$addFields": {"bar": "baz"}}"#,
+        ref_schema = Schema::Atomic(Atomic::Double)
+    );
+}
+
+mod collection {
+    use super::*;
+
+    test_derive_stage_schema!(
+        collection,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                "baz".to_string() => Schema::Atomic(Atomic::String),
+                "qux".to_string() => Schema::Atomic(Atomic::Integer)
+            },
+            required: set! {"baz".to_string(), "qux".to_string(), "_id".to_string()},
+            ..Default::default()
+        }),),
+        input = r#"{"$collection": {"db": "test", "collection": "bar"}}"#
+    );
+}
+
+mod count {
+    use super::*;
+
+    test_derive_stage_schema!(
+        count,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "count".to_string() => Schema::AnyOf(set!(
+                        Schema::Atomic(Atomic::Integer),
+                        Schema::Atomic(Atomic::Long),
+                        Schema::Atomic(Atomic::Double)
+                ))
+            },
+            required: set!("count".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$count": "count"}"#
+    );
+}
+
 mod densify {
     use super::*;
 
@@ -199,6 +255,68 @@ mod facet {
     //             ..Default::default()
     //         })
     //     );
+}
+
+mod group {
+    use super::*;
+
+    test_derive_stage_schema!(
+        simple,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::String),
+                "count".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal)
+                ))
+            },
+            required: set!("_id".to_string(), "count".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$group": {"_id": "$foo", "count": {"$sum": 1}}}"#,
+        ref_schema = Schema::Atomic(Atomic::String)
+    );
+
+    test_derive_stage_schema!(
+        multiple_keys,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "foo".to_string() => Schema::Atomic(Atomic::String),
+                        "bar".to_string() => Schema::Atomic(Atomic::Integer)
+                    },
+                    required: set!("foo".to_string(), "bar".to_string()),
+                    ..Default::default()
+                }),
+                "count".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal)
+                )),
+                "sum".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal)
+                ))
+            },
+            required: set!("_id".to_string(), "count".to_string(), "sum".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$group": {"_id": {"foo": "$foo", "bar": "$bar"}, "count": {"$sum": 1}, "sum": {"$sum": "$bar"}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "bar".to_string() => Schema::Atomic(Atomic::Integer)
+            },
+            required: set!("foo".to_string(), "bar".to_string()),
+            ..Default::default()
+        })
+    );
 }
 
 mod sort_by_count {
@@ -646,6 +764,106 @@ mod graphlookup {
             required: set!("foo".to_string()),
             ..Default::default()
         })
+    );
+}
+
+mod set_window_fields {
+    use super::*;
+
+    test_derive_stage_schema!(
+        set_windows_fields,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "documents".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal)
+                )),
+                "no_window".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Null)
+                )),
+                "range_and_unit".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long)
+                )),
+                "set".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
+                "push".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
+                "avg".to_string() => Schema::Atomic(Atomic::Null),
+                "bottom".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
+                "bottomN".to_string() => Schema::Array(Box::new(Schema::Array(Box::new(Schema::Atomic(Atomic::String))))),
+                "count".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long)
+                ))
+            },
+            required: set!(
+                "foo".to_string(),
+                "documents".to_string(),
+                "no_window".to_string(),
+                "range_and_unit".to_string(),
+                "set".to_string(),
+                "push".to_string(),
+                "avg".to_string(),
+                "bottom".to_string(),
+                "bottomN".to_string(),
+                "count".to_string()
+            ),
+            ..Default::default()
+        })),
+        input = r#"{"$setWindowFields": {
+                        "output": {
+                            "documents": {
+                                "$sum": 1,
+                                "window": {
+                                    "documents": [-1, 1]
+                                }
+                            },
+                            "no_window": {
+                                "$derivative": {
+                                    "input": 1,
+                                    "unit": "seconds"
+                                }
+                            },
+                            "range_and_unit": {
+                                "$denseRank": {},
+                                "window": {
+                                    "range": [-10, 10],
+                                    "unit": "seconds"
+                                }
+                            },
+                            "set": {
+                                "$addToSet": "$foo"
+                            },
+                            "push": {
+                                "$push": "$foo"
+                            },
+                            "avg": {
+                                "$avg": "$foo"
+                            },
+                            "bottom": {
+                                "$bottom":
+                                {
+                                    "output": [ "$foo" ],
+                                    "sortBy": { "score": -1 }
+                                }
+                            },
+                            "bottomN": {
+                                "$bottomN":
+                                {
+                                    "n": 2,
+                                    "output": [ "$foo" ],
+                                    "sortBy": { "score": -1 }
+                                }
+                            },
+                            "count": {
+                                "$count": {}
+                            }
+                        }
+                }}"#,
+        ref_schema = Schema::Atomic(Atomic::String)
     );
 }
 

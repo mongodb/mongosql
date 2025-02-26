@@ -1089,8 +1089,8 @@ mod stage_test {
     mod group_test {
         use crate::{
             definitions::{
-                Expression, Group, GroupAccumulator, GroupAccumulatorExpr, GroupAccumulatorName,
-                LiteralValue, Ref, Stage,
+                Expression, Group, LiteralValue, Ref, SQLAccumulator, Stage, TaggedOperator,
+                UntaggedOperator, UntaggedOperatorName,
             },
             map,
         };
@@ -1111,14 +1111,12 @@ mod stage_test {
             expected = Stage::Group(Group {
                 keys: Expression::Literal(LiteralValue::Null),
                 aggregations: map! {
-                    "acc".to_string() => GroupAccumulator {
-                        function: GroupAccumulatorName::SQLSum,
-                        expr: GroupAccumulatorExpr::SQLAccumulator {
-                            distinct: true,
-                            var: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
-                            arg_is_possibly_doc: Some("not".to_string()),
-                        }
-                    }
+                "acc".to_string() => Expression::TaggedOperator(TaggedOperator::SQLSum(
+                    SQLAccumulator {
+                        distinct: true,
+                        var: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
+                        arg_is_possibly_doc: Some("not".to_string()),
+                    }))
                 }
             }),
             input = r#"stage: {
@@ -1137,22 +1135,20 @@ mod stage_test {
                     "a".to_string() => Expression::Ref(Ref::FieldRef("a".to_string()))
                 },),
                 aggregations: map! {
-                    "acc_one".to_string() => GroupAccumulator {
-                        function: GroupAccumulatorName::SQLSum,
-                        expr: GroupAccumulatorExpr::SQLAccumulator {
+                    "acc_one".to_string() => Expression::TaggedOperator(TaggedOperator::SQLSum(
+                        SQLAccumulator {
                             distinct: true,
                             var: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                             arg_is_possibly_doc: None,
-                        },
-                    },
-                    "acc_two".to_string() => GroupAccumulator {
-                        function: GroupAccumulatorName::SQLAvg,
-                        expr: GroupAccumulatorExpr::SQLAccumulator {
+                        })
+                    ),
+                    "acc_two".to_string() => Expression::TaggedOperator(TaggedOperator::SQLAvg(
+                        SQLAccumulator {
                             distinct: true,
                             var: Box::new(Expression::Ref(Ref::FieldRef("b".to_string()))),
                             arg_is_possibly_doc: None,
-                        },
-                    },
+                        })
+                    ),
                 }
             }),
             input = r#"stage: {
@@ -1170,10 +1166,10 @@ mod stage_test {
             expected = Stage::Group(Group {
                 keys: Expression::Literal(LiteralValue::Null),
                 aggregations: map! {
-                    "acc".to_string() => GroupAccumulator {
-                        function: GroupAccumulatorName::AddToSet,
-                        expr: GroupAccumulatorExpr::NonSQLAccumulator(Expression::Ref(Ref::FieldRef("a".to_string()))),
-                    }
+                    "acc".to_string() => Expression::UntaggedOperator(UntaggedOperator {
+                        op: UntaggedOperatorName::AddToSet,
+                        args: vec![Expression::Ref(Ref::FieldRef("a".to_string()))],
+                    })
                 }
             }),
             input = r#"stage: { "$group": { "_id": null, "acc": { "$addToSet": "$a" } } }"#
