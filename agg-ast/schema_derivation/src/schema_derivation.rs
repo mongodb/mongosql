@@ -1446,7 +1446,8 @@ impl DeriveSchema for UntaggedOperator {
                     get_decimal_double_or_nullish(args, state)
                 }
             }
-
+            // avg can operate on both a field or an array; if we have a singular field we should use our
+            // existing logic for handling decimals. Otherwise, we should check the types of the array elements.
             UntaggedOperatorName::Avg => {
                 if args.len() == 1 {
                     if let Schema::Array(a) = args[0].derive_schema(state)? {
