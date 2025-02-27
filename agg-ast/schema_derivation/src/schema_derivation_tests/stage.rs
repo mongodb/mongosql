@@ -23,6 +23,145 @@ mod add_fields {
         input = r#"{"$addFields": {"bar": "baz"}}"#,
         ref_schema = Schema::Atomic(Atomic::Double)
     );
+    test_derive_stage_schema!(
+        add_fields_multiple_fields,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "student".to_string() => Schema::Atomic(Atomic::String),
+                "homework".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
+                "quiz".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
+                "avg_homework".to_string() => Schema::Atomic(Atomic::Double),
+                "avg_quiz".to_string() => Schema::Atomic(Atomic::Double),
+                "total_quiz".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal)
+                ))
+            },
+            required: set!(
+                "student".to_string(),
+                "homework".to_string(),
+                "quiz".to_string(),
+                "avg_homework".to_string(),
+                "avg_quiz".to_string(),
+                "total_quiz".to_string()
+            ),
+            ..Default::default()
+        })),
+        input = r#"{ "$addFields": { "avg_homework": { "$avg": "$homework" }, "avg_quiz": { "$avg": "$quiz" }, "total_quiz": { "$sum": "$quiz"} }}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "student".to_string() => Schema::Atomic(Atomic::String),
+                "homework".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
+                "quiz".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
+            },
+            required: set!(
+                "student".to_string(),
+                "homework".to_string(),
+                "quiz".to_string()
+            ),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        add_fields_embedded_document,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "specs".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "doors".to_string() => Schema::Atomic(Atomic::Integer),
+                        "wheels".to_string() => Schema::Atomic(Atomic::Integer),
+                        "fuel_type".to_string() => Schema::Atomic(Atomic::String)
+                    },
+                    required: set!("doors".to_string(), "wheels".to_string(), "fuel_type".to_string()),
+                    ..Default::default()
+                }),
+                "type".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("specs".to_string(), "type".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{ "$addFields": { "specs.fuel_type": "unleaded" }}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "specs".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "doors".to_string() => Schema::Atomic(Atomic::Integer),
+                        "wheels".to_string() => Schema::Atomic(Atomic::Integer)
+                    },
+                    required: set!("doors".to_string(), "wheels".to_string()),
+                    ..Default::default()
+                }),
+                "type".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("specs".to_string(), "type".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        add_fields_overwrite_fields,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "cats".to_string() => Schema::Atomic(Atomic::String),
+                "dogs".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("dogs".to_string(), "cats".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{ "$addFields": { "cats": "none" }}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "dogs".to_string() => Schema::Atomic(Atomic::Integer),
+                "cats".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("dogs".to_string(), "cats".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        add_fields_add_element_to_array,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "student".to_string() => Schema::Atomic(Atomic::String),
+                "homework".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
+            },
+            required: set!("student".to_string(), "homework".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{ "$addFields": { "homework": { "$concatArrays": [ "$homework", [ 7 ] ] } } }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "student".to_string() => Schema::Atomic(Atomic::String),
+                "homework".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
+            },
+            required: set!("student".to_string(), "homework".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        add_fields_remove_field,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "temperature".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("temperature".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{ "$addFields": { "date": "$$REMOVE" } }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "date".to_string() => Schema::Atomic(Atomic::Date),
+                "temperature".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("date".to_string(), "temperature".to_string()),
+            ..Default::default()
+        })
+    );
 }
 
 mod collection {

@@ -248,7 +248,7 @@ impl DeriveSchema for Stage {
                     true,
                 );
             }
-            Ok(state.result_set_schema.to_owned())
+            Ok(Schema::simplify(&state.result_set_schema).to_owned())
         }
 
         fn set_window_fields_derive_schema(
@@ -715,6 +715,7 @@ fn arguments_schema_satisfies(
     let mut satisfaction = Satisfaction::Not;
     for arg in args.iter() {
         let arg_schema = arg.derive_schema(state)?.upconvert_missing_to_null();
+        dbg!(&arg_schema, schema, arg_schema.satisfies(schema));
         match (arg_schema.satisfies(schema), satisfaction) {
             (Satisfaction::May, Satisfaction::Not) => {
                 satisfaction = Satisfaction::May;
@@ -1315,6 +1316,26 @@ fn get_input_schema(args: &[&Expression], state: &mut ResultSetState) -> Result<
     Ok(Schema::simplify(&Schema::AnyOf(x)))
 }
 
+fn get_decimal_double_or_nullish_from_schema(
+    schema: Schema
+) -> Schema {
+    use Satisfaction::*;
+    let numeric_satisfaction = schema.satisfies(&NUMERIC);
+    if numeric_satisfaction == Not {
+        return Schema::Atomic(Atomic::Null);
+    }
+    let numeric_schema = match schema.satisfies(&Schema::Atomic(Atomic::Decimal)) {
+        Must => Schema::Atomic(Atomic::Decimal),
+        May => Schema::AnyOf(set!(Schema::Atomic(Atomic::Double), Schema::Atomic(Atomic::Decimal))),
+        Not => Schema::Atomic(Atomic::Double),
+    };
+    if numeric_satisfaction == Must {
+        numeric_schema
+    } else {
+        numeric_schema.union(&Schema::Atomic(Atomic::Null))
+    }
+}
+
 /// get_decimal_double_or_nullish handles one of the most common cases for math untagged operators,
 /// which is that if any of the inputs is decimal, the operator returns a decimal; if there are any
 /// other numeric types, they will return a double; and the operator is nullable, so must handle Null satisfaction.
@@ -1322,6 +1343,7 @@ fn get_decimal_double_or_nullish(
     args: Vec<&Expression>,
     state: &mut ResultSetState,
 ) -> Result<Schema> {
+    dbg!(&args);
     let decimal_satisfaction =
         arguments_schema_satisfies(&args, state, &Schema::Atomic(Atomic::Decimal))?;
     let numeric_satisfaction = arguments_schema_satisfies(
@@ -1333,6 +1355,7 @@ fn get_decimal_double_or_nullish(
             Schema::Atomic(Atomic::Long),
         )),
     )?;
+    dbg!(decimal_satisfaction, numeric_satisfaction);
     let schema = match (decimal_satisfaction, numeric_satisfaction) {
         (Satisfaction::Must, _) | (Satisfaction::May, Satisfaction::Not) => {
             Schema::Atomic(Atomic::Decimal)
@@ -1478,8 +1501,21 @@ impl DeriveSchema for UntaggedOperator {
                 args, state,
                 Schema::Atomic(Atomic::ObjectId),
             ),
+            UntaggedOperatorName::Avg => {
+                if args.len() == 1 {
+                    let arg_schema = args[0].derive_schema(state)?;
+                    if let Schema::Array(item_schema) = arg_schema {
+                        Ok(get_decimal_double_or_nullish_from_schema(*item_schema))
+                    } else {
+                        Ok(get_decimal_double_or_nullish_from_schema(arg_schema))
+                    }
+                }
+                else {
+                    get_decimal_double_or_nullish(args, state)
+                }
+            }
             // these operators can only return a decimal (if the input is a decimal), double for any other numeric input, or nullish.
-            UntaggedOperatorName::Acos | UntaggedOperatorName::Acosh | UntaggedOperatorName::Asin | UntaggedOperatorName::Asinh | UntaggedOperatorName::Atan | UntaggedOperatorName::Atan2 | UntaggedOperatorName::Atanh | UntaggedOperatorName::Avg
+            UntaggedOperatorName::Acos | UntaggedOperatorName::Acosh | UntaggedOperatorName::Asin | UntaggedOperatorName::Asinh | UntaggedOperatorName::Atan | UntaggedOperatorName::Atan2 | UntaggedOperatorName::Atanh 
             | UntaggedOperatorName::Cos | UntaggedOperatorName::Cosh | UntaggedOperatorName::DegreesToRadians | UntaggedOperatorName::Divide | UntaggedOperatorName::Exp | UntaggedOperatorName::Ln | UntaggedOperatorName::Log
             | UntaggedOperatorName::Log10 | UntaggedOperatorName::RadiansToDegrees | UntaggedOperatorName::Sin | UntaggedOperatorName::Sinh | UntaggedOperatorName::Sqrt | UntaggedOperatorName::Tan | UntaggedOperatorName::Tanh =>
                 get_decimal_double_or_nullish(args, state)
@@ -1931,7 +1967,21 @@ impl DeriveSchema for UntaggedOperator {
                 Ok(handle_null_satisfaction(vec![args[0]], state, array_type)?)
             }
             UntaggedOperatorName::Sum => {
-                Ok(get_sum_type(self.args[0].derive_schema(state)?))
+                if args.len() == 1 {
+                    let arg_schema = args[0].derive_schema(state)?;
+                    if let Schema::Array(item_schema) = arg_schema {
+                        Ok(get_sum_type(*item_schema))
+                    } else {
+                        Ok(get_sum_type(args[0].derive_schema(state)?))
+                    }
+                }
+                else {
+                    let mut arg_schema = Schema::Unsat;
+                    for arg in args.iter() {
+                        arg_schema = arg_schema.union(&arg.derive_schema(state)?);
+                    }
+                    Ok(arg_schema)
+                }
             }
             UntaggedOperatorName::First | UntaggedOperatorName::Last => {
                 let schema = self.args[0].derive_schema(state)?;
