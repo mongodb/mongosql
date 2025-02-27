@@ -235,30 +235,20 @@ impl DeriveSchema for Stage {
             add_fields: &LinkedHashMap<String, Expression>,
             state: &mut ResultSetState,
         ) -> Result<Schema> {
-            let mut keys = add_fields
-                .iter()
-                .map(|(k, e)| {
-                    let field_schema = e.derive_schema(state)?;
-                    Ok((k.to_string(), field_schema))
-                })
-                .collect::<Result<BTreeMap<_, _>>>()?;
-            let Schema::Document(Document {
-                keys: ref current_keys,
-                ..
-            }) = state.result_set_schema
-            else {
-                // This should never actually happen
-                panic!(
-                    "Found ResultSetSchema that is not a Document: {:?}",
-                    state.result_set_schema
+            for (field, expression) in add_fields.iter() {
+                let expr_schema = expression.derive_schema(state)?;
+                let path = field
+                    .split(".")
+                    .map(|s| s.to_string())
+                    .collect::<Vec<String>>();
+                insert_required_key_into_document(
+                    &mut state.result_set_schema,
+                    expr_schema,
+                    path,
+                    true,
                 );
-            };
-            keys.extend(current_keys.clone());
-            Ok(Schema::Document(Document {
-                required: keys.keys().cloned().collect(),
-                keys,
-                ..Default::default()
-            }))
+            }
+            Ok(state.result_set_schema.to_owned())
         }
 
         fn set_window_fields_derive_schema(
@@ -590,7 +580,7 @@ impl DeriveSchema for Stage {
             Stage::Count(c) => {
                 state.result_set_schema = Schema::Document(Document {
                     keys: map! {
-                        c.clone() => Schema::AnyOf(set!{Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long), Schema::Atomic(Atomic::Double)})
+                        c.clone() => Schema::AnyOf(set!{Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long)})
                     },
                     required: set! {c.clone()},
                     ..Default::default()

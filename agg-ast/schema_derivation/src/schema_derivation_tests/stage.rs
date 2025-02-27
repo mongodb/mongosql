@@ -53,7 +53,6 @@ mod count {
                 "count".to_string() => Schema::AnyOf(set!(
                         Schema::Atomic(Atomic::Integer),
                         Schema::Atomic(Atomic::Long),
-                        Schema::Atomic(Atomic::Double)
                 ))
             },
             required: set!("count".to_string()),
