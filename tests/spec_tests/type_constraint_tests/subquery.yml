@@ -26,3 +26,47 @@ tests:
   - description: eq ANY must have comparable types (NULL and MISSING are always allowed)
     query: "SELECT * FROM foo WHERE arg1 = ANY(SELECT arg2 FROM bar)"
     valid_types: *comparisonValidTypes
+
+  - description: neq ANY must have comparable types (NULL and MISSING are always allowed)
+    query: "SELECT * FROM foo WHERE arg1 <> ANY(SELECT arg2 FROM bar)"
+    valid_types: *comparisonValidTypes
+
+  - description: gt ANY must have comparable types (NULL and MISSING are always allowed)
+    query: "SELECT * FROM foo WHERE arg1 > ANY(SELECT arg2 FROM bar)"
+    valid_types: *comparisonValidTypes
+
+  - description: gte ANY must have comparable types (NULL and MISSING are always allowed)
+    query: "SELECT * FROM foo WHERE arg1 >= ANY(SELECT arg2 FROM bar)"
+    valid_types: *comparisonValidTypes
+
+  - description: lt ANY must have comparable types (NULL and MISSING are always allowed)
+    query: "SELECT * FROM foo WHERE arg1 < ANY(SELECT arg2 FROM bar)"
+    valid_types: *comparisonValidTypes
+
+  - description: lte ANY must have comparable types (NULL and MISSING are always allowed)
+    query: "SELECT * FROM foo WHERE arg1 <= ANY(SELECT arg2 FROM bar)"
+    valid_types: *comparisonValidTypes
+
+  - description: eq ALL must have comparable types (NULL and MISSING are always allowed)
+    query: "SELECT * FROM foo WHERE arg1 = ALL(SELECT arg2 FROM bar)"
+    valid_types: *comparisonValidTypes
+
+  - description: neq ALL must have comparable types (NULL and MISSING are always allowed)
+    query: "SELECT * FROM foo WHERE arg1 <> ALL(SELECT arg2 FROM bar)"
+    valid_types: *comparisonValidTypes
+
+  - description: gt ALL must have comparable types (NULL and MISSING are always allowed)
+    query: "SELECT * FROM foo WHERE arg1 > ALL(SELECT arg2 FROM bar)"
+    valid_types: *comparisonValidTypes
+
+  - description: gte ALL must have comparable types (NULL and MISSING are always allowed)
+    query: "SELECT * FROM foo WHERE arg1 >= ALL(SELECT arg2 FROM bar)"
+    valid_types: *comparisonValidTypes
+
+  - description: lt ALL must have comparable types (NULL and MISSING are always allowed)
+    query: "SELECT * FROM foo WHERE arg1 < ALL(SELECT arg2 FROM bar)"
+    valid_types: *comparisonValidTypes
+
+  - description: lte ALL must have comparable types (NULL and MISSING are always allowed)
+    query: "SELECT * FROM foo WHERE arg1 <= ALL(SELECT arg2 FROM bar)"
+    valid_types: *comparisonValidTypes
