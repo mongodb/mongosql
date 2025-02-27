@@ -499,7 +499,7 @@ impl DeriveSchema for Stage {
                     true,
                 );
             }
-            Ok(state.result_set_schema.to_owned())
+            Ok(Schema::simplify(&state.result_set_schema.to_owned()))
         }
 
         match self {
@@ -1208,7 +1208,6 @@ fn get_decimal_double_or_nullish(
             Schema::Atomic(Atomic::Long),
         )),
     )?;
-    println!("{:?}, {:?}", args, state.null_behavior);
     let schema = match (decimal_satisfaction, numeric_satisfaction) {
         (Satisfaction::Must, _) | (Satisfaction::May, Satisfaction::Not) => {
             Schema::Atomic(Atomic::Decimal)
@@ -1315,7 +1314,7 @@ impl DeriveSchema for UntaggedOperator {
                 Schema::Atomic(Atomic::ObjectId),
             ),
             // these operators can only return a decimal (if the input is a decimal), double for any other numeric input, or nullish.
-            UntaggedOperatorName::Acos | UntaggedOperatorName::Acosh | UntaggedOperatorName::Asin | UntaggedOperatorName::Asinh | UntaggedOperatorName::Atan | UntaggedOperatorName::Atan2 | UntaggedOperatorName::Atanh | UntaggedOperatorName::Avg
+            UntaggedOperatorName::Acos | UntaggedOperatorName::Acosh | UntaggedOperatorName::Asin | UntaggedOperatorName::Asinh | UntaggedOperatorName::Atan | UntaggedOperatorName::Atan2 | UntaggedOperatorName::Atanh
             | UntaggedOperatorName::Cos | UntaggedOperatorName::Cosh | UntaggedOperatorName::DegreesToRadians | UntaggedOperatorName::Divide | UntaggedOperatorName::Exp | UntaggedOperatorName::Ln | UntaggedOperatorName::Log
             | UntaggedOperatorName::Log10 | UntaggedOperatorName::RadiansToDegrees | UntaggedOperatorName::Sin | UntaggedOperatorName::Sinh | UntaggedOperatorName::Sqrt | UntaggedOperatorName::Tan | UntaggedOperatorName::Tanh =>
                 get_decimal_double_or_nullish(args, state)
@@ -1432,6 +1431,35 @@ impl DeriveSchema for UntaggedOperator {
                 } else {
                     get_decimal_double_or_nullish(args, state)
                 }
+            }
+
+            UntaggedOperatorName::Avg => {
+                if args.len() == 1 {
+                    if let Schema::Array(a) = args[0].derive_schema(state)? {
+                        let decimal_satisfaction = (*a).satisfies(&Schema::Atomic(Atomic::Decimal));
+                        let numeric_satisfaction = (*a).satisfies(&Schema::AnyOf(set!(
+                                Schema::Atomic(Atomic::Double),
+                                Schema::Atomic(Atomic::Integer),
+                                Schema::Atomic(Atomic::Long),
+                            )),
+                        );
+                        let schema = match (decimal_satisfaction, numeric_satisfaction) {
+                            (Satisfaction::Must, _) | (Satisfaction::May, Satisfaction::Not) => {
+                                Schema::Atomic(Atomic::Decimal)
+                            }
+                            (_, Satisfaction::Must) | (Satisfaction::Not, Satisfaction::May) => {
+                                Schema::Atomic(Atomic::Double)
+                            }
+                            (Satisfaction::May, Satisfaction::May) => Schema::AnyOf(set!(
+                                Schema::Atomic(Atomic::Double),
+                                Schema::Atomic(Atomic::Decimal)
+                            )),
+                            _ => Schema::Atomic(Atomic::Null),
+                        };
+                        return handle_null_satisfaction(args, state, schema)
+                    }
+                }
+                get_decimal_double_or_nullish(args, state)
             }
             // window function operators
             UntaggedOperatorName::CovariancePop | UntaggedOperatorName::CovarianceSamp | UntaggedOperatorName::StdDevPop | UntaggedOperatorName::StdDevSamp => {
