@@ -5,7 +5,7 @@ use crate::{
 use agg_ast::definitions::{
     ConciseSubqueryLookup, Densify, EqualityLookup, Expression, GraphLookup, LiteralValue, Lookup,
     LookupFrom, ProjectItem, ProjectStage, Ref, Stage, SubqueryLookup, TaggedOperator, UnionWith,
-    UntaggedOperator, UntaggedOperatorName, Unwind,
+    Unset, UntaggedOperator, UntaggedOperatorName, Unwind,
 };
 use linked_hash_map::LinkedHashMap;
 use mongosql::{
@@ -489,8 +489,42 @@ impl DeriveSchema for Stage {
             Ok(state.result_set_schema.to_owned())
         }
 
+        fn add_fields_derive_schema(
+            add_fields: &LinkedHashMap<String, Expression>,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            for (field, expression) in add_fields.iter() {
+                let expr_schema = expression.derive_schema(state)?;
+                let path = field
+                    .split(".")
+                    .map(|s| s.to_string())
+                    .collect::<Vec<String>>();
+                insert_required_key_into_document(
+                    &mut state.result_set_schema,
+                    expr_schema,
+                    path,
+                    true,
+                );
+            }
+            Ok(Schema::simplify(&state.result_set_schema.to_owned()))
+        }
+
+        fn unset_derive_schema(u: &Unset, state: &mut ResultSetState) -> Result<Schema> {
+            let fields = match u {
+                Unset::Single(field) => &vec![field.clone()],
+                Unset::Multiple(fields) => fields,
+            };
+            fields.iter().for_each(|field| {
+                remove_field(
+                    &mut state.result_set_schema,
+                    field.split('.').map(|s| s.to_string()).collect(),
+                );
+            });
+            Ok(state.result_set_schema.to_owned())
+        }
+
         match self {
-            Stage::AddFields(_) => todo!(),
+            Stage::AddFields(a) => add_fields_derive_schema(a, state),
             Stage::AtlasSearchStage(_) => todo!(),
             Stage::Bucket(_) => todo!(),
             Stage::BucketAuto(_) => todo!(),
@@ -509,14 +543,18 @@ impl DeriveSchema for Stage {
             Stage::Match(ref m) => m.derive_schema(state),
             Stage::Project(p) => project_derive_schema(p, state),
             Stage::Redact(_) => todo!(),
-            Stage::ReplaceWith(_) => todo!(),
+            Stage::ReplaceWith(r) => r
+                .to_owned()
+                .expression()
+                .derive_schema(state)
+                .map(|schema| Schema::simplify(&schema)),
             Stage::Sample(_) => todo!(),
             Stage::SetWindowFields(_) => todo!(),
             Stage::Skip(_) => todo!(),
             Stage::Sort(_) => todo!(),
             Stage::SortByCount(s) => sort_by_count_derive_schema(s.as_ref(), state),
             Stage::UnionWith(u) => union_with_derive_schema(u, state),
-            Stage::Unset(_) => todo!(),
+            Stage::Unset(u) => unset_derive_schema(u, state),
             Stage::Unwind(u) => unwind_derive_schema(u, state),
             // the following stages are not derivable, because they rely on udnerlying index information, which we do not have by
             // default given the schemas and aggregation pipelines
@@ -1297,7 +1335,7 @@ impl DeriveSchema for UntaggedOperator {
                 Schema::Atomic(Atomic::ObjectId),
             ),
             // these operators can only return a decimal (if the input is a decimal), double for any other numeric input, or nullish.
-            UntaggedOperatorName::Acos | UntaggedOperatorName::Acosh | UntaggedOperatorName::Asin | UntaggedOperatorName::Asinh | UntaggedOperatorName::Atan | UntaggedOperatorName::Atan2 | UntaggedOperatorName::Atanh | UntaggedOperatorName::Avg
+            UntaggedOperatorName::Acos | UntaggedOperatorName::Acosh | UntaggedOperatorName::Asin | UntaggedOperatorName::Asinh | UntaggedOperatorName::Atan | UntaggedOperatorName::Atan2 | UntaggedOperatorName::Atanh
             | UntaggedOperatorName::Cos | UntaggedOperatorName::Cosh | UntaggedOperatorName::DegreesToRadians | UntaggedOperatorName::Divide | UntaggedOperatorName::Exp | UntaggedOperatorName::Ln | UntaggedOperatorName::Log
             | UntaggedOperatorName::Log10 | UntaggedOperatorName::RadiansToDegrees | UntaggedOperatorName::Sin | UntaggedOperatorName::Sinh | UntaggedOperatorName::Sqrt | UntaggedOperatorName::Tan | UntaggedOperatorName::Tanh =>
                 get_decimal_double_or_nullish(args, state)
@@ -1414,6 +1452,35 @@ impl DeriveSchema for UntaggedOperator {
                 } else {
                     get_decimal_double_or_nullish(args, state)
                 }
+            }
+
+            UntaggedOperatorName::Avg => {
+                if args.len() == 1 {
+                    if let Schema::Array(a) = args[0].derive_schema(state)? {
+                        let decimal_satisfaction = (*a).satisfies(&Schema::Atomic(Atomic::Decimal));
+                        let numeric_satisfaction = (*a).satisfies(&Schema::AnyOf(set!(
+                                Schema::Atomic(Atomic::Double),
+                                Schema::Atomic(Atomic::Integer),
+                                Schema::Atomic(Atomic::Long),
+                            )),
+                        );
+                        let schema = match (decimal_satisfaction, numeric_satisfaction) {
+                            (Satisfaction::Must, _) | (Satisfaction::May, Satisfaction::Not) => {
+                                Schema::Atomic(Atomic::Decimal)
+                            }
+                            (_, Satisfaction::Must) | (Satisfaction::Not, Satisfaction::May) => {
+                                Schema::Atomic(Atomic::Double)
+                            }
+                            (Satisfaction::May, Satisfaction::May) => Schema::AnyOf(set!(
+                                Schema::Atomic(Atomic::Double),
+                                Schema::Atomic(Atomic::Decimal)
+                            )),
+                            _ => Schema::Atomic(Atomic::Null),
+                        };
+                        return handle_null_satisfaction(args, state, schema)
+                    }
+                }
+                get_decimal_double_or_nullish(args, state)
             }
             // window function operators
             UntaggedOperatorName::CovariancePop | UntaggedOperatorName::CovarianceSamp | UntaggedOperatorName::StdDevPop | UntaggedOperatorName::StdDevSamp => {
