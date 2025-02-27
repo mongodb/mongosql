@@ -955,3 +955,122 @@ mod add_fields {
         })
     );
 }
+mod unset_fields {
+    use super::*;
+
+    test_derive_stage_schema!(
+        unset_single_field,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "first".to_string() => Schema::Atomic(Atomic::String),
+                        "last".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set!("first".to_string(), "last".to_string()),
+                    ..Default::default()
+                }),
+            },
+            required: set!("title".to_string(), "author".to_string(),),
+            ..Default::default()
+        })),
+        input = r#"{ "$unset": "isbn" }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "first".to_string() => Schema::Atomic(Atomic::String),
+                        "last".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set!("first".to_string(), "last".to_string()),
+                    ..Default::default()
+                }),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        unset_multiple_fields,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("title".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{ "$unset": ["isbn", "author"] }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "first".to_string() => Schema::Atomic(Atomic::String),
+                        "last".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set!("first".to_string(), "last".to_string()),
+                    ..Default::default()
+                }),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        unset_nested_field,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "last".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set!("last".to_string()),
+                    ..Default::default()
+                }),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })),
+        input = r#"{ "$unset": "author.first"}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "first".to_string() => Schema::Atomic(Atomic::String),
+                        "last".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set!("first".to_string(), "last".to_string()),
+                    ..Default::default()
+                }),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })
+    );
+}
