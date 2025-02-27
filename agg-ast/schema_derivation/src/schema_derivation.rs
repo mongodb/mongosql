@@ -1316,9 +1316,7 @@ fn get_input_schema(args: &[&Expression], state: &mut ResultSetState) -> Result<
     Ok(Schema::simplify(&Schema::AnyOf(x)))
 }
 
-fn get_decimal_double_or_nullish_from_schema(
-    schema: Schema
-) -> Schema {
+fn get_decimal_double_or_nullish_from_schema(schema: Schema) -> Schema {
     use Satisfaction::*;
     let numeric_satisfaction = schema.satisfies(&NUMERIC);
     if numeric_satisfaction == Not {
@@ -1326,7 +1324,10 @@ fn get_decimal_double_or_nullish_from_schema(
     }
     let numeric_schema = match schema.satisfies(&Schema::Atomic(Atomic::Decimal)) {
         Must => Schema::Atomic(Atomic::Decimal),
-        May => Schema::AnyOf(set!(Schema::Atomic(Atomic::Double), Schema::Atomic(Atomic::Decimal))),
+        May => Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal)
+        )),
         Not => Schema::Atomic(Atomic::Double),
     };
     if numeric_satisfaction == Must {
@@ -1515,7 +1516,7 @@ impl DeriveSchema for UntaggedOperator {
                 }
             }
             // these operators can only return a decimal (if the input is a decimal), double for any other numeric input, or nullish.
-            UntaggedOperatorName::Acos | UntaggedOperatorName::Acosh | UntaggedOperatorName::Asin | UntaggedOperatorName::Asinh | UntaggedOperatorName::Atan | UntaggedOperatorName::Atan2 | UntaggedOperatorName::Atanh 
+            UntaggedOperatorName::Acos | UntaggedOperatorName::Acosh | UntaggedOperatorName::Asin | UntaggedOperatorName::Asinh | UntaggedOperatorName::Atan | UntaggedOperatorName::Atan2 | UntaggedOperatorName::Atanh
             | UntaggedOperatorName::Cos | UntaggedOperatorName::Cosh | UntaggedOperatorName::DegreesToRadians | UntaggedOperatorName::Divide | UntaggedOperatorName::Exp | UntaggedOperatorName::Ln | UntaggedOperatorName::Log
             | UntaggedOperatorName::Log10 | UntaggedOperatorName::RadiansToDegrees | UntaggedOperatorName::Sin | UntaggedOperatorName::Sinh | UntaggedOperatorName::Sqrt | UntaggedOperatorName::Tan | UntaggedOperatorName::Tanh =>
                 get_decimal_double_or_nullish(args, state)
