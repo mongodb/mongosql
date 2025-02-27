@@ -482,8 +482,28 @@ impl DeriveSchema for Stage {
             Ok(state.result_set_schema.to_owned())
         }
 
+        fn add_fields_derive_schema(
+            add_fields: &LinkedHashMap<String, Expression>,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            for (field, expression) in add_fields.iter() {
+                let expr_schema = expression.derive_schema(state)?;
+                let path = field
+                    .split(".")
+                    .map(|s| s.to_string())
+                    .collect::<Vec<String>>();
+                insert_required_key_into_document(
+                    &mut state.result_set_schema,
+                    expr_schema,
+                    path,
+                    true,
+                );
+            }
+            Ok(state.result_set_schema.to_owned())
+        }
+
         match self {
-            Stage::AddFields(_) => todo!(),
+            Stage::AddFields(a) => add_fields_derive_schema(a, state),
             Stage::AtlasSearchStage(_) => todo!(),
             Stage::Bucket(_) => todo!(),
             Stage::BucketAuto(_) => todo!(),
@@ -502,7 +522,11 @@ impl DeriveSchema for Stage {
             Stage::Match(ref m) => m.derive_schema(state),
             Stage::Project(p) => project_derive_schema(p, state),
             Stage::Redact(_) => todo!(),
-            Stage::ReplaceWith(_) => todo!(),
+            Stage::ReplaceWith(r) => r
+                .to_owned()
+                .expression()
+                .derive_schema(state)
+                .map(|schema| Schema::simplify(&schema)),
             Stage::Sample(_) => todo!(),
             Stage::SetWindowFields(_) => todo!(),
             Stage::Skip(_) => todo!(),
@@ -1184,6 +1208,7 @@ fn get_decimal_double_or_nullish(
             Schema::Atomic(Atomic::Long),
         )),
     )?;
+    println!("{:?}, {:?}", args, state.null_behavior);
     let schema = match (decimal_satisfaction, numeric_satisfaction) {
         (Satisfaction::Must, _) | (Satisfaction::May, Satisfaction::Not) => {
             Schema::Atomic(Atomic::Decimal)
