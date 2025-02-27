@@ -248,9 +248,10 @@ impl DeriveSchema for Stage {
             }) = state.result_set_schema
             else {
                 // This should never actually happen
-                return Err(Error::InvalidResultSetSchema(
-                    state.result_set_schema.to_string(),
-                ));
+                panic!(
+                    "Found ResultSetSchema that is not a Document: {:?}",
+                    state.result_set_schema
+                );
             };
             keys.extend(current_keys.clone());
             Ok(Schema::Document(Document {
@@ -278,9 +279,10 @@ impl DeriveSchema for Stage {
             }) = state.result_set_schema
             else {
                 // This should never actually happen
-                return Err(Error::InvalidResultSetSchema(
-                    state.result_set_schema.to_string(),
-                ));
+                panic!(
+                    "Found ResultSetSchema that is not a Document: {:?}",
+                    state.result_set_schema
+                );
             };
             keys.extend(current_keys.clone());
             Ok(Schema::Document(Document {
