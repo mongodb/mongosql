@@ -28,6 +28,6 @@ impl Visitor for RemoveIdDesugarerVisitor {
                 .insert(id, ProjectItem::Exclusion)
                 .unwrap();
         }
-        node
+        node.walk(self)
     }
 }

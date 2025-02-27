@@ -296,13 +296,20 @@ impl DeriveSchema for Stage {
             project: &ProjectStage,
             state: &mut ResultSetState,
         ) -> Result<Schema> {
+            // If this is an exclusion $project, we can remove the fields from the schema and
+            // return
             if project
                 .items
                 .iter()
                 .all(|(k, p)| matches!(p, ProjectItem::Exclusion) || k == "_id")
             {
-                // TODO: handle exclusion $project stages
-                todo!();
+                project.items.iter().for_each(|(k, _)| {
+                    remove_field(
+                        &mut state.result_set_schema,
+                        k.split('.').map(|s| s.to_string()).collect(),
+                    );
+                });
+                return Ok(state.result_set_schema.to_owned());
             }
             // determine if the _id field should be included in the schema. This is the case, if the $project does not have _id: 0.
             let include_id = project

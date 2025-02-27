@@ -45,7 +45,6 @@ The following errors occur when something goes wrong while converting the SQL qu
 |---------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [Error 3002](#error-3002) | A SELECT list with multiple values cannot contain a non-namespaced `*` (i.e., `SELECT a, *, b FROM myTable` is not supported). A non-namespaced `*` must be used by itself.                                  |
 | [Error 3004](#error-3004) | The array data source contains an identifier. Array data sources must be constant.                                                                                                                           |
-| [Error 3005](#error-3005) | SELECT DISTINCT is not allowed.                                                                                                                                                                              |
 | [Error 3006](#error-3006) | Distinct UNION is not allowed.                                                                                                                                                                               |
 | [Error 3007](#error-3007) | A data source referenced in the SELECT list could not be found.                                                                                                                                              |
 | [Error 3008](#error-3008) | A field could not be found in any data source.                                                                                                                                                               |
@@ -211,12 +210,6 @@ The following errors occur when something goes wrong while using the excludeName
 - **Description:** The array data source contains references. Array data sources must be constant.
 - **Common Causes:** Accessing a field in an array data source as shown by this query: `SELECT * FROM [{'a': foo.a}] AS arr`.
 - **Resolution Steps:** Modify your array data source to only contain constants. Corrected example query: `SELECT * FROM [{'a': 34}] AS arr`.
-
-### Error 3005
-
-- **Description:** SELECT DISTINCT is not allowed.
-- **Common Causes:** `SELECT DISTINCT` was used in a query. For example, the query `SELECT DISTINCT * from foo` causes this error.
-- **Resolution Steps:** Don't use `SELECT DISTINCT` in a query.
 
 ### Error 3006
 
