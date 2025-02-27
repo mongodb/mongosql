@@ -649,6 +649,93 @@ mod graphlookup {
     );
 }
 
+mod project {
+    use super::*;
+
+    test_derive_stage_schema!(
+        project_simple,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "bar".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("_id".to_string(), "foo".to_string(), "bar".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo": 1, "bar": {"$concat": ["$foo", "hello"]}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "bar".to_string() => Schema::Atomic(Atomic::Integer),
+                "baz".to_string() => Schema::Atomic(Atomic::Boolean),
+            },
+            required: set!(
+                "_id".to_string(),
+                "foo".to_string(),
+                "bar".to_string(),
+                "baz".to_string()
+            ),
+            ..Default::default()
+        })
+    );
+    test_derive_stage_schema!(
+        project_remove_id,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "bar".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("foo".to_string(), "bar".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"_id": 0, "foo": 1, "bar": {"$concat": ["$foo", "hello"]}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "bar".to_string() => Schema::Atomic(Atomic::Integer),
+                "baz".to_string() => Schema::Atomic(Atomic::Boolean),
+            },
+            required: set!(
+                "_id".to_string(),
+                "foo".to_string(),
+                "bar".to_string(),
+                "baz".to_string()
+            ),
+            ..Default::default()
+        })
+    );
+    test_derive_stage_schema!(
+        project_exclude,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                "baz".to_string() => Schema::Atomic(Atomic::Boolean),
+            },
+            required: set!("_id".to_string(), "baz".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo": 0, "bar": 0}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "bar".to_string() => Schema::Atomic(Atomic::Integer),
+                "baz".to_string() => Schema::Atomic(Atomic::Boolean),
+            },
+            required: set!(
+                "_id".to_string(),
+                "foo".to_string(),
+                "bar".to_string(),
+                "baz".to_string()
+            ),
+            ..Default::default()
+        })
+    );
+}
+
 mod union {
     use super::*;
 
