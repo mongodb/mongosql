@@ -24,6 +24,8 @@ pub enum Error {
     InvalidLiteralType,
     #[error("Type value for convert invalid: {0}")]
     InvalidConvertTypeValue(String),
+    #[error("Cannot derive schema for unsupported group accumulator: {0}")]
+    InvalidGroupAccumulator(String),
     #[error("Invalid type {0} at argument index: {1}")]
     InvalidType(Schema, usize),
     #[error("Invalid expression {0:?} at argument named: {1}")]
