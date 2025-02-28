@@ -1494,7 +1494,10 @@ mod filter {
     );
     test_derive_expression_schema!(
         filter_error,
-        expected = Err(crate::Error::InvalidExpressionForField("Literal(String(\"foo\"))".to_string(), "input")),
+        expected = Err(crate::Error::InvalidExpressionForField(
+            "Literal(String(\"foo\"))".to_string(),
+            "input"
+        )),
         input = r#"{ "$filter": { "input": "foo", "as": "item", "cond": { "$gte": [ "$$item.price", 100 ] }}}"#
     );
 }
