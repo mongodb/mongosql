@@ -1048,7 +1048,36 @@ impl DeriveSchema for TaggedOperator {
                     set! {then_schema, else_schema},
                 )))
             }
-            TaggedOperator::Filter(_) => todo!(),
+            TaggedOperator::Filter(f) => {
+                let (array_schema, is_nullable) = match f.input.derive_schema(state)? {
+                    Schema::Array(a) => (*a, false),
+                    Schema::AnyOf(ao) => {
+                        let is_nullable = Schema::AnyOf(ao.clone()).satisfies(&NULLISH.clone())
+                            != Satisfaction::Not;
+                        if let Schema::Array(a) =
+                            Schema::AnyOf(ao).intersection(&Schema::Array(Box::new(Schema::Any)))
+                        {
+                            (*a, is_nullable)
+                        } else {
+                            panic!("input to filter must be array or null")
+                        }
+                    }
+                    _ => panic!("input to filter must be array or null"),
+                };
+                let var_name = f._as.clone().unwrap_or("this".to_string());
+                state.variables.insert(var_name.clone(), array_schema);
+                f.cond.derive_schema(state)?;
+                let filter_schema = state.variables.remove(&var_name);
+                if let Some(schema) = filter_schema {
+                    let mut schema = Schema::Array(Box::new(schema));
+                    if is_nullable {
+                        schema = schema.union(&Schema::Atomic(Atomic::Null))
+                    }
+                    Ok(schema)
+                } else {
+                    panic!()
+                }
+            }
             TaggedOperator::FirstN(_) => todo!(),
             TaggedOperator::Function(_) => todo!(),
             TaggedOperator::Integral(_) => todo!(),

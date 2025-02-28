@@ -1252,3 +1252,87 @@ mod convert {
         string_rep = "maxKey"
     );
 }
+
+mod filter {
+    use super::*;
+
+    test_derive_expression_schema!(
+        filter_simple,
+        expected = Ok(Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
+                "item_id".to_string() => Schema::Atomic(Atomic::Integer),
+                "quantity".to_string() => Schema::Atomic(Atomic::Integer),
+                "price".to_string() => Schema::Atomic(Atomic::Integer),
+                "name".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!(
+                "item_id".to_string(),
+                "quantity".to_string(),
+                "price".to_string(),
+                "name".to_string()
+            ),
+            ..Default::default()
+        })))),
+        input = r#"{ "$filter": { "input": "$items", "as": "item", "cond": { "$gte": [ "$$item.price", 100 ] }}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::Integer),
+                "items".to_string() => Schema::Array(Box::new(Schema::Document(Document {
+                    keys: map! {
+                        "item_id".to_string() => Schema::Atomic(Atomic::Integer),
+                        "quantity".to_string() => Schema::Atomic(Atomic::Integer),
+                        "price".to_string() => Schema::Atomic(Atomic::Integer),
+                        "name".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set!("item_id".to_string(), "quantity".to_string(), "price".to_string(), "name".to_string()),
+                    ..Default::default()
+                })))
+            },
+            required: set!("_id".to_string(), "items".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_expression_schema!(
+        filter_maybe_null,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Null),
+            Schema::Array(Box::new(Schema::Document(Document {
+                keys: map! {
+                    "item_id".to_string() => Schema::Atomic(Atomic::Integer),
+                    "quantity".to_string() => Schema::Atomic(Atomic::Integer),
+                    "price".to_string() => Schema::Atomic(Atomic::Integer),
+                    "name".to_string() => Schema::Atomic(Atomic::String),
+                },
+                required: set!(
+                    "item_id".to_string(),
+                    "quantity".to_string(),
+                    "price".to_string(),
+                    "name".to_string()
+                ),
+                ..Default::default()
+            })))
+        ))),
+        input = r#"{ "$filter": { "input": "$items", "as": "item", "cond": { "$gte": [ "$$item.price", 100 ] }}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::Integer),
+                "items".to_string() => Schema::AnyOf(set!(
+                    Schema::Array(Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "item_id".to_string() => Schema::Atomic(Atomic::Integer),
+                            "quantity".to_string() => Schema::Atomic(Atomic::Integer),
+                            "price".to_string() => Schema::Atomic(Atomic::Integer),
+                            "name".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("item_id".to_string(), "quantity".to_string(), "price".to_string(), "name".to_string()),
+                        ..Default::default()
+                    }))),
+                    Schema::Atomic(Atomic::Null)
+                ))
+            },
+            required: set!("_id".to_string()),
+            ..Default::default()
+        })
+    );
+}
