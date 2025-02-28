@@ -1652,36 +1652,6 @@ impl DeriveSchema for UntaggedOperator {
                     get_decimal_double_or_nullish(args, state)
                 }
             }
-            // avg can operate on both a field or an array; if we have a singular field we should use our
-            // existing logic for handling decimals. Otherwise, we should check the types of the array elements.
-            UntaggedOperatorName::Avg => {
-                if args.len() == 1 {
-                    if let Schema::Array(a) = args[0].derive_schema(state)? {
-                        let decimal_satisfaction = (*a).satisfies(&Schema::Atomic(Atomic::Decimal));
-                        let numeric_satisfaction = (*a).satisfies(&Schema::AnyOf(set!(
-                                Schema::Atomic(Atomic::Double),
-                                Schema::Atomic(Atomic::Integer),
-                                Schema::Atomic(Atomic::Long),
-                            )),
-                        );
-                        let schema = match (decimal_satisfaction, numeric_satisfaction) {
-                            (Satisfaction::Must, _) | (Satisfaction::May, Satisfaction::Not) => {
-                                Schema::Atomic(Atomic::Decimal)
-                            }
-                            (_, Satisfaction::Must) | (Satisfaction::Not, Satisfaction::May) => {
-                                Schema::Atomic(Atomic::Double)
-                            }
-                            (Satisfaction::May, Satisfaction::May) => Schema::AnyOf(set!(
-                                Schema::Atomic(Atomic::Double),
-                                Schema::Atomic(Atomic::Decimal)
-                            )),
-                            _ => Schema::Atomic(Atomic::Null),
-                        };
-                        return handle_null_satisfaction(args, state, schema)
-                    }
-                }
-                get_decimal_double_or_nullish(args, state)
-            }
             // window function operators
             UntaggedOperatorName::CovariancePop | UntaggedOperatorName::CovarianceSamp | UntaggedOperatorName::StdDevPop | UntaggedOperatorName::StdDevSamp => {
                 let input_schema = get_input_schema(&args, state)?;
