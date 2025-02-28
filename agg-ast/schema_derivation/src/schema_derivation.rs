@@ -1157,10 +1157,18 @@ impl DeriveSchema for TaggedOperator {
                         {
                             (*a, is_nullable)
                         } else {
-                            panic!("input to filter must be array or null")
+                            return Err(Error::InvalidExpressionForField(
+                                format!("{:?}", f.input),
+                                "input",
+                            ));
                         }
                     }
-                    _ => panic!("input to filter must be array or null"),
+                    _ => {
+                        return Err(Error::InvalidExpressionForField(
+                            format!("{:?}", f.input),
+                            "input",
+                        ))
+                    }
                 };
                 let var_name = f._as.clone().unwrap_or("this".to_string());
                 state.variables.insert(var_name.clone(), array_schema);
@@ -1172,8 +1180,9 @@ impl DeriveSchema for TaggedOperator {
                         schema = schema.union(&Schema::Atomic(Atomic::Null))
                     }
                     Ok(schema)
+                // this should be unreachable, since we manually add and remove the variable from the state
                 } else {
-                    panic!()
+                    Ok(Schema::Unsat)
                 }
             }
             TaggedOperator::FirstN(n) => Ok(Schema::Array(Box::new(n.input.derive_schema(state)?))),
