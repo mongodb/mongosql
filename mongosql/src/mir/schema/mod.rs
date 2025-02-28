@@ -719,16 +719,7 @@ impl CachedSchema for Stage {
                         // the set_field_schema method expects paths to be in reverse order
                         // of access. Rather than clone and then reverse in place, we just reverse
                         // as we clone to avoid one iterative pass.
-                        let mut path_fields = u
-                            .path
-                            .fields
-                            .iter()
-                            .map(|f| match f {
-                                UnwindField::Scalar(s) => s.clone(),
-                                UnwindField::Unwind(_) => todo!(),
-                            })
-                            .rev()
-                            .collect();
+                        let mut path_fields = u.path.fields.iter().cloned().rev().collect();
                         let updated_path_datasource_schema = set_field_schema(
                             path_datasource_schema.clone(),
                             &mut path_fields,
@@ -1105,28 +1096,6 @@ impl Expression {
             additional_properties: false,
             ..Default::default()
         }))
-    }
-}
-
-impl UnwindPath {
-    pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
-        let key_schema = state
-            .env
-            .get(&self.key)
-            .cloned()
-            .ok_or_else(|| Error::DatasourceNotFoundInSchemaEnv(self.key.clone()))?;
-        let mut schema = key_schema;
-        for field in &self.fields {
-            match field {
-                UnwindField::Scalar(s) => {
-                    schema = Expression::get_field_schema(&schema, s);
-                }
-                UnwindField::Unwind(_) => {
-                    todo!()
-                }
-            }
-        }
-        Ok(schema)
     }
 }
 

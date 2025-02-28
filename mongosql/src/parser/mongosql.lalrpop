@@ -88,14 +88,14 @@ FlattenOption: FlattenOption = {
 }
 
 UnwindDatasource: Datasource = {
-  UNWIND LEFT_PAREN <d:Datasource> <o:(WITH <CommaPlus<UnwindOption>>)?> RIGHT_PAREN => Datasource::Unwind(UnwindSource{datasource: Box::new(d), options: o.unwrap_or(vec![])})
+  UNWIND LEFT_PAREN <d:Datasource> <o:(WITH <CommaPlus<UnwindOption>>)?> RIGHT_PAREN => Datasource::ExtendedUnwind(ExtendedUnwindSource{datasource: Box::new(d), options: o.unwrap_or(vec![])})
 }
 
-UnwindOption: UnwindOption = {
-  PATH ARROW <p:Period<UnwindPathPart>> => UnwindOption::Paths(vec![p]),
-  PATH ARROW LEFT_PAREN <p:CommaPlus<Period<UnwindPathPart>>> RIGHT_PAREN => UnwindOption::Paths(p),
-  INDEX ARROW <i:Identifier> => UnwindOption::Index(i),
-  OUTER ARROW <o:Boolean> => UnwindOption::Outer(o)
+UnwindOption: ExtendedUnwindOption = {
+  PATH ARROW <p:PeriodPlus<UnwindPathPart>> => ExtendedUnwindOption::Paths(vec![p]),
+  PATH ARROW LEFT_PAREN <p:CommaPlus<PeriodPlus<UnwindPathPart>>> RIGHT_PAREN => ExtendedUnwindOption::Paths(p),
+  INDEX ARROW <i:Identifier> => ExtendedUnwindOption::Index(i),
+  OUTER ARROW <o:Boolean> => ExtendedUnwindOption::Outer(o)
 }
 
 // Only INDEX and OUTER are allowed on a PATH part. Putting a PATH in a PATH part
@@ -108,12 +108,10 @@ UnwindPathPartOption: UnwindPathPartOption = {
 UnwindPathPart: UnwindPathPart = {
     <i:Identifier> => UnwindPathPart {
         field: i, 
-        should_unwind: false,
         options: Vec::default(),
     },
-    <i:Identifier> LEFT_BRACKET <o:CommaPlus<UnwindPathPartOption>> RIGHT_BRACKET => UnwindPathPart {
+    <i:Identifier> <o:BracketList<CommaStar<UnwindPathPartOption>>> => UnwindPathPart {
         field: i, 
-        should_unwind: true,
         options: o,
     }
 }
@@ -743,15 +741,25 @@ CommaPlus<T>: Vec<T> = {
   }
 };
 
-Period<T>: Vec<T> = { // (1)
-    <mut v:(<T> DOT)*> <e:T?> => match e { // (2)
-        None => v,
-        Some(e) => {
-            v.push(e);
-            v
-        }
+// PeriodPlus matches <T>+ (1 or more instances of type T) separated by periods.
+PeriodPlus<T>: Vec<T> = { // (1)
+    <v:(<T> DOT)*> <e:T> => { // (2)
+       let mut v = v;
+       v.push(e);
+       v
     }
 };
+
+// BracketList matches [<T>]+ (1 or more instances of type T) surrounded by brackets and separated
+// by whitespace*.
+BracketList<T>: Vec<T> = {
+    <v:(LEFT_BRACKET <T> RIGHT_BRACKET)*> LEFT_BRACKET <e:T> RIGHT_BRACKET => { // (2)
+       let mut v = v;
+       v.push(e);
+       v
+    }
+};
+
 
 match {
   r"\s*" => { },

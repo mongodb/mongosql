@@ -132,7 +132,7 @@ pub struct Derived {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Unwind {
     pub source: Box<Stage>,
-    pub path: UnwindPath,
+    pub path: FieldPath,
     pub index: Option<String>,
     pub outer: bool,
     pub cache: SchemaCache<ResultSet>,
@@ -478,16 +478,6 @@ pub struct FieldAccess {
     pub field: String,
     #[new(value = "true")]
     pub is_nullable: bool,
-}
-
-impl FieldAccess {
-    pub(crate) fn get_key_if_pure(&self) -> Option<Key> {
-        match &*self.expr {
-            Expression::Reference(r) => Some(r.key.clone()),
-            Expression::FieldAccess(fa) => fa.get_key_if_pure(),
-            _ => None,
-        }
-    }
 }
 
 
@@ -1031,31 +1021,6 @@ impl TryFrom<&FieldAccess> for FieldPath {
                     return Err(());
                 }
             }
-        }
-    }
-}
-
-#[derive(PartialEq, Eq, Debug, Clone, Hash, new)]
-pub struct UnwindPath {
-    pub key: Key,
-    pub fields: Vec<UnwindField>,
-}
-
-#[derive(PartialEq, Eq, Debug, Clone, Hash, new)]
-pub enum UnwindField {
-    Scalar(String),
-    Unwind(String),
-}
-
-impl From<UnwindPath> for FieldPath {
-    fn from(u: UnwindPath) -> FieldPath {
-        FieldPath {
-            key: u.key,
-            fields: u.fields.into_iter().map(|f| match f {
-                UnwindField::Scalar(s) => s,
-                UnwindField::Unwind(s) => s,
-            }).collect(),
-            is_nullable: true,
         }
     }
 }

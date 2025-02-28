@@ -562,6 +562,7 @@ impl<'a> Algebrizer<'a> {
             ast::Datasource::Derived(d) => self.algebrize_derived_datasource(d),
             ast::Datasource::Flatten(f) => self.algebrize_flatten_datasource(f),
             ast::Datasource::Unwind(u) => self.algebrize_unwind_datasource(u),
+            ast::Datasource::ExtendedUnwind(_) => unreachable!("ExtendedUnwind must be rewritten"),
         }
     }
 
@@ -854,7 +855,7 @@ impl<'a> Algebrizer<'a> {
             u.options
                 .iter()
                 .fold(Ok((None, None, None)), |acc, opt| match opt {
-                    ast::UnwindOption::Paths(p) => match acc? {
+                    ast::UnwindOption::Path(p) => match acc? {
                         (Some(_), _, _) => Err(Error::DuplicateUnwindOption(opt.clone())),
                         (None, i, o) => Ok((Some(p.clone()), i, o)),
                     },
@@ -880,10 +881,7 @@ impl<'a> Algebrizer<'a> {
 
         let path = match path {
             None => return Err(Error::NoUnwindPath),
-            Some(mut e) => match e.len() {
-                1 => path_expression_algebrizer.algebrize_unwind_path(e.remove(0))?,
-                _ => todo!(),
-            },
+            Some(e) => path_expression_algebrizer.algebrize_unwind_path(e)?,
         };
 
         let stage = mir::Stage::Unwind(mir::Unwind {
@@ -901,39 +899,17 @@ impl<'a> Algebrizer<'a> {
 
     /// Ensure an unwind PATH is exactly a compound identifier.
     ///
-    /// TODO: Make this actually handle possible qualification, update comment
-    fn algebrize_unwind_path(&self, path: Vec<ast::UnwindPathPart>) -> Result<mir::UnwindPath> {
-        if path.is_empty() {
-            return Err(Error::InvalidUnwindPath);
-        }
-        let (key, skip) = match self.algebrize_unqualified_identifier(path[0].field.clone()) {
-            Ok(mir::Expression::FieldAccess(fa)) => {
-                (fa.get_key_if_pure().ok_or(Error::InvalidUnwindPath)?, 0)
-            }
-            Ok(_) => return Err(Error::InvalidUnwindPath),
-            Err(_) => {
-                let possible_key = Key::named(path[0].field.as_str(), self.scope_level);
-                if self.schema_env.get(&possible_key).is_none() {
-                    return Err(Error::NoSuchDatasource(possible_key.datasource.into()));
-                }
-                (possible_key, 1)
-            }
-        };
-
-        // TODO: check that field actually exists
-
-        let fields = path
-            .into_iter()
-            .skip(skip)
-            .map(|mut part| {
-                if part.should_unwind {
-                    mir::UnwindField::Unwind(std::mem::take(&mut part.field))
-                } else {
-                    mir::UnwindField::Scalar(std::mem::take(&mut part.field))
-                }
-            })
-            .collect::<Vec<_>>();
-        Ok(mir::UnwindPath { key, fields })
+    /// A compound identifier is defined in the MongoSQL grammar as
+    ///
+    ///   <compound identifer> ::= <identifier> ("." <compound identifier>)?
+    ///
+    /// so this includes the case when it is just a simple, single-part
+    /// identifier. Here, this means the algebrized expression is a FieldAccess
+    /// expression which consists of only other FieldAccess expressions up the
+    /// chain of exprs until it hits a Reference expression.
+    fn algebrize_unwind_path(&self, path: ast::Expression) -> Result<mir::FieldPath> {
+        let path = self.algebrize_expression(path, false)?;
+        (&path).try_into().map_err(|_| Error::InvalidUnwindPath)
     }
 
     #[allow(clippy::only_used_in_recursion)] // false positive

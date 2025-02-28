@@ -89,7 +89,7 @@ impl Group {
 impl Unwind {
     pub fn opaque_field_defines(&self) -> HashSet<FieldPath> {
         let mut ret = HashSet::new();
-        ret.insert(self.path.clone().into());
+        ret.insert(self.path.clone());
         if let Some(ref index) = self.index {
             let _ = ret.insert(FieldPath::new(self.path.key.clone(), vec![index.clone()]));
         }
