@@ -59,10 +59,10 @@ Here is an example of such a test, followed by a brief explanation:
 ```
 In this example, the query contains the expression `arg1 + arg2`, an addition operation.
 There is one map in the `valid_types` sequence. It indicates that `arg1` can be any
-numeric type, `NULL`, or missing; it also indicates that `arg2` can be any numeric type,
-`NULL`, or missing. Since these lists are included in the same map, that means any
-combination from the cross product of the lists is valid (i.e. `INT, INT`, `LONG, DECIMAL`,
-and `DOUBLE,  NULL` are all valid, among others).
+numeric type or `NULL`; it also indicates that `arg2` can be any numeric type or `NULL`.
+Since these lists are included in the same map, that means any combination from the cross
+product of the lists is valid (i.e. `INT, INT`, `LONG, DECIMAL`, and `DOUBLE,  NULL` are
+all valid, among others).
 
 #### How to Run
 The test runner for these test cases will substitute each argument in the query with a value

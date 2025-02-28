@@ -4,7 +4,7 @@ use crate::{
     catalog::Catalog,
     map, parser,
     schema::{Atomic, Document, Schema},
-    set, SchemaCheckingMode,
+    SchemaCheckingMode,
 };
 use itertools::Itertools;
 use lazy_static::lazy_static;
@@ -222,17 +222,21 @@ pub fn create_catalog(schemas: Vec<Schema>) -> Result<Catalog, Error> {
     let required = keys.keys().cloned().collect::<BTreeSet<String>>();
 
     // Every type constraint test uses either one or two datasources:
-    // 'foo' and/or 'bar'.
+    // 'foo' and/or 'bar'. For now, we simply include the same keys in
+    // both datasources. The fields are disambiguated in the test queries
+    // via namespacing. This set up is sufficient for all existing tests.
+    // Future implementors may have reason to have 'foo' and 'bar' diverge.
+    // If that happens, this framework could be updated accordingly.
     Ok(map! {
       (TEST_DB.to_string(), "foo".to_string()).into() => Schema::Document( Document {
-        keys,
-        required,
+        keys: keys.clone(),
+        required: required.clone(),
         additional_properties: false,
         ..Default::default()
         }),
       (TEST_DB.to_string(), "bar".to_string()).into() => Schema::Document( Document {
-        keys: map!{},
-        required: set!{},
+        keys,
+        required,
         additional_properties: false,
         ..Default::default()
         }),
