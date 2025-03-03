@@ -28,6 +28,23 @@ mod misc_ops {
         ))),
         input = r#"{ "$cond": [true, 1, "yes"] }"#
     );
+    // $shift
+    test_derive_expression_schema!(
+        shift_no_default_uses_null,
+        expected = Ok(Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+        })),
+        input = r#"{ "$shift": { "output": 1, "by": 1 } }"#
+    );
+    test_derive_expression_schema!(
+        shift_with_default,
+        expected = Ok(Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+        })),
+        input = r#"{ "$shift": { "output": 1, "by": 1, "default": "abc" } }"#
+    );
 }
 
 mod window_ops {

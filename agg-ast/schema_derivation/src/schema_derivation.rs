@@ -1214,7 +1214,14 @@ impl DeriveSchema for TaggedOperator {
                     Schema::Atomic(Atomic::String),
                 )
             }
-            TaggedOperator::Shift(_) => todo!(),
+            TaggedOperator::Shift(s) => {
+                let mut output_schema = s.output.derive_schema(state)?;
+                output_schema = match s.default.as_ref() {
+                    Some(default) => output_schema.union(&default.derive_schema(state)?),
+                    None => output_schema.union(&Schema::Atomic(Atomic::Null)),
+                };
+                Ok(output_schema)
+            }
             TaggedOperator::Subquery(_) => todo!(),
             TaggedOperator::SubqueryComparison(_) => todo!(),
             TaggedOperator::SubqueryExists(_) => todo!(),
