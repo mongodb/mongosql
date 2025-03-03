@@ -1112,4 +1112,48 @@ mod misc_ops {
             jaccard_index: None,
         })
     );
+    // $objectToArray
+    test_derive_expression_schema!(
+        object_to_array_empty,
+        expected = Ok(Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
+                "k".to_string() => Schema::Atomic(Atomic::String),
+                "v".to_string() => Schema::Unsat,
+            },
+            required: set! {"k".to_string(), "v".to_string()},
+            additional_properties: false,
+            jaccard_index: None,
+        })))),
+        input = r#"{"$objectToArray": {}}"#
+    );
+    test_derive_expression_schema!(
+        object_to_array_single,
+        expected = Ok(Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
+                "k".to_string() => Schema::Atomic(Atomic::String),
+                "v".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"k".to_string(), "v".to_string()},
+            additional_properties: false,
+            jaccard_index: None,
+        })))),
+        input = r#"{"$objectToArray": {"a": 1}}"#
+    );
+    test_derive_expression_schema!(
+        object_to_array_multiple,
+        expected = Ok(Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
+                "k".to_string() => Schema::Atomic(Atomic::String),
+                "v".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Boolean),
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Integer),
+                ))
+            },
+            required: set! {"k".to_string(), "v".to_string()},
+            additional_properties: false,
+            jaccard_index: None,
+        })))),
+        input = r#"{"$objectToArray": {"a": 1, "b": true, "c": "yes"}}"#
+    );
 }

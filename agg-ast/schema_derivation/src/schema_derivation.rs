@@ -1952,20 +1952,41 @@ impl DeriveSchema for UntaggedOperator {
                 )))
             }
             UntaggedOperatorName::ObjectToArray => {
-                let document_value_types = self.args.iter().try_fold(Schema::Unsat, |schema , arg| {
-                    let arg_schema = arg.derive_schema(state)?;
-                    Ok(match schema {
-                        Schema::Unsat => arg_schema,
-                        schema => schema.union(&arg_schema)
-                    })
-                })?;
-                let array_type = Schema::Array(Box::new(Schema::Document(Document { keys: map! {
-                        "k".to_string() => Schema::Atomic(Atomic::String),
-                        "v".to_string() => document_value_types
-                    },
-                    ..Default::default()
-                })));
-                Ok(handle_null_satisfaction(vec![args[0]], state, array_type)?)
+                let input_doc = match &self.args[0].derive_schema(state)? {
+                    Schema::Document(d) => Some(d.clone()),
+                    Schema::AnyOf(ao) => {
+                        let mut doc_type = None;
+                        for schema in ao.iter() {
+                            if let Schema::Document(d) = schema {
+                                doc_type = Some(d.clone());
+                                break;
+                            }
+                        }
+                        doc_type
+                    }
+                    Schema::Any => Some(Document::any()),
+                    _ => None
+                };
+                if let Some(d) = input_doc {
+                    let document_value_types = d.keys.into_iter().try_fold(Schema::Unsat, |schema , (_, arg_schema)| {
+                        Ok(match schema {
+                            Schema::Unsat => arg_schema,
+                            schema => schema.union(&arg_schema)
+                        })
+                    })?;
+                    let array_type = Schema::Array(Box::new(Schema::Document(Document { keys: map! {
+                            "k".to_string() => Schema::Atomic(Atomic::String),
+                            "v".to_string() => document_value_types
+                        },
+                        required: set!("k".to_string(), "v".to_string()),
+                        ..Default::default()
+                    })));
+                    Ok(handle_null_satisfaction(vec![args[0]], state, array_type)?)
+                } else {
+                    Err(Error::InvalidExpressionForField(
+                        format!("{:?}", self.args[0]),
+                        "object",))
+                }
             }
             UntaggedOperatorName::Sum => {
                 if args.len() == 1 {

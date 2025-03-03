@@ -3302,11 +3302,11 @@ mod array_ops {
         array_to_object_null,
         expected = Ok(Schema::Document(Document {
             keys: map! {
-                "foo".to_string() => Schema::Atomic(Atomic::Null)
+                "foo".to_string() => Schema::Array(Box::new(Schema::Array(Box::new(Schema::Atomic(Atomic::Null)))))
             },
             ..Default::default()
         })),
-        input = r#"{"$match": {"$expr": {"$eq": [null, {"$objectToArray": "$foo"}]}}}"#,
+        input = r#"{"$match": {"$expr": {"$eq": [null, {"$arrayToObject": "$foo"}]}}}"#,
         ref_schema = Schema::Any
     );
     test_derive_schema_for_match_stage!(
