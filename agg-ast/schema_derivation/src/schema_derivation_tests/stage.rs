@@ -164,6 +164,116 @@ mod add_fields {
     );
 }
 
+mod bucket {
+    use super::*;
+
+    test_derive_stage_schema!(
+        bucket_no_output,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::String),
+                "count".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long)
+                ))
+            },
+            required: set!("_id".to_string(), "count".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$bucket": {"groupBy": "$foo", "boundaries": ["hello", "world", "zod"], "buckets": 5}}"#,
+        ref_schema = Schema::Atomic(Atomic::String)
+    );
+    test_derive_stage_schema!(
+        bucket_no_output_and_default,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::AnyOf(
+                    set!{
+                        Schema::Atomic(Atomic::String),
+                        Schema::Atomic(Atomic::Integer),
+                    }),
+                "count".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long)
+                ))
+            },
+            required: set!("_id".to_string(), "count".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$bucket": {"groupBy": "$foo", "default": 1, "boundaries": ["hello", "world", "zod"], "buckets": 5}}"#,
+        ref_schema = Schema::Atomic(Atomic::String)
+    );
+    test_derive_stage_schema!(
+        bucket_with_output,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::String),
+                "c".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal)
+                )),
+                "values".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::String)))
+            },
+            required: set!("_id".to_string(), "c".to_string(), "values".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$bucket": {"groupBy": "$foo", "boundaries": ["hello", "world", "zod"], "output": {"c": {"$sum": 1}, "values": {"$push": "$foo"}}}}"#,
+        ref_schema = Schema::Atomic(Atomic::String)
+    );
+
+    test_derive_stage_schema!(
+        bucket_auto_no_output,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "min".to_string() => Schema::Atomic(Atomic::String),
+                        "max".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set!("min".to_string(), "max".to_string()),
+                    ..Default::default()
+                }),
+                "count".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long)
+                ))
+            },
+            required: set!("_id".to_string(), "count".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$bucketAuto": {"groupBy": "$foo", "buckets": 5}}"#,
+        ref_schema = Schema::Atomic(Atomic::String)
+    );
+    test_derive_stage_schema!(
+        bucket_auto_with_output,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "min".to_string() => Schema::Atomic(Atomic::String),
+                        "max".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set!("min".to_string(), "max".to_string()),
+                    ..Default::default()
+                }),
+                "c".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal)
+                )),
+                "values".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::String)))
+            },
+            required: set!("_id".to_string(), "c".to_string(), "values".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$bucketAuto": {"groupBy": "$foo", "buckets": 5, "output": {"c": {"$sum": 1}, "values": {"$push": "$foo"}}}}"#,
+        ref_schema = Schema::Atomic(Atomic::String)
+    );
+}
+
 mod collection {
     use super::*;
 
