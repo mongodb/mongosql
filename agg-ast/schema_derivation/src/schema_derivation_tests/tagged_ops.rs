@@ -45,6 +45,23 @@ mod misc_ops {
         })),
         input = r#"{ "$shift": { "output": 1, "by": 1, "default": "abc" } }"#
     );
+
+    // $switch
+    test_derive_expression_schema!(
+        switch,
+        expected = Ok(Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+        })),
+        input = r#"{ "$switch": {
+                        "branches": [
+                            { "case": false, "then": 1 },
+                            { "case": true, "then": "yes" }
+                        ],
+                        "default": null
+        }}"#
+    );
 }
 
 mod window_ops {

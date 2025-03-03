@@ -1225,7 +1225,13 @@ impl DeriveSchema for TaggedOperator {
             TaggedOperator::Subquery(_) => todo!(),
             TaggedOperator::SubqueryComparison(_) => todo!(),
             TaggedOperator::SubqueryExists(_) => todo!(),
-            TaggedOperator::Switch(_) => todo!(),
+            TaggedOperator::Switch(s) => {
+                let mut schema = s.default.derive_schema(state)?;
+                for branch in s.branches.iter() {
+                    schema = schema.union(&branch.then.derive_schema(state)?);
+                }
+                Ok(schema)
+            }
             TaggedOperator::Top(t) => t.output.derive_schema(state),
             TaggedOperator::TopN(t) => Ok(Schema::Array(Box::new(t.output.derive_schema(state)?))),
             TaggedOperator::Zip(z) => {
