@@ -3302,7 +3302,7 @@ mod array_ops {
         array_to_object_null,
         expected = Ok(Schema::Document(Document {
             keys: map! {
-                "foo".to_string() => Schema::Array(Box::new(Schema::Array(Box::new(Schema::Atomic(Atomic::Null)))))
+                "foo".to_string() => Schema::Atomic(Atomic::Null)
             },
             ..Default::default()
         })),

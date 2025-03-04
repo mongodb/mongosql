@@ -1134,7 +1134,6 @@ impl DeriveSchema for TaggedOperator {
                 remove_field(&mut input_schema, vec![u.field.clone()]);
                 Ok(input_schema)
             }
-            TaggedOperator::Accumulator(_) => todo!(),
             TaggedOperator::Bottom(b) => b.output.derive_schema(state),
             TaggedOperator::BottomN(b) => {
                 Ok(Schema::Array(Box::new(b.output.derive_schema(state)?)))
@@ -1148,12 +1147,10 @@ impl DeriveSchema for TaggedOperator {
             }
             TaggedOperator::Filter(_) => todo!(),
             TaggedOperator::FirstN(n) => Ok(Schema::Array(Box::new(n.input.derive_schema(state)?))),
-            TaggedOperator::Function(_) => todo!(),
             TaggedOperator::Integral(i) => {
                 get_decimal_double_or_nullish(vec![i.input.as_ref()], state)
             }
             TaggedOperator::LastN(n) => Ok(Schema::Array(Box::new(n.input.derive_schema(state)?))),
-            TaggedOperator::Like(_) => todo!(),
             TaggedOperator::Map(m) => {
                 let var = m._as.clone();
                 let var = var.unwrap_or("this".to_string());
@@ -1222,9 +1219,6 @@ impl DeriveSchema for TaggedOperator {
                 };
                 Ok(output_schema)
             }
-            TaggedOperator::Subquery(_) => todo!(),
-            TaggedOperator::SubqueryComparison(_) => todo!(),
-            TaggedOperator::SubqueryExists(_) => todo!(),
             TaggedOperator::Switch(s) => {
                 let mut schema = s.default.derive_schema(state)?;
                 for branch in s.branches.iter() {
@@ -1307,9 +1301,14 @@ impl DeriveSchema for TaggedOperator {
                 args: vec![(*s.var).clone()],
             }
             .derive_schema(state),
-            TaggedOperator::SQLConvert(_) | TaggedOperator::SQLDivide(_) => {
-                Err(Error::InvalidTaggedOperator(self.clone()))
-            }
+            TaggedOperator::Accumulator(_)
+            | TaggedOperator::Function(_)
+            | TaggedOperator::Like(_)
+            | TaggedOperator::SQLConvert(_)
+            | TaggedOperator::SQLDivide(_)
+            | TaggedOperator::Subquery(_)
+            | TaggedOperator::SubqueryComparison(_)
+            | TaggedOperator::SubqueryExists(_) => Err(Error::InvalidTaggedOperator(self.clone())),
         }
     }
 }
@@ -1721,7 +1720,12 @@ impl DeriveSchema for UntaggedOperator {
             UntaggedOperatorName::ArrayToObject => {
                 // We could only know the keys, if we have the entire array.
                 // We may consider making this more precise for array literals.
-                Ok(Schema::Document(Document::any()))
+                // For now, just return any document while capturing nullability
+                let schema = self.args[0].derive_schema(state)?;
+                Ok(match schema.intersection(&NULLISH.clone()) {
+                    Schema::Unsat => Schema::Document(Document::any()),
+                    nullish_schema => Schema::simplify(&nullish_schema.union(&Schema::Document(Document::any()))),
+                })
             }
             UntaggedOperatorName::ConcatArrays | UntaggedOperatorName::SetUnion => {
                 let mut array_schema = Schema::Unsat;
