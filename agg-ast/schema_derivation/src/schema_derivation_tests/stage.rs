@@ -1380,4 +1380,25 @@ mod unset_fields {
             ..Default::default()
         })
     );
+
+    test_derive_stage_schema!(
+        unset_non_existing_field,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "y".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("x".to_string(), "y".to_string(),),
+            ..Default::default()
+        })),
+        input = r#"{ "$unset": "z"}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "y".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("x".to_string(), "y".to_string(),),
+            ..Default::default()
+        })
+    );
 }
