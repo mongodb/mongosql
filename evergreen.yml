@@ -137,7 +137,6 @@ functions:
           echo --------- Cargo version ---------
           cargo --version
           echo ---------------------------------
-          fi
 
   "set and check packages version":
     - command: shell.exec
