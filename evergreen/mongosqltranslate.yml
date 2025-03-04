@@ -310,6 +310,68 @@ functions:
         content_type: application/octet-stream
         display_name: libmongosqltranslate-signed.dylib
 
+  "trace artifacts":
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          mkdir papertrail
+    - command: s3.get
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/papertrail/libmongosqltranslate-v${release_version}-macos-x86_64.dylib
+        remote_file: mongosqltranslate/libmongosqltranslate-v${release_version}-macos-x86_64.dylib
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+    - command: s3.get
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/papertrail/libmongosqltranslate-v${release_version}-macos-arm.dylib
+        remote_file: mongosqltranslate/libmongosqltranslate-v${release_version}-macos-arm.dylib
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+    - command: s3.get
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/papertrail/libmongosqltranslate-v${release_version}-linux-x86_64.so
+        remote_file: mongosqltranslate/libmongosqltranslate-v${release_version}-linux-x86_64.so
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+    - command: s3.get
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/papertrail/libmongosqltranslate-v${release_version}-linux-arm.so
+        remote_file: mongosqltranslate/libmongosqltranslate-v${release_version}-linux-arm.so
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+    - command: s3.get
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/papertrail/mongosqltranslate-v${release_version}-win-x86_64.dll
+        remote_file: mongosqltranslate/mongosqltranslate-v${release_version}-win-x86_64.dll
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+    - command: papertrail.trace
+      params:
+        work_dir: mongosql-rs
+        key_id: ${mongosql_papertrail_id}
+        secret_key: ${mongosql_papertrail_key}
+        product: libmongosqltranslate
+        version: ${release_version}
+        filenames:
+          - papertrail/*
+
 tasks:
   - name: mongosqltranslate-release
     tags: ["snapshot", "release"]
@@ -323,6 +385,13 @@ tasks:
         variant: ".mongosqltranslate-release-variant"
     commands:
       - func: "upload mongosqltranslate release"
+
+  - name: trace-artifacts
+    git_tag_only: true
+    depends_on:
+      - name: mongosqltranslate-release
+    commands:
+      - func: "trace artifacts"
 
   - name: test-mongosqltranslate
     depends_on:
@@ -373,6 +442,7 @@ buildvariants:
     run_on: [ubuntu2004-large]
     tasks:
       - name: mongosqltranslate-release
+      - name: trace-artifacts
 
   - name: mongosqltranslate-macos
     tags: ["mongosqltranslate-release-variant"]
