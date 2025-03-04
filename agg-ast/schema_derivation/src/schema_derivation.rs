@@ -1194,10 +1194,11 @@ impl DeriveSchema for TaggedOperator {
                 if input_schema.satisfies(&NULLISH.clone()) == Satisfaction::Must {
                     return Ok(Schema::Atomic(Atomic::Null));
                 }
-                let array_schema = array_element_schema_or_error!(input_schema.clone(), m.input);
+                let array_element_schema =
+                    array_element_schema_or_error!(input_schema.clone(), m.input);
                 let mut new_state = state.clone();
                 let mut variables = state.variables.clone();
-                variables.insert(var, array_schema);
+                variables.insert(var, array_element_schema);
                 new_state.variables = variables;
                 let not_null_schema =
                     Schema::Array(Box::new(m.inside.derive_schema(&mut new_state)?))
@@ -1224,11 +1225,12 @@ impl DeriveSchema for TaggedOperator {
                 if input_schema.satisfies(&NULLISH.clone()) == Satisfaction::Must {
                     return Ok(Schema::Atomic(Atomic::Null));
                 }
-                let array_schema = array_element_schema_or_error!(input_schema.clone(), r.input);
+                let array_element_schema =
+                    array_element_schema_or_error!(input_schema.clone(), r.input);
                 let initial_schema = r.initial_value.derive_schema(state)?;
                 let mut new_state = state.clone();
                 let mut variables = state.variables.clone();
-                variables.insert("this".to_string(), array_schema);
+                variables.insert("this".to_string(), array_element_schema);
                 variables.insert("value".to_string(), initial_schema);
                 new_state.variables = variables;
                 if input_schema.satisfies(&NULLISH.clone()) == Satisfaction::Not {
