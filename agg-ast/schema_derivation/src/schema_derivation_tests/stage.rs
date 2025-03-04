@@ -180,7 +180,7 @@ mod bucket {
             required: set!("_id".to_string(), "count".to_string()),
             ..Default::default()
         })),
-        input = r#"{"$bucket": {"groupBy": "$foo", "boundaries": ["hello", "world", "zod"], "buckets": 5}}"#,
+        input = r#"{"$bucket": {"groupBy": "$foo", "boundaries": ["hello", "world", "zod"]}}"#,
         ref_schema = Schema::Atomic(Atomic::String)
     );
     test_derive_stage_schema!(
@@ -200,7 +200,7 @@ mod bucket {
             required: set!("_id".to_string(), "count".to_string()),
             ..Default::default()
         })),
-        input = r#"{"$bucket": {"groupBy": "$foo", "default": 1, "boundaries": ["hello", "world", "zod"], "buckets": 5}}"#,
+        input = r#"{"$bucket": {"groupBy": "$foo", "default": 1, "boundaries": ["hello", "world", "zod"]}}"#,
         ref_schema = Schema::Atomic(Atomic::String)
     );
     test_derive_stage_schema!(
