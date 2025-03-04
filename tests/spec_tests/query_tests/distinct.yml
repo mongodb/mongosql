@@ -200,6 +200,14 @@ tests:
       - {'bar': {'a': 2, 'b': 4}}
       - {'bar': {'a': 2, 'b': 4, 'c': 1}}
 
+  - description: "UNION distinct with same value order"
+    current_db: "db"
+    query: "SELECT a,b FROM foo UNION SELECT a,b FROM bar"
+    result:
+      - {'': {'a': 1, 'b': 2}}
+      - {'': {'a': 2, 'b': 2}}
+      - {'': {'a': 2, 'b': 4}}
+
   - description: "UNION distinct with mixed value order"
     current_db: "db"
     query: "SELECT a,b FROM foo UNION SELECT b,a FROM bar"
