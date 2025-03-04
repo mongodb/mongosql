@@ -7472,30 +7472,8 @@ mod set_query {
             source: Box::new(mir::Stage::Group(mir::Group {
                 source: Box::new(mir::Stage::Set(mir::Set {
                     operation: mir::SetOperation::UnionAll,
-                    left: Box::new(mir::Stage::Project(mir::Project {
-                        source: Box::new(mir::Stage::Collection(mir::Collection {
-                            db: "test".into(),
-                            collection: "foo".into(),
-                            cache: SchemaCache::new()
-                        })),
-                        expression: map! {
-                            (DatasourceName::Named("foo".into()), 0u16).into() => mir::Expression::Reference((DatasourceName::Named("foo".into()), 0u16).into())
-                        },
-                        is_add_fields: false,
-                        cache: SchemaCache::new()
-                    })),
-                    right: Box::new(mir::Stage::Project(mir::Project {
-                        source: Box::new(mir::Stage::Collection(mir::Collection {
-                            db: "test".into(),
-                            collection: "bar".into(),
-                            cache: SchemaCache::new()
-                        })),
-                        expression: map! {
-                            (DatasourceName::Named("bar".into()), 0u16).into() => mir::Expression::Reference((DatasourceName::Named("bar".into()), 0u16).into())
-                        },
-                        is_add_fields: false,
-                        cache: SchemaCache::new()
-                    })),
+                    left: Box::new(mir_source_foo()),
+                    right: Box::new(mir_source_bar()),
                     cache: SchemaCache::new()
                 })),
                 keys: vec![
