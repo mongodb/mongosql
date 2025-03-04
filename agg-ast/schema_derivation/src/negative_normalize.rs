@@ -291,9 +291,9 @@ impl NegativeNormalize<MatchExpression> for MatchExpression {
                     UntaggedOperatorName::Not => MatchExpression::Expr(MatchExpr {
                         expr: Box::new(untagged_operator.args[0].get_negation()),
                     }),
+                    UntaggedOperatorName::Cond => todo!(),
                     _ => self.clone(),
                 },
-                Expression::TaggedOperator(TaggedOperator::Cond(_)) => todo!(),
                 _ => self.clone(),
             },
             MatchExpression::Logical(logical) => logical.get_negative_normal_form(),
