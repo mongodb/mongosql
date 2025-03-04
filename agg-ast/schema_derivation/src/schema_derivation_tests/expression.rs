@@ -248,3 +248,357 @@ mod document {
         input = r#"{"a": 1, "b": {"c": "hi", "d": [false]}}"#
     );
 }
+
+mod group_accumulator {
+    use super::*;
+
+    test_derive_expression_schema!(
+        first,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))),
+        input = r#"{"$first": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        last,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))),
+        input = r#"{"$last": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        max,
+        expected = Ok(Schema::Atomic(Atomic::String)),
+        input = r#"{"$max": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        min,
+        expected = Ok(Schema::Atomic(Atomic::Integer)),
+        input = r#"{"$min": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        avg,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = r#"{"$avg": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Double),
+        ))
+    );
+    test_derive_expression_schema!(
+        avg_decimal,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+        ))),
+        input = r#"{"$avg": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Decimal)
+        ))
+    );
+    test_derive_expression_schema!(
+        avg_or_nullish,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$avg": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing,
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        avg_decimal_or_nullish,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$avg": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing,
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Decimal)
+        ))
+    );
+    test_derive_expression_schema!(
+        sum,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal)
+        ))),
+        input = r#"{"$sum": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        sum_double,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal)
+        ))),
+        input = r#"{"$sum": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        push,
+        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))))),
+        input = r#"{"$push": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        add_to_set,
+        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))))),
+        input = r#"{"$addToSet": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        std_dev_pop,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null)
+        ))),
+        input = r#"{"$stdDevPop": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        std_dev_samp,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null)
+        ))),
+        input = r#"{"$stdDevSamp": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        std_dev_pop_or_nullish,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$stdDevPop": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing
+        ))
+    );
+    test_derive_expression_schema!(
+        std_dev_samp_or_nullish,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$stdDevSamp": "$foo"}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing
+        ))
+    );
+    test_derive_expression_schema!(
+        merge_objects,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("a".to_string(), "b".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$mergeObjects": "$foo"}"#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("a".to_string(), "b".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_expression_schema!(
+        sql_first,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))),
+        input = r#"{"$sqlFirst": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        sql_last,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))),
+        input = r#"{"$sqlLast": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        sql_max,
+        expected = Ok(Schema::Atomic(Atomic::String)),
+        input = r#"{"$sqlMax": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        sql_min,
+        expected = Ok(Schema::Atomic(Atomic::Integer)),
+        input = r#"{"$sqlMin": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        sql_avg,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = r#"{"$sqlAvg": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(Schema::Atomic(Atomic::Integer),))
+    );
+    test_derive_expression_schema!(
+        sql_avg_decimal,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$sqlAvg": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Decimal)
+        ))
+    );
+    test_derive_expression_schema!(
+        sql_sum,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal)
+        ))),
+        input = r#"{"$sqlSum": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        sql_count,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ))),
+        input = r#"{"$sqlCount": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        sql_std_dev_pop,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null)
+        ))),
+        input =
+            r#"{"$sqlStdDevPop": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        sql_std_dev_samp,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null)
+        ))),
+        input = r#"{"$sqlStdDevSamp": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))
+    );
+    test_derive_expression_schema!(
+        sql_merge_objects,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("a".to_string(), "b".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$sqlMergeObjects": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("a".to_string(), "b".to_string()),
+            ..Default::default()
+        })
+    );
+}

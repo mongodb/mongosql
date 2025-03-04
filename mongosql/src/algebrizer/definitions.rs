@@ -1,4 +1,3 @@
-use crate::schema::ANY_DOCUMENT;
 use crate::{
     algebrizer::errors::Error,
     ast::{self, pretty_print::PrettyPrint},
@@ -8,11 +7,11 @@ use crate::{
         self,
         binding_tuple::{BindingTuple, DatasourceName, Key},
         schema::{CachedSchema, SchemaCache, SchemaInferenceState},
-        FieldAccess,
+        AliasedExpr, Expression, FieldAccess, OptionallyAliasedExpr, ReferenceExpr,
     },
     schema::{
-        self, Satisfaction, SchemaEnvironment, BOOLEAN_OR_NULLISH, INTEGER_LONG_OR_NULLISH,
-        INTEGER_OR_NULLISH, NULLISH, STRING_OR_NULLISH,
+        self, Satisfaction, SchemaEnvironment, ANY_DOCUMENT, BOOLEAN_OR_NULLISH,
+        INTEGER_LONG_OR_NULLISH, INTEGER_OR_NULLISH, NULLISH, STRING_OR_NULLISH,
     },
     util::unique_linked_hash_map::UniqueLinkedHashMap,
     SchemaCheckingMode,
@@ -385,11 +384,12 @@ impl<'a> Algebrizer<'a> {
         exprs: Vec<ast::SelectValuesExpression>,
         source: mir::Stage,
         is_add_fields: bool,
+        is_distinct: bool,
     ) -> Result<mir::Stage> {
         let expression_algebrizer = self.clone();
         // Algebrization for every node that has a source should get the schema for the source.
         // The SchemaEnvironment from the source is merged into the SchemaEnvironment from the
-        // current Algebrizer, correctly giving us the the correlated bindings with the bindings
+        // current Algebrizer, correctly giving us the correlated bindings with the bindings
         // available from the current query level.
         #[allow(unused_variables)]
         let expression_algebrizer = expression_algebrizer
@@ -476,14 +476,69 @@ impl<'a> Algebrizer<'a> {
         }
 
         // Build the Project Stage using the source and built expression.
-        let stage = mir::Stage::Project(mir::Project {
+        let project_stage = mir::Stage::Project(mir::Project {
             source: Box::new(source),
-            expression,
+            expression: expression.clone(),
             is_add_fields,
             cache: SchemaCache::new(),
         });
-        stage.schema(&self.schema_inference_state())?;
-        Ok(stage)
+        project_stage.schema(&self.schema_inference_state())?;
+        Ok(if is_distinct {
+            let distinct_stages = Self::build_distinct_values_group_and_project_stage(
+                project_stage,
+                self.scope_level,
+                datasources,
+            );
+            distinct_stages.schema(&self.schema_inference_state())?;
+            distinct_stages
+        } else {
+            project_stage
+        })
+    }
+
+    pub fn build_distinct_values_group_and_project_stage(
+        source_stage: mir::Stage,
+        scope_level: u16,
+        datasources: BTreeSet<Key>,
+    ) -> mir::Stage {
+        let mut group_keys = Vec::new();
+        let mut project_expressions = BindingTuple::new();
+
+        for (counter, key) in datasources.iter().enumerate() {
+            let group_alias = format!("__groupKey{}", counter);
+
+            group_keys.push(OptionallyAliasedExpr::Aliased(AliasedExpr {
+                alias: group_alias.clone(),
+                expr: Expression::Reference(ReferenceExpr { key: key.clone() }),
+            }));
+            project_expressions.insert(
+                key.clone(),
+                Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(ReferenceExpr {
+                        key: Key::bot(scope_level),
+                    })),
+                    field: group_alias,
+                    // Setting is_nullable to true because the result set coming into the
+                    // SELECT DISTINCT clause could be empty.
+                    is_nullable: true,
+                }),
+            );
+        }
+
+        let group_stage = mir::Stage::Group(mir::Group {
+            source: Box::new(source_stage),
+            keys: group_keys,
+            aggregations: vec![],
+            cache: Default::default(),
+            scope: scope_level,
+        });
+
+        mir::Stage::Project(mir::Project {
+            source: Box::new(group_stage),
+            expression: project_expressions,
+            is_add_fields: false,
+            cache: Default::default(),
+        })
     }
 
     pub fn algebrize_from_clause(&self, ast_node: Option<ast::Datasource>) -> Result<mir::Stage> {
@@ -918,30 +973,101 @@ impl<'a> Algebrizer<'a> {
         is_add_fields: bool,
     ) -> Result<mir::Stage> {
         *self.clause_type.borrow_mut() = ClauseType::Select;
-        match ast_node.set_quantifier {
-            ast::SetQuantifier::All => (),
-            ast::SetQuantifier::Distinct => return Err(Error::DistinctSelect),
-        };
 
-        match ast_node.body {
-            // Standard Select bodies must be only *, otherwise this is an
-            // error.
-            ast::SelectBody::Standard(exprs) => match exprs.as_slice() {
-                [ast::SelectExpression::Star] => {
-                    source.schema(&self.schema_inference_state())?;
-                    Ok(source)
+        match ast_node.set_quantifier {
+            ast::SetQuantifier::All => match ast_node.body {
+                // Standard Select bodies must be only *, otherwise this is an
+                // error.
+                ast::SelectBody::Standard(exprs) => match exprs.as_slice() {
+                    [ast::SelectExpression::Star] => {
+                        source.schema(&self.schema_inference_state())?;
+                        Ok(source)
+                    }
+                    _ => Err(Error::NonStarStandardSelectBody),
+                },
+                // SELECT VALUES expressions must be Substar expressions or normal Expressions that are
+                // Documents, i.e., that have Schema that Must satisfy ANY_DOCUMENT.
+                //
+                // All normal Expressions will be mapped as Datasource Bottom, and all Substars will be mapped
+                // as their name as a Datasource.
+                ast::SelectBody::Values(exprs) => {
+                    self.algebrize_select_values_body(exprs, source, is_add_fields, false)
                 }
-                _ => Err(Error::NonStarStandardSelectBody),
             },
-            // SELECT VALUES expressions must be Substar expressions or normal Expressions that are
-            // Documents, i.e., that have Schema that Must satisfy ANY_DOCUMENT.
-            //
-            // All normal Expressions will be mapped as Datasource Bottom, and all Substars will be mapped
-            // as their name as a Datasource.
-            ast::SelectBody::Values(exprs) => {
-                self.algebrize_select_values_body(exprs, source, is_add_fields)
+            ast::SetQuantifier::Distinct => match ast_node.body {
+                ast::SelectBody::Standard(exprs) => match exprs.as_slice() {
+                    [ast::SelectExpression::Star] => {
+                        self.build_distinct_star_group_and_project_stage(source)
+                    }
+                    _ => Err(Error::NonStarStandardSelectBody),
+                },
+                ast::SelectBody::Values(exprs) => {
+                    self.algebrize_select_values_body(exprs, source, is_add_fields, true)
+                }
+            },
+        }
+    }
+
+    fn build_distinct_star_group_and_project_stage(
+        &self,
+        source: mir::Stage,
+    ) -> Result<mir::Stage> {
+        let source_result_set = source.schema(&self.schema_inference_state())?;
+
+        let mut datasource_counter = 0;
+        let mut datasources = Vec::new();
+
+        // Identify data sources from the result set schema
+        for key in source_result_set.schema_env.keys() {
+            if key.scope == self.scope_level {
+                let group_key_name = format!("__groupKey{datasource_counter}");
+                datasources.push((group_key_name, key.clone()));
+                datasource_counter += 1;
             }
         }
+        let group_keys: Vec<OptionallyAliasedExpr> = datasources
+            .iter()
+            .map(|(group_key_name, key)| {
+                OptionallyAliasedExpr::Aliased(AliasedExpr {
+                    alias: group_key_name.clone(),
+                    expr: Expression::Reference(ReferenceExpr { key: key.clone() }),
+                })
+            })
+            .collect();
+
+        // Adding the group stage to deduplicate rows
+        let group_stage = mir::Stage::Group(mir::Group {
+            source: Box::new(source),
+            keys: group_keys,
+            aggregations: vec![],
+            cache: SchemaCache::new(),
+            scope: self.scope_level,
+        });
+
+        let mut expression = BindingTuple::new();
+        for (group_key_name, key) in &datasources {
+            expression.insert(
+                key.clone(),
+                Expression::FieldAccess(FieldAccess {
+                    // Group stages always output fields under the Bottom datasource
+                    expr: Box::new(Expression::Reference(ReferenceExpr {
+                        key: Key::bot(self.scope_level),
+                    })),
+                    field: group_key_name.clone().to_string(),
+                    // Setting is_nullable to true because the result set coming into the
+                    // SELECT DISTINCT clause could be empty.
+                    is_nullable: true,
+                }),
+            );
+        }
+        // Create the final project stage to output the original data sources
+        let project = mir::Stage::Project(mir::Project {
+            source: Box::new(group_stage),
+            expression,
+            is_add_fields: false,
+            cache: SchemaCache::new(),
+        });
+        Ok(project)
     }
 
     // This function is used to algebrize a Select and Order By clause together. This is necessary

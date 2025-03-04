@@ -86,17 +86,17 @@ tests:
     should_compile: false
     algebrize_error: 'Error 3002: standard SELECT expressions can only contain *'
 
+  - description: Error 3002 NonStarStandardSelectBody for DISTINCT
+    query: "SELECT DISTINCT *, a from foo"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3002: standard SELECT expressions can only contain *'
+
   - description: Error 3004 ArrayDatasourceMustBeLiteral
     query: "SELECT * FROM [{'a': foo.a}] AS arr"
     current_db: db
     should_compile: false
     algebrize_error: "Error 3004: array datasource must be constant"
-
-  - description: Error 3005 DistinctSelect
-    query: "SELECT DISTINCT * from foo"
-    current_db: db
-    should_compile: false
-    algebrize_error: 'Error 3005: SELECT DISTINCT not allowed'
 
   - description: Error 3006 DistinctUnion
     query: "SELECT a FROM foo AS foo UNION SELECT b, c FROM bar AS bar"

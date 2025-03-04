@@ -120,8 +120,8 @@ tests:
     query: "SELECT * FROM UNWIND(foo.biz WITH PATH => foo) WHERE foo = 2"
     current_db: test
     result:
-      - {'bar': {'_id': 0, 'foo': 2}}
-      - {'bar': {'_id': 3, 'foo': 2}}
+      - {'biz': {'_id': 0, 'foo': 2}}
+      - {'biz': {'_id': 3, 'foo': 2}}
 
   - description: WHERE after FLATTEN UNWIND returns expected results
     query: "SELECT * FROM FLATTEN(UNWIND(foo.nested WITH PATH => foo.bar)) WHERE foo_bar = 2"

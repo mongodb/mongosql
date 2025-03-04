@@ -246,13 +246,13 @@ test_negation!(
 
 test_negation!(
     all_elements_true,
-    expected = r#"{"$expr": {"$allElementsTrue": "$x"}}"#,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$allElementsTrue": "$x"}, null]}, {"$eq": [{"$allElementsTrue": "$x"}, false]}]}}"#,
     input = r#"{"$expr": {"$allElementsTrue": "$x"}}"#
 );
 
 test_negation!(
     any_element_true,
-    expected = r#"{"$expr": {"$anyElementTrue": "$x"}}"#,
+    expected = r#"{"$expr": {"$or": [{"$lte": [{"$anyElementTrue": "$x"}, null]}, {"$eq": [{"$anyElementTrue": "$x"}, false]}]}}"#,
     input = r#"{"$expr": {"$anyElementTrue": "$x"}}"#
 );
 

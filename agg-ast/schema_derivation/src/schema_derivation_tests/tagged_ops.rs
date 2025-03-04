@@ -76,6 +76,163 @@ mod window_ops {
         input = r#"{ "$locf": "$foo" }"#,
         ref_schema = Schema::AnyOf(set!(Schema::Missing, Schema::Atomic(Atomic::Integer)))
     );
+
+    test_derive_expression_schema!(
+        exp_mov_avg,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$expMovingAvg": 
+            { "input": "$foo", "N": 3, "alpha": 0.5 }
+        }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_expression_schema!(
+        integral,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+        ))),
+        input = r#"{"$integral": 
+            { "input": "$foo", "unit": "minute" }
+        }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Decimal),
+        ))
+    );
+    test_derive_expression_schema!(
+        last_n,
+        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Decimal),
+        ))))),
+        input = r#"{"$lastN": 
+            { "input": "$foo", "n": 3 }
+        }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Decimal),
+        ))
+    );
+    test_derive_expression_schema!(
+        max_n,
+        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Decimal),
+        ))))),
+        input = r#"{"$maxN": 
+            { "input": "$foo", "n": 3 }
+        }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Decimal),
+        ))
+    );
+    test_derive_expression_schema!(
+        median,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$median": {
+            "input": "$foo",
+            "method": "approximate"
+          }
+        }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_expression_schema!(
+        min_n,
+        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Decimal),
+        ))))),
+        input = r#"{"$minN": 
+            { "input": "$foo", "n": 3 }
+        }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Decimal),
+        ))
+    );
+    test_derive_expression_schema!(
+        percentile,
+        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Null),
+            Schema::Atomic(Atomic::Double),
+        ))))),
+        input = r#"{"$percentile": 
+          {
+            "input": "$foo",
+            "p": [0.5, 0.6],
+            "method": "approximate"
+          }
+        }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_expression_schema!(
+        top,
+        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Decimal),
+        ))))),
+        input = r#"{"$top": 
+            { 
+              "sortBy": {"foo": 1}, 
+              "output": ["$foo"]
+            }
+        }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Decimal),
+        ))
+    );
+    test_derive_expression_schema!(
+        top_n,
+        expected = Ok(Schema::Array(Box::new(Schema::Array(Box::new(
+            Schema::AnyOf(set!(
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Decimal),
+            ))
+        ))))),
+        input = r#"{"$topN": 
+            {
+              "n": 4,
+              "sortBy": {"foo": 1}, 
+              "output": ["$foo"]
+            }
+        }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Decimal),
+        ))
+    );
 }
 
 mod array_ops {
@@ -138,6 +295,30 @@ mod array_ops {
         ))))
     );
     test_derive_expression_schema!(
+        map_maybe_null,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Null),
+            Schema::Array(Box::new(Schema::AnyOf(set!(
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Double),
+            ))))
+        ))),
+        input = r#"{"$map": {"input": "$foo", "as": "bar", "in": "$$bar"}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Null),
+            Schema::Array(Box::new(Schema::AnyOf(set!(
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Double),
+            ))))
+        ))
+    );
+    test_derive_expression_schema!(
+        map_null,
+        expected = Ok(Schema::Atomic(Atomic::Null)),
+        input = r#"{"$map": {"input": "$foo", "as": "bar", "in": "$$bar"}}"#,
+        ref_schema = Schema::Atomic(Atomic::Null)
+    );
+    test_derive_expression_schema!(
         map_error,
         expected = Err(crate::Error::InvalidExpressionForField(
             "Literal(String(\"hello\"))".to_string(),
@@ -156,6 +337,29 @@ mod array_ops {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Double),
         ))))
+    );
+    test_derive_expression_schema!(
+        reduce_maybe_null,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$reduce": {"input": "$foo", "initialValue": 42, "in": "$$this"}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Array(Box::new(Schema::AnyOf(set!(
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Double),
+            )))),
+            Schema::Missing,
+            Schema::Atomic(Atomic::Null)
+        ))
+    );
+    test_derive_expression_schema!(
+        reduce_null,
+        expected = Ok(Schema::Atomic(Atomic::Null)),
+        input = r#"{"$reduce": {"input": "$foo", "initialValue": 42, "in": "$$this"}}"#,
+        ref_schema = Schema::Atomic(Atomic::Null)
     );
     test_derive_expression_schema!(
         reduce_error,

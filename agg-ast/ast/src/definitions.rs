@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 /// Stage represents an aggregation pipeline stage.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Stage {
-    #[serde(skip)]
+    #[serde(rename = "$collection")]
     Collection(Collection),
     #[serde(rename = "$documents")]
     Documents(Vec<LinkedHashMap<String, Expression>>),
@@ -379,13 +379,7 @@ pub struct Group {
     #[serde(rename = "_id")]
     pub keys: Expression,
     #[serde(flatten)]
-    pub aggregations: LinkedHashMap<String, GroupAccumulator>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct GroupAccumulator {
-    pub function: GroupAccumulatorName,
-    pub expr: GroupAccumulatorExpr,
+    pub aggregations: LinkedHashMap<String, Expression>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -432,17 +426,6 @@ pub enum GroupAccumulatorName {
     StdDevSamp,
     #[serde(rename = "$sum")]
     Sum,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum GroupAccumulatorExpr {
-    SQLAccumulator {
-        distinct: bool,
-        var: Box<Expression>,
-        arg_is_possibly_doc: Option<String>,
-    },
-    NonSQLAccumulator(Expression),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -1199,17 +1182,17 @@ pub enum TaggedOperator {
 
     // Array Operators
     #[serde(rename = "$firstN")]
-    FirstN(FirstN),
+    FirstN(NArrayOp),
     #[serde(rename = "$lastN")]
-    LastN(LastN),
+    LastN(NArrayOp),
     #[serde(rename = "$filter")]
     Filter(Filter),
     #[serde(rename = "$map")]
     Map(Map),
     #[serde(rename = "$maxN")]
-    MaxNArrayElement(MaxNArrayElement),
+    MaxNArrayElement(NArrayOp),
     #[serde(rename = "$minN")]
-    MinNArrayElement(MinNArrayElement),
+    MinNArrayElement(NArrayOp),
     #[serde(rename = "$reduce")]
     Reduce(Reduce),
     #[serde(rename = "$sortArray")]
@@ -1278,6 +1261,28 @@ pub enum TaggedOperator {
     Shift(Shift),
     #[serde(rename = "$cond")]
     Cond(Cond),
+
+    // SQL Group Accumulators
+    #[serde(rename = "$sqlAvg")]
+    SQLAvg(SQLAccumulator),
+    #[serde(rename = "$sqlCount")]
+    SQLCount(SQLAccumulator),
+    #[serde(rename = "$sqlFirst")]
+    SQLFirst(SQLAccumulator),
+    #[serde(rename = "$sqlLast")]
+    SQLLast(SQLAccumulator),
+    #[serde(rename = "$sqlMax")]
+    SQLMax(SQLAccumulator),
+    #[serde(rename = "$sqlMergeObjects")]
+    SQLMergeObjects(SQLAccumulator),
+    #[serde(rename = "$sqlMin")]
+    SQLMin(SQLAccumulator),
+    #[serde(rename = "$sqlStdDevPop")]
+    SQLStdDevPop(SQLAccumulator),
+    #[serde(rename = "$sqlStdDevSamp")]
+    SQLStdDevSamp(SQLAccumulator),
+    #[serde(rename = "$sqlSum")]
+    SQLSum(SQLAccumulator),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -1371,14 +1376,7 @@ pub struct Filter {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct FirstN {
-    pub input: Box<Expression>,
-    pub n: Box<Expression>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LastN {
+pub struct NArrayOp {
     pub input: Box<Expression>,
     pub n: Box<Expression>,
 }
@@ -1406,20 +1404,6 @@ pub struct RegexAggExpression {
     pub input: Box<Expression>,
     pub regex: Box<Expression>,
     pub options: Option<Box<Expression>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MaxNArrayElement {
-    pub input: Box<Expression>,
-    pub n: Box<Expression>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MinNArrayElement {
-    pub input: Box<Expression>,
-    pub n: Box<Expression>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -1697,6 +1681,13 @@ pub struct Cond {
     pub r#if: Box<Expression>,
     pub then: Box<Expression>,
     pub r#else: Box<Expression>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SQLAccumulator {
+    pub distinct: bool,
+    pub var: Box<Expression>,
+    pub arg_is_possibly_doc: Option<String>,
 }
 
 /// VecOrSingleExpr represents the argument to UntaggedOperators.

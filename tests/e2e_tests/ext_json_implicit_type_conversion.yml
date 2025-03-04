@@ -56,13 +56,13 @@ tests:
     current_db: test_db
     query: "SELECT '{\"$numberInt\": \"1\"}' AS s FROM [{}] AS t"
     result:
-      - { 't': { 's': '{"$numberInt": "1"}' } }
+      - { '': { 's': '{"$numberInt": "1"}' } }
 
   - description: Relaxed extended JSON string not converted where string is expected
     current_db: test_db
     query: "SELECT '1' AS s FROM [{}] AS t"
     result:
-      - { 't': { 's': '1' } }
+      - { '': { 's': '1' } }
 
   - description: Invalid extended JSON defaults to string when it fails to convert
     current_db: test_db
@@ -74,15 +74,15 @@ tests:
     current_db: test_db
     query: "SELECT str AS str, '{\"$oid\": \"invalid\"}' = str AS res FROM foo AS foo"
     result:
-      - { 'foo': { 'str': '"world"', 'res': false } }
-      - { 'foo': { 'str': '{"$oid": "invalid"}', 'res': true } }
+      - { '': { 'str': '"world"', 'res': false } }
+      - { '': { 'str': '{"$oid": "invalid"}', 'res': true } }
 
   - description: Null extended JSON string converted where string is unexpected
     current_db: test_db
     query: "SELECT num AS num, 'null' = num AS res FROM foo AS foo"
     result:
-      - { 'foo': { 'num': 1, 'res': null } }
-      - { 'foo': { 'num': 2, 'res': null } }
+      - { '': { 'num': 1, 'res': null } }
+      - { '': { 'num': 2, 'res': null } }
 
   - description: Boolean extended JSON string converted where string is unexpected
     current_db: test_db
@@ -105,110 +105,110 @@ tests:
     current_db: test_db
     query: "SELECT str AS str, '\"world\"' = str AS res FROM foo AS foo"
     result:
-      - { 'foo': { 'str': '"world"', 'res': true } }
-      - { 'foo': { 'str': '{"$oid": "invalid"}', 'res': false } }
+      - { '': { 'str': '"world"', 'res': true } }
+      - { '': { 'str': '{"$oid": "invalid"}', 'res': false } }
 
   - description: Int extended JSON string converted where string is unexpected
     current_db: test_db
     query: "SELECT num AS num, '{\"$numberInt\": \"2\"}' = num AS res FROM foo AS foo"
     result:
-      - { 'foo': { 'num': 1, 'res': false } }
-      - { 'foo': { 'num': 2, 'res': true } }
+      - { '': { 'num': 1, 'res': false } }
+      - { '': { 'num': 2, 'res': true } }
 
   - description: Long extended JSON string converted where string is unexpected
     current_db: test_db
     query: "SELECT num AS num, '{\"$numberLong\": \"3\"}' = num AS res FROM foo AS foo"
     result:
-      - { 'foo': { 'num': 1, 'res': false } }
-      - { 'foo': { 'num': 2, 'res': false } }
+      - { '': { 'num': 1, 'res': false } }
+      - { '': { 'num': 2, 'res': false } }
 
   - description: Double extended JSON string converted where string is unexpected
     current_db: test_db
     query: "SELECT num AS num, '{\"$numberDouble\": \"1.0\"}' = num AS res FROM foo AS foo"
     result:
-      - { 'foo': { 'num': 1, 'res': true } }
-      - { 'foo': { 'num': 2, 'res': false } }
+      - { '': { 'num': 1, 'res': true } }
+      - { '': { 'num': 2, 'res': false } }
 
   - description: Decimal128 extended JSON string converted where string is unexpected
     current_db: test_db
     query: "SELECT num AS num, '{\"$numberDecimal\": \"24.25\"}' = num AS res FROM foo AS foo"
     result:
-      - { 'foo': { 'num': 1, 'res': false } }
-      - { 'foo': { 'num': 2, 'res': false } }
+      - { '': { 'num': 1, 'res': false } }
+      - { '': { 'num': 2, 'res': false } }
 
   - description: RegularExpression extended JSON string converted where string is unexpected
     current_db: test_db
     query: "SELECT '{\"$regularExpression\": {\"pattern\": \"abc*\", \"options\": \"ix\"}}'::!REGEX AS `regex` FROM [{}] as t"
     result:
-      - { 't': { 'regex': { '$regularExpression': { 'pattern': 'abc*', 'options': 'ix' } } } }
+      - { '': { 'regex': { '$regularExpression': { 'pattern': 'abc*', 'options': 'ix' } } } }
 
   - description: Javascript extended JSON string converted where string is unexpected
     current_db: test_db
     query: "SELECT '{\"$code\": \"function() {}\"}'::!JAVASCRIPT AS js FROM [{}] as t"
     result:
-      - { 't': { 'js': { '$code': 'function() {}' } } }
+      - { '': { 'js': { '$code': 'function() {}' } } }
 
   - description: JavascriptWithScope extended JSON string converted where string is unexpected
     current_db: test_db
     query: "SELECT '{\"$code\": \"function() {}\", \"$scope\": {}}'::!JAVASCRIPTWITHSCOPE AS js FROM [{}] as t"
     result:
-      - { 't': { 'js': { '$code': 'function() {}', '$scope': { } } } }
+      - { '': { 'js': { '$code': 'function() {}', '$scope': { } } } }
 
   - description: Timestamp extended JSON string converted where string is unexpected
     current_db: test_db
     query: "SELECT ts AS ts, '{\"$timestamp\": {\"t\": 43, \"i\": 1}}' = ts AS res FROM foo AS foo"
     result:
-      - { 'foo': { 'ts': { '$timestamp': { 't': 42, 'i': 1 } }, 'res': false } }
-      - { 'foo': { 'ts': { '$timestamp': { 't': 43, 'i': 1 } }, 'res': true } }
+      - { '': { 'ts': { '$timestamp': { 't': 42, 'i': 1 } }, 'res': false } }
+      - { '': { 'ts': { '$timestamp': { 't': 43, 'i': 1 } }, 'res': true } }
 
   - description: BinData extended JSON string converted where string is unexpected
     current_db: test_db
     query: "SELECT '{\"$binary\": {\"base64\": \"yO2rw/c4TKO2jauSqRR4ow==\", \"subType\": \"04\"}}'::!BINDATA AS bin FROM [{}] as t"
     result:
-      - { 't': { 'bin': { '$binary': { 'base64': 'yO2rw/c4TKO2jauSqRR4ow==', 'subType': '04' } } } }
+      - { '': { 'bin': { '$binary': { 'base64': 'yO2rw/c4TKO2jauSqRR4ow==', 'subType': '04' } } } }
 
   - description: UUID extended JSON string converted where string is unexpected
     current_db: test_db
     query: "SELECT uuid AS uuid, '{\"$uuid\": \"c8edabc3-f738-4ca3-b68d-ab92a91478a3\"}' = uuid AS res FROM foo AS foo"
     result:
-      - { 'foo': { 'uuid': { '$uuid': 'c8edabc3-f738-4ca3-b68d-ab92a91478a3' }, 'res': true } }
-      - { 'foo': { 'uuid': { '$uuid': 'b7dcbab2-e627-3b92-a57c-9a8198036792' }, 'res': false } }
+      - { '': { 'uuid': { '$uuid': 'c8edabc3-f738-4ca3-b68d-ab92a91478a3' }, 'res': true } }
+      - { '': { 'uuid': { '$uuid': 'b7dcbab2-e627-3b92-a57c-9a8198036792' }, 'res': false } }
 
   - description: ObjectId extended JSON string converted where string is unexpected
     current_db: test_db
     query: "SELECT oid AS oid, '{\"$oid\": \"52337cedc27316924c423d3b\"}' = oid AS res FROM foo AS foo"
     result:
-      - { 'foo': { 'oid': { '$oid': '63448dfed38427a35d534e40' }, 'res': false } }
-      - { 'foo': { 'oid': { '$oid': '52337cedc27316924c423d3b' }, 'res': true } }
+      - { '': { 'oid': { '$oid': '63448dfed38427a35d534e40' }, 'res': false } }
+      - { '': { 'oid': { '$oid': '52337cedc27316924c423d3b' }, 'res': true } }
 
   - description: Datetime extended JSON string converted where string is unexpected
     current_db: test_db
     query: "SELECT `datetime` AS `datetime`, '{\"$date\": {\"$numberLong\": \"253402300799999\"}}' = `datetime` AS res FROM foo AS foo"
     result:
-      - { 'foo': { 'datetime': { '$date': { '$numberLong': '253402300799999' } }, 'res': true } }
-      - { 'foo': { 'datetime': { '$date': { '$numberLong': '253402300776543' } }, 'res': false } }
+      - { '': { 'datetime': { '$date': { '$numberLong': '253402300799999' } }, 'res': true } }
+      - { '': { 'datetime': { '$date': { '$numberLong': '253402300776543' } }, 'res': false } }
 
   - description: Symbol extended JSON string converted where string is unexpected
     current_db: test_db
     query: "SELECT `symbol` AS `symbol`, '{\"$symbol\": \"sym\"}' = `symbol` AS res FROM foo AS foo"
     result:
-      - { 'foo': { 'symbol': { '$symbol': 'sym' }, 'res': true } }
-      - { 'foo': { 'symbol': { '$symbol': 'sym2' }, 'res': false } }
+      - { '': { 'symbol': { '$symbol': 'sym' }, 'res': true } }
+      - { '': { 'symbol': { '$symbol': 'sym2' }, 'res': false } }
 
   - description: MaxKey extended JSON string converted where string is unexpected
     current_db: test_db
     query: "SELECT '{\"$maxKey\": 1}'::!MAXKEY AS mk FROM [{}] as t"
     result:
-      - { 't': { 'mk': { '$maxKey': 1 } } }
+      - { '': { 'mk': { '$maxKey': 1 } } }
 
   - description: MinKey extended JSON string converted where string is unexpected
     current_db: test_db
     query: "SELECT '{\"$minKey\": 1}'::!MINKEY AS mk FROM [{}] as t"
     result:
-      - { 't': { 'mk': { '$minKey': 1 } } }
+      - { '': { 'mk': { '$minKey': 1 } } }
 
   - description: DBPointer extended JSON string converted where string is unexpected
     current_db: test_db
     query: "SELECT '{\"$dbPointer\": {\"$ref\": \"foo\", \"$id\": {\"$oid\": \"57e193d7a9cc81b4027498b5\"}}}'::!DBPOINTER AS dbp FROM [{}] as t"
     result:
-      - { 't': { 'dbp': { '$dbPointer': { '$ref': 'foo', '$id': { '$oid': '57e193d7a9cc81b4027498b5' } } } } }
+      - { '': { 'dbp': { '$dbPointer': { '$ref': 'foo', '$id': { '$oid': '57e193d7a9cc81b4027498b5' } } } } }
