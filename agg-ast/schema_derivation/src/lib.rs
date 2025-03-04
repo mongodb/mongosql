@@ -1,4 +1,5 @@
 mod match_schema_derivation;
+pub(crate) use match_schema_derivation::MatchConstrainSchema;
 mod negative_normalize;
 #[cfg(test)]
 mod negative_normalize_tests;

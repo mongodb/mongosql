@@ -155,7 +155,7 @@ impl DeriveSchema for MatchStage {
     }
 }
 
-trait MatchConstrainSchema {
+pub(crate) trait MatchConstrainSchema {
     // match_derive_schema does not need to return Schema because it only applies constraints
     // to already existing Schema. It also does not need to return a Result because it is infallible
     // (modulo a panic that can only result due to programmer error).
@@ -252,7 +252,19 @@ fn intersect_if_exists(reference: &Ref, state: &mut ResultSetState, input_schema
                 .collect();
             get_or_create_schema_for_path_mut(&mut state.result_set_schema, path)
         }
-        Ref::VariableRef(v) => state.variables.get_mut(v),
+        Ref::VariableRef(v) => {
+            // variables are treated as paths, so if we have a . separated path, we need to split it
+            // and get the nested schema from the variable map
+            if v.contains(".") {
+                let path: Vec<String> = v.as_str().split('.').map(|s| s.to_string()).collect();
+                state
+                    .variables
+                    .get_mut(&path[0])
+                    .and_then(|doc| get_or_create_schema_for_path_mut(doc, path[1..].to_vec()))
+            } else {
+                state.variables.get_mut(v)
+            }
+        }
     };
     if let Some(schema) = ref_schema {
         *schema = schema.intersection(&input_schema);
