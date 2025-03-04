@@ -274,13 +274,13 @@ impl DeriveSchema for Stage {
         }
 
         fn bucket_derive_schema(bucket: &Bucket, state: &mut ResultSetState) -> Result<Schema> {
-            let mut id = bucket.group_by.derive_schema(state)?;
+            let mut id_schema = bucket.group_by.derive_schema(state)?;
             if let Some(default) = bucket.default.as_ref() {
                 let default_schema = schema_for_bson(default);
-                id = id.union(&default_schema);
+                id_schema = id_schema.union(&default_schema);
             }
             let mut keys = bucket_output_derive_keys(bucket.output.as_ref(), state)?;
-            keys.insert("_id".to_string(), id);
+            keys.insert("_id".to_string(), id_schema);
             Ok(Schema::Document(Document {
                 required: keys.keys().cloned().collect(),
                 keys,
@@ -295,7 +295,7 @@ impl DeriveSchema for Stage {
             // The actual _id type will be a Document with min and max keys where the types of
             // those keys are this value denoted id_type.
             let id_type = bucket.group_by.derive_schema(state)?;
-            let id = Schema::Document(Document {
+            let id_schema = Schema::Document(Document {
                 required: set!["min".to_string(), "max".to_string()],
                 keys: map! {
                     "min".to_string() => id_type.clone(),
@@ -304,7 +304,7 @@ impl DeriveSchema for Stage {
                 ..Default::default()
             });
             let mut keys = bucket_output_derive_keys(bucket.output.as_ref(), state)?;
-            keys.insert("_id".to_string(), id);
+            keys.insert("_id".to_string(), id_schema);
             Ok(Schema::Document(Document {
                 required: keys.keys().cloned().collect(),
                 keys,
