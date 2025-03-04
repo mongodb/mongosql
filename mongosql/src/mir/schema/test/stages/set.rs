@@ -3,8 +3,7 @@ use crate::{
     mir::{
         schema::{
             test::{
-                test_document_a, test_document_b, TEST_DOCUMENT_SCHEMA_A,
-                TEST_DOCUMENT_SCHEMA_B,
+                test_document_a, test_document_b, TEST_DOCUMENT_SCHEMA_A, TEST_DOCUMENT_SCHEMA_B,
             },
             SchemaCache,
         },

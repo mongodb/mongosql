@@ -1,9 +1,15 @@
 #![allow(clippy::redundant_pattern_matching)]
-use crate::{ast::{self, CollectionSource, Datasource}, catalog::{Catalog, Namespace}, map, mir::{schema::SchemaCache, Collection, Expression, Project, Stage}, schema::ANY_DOCUMENT};
+use crate::mir::FieldAccess;
+use crate::{
+    ast::{self, CollectionSource, Datasource},
+    catalog::{Catalog, Namespace},
+    map,
+    mir::{schema::SchemaCache, Collection, Expression, Project, Stage},
+    schema::ANY_DOCUMENT,
+};
 use lazy_static::lazy_static;
 use linked_hash_map::LinkedHashMap;
 use mongosql_datastructures::binding_tuple::Key;
-use crate::mir::FieldAccess;
 
 macro_rules! test_algebrize {
     ($func_name:ident, method = $method:ident, $(in_implicit_type_conversion_context = $in_implicit_type_conversion_context:expr,)? $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? $(expected_error_code = $expected_error_code:literal,)? input = $ast:expr, $(source = $source:expr,)? $(env = $env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)? $(is_add_fields = $is_add_fields:expr, )?) => {
@@ -95,19 +101,22 @@ macro_rules! test_user_error_messages {
 fn mir_source_collection_with_project(
     collection_name: &str,
     scope: u16,
-    field_names: Vec<&str>
+    field_names: Vec<&str>,
 ) -> Stage {
     let database = "test";
     if !field_names.is_empty() {
-        let document_fields = field_names.iter()
-            .map(|field_name| (
-                field_name.to_string(),
-                Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::Reference((collection_name, scope).into())),
-                    field: field_name.to_string(),
-                    is_nullable: true
-                })
-            ))
+        let document_fields = field_names
+            .iter()
+            .map(|field_name| {
+                (
+                    field_name.to_string(),
+                    Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference((collection_name, scope).into())),
+                        field: field_name.to_string(),
+                        is_nullable: true,
+                    }),
+                )
+            })
             .collect::<LinkedHashMap<_, _>>();
 
         Stage::Project(Project {
@@ -115,19 +124,19 @@ fn mir_source_collection_with_project(
                 source: Box::new(Stage::Collection(Collection {
                     db: database.into(),
                     collection: collection_name.into(),
-                    cache: SchemaCache::new()
+                    cache: SchemaCache::new(),
                 })),
                 expression: map! {
                     (collection_name, scope).into() => Expression::Reference((collection_name, scope).into())
                 },
                 is_add_fields: false,
-                cache: SchemaCache::new()
+                cache: SchemaCache::new(),
             })),
             expression: map! {
                 Key::bot(scope) => Expression::Document(document_fields.into())
             },
             is_add_fields: false,
-            cache: SchemaCache::new()
+            cache: SchemaCache::new(),
         })
     } else {
         Stage::Project(Project {
@@ -7482,11 +7491,12 @@ mod limit_or_offset_clause {
 }
 
 mod set_query {
-    use super::{catalog, mir_source_bar, mir_source_collection_with_project, mir_source_foo, AST_QUERY_BAR, AST_QUERY_FOO, AST_SOURCE_BAR, AST_SOURCE_FOO};
-    use crate::schema::{Document, Schema};
-    use crate::{
-        ast, map, mir, mir::schema::SchemaCache, multimap, schema, set,
+    use super::{
+        catalog, mir_source_bar, mir_source_collection_with_project, mir_source_foo, AST_QUERY_BAR,
+        AST_QUERY_FOO, AST_SOURCE_BAR, AST_SOURCE_FOO,
     };
+    use crate::schema::{Document, Schema};
+    use crate::{ast, map, mir, mir::schema::SchemaCache, multimap, schema, set};
     use mongosql_datastructures::binding_tuple::DatasourceName;
 
     test_algebrize!(
@@ -7503,15 +7513,11 @@ mod set_query {
                 keys: vec![
                     mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
                         alias: "__groupKey0".to_string(),
-                        expr: mir::Expression::Reference(
-                            ("bar", 0u16).into()
-                        )
+                        expr: mir::Expression::Reference(("bar", 0u16).into())
                     }),
                     mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
                         alias: "__groupKey1".to_string(),
-                        expr: mir::Expression::Reference(
-                            ("foo", 0u16).into()
-                        )
+                        expr: mir::Expression::Reference(("foo", 0u16).into())
                     })
                 ],
                 aggregations: vec![],
@@ -7534,114 +7540,114 @@ mod set_query {
     );
 
     test_algebrize!(
-    union_distinct_values,
-    method = algebrize_set_query,
-    expected = Ok(mir::Stage::Project(mir::Project {
-        source: Box::new(mir::Stage::Group(mir::Group {
-            source: Box::new(mir::Stage::Set(mir::Set {
-                operation: mir::SetOperation::UnionAll,
-                left: Box::new(mir_source_collection_with_project(
-                    "foo",
-                    1u16,
-                    vec!["a", "b"]
-                )),
-                right: Box::new(mir_source_collection_with_project(
-                    "bar",
-                    1u16,
-                    vec!["a", "b"]
-                )),
-                cache: SchemaCache::new()
+        union_distinct_values,
+        method = algebrize_set_query,
+        expected = Ok(mir::Stage::Project(mir::Project {
+            source: Box::new(mir::Stage::Group(mir::Group {
+                source: Box::new(mir::Stage::Set(mir::Set {
+                    operation: mir::SetOperation::UnionAll,
+                    left: Box::new(mir_source_collection_with_project(
+                        "foo",
+                        1u16,
+                        vec!["a", "b"]
+                    )),
+                    right: Box::new(mir_source_collection_with_project(
+                        "bar",
+                        1u16,
+                        vec!["a", "b"]
+                    )),
+                    cache: SchemaCache::new()
+                })),
+                keys: vec![mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
+                    alias: "__groupKey0".to_string(),
+                    expr: mir::Expression::Reference((DatasourceName::Bottom, 1u16).into())
+                })],
+                aggregations: vec![],
+                cache: SchemaCache::new(),
+                scope: 1
             })),
-            keys: vec![mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
-                alias: "__groupKey0".to_string(),
-                expr: mir::Expression::Reference((DatasourceName::Bottom, 1u16).into())
-            })],
-            aggregations: vec![],
-            cache: SchemaCache::new(),
-            scope: 1
+            expression: map! {
+                (DatasourceName::Bottom, 1u16).into() => mir::Expression::FieldAccess(mir::FieldAccess {
+                    expr: Box::new(mir::Expression::Reference((DatasourceName::Bottom, 1u16).into())),
+                    field: "__groupKey0".to_string(),
+                    is_nullable: true
+                })
+            },
+            is_add_fields: false,
+            cache: SchemaCache::new()
         })),
-        expression: map! {
-            (DatasourceName::Bottom, 1u16).into() => mir::Expression::FieldAccess(mir::FieldAccess {
-                expr: Box::new(mir::Expression::Reference((DatasourceName::Bottom, 1u16).into())),
-                field: "__groupKey0".to_string(),
-                is_nullable: true
-            })
+        input = ast::SetQuery {
+            left: Box::new(ast::Query::Select(ast::SelectQuery {
+                select_clause: ast::SelectClause {
+                    set_quantifier: ast::SetQuantifier::All,
+                    body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
+                        ast::Expression::Document(multimap! {
+                            "a".into() => ast::Expression::Subpath(ast::SubpathExpr {
+                                expr: Box::new(ast::Expression::Identifier("foo".into())),
+                                subpath: "a".into()
+                            }),
+                            "b".into() => ast::Expression::Subpath(ast::SubpathExpr {
+                                expr: Box::new(ast::Expression::Identifier("foo".into())),
+                                subpath: "b".into()
+                            })
+                        })
+                    )])
+                },
+                from_clause: Some(AST_SOURCE_FOO.clone()),
+                where_clause: None,
+                group_by_clause: None,
+                having_clause: None,
+                order_by_clause: None,
+                limit: None,
+                offset: None,
+            })),
+            op: ast::SetOperator::Union,
+            right: Box::new(ast::Query::Select(ast::SelectQuery {
+                select_clause: ast::SelectClause {
+                    set_quantifier: ast::SetQuantifier::All,
+                    body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
+                        ast::Expression::Document(multimap! {
+                            "a".into() => ast::Expression::Subpath(ast::SubpathExpr {
+                                expr: Box::new(ast::Expression::Identifier("bar".into())),
+                                subpath: "a".into()
+                            }),
+                            "b".into() => ast::Expression::Subpath(ast::SubpathExpr {
+                                expr: Box::new(ast::Expression::Identifier("bar".into())),
+                                subpath: "b".into()
+                            })
+                        })
+                    )])
+                },
+                from_clause: Some(AST_SOURCE_BAR.clone()),
+                where_clause: None,
+                group_by_clause: None,
+                having_clause: None,
+                order_by_clause: None,
+                limit: None,
+                offset: None,
+            })),
         },
-        is_add_fields: false,
-        cache: SchemaCache::new()
-    })),
-    input = ast::SetQuery {
-        left: Box::new(ast::Query::Select(ast::SelectQuery {
-            select_clause: ast::SelectClause {
-                set_quantifier: ast::SetQuantifier::All,
-                body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
-                    ast::Expression::Document(multimap! {
-                        "a".into() => ast::Expression::Subpath(ast::SubpathExpr {
-                            expr: Box::new(ast::Expression::Identifier("foo".into())),
-                            subpath: "a".into()
-                        }),
-                        "b".into() => ast::Expression::Subpath(ast::SubpathExpr {
-                            expr: Box::new(ast::Expression::Identifier("foo".into())),
-                            subpath: "b".into()
-                        })
-                    })
-                )])
-            },
-            from_clause: Some(AST_SOURCE_FOO.clone()),
-            where_clause: None,
-            group_by_clause: None,
-            having_clause: None,
-            order_by_clause: None,
-            limit: None,
-            offset: None,
-        })),
-        op: ast::SetOperator::Union,
-        right: Box::new(ast::Query::Select(ast::SelectQuery {
-            select_clause: ast::SelectClause {
-                set_quantifier: ast::SetQuantifier::All,
-                body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
-                    ast::Expression::Document(multimap! {
-                        "a".into() => ast::Expression::Subpath(ast::SubpathExpr {
-                            expr: Box::new(ast::Expression::Identifier("bar".into())),
-                            subpath: "a".into()
-                        }),
-                        "b".into() => ast::Expression::Subpath(ast::SubpathExpr {
-                            expr: Box::new(ast::Expression::Identifier("bar".into())),
-                            subpath: "b".into()
-                        })
-                    })
-                )])
-            },
-            from_clause: Some(AST_SOURCE_BAR.clone()),
-            where_clause: None,
-            group_by_clause: None,
-            having_clause: None,
-            order_by_clause: None,
-            limit: None,
-            offset: None,
-        })),
-    },
-    env = map! {
-        ("foo", 0u16).into() => Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::Atomic(schema::Atomic::Integer),
-                "b".into() => Schema::Atomic(schema::Atomic::String),
-            },
-            required: set!{"a".into(), "b".into()},
-            additional_properties: false,
-            ..Default::default()
-        }),
-        ("bar", 0u16).into() => Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::Atomic(schema::Atomic::Integer),
-                "b".into() => Schema::Atomic(schema::Atomic::String),
-            },
-            required: set!{"a".into(), "b".into()},
-            additional_properties: false,
-            ..Default::default()
-        }),
-    },
-    catalog = catalog(vec![("test", "foo"), ("test", "bar")]),
+        env = map! {
+            ("foo", 0u16).into() => Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(schema::Atomic::Integer),
+                    "b".into() => Schema::Atomic(schema::Atomic::String),
+                },
+                required: set!{"a".into(), "b".into()},
+                additional_properties: false,
+                ..Default::default()
+            }),
+            ("bar", 0u16).into() => Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(schema::Atomic::Integer),
+                    "b".into() => Schema::Atomic(schema::Atomic::String),
+                },
+                required: set!{"a".into(), "b".into()},
+                additional_properties: false,
+                ..Default::default()
+            }),
+        },
+        catalog = catalog(vec![("test", "foo"), ("test", "bar")]),
     );
 
     test_algebrize!(

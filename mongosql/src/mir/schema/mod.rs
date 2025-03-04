@@ -566,13 +566,13 @@ impl CachedSchema for Stage {
                 let max_size = left_result_set
                     .max_size
                     .and_then(|l| right_result_set.max_size.map(|r| l + r));
-                    Ok(ResultSet {
-                        schema_env: left_result_set
-                            .schema_env
-                            .union(right_result_set.schema_env),
-                        min_size: left_result_set.min_size + right_result_set.min_size,
-                        max_size,
-                    })
+                Ok(ResultSet {
+                    schema_env: left_result_set
+                        .schema_env
+                        .union(right_result_set.schema_env),
+                    min_size: left_result_set.min_size + right_result_set.min_size,
+                    max_size,
+                })
             }
             Stage::Derived(s) => s.source.schema(&SchemaInferenceState {
                 scope_level: state.scope_level + 1,
