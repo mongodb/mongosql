@@ -45,7 +45,6 @@ The following errors occur when something goes wrong while converting the SQL qu
 |---------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [Error 3002](#error-3002) | A SELECT list with multiple values cannot contain a non-namespaced `*` (i.e., `SELECT a, *, b FROM myTable` is not supported). A non-namespaced `*` must be used by itself.                                  |
 | [Error 3004](#error-3004) | The array data source contains an identifier. Array data sources must be constant.                                                                                                                           |
-| [Error 3006](#error-3006) | Distinct UNION is not allowed.                                                                                                                                                                               |
 | [Error 3007](#error-3007) | A data source referenced in the SELECT list could not be found.                                                                                                                                              |
 | [Error 3008](#error-3008) | A field could not be found in any data source.                                                                                                                                                               |
 | [Error 3009](#error-3009) | A field exists in multiple data sources and is ambiguous.                                                                                                                                                    |
@@ -210,13 +209,6 @@ The following errors occur when something goes wrong while using the excludeName
 - **Description:** The array data source contains references. Array data sources must be constant.
 - **Common Causes:** Accessing a field in an array data source as shown by this query: `SELECT * FROM [{'a': foo.a}] AS arr`.
 - **Resolution Steps:** Modify your array data source to only contain constants. Corrected example query: `SELECT * FROM [{'a': 34}] AS arr`.
-
-### Error 3006
-
-- **Description:** Distinct UNION is not allowed. You can only do `UNION ALL` (i.e., duplicate values always have to be allowed).
-- **Common Causes:** Using `UNION` instead of `UNION ALL`. For example, the query `SELECT a FROM foo AS foo UNION SELECT b, c FROM bar AS bar`
-  causes this error.
-- **Resolution Steps:** Only use `UNION ALL` when doing unions. Corrected example query: `SELECT a FROM foo AS foo UNION ALL SELECT b, c FROM bar AS bar`.
 
 ### Error 3007
 

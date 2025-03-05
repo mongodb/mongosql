@@ -242,7 +242,6 @@ pub enum JoinType {
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum SetOperation {
     UnionAll,
-    Union,
 }
 
 #[derive(PartialEq, Debug, Clone)]
