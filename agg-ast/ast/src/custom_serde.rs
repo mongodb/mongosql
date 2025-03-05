@@ -1,11 +1,10 @@
 use crate::{
     definitions::{
         Cond, Convert, DateExpression, DateFromParts, DateFromString, DateToString, Expression,
-        GroupAccumulator, GroupAccumulatorExpr, GroupAccumulatorName, LiteralValue,
-        MatchArrayExpression, MatchArrayQuery, MatchBinaryOp, MatchElement, MatchExpression,
-        MatchField, MatchNot, MatchNotExpression, MatchRegex, MatchStage, ProjectItem,
-        ProjectStage, Ref, SetWindowFieldsOutput, Trim, UntaggedOperator, UntaggedOperatorName,
-        VecOrSingleExpr, Window,
+        LiteralValue, MatchArrayExpression, MatchArrayQuery, MatchBinaryOp, MatchElement,
+        MatchExpression, MatchField, MatchNot, MatchNotExpression, MatchRegex, MatchStage,
+        ProjectItem, ProjectStage, Ref, SetWindowFieldsOutput, Trim, UntaggedOperator,
+        UntaggedOperatorName, VecOrSingleExpr, Window,
     },
     map,
 };
@@ -85,7 +84,6 @@ macro_rules! try_from_serde {
 }
 
 try_from_serde!(UntaggedOperatorName);
-try_from_serde!(GroupAccumulatorName);
 try_from_serde!(MatchBinaryOp);
 
 impl MatchArrayQueryVisitor {
@@ -946,59 +944,6 @@ impl<'de> Visitor<'de> for UntaggedOperatorVisitor {
         Err(serde_err::custom(
             "fail when there are no keys; this lets empty doc be parsed as Document",
         ))
-    }
-}
-
-impl<'de> Deserialize<'de> for GroupAccumulator {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        /// Custom map visitor for identifying and deserializing Accumulators.
-        struct AccumulatorVisitor;
-
-        impl<'de> Visitor<'de> for AccumulatorVisitor {
-            type Value = GroupAccumulator;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("{\"$op\": <expression or struct>}")
-            }
-
-            fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
-            where
-                M: MapAccess<'de>,
-            {
-                let kv = access.next_entry::<String, GroupAccumulatorExpr>()?;
-                if let Some((key, value)) = kv {
-                    let function = key.try_into().map_err(serde_err::custom)?;
-                    // Immediately return when we see one key that starts with a "$".
-                    // In a general environment, this would be very brittle, however in this
-                    // controlled test environment, we safely make the assumption that
-                    // a single key that starts with a "$" is present and indicates an operator.
-                    // let value = value.get_as_vec();
-                    return Ok(GroupAccumulator {
-                        function,
-                        expr: value,
-                    });
-                }
-
-                Err(serde_err::custom("no accumulator could be parsed"))
-            }
-        }
-
-        const FIELDS: &[&str] = &["function", "expr"];
-        deserializer.deserialize_struct("GroupAccumulator", FIELDS, AccumulatorVisitor)
-    }
-}
-
-impl ser::Serialize for GroupAccumulator {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: ser::Serializer,
-    {
-        let mut map = serializer.serialize_map(Some(1))?;
-        map.serialize_entry(&self.function, &self.expr)?;
-        map.end()
     }
 }
 

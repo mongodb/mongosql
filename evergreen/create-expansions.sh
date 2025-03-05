@@ -2,7 +2,11 @@
 
 # Put our own installation of Cargo first in the path to make sure this is the one used.
 # Otherwise, on MacOs it will use the version installed with Brew which is not as recent.
-export PATH="$HOME/.cargo/bin:$PATH"
+if [ "Windows_NT" == "$OS" ]; then
+    export PATH="$HOME/.rustup/bin:$HOME/.cargo/bin:$PATH"
+else
+    export PATH="$HOME/.cargo/bin:$PATH"
+fi
 export CARGO_NET_GIT_FETCH_WITH_CLI=true
 
 export GOPATH="$HOME/go"
