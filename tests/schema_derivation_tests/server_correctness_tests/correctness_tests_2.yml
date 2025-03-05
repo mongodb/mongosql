@@ -22,10 +22,7 @@ catalog_schema:
                     "bsonType": "double"
                   }
                 },
-                "required": [
-                  "x",
-                  "y"
-                ],
+                "required": ["x", "y"],
                 "additionalProperties": false
               }
             ]
@@ -62,10 +59,7 @@ catalog_schema:
                     "bsonType": "string"
                   }
                 },
-                "required": [
-                  "coordinates",
-                  "type"
-                ],
+                "required": ["coordinates", "type"],
                 "additionalProperties": false
               },
               "any": {
@@ -179,12 +173,7 @@ catalog_schema:
                           "bsonType": "decimal"
                         }
                       },
-                      "required": [
-                        "_id",
-                        "bool",
-                        "num",
-                        "obj"
-                      ],
+                      "required": ["_id", "bool", "num", "obj"],
                       "additionalProperties": false
                     },
                     {
@@ -218,15 +207,7 @@ catalog_schema:
                           }
                         }
                       },
-                      "required": [
-                        "_id",
-                        "array",
-                        "bool",
-                        "date",
-                        "geoLegacy",
-                        "num",
-                        "str"
-                      ],
+                      "required": ["_id", "array", "bool", "date", "geoLegacy", "num", "str"],
                       "additionalProperties": false
                     }
                   ]
@@ -258,10 +239,7 @@ catalog_schema:
                     "bsonType": "double"
                   }
                 },
-                "required": [
-                  "x",
-                  "y"
-                ],
+                "required": ["x", "y"],
                 "additionalProperties": false
               },
               "obj": {
@@ -316,10 +294,7 @@ catalog_schema:
                                 }
                               }
                             },
-                            "required": [
-                              "coordinates",
-                              "type"
-                            ],
+                            "required": ["coordinates", "type"],
                             "additionalProperties": false
                           },
                           "bool": {
@@ -401,10 +376,7 @@ catalog_schema:
                                               "bsonType": "double"
                                             }
                                           },
-                                          "required": [
-                                            "x",
-                                            "y"
-                                          ],
+                                          "required": ["x", "y"],
                                           "additionalProperties": false
                                         },
                                         "date": {
@@ -420,13 +392,7 @@ catalog_schema:
                                           "bsonType": "int"
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "bool",
-                                        "date",
-                                        "geoLegacy",
-                                        "num"
-                                      ],
+                                      "required": ["_id", "bool", "date", "geoLegacy", "num"],
                                       "additionalProperties": false
                                     },
                                     "num": {
@@ -448,10 +414,7 @@ catalog_schema:
                                           "bsonType": "double"
                                         }
                                       },
-                                      "required": [
-                                        "x",
-                                        "y"
-                                      ],
+                                      "required": ["x", "y"],
                                       "additionalProperties": false
                                     },
                                     "str": {
@@ -478,13 +441,7 @@ catalog_schema:
                                       ]
                                     }
                                   },
-                                  "required": [
-                                    "_id",
-                                    "any",
-                                    "bool",
-                                    "num",
-                                    "str"
-                                  ],
+                                  "required": ["_id", "any", "bool", "num", "str"],
                                   "additionalProperties": false
                                 }
                               ]
@@ -595,14 +552,7 @@ catalog_schema:
                                         "additionalProperties": false
                                       }
                                     },
-                                    "required": [
-                                      "_id",
-                                      "any",
-                                      "array",
-                                      "date",
-                                      "num",
-                                      "obj"
-                                    ],
+                                    "required": ["_id", "any", "array", "date", "num", "obj"],
                                     "additionalProperties": false
                                   }
                                 ]
@@ -632,14 +582,7 @@ catalog_schema:
                                   "bsonType": "null"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "any",
-                                "bool",
-                                "date",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "any", "bool", "date", "obj", "str"],
                               "additionalProperties": false
                             },
                             {
@@ -696,14 +639,7 @@ catalog_schema:
                                   "bsonType": "date"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "array",
-                                "bool",
-                                "date",
-                                "num",
-                                "str"
-                              ],
+                              "required": ["_id", "array", "bool", "date", "num", "str"],
                               "additionalProperties": false
                             }
                           ]
@@ -794,10 +730,7 @@ catalog_schema:
                         "bsonType": "string"
                       }
                     },
-                    "required": [
-                      "coordinates",
-                      "type"
-                    ],
+                    "required": ["coordinates", "type"],
                     "additionalProperties": false
                   },
                   "obj": {
@@ -874,10 +807,7 @@ catalog_schema:
                                         "bsonType": "string"
                                       }
                                     },
-                                    "required": [
-                                      "coordinates",
-                                      "type"
-                                    ],
+                                    "required": ["coordinates", "type"],
                                     "additionalProperties": false
                                   },
                                   "array": {
@@ -922,29 +852,14 @@ catalog_schema:
                                     "bsonType": "int"
                                   }
                                 },
-                                "required": [
-                                  "_id",
-                                  "array",
-                                  "bool",
-                                  "date",
-                                  "geoJson",
-                                  "num",
-                                  "str"
-                                ],
+                                "required": ["_id", "array", "bool", "date", "geoJson", "num", "str"],
                                 "additionalProperties": false
                               },
                               "num": {
                                 "bsonType": "long"
                               }
                             },
-                            "required": [
-                              "_id",
-                              "array",
-                              "bool",
-                              "date",
-                              "num",
-                              "obj"
-                            ],
+                            "required": ["_id", "array", "bool", "date", "num", "obj"],
                             "additionalProperties": false
                           },
                           "str": {
@@ -976,15 +891,7 @@ catalog_schema:
                             }
                           }
                         },
-                        "required": [
-                          "_id",
-                          "any",
-                          "array",
-                          "bool",
-                          "geoLegacy",
-                          "obj",
-                          "str"
-                        ],
+                        "required": ["_id", "any", "array", "bool", "geoLegacy", "obj", "str"],
                         "additionalProperties": false
                       },
                       "str": {
@@ -1019,14 +926,7 @@ catalog_schema:
                         "bsonType": "date"
                       }
                     },
-                    "required": [
-                      "_id",
-                      "array",
-                      "date",
-                      "num",
-                      "obj",
-                      "str"
-                    ],
+                    "required": ["_id", "array", "date", "num", "obj", "str"],
                     "additionalProperties": false
                   },
                   "array": {
@@ -1077,16 +977,7 @@ catalog_schema:
                     "bsonType": "string"
                   }
                 },
-                "required": [
-                  "_id",
-                  "array",
-                  "bool",
-                  "date",
-                  "geoJson",
-                  "num",
-                  "obj",
-                  "str"
-                ],
+                "required": ["_id", "array", "bool", "date", "geoJson", "num", "obj", "str"],
                 "additionalProperties": false
               }
             ]
@@ -1163,10 +1054,7 @@ catalog_schema:
                               "bsonType": "double"
                             }
                           },
-                          "required": [
-                            "x",
-                            "y"
-                          ],
+                          "required": ["x", "y"],
                           "additionalProperties": false
                         },
                         "date": {
@@ -1176,13 +1064,7 @@ catalog_schema:
                           "bsonType": "int"
                         }
                       },
-                      "required": [
-                        "_id",
-                        "bool",
-                        "date",
-                        "geoLegacy",
-                        "str"
-                      ],
+                      "required": ["_id", "bool", "date", "geoLegacy", "str"],
                       "additionalProperties": false
                     },
                     "bool": {
@@ -1223,16 +1105,7 @@ catalog_schema:
                       }
                     }
                   },
-                  "required": [
-                    "_id",
-                    "any",
-                    "array",
-                    "bool",
-                    "date",
-                    "num",
-                    "obj",
-                    "str"
-                  ],
+                  "required": ["_id", "any", "array", "bool", "date", "num", "obj", "str"],
                   "additionalProperties": false
                 },
                 {
@@ -1271,16 +1144,7 @@ catalog_schema:
                           "bsonType": "date"
                         }
                       },
-                      "required": [
-                        "_id",
-                        "any",
-                        "array",
-                        "bool",
-                        "date",
-                        "num",
-                        "obj",
-                        "str"
-                      ],
+                      "required": ["_id", "any", "array", "bool", "date", "num", "obj", "str"],
                       "additionalProperties": false
                     },
                     "num": {
@@ -1305,15 +1169,7 @@ catalog_schema:
                       "bsonType": "date"
                     }
                   },
-                  "required": [
-                    "_id",
-                    "array",
-                    "bool",
-                    "date",
-                    "num",
-                    "obj",
-                    "str"
-                  ],
+                  "required": ["_id", "array", "bool", "date", "num", "obj", "str"],
                   "additionalProperties": false
                 },
                 {
@@ -1341,10 +1197,7 @@ catalog_schema:
                           "bsonType": "string"
                         }
                       },
-                      "required": [
-                        "coordinates",
-                        "type"
-                      ],
+                      "required": ["coordinates", "type"],
                       "additionalProperties": false
                     },
                     "num": {
@@ -1395,24 +1248,11 @@ catalog_schema:
                               }
                             }
                           },
-                          "required": [
-                            "coordinates",
-                            "type"
-                          ],
+                          "required": ["coordinates", "type"],
                           "additionalProperties": false
                         }
                       },
-                      "required": [
-                        "_id",
-                        "any",
-                        "array",
-                        "bool",
-                        "date",
-                        "geoJson",
-                        "num",
-                        "obj",
-                        "str"
-                      ],
+                      "required": ["_id", "any", "array", "bool", "date", "geoJson", "num", "obj", "str"],
                       "additionalProperties": false
                     },
                     "date": {
@@ -1425,16 +1265,7 @@ catalog_schema:
                       "bsonType": "bool"
                     }
                   },
-                  "required": [
-                    "_id",
-                    "array",
-                    "bool",
-                    "date",
-                    "geoJson",
-                    "num",
-                    "obj",
-                    "str"
-                  ],
+                  "required": ["_id", "array", "bool", "date", "geoJson", "num", "obj", "str"],
                   "additionalProperties": false
                 }
               ]
@@ -1453,10 +1284,7 @@ catalog_schema:
                 "bsonType": "string"
               }
             },
-            "required": [
-              "coordinates",
-              "type"
-            ],
+            "required": ["coordinates", "type"],
             "additionalProperties": false
           },
           "num": {
@@ -1483,14 +1311,7 @@ catalog_schema:
             ]
           }
         },
-        "required": [
-          "_id",
-          "array",
-          "bool",
-          "date",
-          "num",
-          "str"
-        ],
+        "required": ["_id", "array", "bool", "date", "num", "str"],
         "additionalProperties": false
       },
       'fuzzer_coll': {
@@ -1527,10 +1348,7 @@ catalog_schema:
                         }
                       }
                     },
-                    "required": [
-                      "coordinates",
-                      "type"
-                    ],
+                    "required": ["coordinates", "type"],
                     "additionalProperties": false
                   },
                   "geoLegacy": {
@@ -1551,10 +1369,7 @@ catalog_schema:
                             "bsonType": "double"
                           }
                         },
-                        "required": [
-                          "x",
-                          "y"
-                        ],
+                        "required": ["x", "y"],
                         "additionalProperties": false
                       }
                     ]
@@ -1696,10 +1511,7 @@ catalog_schema:
                                               "bsonType": "string"
                                             }
                                           },
-                                          "required": [
-                                            "coordinates",
-                                            "type"
-                                          ],
+                                          "required": ["coordinates", "type"],
                                           "additionalProperties": false
                                         },
                                         "_id": {
@@ -1718,16 +1530,7 @@ catalog_schema:
                                           "bsonType": "null"
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "any",
-                                        "array",
-                                        "bool",
-                                        "date",
-                                        "geoJson",
-                                        "num",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "any", "array", "bool", "date", "geoJson", "num", "str"],
                                       "additionalProperties": false
                                     }
                                   ]
@@ -1776,10 +1579,7 @@ catalog_schema:
                                             }
                                           }
                                         },
-                                        "required": [
-                                          "coordinates",
-                                          "type"
-                                        ],
+                                        "required": ["coordinates", "type"],
                                         "additionalProperties": false
                                       },
                                       "array": {
@@ -1804,17 +1604,7 @@ catalog_schema:
                                         "bsonType": "null"
                                       }
                                     },
-                                    "required": [
-                                      "_id",
-                                      "any",
-                                      "array",
-                                      "bool",
-                                      "date",
-                                      "geoJson",
-                                      "num",
-                                      "obj",
-                                      "str"
-                                    ],
+                                    "required": ["_id", "any", "array", "bool", "date", "geoJson", "num", "obj", "str"],
                                     "additionalProperties": false
                                   },
                                   "array": {
@@ -1852,23 +1642,11 @@ catalog_schema:
                                         "bsonType": "string"
                                       }
                                     },
-                                    "required": [
-                                      "coordinates",
-                                      "type"
-                                    ],
+                                    "required": ["coordinates", "type"],
                                     "additionalProperties": false
                                   }
                                 },
-                                "required": [
-                                  "_id",
-                                  "any",
-                                  "array",
-                                  "date",
-                                  "geoJson",
-                                  "num",
-                                  "obj",
-                                  "str"
-                                ],
+                                "required": ["_id", "any", "array", "date", "geoJson", "num", "obj", "str"],
                                 "additionalProperties": false
                               }
                             ]
@@ -1949,16 +1727,7 @@ catalog_schema:
                                     "additionalProperties": false
                                   }
                                 },
-                                "required": [
-                                  "_id",
-                                  "any",
-                                  "array",
-                                  "bool",
-                                  "date",
-                                  "num",
-                                  "obj",
-                                  "str"
-                                ],
+                                "required": ["_id", "any", "array", "bool", "date", "num", "obj", "str"],
                                 "additionalProperties": false
                               }
                             ]
@@ -2012,10 +1781,7 @@ catalog_schema:
                                         "bsonType": "double"
                                       }
                                     },
-                                    "required": [
-                                      "x",
-                                      "y"
-                                    ],
+                                    "required": ["x", "y"],
                                     "additionalProperties": false
                                   },
                                   "obj": {
@@ -2039,10 +1805,7 @@ catalog_schema:
                                                 "bsonType": "double"
                                               }
                                             },
-                                            "required": [
-                                              "x",
-                                              "y"
-                                            ],
+                                            "required": ["x", "y"],
                                             "additionalProperties": false
                                           },
                                           "_id": {
@@ -2106,33 +1869,14 @@ catalog_schema:
                                                 "additionalProperties": false
                                               }
                                             },
-                                            "required": [
-                                              "_id",
-                                              "any",
-                                              "array",
-                                              "bool",
-                                              "date",
-                                              "geoLegacy",
-                                              "num",
-                                              "obj",
-                                              "str"
-                                            ],
+                                            "required": ["_id", "any", "array", "bool", "date", "geoLegacy", "num", "obj", "str"],
                                             "additionalProperties": false
                                           },
                                           "str": {
                                             "bsonType": "string"
                                           }
                                         },
-                                        "required": [
-                                          "_id",
-                                          "array",
-                                          "bool",
-                                          "date",
-                                          "geoLegacy",
-                                          "num",
-                                          "obj",
-                                          "str"
-                                        ],
+                                        "required": ["_id", "array", "bool", "date", "geoLegacy", "num", "obj", "str"],
                                         "additionalProperties": false
                                       }
                                     ]
@@ -2160,15 +1904,7 @@ catalog_schema:
                                     "bsonType": "long"
                                   }
                                 },
-                                "required": [
-                                  "_id",
-                                  "any",
-                                  "array",
-                                  "bool",
-                                  "date",
-                                  "obj",
-                                  "str"
-                                ],
+                                "required": ["_id", "any", "array", "bool", "date", "obj", "str"],
                                 "additionalProperties": false
                               },
                               {
@@ -2203,14 +1939,7 @@ catalog_schema:
                                     "bsonType": "long"
                                   }
                                 },
-                                "required": [
-                                  "_id",
-                                  "array",
-                                  "bool",
-                                  "date",
-                                  "num",
-                                  "str"
-                                ],
+                                "required": ["_id", "array", "bool", "date", "num", "str"],
                                 "additionalProperties": false
                               }
                             ]
@@ -2423,10 +2152,7 @@ catalog_schema:
                                             "bsonType": "string"
                                           }
                                         },
-                                        "required": [
-                                          "coordinates",
-                                          "type"
-                                        ],
+                                        "required": ["coordinates", "type"],
                                         "additionalProperties": false
                                       },
                                       "array": {
@@ -2483,15 +2209,7 @@ catalog_schema:
                                                 "additionalProperties": false
                                               }
                                             },
-                                            "required": [
-                                              "_id",
-                                              "any",
-                                              "array",
-                                              "bool",
-                                              "date",
-                                              "num",
-                                              "obj"
-                                            ],
+                                            "required": ["_id", "any", "array", "bool", "date", "num", "obj"],
                                             "additionalProperties": false
                                           },
                                           "num": {
@@ -2510,46 +2228,18 @@ catalog_schema:
                                             "bsonType": "bool"
                                           }
                                         },
-                                        "required": [
-                                          "_id",
-                                          "any",
-                                          "array",
-                                          "bool",
-                                          "date",
-                                          "num",
-                                          "obj",
-                                          "str"
-                                        ],
+                                        "required": ["_id", "any", "array", "bool", "date", "num", "obj", "str"],
                                         "additionalProperties": false
                                       },
                                       "str": {
                                         "bsonType": "string"
                                       }
                                     },
-                                    "required": [
-                                      "_id",
-                                      "any",
-                                      "array",
-                                      "bool",
-                                      "date",
-                                      "geoJson",
-                                      "num",
-                                      "obj",
-                                      "str"
-                                    ],
+                                    "required": ["_id", "any", "array", "bool", "date", "geoJson", "num", "obj", "str"],
                                     "additionalProperties": false
                                   }
                                 },
-                                "required": [
-                                  "_id",
-                                  "any",
-                                  "array",
-                                  "bool",
-                                  "date",
-                                  "num",
-                                  "obj",
-                                  "str"
-                                ],
+                                "required": ["_id", "any", "array", "bool", "date", "num", "obj", "str"],
                                 "additionalProperties": false
                               }
                             ]
@@ -2669,29 +2359,14 @@ catalog_schema:
                                   "bsonType": "int"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "array",
-                                "bool",
-                                "num",
-                                "str"
-                              ],
+                              "required": ["_id", "array", "bool", "num", "str"],
                               "additionalProperties": false
                             },
                             "any": {
                               "bsonType": "null"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "any",
-                            "array",
-                            "bool",
-                            "date",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "any", "array", "bool", "date", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -2800,10 +2475,7 @@ catalog_schema:
                                   "bsonType": "string"
                                 }
                               },
-                              "required": [
-                                "coordinates",
-                                "type"
-                              ],
+                              "required": ["coordinates", "type"],
                               "additionalProperties": false
                             },
                             "num": {
@@ -2823,12 +2495,7 @@ catalog_schema:
                               "bsonType": "string"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -2847,10 +2514,7 @@ catalog_schema:
                                   }
                                 }
                               },
-                              "required": [
-                                "coordinates",
-                                "type"
-                              ],
+                              "required": ["coordinates", "type"],
                               "additionalProperties": false
                             },
                             "_id": {
@@ -2916,10 +2580,7 @@ catalog_schema:
                                       }
                                     }
                                   },
-                                  "required": [
-                                    "coordinates",
-                                    "type"
-                                  ],
+                                  "required": ["coordinates", "type"],
                                   "additionalProperties": false
                                 },
                                 "any": {
@@ -2943,34 +2604,14 @@ catalog_schema:
                                   "bsonType": "string"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "any",
-                                "array",
-                                "bool",
-                                "date",
-                                "geoJson",
-                                "num",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "any", "array", "bool", "date", "geoJson", "num", "obj", "str"],
                               "additionalProperties": false
                             },
                             "num": {
                               "bsonType": "long"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "any",
-                            "array",
-                            "bool",
-                            "date",
-                            "geoJson",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "any", "array", "bool", "date", "geoJson", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -2989,10 +2630,7 @@ catalog_schema:
                                   "bsonType": "string"
                                 }
                               },
-                              "required": [
-                                "coordinates",
-                                "type"
-                              ],
+                              "required": ["coordinates", "type"],
                               "additionalProperties": false
                             },
                             "str": {
@@ -3022,16 +2660,7 @@ catalog_schema:
                               }
                             }
                           },
-                          "required": [
-                            "_id",
-                            "any",
-                            "array",
-                            "bool",
-                            "geoJson",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "any", "array", "bool", "geoJson", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -3072,10 +2701,7 @@ catalog_schema:
                                       "bsonType": "double"
                                     }
                                   },
-                                  "required": [
-                                    "x",
-                                    "y"
-                                  ],
+                                  "required": ["x", "y"],
                                   "additionalProperties": false
                                 },
                                 "date": {
@@ -3138,10 +2764,7 @@ catalog_schema:
                                   "bsonType": "string"
                                 }
                               },
-                              "required": [
-                                "coordinates",
-                                "type"
-                              ],
+                              "required": ["coordinates", "type"],
                               "additionalProperties": false
                             },
                             "num": {
@@ -3155,14 +2778,7 @@ catalog_schema:
                               ]
                             }
                           },
-                          "required": [
-                            "_id",
-                            "array",
-                            "bool",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "array", "bool", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -3210,16 +2826,7 @@ catalog_schema:
                                   "bsonType": "decimal"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "any",
-                                "array",
-                                "bool",
-                                "date",
-                                "num",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "any", "array", "bool", "date", "num", "obj", "str"],
                               "additionalProperties": false
                             },
                             "str": {
@@ -3244,17 +2851,7 @@ catalog_schema:
                               "bsonType": "long"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "any",
-                            "array",
-                            "bool",
-                            "date",
-                            "geoLegacy",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "any", "array", "bool", "date", "geoLegacy", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -3300,16 +2897,7 @@ catalog_schema:
                               "bsonType": "long"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "any",
-                            "array",
-                            "bool",
-                            "date",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "any", "array", "bool", "date", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -3355,13 +2943,7 @@ catalog_schema:
                               "bsonType": "string"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "array",
-                            "bool",
-                            "date",
-                            "num"
-                          ],
+                          "required": ["_id", "array", "bool", "date", "num"],
                           "additionalProperties": false
                         },
                         {
@@ -3418,12 +3000,7 @@ catalog_schema:
                               "bsonType": "decimal"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "bool",
-                            "num",
-                            "obj"
-                          ],
+                          "required": ["_id", "bool", "num", "obj"],
                           "additionalProperties": false
                         },
                         {
@@ -3473,10 +3050,7 @@ catalog_schema:
                                       "bsonType": "double"
                                     }
                                   },
-                                  "required": [
-                                    "x",
-                                    "y"
-                                  ],
+                                  "required": ["x", "y"],
                                   "additionalProperties": false
                                 },
                                 "bool": {
@@ -3516,16 +3090,7 @@ catalog_schema:
                                   "additionalProperties": false
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "array",
-                                "bool",
-                                "date",
-                                "geoLegacy",
-                                "num",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "array", "bool", "date", "geoLegacy", "num", "obj", "str"],
                               "additionalProperties": false
                             },
                             "_id": {
@@ -3553,23 +3118,11 @@ catalog_schema:
                                   "bsonType": "string"
                                 }
                               },
-                              "required": [
-                                "coordinates",
-                                "type"
-                              ],
+                              "required": ["coordinates", "type"],
                               "additionalProperties": false
                             }
                           },
-                          "required": [
-                            "_id",
-                            "any",
-                            "array",
-                            "bool",
-                            "date",
-                            "geoJson",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "any", "array", "bool", "date", "geoJson", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -3621,10 +3174,7 @@ catalog_schema:
                                           "bsonType": "double"
                                         }
                                       },
-                                      "required": [
-                                        "x",
-                                        "y"
-                                      ],
+                                      "required": ["x", "y"],
                                       "additionalProperties": false
                                     },
                                     "_id": {
@@ -3643,15 +3193,7 @@ catalog_schema:
                                       "bsonType": "string"
                                     }
                                   },
-                                  "required": [
-                                    "_id",
-                                    "array",
-                                    "bool",
-                                    "date",
-                                    "geoLegacy",
-                                    "obj",
-                                    "str"
-                                  ],
+                                  "required": ["_id", "array", "bool", "date", "geoLegacy", "obj", "str"],
                                   "additionalProperties": false
                                 },
                                 "str": {
@@ -3667,15 +3209,7 @@ catalog_schema:
                                   "bsonType": "date"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "any",
-                                "bool",
-                                "date",
-                                "num",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "any", "bool", "date", "num", "obj", "str"],
                               "additionalProperties": false
                             },
                             "_id": {
@@ -3706,24 +3240,11 @@ catalog_schema:
                                   "bsonType": "double"
                                 }
                               },
-                              "required": [
-                                "x",
-                                "y"
-                              ],
+                              "required": ["x", "y"],
                               "additionalProperties": false
                             }
                           },
-                          "required": [
-                            "_id",
-                            "any",
-                            "array",
-                            "bool",
-                            "date",
-                            "geoLegacy",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "any", "array", "bool", "date", "geoLegacy", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -3823,25 +3344,11 @@ catalog_schema:
                                       "bsonType": "string"
                                     }
                                   },
-                                  "required": [
-                                    "_id",
-                                    "array",
-                                    "bool",
-                                    "date",
-                                    "num",
-                                    "str"
-                                  ],
+                                  "required": ["_id", "array", "bool", "date", "num", "str"],
                                   "additionalProperties": false
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "array",
-                                "bool",
-                                "date",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "array", "bool", "date", "obj", "str"],
                               "additionalProperties": false
                             },
                             "geoLegacy": {
@@ -3854,10 +3361,7 @@ catalog_schema:
                                   "bsonType": "double"
                                 }
                               },
-                              "required": [
-                                "x",
-                                "y"
-                              ],
+                              "required": ["x", "y"],
                               "additionalProperties": false
                             },
                             "any": {
@@ -3873,17 +3377,7 @@ catalog_schema:
                               "bsonType": "date"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "any",
-                            "array",
-                            "bool",
-                            "date",
-                            "geoLegacy",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "any", "array", "bool", "date", "geoLegacy", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -3911,14 +3405,7 @@ catalog_schema:
                               "bsonType": "bool"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "any",
-                            "array",
-                            "bool",
-                            "date",
-                            "num"
-                          ],
+                          "required": ["_id", "any", "array", "bool", "date", "num"],
                           "additionalProperties": false
                         },
                         {
@@ -3989,14 +3476,7 @@ catalog_schema:
                                       "bsonType": "string"
                                     }
                                   },
-                                  "required": [
-                                    "_id",
-                                    "array",
-                                    "bool",
-                                    "date",
-                                    "num",
-                                    "str"
-                                  ],
+                                  "required": ["_id", "array", "bool", "date", "num", "str"],
                                   "additionalProperties": false
                                 },
                                 "str": {
@@ -4015,29 +3495,14 @@ catalog_schema:
                                   "bsonType": "int"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "bool",
-                                "date",
-                                "num",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "bool", "date", "num", "obj", "str"],
                               "additionalProperties": false
                             },
                             "any": {
                               "bsonType": "bool"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "any",
-                            "bool",
-                            "date",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "any", "bool", "date", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -4104,15 +3569,7 @@ catalog_schema:
                                       "bsonType": "bool"
                                     }
                                   },
-                                  "required": [
-                                    "_id",
-                                    "array",
-                                    "bool",
-                                    "date",
-                                    "num",
-                                    "obj",
-                                    "str"
-                                  ],
+                                  "required": ["_id", "array", "bool", "date", "num", "obj", "str"],
                                   "additionalProperties": false
                                 },
                                 "geoJson": {
@@ -4128,10 +3585,7 @@ catalog_schema:
                                       }
                                     }
                                   },
-                                  "required": [
-                                    "coordinates",
-                                    "type"
-                                  ],
+                                  "required": ["coordinates", "type"],
                                   "additionalProperties": false
                                 },
                                 "num": {
@@ -4141,15 +3595,7 @@ catalog_schema:
                                   "bsonType": "int"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "array",
-                                "bool",
-                                "geoJson",
-                                "num",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "array", "bool", "geoJson", "num", "obj", "str"],
                               "additionalProperties": false
                             },
                             "geoLegacy": {
@@ -4174,16 +3620,7 @@ catalog_schema:
                               }
                             }
                           },
-                          "required": [
-                            "_id",
-                            "any",
-                            "array",
-                            "bool",
-                            "geoLegacy",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "any", "array", "bool", "geoLegacy", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -4202,10 +3639,7 @@ catalog_schema:
                                   "bsonType": "string"
                                 }
                               },
-                              "required": [
-                                "coordinates",
-                                "type"
-                              ],
+                              "required": ["coordinates", "type"],
                               "additionalProperties": false
                             },
                             "bool": {
@@ -4253,10 +3687,7 @@ catalog_schema:
                                       "bsonType": "string"
                                     }
                                   },
-                                  "required": [
-                                    "coordinates",
-                                    "type"
-                                  ],
+                                  "required": ["coordinates", "type"],
                                   "additionalProperties": false
                                 },
                                 "num": {
@@ -4317,14 +3748,7 @@ catalog_schema:
                                       }
                                     }
                                   },
-                                  "required": [
-                                    "_id",
-                                    "array",
-                                    "bool",
-                                    "date",
-                                    "num",
-                                    "str"
-                                  ],
+                                  "required": ["_id", "array", "bool", "date", "num", "str"],
                                   "additionalProperties": false
                                 },
                                 "any": {
@@ -4371,12 +3795,7 @@ catalog_schema:
                               }
                             }
                           },
-                          "required": [
-                            "_id",
-                            "bool",
-                            "num",
-                            "obj"
-                          ],
+                          "required": ["_id", "bool", "num", "obj"],
                           "additionalProperties": false
                         },
                         {
@@ -4398,13 +3817,7 @@ catalog_schema:
                               "bsonType": "int"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "any",
-                            "bool",
-                            "date",
-                            "num"
-                          ],
+                          "required": ["_id", "any", "bool", "date", "num"],
                           "additionalProperties": false
                         },
                         {
@@ -4423,10 +3836,7 @@ catalog_schema:
                                   "bsonType": "string"
                                 }
                               },
-                              "required": [
-                                "coordinates",
-                                "type"
-                              ],
+                              "required": ["coordinates", "type"],
                               "additionalProperties": false
                             },
                             "obj": {
@@ -4448,15 +3858,7 @@ catalog_schema:
                               "bsonType": "date"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "any",
-                            "bool",
-                            "date",
-                            "geoJson",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "any", "bool", "date", "geoJson", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -4565,13 +3967,7 @@ catalog_schema:
                                                           "bsonType": "bool"
                                                         }
                                                       },
-                                                      "required": [
-                                                        "_id",
-                                                        "any",
-                                                        "array",
-                                                        "date",
-                                                        "num"
-                                                      ],
+                                                      "required": ["_id", "any", "array", "date", "num"],
                                                       "additionalProperties": false
                                                     },
                                                     "num": {
@@ -4581,15 +3977,7 @@ catalog_schema:
                                                       "bsonType": "int"
                                                     }
                                                   },
-                                                  "required": [
-                                                    "_id",
-                                                    "any",
-                                                    "array",
-                                                    "date",
-                                                    "geoLegacy",
-                                                    "num",
-                                                    "obj"
-                                                  ],
+                                                  "required": ["_id", "any", "array", "date", "geoLegacy", "num", "obj"],
                                                   "additionalProperties": false
                                                 },
                                                 "array": {
@@ -4599,16 +3987,7 @@ catalog_schema:
                                                   }
                                                 }
                                               },
-                                              "required": [
-                                                "_id",
-                                                "any",
-                                                "array",
-                                                "bool",
-                                                "date",
-                                                "num",
-                                                "obj",
-                                                "str"
-                                              ],
+                                              "required": ["_id", "any", "array", "bool", "date", "num", "obj", "str"],
                                               "additionalProperties": false
                                             }
                                           ]
@@ -4627,10 +4006,7 @@ catalog_schema:
                                       "bsonType": "double"
                                     }
                                   },
-                                  "required": [
-                                    "x",
-                                    "y"
-                                  ],
+                                  "required": ["x", "y"],
                                   "additionalProperties": false
                                 },
                                 "any": {
@@ -4674,10 +4050,7 @@ catalog_schema:
                                           "bsonType": "string"
                                         }
                                       },
-                                      "required": [
-                                        "coordinates",
-                                        "type"
-                                      ],
+                                      "required": ["coordinates", "type"],
                                       "additionalProperties": false
                                     },
                                     "date": {
@@ -4698,17 +4071,7 @@ catalog_schema:
                                       }
                                     }
                                   },
-                                  "required": [
-                                    "_id",
-                                    "any",
-                                    "array",
-                                    "bool",
-                                    "date",
-                                    "geoJson",
-                                    "num",
-                                    "obj",
-                                    "str"
-                                  ],
+                                  "required": ["_id", "any", "array", "bool", "date", "geoJson", "num", "obj", "str"],
                                   "additionalProperties": false
                                 },
                                 "str": {
@@ -4724,15 +4087,7 @@ catalog_schema:
                                   "bsonType": "int"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "any",
-                                "array",
-                                "bool",
-                                "date",
-                                "geoLegacy",
-                                "str"
-                              ],
+                              "required": ["_id", "any", "array", "bool", "date", "geoLegacy", "str"],
                               "additionalProperties": false
                             },
                             "array": {
@@ -4782,10 +4137,7 @@ catalog_schema:
                                   "bsonType": "string"
                                 }
                               },
-                              "required": [
-                                "coordinates",
-                                "type"
-                              ],
+                              "required": ["coordinates", "type"],
                               "additionalProperties": false
                             },
                             "geoLegacy": {
@@ -4795,13 +4147,7 @@ catalog_schema:
                               }
                             }
                           },
-                          "required": [
-                            "_id",
-                            "bool",
-                            "date",
-                            "num",
-                            "obj"
-                          ],
+                          "required": ["_id", "bool", "date", "num", "obj"],
                           "additionalProperties": false
                         },
                         {
@@ -4873,22 +4219,11 @@ catalog_schema:
                                   "bsonType": "double"
                                 }
                               },
-                              "required": [
-                                "x",
-                                "y"
-                              ],
+                              "required": ["x", "y"],
                               "additionalProperties": false
                             }
                           },
-                          "required": [
-                            "_id",
-                            "any",
-                            "array",
-                            "bool",
-                            "geoLegacy",
-                            "num",
-                            "str"
-                          ],
+                          "required": ["_id", "any", "array", "bool", "geoLegacy", "num", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -4907,10 +4242,7 @@ catalog_schema:
                                   "bsonType": "string"
                                 }
                               },
-                              "required": [
-                                "coordinates",
-                                "type"
-                              ],
+                              "required": ["coordinates", "type"],
                               "additionalProperties": false
                             },
                             "date": {
@@ -4938,10 +4270,7 @@ catalog_schema:
                                       "bsonType": "double"
                                     }
                                   },
-                                  "required": [
-                                    "x",
-                                    "y"
-                                  ],
+                                  "required": ["x", "y"],
                                   "additionalProperties": false
                                 },
                                 "obj": {
@@ -4956,15 +4285,7 @@ catalog_schema:
                                   "bsonType": "bool"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "bool",
-                                "date",
-                                "geoLegacy",
-                                "num",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "bool", "date", "geoLegacy", "num", "obj", "str"],
                               "additionalProperties": false
                             },
                             "_id": {
@@ -5064,10 +4385,7 @@ catalog_schema:
                                                     "bsonType": "double"
                                                   }
                                                 },
-                                                "required": [
-                                                  "x",
-                                                  "y"
-                                                ],
+                                                "required": ["x", "y"],
                                                 "additionalProperties": false
                                               },
                                               "_id": {
@@ -5083,31 +4401,14 @@ catalog_schema:
                                                 "bsonType": "string"
                                               }
                                             },
-                                            "required": [
-                                              "_id",
-                                              "any",
-                                              "array",
-                                              "bool",
-                                              "date",
-                                              "geoLegacy",
-                                              "num",
-                                              "str"
-                                            ],
+                                            "required": ["_id", "any", "array", "bool", "date", "geoLegacy", "num", "str"],
                                             "additionalProperties": false
                                           },
                                           "num": {
                                             "bsonType": "int"
                                           }
                                         },
-                                        "required": [
-                                          "_id",
-                                          "array",
-                                          "bool",
-                                          "date",
-                                          "num",
-                                          "obj",
-                                          "str"
-                                        ],
+                                        "required": ["_id", "array", "bool", "date", "num", "obj", "str"],
                                         "additionalProperties": false
                                       }
                                     ]
@@ -5148,31 +4449,14 @@ catalog_schema:
                                       "bsonType": "date"
                                     }
                                   },
-                                  "required": [
-                                    "_id",
-                                    "any",
-                                    "array",
-                                    "bool",
-                                    "date",
-                                    "num",
-                                    "str"
-                                  ],
+                                  "required": ["_id", "any", "array", "bool", "date", "num", "str"],
                                   "additionalProperties": false
                                 },
                                 "any": {
                                   "bsonType": "string"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "any",
-                                "array",
-                                "bool",
-                                "date",
-                                "num",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "any", "array", "bool", "date", "num", "obj", "str"],
                               "additionalProperties": false
                             },
                             "array": {
@@ -5198,14 +4482,7 @@ catalog_schema:
                               "bsonType": "string"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "array",
-                            "bool",
-                            "date",
-                            "num",
-                            "str"
-                          ],
+                          "required": ["_id", "array", "bool", "date", "num", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -5224,10 +4501,7 @@ catalog_schema:
                                   }
                                 }
                               },
-                              "required": [
-                                "coordinates",
-                                "type"
-                              ],
+                              "required": ["coordinates", "type"],
                               "additionalProperties": false
                             },
                             "obj": {
@@ -5260,15 +4534,7 @@ catalog_schema:
                                   "bsonType": "string"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "array",
-                                "bool",
-                                "date",
-                                "num",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "array", "bool", "date", "num", "obj", "str"],
                               "additionalProperties": false
                             },
                             "str": {
@@ -5290,15 +4556,7 @@ catalog_schema:
                               "bsonType": "null"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "array",
-                            "bool",
-                            "date",
-                            "geoJson",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "array", "bool", "date", "geoJson", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -5332,15 +4590,7 @@ catalog_schema:
                               }
                             }
                           },
-                          "required": [
-                            "_id",
-                            "array",
-                            "bool",
-                            "date",
-                            "geoLegacy",
-                            "num",
-                            "str"
-                          ],
+                          "required": ["_id", "array", "bool", "date", "geoLegacy", "num", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -5359,10 +4609,7 @@ catalog_schema:
                                   }
                                 }
                               },
-                              "required": [
-                                "coordinates",
-                                "type"
-                              ],
+                              "required": ["coordinates", "type"],
                               "additionalProperties": false
                             },
                             "str": {
@@ -5423,16 +4670,7 @@ catalog_schema:
                                       "bsonType": "int"
                                     }
                                   },
-                                  "required": [
-                                    "_id",
-                                    "any",
-                                    "array",
-                                    "bool",
-                                    "date",
-                                    "geoLegacy",
-                                    "num",
-                                    "str"
-                                  ],
+                                  "required": ["_id", "any", "array", "bool", "date", "geoLegacy", "num", "str"],
                                   "additionalProperties": false
                                 },
                                 "_id": {
@@ -5460,37 +4698,18 @@ catalog_schema:
                                       }
                                     }
                                   },
-                                  "required": [
-                                    "coordinates",
-                                    "type"
-                                  ],
+                                  "required": ["coordinates", "type"],
                                   "additionalProperties": false
                                 },
                                 "num": {
                                   "bsonType": "decimal"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "array",
-                                "bool",
-                                "date",
-                                "geoJson",
-                                "num",
-                                "obj"
-                              ],
+                              "required": ["_id", "array", "bool", "date", "geoJson", "num", "obj"],
                               "additionalProperties": false
                             }
                           },
-                          "required": [
-                            "_id",
-                            "array",
-                            "date",
-                            "geoJson",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "array", "date", "geoJson", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -5585,25 +4804,14 @@ catalog_schema:
                                       }
                                     }
                                   },
-                                  "required": [
-                                    "coordinates",
-                                    "type"
-                                  ],
+                                  "required": ["coordinates", "type"],
                                   "additionalProperties": false
                                 },
                                 "str": {
                                   "bsonType": "string"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "any",
-                                "date",
-                                "geoJson",
-                                "num",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "any", "date", "geoJson", "num", "obj", "str"],
                               "additionalProperties": false
                             },
                             "date": {
@@ -5628,10 +4836,7 @@ catalog_schema:
                                   "bsonType": "string"
                                 }
                               },
-                              "required": [
-                                "coordinates",
-                                "type"
-                              ],
+                              "required": ["coordinates", "type"],
                               "additionalProperties": false
                             },
                             "str": {
@@ -5657,12 +4862,7 @@ catalog_schema:
                               }
                             }
                           },
-                          "required": [
-                            "_id",
-                            "date",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "date", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -5708,14 +4908,7 @@ catalog_schema:
                               "bsonType": "string"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "array",
-                            "date",
-                            "geoLegacy",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "array", "date", "geoLegacy", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -5758,15 +4951,7 @@ catalog_schema:
                               "bsonType": "date"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "array",
-                            "bool",
-                            "date",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "array", "bool", "date", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -5834,14 +5019,7 @@ catalog_schema:
                                         "bsonType": "int"
                                       }
                                     },
-                                    "required": [
-                                      "_id",
-                                      "array",
-                                      "bool",
-                                      "date",
-                                      "num",
-                                      "str"
-                                    ],
+                                    "required": ["_id", "array", "bool", "date", "num", "str"],
                                     "additionalProperties": false
                                   }
                                 ]
@@ -5857,15 +5035,7 @@ catalog_schema:
                               "bsonType": "int"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "array",
-                            "bool",
-                            "date",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "array", "bool", "date", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -5901,15 +5071,7 @@ catalog_schema:
                                   "bsonType": "bool"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "any",
-                                "bool",
-                                "geoLegacy",
-                                "num",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "any", "bool", "geoLegacy", "num", "obj", "str"],
                               "additionalProperties": false
                             },
                             "str": {
@@ -5938,14 +5100,7 @@ catalog_schema:
                               "bsonType": "int"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "array",
-                            "bool",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "array", "bool", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -5989,14 +5144,7 @@ catalog_schema:
                               "bsonType": "decimal"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "array",
-                            "bool",
-                            "date",
-                            "num",
-                            "str"
-                          ],
+                          "required": ["_id", "array", "bool", "date", "num", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -6015,10 +5163,7 @@ catalog_schema:
                                   "bsonType": "string"
                                 }
                               },
-                              "required": [
-                                "coordinates",
-                                "type"
-                              ],
+                              "required": ["coordinates", "type"],
                               "additionalProperties": false
                             },
                             "obj": {
@@ -6048,14 +5193,7 @@ catalog_schema:
                                   "bsonType": "int"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "bool",
-                                "date",
-                                "geoLegacy",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "bool", "date", "geoLegacy", "obj", "str"],
                               "additionalProperties": false
                             },
                             "date": {
@@ -6090,16 +5228,7 @@ catalog_schema:
                               }
                             }
                           },
-                          "required": [
-                            "_id",
-                            "array",
-                            "bool",
-                            "date",
-                            "geoJson",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "array", "bool", "date", "geoJson", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -6140,10 +5269,7 @@ catalog_schema:
                                   "bsonType": "string"
                                 }
                               },
-                              "required": [
-                                "coordinates",
-                                "type"
-                              ],
+                              "required": ["coordinates", "type"],
                               "additionalProperties": false
                             },
                             "date": {
@@ -6156,15 +5282,7 @@ catalog_schema:
                               "bsonType": "int"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "array",
-                            "bool",
-                            "date",
-                            "geoJson",
-                            "num",
-                            "str"
-                          ],
+                          "required": ["_id", "array", "bool", "date", "geoJson", "num", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -6189,10 +5307,7 @@ catalog_schema:
                                   "bsonType": "string"
                                 }
                               },
-                              "required": [
-                                "coordinates",
-                                "type"
-                              ],
+                              "required": ["coordinates", "type"],
                               "additionalProperties": false
                             },
                             "bool": {
@@ -6223,16 +5338,7 @@ catalog_schema:
                               "bsonType": "date"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "array",
-                            "bool",
-                            "date",
-                            "geoJson",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "array", "bool", "date", "geoJson", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -6269,14 +5375,7 @@ catalog_schema:
                                   "bsonType": "bool"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "array",
-                                "bool",
-                                "date",
-                                "num",
-                                "str"
-                              ],
+                              "required": ["_id", "array", "bool", "date", "num", "str"],
                               "additionalProperties": false
                             },
                             "_id": {
@@ -6289,14 +5388,7 @@ catalog_schema:
                               "bsonType": "int"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "bool",
-                            "date",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "bool", "date", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -6342,16 +5434,7 @@ catalog_schema:
                                   "bsonType": "null"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "any",
-                                "array",
-                                "bool",
-                                "date",
-                                "num",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "any", "array", "bool", "date", "num", "obj", "str"],
                               "additionalProperties": false
                             },
                             "str": {
@@ -6376,15 +5459,7 @@ catalog_schema:
                               "bsonType": "bool"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "bool",
-                            "date",
-                            "geoLegacy",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "bool", "date", "geoLegacy", "num", "obj", "str"],
                           "additionalProperties": false
                         }
                       ]
@@ -6414,10 +5489,7 @@ catalog_schema:
                                 }
                               }
                             },
-                            "required": [
-                              "coordinates",
-                              "type"
-                            ],
+                            "required": ["coordinates", "type"],
                             "additionalProperties": false
                           },
                           "array": {
@@ -6549,15 +5621,7 @@ catalog_schema:
                                                 }
                                               }
                                             },
-                                            "required": [
-                                              "_id",
-                                              "any",
-                                              "array",
-                                              "bool",
-                                              "date",
-                                              "num",
-                                              "str"
-                                            ],
+                                            "required": ["_id", "any", "array", "bool", "date", "num", "str"],
                                             "additionalProperties": false
                                           }
                                         ]
@@ -6673,13 +5737,7 @@ catalog_schema:
                                                 "bsonType": "string"
                                               }
                                             },
-                                            "required": [
-                                              "_id",
-                                              "any",
-                                              "geoLegacy",
-                                              "num",
-                                              "str"
-                                            ],
+                                            "required": ["_id", "any", "geoLegacy", "num", "str"],
                                             "additionalProperties": false
                                           }
                                         ]
@@ -6758,10 +5816,7 @@ catalog_schema:
                                                           "bsonType": "string"
                                                         }
                                                       },
-                                                      "required": [
-                                                        "coordinates",
-                                                        "type"
-                                                      ],
+                                                      "required": ["coordinates", "type"],
                                                       "additionalProperties": false
                                                     },
                                                     "_id": {
@@ -6783,16 +5838,7 @@ catalog_schema:
                                                       "bsonType": "decimal"
                                                     }
                                                   },
-                                                  "required": [
-                                                    "_id",
-                                                    "any",
-                                                    "array",
-                                                    "bool",
-                                                    "date",
-                                                    "geoJson",
-                                                    "num",
-                                                    "str"
-                                                  ],
+                                                  "required": ["_id", "any", "array", "bool", "date", "geoJson", "num", "str"],
                                                   "additionalProperties": false
                                                 }
                                               ]
@@ -6830,14 +5876,7 @@ catalog_schema:
                                                 "bsonType": "date"
                                               }
                                             },
-                                            "required": [
-                                              "_id",
-                                              "array",
-                                              "bool",
-                                              "date",
-                                              "num",
-                                              "str"
-                                            ],
+                                            "required": ["_id", "array", "bool", "date", "num", "str"],
                                             "additionalProperties": false
                                           }
                                         ]
@@ -6937,14 +5976,7 @@ catalog_schema:
                                                 "bsonType": "date"
                                               }
                                             },
-                                            "required": [
-                                              "_id",
-                                              "any",
-                                              "array",
-                                              "date",
-                                              "num",
-                                              "obj"
-                                            ],
+                                            "required": ["_id", "any", "array", "date", "num", "obj"],
                                             "additionalProperties": false
                                           }
                                         ]
@@ -6976,10 +6008,7 @@ catalog_schema:
                                                     "bsonType": "double"
                                                   }
                                                 },
-                                                "required": [
-                                                  "x",
-                                                  "y"
-                                                ],
+                                                "required": ["x", "y"],
                                                 "additionalProperties": false
                                               },
                                               "bool": {
@@ -7017,16 +6046,7 @@ catalog_schema:
                                                 "bsonType": "int"
                                               }
                                             },
-                                            "required": [
-                                              "_id",
-                                              "any",
-                                              "array",
-                                              "bool",
-                                              "date",
-                                              "geoLegacy",
-                                              "num",
-                                              "str"
-                                            ],
+                                            "required": ["_id", "any", "array", "bool", "date", "geoLegacy", "num", "str"],
                                             "additionalProperties": false
                                           }
                                         ]
@@ -7048,10 +6068,7 @@ catalog_schema:
                                               "bsonType": "string"
                                             }
                                           },
-                                          "required": [
-                                            "coordinates",
-                                            "type"
-                                          ],
+                                          "required": ["coordinates", "type"],
                                           "additionalProperties": false
                                         },
                                         "bool": {
@@ -7079,16 +6096,7 @@ catalog_schema:
                                           "bsonType": "int"
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "any",
-                                        "array",
-                                        "bool",
-                                        "date",
-                                        "geoJson",
-                                        "num",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "any", "array", "bool", "date", "geoJson", "num", "str"],
                                       "additionalProperties": false
                                     },
                                     {
@@ -7235,10 +6243,7 @@ catalog_schema:
                                                                     "bsonType": "string"
                                                                   }
                                                                 },
-                                                                "required": [
-                                                                  "coordinates",
-                                                                  "type"
-                                                                ],
+                                                                "required": ["coordinates", "type"],
                                                                 "additionalProperties": false
                                                               }
                                                             },
@@ -7273,15 +6278,7 @@ catalog_schema:
                                                             }
                                                           }
                                                         },
-                                                        "required": [
-                                                          "_id",
-                                                          "array",
-                                                          "bool",
-                                                          "date",
-                                                          "num",
-                                                          "obj",
-                                                          "str"
-                                                        ],
+                                                        "required": ["_id", "array", "bool", "date", "num", "obj", "str"],
                                                         "additionalProperties": false
                                                       }
                                                     ]
@@ -7306,39 +6303,18 @@ catalog_schema:
                                                       "bsonType": "string"
                                                     }
                                                   },
-                                                  "required": [
-                                                    "coordinates",
-                                                    "type"
-                                                  ],
+                                                  "required": ["coordinates", "type"],
                                                   "additionalProperties": false
                                                 }
                                               },
-                                              "required": [
-                                                "_id",
-                                                "any",
-                                                "array",
-                                                "bool",
-                                                "date",
-                                                "geoJson",
-                                                "num",
-                                                "str"
-                                              ],
+                                              "required": ["_id", "any", "array", "bool", "date", "geoJson", "num", "str"],
                                               "additionalProperties": false
                                             },
                                             "str": {
                                               "bsonType": "string"
                                             }
                                           },
-                                          "required": [
-                                            "_id",
-                                            "any",
-                                            "array",
-                                            "bool",
-                                            "date",
-                                            "num",
-                                            "obj",
-                                            "str"
-                                          ],
+                                          "required": ["_id", "any", "array", "bool", "date", "num", "obj", "str"],
                                           "additionalProperties": false
                                         },
                                         "array": {
@@ -7376,16 +6352,7 @@ catalog_schema:
                                           "bsonType": "int"
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "any",
-                                        "array",
-                                        "bool",
-                                        "date",
-                                        "num",
-                                        "obj",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "any", "array", "bool", "date", "num", "obj", "str"],
                                       "additionalProperties": false
                                     },
                                     {
@@ -7443,15 +6410,7 @@ catalog_schema:
                                               "additionalProperties": false
                                             }
                                           },
-                                          "required": [
-                                            "_id",
-                                            "any",
-                                            "array",
-                                            "bool",
-                                            "date",
-                                            "obj",
-                                            "str"
-                                          ],
+                                          "required": ["_id", "any", "array", "bool", "date", "obj", "str"],
                                           "additionalProperties": false
                                         },
                                         "array": {
@@ -7467,16 +6426,7 @@ catalog_schema:
                                           "bsonType": "date"
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "any",
-                                        "array",
-                                        "bool",
-                                        "date",
-                                        "num",
-                                        "obj",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "any", "array", "bool", "date", "num", "obj", "str"],
                                       "additionalProperties": false
                                     },
                                     {
@@ -7549,12 +6499,7 @@ catalog_schema:
                                           "bsonType": "int"
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "array",
-                                        "date",
-                                        "obj"
-                                      ],
+                                      "required": ["_id", "array", "date", "obj"],
                                       "additionalProperties": false
                                     },
                                     {
@@ -7609,10 +6554,7 @@ catalog_schema:
                                                   "bsonType": "string"
                                                 }
                                               },
-                                              "required": [
-                                                "coordinates",
-                                                "type"
-                                              ],
+                                              "required": ["coordinates", "type"],
                                               "additionalProperties": false
                                             },
                                             "num": {
@@ -7622,17 +6564,7 @@ catalog_schema:
                                               "bsonType": "bool"
                                             }
                                           },
-                                          "required": [
-                                            "_id",
-                                            "any",
-                                            "array",
-                                            "bool",
-                                            "date",
-                                            "geoJson",
-                                            "num",
-                                            "obj",
-                                            "str"
-                                          ],
+                                          "required": ["_id", "any", "array", "bool", "date", "geoJson", "num", "obj", "str"],
                                           "additionalProperties": false
                                         },
                                         "date": {
@@ -7657,10 +6589,7 @@ catalog_schema:
                                               "bsonType": "double"
                                             }
                                           },
-                                          "required": [
-                                            "x",
-                                            "y"
-                                          ],
+                                          "required": ["x", "y"],
                                           "additionalProperties": false
                                         },
                                         "str": {
@@ -7676,17 +6605,7 @@ catalog_schema:
                                           "bsonType": "int"
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "any",
-                                        "array",
-                                        "bool",
-                                        "date",
-                                        "geoLegacy",
-                                        "num",
-                                        "obj",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "any", "array", "bool", "date", "geoLegacy", "num", "obj", "str"],
                                       "additionalProperties": false
                                     },
                                     {
@@ -7713,14 +6632,7 @@ catalog_schema:
                                           "bsonType": "null"
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "any",
-                                        "bool",
-                                        "date",
-                                        "obj",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "any", "bool", "date", "obj", "str"],
                                       "additionalProperties": false
                                     },
                                     {
@@ -7764,10 +6676,7 @@ catalog_schema:
                                               "bsonType": "string"
                                             }
                                           },
-                                          "required": [
-                                            "coordinates",
-                                            "type"
-                                          ],
+                                          "required": ["coordinates", "type"],
                                           "additionalProperties": false
                                         },
                                         "num": {
@@ -7780,16 +6689,7 @@ catalog_schema:
                                           "bsonType": "date"
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "any",
-                                        "array",
-                                        "bool",
-                                        "date",
-                                        "geoJson",
-                                        "num",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "any", "array", "bool", "date", "geoJson", "num", "str"],
                                       "additionalProperties": false
                                     },
                                     {
@@ -7829,15 +6729,7 @@ catalog_schema:
                                               "bsonType": "long"
                                             }
                                           },
-                                          "required": [
-                                            "_id",
-                                            "any",
-                                            "array",
-                                            "bool",
-                                            "date",
-                                            "num",
-                                            "str"
-                                          ],
+                                          "required": ["_id", "any", "array", "bool", "date", "num", "str"],
                                           "additionalProperties": false
                                         },
                                         "geoLegacy": {
@@ -7862,16 +6754,7 @@ catalog_schema:
                                           }
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "array",
-                                        "bool",
-                                        "date",
-                                        "geoLegacy",
-                                        "num",
-                                        "obj",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "array", "bool", "date", "geoLegacy", "num", "obj", "str"],
                                       "additionalProperties": false
                                     },
                                     {
@@ -7896,10 +6779,7 @@ catalog_schema:
                                               }
                                             }
                                           },
-                                          "required": [
-                                            "coordinates",
-                                            "type"
-                                          ],
+                                          "required": ["coordinates", "type"],
                                           "additionalProperties": false
                                         },
                                         "array": {
@@ -7929,12 +6809,7 @@ catalog_schema:
                                           }
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "bool",
-                                        "date",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "bool", "date", "str"],
                                       "additionalProperties": false
                                     },
                                     {
@@ -7992,15 +6867,7 @@ catalog_schema:
                                               }
                                             }
                                           },
-                                          "required": [
-                                            "_id",
-                                            "array",
-                                            "bool",
-                                            "date",
-                                            "num",
-                                            "obj",
-                                            "str"
-                                          ],
+                                          "required": ["_id", "array", "bool", "date", "num", "obj", "str"],
                                           "additionalProperties": false
                                         },
                                         "bool": {
@@ -8019,10 +6886,7 @@ catalog_schema:
                                               }
                                             }
                                           },
-                                          "required": [
-                                            "coordinates",
-                                            "type"
-                                          ],
+                                          "required": ["coordinates", "type"],
                                           "additionalProperties": false
                                         },
                                         "_id": {
@@ -8032,15 +6896,7 @@ catalog_schema:
                                           "bsonType": "long"
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "array",
-                                        "bool",
-                                        "geoJson",
-                                        "num",
-                                        "obj",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "array", "bool", "geoJson", "num", "obj", "str"],
                                       "additionalProperties": false
                                     },
                                     {
@@ -8110,17 +6966,7 @@ catalog_schema:
                                               "additionalProperties": false
                                             }
                                           },
-                                          "required": [
-                                            "_id",
-                                            "any",
-                                            "array",
-                                            "bool",
-                                            "date",
-                                            "geoLegacy",
-                                            "num",
-                                            "obj",
-                                            "str"
-                                          ],
+                                          "required": ["_id", "any", "array", "bool", "date", "geoLegacy", "num", "obj", "str"],
                                           "additionalProperties": false
                                         },
                                         "array": {
@@ -8130,14 +6976,7 @@ catalog_schema:
                                           }
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "array",
-                                        "date",
-                                        "num",
-                                        "obj",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "array", "date", "num", "obj", "str"],
                                       "additionalProperties": false
                                     },
                                     {
@@ -8178,10 +7017,7 @@ catalog_schema:
                                                   "bsonType": "double"
                                                 }
                                               },
-                                              "required": [
-                                                "x",
-                                                "y"
-                                              ],
+                                              "required": ["x", "y"],
                                               "additionalProperties": false
                                             },
                                             "num": {
@@ -8191,14 +7027,7 @@ catalog_schema:
                                               "bsonType": "string"
                                             }
                                           },
-                                          "required": [
-                                            "_id",
-                                            "bool",
-                                            "date",
-                                            "geoLegacy",
-                                            "num",
-                                            "str"
-                                          ],
+                                          "required": ["_id", "bool", "date", "geoLegacy", "num", "str"],
                                           "additionalProperties": false
                                         },
                                         "array": {
@@ -8269,16 +7098,7 @@ catalog_schema:
                                                     "bsonType": "date"
                                                   }
                                                 },
-                                                "required": [
-                                                  "_id",
-                                                  "any",
-                                                  "array",
-                                                  "bool",
-                                                  "date",
-                                                  "num",
-                                                  "obj",
-                                                  "str"
-                                                ],
+                                                "required": ["_id", "any", "array", "bool", "date", "num", "obj", "str"],
                                                 "additionalProperties": false
                                               }
                                             ]
@@ -8294,13 +7114,7 @@ catalog_schema:
                                           "bsonType": "int"
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "array",
-                                        "bool",
-                                        "date",
-                                        "num"
-                                      ],
+                                      "required": ["_id", "array", "bool", "date", "num"],
                                       "additionalProperties": false
                                     },
                                     {
@@ -8352,15 +7166,7 @@ catalog_schema:
                                           "additionalProperties": false
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "array",
-                                        "bool",
-                                        "date",
-                                        "num",
-                                        "obj",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "array", "bool", "date", "num", "obj", "str"],
                                       "additionalProperties": false
                                     },
                                     {
@@ -8382,10 +7188,7 @@ catalog_schema:
                                               "bsonType": "double"
                                             }
                                           },
-                                          "required": [
-                                            "x",
-                                            "y"
-                                          ],
+                                          "required": ["x", "y"],
                                           "additionalProperties": false
                                         },
                                         "_id": {
@@ -8419,16 +7222,7 @@ catalog_schema:
                                           "additionalProperties": false
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "array",
-                                        "bool",
-                                        "date",
-                                        "geoLegacy",
-                                        "num",
-                                        "obj",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "array", "bool", "date", "geoLegacy", "num", "obj", "str"],
                                       "additionalProperties": false
                                     },
                                     {
@@ -8485,14 +7279,7 @@ catalog_schema:
                                           "bsonType": "date"
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "array",
-                                        "bool",
-                                        "date",
-                                        "num",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "array", "bool", "date", "num", "str"],
                                       "additionalProperties": false
                                     },
                                     {
@@ -8536,10 +7323,7 @@ catalog_schema:
                                               "bsonType": "string"
                                             }
                                           },
-                                          "required": [
-                                            "coordinates",
-                                            "type"
-                                          ],
+                                          "required": ["coordinates", "type"],
                                           "additionalProperties": false
                                         },
                                         "date": {
@@ -8552,15 +7336,7 @@ catalog_schema:
                                           "bsonType": "long"
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "array",
-                                        "bool",
-                                        "date",
-                                        "geoJson",
-                                        "num",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "array", "bool", "date", "geoJson", "num", "str"],
                                       "additionalProperties": false
                                     },
                                     {
@@ -8595,13 +7371,7 @@ catalog_schema:
                                           "bsonType": "date"
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "array",
-                                        "date",
-                                        "num",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "array", "date", "num", "str"],
                                       "additionalProperties": false
                                     },
                                     {
@@ -8626,10 +7396,7 @@ catalog_schema:
                                               "bsonType": "string"
                                             }
                                           },
-                                          "required": [
-                                            "coordinates",
-                                            "type"
-                                          ],
+                                          "required": ["coordinates", "type"],
                                           "additionalProperties": false
                                         },
                                         "num": {
@@ -8676,15 +7443,7 @@ catalog_schema:
                                               }
                                             }
                                           },
-                                          "required": [
-                                            "_id",
-                                            "any",
-                                            "array",
-                                            "bool",
-                                            "date",
-                                            "num",
-                                            "str"
-                                          ],
+                                          "required": ["_id", "any", "array", "bool", "date", "num", "str"],
                                           "additionalProperties": false
                                         },
                                         "_id": {
@@ -8729,16 +7488,7 @@ catalog_schema:
                                           }
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "array",
-                                        "bool",
-                                        "date",
-                                        "geoJson",
-                                        "num",
-                                        "obj",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "array", "bool", "date", "geoJson", "num", "obj", "str"],
                                       "additionalProperties": false
                                     },
                                     {
@@ -8765,14 +7515,7 @@ catalog_schema:
                                           "bsonType": "null"
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "bool",
-                                        "date",
-                                        "num",
-                                        "obj",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "bool", "date", "num", "obj", "str"],
                                       "additionalProperties": false
                                     }
                                   ]
@@ -8807,10 +7550,7 @@ catalog_schema:
                                         "bsonType": "string"
                                       }
                                     },
-                                    "required": [
-                                      "coordinates",
-                                      "type"
-                                    ],
+                                    "required": ["coordinates", "type"],
                                     "additionalProperties": false
                                   },
                                   "bool": {
@@ -9076,12 +7816,7 @@ catalog_schema:
                                               "bsonType": "date"
                                             }
                                           },
-                                          "required": [
-                                            "_id",
-                                            "any",
-                                            "date",
-                                            "str"
-                                          ],
+                                          "required": ["_id", "any", "date", "str"],
                                           "additionalProperties": false
                                         },
                                         {
@@ -9118,16 +7853,7 @@ catalog_schema:
                                               "bsonType": "string"
                                             }
                                           },
-                                          "required": [
-                                            "_id",
-                                            "any",
-                                            "array",
-                                            "bool",
-                                            "date",
-                                            "geoLegacy",
-                                            "num",
-                                            "str"
-                                          ],
+                                          "required": ["_id", "any", "array", "bool", "date", "geoLegacy", "num", "str"],
                                           "additionalProperties": false
                                         },
                                         {
@@ -9152,10 +7878,7 @@ catalog_schema:
                                                       "bsonType": "double"
                                                     }
                                                   },
-                                                  "required": [
-                                                    "x",
-                                                    "y"
-                                                  ],
+                                                  "required": ["x", "y"],
                                                   "additionalProperties": false
                                                 },
                                                 "_id": {
@@ -9165,13 +7888,7 @@ catalog_schema:
                                                   "bsonType": "int"
                                                 }
                                               },
-                                              "required": [
-                                                "_id",
-                                                "bool",
-                                                "date",
-                                                "geoLegacy",
-                                                "num"
-                                              ],
+                                              "required": ["_id", "bool", "date", "geoLegacy", "num"],
                                               "additionalProperties": false
                                             },
                                             "array": {
@@ -9226,23 +7943,14 @@ catalog_schema:
                                                   "bsonType": "double"
                                                 }
                                               },
-                                              "required": [
-                                                "x",
-                                                "y"
-                                              ],
+                                              "required": ["x", "y"],
                                               "additionalProperties": false
                                             },
                                             "str": {
                                               "bsonType": "string"
                                             }
                                           },
-                                          "required": [
-                                            "_id",
-                                            "any",
-                                            "bool",
-                                            "num",
-                                            "str"
-                                          ],
+                                          "required": ["_id", "any", "bool", "num", "str"],
                                           "additionalProperties": false
                                         },
                                         {
@@ -9269,10 +7977,7 @@ catalog_schema:
                                                   }
                                                 }
                                               },
-                                              "required": [
-                                                "coordinates",
-                                                "type"
-                                              ],
+                                              "required": ["coordinates", "type"],
                                               "additionalProperties": false
                                             },
                                             "str": {
@@ -9326,12 +8031,7 @@ catalog_schema:
                                               ]
                                             }
                                           },
-                                          "required": [
-                                            "_id",
-                                            "date",
-                                            "num",
-                                            "str"
-                                          ],
+                                          "required": ["_id", "date", "num", "str"],
                                           "additionalProperties": false
                                         },
                                         {
@@ -9356,10 +8056,7 @@ catalog_schema:
                                                   "bsonType": "double"
                                                 }
                                               },
-                                              "required": [
-                                                "x",
-                                                "y"
-                                              ],
+                                              "required": ["x", "y"],
                                               "additionalProperties": false
                                             },
                                             "num": {
@@ -9369,14 +8066,7 @@ catalog_schema:
                                               "bsonType": "string"
                                             }
                                           },
-                                          "required": [
-                                            "_id",
-                                            "bool",
-                                            "date",
-                                            "geoLegacy",
-                                            "num",
-                                            "str"
-                                          ],
+                                          "required": ["_id", "bool", "date", "geoLegacy", "num", "str"],
                                           "additionalProperties": false
                                         },
                                         {
@@ -9400,13 +8090,7 @@ catalog_schema:
                                               "bsonType": "string"
                                             }
                                           },
-                                          "required": [
-                                            "_id",
-                                            "date",
-                                            "num",
-                                            "obj",
-                                            "str"
-                                          ],
+                                          "required": ["_id", "date", "num", "obj", "str"],
                                           "additionalProperties": false
                                         }
                                       ]
@@ -9468,10 +8152,7 @@ catalog_schema:
                                             "bsonType": "double"
                                           }
                                         },
-                                        "required": [
-                                          "x",
-                                          "y"
-                                        ],
+                                        "required": ["x", "y"],
                                         "additionalProperties": false
                                       }
                                     ]
@@ -9538,10 +8219,7 @@ catalog_schema:
                                                         }
                                                       }
                                                     },
-                                                    "required": [
-                                                      "coordinates",
-                                                      "type"
-                                                    ],
+                                                    "required": ["coordinates", "type"],
                                                     "additionalProperties": false
                                                   },
                                                   "date": {
@@ -9581,10 +8259,7 @@ catalog_schema:
                                                 "bsonType": "string"
                                               }
                                             },
-                                            "required": [
-                                              "coordinates",
-                                              "type"
-                                            ],
+                                            "required": ["coordinates", "type"],
                                             "additionalProperties": false
                                           },
                                           "geoLegacy": {
@@ -9597,10 +8272,7 @@ catalog_schema:
                                                 "bsonType": "double"
                                               }
                                             },
-                                            "required": [
-                                              "x",
-                                              "y"
-                                            ],
+                                            "required": ["x", "y"],
                                             "additionalProperties": false
                                           },
                                           "array": {
@@ -9666,10 +8338,7 @@ catalog_schema:
                                                           "bsonType": "double"
                                                         }
                                                       },
-                                                      "required": [
-                                                        "x",
-                                                        "y"
-                                                      ],
+                                                      "required": ["x", "y"],
                                                       "additionalProperties": false
                                                     },
                                                     "bool": {
@@ -9687,16 +8356,7 @@ catalog_schema:
                                                       "additionalProperties": false
                                                     }
                                                   },
-                                                  "required": [
-                                                    "_id",
-                                                    "array",
-                                                    "bool",
-                                                    "date",
-                                                    "geoLegacy",
-                                                    "num",
-                                                    "obj",
-                                                    "str"
-                                                  ],
+                                                  "required": ["_id", "array", "bool", "date", "geoLegacy", "num", "obj", "str"],
                                                   "additionalProperties": false
                                                 },
                                                 {
@@ -9757,16 +8417,7 @@ catalog_schema:
                                                                 "bsonType": "string"
                                                               }
                                                             },
-                                                            "required": [
-                                                              "_id",
-                                                              "any",
-                                                              "bool",
-                                                              "date",
-                                                              "geoLegacy",
-                                                              "num",
-                                                              "obj",
-                                                              "str"
-                                                            ],
+                                                            "required": ["_id", "any", "bool", "date", "geoLegacy", "num", "obj", "str"],
                                                             "additionalProperties": false
                                                           }
                                                         ]
@@ -9813,15 +8464,7 @@ catalog_schema:
                                                           }
                                                         }
                                                       },
-                                                      "required": [
-                                                        "_id",
-                                                        "any",
-                                                        "array",
-                                                        "bool",
-                                                        "date",
-                                                        "num",
-                                                        "str"
-                                                      ],
+                                                      "required": ["_id", "any", "array", "bool", "date", "num", "str"],
                                                       "additionalProperties": false
                                                     },
                                                     "str": {
@@ -9831,14 +8474,7 @@ catalog_schema:
                                                       "bsonType": "int"
                                                     }
                                                   },
-                                                  "required": [
-                                                    "_id",
-                                                    "array",
-                                                    "bool",
-                                                    "num",
-                                                    "obj",
-                                                    "str"
-                                                  ],
+                                                  "required": ["_id", "array", "bool", "num", "obj", "str"],
                                                   "additionalProperties": false
                                                 }
                                               ]
@@ -9966,15 +8602,7 @@ catalog_schema:
                                     }
                                   }
                                 },
-                                "required": [
-                                  "_id",
-                                  "array",
-                                  "bool",
-                                  "date",
-                                  "geoLegacy",
-                                  "num",
-                                  "str"
-                                ],
+                                "required": ["_id", "array", "bool", "date", "geoLegacy", "num", "str"],
                                 "additionalProperties": false
                               }
                             ]
@@ -10013,10 +8641,7 @@ catalog_schema:
                                     "bsonType": "double"
                                   }
                                 },
-                                "required": [
-                                  "x",
-                                  "y"
-                                ],
+                                "required": ["x", "y"],
                                 "additionalProperties": false
                               }
                             ]
@@ -10233,10 +8858,7 @@ catalog_schema:
                                     "bsonType": "double"
                                   }
                                 },
-                                "required": [
-                                  "x",
-                                  "y"
-                                ],
+                                "required": ["x", "y"],
                                 "additionalProperties": false
                               },
                               "bool": {
@@ -10246,17 +8868,7 @@ catalog_schema:
                                 "bsonType": "int"
                               }
                             },
-                            "required": [
-                              "_id",
-                              "any",
-                              "array",
-                              "bool",
-                              "date",
-                              "geoLegacy",
-                              "num",
-                              "obj",
-                              "str"
-                            ],
+                            "required": ["_id", "any", "array", "bool", "date", "geoLegacy", "num", "obj", "str"],
                             "additionalProperties": false
                           },
                           "geoJson": {
@@ -10272,22 +8884,14 @@ catalog_schema:
                                 "bsonType": "string"
                               }
                             },
-                            "required": [
-                              "coordinates",
-                              "type"
-                            ],
+                            "required": ["coordinates", "type"],
                             "additionalProperties": false
                           },
                           "str": {
                             "bsonType": "string"
                           }
                         },
-                        "required": [
-                          "_id",
-                          "date",
-                          "num",
-                          "str"
-                        ],
+                        "required": ["_id", "date", "num", "str"],
                         "additionalProperties": false
                       },
                       {
@@ -10350,10 +8954,7 @@ catalog_schema:
                                               "bsonType": "string"
                                             }
                                           },
-                                          "required": [
-                                            "coordinates",
-                                            "type"
-                                          ],
+                                          "required": ["coordinates", "type"],
                                           "additionalProperties": false
                                         },
                                         "bool": {
@@ -10396,16 +8997,7 @@ catalog_schema:
                                           }
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "array",
-                                        "bool",
-                                        "date",
-                                        "geoJson",
-                                        "num",
-                                        "obj",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "array", "bool", "date", "geoJson", "num", "obj", "str"],
                                       "additionalProperties": false
                                     }
                                   ]
@@ -10526,13 +9118,7 @@ catalog_schema:
                                               "bsonType": "string"
                                             }
                                           },
-                                          "required": [
-                                            "_id",
-                                            "array",
-                                            "bool",
-                                            "num",
-                                            "str"
-                                          ],
+                                          "required": ["_id", "array", "bool", "num", "str"],
                                           "additionalProperties": false
                                         },
                                         "array": {
@@ -10545,15 +9131,7 @@ catalog_schema:
                                           "bsonType": "string"
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "array",
-                                        "bool",
-                                        "date",
-                                        "num",
-                                        "obj",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "array", "bool", "date", "num", "obj", "str"],
                                       "additionalProperties": false
                                     },
                                     "geoLegacy": {
@@ -10566,10 +9144,7 @@ catalog_schema:
                                           "bsonType": "double"
                                         }
                                       },
-                                      "required": [
-                                        "x",
-                                        "y"
-                                      ],
+                                      "required": ["x", "y"],
                                       "additionalProperties": false
                                     },
                                     "num": {
@@ -10597,31 +9172,14 @@ catalog_schema:
                                       }
                                     }
                                   },
-                                  "required": [
-                                    "_id",
-                                    "any",
-                                    "array",
-                                    "bool",
-                                    "date",
-                                    "geoLegacy",
-                                    "num",
-                                    "obj",
-                                    "str"
-                                  ],
+                                  "required": ["_id", "any", "array", "bool", "date", "geoLegacy", "num", "obj", "str"],
                                   "additionalProperties": false
                                 }
                               ]
                             }
                           }
                         },
-                        "required": [
-                          "_id",
-                          "bool",
-                          "date",
-                          "num",
-                          "obj",
-                          "str"
-                        ],
+                        "required": ["_id", "bool", "date", "num", "obj", "str"],
                         "additionalProperties": false
                       }
                     ]
@@ -10690,10 +9248,7 @@ catalog_schema:
                         }
                       }
                     },
-                    "required": [
-                      "coordinates",
-                      "type"
-                    ],
+                    "required": ["coordinates", "type"],
                     "additionalProperties": false
                   },
                   "geoLegacy": {
@@ -10714,10 +9269,7 @@ catalog_schema:
                             "bsonType": "double"
                           }
                         },
-                        "required": [
-                          "x",
-                          "y"
-                        ],
+                        "required": ["x", "y"],
                         "additionalProperties": false
                       }
                     ]
@@ -10786,15 +9338,7 @@ catalog_schema:
                                   "bsonType": "int"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "array",
-                                "bool",
-                                "date",
-                                "num",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "array", "bool", "date", "num", "obj", "str"],
                               "additionalProperties": false
                             }
                           ]
@@ -10958,10 +9502,7 @@ catalog_schema:
                                                 }
                                               }
                                             },
-                                            "required": [
-                                              "coordinates",
-                                              "type"
-                                            ],
+                                            "required": ["coordinates", "type"],
                                             "additionalProperties": false
                                           },
                                           "bool": {
@@ -11006,13 +9547,7 @@ catalog_schema:
                                             }
                                           }
                                         },
-                                        "required": [
-                                          "_id",
-                                          "array",
-                                          "bool",
-                                          "num",
-                                          "str"
-                                        ],
+                                        "required": ["_id", "array", "bool", "num", "str"],
                                         "additionalProperties": false
                                       }
                                     ]
@@ -11031,14 +9566,7 @@ catalog_schema:
                                   "bsonType": "string"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "array",
-                                "bool",
-                                "date",
-                                "num",
-                                "str"
-                              ],
+                              "required": ["_id", "array", "bool", "date", "num", "str"],
                               "additionalProperties": false
                             },
                             "array": {
@@ -11070,16 +9598,7 @@ catalog_schema:
                               "bsonType": "int"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "any",
-                            "array",
-                            "bool",
-                            "date",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "any", "array", "bool", "date", "num", "obj", "str"],
                           "additionalProperties": false
                         },
                         {
@@ -11101,10 +9620,7 @@ catalog_schema:
                                       "bsonType": "string"
                                     }
                                   },
-                                  "required": [
-                                    "coordinates",
-                                    "type"
-                                  ],
+                                  "required": ["coordinates", "type"],
                                   "additionalProperties": false
                                 },
                                 "num": {
@@ -11195,16 +9711,7 @@ catalog_schema:
                                                 "bsonType": "int"
                                               }
                                             },
-                                            "required": [
-                                              "_id",
-                                              "any",
-                                              "array",
-                                              "bool",
-                                              "date",
-                                              "geoLegacy",
-                                              "num",
-                                              "str"
-                                            ],
+                                            "required": ["_id", "any", "array", "bool", "date", "geoLegacy", "num", "str"],
                                             "additionalProperties": false
                                           }
                                         ]
@@ -11243,14 +9750,7 @@ catalog_schema:
                                           }
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "array",
-                                        "bool",
-                                        "num",
-                                        "obj",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "array", "bool", "num", "obj", "str"],
                                       "additionalProperties": false
                                     },
                                     "str": {
@@ -11294,14 +9794,7 @@ catalog_schema:
                                   "bsonType": "int"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "bool",
-                                "date",
-                                "num",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "bool", "date", "num", "obj", "str"],
                               "additionalProperties": false
                             },
                             "bool": {
@@ -11330,10 +9823,7 @@ catalog_schema:
                                   "bsonType": "string"
                                 }
                               },
-                              "required": [
-                                "coordinates",
-                                "type"
-                              ],
+                              "required": ["coordinates", "type"],
                               "additionalProperties": false
                             },
                             "any": {
@@ -11355,14 +9845,7 @@ catalog_schema:
                               "bsonType": "int"
                             }
                           },
-                          "required": [
-                            "_id",
-                            "bool",
-                            "date",
-                            "num",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "bool", "date", "num", "obj", "str"],
                           "additionalProperties": false
                         }
                       ]
@@ -11407,10 +9890,7 @@ catalog_schema:
                             }
                           }
                         },
-                        "required": [
-                          "coordinates",
-                          "type"
-                        ],
+                        "required": ["coordinates", "type"],
                         "additionalProperties": false
                       },
                       "str": {
@@ -11434,10 +9914,7 @@ catalog_schema:
                                 "bsonType": "double"
                               }
                             },
-                            "required": [
-                              "x",
-                              "y"
-                            ],
+                            "required": ["x", "y"],
                             "additionalProperties": false
                           }
                         ]
@@ -11551,15 +10028,7 @@ catalog_schema:
                                         "bsonType": "null"
                                       }
                                     },
-                                    "required": [
-                                      "_id",
-                                      "any",
-                                      "array",
-                                      "bool",
-                                      "date",
-                                      "num",
-                                      "str"
-                                    ],
+                                    "required": ["_id", "any", "array", "bool", "date", "num", "str"],
                                     "additionalProperties": false
                                   }
                                 ]
@@ -11594,10 +10063,7 @@ catalog_schema:
                                       "bsonType": "string"
                                     }
                                   },
-                                  "required": [
-                                    "coordinates",
-                                    "type"
-                                  ],
+                                  "required": ["coordinates", "type"],
                                   "additionalProperties": false
                                 },
                                 "any": {
@@ -11618,14 +10084,7 @@ catalog_schema:
                                   "additionalProperties": false
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "any",
-                                "geoJson",
-                                "num",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "any", "geoJson", "num", "obj", "str"],
                               "additionalProperties": false
                             },
                             {
@@ -11707,10 +10166,7 @@ catalog_schema:
                                           }
                                         }
                                       },
-                                      "required": [
-                                        "coordinates",
-                                        "type"
-                                      ],
+                                      "required": ["coordinates", "type"],
                                       "additionalProperties": false
                                     },
                                     "_id": {
@@ -11720,30 +10176,11 @@ catalog_schema:
                                       "bsonType": "null"
                                     }
                                   },
-                                  "required": [
-                                    "_id",
-                                    "any",
-                                    "array",
-                                    "bool",
-                                    "geoJson",
-                                    "num",
-                                    "obj",
-                                    "str"
-                                  ],
+                                  "required": ["_id", "any", "array", "bool", "geoJson", "num", "obj", "str"],
                                   "additionalProperties": false
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "any",
-                                "array",
-                                "bool",
-                                "date",
-                                "geoLegacy",
-                                "num",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "any", "array", "bool", "date", "geoLegacy", "num", "obj", "str"],
                               "additionalProperties": false
                             },
                             {
@@ -11759,10 +10196,7 @@ catalog_schema:
                                       "bsonType": "double"
                                     }
                                   },
-                                  "required": [
-                                    "x",
-                                    "y"
-                                  ],
+                                  "required": ["x", "y"],
                                   "additionalProperties": false
                                 },
                                 "bool": {
@@ -11781,14 +10215,7 @@ catalog_schema:
                                   "bsonType": "date"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "bool",
-                                "date",
-                                "geoLegacy",
-                                "num",
-                                "str"
-                              ],
+                              "required": ["_id", "bool", "date", "geoLegacy", "num", "str"],
                               "additionalProperties": false
                             }
                           ]
@@ -11824,10 +10251,7 @@ catalog_schema:
                                     "bsonType": "double"
                                   }
                                 },
-                                "required": [
-                                  "x",
-                                  "y"
-                                ],
+                                "required": ["x", "y"],
                                 "additionalProperties": false
                               },
                               "any": {
@@ -11961,14 +10385,7 @@ catalog_schema:
                                                           }
                                                         }
                                                       },
-                                                      "required": [
-                                                        "_id",
-                                                        "array",
-                                                        "bool",
-                                                        "date",
-                                                        "obj",
-                                                        "str"
-                                                      ],
+                                                      "required": ["_id", "array", "bool", "date", "obj", "str"],
                                                       "additionalProperties": false
                                                     }
                                                   }
@@ -11979,14 +10396,7 @@ catalog_schema:
                                               "bsonType": "string"
                                             }
                                           },
-                                          "required": [
-                                            "_id",
-                                            "array",
-                                            "bool",
-                                            "date",
-                                            "obj",
-                                            "str"
-                                          ],
+                                          "required": ["_id", "array", "bool", "date", "obj", "str"],
                                           "additionalProperties": false
                                         },
                                         "bool": {
@@ -11996,15 +10406,7 @@ catalog_schema:
                                           "bsonType": "long"
                                         }
                                       },
-                                      "required": [
-                                        "_id",
-                                        "array",
-                                        "bool",
-                                        "date",
-                                        "num",
-                                        "obj",
-                                        "str"
-                                      ],
+                                      "required": ["_id", "array", "bool", "date", "num", "obj", "str"],
                                       "additionalProperties": false
                                     }
                                   ]
@@ -12038,31 +10440,14 @@ catalog_schema:
                                     "bsonType": "int"
                                   }
                                 },
-                                "required": [
-                                  "_id",
-                                  "any",
-                                  "array",
-                                  "date",
-                                  "num",
-                                  "str"
-                                ],
+                                "required": ["_id", "any", "array", "date", "num", "str"],
                                 "additionalProperties": false
                               },
                               "date": {
                                 "bsonType": "date"
                               }
                             },
-                            "required": [
-                              "_id",
-                              "any",
-                              "array",
-                              "bool",
-                              "date",
-                              "geoLegacy",
-                              "num",
-                              "obj",
-                              "str"
-                            ],
+                            "required": ["_id", "any", "array", "bool", "date", "geoLegacy", "num", "obj", "str"],
                             "additionalProperties": false
                           }
                         ]
@@ -12176,16 +10561,7 @@ catalog_schema:
                                       "bsonType": "bool"
                                     }
                                   },
-                                  "required": [
-                                    "_id",
-                                    "any",
-                                    "array",
-                                    "bool",
-                                    "date",
-                                    "num",
-                                    "obj",
-                                    "str"
-                                  ],
+                                  "required": ["_id", "any", "array", "bool", "date", "num", "obj", "str"],
                                   "additionalProperties": false
                                 },
                                 {
@@ -12207,13 +10583,7 @@ catalog_schema:
                                       "bsonType": "date"
                                     }
                                   },
-                                  "required": [
-                                    "_id",
-                                    "bool",
-                                    "date",
-                                    "num",
-                                    "str"
-                                  ],
+                                  "required": ["_id", "bool", "date", "num", "str"],
                                   "additionalProperties": false
                                 }
                               ]
@@ -12246,10 +10616,7 @@ catalog_schema:
                                     "bsonType": "double"
                                   }
                                 },
-                                "required": [
-                                  "x",
-                                  "y"
-                                ],
+                                "required": ["x", "y"],
                                 "additionalProperties": false
                               }
                             ]
@@ -12307,10 +10674,7 @@ catalog_schema:
                     "bsonType": "double"
                   }
                 },
-                "required": [
-                  "x",
-                  "y"
-                ],
+                "required": ["x", "y"],
                 "additionalProperties": false
               }
             ]
@@ -12328,10 +10692,7 @@ catalog_schema:
                 }
               }
             },
-            "required": [
-              "coordinates",
-              "type"
-            ],
+            "required": ["coordinates", "type"],
             "additionalProperties": false
           },
           "any": {
@@ -12421,10 +10782,7 @@ catalog_schema:
                         "bsonType": "double"
                       }
                     },
-                    "required": [
-                      "x",
-                      "y"
-                    ],
+                    "required": ["x", "y"],
                     "additionalProperties": false
                   },
                   "num": {
@@ -12434,16 +10792,7 @@ catalog_schema:
                     "bsonType": "date"
                   }
                 },
-                "required": [
-                  "_id",
-                  "array",
-                  "bool",
-                  "date",
-                  "geoLegacy",
-                  "num",
-                  "obj",
-                  "str"
-                ],
+                "required": ["_id", "array", "bool", "date", "geoLegacy", "num", "obj", "str"],
                 "additionalProperties": false
               },
               {
@@ -12579,17 +10928,7 @@ catalog_schema:
                                       "bsonType": "int"
                                     }
                                   },
-                                  "required": [
-                                    "_id",
-                                    "any",
-                                    "array",
-                                    "bool",
-                                    "date",
-                                    "geoLegacy",
-                                    "num",
-                                    "obj",
-                                    "str"
-                                  ],
+                                  "required": ["_id", "any", "array", "bool", "date", "geoLegacy", "num", "obj", "str"],
                                   "additionalProperties": false
                                 },
                                 "geoJson": {
@@ -12605,10 +10944,7 @@ catalog_schema:
                                       }
                                     }
                                   },
-                                  "required": [
-                                    "coordinates",
-                                    "type"
-                                  ],
+                                  "required": ["coordinates", "type"],
                                   "additionalProperties": false
                                 },
                                 "_id": {
@@ -12640,16 +10976,7 @@ catalog_schema:
                                   "bsonType": "null"
                                 }
                               },
-                              "required": [
-                                "_id",
-                                "any",
-                                "array",
-                                "bool",
-                                "date",
-                                "geoJson",
-                                "obj",
-                                "str"
-                              ],
+                              "required": ["_id", "any", "array", "bool", "date", "geoJson", "obj", "str"],
                               "additionalProperties": false
                             },
                             "date": {
@@ -12700,15 +11027,7 @@ catalog_schema:
                               }
                             }
                           },
-                          "required": [
-                            "_id",
-                            "array",
-                            "bool",
-                            "date",
-                            "geoLegacy",
-                            "obj",
-                            "str"
-                          ],
+                          "required": ["_id", "array", "bool", "date", "geoLegacy", "obj", "str"],
                           "additionalProperties": false
                         }
                       ]
@@ -12727,10 +11046,7 @@ catalog_schema:
                         }
                       }
                     },
-                    "required": [
-                      "coordinates",
-                      "type"
-                    ],
+                    "required": ["coordinates", "type"],
                     "additionalProperties": false
                   },
                   "obj": {
@@ -12755,10 +11071,7 @@ catalog_schema:
                             "bsonType": "double"
                           }
                         },
-                        "required": [
-                          "x",
-                          "y"
-                        ],
+                        "required": ["x", "y"],
                         "additionalProperties": false
                       },
                       "str": {
@@ -12902,25 +11215,14 @@ catalog_schema:
                                         }
                                       }
                                     },
-                                    "required": [
-                                      "coordinates",
-                                      "type"
-                                    ],
+                                    "required": ["coordinates", "type"],
                                     "additionalProperties": false
                                   },
                                   "num": {
                                     "bsonType": "int"
                                   }
                                 },
-                                "required": [
-                                  "_id",
-                                  "array",
-                                  "bool",
-                                  "date",
-                                  "geoJson",
-                                  "num",
-                                  "str"
-                                ],
+                                "required": ["_id", "array", "bool", "date", "geoJson", "num", "str"],
                                 "additionalProperties": false
                               },
                               "bool": {
@@ -12992,37 +11294,15 @@ catalog_schema:
                             "bsonType": "int"
                           }
                         },
-                        "required": [
-                          "_id",
-                          "array",
-                          "bool",
-                          "geoLegacy",
-                          "obj",
-                          "str"
-                        ],
+                        "required": ["_id", "array", "bool", "geoLegacy", "obj", "str"],
                         "additionalProperties": false
                       }
                     },
-                    "required": [
-                      "_id",
-                      "array",
-                      "date",
-                      "num",
-                      "obj",
-                      "str"
-                    ],
+                    "required": ["_id", "array", "date", "num", "obj", "str"],
                     "additionalProperties": false
                   }
                 },
-                "required": [
-                  "_id",
-                  "array",
-                  "bool",
-                  "date",
-                  "num",
-                  "obj",
-                  "str"
-                ],
+                "required": ["_id", "array", "bool", "date", "num", "obj", "str"],
                 "additionalProperties": false
               }
             ]
@@ -13085,9 +11365,7 @@ catalog_schema:
             ]
           }
         },
-        "required": [
-          "_id"
-        ],
+        "required": ["_id"],
         "additionalProperties": false
       }
     }
