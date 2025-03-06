@@ -129,6 +129,36 @@ mod field_ref {
     test_derive_expression_schema!(
         ref_present,
         expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = r#""$$foo""#,
+        ref_schema = Schema::Any,
+        variables = map! {
+            "foo".to_string() => Schema::Atomic(Atomic::Double)
+        }
+    );
+
+    test_derive_expression_schema!(
+        variable_ref_nested,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = r#""$$a.b.c""#,
+        ref_schema = Schema::Any,
+        variables = map! {
+            "a".to_string() => Schema::Document(Document {
+                keys: map! {
+                    "b".to_string() => Schema::Document(Document {
+                        keys: map! {
+                            "c".to_string() => Schema::Atomic(Atomic::Double)
+                        },
+                        ..Default::default()
+                    })
+                },
+                ..Default::default()
+            })
+        }
+    );
+
+    test_derive_expression_schema!(
+        field_ref,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
         input = r#""$foo""#,
         ref_schema = Schema::Atomic(Atomic::Double),
         variables = map!()
@@ -187,6 +217,21 @@ mod variable_ref {
         ref_schema = Schema::Any,
         variables = map! {
             "foo".to_string() => Schema::Atomic(Atomic::Double)
+        }
+    );
+
+    test_derive_expression_schema!(
+        ref_nested_present,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = r#""$$foo.bar""#,
+        ref_schema = Schema::Any,
+        variables = map! {
+            "foo".to_string() => Schema::Document(Document {
+                keys: map! {
+                    "bar".to_string() => Schema::Atomic(Atomic::Double)
+                },
+                ..Default::default()
+            })
         }
     );
 

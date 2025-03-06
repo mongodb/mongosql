@@ -1,7 +1,7 @@
 use crate::{
     get_schema_for_path_mut, insert_required_key_into_document, promote_missing, remove_field,
     schema_difference, schema_for_bson, schema_for_type_numeric, schema_for_type_str, Error,
-    Result,
+    MatchConstrainSchema, Result,
 };
 use agg_ast::definitions::{
     Bucket, BucketAuto, ConciseSubqueryLookup, Densify, EqualityLookup, Expression, GraphLookup,
@@ -757,48 +757,66 @@ impl DeriveSchema for Expression {
                     None => Ok(Schema::Missing),
                 }
             }
-            Expression::Ref(Ref::VariableRef(v)) => match v.as_str() {
-                "NOW" => Ok(Schema::Atomic(Atomic::Date)),
-                "CURRENT_TIME" => Ok(Schema::Atomic(Atomic::Timestamp)),
-                "REMOVE" => Ok(Schema::Missing),
-                "ROOT" => Ok(state.result_set_schema.clone()),
-                "USER_ROLES" => Ok(Schema::Array(Box::new(Schema::Document(Document {
-                    keys: map! {
-                        "_id".to_string() => Schema::Atomic(Atomic::String),
-                        "role".to_string() => Schema::Atomic(Atomic::String),
-                        "db".to_string() => Schema::Atomic(Atomic::String)
-                    },
-                    required: set!["_id".to_string(), "role".to_string(), "db".to_string()],
-                    ..Default::default()
-                })))),
-                "SEARCH_META" => Ok(Schema::Document(Document {
-                    keys: map! {
-                        "count".to_string() => Schema::Document(Document {
-                            keys: map! {
-                                "total".to_string() => Schema::Atomic(Atomic::Long),
-                                "lowerBound".to_string() => Schema::Atomic(Atomic::Long),
-                            },
-                            // one key is required, but the result will always include one or
-                            // the other, so we cannot say that either is required.
-                            required: set![],
-                            ..Default::default()
-                        }),
-                    },
-                    required: set!["count".to_string(),],
-                    ..Default::default()
-                })),
-                v => match state.variables.get(v) {
-                    Some(schema) => Ok(schema.clone()),
-                    None => {
-                        if v == "CURRENT" {
-                            // CURRENT is equivalent to ROOT, if it has not been rebound
-                            Ok(state.result_set_schema.clone())
+            Expression::Ref(Ref::VariableRef(v)) => {
+                match v.as_str() {
+                    "NOW" => Ok(Schema::Atomic(Atomic::Date)),
+                    "CURRENT_TIME" => Ok(Schema::Atomic(Atomic::Timestamp)),
+                    "REMOVE" => Ok(Schema::Missing),
+                    "ROOT" => Ok(state.result_set_schema.clone()),
+                    "USER_ROLES" => Ok(Schema::Array(Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "_id".to_string() => Schema::Atomic(Atomic::String),
+                            "role".to_string() => Schema::Atomic(Atomic::String),
+                            "db".to_string() => Schema::Atomic(Atomic::String)
+                        },
+                        required: set!["_id".to_string(), "role".to_string(), "db".to_string()],
+                        ..Default::default()
+                    })))),
+                    "SEARCH_META" => Ok(Schema::Document(Document {
+                        keys: map! {
+                            "count".to_string() => Schema::Document(Document {
+                                keys: map! {
+                                    "total".to_string() => Schema::Atomic(Atomic::Long),
+                                    "lowerBound".to_string() => Schema::Atomic(Atomic::Long),
+                                },
+                                // one key is required, but the result will always include one or
+                                // the other, so we cannot say that either is required.
+                                required: set![],
+                                ..Default::default()
+                            }),
+                        },
+                        required: set!["count".to_string(),],
+                        ..Default::default()
+                    })),
+                    v => {
+                        let path: Vec<String> = v.split('.').map(|s| s.to_string()).collect();
+                        let var_schema = if v.contains(".") {
+                            state
+                                .variables
+                                .get_mut(&path[0])
+                                .and_then(|doc| get_schema_for_path_mut(doc, path[1..].to_vec()))
                         } else {
-                            Err(Error::UnknownReference(v.into()))
+                            state.variables.get_mut(v)
+                        };
+                        match var_schema {
+                            Some(schema) => Ok(schema.clone()),
+                            None => {
+                                if path[0] == "CURRENT" {
+                                    // CURRENT is equivalent to ROOT, if it has not been rebound
+                                    Ok(get_schema_for_path_mut(
+                                        &mut state.result_set_schema,
+                                        path[1..].to_vec(),
+                                    )
+                                    .unwrap()
+                                    .clone())
+                                } else {
+                                    Err(Error::UnknownReference(v.into()))
+                                }
+                            }
                         }
                     }
-                },
-            },
+                }
+            }
             Expression::TaggedOperator(op) => op.derive_schema(state),
             Expression::UntaggedOperator(op) => op.derive_schema(state),
         }
@@ -892,7 +910,7 @@ impl DeriveSchema for TaggedOperator {
                     })
             }};
         }
-        macro_rules! array_schema_or_error {
+        macro_rules! array_element_schema_or_error {
             ($input_schema:expr,$input:expr) => {{
                 match $input_schema {
                     Schema::Array(a) => *a,
@@ -1247,7 +1265,28 @@ impl DeriveSchema for TaggedOperator {
                     set! {then_schema, else_schema},
                 )))
             }
-            TaggedOperator::Filter(_) => todo!(),
+            TaggedOperator::Filter(f) => {
+                let input_schema = f.input.derive_schema(state)?;
+                let is_nullable = input_schema.satisfies(&NULLISH.clone()) != Satisfaction::Not;
+                let array_element_schema = array_element_schema_or_error!(input_schema, f.input);
+                let var_name = f._as.clone().unwrap_or("this".to_string());
+                let mut temp_state = state.clone();
+                temp_state
+                    .variables
+                    .insert(var_name.clone(), array_element_schema);
+                f.cond.match_derive_schema(&mut temp_state)?;
+                let filter_schema = temp_state.variables.remove(&var_name);
+                if let Some(schema) = filter_schema {
+                    let mut schema = Schema::Array(Box::new(schema));
+                    if is_nullable {
+                        schema = schema.union(&Schema::Atomic(Atomic::Null))
+                    }
+                    Ok(schema)
+                // this should be unreachable, since we manually add and remove the variable from the state
+                } else {
+                    unreachable!()
+                }
+            }
             TaggedOperator::FirstN(n) => Ok(Schema::Array(Box::new(n.input.derive_schema(state)?))),
             TaggedOperator::Function(_) => todo!(),
             TaggedOperator::Integral(i) => {
@@ -1262,10 +1301,11 @@ impl DeriveSchema for TaggedOperator {
                 if input_schema.satisfies(&NULLISH.clone()) == Satisfaction::Must {
                     return Ok(Schema::Atomic(Atomic::Null));
                 }
-                let array_schema = array_schema_or_error!(input_schema.clone(), m.input);
+                let array_element_schema =
+                    array_element_schema_or_error!(input_schema.clone(), m.input);
                 let mut new_state = state.clone();
                 let mut variables = state.variables.clone();
-                variables.insert(var, array_schema);
+                variables.insert(var, array_element_schema);
                 new_state.variables = variables;
                 let not_null_schema =
                     Schema::Array(Box::new(m.inside.derive_schema(&mut new_state)?))
@@ -1292,11 +1332,12 @@ impl DeriveSchema for TaggedOperator {
                 if input_schema.satisfies(&NULLISH.clone()) == Satisfaction::Must {
                     return Ok(Schema::Atomic(Atomic::Null));
                 }
-                let array_schema = array_schema_or_error!(input_schema.clone(), r.input);
+                let array_element_schema =
+                    array_element_schema_or_error!(input_schema.clone(), r.input);
                 let initial_schema = r.initial_value.derive_schema(state)?;
                 let mut new_state = state.clone();
                 let mut variables = state.variables.clone();
-                variables.insert("this".to_string(), array_schema);
+                variables.insert("this".to_string(), array_element_schema);
                 variables.insert("value".to_string(), initial_schema);
                 new_state.variables = variables;
                 if input_schema.satisfies(&NULLISH.clone()) == Satisfaction::Not {
