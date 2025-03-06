@@ -1674,11 +1674,17 @@ group as determined by the group key value.
   - COUNT([\<expression\>](#expressions)) counts all
     values for which the expression does not result in NULL or
     MISSING.
-  - COUNT(DISTINCT [\<expression\>](#expressions)) conditionally counts distinct values of the expression.
+  - COUNT(col1, col2, ...) counts combinations of the specified columns where at least one of the columns 
+  has a non-NULL, non-MISSING value.
   - COUNT(DISTINCT \*) unconditionally counts the number of distinct documents in the result set.
+  - COUNT(DISTINCT [\<expression\>](#expressions)) conditionally counts distinct values of the expression.
   - COUNT(DISTINCT col1, col2, ...) counts distinct combinations of the specified columns.
 
   - The type of the argument to COUNT does not matter.
+    
+  Note: COUNT(DISTINCT? col1, col2, ..., coln) is syntactically equivalent to 
+  COUNT(DISTINCT? {'_1': col1, '_2': col2, ..., '_n': coln}). Implementations may, but are not required to, 
+  implement this as a syntactic rewrite.
 
 - FIRST - Returns the first element in the group. Deterministic only
   when the input has deterministic order, otherwise undefined.
@@ -2760,12 +2766,11 @@ This operator is not strictly required for SQL compatibility. One
 benefit of not supporting it is that IS can unambiguously be used as the
 type-check operator.
 
-For now, we rejected comparisons for structured data (documents and
-arrays). There are still several questions to work through for
-structured data comparisons (how to handle NULL elements, for example).
-Structured data types are not part of SQL-92 and therefore we do not
-need to address this at this time. We are not excluded from supporting
-this in the future.
+Initially, we rejected comparisons for structured data (documents and 
+arrays). There were several questions to work through for structured 
+data comparisons (such as how to handle NULL elements). Since structured 
+data types are not part of SQL-92, we didn't need to address this immediately. 
+However, we have now implemented support for document and array comparisons.
 
 We also rejected polymorphic comparisons. Comparisons are not required
 to be polymorphic for SQL compatibility and being restrictive now does
@@ -4117,21 +4122,16 @@ turned into qualified references by prefixing the current database.
 
 #### Behavioral Description
 
-MongoSQL does not provide any guarantees about the ordering of keys in
-documents. This means that any document value may be returned from a
-query with its keys in an arbitrary order, whether that document was
-created by a literal, selected unmodified from a collection, or
+MongoSQL does not provide any guarantees about the ordering of keys in 
+documents. This means that any document value may be returned from a 
+query with its keys in an arbitrary order, whether that document was 
+created by a literal, selected unmodified from a collection, or 
 otherwise. In practice, document keys will often be returned in the
 order they are specified in a literal or the order they are stored in
-the database, but users should not rely on this behavior.
-
-Currently, MongoSQL itself does not implement any functionality that
-depends on the orderedness (or unorderedness) of document keys. This
-limitation is intentional; we wish to have the flexibility to decide in
-the future that documents are ordered or unordered. This is why
-comparison operators (and some uses of clauses that implicitly perform
-comparisons, like ORDER BY, GROUP BY, and SELECT DISTINCT) are
-disallowed over document fields.
+the database, but users should not rely on this behavior. Although MongoSQL
+does not provide any guarantees about the ordering of keys in documents,
+it does support document comparison. Literal documents are treated as
+ordered and document comparison follows MongoDB's document comparison rules.
 
 #### Rejected Alternatives/Competitive Analysis
 
