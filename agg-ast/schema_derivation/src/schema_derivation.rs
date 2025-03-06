@@ -1,12 +1,13 @@
 use crate::{
     get_schema_for_path_mut, insert_required_key_into_document, promote_missing, remove_field,
-    schema_difference, schema_for_type_numeric, schema_for_type_str, Error, MatchConstrainSchema,
-    Result,
+    schema_difference, schema_for_bson, schema_for_type_numeric, schema_for_type_str, Error,
+    MatchConstrainSchema, Result,
 };
 use agg_ast::definitions::{
-    ConciseSubqueryLookup, Densify, EqualityLookup, Expression, GraphLookup, Group, LiteralValue,
-    Lookup, LookupFrom, ProjectItem, ProjectStage, Ref, SetWindowFields, Stage, SubqueryLookup,
-    TaggedOperator, UnionWith, UntaggedOperator, UntaggedOperatorName, Unwind,
+    Bucket, BucketAuto, ConciseSubqueryLookup, Densify, EqualityLookup, Expression, GraphLookup,
+    Group, LiteralValue, Lookup, LookupFrom, ProjectItem, ProjectStage, Ref, SetWindowFields,
+    Stage, SubqueryLookup, TaggedOperator, UnionWith, UntaggedOperator, UntaggedOperatorName,
+    Unwind,
 };
 use linked_hash_map::LinkedHashMap;
 use mongosql::{
@@ -250,6 +251,65 @@ impl DeriveSchema for Stage {
                 );
             }
             Ok(Schema::simplify(&state.result_set_schema).to_owned())
+        }
+
+        fn bucket_output_derive_keys(
+            output: Option<&LinkedHashMap<String, Expression>>,
+            state: &mut ResultSetState,
+        ) -> Result<BTreeMap<String, Schema>> {
+            if let Some(output) = output {
+                let keys = output
+                    .iter()
+                    .map(|(k, e)| {
+                        let field_schema = e.derive_schema(state)?;
+                        Ok((k.clone(), field_schema))
+                    })
+                    .collect::<Result<BTreeMap<String, Schema>>>()?;
+                Ok(keys)
+            } else {
+                Ok(map! {
+                    "count".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long)))
+                })
+            }
+        }
+
+        fn bucket_derive_schema(bucket: &Bucket, state: &mut ResultSetState) -> Result<Schema> {
+            let mut id_schema = bucket.group_by.derive_schema(state)?;
+            if let Some(default) = bucket.default.as_ref() {
+                let default_schema = schema_for_bson(default);
+                id_schema = id_schema.union(&default_schema);
+            }
+            let mut keys = bucket_output_derive_keys(bucket.output.as_ref(), state)?;
+            keys.insert("_id".to_string(), id_schema);
+            Ok(Schema::Document(Document {
+                required: keys.keys().cloned().collect(),
+                keys,
+                ..Default::default()
+            }))
+        }
+
+        fn bucket_auto_derive_schema(
+            bucket: &BucketAuto,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            // The actual _id type will be a Document with min and max keys where the types of
+            // those keys are this value denoted id_type.
+            let id_type = bucket.group_by.derive_schema(state)?;
+            let id_schema = Schema::Document(Document {
+                required: set!["min".to_string(), "max".to_string()],
+                keys: map! {
+                    "min".to_string() => id_type.clone(),
+                    "max".to_string() => id_type
+                },
+                ..Default::default()
+            });
+            let mut keys = bucket_output_derive_keys(bucket.output.as_ref(), state)?;
+            keys.insert("_id".to_string(), id_schema);
+            Ok(Schema::Document(Document {
+                required: keys.keys().cloned().collect(),
+                keys,
+                ..Default::default()
+            }))
         }
 
         fn set_window_fields_derive_schema(
@@ -567,8 +627,8 @@ impl DeriveSchema for Stage {
         match self {
             Stage::AddFields(a) => add_fields_derive_schema(a, state),
             Stage::AtlasSearchStage(_) => todo!(),
-            Stage::Bucket(_) => todo!(),
-            Stage::BucketAuto(_) => todo!(),
+            Stage::Bucket(b) => bucket_derive_schema(b, state),
+            Stage::BucketAuto(b) => bucket_auto_derive_schema(b, state),
             Stage::Collection(c) => {
                 let ns = Namespace(c.db.clone(), c.collection.clone());
                 state.result_set_schema = state

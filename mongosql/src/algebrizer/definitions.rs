@@ -366,7 +366,68 @@ impl<'a> Algebrizer<'a> {
 
     pub fn algebrize_set_query(&self, ast_node: ast::SetQuery) -> Result<mir::Stage> {
         match ast_node.op {
-            ast::SetOperator::Union => Err(Error::DistinctUnion),
+            ast::SetOperator::Union => {
+                let union_all_stage = mir::Stage::Set(mir::Set {
+                    operation: mir::SetOperation::UnionAll,
+                    left: Box::new(self.algebrize_query(*ast_node.left)?),
+                    right: Box::new(self.algebrize_query(*ast_node.right)?),
+                    cache: SchemaCache::new(),
+                });
+
+                let union_result_set = union_all_stage.schema(&self.schema_inference_state())?;
+                let datasources: BTreeSet<Key> = union_result_set
+                    .schema_env
+                    .keys()
+                    .filter(|key| key.scope == self.scope_level)
+                    .cloned()
+                    .collect();
+
+                // Create group keys for each datasource
+                let group_keys: Vec<OptionallyAliasedExpr> = datasources
+                    .iter()
+                    .enumerate()
+                    .map(|(i, key)| {
+                        OptionallyAliasedExpr::Aliased(AliasedExpr {
+                            alias: format!("__groupKey{}", i),
+                            expr: Expression::Reference(ReferenceExpr { key: key.clone() }),
+                        })
+                    })
+                    .collect();
+
+                // Adding group stage to union all to remove duplicates
+                let group_stage = mir::Stage::Group(mir::Group {
+                    source: Box::new(union_all_stage),
+                    keys: group_keys,
+                    aggregations: vec![],
+                    cache: SchemaCache::new(),
+                    scope: self.scope_level,
+                });
+
+                let mut project_expression = BindingTuple::new();
+                for (i, key) in datasources.iter().enumerate() {
+                    project_expression.insert(
+                        key.clone(),
+                        Expression::FieldAccess(FieldAccess {
+                            expr: Box::new(Expression::Reference(ReferenceExpr {
+                                key: Key::bot(self.scope_level),
+                            })),
+                            field: format!("__groupKey{}", i),
+                            // Setting is_nullable to true because the result set coming into the
+                            // UNION clause could be empty.
+                            is_nullable: true,
+                        }),
+                    );
+                }
+
+                let project_stage = mir::Stage::Project(mir::Project {
+                    source: Box::new(group_stage),
+                    expression: project_expression,
+                    is_add_fields: false,
+                    cache: SchemaCache::new(),
+                });
+
+                schema_check_return!(self, project_stage)
+            }
             ast::SetOperator::UnionAll => schema_check_return!(
                 self,
                 mir::Stage::Set(mir::Set {
