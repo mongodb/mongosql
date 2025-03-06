@@ -1994,7 +1994,8 @@ operators does not have a defined order.
 MongoSQL does not support the
 INTERSECT or EXCEPT set operations.
 
-UNION outputs all distinct documents from each side of the UNION, removing duplicates. 
+UNION combines the results of two queries and returns all distinct documents from 
+the combined result set
 
 UNION ALL outputs all the documents from each side of the UNION ALL. For
 example, consider the output of the UNION ALL in the following query:
