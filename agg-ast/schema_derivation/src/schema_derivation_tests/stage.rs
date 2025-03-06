@@ -1251,3 +1251,264 @@ mod union {
         })
     );
 }
+
+mod replace {
+    use super::*;
+
+    test_derive_stage_schema!(
+        replace_root_nested_doc,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("b".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$replaceRoot": {"newRoot": "$name"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "name".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "a".to_string() => Schema::Atomic(Atomic::Integer),
+                        "b".to_string() => Schema::Atomic(Atomic::String)
+                    },
+                    required: set!("b".to_string()),
+                    ..Default::default()
+                }),
+                "foo".to_string() => Schema::Atomic(Atomic::Decimal),
+            },
+            required: set!("foo".to_string(), "name".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        replace_root_expression,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+                "first".to_string() => Schema::Atomic(Atomic::String),
+                "last".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("b".to_string(), "first".to_string(), "last".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$replaceRoot": {"newRoot": {"$mergeObjects": [{"first": "", "last": "" }, "$name"]}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "name".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "a".to_string() => Schema::Atomic(Atomic::Integer),
+                        "b".to_string() => Schema::Atomic(Atomic::String)
+                    },
+                    required: set!("b".to_string()),
+                    ..Default::default()
+                }),
+                "foo".to_string() => Schema::Atomic(Atomic::Decimal),
+            },
+            required: set!("foo".to_string(), "name".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        replace_with_nested_doc,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("b".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$replaceWith": "$name"}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "name".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "a".to_string() => Schema::Atomic(Atomic::Integer),
+                        "b".to_string() => Schema::Atomic(Atomic::String)
+                    },
+                    required: set!("b".to_string()),
+                    ..Default::default()
+                }),
+                "foo".to_string() => Schema::Atomic(Atomic::Decimal),
+            },
+            required: set!("foo".to_string(), "name".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        replace_with_expression,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+                "first".to_string() => Schema::Atomic(Atomic::String),
+                "last".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("b".to_string(), "first".to_string(), "last".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$replaceWith": {"$mergeObjects": [{"first": "", "last": "" }, "$name"]}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "name".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "a".to_string() => Schema::Atomic(Atomic::Integer),
+                        "b".to_string() => Schema::Atomic(Atomic::String)
+                    },
+                    required: set!("b".to_string()),
+                    ..Default::default()
+                }),
+                "foo".to_string() => Schema::Atomic(Atomic::Decimal),
+            },
+            required: set!("foo".to_string(), "name".to_string()),
+            ..Default::default()
+        })
+    );
+}
+
+mod unset_fields {
+    use super::*;
+
+    test_derive_stage_schema!(
+        unset_single_field,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "first".to_string() => Schema::Atomic(Atomic::String),
+                        "last".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set!("first".to_string(), "last".to_string()),
+                    ..Default::default()
+                }),
+            },
+            required: set!("title".to_string(), "author".to_string(),),
+            ..Default::default()
+        })),
+        input = r#"{ "$unset": "isbn" }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "first".to_string() => Schema::Atomic(Atomic::String),
+                        "last".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set!("first".to_string(), "last".to_string()),
+                    ..Default::default()
+                }),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        unset_multiple_fields,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("title".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{ "$unset": ["isbn", "author"] }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "first".to_string() => Schema::Atomic(Atomic::String),
+                        "last".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set!("first".to_string(), "last".to_string()),
+                    ..Default::default()
+                }),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        unset_nested_field,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "last".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set!("last".to_string()),
+                    ..Default::default()
+                }),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })),
+        input = r#"{ "$unset": "author.first"}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "first".to_string() => Schema::Atomic(Atomic::String),
+                        "last".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set!("first".to_string(), "last".to_string()),
+                    ..Default::default()
+                }),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        unset_non_existing_field,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "y".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("x".to_string(), "y".to_string(),),
+            ..Default::default()
+        })),
+        input = r#"{ "$unset": "z"}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "y".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("x".to_string(), "y".to_string(),),
+            ..Default::default()
+        })
+    );
+}
