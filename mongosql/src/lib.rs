@@ -62,7 +62,6 @@ pub fn translate_sql(
     // parse the query and apply syntactic rewrites
     let ast = parser::parse_query(sql)?;
     let ast = ast::rewrites::rewrite_query(ast)?;
-    dbg!(&ast);
     let select_order = get_select_order(&ast);
 
     // construct the algebrizer and use it to build an mir plan
