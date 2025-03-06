@@ -44,8 +44,6 @@
     - [Collations](#collations)
     - [ORDER BY arbitrary expressions](#order-by-arbitrary-expressions)
     - [Supporting Non-Document BSON Values In Query Results](#supporting-non-document-bson-values-in-query-results)
-    - [SELECT DISTINCT](#select-distinct)
-    - [UNION DISTINCT](#union-distinct)
     - [USING CLAUSE](#using-clause)
     - [Unify arrays and subqueries](#unify-arrays-and-subqueries)
   - [Appendix](#appendix)
@@ -924,6 +922,14 @@ SELECT \* will return all binding tuples from the input stream
 unmodified. Other expressions may not be present in the select list
 alongside \*.
 
+#### Semantics of SELECT DISTINCT
+
+The DISTINCT keyword specifies that duplicate rows in the result set will be removed.
+
+Document and array comparison for DISTINCT follows MongoDB's equality semantics, where:
+- Document comparison includes field order
+- Array comparison requires equal length and equal elements in the same order
+
 <div id="select-grammar" />
 
 #### Grammar
@@ -1663,11 +1669,14 @@ group as determined by the group key value.
 
   - The argument must be statically typed to a numeric type.
 
-- COUNT - Counts the number of elements. COUNT(\*) counts all values
-  unconditionally,
-  COUNT([\<expression\>](#expressions)) counts all
-  values for which the expression does not result in NULL or
-  MISSING.
+- COUNT - Counts the number of elements. 
+  - COUNT(\*) counts all values unconditionally.
+  - COUNT([\<expression\>](#expressions)) counts all
+    values for which the expression does not result in NULL or
+    MISSING.
+  - COUNT(DISTINCT [\<expression\>](#expressions)) conditionally counts distinct values of the expression.
+  - COUNT(DISTINCT \*) unconditionally counts the number of distinct documents in the result set.
+  - COUNT(DISTINCT col1, col2, ...) counts distinct combinations of the specified columns.
 
   - The type of the argument to COUNT does not matter.
 
@@ -1977,14 +1986,15 @@ LIMIT/OFFSET syntax over FETCH FIRST.
 
 ### Behavioral Description
 
-MongoSQL provides a UNION ALL set operator for taking the union over the
-result sets of two select queries. The UNION ALL operator does not
-remove duplicate rows from the result set. The result set returned by
-the UNION ALL operator does not have a defined order.
+MongoSQL provides a UNION and UNION ALL set operator for taking the union over the
+result sets of two select queries. The UNION operator removes duplicate rows from the 
+result set, while the UNION ALL operator does not. The result set returned by these 
+operators does not have a defined order.
 
-MongoSQL does not support distinct UNION (see [Future
-Work](#future-work)). MongoSQL does not support the
+MongoSQL does not support the
 INTERSECT or EXCEPT set operations.
+
+UNION outputs all distinct documents from each side of the UNION, removing duplicates. 
 
 UNION ALL outputs all the documents from each side of the UNION ALL. For
 example, consider the output of the UNION ALL in the following query:
@@ -2514,8 +2524,10 @@ deviates from MongoDB\'s comparison semantics.
 
 The binary comparison operators \<, \<=, \<\>, =, \>, and \>= specify
 less than, less than or equals, not equals, equals, greater than, and
-greater than or equals, respectively. MongoSQL does not support
-comparison operations on structured data (documents and arrays).
+greater than or equals, respectively. Document comparison follows MongoDB's 
+equality semantics, requiring exact field name and value matches, with 
+field order being significant. Array comparison requires equal length 
+and equal elements in the same order.
 Booleans are compared such that FALSE is less than TRUE. Numbers are
 compared with respect to their algebraic values. Strings are compared
 lexicographically. Datetimes are compared as expected. The result of a
@@ -4324,16 +4336,6 @@ can relax this in the future to allow for something such as SELECT VALUE
 names are modified in derived tables because that currently uses
 \$mergeObjects on the underlying values of the original binding tuples
 from the SELECT clause of the derived table query.
-
-### SELECT DISTINCT
-
-Support for SELECT DISTINCT has been deferred pending a decision re:
-ordered vs. unordered document comparison support in MongoSQL & MQL
-
-### UNION DISTINCT
-
-Support for distinct UNION has been deferred pending a decision re:
-ordered vs. unordered document comparison support in MongoSQL & MQL
 
 ### USING CLAUSE
 
