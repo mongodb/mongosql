@@ -1720,7 +1720,7 @@ impl DeriveSchema for UntaggedOperator {
             UntaggedOperatorName::ArrayToObject => {
                 // We could only know the keys, if we have the entire array.
                 // We may consider making this more precise for array literals.
-                // For now, just return any document while capturing nullability
+                // For now, just return an Any Document while capturing nullability
                 let schema = self.args[0].derive_schema(state)?;
                 Ok(match schema.intersection(&NULLISH.clone()) {
                     Schema::Unsat => Schema::Document(Document::any()),
