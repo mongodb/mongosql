@@ -6,8 +6,8 @@ use crate::{
 use agg_ast::definitions::{
     Bucket, BucketAuto, ConciseSubqueryLookup, Densify, EqualityLookup, Expression, GraphLookup,
     Group, LiteralValue, Lookup, LookupFrom, ProjectItem, ProjectStage, Ref, SetWindowFields,
-    Stage, SubqueryLookup, TaggedOperator, UnionWith, UntaggedOperator, UntaggedOperatorName,
-    Unwind,
+    Stage, SubqueryLookup, TaggedOperator, UnionWith, Unset, UntaggedOperator,
+    UntaggedOperatorName, Unwind,
 };
 use linked_hash_map::LinkedHashMap;
 use mongosql::{
@@ -624,6 +624,20 @@ impl DeriveSchema for Stage {
             Ok(state.result_set_schema.to_owned())
         }
 
+        fn unset_derive_schema(u: &Unset, state: &mut ResultSetState) -> Result<Schema> {
+            let fields = match u {
+                Unset::Single(field) => &vec![field.clone()],
+                Unset::Multiple(fields) => fields,
+            };
+            fields.iter().for_each(|field| {
+                remove_field(
+                    &mut state.result_set_schema,
+                    field.split('.').map(|s| s.to_string()).collect(),
+                );
+            });
+            Ok(state.result_set_schema.to_owned())
+        }
+
         match self {
             Stage::AddFields(a) => add_fields_derive_schema(a, state),
             Stage::AtlasSearchStage(_) => todo!(),
@@ -661,13 +675,17 @@ impl DeriveSchema for Stage {
             Stage::Match(ref m) => m.derive_schema(state),
             Stage::Project(p) => project_derive_schema(p, state),
             Stage::Redact(_) => todo!(),
-            Stage::ReplaceWith(_) => todo!(),
+            Stage::ReplaceWith(r) => r
+                .to_owned()
+                .expression()
+                .derive_schema(state)
+                .map(|schema| Schema::simplify(&schema)),
             Stage::Sample(_) => Ok(state.result_set_schema.to_owned()),
             Stage::SetWindowFields(s) => set_window_fields_derive_schema(s, state),
             Stage::Skip(_) | Stage::Sort(_) => Ok(state.result_set_schema.to_owned()),
             Stage::SortByCount(s) => sort_by_count_derive_schema(s.as_ref(), state),
             Stage::UnionWith(u) => union_with_derive_schema(u, state),
-            Stage::Unset(_) => todo!(),
+            Stage::Unset(u) => unset_derive_schema(u, state),
             Stage::Unwind(u) => unwind_derive_schema(u, state),
             // the following stages are not derivable, because they rely on udnerlying index information, which we do not have by
             // default given the schemas and aggregation pipelines
