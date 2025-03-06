@@ -224,7 +224,6 @@ impl Command {
             &*MINIMUM_COMPATIBLE_JDBC_VERSION
         };
 
-        dbg!(minimum_version.matches(&driver_version));
         Ok(doc! {
             "compatible": minimum_version.matches(&driver_version)
         })
