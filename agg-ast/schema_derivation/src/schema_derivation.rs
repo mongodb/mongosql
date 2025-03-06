@@ -745,11 +745,11 @@ impl DeriveSchema for Expression {
                 let path = f.split(".").map(|s| s.to_string()).collect::<Vec<String>>();
                 // If the user has rebound the CURRENT variable, we should use that schema instead of the result set schema to find any
                 // path.
-                let mut current_schema = state
+                let current_schema = state
                     .variables
                     .get_mut("CURRENT")
                     .unwrap_or(&mut state.result_set_schema);
-                let schema = get_schema_for_path_mut(&mut current_schema, path);
+                let schema = get_schema_for_path_mut(current_schema, path);
                 match schema {
                     Some(schema) => Ok(schema.clone()),
                     // Unknown fields actually have the Schema Missing, while unknown variables are
