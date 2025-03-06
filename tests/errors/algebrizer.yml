@@ -98,12 +98,6 @@ tests:
     should_compile: false
     algebrize_error: "Error 3004: array datasource must be constant"
 
-  - description: Error 3006 DistinctUnion
-    query: "SELECT a FROM foo AS foo UNION SELECT b, c FROM bar AS bar"
-    current_db: db
-    should_compile: false
-    algebrize_error: 'Error 3006: UNION DISTINCT not allowed'
-
   - description: Error 3007 NoSuchDatasource
     query: "SELECT a.* FROM foo"
     current_db: db

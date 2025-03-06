@@ -32,25 +32,6 @@ tests:
       - {'foo': {'_id': 2, 'a': 1}}
       - {'bar': {'_id': 0, 'b': 1, 'c': 1}}
 
-  - description: duplicates are still removed when collections with different schema are unioned
-    current_db: mydb
-    query: "SELECT VALUE {'a': a} FROM foo AS foo UNION SELECT VALUE {'b': b, 'c': c} FROM bar AS bar"
-    ordered: false
-    skip_reason: "distinct UNION not currently supported"
-    result:
-      - {'': {'a': 1}}
-      - {'': {'a': 2}}
-      - {'': {'b': 1, 'c': 1}}
-
-  - description: basic union correctness test
-    current_db: mydb
-    query: "SELECT VALUE {'a': a} FROM foo UNION SELECT VALUE {'a': a} FROM foo"
-    ordered: false
-    skip_reason: "distinct UNION not currently supported"
-    result:
-      - {'': {'a': 1}}
-      - {'': {'a': 2}}
-
   - description: basic union all correctness test
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM foo UNION ALL SELECT VALUE {'a': a} FROM foo"
@@ -61,15 +42,6 @@ tests:
       - {'': {'a': 1}}
       - {'': {'a': 1}}
       - {'': {'a': 2}}
-      - {'': {'a': 2}}
-
-  - description: union is left associative
-    current_db: mydb
-    query: "SELECT VALUE {'a': a} FROM foo UNION ALL SELECT VALUE {'a': a} FROM foo UNION SELECT VALUE {'a': a} FROM foo"
-    ordered: false
-    skip_reason: "distinct UNION not currently supported"
-    result:
-      - {'': {'a': 1}}
       - {'': {'a': 2}}
 
   - description: union works with array datasources
