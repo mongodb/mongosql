@@ -28,6 +28,40 @@ mod misc_ops {
         ))),
         input = r#"{ "$cond": [true, 1, "yes"] }"#
     );
+    // $shift
+    test_derive_expression_schema!(
+        shift_no_default_uses_null,
+        expected = Ok(Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+        })),
+        input = r#"{ "$shift": { "output": 1, "by": 1 } }"#
+    );
+    test_derive_expression_schema!(
+        shift_with_default,
+        expected = Ok(Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+        })),
+        input = r#"{ "$shift": { "output": 1, "by": 1, "default": "abc" } }"#
+    );
+
+    // $switch
+    test_derive_expression_schema!(
+        switch,
+        expected = Ok(Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+        })),
+        input = r#"{ "$switch": {
+                        "branches": [
+                            { "case": false, "then": 1 },
+                            { "case": true, "then": "yes" }
+                        ],
+                        "default": null
+        }}"#
+    );
 }
 
 mod window_ops {
@@ -376,20 +410,37 @@ mod array_ops {
         ref_schema = Schema::Atomic(Atomic::String)
     );
     test_derive_expression_schema!(
-        replace_one_nullish,
-        expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::String),
-            Schema::Atomic(Atomic::Null),
-        ))),
-        input = r#"{"$replaceOne": {"input": "$foo", "find": "$bar", "replacement": "$car"}}"#,
+        replace_one_maybe_null_args,
+        expected = Ok(Schema::AnyOf(
+            set! {Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)}
+        )),
+        input = r#"{ "$replaceOne": { "input": "$i", "find": "$f", "replacement": "$r" } }"#,
         starting_schema = Schema::Document(Document {
             keys: map! {
-                "foo".to_string() => Schema::Atomic(Atomic::String),
-                "bar".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null))),
-                "car".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null))),
+                "i".to_string() => Schema::AnyOf(set!{Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)}),
+                "f".to_string() => Schema::AnyOf(set!{Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)}),
+                "r".to_string() => Schema::AnyOf(set!{Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)}),
             },
-            required: set!(),
-            ..Default::default()
+            required: set! {"i".to_string(), "f".to_string(), "r".to_string()},
+            additional_properties: false,
+            jaccard_index: None,
+        })
+    );
+    test_derive_expression_schema!(
+        replace_one_maybe_missing_args,
+        expected = Ok(Schema::AnyOf(
+            set! {Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)}
+        )),
+        input = r#"{ "$replaceOne": { "input": "$i", "find": "$f", "replacement": "$r" } }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "i".to_string() => Schema::Atomic(Atomic::String),
+                "f".to_string() => Schema::Atomic(Atomic::String),
+                "r".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set! {},
+            additional_properties: false,
+            jaccard_index: None,
         })
     );
     test_derive_expression_schema!(
@@ -399,20 +450,37 @@ mod array_ops {
         ref_schema = Schema::Atomic(Atomic::String)
     );
     test_derive_expression_schema!(
-        replace_all_nullish,
-        expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::String),
-            Schema::Atomic(Atomic::Null),
-        ))),
-        input = r#"{"$replaceAll": {"input": "$foo", "find": "$bar", "replacement": "$car"}}"#,
+        replace_all_maybe_null_args,
+        expected = Ok(Schema::AnyOf(
+            set! {Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)}
+        )),
+        input = r#"{ "$replaceAll": { "input": "$i", "find": "$f", "replacement": "$r" } }"#,
         starting_schema = Schema::Document(Document {
             keys: map! {
-                "foo".to_string() => Schema::Atomic(Atomic::String),
-                "bar".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null))),
-                "car".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null))),
+                "i".to_string() => Schema::AnyOf(set!{Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)}),
+                "f".to_string() => Schema::AnyOf(set!{Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)}),
+                "r".to_string() => Schema::AnyOf(set!{Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)}),
             },
-            required: set!(),
-            ..Default::default()
+            required: set! {"i".to_string(), "f".to_string(), "r".to_string()},
+            additional_properties: false,
+            jaccard_index: None,
+        })
+    );
+    test_derive_expression_schema!(
+        replace_all_maybe_missing_args,
+        expected = Ok(Schema::AnyOf(
+            set! {Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)}
+        )),
+        input = r#"{ "$replaceAll": { "input": "$i", "find": "$f", "replacement": "$r" } }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "i".to_string() => Schema::Atomic(Atomic::String),
+                "f".to_string() => Schema::Atomic(Atomic::String),
+                "r".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set! {},
+            additional_properties: false,
+            jaccard_index: None,
         })
     );
 }

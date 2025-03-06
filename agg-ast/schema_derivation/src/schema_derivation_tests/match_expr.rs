@@ -3306,7 +3306,7 @@ mod array_ops {
             },
             ..Default::default()
         })),
-        input = r#"{"$match": {"$expr": {"$eq": [null, {"$objectToArray": "$foo"}]}}}"#,
+        input = r#"{"$match": {"$expr": {"$eq": [null, {"$arrayToObject": "$foo"}]}}}"#,
         ref_schema = Schema::Any
     );
     test_derive_schema_for_match_stage!(

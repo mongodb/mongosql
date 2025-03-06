@@ -1253,7 +1253,6 @@ impl DeriveSchema for TaggedOperator {
                 remove_field(&mut input_schema, vec![u.field.clone()]);
                 Ok(input_schema)
             }
-            TaggedOperator::Accumulator(_) => todo!(),
             TaggedOperator::Bottom(b) => b.output.derive_schema(state),
             TaggedOperator::BottomN(b) => {
                 Ok(Schema::Array(Box::new(b.output.derive_schema(state)?)))
@@ -1288,12 +1287,10 @@ impl DeriveSchema for TaggedOperator {
                 }
             }
             TaggedOperator::FirstN(n) => Ok(Schema::Array(Box::new(n.input.derive_schema(state)?))),
-            TaggedOperator::Function(_) => todo!(),
             TaggedOperator::Integral(i) => {
                 get_decimal_double_or_nullish(vec![i.input.as_ref()], state)
             }
             TaggedOperator::LastN(n) => Ok(Schema::Array(Box::new(n.input.derive_schema(state)?))),
-            TaggedOperator::Like(_) => todo!(),
             TaggedOperator::Map(m) => {
                 let var = m._as.clone();
                 let var = var.unwrap_or("this".to_string());
@@ -1356,11 +1353,21 @@ impl DeriveSchema for TaggedOperator {
                     Schema::Atomic(Atomic::String),
                 )
             }
-            TaggedOperator::Shift(_) => todo!(),
-            TaggedOperator::Subquery(_) => todo!(),
-            TaggedOperator::SubqueryComparison(_) => todo!(),
-            TaggedOperator::SubqueryExists(_) => todo!(),
-            TaggedOperator::Switch(_) => todo!(),
+            TaggedOperator::Shift(s) => {
+                let mut output_schema = s.output.derive_schema(state)?;
+                output_schema = match s.default.as_ref() {
+                    Some(default) => output_schema.union(&default.derive_schema(state)?),
+                    None => output_schema.union(&Schema::Atomic(Atomic::Null)),
+                };
+                Ok(output_schema)
+            }
+            TaggedOperator::Switch(s) => {
+                let mut schema = s.default.derive_schema(state)?;
+                for branch in s.branches.iter() {
+                    schema = schema.union(&branch.then.derive_schema(state)?);
+                }
+                Ok(schema)
+            }
             TaggedOperator::Top(t) => t.output.derive_schema(state),
             TaggedOperator::TopN(t) => Ok(Schema::Array(Box::new(t.output.derive_schema(state)?))),
             TaggedOperator::Zip(z) => {
@@ -1436,9 +1443,14 @@ impl DeriveSchema for TaggedOperator {
                 args: vec![(*s.var).clone()],
             }
             .derive_schema(state),
-            TaggedOperator::SQLConvert(_) | TaggedOperator::SQLDivide(_) => {
-                Err(Error::InvalidTaggedOperator(self.clone()))
-            }
+            TaggedOperator::Accumulator(_)
+            | TaggedOperator::Function(_)
+            | TaggedOperator::Like(_)
+            | TaggedOperator::SQLConvert(_)
+            | TaggedOperator::SQLDivide(_)
+            | TaggedOperator::Subquery(_)
+            | TaggedOperator::SubqueryComparison(_)
+            | TaggedOperator::SubqueryExists(_) => Err(Error::InvalidTaggedOperator(self.clone())),
         }
     }
 }
@@ -1850,7 +1862,12 @@ impl DeriveSchema for UntaggedOperator {
             UntaggedOperatorName::ArrayToObject => {
                 // We could only know the keys, if we have the entire array.
                 // We may consider making this more precise for array literals.
-                Ok(Schema::Document(Document::any()))
+                // For now, just return an Any Document while capturing nullability
+                let schema = self.args[0].derive_schema(state)?;
+                Ok(match schema.intersection(&NULLISH.clone()) {
+                    Schema::Unsat => Schema::Document(Document::any()),
+                    nullish_schema => Schema::simplify(&nullish_schema.union(&Schema::Document(Document::any()))),
+                })
             }
             UntaggedOperatorName::ConcatArrays | UntaggedOperatorName::SetUnion => {
                 let mut array_schema = Schema::Unsat;
@@ -2094,20 +2111,41 @@ impl DeriveSchema for UntaggedOperator {
                 )))
             }
             UntaggedOperatorName::ObjectToArray => {
-                let document_value_types = self.args.iter().try_fold(Schema::Unsat, |schema , arg| {
-                    let arg_schema = arg.derive_schema(state)?;
-                    Ok(match schema {
-                        Schema::Unsat => arg_schema,
-                        schema => schema.union(&arg_schema)
-                    })
-                })?;
-                let array_type = Schema::Array(Box::new(Schema::Document(Document { keys: map! {
-                        "k".to_string() => Schema::Atomic(Atomic::String),
-                        "v".to_string() => document_value_types
-                    },
-                    ..Default::default()
-                })));
-                Ok(handle_null_satisfaction(vec![args[0]], state, array_type)?)
+                let input_doc = match &self.args[0].derive_schema(state)? {
+                    Schema::Document(d) => Some(d.clone()),
+                    Schema::AnyOf(ao) => {
+                        let mut doc_type = None;
+                        for schema in ao.iter() {
+                            if let Schema::Document(d) = schema {
+                                doc_type = Some(d.clone());
+                                break;
+                            }
+                        }
+                        doc_type
+                    }
+                    Schema::Any => Some(Document::any()),
+                    _ => None
+                };
+                if let Some(d) = input_doc {
+                    let document_value_types = d.keys.into_iter().try_fold(Schema::Unsat, |schema , (_, arg_schema)| {
+                        Ok(match schema {
+                            Schema::Unsat => arg_schema,
+                            schema => schema.union(&arg_schema)
+                        })
+                    })?;
+                    let array_type = Schema::Array(Box::new(Schema::Document(Document { keys: map! {
+                            "k".to_string() => Schema::Atomic(Atomic::String),
+                            "v".to_string() => document_value_types
+                        },
+                        required: set!("k".to_string(), "v".to_string()),
+                        ..Default::default()
+                    })));
+                    Ok(handle_null_satisfaction(vec![args[0]], state, array_type)?)
+                } else {
+                    Err(Error::InvalidExpressionForField(
+                        format!("{:?}", self.args[0]),
+                        "object",))
+                }
             }
             UntaggedOperatorName::Sum => {
                 if args.len() == 1 {
