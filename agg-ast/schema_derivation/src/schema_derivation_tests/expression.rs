@@ -275,6 +275,25 @@ mod variable_ref {
     );
 
     test_derive_expression_schema!(
+        current,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Date)
+            },
+            required: set!["foo".to_string()],
+            ..Default::default()
+        })),
+        input = r#""$$CURRENT""#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Date)
+            },
+            required: set!["foo".to_string()],
+            ..Default::default()
+        })
+    );
+
+    test_derive_expression_schema!(
         user_roles,
         expected = Ok(Schema::Array(Box::new(Schema::Document(Document {
             keys: map! {
