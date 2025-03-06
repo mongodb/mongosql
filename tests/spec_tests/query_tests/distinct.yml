@@ -13,6 +13,7 @@ catalog_data:
       - { _id: 2, a: 2, b: 2 }
       - { _id: 3, a: 2, b: 2 }
       - { _id: 4, a: 2, b: 4 }
+      - { _id: 5, a: 2, b: 4, c: 1 }
 
     documents:
       - { _id: 1, doc: { a: 1, b: 2 } }
@@ -52,7 +53,8 @@ catalog_schema:
         "properties": {
           "_id": { "bsonType": "int" },
           "a": { "bsonType": "int" },
-          "b": { "bsonType": "int" }
+          "b": { "bsonType": "int" },
+          "c": { "bsonType": "int" }
         }
       },
       "documents": {
@@ -120,6 +122,7 @@ tests:
       - { 'foo': { "_id": 2, "a": 1, "b": 2 }, 'bar': { "_id": 2, "a": 2, "b": 2 } }
       - { 'foo': { "_id": 3, "a": 2, "b": 2 }, 'bar': { "_id": 3, "a": 2, "b": 2 } }
       - { 'foo': { "_id": 4, "a": 1, "b": 2 }, 'bar': { "_id": 4, "a": 2, "b": 4 } }
+      - { 'foo': { "_id": 5, "a": 2, "b": 2, "c": true, "d": "a", "e": null }, 'bar': { "_id": 5, "a": 2, "b": 4, "c":1 } }
 
   - description: "SELECT DISTINCT specific columns from joined tables"
     query: "SELECT DISTINCT foo.a, bar.b FROM db.foo, db.bar WHERE foo._id = bar._id"
@@ -127,6 +130,7 @@ tests:
       - { '': { "a": 1, "b": 2 } }
       - { '': { "a": 2, "b": 2 } }
       - { '': { "a": 1, "b": 4 } }
+      - { '': { "a": 2, "b": 4 } }
 
   - description: "SELECT DISTINCT columns ensures we see unique values"
     query: "SELECT DISTINCT a, b FROM db.foo"
@@ -157,3 +161,93 @@ tests:
       - { '': { "arr": [3, 2, 1] } }
       - { '': { "arr": [3, 2, 1, 4] } }
 
+  - description: "basic UNION distinct correctness test"
+    current_db: "db"
+    query: "SELECT VALUE {'a': a} FROM foo UNION SELECT VALUE {'a': a} FROM foo"
+    result:
+      - {'': {'a': 1}}
+      - {'': {'a': 2}}
+
+  - description: "duplicates are still removed when collections with different schema are unioned"
+    current_db: "db"
+    query: "SELECT VALUE {'a': a} FROM foo AS foo UNION SELECT VALUE {'b': b, 'c': c} FROM bar AS bar"
+    result:
+      - {'': {'a': 1}}
+      - {'': {'a': 2}}
+      - {'': {'b': 2 }}
+      - {'': {'b': 4 }}
+      - {'': {'b': 4, 'c': 1}}
+
+  - description: "UNION is left associative"
+    current_db: "db"
+    query: "SELECT VALUE {'a': a} FROM foo UNION ALL SELECT VALUE {'a': a} FROM foo UNION SELECT VALUE {'a': a} FROM foo"
+    result:
+      - {'': {'a': 1}}
+      - {'': {'a': 2}}
+
+  - description: "UNION distinct with select * in both queries"
+    current_db: "db"
+    query: | 
+      SELECT * FROM (SELECT a,b,c FROM foo) AS foo 
+      UNION 
+      SELECT * FROM (SELECT a,b,c FROM bar) AS bar
+    result:
+      - {'foo': {'a': 1, 'b': 2}}
+      - {'foo': {'a': 2, 'b': 2}}
+      - {'foo': {'a': 2, 'b': 2, 'c': true}}
+      - {'bar': {'a': 1, 'b': 2}}
+      - {'bar': {'a': 2, 'b': 2}}
+      - {'bar': {'a': 2, 'b': 4}}
+      - {'bar': {'a': 2, 'b': 4, 'c': 1}}
+
+  - description: "UNION distinct with same value order"
+    current_db: "db"
+    query: "SELECT a,b FROM foo UNION SELECT a,b FROM bar"
+    result:
+      - {'': {'a': 1, 'b': 2}}
+      - {'': {'a': 2, 'b': 2}}
+      - {'': {'a': 2, 'b': 4}}
+
+  - description: "UNION distinct with mixed value order"
+    current_db: "db"
+    query: "SELECT a,b FROM foo UNION SELECT b,a FROM bar"
+    result:
+      - {'': {'a': 1, 'b': 2}}
+      - {'': {'a': 2, 'b': 2}}
+      - {'': {'b': 4, 'a': 2}}
+      - {'': {'b': 2, 'a': 1}}
+      - {'': {'b': 2, 'a': 2}}
+
+  - description: "UNION distinct with mixed star and values select list"
+    current_db: "db"
+    query: "SELECT * FROM foo UNION SELECT a,b from bar"
+    result:
+      - {'foo': {'_id': 1, 'a': 1, 'b': 2}}
+      - {'foo': {'_id': 2, 'a': 1, 'b': 2}}
+      - {'foo': {'_id': 3, 'a': 2, 'b': 2}}
+      - {'foo': {'_id': 4, 'b': 2, 'a': 1}}
+      - {'foo': {'_id': 5, 'a': 2, 'b': 2, 'c': true, 'd': 'a', 'e': null}}
+      - {'foo': {'_id': 6, 'a': 2, 'b': 2, 'c': true, 'd': 'a', 'e': null}}
+      - {'': {'a': 1, 'b': 2}}
+      - {'': {'a': 2, 'b': 2}}
+      - {'': {'a': 2, 'b': 4}}
+
+  - description: "UNION distinct with join"
+    current_db: db
+    query: | 
+      SELECT *
+      FROM 
+        (SELECT a, b FROM foo) AS foo, 
+        (SELECT a, b FROM bar) AS bar
+      UNION 
+      SELECT a, b FROM bar
+    result:
+      - { 'bar': { "a": 1, "b": 2 }, 'foo': { "a": 2, "b": 2 } }
+      - { 'bar': { "a": 2, "b": 2 }, 'foo': { "a": 2, "b": 2 } }
+      - { 'bar': { "a": 1, "b": 2 }, 'foo': { "a": 1, "b": 2 } }
+      - { 'bar': { "a": 2, "b": 4 }, 'foo': { "a": 2, "b": 2 } }
+      - { 'bar': { "a": 2, "b": 2 }, 'foo': { "a": 1, "b": 2 } }
+      - { 'bar': { "a": 2, "b": 4 }, 'foo': { "a": 1, "b": 2 } }
+      - { '': { "a": 1, "b": 2 } }
+      - { '': { "a": 2, "b": 4 } }
+      - { '': { "a": 2, "b": 2 } }
