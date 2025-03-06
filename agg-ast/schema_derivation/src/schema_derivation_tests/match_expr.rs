@@ -3388,32 +3388,39 @@ mod array_ops {
         input = r#"{"$match": {"$expr": {"$filter": {"input": "$foo", "as": "item", "cond": {"$gte": ["$$item", 1]}}}}}"#,
         ref_schema = Schema::Any
     );
-    // SQL-2541: implement schema derivation for filter
-    // test_derive_schema_for_match_stage!(
-    //     filter_maybe_null,
-    //     expected = Ok(Schema::Document(Document {
-    //         keys: map! {
-    //             "foo".to_string() => Schema::AnyOf(set!(
-    //                 Schema::Array(Box::new(Schema::Any)),
-    //                 Schema::Atomic(Atomic::Null)
-    //             ))
-    //         },
-    //         ..Default::default()
-    //     })),
-    //     input = r#"{"$match": {"$expr": {"$ne": [[], {"$filter": {"input": "$foo", "as": "item", "cond": {"$gte": ["$$item", 1]}}}]}}}"#,
-    //     ref_schema = Schema::Any
-    // );
-    // test_derive_schema_for_match_stage!(
-    //     filter_null,
-    //     expected = Ok(Schema::Document(Document {
-    //         keys: map! {
-    //             "foo".to_string() => Schema::Atomic(Atomic::Null)
-    //         },
-    //         ..Default::default()
-    //     })),
-    //     input = r#"{"$match": {"$expr": {"$eq": [null, {"$filter": {"input": "$foo", "as": "item", "cond": {"$gte": ["$$item", 1]}}}]}}}"#,
-    //     ref_schema = Schema::Any
-    // );
+    test_derive_schema_for_match_stage!(
+        filter_maybe_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Array(Box::new(Schema::Any)),
+                    Schema::Atomic(Atomic::Null)
+                ))
+            },
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$ne": [[], {"$filter": {"input": "$foo", "as": "item", "cond": {"$gte": ["$$item", 1]}}}]}}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Array(Box::new(Schema::Any)),
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing
+        ))
+    );
+    test_derive_schema_for_match_stage!(
+        filter_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Null)
+            },
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$eq": [null, {"$filter": {"input": "$foo", "as": "item", "cond": {"$gte": ["$$item", 1]}}}]}}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Array(Box::new(Schema::Any)),
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing
+        ))
+    );
     test_derive_schema_for_match_stage!(
         map_not_null,
         expected = Ok(Schema::Document(Document {
