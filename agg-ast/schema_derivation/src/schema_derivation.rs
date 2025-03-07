@@ -761,7 +761,13 @@ impl DeriveSchema for Expression {
             Expression::Literal(ref l) => derive_schema_for_literal(l),
             Expression::Ref(Ref::FieldRef(f)) => {
                 let path = f.split(".").map(|s| s.to_string()).collect::<Vec<String>>();
-                let schema = get_schema_for_path_mut(&mut state.result_set_schema, path);
+                // If the user has rebound the CURRENT variable, we should use that schema instead of the result set schema to find any
+                // path.
+                let current_schema = state
+                    .variables
+                    .get_mut("CURRENT")
+                    .unwrap_or(&mut state.result_set_schema);
+                let schema = get_schema_for_path_mut(current_schema, path);
                 match schema {
                     Some(schema) => Ok(schema.clone()),
                     // Unknown fields actually have the Schema Missing, while unknown variables are
@@ -769,25 +775,68 @@ impl DeriveSchema for Expression {
                     None => Ok(Schema::Missing),
                 }
             }
-            Expression::Ref(Ref::VariableRef(v)) => match v.as_str() {
-                "REMOVE" => Ok(Schema::Missing),
-                "ROOT" => Ok(state.result_set_schema.clone()),
-                v => {
-                    let var_schema = if v.contains(".") {
+            Expression::Ref(Ref::VariableRef(v)) => {
+                match v.as_str() {
+                    "NOW" => Ok(Schema::Atomic(Atomic::Date)),
+                    "CURRENT_TIME" => Ok(Schema::Atomic(Atomic::Timestamp)),
+                    "REMOVE" => Ok(Schema::Missing),
+                    "ROOT" => Ok(state.result_set_schema.clone()),
+                    "USER_ROLES" => Ok(Schema::Array(Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "_id".to_string() => Schema::Atomic(Atomic::String),
+                            "role".to_string() => Schema::Atomic(Atomic::String),
+                            "db".to_string() => Schema::Atomic(Atomic::String)
+                        },
+                        required: set!["_id".to_string(), "role".to_string(), "db".to_string()],
+                        ..Default::default()
+                    })))),
+                    "SEARCH_META" => Ok(Schema::Document(Document {
+                        keys: map! {
+                            "count".to_string() => Schema::Document(Document {
+                                keys: map! {
+                                    "total".to_string() => Schema::Atomic(Atomic::Long),
+                                    "lowerBound".to_string() => Schema::Atomic(Atomic::Long),
+                                },
+                                // one key is required, but the result will always include one or
+                                // the other, so we cannot say that either is required.
+                                required: set![],
+                                ..Default::default()
+                            }),
+                        },
+                        required: set!["count".to_string(),],
+                        ..Default::default()
+                    })),
+                    v => {
                         let path: Vec<String> = v.split('.').map(|s| s.to_string()).collect();
-                        state
-                            .variables
-                            .get_mut(&path[0])
-                            .and_then(|doc| get_schema_for_path_mut(doc, path[1..].to_vec()))
-                    } else {
-                        state.variables.get_mut(v)
-                    };
-                    match var_schema {
-                        Some(schema) => Ok(schema.clone()),
-                        None => Err(Error::UnknownReference(v.into())),
+                        let var_schema = if v.contains(".") {
+                            state
+                                .variables
+                                .get_mut(&path[0])
+                                .and_then(|doc| get_schema_for_path_mut(doc, path[1..].to_vec()))
+                        } else {
+                            state.variables.get_mut(v)
+                        };
+                        match var_schema {
+                            Some(schema) => Ok(schema.clone()),
+                            None => {
+                                if path[0] == "CURRENT" {
+                                    // CURRENT is equivalent to ROOT, if it has not been rebound
+                                    // The reason we do this is because a field reference
+                                    // `$<field>` is equivalent to `$$CURRENT.<field>.
+                                    Ok(get_schema_for_path_mut(
+                                        &mut state.result_set_schema,
+                                        path[1..].to_vec(),
+                                    )
+                                    .unwrap()
+                                    .clone())
+                                } else {
+                                    Err(Error::UnknownReference(v.into()))
+                                }
+                            }
+                        }
                     }
                 }
-            },
+            }
             Expression::TaggedOperator(op) => op.derive_schema(state),
             Expression::UntaggedOperator(op) => op.derive_schema(state),
         }
