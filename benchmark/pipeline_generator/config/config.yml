@@ -1269,7 +1269,6 @@ workloads:
           l_returnflag,
           l_linestatus
 
-  # SQL-1530: Update like clause argument to '%STEEL' after fix
   - name: q2_normalized_distinct
     db: tpch
     phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
@@ -1510,7 +1509,6 @@ workloads:
           ORDER BY
               o_year
 
-  # SQL-1530: Update like clause argument to '%pink%' after fix
   - name: q9_normalized_distinct
     db: tpch
     phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
