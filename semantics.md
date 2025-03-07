@@ -44,8 +44,6 @@
     - [Collations](#collations)
     - [ORDER BY arbitrary expressions](#order-by-arbitrary-expressions)
     - [Supporting Non-Document BSON Values In Query Results](#supporting-non-document-bson-values-in-query-results)
-    - [SELECT DISTINCT](#select-distinct)
-    - [UNION DISTINCT](#union-distinct)
     - [USING CLAUSE](#using-clause)
     - [Unify arrays and subqueries](#unify-arrays-and-subqueries)
   - [Appendix](#appendix)
@@ -924,6 +922,14 @@ SELECT \* will return all binding tuples from the input stream
 unmodified. Other expressions may not be present in the select list
 alongside \*.
 
+#### Semantics of SELECT DISTINCT
+
+The DISTINCT keyword specifies that duplicate rows in the result set will be removed.
+
+Document and array comparison for DISTINCT follows MongoDB's equality semantics, where:
+- Document comparison includes field order
+- Array comparison requires equal length and equal elements in the same order
+
 <div id="select-grammar" />
 
 #### Grammar
@@ -1663,13 +1669,22 @@ group as determined by the group key value.
 
   - The argument must be statically typed to a numeric type.
 
-- COUNT - Counts the number of elements. COUNT(\*) counts all values
-  unconditionally,
-  COUNT([\<expression\>](#expressions)) counts all
-  values for which the expression does not result in NULL or
-  MISSING.
+- COUNT - Counts the number of elements. 
+  - COUNT(\*) counts all values unconditionally.
+  - COUNT([\<expression\>](#expressions)) counts all
+    values for which the expression does not result in NULL or
+    MISSING.
+  - COUNT(col1, col2, ...) counts combinations of the specified columns where at least one of the columns 
+  has a non-NULL, non-MISSING value.
+  - COUNT(DISTINCT \*) unconditionally counts the number of distinct documents in the result set.
+  - COUNT(DISTINCT [\<expression\>](#expressions)) conditionally counts distinct values of the expression.
+  - COUNT(DISTINCT col1, col2, ...) counts distinct combinations of the specified columns.
 
   - The type of the argument to COUNT does not matter.
+    
+  Note: COUNT(DISTINCT? col1, col2, ..., coln) is syntactically equivalent to 
+  COUNT(DISTINCT? {'_1': col1, '_2': col2, ..., '_n': coln}). Implementations may, but are not required to, 
+  implement this as a syntactic rewrite.
 
 - FIRST - Returns the first element in the group. Deterministic only
   when the input has deterministic order, otherwise undefined.
@@ -1977,14 +1992,16 @@ LIMIT/OFFSET syntax over FETCH FIRST.
 
 ### Behavioral Description
 
-MongoSQL provides a UNION ALL set operator for taking the union over the
-result sets of two select queries. The UNION ALL operator does not
-remove duplicate rows from the result set. The result set returned by
-the UNION ALL operator does not have a defined order.
+MongoSQL provides a UNION and UNION ALL set operator for taking the union over the
+result sets of two select queries. The UNION operator removes duplicate rows from the 
+result set, while the UNION ALL operator does not. The result set returned by these 
+operators does not have a defined order.
 
-MongoSQL does not support distinct UNION (see [Future
-Work](#future-work)). MongoSQL does not support the
+MongoSQL does not support the
 INTERSECT or EXCEPT set operations.
+
+UNION combines the results of two queries and returns all distinct documents from 
+the combined result set
 
 UNION ALL outputs all the documents from each side of the UNION ALL. For
 example, consider the output of the UNION ALL in the following query:
@@ -2514,8 +2531,10 @@ deviates from MongoDB\'s comparison semantics.
 
 The binary comparison operators \<, \<=, \<\>, =, \>, and \>= specify
 less than, less than or equals, not equals, equals, greater than, and
-greater than or equals, respectively. MongoSQL does not support
-comparison operations on structured data (documents and arrays).
+greater than or equals, respectively. Document comparison follows MongoDB's 
+equality semantics, requiring exact field name and value matches, with 
+field order being significant. Array comparison requires equal length 
+and equal elements in the same order.
 Booleans are compared such that FALSE is less than TRUE. Numbers are
 compared with respect to their algebraic values. Strings are compared
 lexicographically. Datetimes are compared as expected. The result of a
@@ -2747,12 +2766,11 @@ This operator is not strictly required for SQL compatibility. One
 benefit of not supporting it is that IS can unambiguously be used as the
 type-check operator.
 
-For now, we rejected comparisons for structured data (documents and
-arrays). There are still several questions to work through for
-structured data comparisons (how to handle NULL elements, for example).
-Structured data types are not part of SQL-92 and therefore we do not
-need to address this at this time. We are not excluded from supporting
-this in the future.
+Initially, we rejected comparisons for structured data (documents and 
+arrays). There were several questions to work through for structured 
+data comparisons (such as how to handle NULL elements). Since structured 
+data types are not part of SQL-92, we didn't need to address this immediately. 
+However, we have now implemented support for document and array comparisons.
 
 We also rejected polymorphic comparisons. Comparisons are not required
 to be polymorphic for SQL compatibility and being restrictive now does
@@ -4104,21 +4122,16 @@ turned into qualified references by prefixing the current database.
 
 #### Behavioral Description
 
-MongoSQL does not provide any guarantees about the ordering of keys in
-documents. This means that any document value may be returned from a
-query with its keys in an arbitrary order, whether that document was
-created by a literal, selected unmodified from a collection, or
+MongoSQL does not provide any guarantees about the ordering of keys in 
+documents. This means that any document value may be returned from a 
+query with its keys in an arbitrary order, whether that document was 
+created by a literal, selected unmodified from a collection, or 
 otherwise. In practice, document keys will often be returned in the
 order they are specified in a literal or the order they are stored in
-the database, but users should not rely on this behavior.
-
-Currently, MongoSQL itself does not implement any functionality that
-depends on the orderedness (or unorderedness) of document keys. This
-limitation is intentional; we wish to have the flexibility to decide in
-the future that documents are ordered or unordered. This is why
-comparison operators (and some uses of clauses that implicitly perform
-comparisons, like ORDER BY, GROUP BY, and SELECT DISTINCT) are
-disallowed over document fields.
+the database, but users should not rely on this behavior. Although MongoSQL
+does not provide any guarantees about the ordering of keys in documents,
+it does support document comparison. Literal documents are treated as
+ordered and document comparison follows MongoDB's document comparison rules.
 
 #### Rejected Alternatives/Competitive Analysis
 
@@ -4324,16 +4337,6 @@ can relax this in the future to allow for something such as SELECT VALUE
 names are modified in derived tables because that currently uses
 \$mergeObjects on the underlying values of the original binding tuples
 from the SELECT clause of the derived table query.
-
-### SELECT DISTINCT
-
-Support for SELECT DISTINCT has been deferred pending a decision re:
-ordered vs. unordered document comparison support in MongoSQL & MQL
-
-### UNION DISTINCT
-
-Support for distinct UNION has been deferred pending a decision re:
-ordered vs. unordered document comparison support in MongoSQL & MQL
 
 ### USING CLAUSE
 
