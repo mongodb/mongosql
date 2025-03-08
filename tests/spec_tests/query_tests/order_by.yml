@@ -170,7 +170,7 @@ tests:
 
   - description: missing sorts before null
     current_db: mydb
-    query: "SELECT * FROM nullAndMissing AS nullAndMissing ORDER BY a ASC"
+    query: "SELECT * FROM nullAndMissing AS nullAndMissing ORDER BY a ASC, _id ASC"
     ordered: true
     result:
       - { 'nullAndMissing': { '_id': 0, 'a': null } }
@@ -194,7 +194,7 @@ tests:
 
   - description: column references in sort keys can be qualified with table name after select star
     current_db: mydb
-    query: "SELECT * FROM bar AS bar ORDER BY bar.a ASC"
+    query: "SELECT * FROM bar AS bar ORDER BY bar.a ASC, bar.b ASC, _id ASC"
     ordered: true
     result:
       - { 'bar': { '_id': 2, 'a': 1, 'b': { 'c': 2 } } }
@@ -203,7 +203,7 @@ tests:
 
   - description: column references in sort keys can be qualified with table name after select substar
     current_db: mydb
-    query: "SELECT VALUE bar.* FROM bar AS bar ORDER BY bar.a ASC"
+    query: "SELECT VALUE bar.* FROM bar AS bar ORDER BY bar.a ASC, bar.b ASC, _id ASC"
     ordered: true
     result:
       - { 'bar': { '_id': 2, 'a': 1, 'b': { 'c': 2 } } }
@@ -221,7 +221,7 @@ tests:
 
   - description: column references in sort keys can be compound identifiers referencing document subfields and be qualified with table name
     current_db: mydb
-    query: "SELECT * FROM bar AS bar ORDER BY bar.b.c ASC"
+    query: "SELECT * FROM bar AS bar ORDER BY bar.b.c ASC, bar.a ASC, _id ASC"
     ordered: true
     result:
       - { 'bar': { '_id': 0, 'a': 3, 'b': { 'c': 1 } } }
@@ -239,7 +239,7 @@ tests:
 
   - description: qualified order by fields in ORDER BY select the proper data source where there are multiple datasources in scope
     current_db: mydb
-    query: "SELECT * FROM bar AS a JOIN bar AS b ORDER BY a.a ASC"
+    query: "SELECT * FROM bar AS a JOIN bar AS b ORDER BY a.a ASC, a ASC, b ASC"
     ordered: true
     skip_reason: "SQL-2405"
     result:
@@ -424,7 +424,7 @@ tests:
 
   - description: Sorting by column from RHS of INNER JOIN orders the entire result set
     current_db: mydb
-    query: "SELECT l._id, f.x FROM local AS l JOIN foreign AS f ON l._id = f.l_id ORDER BY x ASC"
+    query: "SELECT l._id, f.x FROM local AS l JOIN foreign AS f ON l._id = f.l_id ORDER BY x ASC, l._id ASC"
     ordered: true
     result:
       - { '': { _id: 0, x: 0 } }
