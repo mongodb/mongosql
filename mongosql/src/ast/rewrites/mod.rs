@@ -24,6 +24,8 @@ mod optional_parameters;
 use optional_parameters::OptionalParameterRewritePass;
 mod scalar_functions;
 use scalar_functions::ScalarFunctionsRewritePass;
+mod with_query;
+pub use with_query::WithQueryRewritePass;
 
 #[cfg(test)]
 mod test;
