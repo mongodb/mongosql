@@ -37,37 +37,37 @@ impl Visitor for ExtendedUnwindRewriteVisitor {
             }) => {
                 let source = Box::new(self.visit_datasource(*source));
                 let (mut paths, mut global_index, mut global_outer) = (None, None, false);
-                let (mut path_count, mut index_count, mut outer_count) = (0, 0, 0);
+                macro_rules! option_duplicate_error {
+                    ($name:literal) => {
+                        self.error = Some(Error::DuplicateOptionInUnwind($name));
+                        return ast::Datasource::ExtendedUnwind(ExtendedUnwindSource {
+                            datasource: source,
+                            options: Vec::new(),
+                        });
+                    };
+                }
                 for option in options {
                     match option {
                         ExtendedUnwindOption::Paths(path) => {
+                            if paths.is_some() {
+                                option_duplicate_error!("PATHS");
+                            }
                             paths = Some(path);
-                            path_count += 1;
                         }
                         ExtendedUnwindOption::Index(i) => {
+                            if global_index.is_some() {
+                                option_duplicate_error!("INDEX");
+                            }
                             global_index = Some(i);
-                            index_count += 1;
                         }
                         ExtendedUnwindOption::Outer(o) => {
+                            if global_outer {
+                                option_duplicate_error!("OUTER");
+                            }
                             global_outer = o;
-                            outer_count += 1;
                         }
                     }
                 }
-                macro_rules! check_count {
-                    ($count:ident, $name:literal) => {
-                        if $count > 1 {
-                            self.error = Some(Error::DuplicateOptionInUnwind($name));
-                            return ast::Datasource::ExtendedUnwind(ExtendedUnwindSource {
-                                datasource: source,
-                                options: Vec::new(),
-                            });
-                        }
-                    };
-                }
-                check_count!(path_count, "PATHS");
-                check_count!(index_count, "INDEX");
-                check_count!(outer_count, "OUTER");
                 if paths.is_none() {
                     self.error = Some(Error::UnwindSourceWithoutPath);
                     return ast::Datasource::ExtendedUnwind(ExtendedUnwindSource {
