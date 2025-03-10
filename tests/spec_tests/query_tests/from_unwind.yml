@@ -230,12 +230,12 @@ tests:
   - description: PATH option is required
     current_db: test
     query: "SELECT * FROM UNWIND(foo)"
-    algebrize_error: "UNWIND must specify a PATH option"
+    algebrize_error: 'failed to translate query: rewrite error: UNWIND datasource must have a PATH'
 
   - description: PATH must be an identifier
     current_db: test
     query: "SELECT * FROM UNWIND(foo WITH PATH => [arr])"
-    parse_error: "UNWIND PATH option must be an identifier"
+    parse_error: 'failed to translate query: parse error: Error 2001: Unrecognized token `[`, expected: ```, `"`, `ID`, `(`'
 
   - description: INDEX must be simple identifier
     current_db: test
@@ -244,8 +244,8 @@ tests:
 
   - description: duplicate option keys are disallowed
     current_db: test
-    query: "SELECT * FROM UNWIND(foo WITH PATH => arr, PATH => invalid)"
-    algebrize_error: "found duplicate UNWIND option Path(Identifier(\"invalid\"))"
+    query: "SELECT * FROM UNWIND(foo WITH INDEX => arr, INDEX => invalid, PATH => _id)"
+    parse_error: "failed to translate query: rewrite error: duplicate option in UNWIND: INDEX"
 
   - description: unknown option keys are disallowed
     current_db: test

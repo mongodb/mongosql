@@ -59,8 +59,10 @@ pub enum Error {
     },
     #[error("invalid date part: {0}")]
     InvalidDatePart(&'static str),
-    #[error("unwind datasource must have a PATH")]
+    #[error("UNWIND datasource must have a PATH")]
     UnwindSourceWithoutPath,
+    #[error("duplicate option in UNWIND: {0}")]
+    DuplicateOptionInUnwind(&'static str),
 }
 
 /// A fallible transformation that can be applied to a query
