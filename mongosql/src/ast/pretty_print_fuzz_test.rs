@@ -369,7 +369,7 @@ mod arbitrary {
                 4 => Self::Flatten(FlattenSource::arbitrary(g)),
                 5 => Self::Unwind(UnwindSource::arbitrary(g)),
                 6 => Self::ExtendedUnwind(ExtendedUnwindSource::arbitrary(g)),
-                _ => panic!("missing Datasource variant(s)"),
+                x => panic!("missing Datasource variant(s): {}", x),
             }
         }
     }
