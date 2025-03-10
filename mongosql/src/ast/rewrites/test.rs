@@ -937,6 +937,24 @@ mod optional_parameters {
                    WITH INDEX => a_b_ix, PATH => a.b) WITH INDEX => b_ix, PATH => b)"),
             input = "SELECT a.b.c AS c, a_ix, b_ix, b.d as d FROM UNWIND(foo WITH PATHS => (a[].b[], b[]), INDEX => ix)",
         );
+
+        test_rewrite!(
+            unwind_local_index_overwrites_global_index,
+            pass = ExtendedUnwindRewritePass,
+            expected = Ok(
+                "SELECT a.b.c AS c, a_ix, b_ix, b.d AS d FROM UNWIND(UNWIND(UNWIND(foo WITH INDEX => FOOO, PATH => a) \
+                   WITH INDEX => a_b_ix, PATH => a.b) WITH INDEX => b_ix, PATH => b)"),
+            input = "SELECT a.b.c AS c, a_ix, b_ix, b.d as d FROM UNWIND(foo WITH PATHS => (a[INDEX=>FOOO].b[], b[]), INDEX => ix)",
+        );
+
+        test_rewrite!(
+            unwind_local_outer_overwrites_global_outer,
+            pass = ExtendedUnwindRewritePass,
+            expected = Ok(
+                "SELECT a.b.c AS c, a_ix, b_ix, b.d AS d FROM UNWIND(UNWIND(UNWIND(foo WITH INDEX => FOOO, OUTER => true, PATH => a) \
+                   WITH OUTER => false, INDEX => a_b_ix, PATH => a.b) WITH INDEX => b_ix, OUTER => true, PATH => b)"),
+            input = "SELECT a.b.c AS c, a_ix, b_ix, b.d as d FROM UNWIND(foo WITH PATHS => (a[INDEX=>FOOO].b[OUTER=>false], b[]), INDEX => ix, OUTER => true)",
+        );
     }
 
     mod unwind {
