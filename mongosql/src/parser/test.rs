@@ -3380,7 +3380,7 @@ mod flatten {
     parsable!(
         unwind_multi_paths,
         expected = true,
-        input = "SELECT * FROM UNWIND(foo WITH PATHS => (a.b[INDEX=>b, OUTER=false].c, q.r.s[INDEX=>c, OUTER=true]), INDEX => i, OUTER=>false)"
+        input = "SELECT * FROM UNWIND(foo WITH PATHS => (a.b[INDEX=>b, OUTER=>false].c, q.r.s[INDEX=>c, OUTER=>true]), INDEX => i, OUTER=>false)"
     );
     parsable!(
         depth_neg,
@@ -3554,18 +3554,24 @@ mod unwind {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
             },
-            from_clause: Some(Datasource::Unwind(UnwindSource {
+            from_clause: Some(Datasource::ExtendedUnwind(ExtendedUnwindSource {
                 datasource: Box::new(Datasource::Collection(CollectionSource {
                     database: None,
                     collection: "foo".to_string(),
                     alias: None
                 })),
                 options: vec![
-                    UnwindOption::Path(Expression::Identifier("arr".into())),
-                    UnwindOption::Index("i".into()),
-                    UnwindOption::Index("idx".into()),
-                    UnwindOption::Path(Expression::Identifier("a".into())),
-                    UnwindOption::Outer(false),
+                    ExtendedUnwindOption::Paths(vec![vec![UnwindPathPart {
+                        field: "arr".to_string(),
+                        options: vec![]
+                    }]]),
+                    ExtendedUnwindOption::Index("i".into()),
+                    ExtendedUnwindOption::Index("idx".into()),
+                    ExtendedUnwindOption::Paths(vec![vec![UnwindPathPart {
+                        field: "a".to_string(),
+                        options: vec![]
+                    }]]),
+                    ExtendedUnwindOption::Outer(false),
                 ]
             })),
             where_clause: None,
