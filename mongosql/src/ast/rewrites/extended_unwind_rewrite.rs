@@ -71,7 +71,7 @@ impl Visitor for ExtendedUnwindRewriteVisitor {
                     create_unwind_datasource(*source, paths, global_index, global_outer)
                 }
             }
-            _ => data_source,
+            _ => data_source.walk(self),
         }
     }
 }
