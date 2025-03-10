@@ -13,7 +13,7 @@ pub struct WithQueryRewritePass;
 impl Pass for WithQueryRewritePass {
     fn apply(&self, query: ast::Query) -> Result<ast::Query> {
         let mut visitor = WithQueryVisitor;
-        Ok(query.walk(&mut visitor))
+        Ok(visitor.visit_query(query))
     }
 }
 
@@ -62,6 +62,7 @@ impl Visitor for WithQueryVisitor {
     fn visit_query(&mut self, query: ast::Query) -> ast::Query {
         match query {
             ast::Query::With(ast::WithQuery { queries, body }) => {
+                dbg!();
                 let mut theta = BTreeMap::new();
                 for query in queries {
                     let ast::NamedQuery { name, query } = query;

@@ -1019,6 +1019,31 @@ mod optional_parameters {
     }
 }
 
+mod with_query {
+    use super::*;
+
+    test_rewrite!(
+        multi,
+        pass = WithQueryRewritePass,
+        expected = Ok("SELECT * FROM (SELECT * FROM (SELECT a FROM bar) AS foo) AS baz"),
+        input = "WITH foo AS (SELECT a FROM bar), baz AS (SELECT * FROM foo) (SELECT * FROM baz)",
+    );
+
+    test_rewrite!(
+        rewrite_in_derived,
+        pass = WithQueryRewritePass,
+        expected = Ok("SELECT * FROM (SELECT * FROM (SELECT a FROM (SELECT a FROM bar) AS foo) AS craz) AS baz"),
+        input = "WITH foo AS (SELECT a FROM bar), baz AS (SELECT * FROM (SELECT a FROM foo) AS craz) (SELECT * FROM baz)",
+    );
+
+    test_rewrite!(
+        do_not_rewrite_scoped_collection,
+        pass = WithQueryRewritePass,
+        expected = Ok("SELECT * FROM foo.bar AS bar"),
+        input = "WITH bar AS (SELECT a FROM baz) (SELECT * FROM foo.bar AS bar)",
+    );
+}
+
 mod not {
     use super::*;
 

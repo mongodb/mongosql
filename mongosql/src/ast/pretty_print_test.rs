@@ -353,6 +353,23 @@ mod having {
     );
 }
 
+mod with_query {
+    use super::*;
+
+    query_printer_test!(
+        simple,
+        expected = "WITH foo AS (SELECT * FROM bar) (SELECT * FROM foo)",
+        input = "WITH foo AS (SELECT * FROM bar) (SELECT * FROM foo)"
+    );
+
+    query_printer_test!(
+        multi,
+        expected =
+            "WITH foo AS (SELECT * FROM bar), baz AS (SELECT * FROM foo) (SELECT * FROM foo)",
+        input = "WITH foo AS (SELECT * FROM bar), baz AS (SELECT * FROM foo) (SELECT * FROM foo)"
+    );
+}
+
 mod where_clause {
     use super::*;
     query_printer_test!(

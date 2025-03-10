@@ -156,7 +156,7 @@ impl PrettyPrint for Query {
 impl PrettyPrint for WithQuery {
     fn pretty_print(&self) -> Result<String> {
         Ok(format!(
-            "WITH {}({})",
+            "WITH {} ({})",
             self.queries
                 .iter()
                 .map(|x| x.pretty_print())
