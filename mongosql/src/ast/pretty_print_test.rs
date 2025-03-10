@@ -339,6 +339,12 @@ mod unwind {
     );
 
     query_printer_test!(
+        with_multiple_composite_paths_and_join,
+        expected = "SELECT * FROM UNWIND(foo INNER JOIN UNWIND(bar) WITH PATHS => (`path`[OUTER => true][INDEX => idx].x[].y, arr2[][]), OUTER => false, INDEX => i)",
+        input = "SELECT * FROM UNWIND(foo INNER JOIN UNWIND(bar) with paths => (`path`[OUTER=>true][INDEX=>idx].x[].y, arr2[][]), outer => false, index => i)"
+    );
+
+    query_printer_test!(
     with_multiple_options_preserves_order_and_duplicates,
     expected = "SELECT * FROM UNWIND(foo WITH PATHS => (arr), OUTER => false, OUTER => true, INDEX => i, PATHS => (a))",
     input = "SELECT * FROM UNWIND(foo with path => arr, outer => false, outer => true, index => i, path => a)"

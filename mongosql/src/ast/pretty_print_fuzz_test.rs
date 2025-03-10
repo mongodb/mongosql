@@ -32,7 +32,7 @@ mod fuzz_test {
                     // If we failed to parse, we want to show the Error, the pretty printed
                     // query, and the query AST so we can more easily see the issue.
                     // The panic will print the query AST.
-                    panic!("\nError:\n{e:?}\n=========\n{p}\n\n_________\n\n");
+                    panic!("{q:?}\nError:\n{e:?}\n=========\n{p}\n\n_________\n\n");
                 }
             };
 
@@ -360,7 +360,7 @@ mod arbitrary {
 
     impl Arbitrary for Datasource {
         fn arbitrary(g: &mut Gen) -> Self {
-            let rng = &(0..Self::VARIANT_COUNT).collect::<Vec<_>>();
+            let rng = &(0..Self::VARIANT_COUNT - 1).collect::<Vec<_>>();
             match g.choose(rng).unwrap() {
                 0 => Self::Array(ArraySource::arbitrary(g)),
                 1 => Self::Collection(CollectionSource::arbitrary(g)),
@@ -368,7 +368,8 @@ mod arbitrary {
                 3 => Self::Join(JoinSource::arbitrary(g)),
                 4 => Self::Flatten(FlattenSource::arbitrary(g)),
                 // Never generate normal Unwind now because we cannot parse to normal Unwind
-                _ => Self::ExtendedUnwind(ExtendedUnwindSource::arbitrary(g)),
+                5 => Self::ExtendedUnwind(ExtendedUnwindSource::arbitrary(g)),
+                _ => panic!("missing Datasource variant(s)"),
             }
         }
     }
@@ -425,7 +426,7 @@ mod arbitrary {
 
     impl Arbitrary for JoinSource {
         fn arbitrary(g: &mut Gen) -> Self {
-            let rng = &(0..Datasource::VARIANT_COUNT - 1).collect::<Vec<_>>();
+            let rng = &(0..Datasource::VARIANT_COUNT - 2).collect::<Vec<_>>();
             // The RHS should not be a Join because the parser always produces left-deep Joins.  To
             // avoid right-deep joins, we subtract 1 from the Datasource VARIANT_COUNT to remove
             // the possiblity of generating a Join and directly generate an arbitrary non-Join RHS
@@ -436,7 +437,8 @@ mod arbitrary {
                 2 => Datasource::Derived(DerivedSource::arbitrary(g)),
                 3 => Datasource::Flatten(FlattenSource::arbitrary(g)),
                 // We never generate normal Unwind Sources now because we cannot parse to normal Unwind
-                _ => Datasource::ExtendedUnwind(ExtendedUnwindSource::arbitrary(g)),
+                4 => Datasource::ExtendedUnwind(ExtendedUnwindSource::arbitrary(g)),
+                _ => panic!("missing Datasource variant(s)"),
             });
             Self {
                 join_type: JoinType::arbitrary(g),
@@ -524,9 +526,11 @@ mod arbitrary {
             let rng = &(0..Self::VARIANT_COUNT).collect::<Vec<_>>();
             match g.choose(rng).unwrap() {
                 0 => Self::Paths(
-                    (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
+                    // use low as 1 because there must be at least one PATH
+                    (0..rand_len(1, MAX_COMPOSITE_DATA_LEN))
                         .map(|_| {
-                            (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
+                            // use low 1 so we don't generate an empty path
+                            (0..rand_len(1, MAX_COMPOSITE_DATA_LEN))
                                 .map(|_| UnwindPathPart::arbitrary(g))
                                 .collect::<Vec<_>>()
                         })
