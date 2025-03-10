@@ -900,6 +900,36 @@ mod optional_parameters {
         );
     }
 
+    mod extended_unwind {
+        use super::*;
+
+        test_rewrite!(
+            unwind_composite_a_b,
+            pass = ExtendedUnwindRewritePass,
+            expected =
+                Ok("SELECT a.b.c AS c FROM UNWIND(UNWIND(foo WITH PATH => a) WITH PATH => a.b)"),
+            input = "SELECT a.b.c AS c FROM UNWIND(foo WITH PATHS => (a[].b[]))",
+        );
+
+        test_rewrite!(
+            unwind_composite_w_x_and_w_y_z,
+            pass = ExtendedUnwindRewritePass,
+            expected = Ok(
+                "SELECT w.x AS x, w.y.z AS z FROM UNWIND(UNWIND(UNWIND(foo WITH PATH => w.x) WITH PATH => w.y) WITH PATH => w.y.z)"
+            ),
+            input = "SELECT w.x AS x, w.y.z AS z FROM UNWIND(foo WITH PATHS => (w.x[], w.y[].z[]))",
+        );
+
+        test_rewrite!(
+            unwind_composite_a_b_and_b,
+            pass = ExtendedUnwindRewritePass,
+            expected = Ok(
+                "SELECT a.b.c AS c, b.d AS d FROM UNWIND(UNWIND(UNWIND(foo WITH PATH => a) WITH PATH => a.b) WITH PATH => b)"
+            ),
+            input = "SELECT a.b.c AS c, b.d AS d FROM UNWIND(foo WITH PATHS => (a[].b[], b[]))",
+        );
+    }
+
     mod unwind {
         use super::*;
 
