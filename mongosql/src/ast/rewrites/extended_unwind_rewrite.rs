@@ -35,6 +35,7 @@ impl Visitor for ExtendedUnwindRewriteVisitor {
                 datasource: source,
                 options,
             }) => {
+                let source = Box::new(self.visit_datasource(*source));
                 let (mut paths, mut global_index, mut global_outer) = (None, None, false);
                 for option in options {
                     match option {

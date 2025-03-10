@@ -920,6 +920,14 @@ mod optional_parameters {
         );
 
         test_rewrite!(
+            unwind_nested_composite_a_b,
+            pass = ExtendedUnwindRewritePass,
+            expected =
+                Ok("SELECT a.b.c AS c FROM UNWIND(UNWIND(UNWIND(foo WITH PATH => a) WITH PATH => a.b) WITH PATH => x)"),
+            input = "SELECT a.b.c AS c FROM UNWIND(UNWIND(foo WITH PATHS => (a[].b[])) WITH PATH => x)",
+        );
+
+        test_rewrite!(
             unwind_composite_w_x_and_w_y_z,
             pass = ExtendedUnwindRewritePass,
             expected = Ok(
