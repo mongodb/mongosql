@@ -3378,6 +3378,11 @@ mod flatten {
         input = "SELECT * FROM FLATTEN(UNWIND(foo WITH PATH => arr))"
     );
     parsable!(
+        unwind_multi_paths,
+        expected = true,
+        input = "SELECT * FROM UNWIND(foo WITH PATHS => (a.b[INDEX=>b, OUTER=false].c, q.r.s[INDEX=>c, OUTER=true]), INDEX => i, OUTER=>false)"
+    );
+    parsable!(
         depth_neg,
         expected = false,
         input = "SELECT * FROM FLATTEN(foo WITH depth => -1)"
@@ -3450,6 +3455,11 @@ mod unwind {
         path,
         expected = true,
         input = "SELECT * FROM UNWIND(foo WITH PATH => arr)"
+    );
+    parsable!(
+        path_multi_arrays,
+        expected = true,
+        input = "SELECT * FROM UNWIND(foo WITH PATH => arr[].b[].c.d[].e)"
     );
     parsable!(
         index,

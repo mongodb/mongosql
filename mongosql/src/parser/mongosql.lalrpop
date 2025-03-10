@@ -88,13 +88,32 @@ FlattenOption: FlattenOption = {
 }
 
 UnwindDatasource: Datasource = {
-  UNWIND LEFT_PAREN <d:Datasource> <o:(WITH <CommaPlus<UnwindOption>>)?> RIGHT_PAREN => Datasource::Unwind(UnwindSource{datasource: Box::new(d), options: o.unwrap_or(vec![])})
+  UNWIND LEFT_PAREN <d:Datasource> <o:(WITH <CommaPlus<UnwindOption>>)?> RIGHT_PAREN => Datasource::ExtendedUnwind(ExtendedUnwindSource{datasource: Box::new(d), options: o.unwrap_or(vec![])})
 }
 
-UnwindOption: UnwindOption = {
-  PATH ARROW <p:Tier14Expr> =>? parse_unwind_path(*p),
-  INDEX ARROW <i:Identifier> => UnwindOption::Index(i),
-  OUTER ARROW <o:Boolean> => UnwindOption::Outer(o)
+UnwindOption: ExtendedUnwindOption = {
+  PATH ARROW <p:PeriodPlus<UnwindPathPart>> => ExtendedUnwindOption::Paths(vec![p]),
+  PATH ARROW LEFT_PAREN <p:CommaPlus<PeriodPlus<UnwindPathPart>>> RIGHT_PAREN => ExtendedUnwindOption::Paths(p),
+  INDEX ARROW <i:Identifier> => ExtendedUnwindOption::Index(i),
+  OUTER ARROW <o:Boolean> => ExtendedUnwindOption::Outer(o)
+}
+
+// Only INDEX and OUTER are allowed on a PATH part. Putting a PATH in a PATH part
+// would be confusing
+UnwindPathPartOption: UnwindPathPartOption = {
+  INDEX ARROW <i:Identifier> => UnwindPathPartOption::Index(i),
+  OUTER ARROW <o:Boolean> => UnwindPathPartOption::Outer(o)
+}
+
+UnwindPathPart: UnwindPathPart = {
+    <i:Identifier> => UnwindPathPart {
+        field: i, 
+        options: Vec::default(),
+    },
+    <i:Identifier> <o:BracketList<CommaStar<UnwindPathPartOption>>> => UnwindPathPart {
+        field: i, 
+        options: o,
+    }
 }
 
 Datasource: Datasource = {
@@ -722,6 +741,26 @@ CommaPlus<T>: Vec<T> = {
   }
 };
 
+// PeriodPlus matches <T>+ (1 or more instances of type T) separated by periods.
+PeriodPlus<T>: Vec<T> = { // (1)
+    <v:(<T> DOT)*> <e:T> => { // (2)
+       let mut v = v;
+       v.push(e);
+       v
+    }
+};
+
+// BracketList matches [<T>]+ (1 or more instances of type T) surrounded by brackets and separated
+// by whitespace*.
+BracketList<T>: Vec<T> = {
+    <v:(LEFT_BRACKET <T> RIGHT_BRACKET)*> LEFT_BRACKET <e:T> RIGHT_BRACKET => { // (2)
+       let mut v = v;
+       v.push(e);
+       v
+    }
+};
+
+
 match {
   r"\s*" => { },
   r"--[^\n\r]*[\n\r]*" => { },
@@ -828,7 +867,7 @@ match {
   r"(?i)or" => OR,
   r"(?i)order" => ORDER,
   r"(?i)outer" => OUTER,
-  r"(?i)path" => PATH,
+  r"(?i)paths?" => PATH,
   r"(?i)position" => POSITION,
   r"(?i)precision" => PRECISION,
   r"(?i)real" => REAL,

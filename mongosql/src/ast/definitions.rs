@@ -103,6 +103,7 @@ pub enum Datasource {
     Join(JoinSource),
     Flatten(FlattenSource),
     Unwind(UnwindSource),
+    ExtendedUnwind(ExtendedUnwindSource),
 }
 
 impl Datasource {
@@ -140,6 +141,9 @@ impl Datasource {
                 datasource.check_duplicate_aliases_aux(aliases)?;
             }
             Datasource::Unwind(UnwindSource { datasource, options: _ }) => {
+                datasource.check_duplicate_aliases_aux(aliases)?;
+            }
+            Datasource::ExtendedUnwind(ExtendedUnwindSource { datasource, options: _ }) => {
                 datasource.check_duplicate_aliases_aux(aliases)?;
             }
         }
@@ -234,9 +238,28 @@ pub struct UnwindSource {
     pub options: Vec<UnwindOption>,
 }
 
+#[derive(PartialEq, Debug, Clone)]
+pub struct ExtendedUnwindSource {
+    pub datasource: Box<Datasource>,
+    pub options: Vec<ExtendedUnwindOption>,
+}
+
 #[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum UnwindOption {
     Path(Expression),
+    Index(String),
+    Outer(bool),
+}
+
+#[derive(PartialEq, Debug, Clone, VariantCount)]
+pub enum ExtendedUnwindOption {
+    Paths(Vec<Vec<UnwindPathPart>>),
+    Index(String),
+    Outer(bool),
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, VariantCount)]
+pub enum UnwindPathPartOption {
     Index(String),
     Outer(bool),
 }
@@ -759,6 +782,13 @@ pub struct SubpathExpr {
     pub expr: Box<Expression>,
     pub subpath: String,
 }
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct UnwindPathPart {
+    pub field: String,
+    pub options: Vec<Vec<UnwindPathPartOption>>,
+}
+
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, VariantCount)]
 pub enum TypeOrMissing {
