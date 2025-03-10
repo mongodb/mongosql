@@ -148,7 +148,32 @@ impl PrettyPrint for Query {
         match self {
             Query::Select(q) => q.pretty_print(),
             Query::Set(q) => q.pretty_print(),
+            Query::With(q) => q.pretty_print(),
         }
+    }
+}
+
+impl PrettyPrint for WithQuery {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
+            "WITH {}({})",
+            self.queries
+                .iter()
+                .map(|x| x.pretty_print())
+                .collect::<Result<Vec<_>>>()?
+                .join(", "),
+            self.body.pretty_print()?
+        ))
+    }
+}
+
+impl PrettyPrint for NamedQuery {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
+            "{} AS ({})",
+            identifier_to_string(self.name.as_str()),
+            self.query.pretty_print()?
+        ))
     }
 }
 

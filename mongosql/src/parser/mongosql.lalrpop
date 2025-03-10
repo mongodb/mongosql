@@ -9,9 +9,28 @@ extern {
 }
 
 pub Query: Query = {
+  WithQuery => <>,
+  SimpleQuery => <>
+};
+
+SimpleQuery: Query = {
   SetQuery => Query::Set(<>),
   SelectQuery => Query::Select(<>),
-};
+}
+
+WithQuery: Query = {
+  WITH <t:CommaPlus<NamedQuery>> LEFT_PAREN <q:SimpleQuery> RIGHT_PAREN => Query::With(WithQuery {
+    queries: t,
+    body: Box::new(q),
+  })
+}
+
+NamedQuery: NamedQuery = {
+  <i:Identifier> AS LEFT_PAREN <q:SimpleQuery> RIGHT_PAREN => NamedQuery {
+    name: i,
+    query: q,
+  }
+}
 
 SetQuery: SetQuery = {
   <q:Query> <o:SetOperator> <s:SelectQuery>  => SetQuery{left:Box::new(q), op:o, right:Box::new(Query::Select(s))},
