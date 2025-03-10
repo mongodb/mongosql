@@ -493,6 +493,18 @@ impl PrettyPrint for UnwindPathPartOption {
     }
 }
 
+impl PrettyPrint for Vec<UnwindPathPartOption> {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
+            "[{}]",
+            self.iter()
+                .map(|o| o.pretty_print())
+                .collect::<Result<Vec<_>>>()?
+                .join(", ")
+        ))
+    }
+}
+
 impl PrettyPrint for Vec<UnwindPathPart> {
     fn pretty_print(&self) -> Result<String> {
         Ok(self
@@ -505,7 +517,15 @@ impl PrettyPrint for Vec<UnwindPathPart> {
 
 impl PrettyPrint for UnwindPathPart {
     fn pretty_print(&self) -> Result<String> {
-        todo!()
+        Ok(format!(
+            "{}{}",
+            identifier_to_string(&self.field),
+            self.options
+                .iter()
+                .map(|o| o.pretty_print())
+                .collect::<Result<Vec<_>>>()?
+                .join("")
+        ))
     }
 }
 

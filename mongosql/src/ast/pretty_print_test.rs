@@ -298,13 +298,13 @@ mod unwind {
 
     query_printer_test!(
         with_path,
-        expected = "SELECT * FROM UNWIND(foo WITH PATH => arr)",
+        expected = "SELECT * FROM UNWIND(foo WITH PATHS => (arr))",
         input = "SELECT * FROM UNWIND(foo with path => arr)"
     );
 
     query_printer_test!(
         with_delimited_path,
-        expected = "SELECT * FROM UNWIND(foo WITH PATH => `x.arr`)",
+        expected = "SELECT * FROM UNWIND(foo WITH PATHS => (`x.arr`))",
         input = "SELECT * FROM UNWIND(foo with path => `x.arr`)"
     );
 
@@ -334,7 +334,7 @@ mod unwind {
 
     query_printer_test!(
     with_multiple_options_preserves_order_and_duplicates,
-    expected = "SELECT * FROM UNWIND(foo WITH PATH => arr, OUTER => false, OUTER => true, INDEX => i, PATH => a)",
+    expected = "SELECT * FROM UNWIND(foo WITH PATHS => (arr), OUTER => false, OUTER => true, INDEX => i, PATHS => (a))",
     input = "SELECT * FROM UNWIND(foo with path => arr, outer => false, outer => true, index => i, path => a)"
 );
 }
