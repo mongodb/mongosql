@@ -367,9 +367,8 @@ mod arbitrary {
                 2 => Self::Derived(DerivedSource::arbitrary(g)),
                 3 => Self::Join(JoinSource::arbitrary(g)),
                 4 => Self::Flatten(FlattenSource::arbitrary(g)),
-                5 => Self::Unwind(UnwindSource::arbitrary(g)),
-                6 => Self::ExtendedUnwind(ExtendedUnwindSource::arbitrary(g)),
-                x => panic!("missing Datasource variant(s): {}", x),
+                // Never generate normal Unwind now because we cannot parse to normal Unwind
+                _ => Self::ExtendedUnwind(ExtendedUnwindSource::arbitrary(g)),
             }
         }
     }
@@ -436,8 +435,8 @@ mod arbitrary {
                 1 => Datasource::Collection(CollectionSource::arbitrary(g)),
                 2 => Datasource::Derived(DerivedSource::arbitrary(g)),
                 3 => Datasource::Flatten(FlattenSource::arbitrary(g)),
-                4 => Datasource::Unwind(UnwindSource::arbitrary(g)),
-                _ => panic!("missing Datasource variant(s)"),
+                // We never generate normal Unwind Sources now because we cannot parse to normal Unwind
+                _ => Datasource::ExtendedUnwind(ExtendedUnwindSource::arbitrary(g)),
             });
             Self {
                 join_type: JoinType::arbitrary(g),
@@ -483,17 +482,6 @@ mod arbitrary {
         }
     }
 
-    impl Arbitrary for UnwindSource {
-        fn arbitrary(g: &mut Gen) -> Self {
-            Self {
-                datasource: Box::new(Datasource::arbitrary(g)),
-                options: (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
-                    .map(|_| UnwindOption::arbitrary(g))
-                    .collect(),
-            }
-        }
-    }
-
     impl Arbitrary for ExtendedUnwindSource {
         fn arbitrary(g: &mut Gen) -> Self {
             Self {
@@ -501,24 +489,6 @@ mod arbitrary {
                 options: (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
                     .map(|_| ExtendedUnwindOption::arbitrary(g))
                     .collect(),
-            }
-        }
-    }
-
-    impl Arbitrary for UnwindOption {
-        fn arbitrary(g: &mut Gen) -> Self {
-            let rng = &(0..Self::VARIANT_COUNT).collect::<Vec<_>>();
-            match g.choose(rng).unwrap() {
-                0 => {
-                    // The parser only supports Identifiers or Subpath expressions for PATH.
-                    match bool::arbitrary(g) {
-                        true => Self::Path(Expression::Identifier(arbitrary_identifier(g))),
-                        false => Self::Path(Expression::Subpath(SubpathExpr::arbitrary(g))),
-                    }
-                }
-                1 => Self::Index(arbitrary_identifier(g)),
-                2 => Self::Outer(bool::arbitrary(g)),
-                _ => panic!("missing UnwindOption variant(s)"),
             }
         }
     }
@@ -537,7 +507,7 @@ mod arbitrary {
     impl Arbitrary for UnwindPathPart {
         fn arbitrary(g: &mut Gen) -> Self {
             Self {
-                field: arbitrary_string(g),
+                field: arbitrary_identifier(g),
                 options: (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
                     .map(|_| {
                         (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
