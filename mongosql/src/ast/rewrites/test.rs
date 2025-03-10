@@ -928,6 +928,15 @@ mod optional_parameters {
             ),
             input = "SELECT a.b.c AS c, b.d AS d FROM UNWIND(foo WITH PATHS => (a[].b[], b[]))",
         );
+
+        test_rewrite!(
+            unwind_with_global_index,
+            pass = ExtendedUnwindRewritePass,
+            expected = Ok(
+                "SELECT a.b.c AS c, a_ix, b_ix, b.d AS d FROM UNWIND(UNWIND(UNWIND(foo WITH INDEX => a_ix, PATH => a) \
+                   WITH INDEX => a_b_ix, PATH => a.b) WITH INDEX => b_ix, PATH => b)"),
+            input = "SELECT a.b.c AS c, a_ix, b_ix, b.d as d FROM UNWIND(foo WITH PATHS => (a[].b[], b[]), INDEX => ix)",
+        );
     }
 
     mod unwind {
