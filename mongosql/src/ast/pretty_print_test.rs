@@ -333,6 +333,12 @@ mod unwind {
     );
 
     query_printer_test!(
+        with_multiple_composite_paths,
+        expected = "SELECT * FROM UNWIND(foo WITH PATHS => (arr[OUTER => true][INDEX => idx].x[].y, arr2[][]), OUTER => false, INDEX => i)",
+        input = "SELECT * FROM UNWIND(foo with paths => (arr[OUTER=>true][INDEX=>idx].x[].y, arr2[][]), outer => false, index => i)"
+    );
+
+    query_printer_test!(
     with_multiple_options_preserves_order_and_duplicates,
     expected = "SELECT * FROM UNWIND(foo WITH PATHS => (arr), OUTER => false, OUTER => true, INDEX => i, PATHS => (a))",
     input = "SELECT * FROM UNWIND(foo with path => arr, outer => false, outer => true, index => i, path => a)"
