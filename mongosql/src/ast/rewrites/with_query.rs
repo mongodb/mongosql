@@ -21,7 +21,7 @@ struct CollectionReplaceVisitor<'a> {
     theta: &'a BTreeMap<String, ast::Query>,
 }
 
-impl<'a> Visitor for CollectionReplaceVisitor<'a> {
+impl Visitor for CollectionReplaceVisitor<'_> {
     fn visit_datasource(&mut self, mut datasource: ast::Datasource) -> ast::Datasource {
         match datasource {
             ast::Datasource::Collection(ast::CollectionSource {
