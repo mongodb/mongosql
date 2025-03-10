@@ -313,7 +313,7 @@ impl PrettyPrint for Datasource {
             Datasource::Join(j) => j.pretty_print(),
             Datasource::Flatten(f) => f.pretty_print(),
             Datasource::Unwind(u) => u.pretty_print(),
-            Datasource::ExtendedUnwind(_u) => todo!(),
+            Datasource::ExtendedUnwind(u) => u.pretty_print(),
         }
     }
 }
@@ -419,6 +419,24 @@ impl PrettyPrint for FlattenOption {
     }
 }
 
+impl PrettyPrint for ExtendedUnwindSource {
+    fn pretty_print(&self) -> Result<String> {
+        let options = self
+            .options
+            .iter()
+            .map(|o| o.pretty_print())
+            .collect::<Result<Vec<_>>>()?;
+        Ok(match options.len() {
+            0 => format!("UNWIND({})", self.datasource.pretty_print()?),
+            _ => format!(
+                "UNWIND({} WITH {})",
+                self.datasource.pretty_print()?,
+                options.join(", ")
+            ),
+        })
+    }
+}
+
 impl PrettyPrint for UnwindSource {
     fn pretty_print(&self) -> Result<String> {
         let options = self
@@ -441,11 +459,27 @@ impl PrettyPrint for UnwindSource {
 impl PrettyPrint for UnwindOption {
     fn pretty_print(&self) -> Result<String> {
         Ok(match self {
-            UnwindOption::Path(p) => {
-                format!("PATH => ({})", p.pretty_print()?)
-            }
+            UnwindOption::Path(p) => format!("PATH => {}", p.pretty_print()?),
             UnwindOption::Index(i) => format!("INDEX => {}", identifier_to_string(i)),
             UnwindOption::Outer(o) => format!("OUTER => {o}"),
+        })
+    }
+}
+
+impl PrettyPrint for ExtendedUnwindOption {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
+            ExtendedUnwindOption::Paths(p) => {
+                format!(
+                    "PATHS => ({})",
+                    p.iter()
+                        .map(|x| x.pretty_print())
+                        .collect::<Result<Vec<_>>>()?
+                        .join(", ")
+                )
+            }
+            ExtendedUnwindOption::Index(i) => format!("INDEX => {}", identifier_to_string(i)),
+            ExtendedUnwindOption::Outer(o) => format!("OUTER => {o}"),
         })
     }
 }
