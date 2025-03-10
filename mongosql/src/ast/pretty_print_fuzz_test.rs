@@ -368,6 +368,7 @@ mod arbitrary {
                 3 => Self::Join(JoinSource::arbitrary(g)),
                 4 => Self::Flatten(FlattenSource::arbitrary(g)),
                 5 => Self::Unwind(UnwindSource::arbitrary(g)),
+                6 => Self::ExtendedUnwind(ExtendedUnwindSource::arbitrary(g)),
                 _ => panic!("missing Datasource variant(s)"),
             }
         }
@@ -493,6 +494,17 @@ mod arbitrary {
         }
     }
 
+    impl Arbitrary for ExtendedUnwindSource {
+        fn arbitrary(g: &mut Gen) -> Self {
+            Self {
+                datasource: Box::new(Datasource::arbitrary(g)),
+                options: (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
+                    .map(|_| ExtendedUnwindOption::arbitrary(g))
+                    .collect(),
+            }
+        }
+    }
+
     impl Arbitrary for UnwindOption {
         fn arbitrary(g: &mut Gen) -> Self {
             let rng = &(0..Self::VARIANT_COUNT).collect::<Vec<_>>();
@@ -507,6 +519,52 @@ mod arbitrary {
                 1 => Self::Index(arbitrary_identifier(g)),
                 2 => Self::Outer(bool::arbitrary(g)),
                 _ => panic!("missing UnwindOption variant(s)"),
+            }
+        }
+    }
+
+    impl Arbitrary for UnwindPathPartOption {
+        fn arbitrary(g: &mut Gen) -> Self {
+            let rng = &(0..Self::VARIANT_COUNT).collect::<Vec<_>>();
+            match g.choose(rng).unwrap() {
+                0 => Self::Index(arbitrary_identifier(g)),
+                1 => Self::Outer(bool::arbitrary(g)),
+                _ => panic!("missing UnwindOption variant(s)"),
+            }
+        }
+    }
+
+    impl Arbitrary for UnwindPathPart {
+        fn arbitrary(g: &mut Gen) -> Self {
+            Self {
+                field: arbitrary_string(g),
+                options: (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
+                    .map(|_| {
+                        (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
+                            .map(|_| UnwindPathPartOption::arbitrary(g))
+                            .collect::<Vec<_>>()
+                    })
+                    .collect::<Vec<_>>(),
+            }
+        }
+    }
+
+    impl Arbitrary for ExtendedUnwindOption {
+        fn arbitrary(g: &mut Gen) -> Self {
+            let rng = &(0..Self::VARIANT_COUNT).collect::<Vec<_>>();
+            match g.choose(rng).unwrap() {
+                0 => Self::Paths(
+                    (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
+                        .map(|_| {
+                            (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
+                                .map(|_| UnwindPathPart::arbitrary(g))
+                                .collect::<Vec<_>>()
+                        })
+                        .collect::<Vec<_>>(),
+                ),
+                1 => Self::Index(arbitrary_identifier(g)),
+                2 => Self::Outer(bool::arbitrary(g)),
+                _ => panic!("missing ExtendedUnwindOption variant(s)"),
             }
         }
     }
