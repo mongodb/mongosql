@@ -56,7 +56,7 @@ impl Visitor for CollectionReplaceVisitor<'_> {
                     alias: std::mem::take(alias),
                 })
             }
-            // a derived query could still have a use of a WITH query
+            // a derived query could still have a use of a WITH-defined NamedQuery
             _ => datasource.walk(self),
         }
     }
