@@ -36,7 +36,7 @@ impl Visitor for ExtendedUnwindRewriteVisitor {
                 options,
             }) => {
                 let source = Box::new(self.visit_datasource(*source));
-                let (mut paths, mut global_index, mut global_outer) = (None, None, false);
+                let (mut paths, mut global_index, mut global_outer) = (None, None, None);
                 macro_rules! option_duplicate_error {
                     ($name:literal) => {
                         self.error = Some(Error::DuplicateOptionInUnwind($name));
@@ -61,13 +61,14 @@ impl Visitor for ExtendedUnwindRewriteVisitor {
                             global_index = Some(i);
                         }
                         ExtendedUnwindOption::Outer(o) => {
-                            if global_outer {
+                            if global_outer.is_some() {
                                 option_duplicate_error!("OUTER");
                             }
-                            global_outer = o;
+                            global_outer = Some(o);
                         }
                     }
                 }
+                let global_outer = global_outer.unwrap_or(false);
                 if paths.is_none() {
                     self.error = Some(Error::UnwindSourceWithoutPath);
                     return ast::Datasource::ExtendedUnwind(ExtendedUnwindSource {
