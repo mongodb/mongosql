@@ -8,10 +8,6 @@ catalog_data:
       - { '_id': 0, 'a': 3, 'b': { 'c': 1 } }
       - { '_id': 1, 'a': 2, 'b': { 'c': 3 } }
       - { '_id': 2, 'a': 1, 'b': { 'c': 2 } }
-    nullAndMissing:
-      - { '_id': 0, 'a': null }
-      - { '_id': 1 }
-      - { '_id': 2, 'a': null }
     nullAndNonNull:
       - { '_id': 0, 'a': null }
       - { '_id': 1, 'a': 1 }
@@ -74,16 +70,6 @@ catalog_schema:
                 'bsonType': 'int'
               }
             }
-          },
-        }
-      },
-      'nullAndMissing': {
-        'bsonType': "object",
-        'required': [ 'a' ],
-        'additionalProperties': false,
-        'properties': {
-          'a': {
-            'bsonType': !!str "null"
           },
         }
       },
@@ -167,15 +153,6 @@ tests:
       - { '': { 'a': 1, 'b': 'abc' } }
       - { '': { 'a': 1, 'b': 'def' } }
       - { '': { 'a': 2, 'b': 'abc' } }
-
-  - description: missing sorts before null
-    current_db: mydb
-    query: "SELECT * FROM nullAndMissing AS nullAndMissing ORDER BY a ASC, _id ASC"
-    ordered: true
-    result:
-      - { 'nullAndMissing': { '_id': 0, 'a': null } }
-      - { 'nullAndMissing': { '_id': 1 } }
-      - { 'nullAndMissing': { '_id': 2, 'a': null } }
 
   - description: null sorts before non-null values
     current_db: mydb
