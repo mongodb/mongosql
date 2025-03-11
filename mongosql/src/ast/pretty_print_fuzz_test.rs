@@ -316,7 +316,7 @@ mod arbitrary {
         fn arbitrary(g: &mut Gen) -> Self {
             Self {
                 name: arbitrary_identifier(g),
-                query: Query::arbitrary(g),
+                query: arbitrary_non_with_query(g),
             }
         }
 
@@ -451,7 +451,7 @@ mod arbitrary {
     impl Arbitrary for DerivedSource {
         fn arbitrary(g: &mut Gen) -> Self {
             Self {
-                query: Box::new(Query::arbitrary(g)),
+                query: Box::new(arbitrary_non_with_query(g)),
                 alias: arbitrary_identifier(g),
             }
         }
@@ -589,8 +589,8 @@ mod arbitrary {
                         .map(|_| Self::arbitrary(nested_g))
                         .collect(),
                 ),
-                10 => Self::Subquery(Box::new(Query::arbitrary(nested_g))),
-                11 => Self::Exists(Box::new(Query::arbitrary(nested_g))),
+                10 => Self::Subquery(Box::new(arbitrary_non_with_query(nested_g))),
+                11 => Self::Exists(Box::new(arbitrary_non_with_query(nested_g))),
                 12 => Self::SubqueryComparison(SubqueryComparisonExpr::arbitrary(nested_g)),
                 13 => Self::Document(
                     (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
@@ -698,7 +698,7 @@ mod arbitrary {
                 expr: Box::new(Expression::arbitrary(g)),
                 op: ComparisonOp::arbitrary(g),
                 quantifier: SubqueryQuantifier::arbitrary(g),
-                subquery: Box::new(Query::arbitrary(g)),
+                subquery: Box::new(arbitrary_non_with_query(g)),
             }
         }
     }
