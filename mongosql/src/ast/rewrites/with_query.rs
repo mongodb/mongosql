@@ -41,6 +41,9 @@ impl Visitor for CollectionReplaceVisitor<'_> {
                 // If the query is in theta, we replace the datasource with the query
                 if let Some(query) = self.theta.get(collection) {
                     return ast::Datasource::Derived(ast::DerivedSource {
+                        // This clone will always be necessary because we are moving the query out of
+                        // the theta map, and we need to keep the query around in case it is used
+                        // again.
                         query: Box::new(query.clone()),
                         alias: std::mem::take(alias).unwrap_or_else(|| std::mem::take(collection)),
                     });
