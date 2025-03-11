@@ -59,8 +59,10 @@ fn main() -> Result<(), CliError> {
     let query = args.query;
     let namespaces = mongosql::get_namespaces(current_db.as_str(), query.as_str())?;
     let catalog = get_schema_catalog(uri.as_str(), current_db.as_str(), namespaces)?;
-    let mut options = mongosql::options::SqlOptions::default();
-    options.allow_order_by_missing_columns = true;
+    let options = mongosql::options::SqlOptions {
+        allow_order_by_missing_columns: true,
+        ..Default::default()
+    };
     let translation =
         mongosql::translate_sql(current_db.as_str(), query.as_str(), &catalog, options)?;
     let print_translation = |pipeline: bson::Bson| -> Result<(), CliError> {
