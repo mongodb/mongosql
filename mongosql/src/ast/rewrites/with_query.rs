@@ -29,6 +29,8 @@ impl Visitor for CollectionReplaceVisitor<'_> {
                 ref mut collection,
                 ref mut alias,
             }) => {
+                // If the database is specified, this cannot be a NamedQuery from a WITH statement,
+                // this is how a user can unshadow a namespace specifically.
                 if database.is_some() {
                     return ast::Datasource::Collection(ast::CollectionSource {
                         database: std::mem::take(database),
@@ -36,12 +38,15 @@ impl Visitor for CollectionReplaceVisitor<'_> {
                         alias: std::mem::take(alias),
                     });
                 }
+                // If the query is in theta, we replace the datasource with the query
                 if let Some(query) = self.theta.get(collection) {
                     return ast::Datasource::Derived(ast::DerivedSource {
                         query: Box::new(query.clone()),
                         alias: std::mem::take(alias).unwrap_or_else(|| std::mem::take(collection)),
                     });
                 }
+                // Otherwise, return the original datasource. The borrow checker makes us
+                // reconstruct the struct, but at least we are avoiding cloning the strings.
                 ast::Datasource::Collection(ast::CollectionSource {
                     database: std::mem::take(database),
                     collection: std::mem::take(collection),
