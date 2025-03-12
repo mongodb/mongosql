@@ -113,7 +113,7 @@ fn path_vec_to_path(mut path: Vec<String>) -> Expression {
     ret
 }
 
-// Get options takes the ParthPartOptions and the path and returns a vector of UnwindOptions for
+// Get options takes the PathPartOptions and the path and returns a vector of UnwindOptions for
 // normal UnwindSources.
 fn get_options(
     options: Vec<UnwindPathPartOption>,
