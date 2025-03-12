@@ -83,7 +83,7 @@ lazy_static! {
         r"(?i)or$",
         r"(?i)order$",
         r"(?i)outer$",
-        r"(?i)path$",
+        r"(?i)paths?$",
         r"(?i)position$",
         r"(?i)precision$",
         r"(?i)real$",
@@ -338,6 +338,7 @@ impl PrettyPrint for Datasource {
             Datasource::Join(j) => j.pretty_print(),
             Datasource::Flatten(f) => f.pretty_print(),
             Datasource::Unwind(u) => u.pretty_print(),
+            Datasource::ExtendedUnwind(u) => u.pretty_print(),
         }
     }
 }
@@ -443,6 +444,24 @@ impl PrettyPrint for FlattenOption {
     }
 }
 
+impl PrettyPrint for ExtendedUnwindSource {
+    fn pretty_print(&self) -> Result<String> {
+        let options = self
+            .options
+            .iter()
+            .map(|o| o.pretty_print())
+            .collect::<Result<Vec<_>>>()?;
+        Ok(match options.len() {
+            0 => format!("UNWIND({})", self.datasource.pretty_print()?),
+            _ => format!(
+                "UNWIND({} WITH {})",
+                self.datasource.pretty_print()?,
+                options.join(", ")
+            ),
+        })
+    }
+}
+
 impl PrettyPrint for UnwindSource {
     fn pretty_print(&self) -> Result<String> {
         let options = self
@@ -469,6 +488,69 @@ impl PrettyPrint for UnwindOption {
             UnwindOption::Index(i) => format!("INDEX => {}", identifier_to_string(i)),
             UnwindOption::Outer(o) => format!("OUTER => {o}"),
         })
+    }
+}
+
+impl PrettyPrint for ExtendedUnwindOption {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
+            ExtendedUnwindOption::Paths(p) => {
+                format!(
+                    "PATHS => ({})",
+                    p.iter()
+                        .map(|x| x.pretty_print())
+                        .collect::<Result<Vec<_>>>()?
+                        .join(", ")
+                )
+            }
+            ExtendedUnwindOption::Index(i) => format!("INDEX => {}", identifier_to_string(i)),
+            ExtendedUnwindOption::Outer(o) => format!("OUTER => {o}"),
+        })
+    }
+}
+
+impl PrettyPrint for UnwindPathPartOption {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
+            UnwindPathPartOption::Index(i) => format!("INDEX => {}", identifier_to_string(i)),
+            UnwindPathPartOption::Outer(o) => format!("OUTER => {o}"),
+        })
+    }
+}
+
+impl PrettyPrint for Vec<UnwindPathPartOption> {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
+            "[{}]",
+            self.iter()
+                .map(|o| o.pretty_print())
+                .collect::<Result<Vec<_>>>()?
+                .join(", ")
+        ))
+    }
+}
+
+impl PrettyPrint for Vec<UnwindPathPart> {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(self
+            .iter()
+            .map(|p| p.pretty_print())
+            .collect::<Result<Vec<_>>>()?
+            .join("."))
+    }
+}
+
+impl PrettyPrint for UnwindPathPart {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
+            "{}{}",
+            identifier_to_string(&self.field),
+            self.options
+                .iter()
+                .map(|o| o.pretty_print())
+                .collect::<Result<Vec<_>>>()?
+                .join("")
+        ))
     }
 }
 

@@ -3,6 +3,8 @@ use thiserror::Error;
 
 mod alias;
 pub use alias::AddAliasRewritePass;
+mod extended_unwind_rewrite;
+pub use extended_unwind_rewrite::ExtendedUnwindRewritePass;
 mod select;
 pub use select::SelectRewritePass;
 pub mod tuples;
@@ -59,6 +61,10 @@ pub enum Error {
     },
     #[error("invalid date part: {0}")]
     InvalidDatePart(&'static str),
+    #[error("UNWIND datasource must have a PATH")]
+    UnwindSourceWithoutPath,
+    #[error("duplicate option in UNWIND: {0}")]
+    DuplicateOptionInUnwind(&'static str),
 }
 
 /// A fallible transformation that can be applied to a query
@@ -69,7 +75,7 @@ pub trait Pass {
 /// Rewrite the provided query by applying rewrites as specified in the MongoSQL spec.
 pub fn rewrite_query(query: ast::Query) -> Result<ast::Query> {
     let passes: Vec<&dyn Pass> = vec![
-        &WithQueryRewritePass,
+        &ExtendedUnwindRewritePass,
         &InTupleRewritePass,
         &SingleTupleRewritePass,
         &GroupBySelectAliasRewritePass,
@@ -82,6 +88,7 @@ pub fn rewrite_query(query: ast::Query) -> Result<ast::Query> {
         &OptionalParameterRewritePass,
         &NotComparisonRewritePass,
         &ScalarFunctionsRewritePass,
+        &WithQueryRewritePass,
     ];
 
     let mut rewritten = query;
