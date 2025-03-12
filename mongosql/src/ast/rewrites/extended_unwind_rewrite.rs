@@ -139,11 +139,12 @@ fn get_options(
     }
 
     if !found_index && global_index.is_some() {
-        ret.push(UnwindOption::Index(format!(
-            "{}_{}",
-            index_prefix,
-            global_index.unwrap()
-        )));
+        if let Some(global_index) = global_index {
+            ret.push(UnwindOption::Index(format!(
+                "{}_{}",
+                index_prefix, global_index
+            )));
+        }
     }
     if !found_outer && global_outer {
         // there is no need to push Outer(false)
@@ -227,7 +228,7 @@ fn create_unwind_datasource_for_path(
     }
     // for backward compatibility, if the last path part has no options, we need to unwind it
     // anyway. Even if the path part was specified as part[], the options will still consist of
-    // one empty vector, rather than being and empty vector, so we do not insert an extra unwind.
+    // one empty vector, rather than being an empty vector, so we do not insert an extra unwind.
     if last_path_part_missing_options {
         let options = get_options(
             Vec::new(),
