@@ -88,6 +88,8 @@ pub fn rewrite_query(query: ast::Query) -> Result<ast::Query> {
         &OptionalParameterRewritePass,
         &NotComparisonRewritePass,
         &ScalarFunctionsRewritePass,
+        // WithQueryRewritePass can introduce duplicated queries, so it should be the last pass so
+        // any rewrites that apply in the WithQuery queries are applied only once.
         &WithQueryRewritePass,
     ];
 
