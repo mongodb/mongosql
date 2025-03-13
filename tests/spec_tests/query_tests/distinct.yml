@@ -161,6 +161,13 @@ tests:
       - { '': { "arr": [3, 2, 1] } }
       - { '': { "arr": [3, 2, 1, 4] } }
 
+  - description: "SELECT DISTINCT with ORDER BY"
+    query: "SELECT DISTINCT a FROM db.foo ORDER BY a ASC"
+    ordered: true
+    result:
+      - { '': { "a": 1 } }
+      - { '': { "a": 2 } }
+
   - description: "basic UNION distinct correctness test"
     current_db: "db"
     query: "SELECT VALUE {'a': a} FROM foo UNION SELECT VALUE {'a': a} FROM foo"

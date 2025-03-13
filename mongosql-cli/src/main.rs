@@ -59,12 +59,12 @@ fn main() -> Result<(), CliError> {
     let query = args.query;
     let namespaces = mongosql::get_namespaces(current_db.as_str(), query.as_str())?;
     let catalog = get_schema_catalog(uri.as_str(), current_db.as_str(), namespaces)?;
-    let translation = mongosql::translate_sql(
-        current_db.as_str(),
-        query.as_str(),
-        &catalog,
-        mongosql::options::SqlOptions::default(),
-    )?;
+    let options = mongosql::options::SqlOptions {
+        allow_order_by_missing_columns: true,
+        ..Default::default()
+    };
+    let translation =
+        mongosql::translate_sql(current_db.as_str(), query.as_str(), &catalog, options)?;
     let print_translation = |pipeline: bson::Bson| -> Result<(), CliError> {
         let schema = serde_json::to_string_pretty(&translation.result_set_schema)
             .map_err(|e| CliError(e.to_string()))?;
