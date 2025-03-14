@@ -1904,7 +1904,7 @@ mod stage_test {
                 pipeline: vec![Stage::Skip(5), Stage::Limit(10)],
             })),
             input = r#"stage: {"$unionWith": {
-                "collection": "multiple",
+                "coll": "multiple",
                 "pipeline": [{"$skip": 5}, {"$limit": 10}]
             }}"#
         );

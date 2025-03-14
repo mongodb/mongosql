@@ -1240,7 +1240,7 @@ mod union {
             required: set!("out".to_string()),
             ..Default::default()
         })),
-        input = r#"{"$unionWith": {"collection": "bar", "pipeline": [{"$project": {"out": {"$concat": ["$baz", "$baz"]}}}]}}"#,
+        input = r#"{"$unionWith": {"coll": "bar", "pipeline": [{"$project": {"out": {"$concat": ["$baz", "$baz"]}}}]}}"#,
         starting_schema = Schema::Document(Document {
             keys: map! {
                 "food".to_string() => Schema::Atomic(Atomic::String),
