@@ -1,11 +1,13 @@
 use crate::{
     get_schema_for_path_mut, insert_required_key_into_document, promote_missing, remove_field,
-    schema_difference, schema_for_type_numeric, schema_for_type_str, Error, Result,
+    schema_difference, schema_for_bson, schema_for_type_numeric, schema_for_type_str, Error,
+    MatchConstrainSchema, Result,
 };
 use agg_ast::definitions::{
-    ConciseSubqueryLookup, Densify, EqualityLookup, Expression, GraphLookup, Group, LiteralValue,
-    Lookup, LookupFrom, ProjectItem, ProjectStage, Ref, SetWindowFields, Stage, SubqueryLookup,
-    TaggedOperator, UnionWith, Unset, UntaggedOperator, UntaggedOperatorName, Unwind,
+    Bucket, BucketAuto, ConciseSubqueryLookup, Densify, EqualityLookup, Expression, GraphLookup,
+    Group, LiteralValue, Lookup, LookupFrom, ProjectItem, ProjectStage, Ref, SetWindowFields,
+    Stage, SubqueryLookup, TaggedOperator, UnionWith, Unset, UntaggedOperator,
+    UntaggedOperatorName, Unwind,
 };
 use linked_hash_map::LinkedHashMap;
 use mongosql::{
@@ -251,6 +253,65 @@ impl DeriveSchema for Stage {
             Ok(Schema::simplify(&state.result_set_schema).to_owned())
         }
 
+        fn bucket_output_derive_keys(
+            output: Option<&LinkedHashMap<String, Expression>>,
+            state: &mut ResultSetState,
+        ) -> Result<BTreeMap<String, Schema>> {
+            if let Some(output) = output {
+                let keys = output
+                    .iter()
+                    .map(|(k, e)| {
+                        let field_schema = e.derive_schema(state)?;
+                        Ok((k.clone(), field_schema))
+                    })
+                    .collect::<Result<BTreeMap<String, Schema>>>()?;
+                Ok(keys)
+            } else {
+                Ok(map! {
+                    "count".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long)))
+                })
+            }
+        }
+
+        fn bucket_derive_schema(bucket: &Bucket, state: &mut ResultSetState) -> Result<Schema> {
+            let mut id_schema = bucket.group_by.derive_schema(state)?;
+            if let Some(default) = bucket.default.as_ref() {
+                let default_schema = schema_for_bson(default);
+                id_schema = id_schema.union(&default_schema);
+            }
+            let mut keys = bucket_output_derive_keys(bucket.output.as_ref(), state)?;
+            keys.insert("_id".to_string(), id_schema);
+            Ok(Schema::Document(Document {
+                required: keys.keys().cloned().collect(),
+                keys,
+                ..Default::default()
+            }))
+        }
+
+        fn bucket_auto_derive_schema(
+            bucket: &BucketAuto,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            // The actual _id type will be a Document with min and max keys where the types of
+            // those keys are this value denoted id_type.
+            let id_type = bucket.group_by.derive_schema(state)?;
+            let id_schema = Schema::Document(Document {
+                required: set!["min".to_string(), "max".to_string()],
+                keys: map! {
+                    "min".to_string() => id_type.clone(),
+                    "max".to_string() => id_type
+                },
+                ..Default::default()
+            });
+            let mut keys = bucket_output_derive_keys(bucket.output.as_ref(), state)?;
+            keys.insert("_id".to_string(), id_schema);
+            Ok(Schema::Document(Document {
+                required: keys.keys().cloned().collect(),
+                keys,
+                ..Default::default()
+            }))
+        }
+
         fn set_window_fields_derive_schema(
             set_windows: &SetWindowFields,
             state: &mut ResultSetState,
@@ -475,7 +536,7 @@ impl DeriveSchema for Stage {
                     Ok(state.result_set_schema.to_owned())
                 }
                 UnionWith::Pipeline(p) => {
-                    let from_ns = Namespace(state.current_db.clone(), p.collection.clone());
+                    let from_ns = Namespace(state.current_db.clone(), p.coll.clone());
                     let from_schema = state
                         .catalog
                         .get(&from_ns)
@@ -580,8 +641,8 @@ impl DeriveSchema for Stage {
         match self {
             Stage::AddFields(a) => add_fields_derive_schema(a, state),
             Stage::AtlasSearchStage(_) => todo!(),
-            Stage::Bucket(_) => todo!(),
-            Stage::BucketAuto(_) => todo!(),
+            Stage::Bucket(b) => bucket_derive_schema(b, state),
+            Stage::BucketAuto(b) => bucket_auto_derive_schema(b, state),
             Stage::Collection(c) => {
                 let ns = Namespace(c.db.clone(), c.collection.clone());
                 state.result_set_schema = state
@@ -700,7 +761,13 @@ impl DeriveSchema for Expression {
             Expression::Literal(ref l) => derive_schema_for_literal(l),
             Expression::Ref(Ref::FieldRef(f)) => {
                 let path = f.split(".").map(|s| s.to_string()).collect::<Vec<String>>();
-                let schema = get_schema_for_path_mut(&mut state.result_set_schema, path);
+                // If the user has rebound the CURRENT variable, we should use that schema instead of the result set schema to find any
+                // path.
+                let current_schema = state
+                    .variables
+                    .get_mut("CURRENT")
+                    .unwrap_or(&mut state.result_set_schema);
+                let schema = get_schema_for_path_mut(current_schema, path);
                 match schema {
                     Some(schema) => Ok(schema.clone()),
                     // Unknown fields actually have the Schema Missing, while unknown variables are
@@ -708,14 +775,68 @@ impl DeriveSchema for Expression {
                     None => Ok(Schema::Missing),
                 }
             }
-            Expression::Ref(Ref::VariableRef(v)) => match v.as_str() {
-                "REMOVE" => Ok(Schema::Missing),
-                "ROOT" => Ok(state.result_set_schema.clone()),
-                v => match state.variables.get(v) {
-                    Some(schema) => Ok(schema.clone()),
-                    None => Err(Error::UnknownReference(v.into())),
-                },
-            },
+            Expression::Ref(Ref::VariableRef(v)) => {
+                match v.as_str() {
+                    "NOW" => Ok(Schema::Atomic(Atomic::Date)),
+                    "CURRENT_TIME" => Ok(Schema::Atomic(Atomic::Timestamp)),
+                    "REMOVE" => Ok(Schema::Missing),
+                    "ROOT" => Ok(state.result_set_schema.clone()),
+                    "USER_ROLES" => Ok(Schema::Array(Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "_id".to_string() => Schema::Atomic(Atomic::String),
+                            "role".to_string() => Schema::Atomic(Atomic::String),
+                            "db".to_string() => Schema::Atomic(Atomic::String)
+                        },
+                        required: set!["_id".to_string(), "role".to_string(), "db".to_string()],
+                        ..Default::default()
+                    })))),
+                    "SEARCH_META" => Ok(Schema::Document(Document {
+                        keys: map! {
+                            "count".to_string() => Schema::Document(Document {
+                                keys: map! {
+                                    "total".to_string() => Schema::Atomic(Atomic::Long),
+                                    "lowerBound".to_string() => Schema::Atomic(Atomic::Long),
+                                },
+                                // one key is required, but the result will always include one or
+                                // the other, so we cannot say that either is required.
+                                required: set![],
+                                ..Default::default()
+                            }),
+                        },
+                        required: set!["count".to_string(),],
+                        ..Default::default()
+                    })),
+                    v => {
+                        let path: Vec<String> = v.split('.').map(|s| s.to_string()).collect();
+                        let var_schema = if v.contains(".") {
+                            state
+                                .variables
+                                .get_mut(&path[0])
+                                .and_then(|doc| get_schema_for_path_mut(doc, path[1..].to_vec()))
+                        } else {
+                            state.variables.get_mut(v)
+                        };
+                        match var_schema {
+                            Some(schema) => Ok(schema.clone()),
+                            None => {
+                                if path[0] == "CURRENT" {
+                                    // CURRENT is equivalent to ROOT, if it has not been rebound
+                                    // The reason we do this is because a field reference
+                                    // `$<field>` is equivalent to `$$CURRENT.<field>.
+                                    Ok(get_schema_for_path_mut(
+                                        &mut state.result_set_schema,
+                                        path[1..].to_vec(),
+                                    )
+                                    .unwrap()
+                                    .clone())
+                                } else {
+                                    Err(Error::UnknownReference(v.into()))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             Expression::TaggedOperator(op) => op.derive_schema(state),
             Expression::UntaggedOperator(op) => op.derive_schema(state),
         }
@@ -809,7 +930,7 @@ impl DeriveSchema for TaggedOperator {
                     })
             }};
         }
-        macro_rules! array_schema_or_error {
+        macro_rules! array_element_schema_or_error {
             ($input_schema:expr,$input:expr) => {{
                 match $input_schema {
                     Schema::Array(a) => *a,
@@ -1152,7 +1273,6 @@ impl DeriveSchema for TaggedOperator {
                 remove_field(&mut input_schema, vec![u.field.clone()]);
                 Ok(input_schema)
             }
-            TaggedOperator::Accumulator(_) => todo!(),
             TaggedOperator::Bottom(b) => b.output.derive_schema(state),
             TaggedOperator::BottomN(b) => {
                 Ok(Schema::Array(Box::new(b.output.derive_schema(state)?)))
@@ -1164,14 +1284,33 @@ impl DeriveSchema for TaggedOperator {
                     set! {then_schema, else_schema},
                 )))
             }
-            TaggedOperator::Filter(_) => todo!(),
+            TaggedOperator::Filter(f) => {
+                let input_schema = f.input.derive_schema(state)?;
+                let is_nullable = input_schema.satisfies(&NULLISH.clone()) != Satisfaction::Not;
+                let array_element_schema = array_element_schema_or_error!(input_schema, f.input);
+                let var_name = f._as.clone().unwrap_or("this".to_string());
+                let mut temp_state = state.clone();
+                temp_state
+                    .variables
+                    .insert(var_name.clone(), array_element_schema);
+                f.cond.match_derive_schema(&mut temp_state)?;
+                let filter_schema = temp_state.variables.remove(&var_name);
+                if let Some(schema) = filter_schema {
+                    let mut schema = Schema::Array(Box::new(schema));
+                    if is_nullable {
+                        schema = schema.union(&Schema::Atomic(Atomic::Null))
+                    }
+                    Ok(schema)
+                // this should be unreachable, since we manually add and remove the variable from the state
+                } else {
+                    unreachable!()
+                }
+            }
             TaggedOperator::FirstN(n) => Ok(Schema::Array(Box::new(n.input.derive_schema(state)?))),
-            TaggedOperator::Function(_) => todo!(),
             TaggedOperator::Integral(i) => {
                 get_decimal_double_or_nullish(vec![i.input.as_ref()], state)
             }
             TaggedOperator::LastN(n) => Ok(Schema::Array(Box::new(n.input.derive_schema(state)?))),
-            TaggedOperator::Like(_) => todo!(),
             TaggedOperator::Map(m) => {
                 let var = m._as.clone();
                 let var = var.unwrap_or("this".to_string());
@@ -1179,10 +1318,11 @@ impl DeriveSchema for TaggedOperator {
                 if input_schema.satisfies(&NULLISH.clone()) == Satisfaction::Must {
                     return Ok(Schema::Atomic(Atomic::Null));
                 }
-                let array_schema = array_schema_or_error!(input_schema.clone(), m.input);
+                let array_element_schema =
+                    array_element_schema_or_error!(input_schema.clone(), m.input);
                 let mut new_state = state.clone();
                 let mut variables = state.variables.clone();
-                variables.insert(var, array_schema);
+                variables.insert(var, array_element_schema);
                 new_state.variables = variables;
                 let not_null_schema =
                     Schema::Array(Box::new(m.inside.derive_schema(&mut new_state)?))
@@ -1209,11 +1349,12 @@ impl DeriveSchema for TaggedOperator {
                 if input_schema.satisfies(&NULLISH.clone()) == Satisfaction::Must {
                     return Ok(Schema::Atomic(Atomic::Null));
                 }
-                let array_schema = array_schema_or_error!(input_schema.clone(), r.input);
+                let array_element_schema =
+                    array_element_schema_or_error!(input_schema.clone(), r.input);
                 let initial_schema = r.initial_value.derive_schema(state)?;
                 let mut new_state = state.clone();
                 let mut variables = state.variables.clone();
-                variables.insert("this".to_string(), array_schema);
+                variables.insert("this".to_string(), array_element_schema);
                 variables.insert("value".to_string(), initial_schema);
                 new_state.variables = variables;
                 if input_schema.satisfies(&NULLISH.clone()) == Satisfaction::Not {
@@ -1232,11 +1373,21 @@ impl DeriveSchema for TaggedOperator {
                     Schema::Atomic(Atomic::String),
                 )
             }
-            TaggedOperator::Shift(_) => todo!(),
-            TaggedOperator::Subquery(_) => todo!(),
-            TaggedOperator::SubqueryComparison(_) => todo!(),
-            TaggedOperator::SubqueryExists(_) => todo!(),
-            TaggedOperator::Switch(_) => todo!(),
+            TaggedOperator::Shift(s) => {
+                let mut output_schema = s.output.derive_schema(state)?;
+                output_schema = match s.default.as_ref() {
+                    Some(default) => output_schema.union(&default.derive_schema(state)?),
+                    None => output_schema.union(&Schema::Atomic(Atomic::Null)),
+                };
+                Ok(output_schema)
+            }
+            TaggedOperator::Switch(s) => {
+                let mut schema = s.default.derive_schema(state)?;
+                for branch in s.branches.iter() {
+                    schema = schema.union(&branch.then.derive_schema(state)?);
+                }
+                Ok(schema)
+            }
             TaggedOperator::Top(t) => t.output.derive_schema(state),
             TaggedOperator::TopN(t) => Ok(Schema::Array(Box::new(t.output.derive_schema(state)?))),
             TaggedOperator::Zip(z) => {
@@ -1312,9 +1463,14 @@ impl DeriveSchema for TaggedOperator {
                 args: vec![(*s.var).clone()],
             }
             .derive_schema(state),
-            TaggedOperator::SQLConvert(_) | TaggedOperator::SQLDivide(_) => {
-                Err(Error::InvalidTaggedOperator(self.clone()))
-            }
+            TaggedOperator::Accumulator(_)
+            | TaggedOperator::Function(_)
+            | TaggedOperator::Like(_)
+            | TaggedOperator::SQLConvert(_)
+            | TaggedOperator::SQLDivide(_)
+            | TaggedOperator::Subquery(_)
+            | TaggedOperator::SubqueryComparison(_)
+            | TaggedOperator::SubqueryExists(_) => Err(Error::InvalidTaggedOperator(self.clone())),
         }
     }
 }
@@ -1726,7 +1882,12 @@ impl DeriveSchema for UntaggedOperator {
             UntaggedOperatorName::ArrayToObject => {
                 // We could only know the keys, if we have the entire array.
                 // We may consider making this more precise for array literals.
-                Ok(Schema::Document(Document::any()))
+                // For now, just return an Any Document while capturing nullability
+                let schema = self.args[0].derive_schema(state)?;
+                Ok(match schema.intersection(&NULLISH.clone()) {
+                    Schema::Unsat => Schema::Document(Document::any()),
+                    nullish_schema => Schema::simplify(&nullish_schema.union(&Schema::Document(Document::any()))),
+                })
             }
             UntaggedOperatorName::ConcatArrays | UntaggedOperatorName::SetUnion => {
                 let mut array_schema = Schema::Unsat;
@@ -1970,20 +2131,41 @@ impl DeriveSchema for UntaggedOperator {
                 )))
             }
             UntaggedOperatorName::ObjectToArray => {
-                let document_value_types = self.args.iter().try_fold(Schema::Unsat, |schema , arg| {
-                    let arg_schema = arg.derive_schema(state)?;
-                    Ok(match schema {
-                        Schema::Unsat => arg_schema,
-                        schema => schema.union(&arg_schema)
-                    })
-                })?;
-                let array_type = Schema::Array(Box::new(Schema::Document(Document { keys: map! {
-                        "k".to_string() => Schema::Atomic(Atomic::String),
-                        "v".to_string() => document_value_types
-                    },
-                    ..Default::default()
-                })));
-                Ok(handle_null_satisfaction(vec![args[0]], state, array_type)?)
+                let input_doc = match &self.args[0].derive_schema(state)? {
+                    Schema::Document(d) => Some(d.clone()),
+                    Schema::AnyOf(ao) => {
+                        let mut doc_type = None;
+                        for schema in ao.iter() {
+                            if let Schema::Document(d) = schema {
+                                doc_type = Some(d.clone());
+                                break;
+                            }
+                        }
+                        doc_type
+                    }
+                    Schema::Any => Some(Document::any()),
+                    _ => None
+                };
+                if let Some(d) = input_doc {
+                    let document_value_types = d.keys.into_iter().try_fold(Schema::Unsat, |schema , (_, arg_schema)| {
+                        Ok(match schema {
+                            Schema::Unsat => arg_schema,
+                            schema => schema.union(&arg_schema)
+                        })
+                    })?;
+                    let array_type = Schema::Array(Box::new(Schema::Document(Document { keys: map! {
+                            "k".to_string() => Schema::Atomic(Atomic::String),
+                            "v".to_string() => document_value_types
+                        },
+                        required: set!("k".to_string(), "v".to_string()),
+                        ..Default::default()
+                    })));
+                    Ok(handle_null_satisfaction(vec![args[0]], state, array_type)?)
+                } else {
+                    Err(Error::InvalidExpressionForField(
+                        format!("{:?}", self.args[0]),
+                        "object",))
+                }
             }
             UntaggedOperatorName::Sum => {
                 if args.len() == 1 {

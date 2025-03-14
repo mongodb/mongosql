@@ -113,7 +113,9 @@ functions:
           # make sure to use msvc toolchain rather than gnu, which is
           # the default for cygwin
           if [ "Windows_NT" == "$OS" ]; then
-              export DEFAULT_HOST_OPTIONS='--default-host x86_64-pc-windows-msvc'
+              export HOST="x86_64-pc-windows-msvc"
+              export DEFAULT_HOST_OPTIONS="--default-host $HOST"
+              export DEFAULT_TOOLCHAIN="stable-$HOST"
           fi
 
           # install rustup from scratch
@@ -122,9 +124,19 @@ functions:
           # rustup installs into C:\Users\$USER instead of
           # C:\home\$USER, so we symlink both .rustup and .cargo
           if [ "Windows_NT" == "$OS" ]; then
-                ln -sf /cygdrive/c/Users/$USER/.rustup/ ~/.rustup
-                ln -sf /cygdrive/c/Users/$USER/.cargo/ ~/.cargo
+              ln -sf /cygdrive/c/Users/$USER/.rustup/toolchains/$DEFAULT_TOOLCHAIN ~/.rustup
+              ln -sf /cygdrive/c/Users/$USER/.cargo/ ~/.cargo
+              rustup toolchain install $DEFAULT_TOOLCHAIN
+              rustup default $DEFAULT_TOOLCHAIN
           fi
+
+          echo --------- rustup show -----------
+          rustup show
+          echo ----- Rustup toolchain list -----
+          rustup toolchain list
+          echo --------- Cargo version ---------
+          cargo --version
+          echo ---------------------------------
 
   "set and check packages version":
     - command: shell.exec
@@ -471,6 +483,29 @@ functions:
           ${prepare_shell}
           cargo run --bin pipeline_generator
 
+  "upload mongosql cli":
+    - command: s3.put
+      params:
+        build_variants:
+          ["macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64"]
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/target/release/mongosql-cli
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongosql-cli
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+    - command: s3.put
+      params:
+        build_variants: ["windows"]
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/target/release/mongosql-cli.exe
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongosql-cli.exe
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+
   "upload c library":
     - command: s3.put
       params:
@@ -810,7 +845,7 @@ functions:
           ${prepare_shell}
           export SEMGREP_APP_TOKEN=${semgrep_app_token}
           echo "Running static code analysis with Semgrep..."
-          
+
           # Setup or use the existing virtualenv for semgrep
           if [[ -f "venv/bin/activate" ]]; then
               echo 'using existing virtualenv'
@@ -885,6 +920,7 @@ tasks:
       - func: "download c library"
       - func: "run go tests"
       - func: "upload go test results"
+      - func: "upload mongosql cli"
 
   - name: test-pipeline-generate
     commands:

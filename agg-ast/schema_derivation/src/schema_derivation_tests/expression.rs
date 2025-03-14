@@ -122,16 +122,37 @@ mod literal {
         input = r#"{ "$timestamp": { "t": 42, "i": 1 } }"#
     );
 }
+
 mod field_ref {
     use super::*;
 
     test_derive_expression_schema!(
-        variable_ref_present,
+        ref_present,
         expected = Ok(Schema::Atomic(Atomic::Double)),
         input = r#""$$foo""#,
         ref_schema = Schema::Any,
         variables = map! {
             "foo".to_string() => Schema::Atomic(Atomic::Double)
+        }
+    );
+
+    test_derive_expression_schema!(
+        variable_ref_nested,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = r#""$$a.b.c""#,
+        ref_schema = Schema::Any,
+        variables = map! {
+            "a".to_string() => Schema::Document(Document {
+                keys: map! {
+                    "b".to_string() => Schema::Document(Document {
+                        keys: map! {
+                            "c".to_string() => Schema::Atomic(Atomic::Double)
+                        },
+                        ..Default::default()
+                    })
+                },
+                ..Default::default()
+            })
         }
     );
 
@@ -152,7 +173,7 @@ mod field_ref {
     );
 
     test_derive_expression_schema!(
-        nested_field_ref,
+        nested_ref_present,
         expected = Ok(Schema::AnyOf(
             set! {Schema::Missing, Schema::Atomic(Atomic::Double)}
         )),
@@ -167,9 +188,150 @@ mod field_ref {
     );
 
     test_derive_expression_schema!(
-        field_ref_missing,
+        ref_missing,
         expected = Ok(Schema::Missing),
         input = r#""$foo""#
+    );
+
+    test_derive_expression_schema!(
+        nested_ref_set_current,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = r#""$foo.bar""#,
+        variables = map! {
+            "CURRENT".to_string() => Schema::Document(Document {
+                keys: map! {
+                    "foo".to_string() => Schema::Document(Document {
+                        keys: map! {
+                            "bar".to_string() => Schema::Atomic(Atomic::Double)
+                        },
+                        required: set!["bar".to_string()],
+                        ..Default::default()
+                    })
+                },
+                required: set!["foo".to_string()],
+                ..Default::default()
+            })
+        }
+    );
+}
+
+mod variable_ref {
+    use super::*;
+
+    test_derive_expression_schema!(
+        ref_present,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = r#""$$foo""#,
+        ref_schema = Schema::Any,
+        variables = map! {
+            "foo".to_string() => Schema::Atomic(Atomic::Double)
+        }
+    );
+
+    test_derive_expression_schema!(
+        ref_nested_present,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = r#""$$foo.bar""#,
+        ref_schema = Schema::Any,
+        variables = map! {
+            "foo".to_string() => Schema::Document(Document {
+                keys: map! {
+                    "bar".to_string() => Schema::Atomic(Atomic::Double)
+                },
+                ..Default::default()
+            })
+        }
+    );
+
+    test_derive_expression_schema!(
+        ref_missing,
+        expected = Err(Error::UnknownReference("foo".to_string())),
+        input = r#""$$foo""#,
+        ref_schema = Schema::Any,
+        variables = map!()
+    );
+
+    test_derive_expression_schema!(
+        now,
+        expected = Ok(Schema::Atomic(Atomic::Date)),
+        input = r#""$$NOW""#
+    );
+
+    test_derive_expression_schema!(
+        current_time,
+        expected = Ok(Schema::Atomic(Atomic::Timestamp)),
+        input = r#""$$CURRENT_TIME""#
+    );
+
+    test_derive_expression_schema!(
+        root,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Date)
+            },
+            required: set!["foo".to_string()],
+            ..Default::default()
+        })),
+        input = r#""$$ROOT""#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Date)
+            },
+            required: set!["foo".to_string()],
+            ..Default::default()
+        })
+    );
+
+    test_derive_expression_schema!(
+        current,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Date)
+            },
+            required: set!["foo".to_string()],
+            ..Default::default()
+        })),
+        input = r#""$$CURRENT""#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Date)
+            },
+            required: set!["foo".to_string()],
+            ..Default::default()
+        })
+    );
+
+    test_derive_expression_schema!(
+        user_roles,
+        expected = Ok(Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::String),
+                "role".to_string() => Schema::Atomic(Atomic::String),
+                "db".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("_id".to_string(), "role".to_string(), "db".to_string()),
+            ..Default::default()
+        })))),
+        input = r#""$$USER_ROLES""#
+    );
+
+    test_derive_expression_schema!(
+        search_meta,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "count".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "total".to_string() => Schema::Atomic(Atomic::Long),
+                        "lowerBound".to_string() => Schema::Atomic(Atomic::Long),
+                    },
+                    required: set![],
+                    ..Default::default()
+                }),
+            },
+            required: set!["count".to_string(),],
+            ..Default::default()
+        })),
+        input = r#""$$SEARCH_META""#
     );
 }
 

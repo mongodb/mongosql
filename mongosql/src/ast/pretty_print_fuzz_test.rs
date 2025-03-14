@@ -32,7 +32,7 @@ mod fuzz_test {
                     // If we failed to parse, we want to show the Error, the pretty printed
                     // query, and the query AST so we can more easily see the issue.
                     // The panic will print the query AST.
-                    panic!("\nError:\n{e:?}\n=========\n{p}\n\n_________\n\n");
+                    panic!("{q:?}\nError:\n{e:?}\n=========\n{p}\n\n_________\n\n");
                 }
             };
 
@@ -154,6 +154,16 @@ mod arbitrary {
         Gen::new(nested_size)
     }
 
+    // generate an arbitrary query that is not a With query
+    fn arbitrary_non_with_query(g: &mut Gen) -> Query {
+        let rng = &(0..Query::VARIANT_COUNT - 1).collect::<Vec<_>>();
+        match g.choose(rng).unwrap() {
+            0 => Query::Select(SelectQuery::arbitrary(g)),
+            1 => Query::Set(SetQuery::arbitrary(g)),
+            _ => panic!("missing Query variant(s)"),
+        }
+    }
+
     impl Arbitrary for Query {
         fn arbitrary(g: &mut Gen) -> Self {
             if g.size() >= MAX_NEST {
@@ -165,6 +175,7 @@ mod arbitrary {
             match g.choose(rng).unwrap() {
                 0 => Self::Select(SelectQuery::arbitrary(nested_g)),
                 1 => Self::Set(SetQuery::arbitrary(nested_g)),
+                2 => Self::With(WithQuery::arbitrary(nested_g)),
                 _ => panic!("missing Query variant(s)"),
             }
         }
@@ -184,6 +195,7 @@ mod arbitrary {
                         .chain(q.right.shrink().map(|r| *r));
                     Box::new(chain)
                 }
+                Self::With(q) => Box::new(q.shrink().map(Self::With)),
             }
         }
     }
@@ -257,7 +269,7 @@ mod arbitrary {
     impl Arbitrary for SetQuery {
         fn arbitrary(g: &mut Gen) -> Self {
             Self {
-                left: Box::new(Query::arbitrary(g)),
+                left: Box::new(arbitrary_non_with_query(g)),
                 op: SetOperator::arbitrary(g),
                 // Only generate Select queries for the RHS
                 // because the parser always produces left-deep Set Queries.
@@ -274,6 +286,48 @@ mod arbitrary {
                 right: r,
                 op,
             }))
+        }
+    }
+
+    impl Arbitrary for WithQuery {
+        fn arbitrary(g: &mut Gen) -> Self {
+            Self {
+                queries: (0..rand_len(1, MAX_COMPOSITE_DATA_LEN))
+                    .map(|_| NamedQuery {
+                        name: arbitrary_identifier(g),
+                        query: arbitrary_non_with_query(g),
+                    })
+                    .collect(),
+                body: Box::new(arbitrary_non_with_query(g)),
+            }
+        }
+
+        fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+            let body = self.body.clone();
+            let queries = self.queries.clone();
+            Box::new((body, queries).shrink().map(|(b, q)| WithQuery {
+                body: b,
+                queries: q,
+            }))
+        }
+    }
+
+    impl Arbitrary for NamedQuery {
+        fn arbitrary(g: &mut Gen) -> Self {
+            Self {
+                name: arbitrary_identifier(g),
+                query: arbitrary_non_with_query(g),
+            }
+        }
+
+        fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+            let query = self.query.clone();
+            let name = self.name.clone();
+            Box::new(
+                (name, query)
+                    .shrink()
+                    .map(|(n, q)| NamedQuery { name: n, query: q }),
+            )
         }
     }
 
@@ -360,14 +414,15 @@ mod arbitrary {
 
     impl Arbitrary for Datasource {
         fn arbitrary(g: &mut Gen) -> Self {
-            let rng = &(0..Self::VARIANT_COUNT).collect::<Vec<_>>();
+            let rng = &(0..Self::VARIANT_COUNT - 1).collect::<Vec<_>>();
             match g.choose(rng).unwrap() {
                 0 => Self::Array(ArraySource::arbitrary(g)),
                 1 => Self::Collection(CollectionSource::arbitrary(g)),
                 2 => Self::Derived(DerivedSource::arbitrary(g)),
                 3 => Self::Join(JoinSource::arbitrary(g)),
                 4 => Self::Flatten(FlattenSource::arbitrary(g)),
-                5 => Self::Unwind(UnwindSource::arbitrary(g)),
+                // Never generate normal Unwind now because we cannot parse to normal Unwind
+                5 => Self::ExtendedUnwind(ExtendedUnwindSource::arbitrary(g)),
                 _ => panic!("missing Datasource variant(s)"),
             }
         }
@@ -397,7 +452,7 @@ mod arbitrary {
     impl Arbitrary for DerivedSource {
         fn arbitrary(g: &mut Gen) -> Self {
             Self {
-                query: Box::new(Query::arbitrary(g)),
+                query: Box::new(arbitrary_non_with_query(g)),
                 alias: arbitrary_identifier(g),
             }
         }
@@ -425,7 +480,7 @@ mod arbitrary {
 
     impl Arbitrary for JoinSource {
         fn arbitrary(g: &mut Gen) -> Self {
-            let rng = &(0..Datasource::VARIANT_COUNT - 1).collect::<Vec<_>>();
+            let rng = &(0..Datasource::VARIANT_COUNT - 2).collect::<Vec<_>>();
             // The RHS should not be a Join because the parser always produces left-deep Joins.  To
             // avoid right-deep joins, we subtract 1 from the Datasource VARIANT_COUNT to remove
             // the possiblity of generating a Join and directly generate an arbitrary non-Join RHS
@@ -435,7 +490,8 @@ mod arbitrary {
                 1 => Datasource::Collection(CollectionSource::arbitrary(g)),
                 2 => Datasource::Derived(DerivedSource::arbitrary(g)),
                 3 => Datasource::Flatten(FlattenSource::arbitrary(g)),
-                4 => Datasource::Unwind(UnwindSource::arbitrary(g)),
+                // We never generate normal Unwind Sources now because we cannot parse to normal Unwind
+                4 => Datasource::ExtendedUnwind(ExtendedUnwindSource::arbitrary(g)),
                 _ => panic!("missing Datasource variant(s)"),
             });
             Self {
@@ -482,31 +538,61 @@ mod arbitrary {
         }
     }
 
-    impl Arbitrary for UnwindSource {
+    impl Arbitrary for ExtendedUnwindSource {
         fn arbitrary(g: &mut Gen) -> Self {
             Self {
                 datasource: Box::new(Datasource::arbitrary(g)),
                 options: (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
-                    .map(|_| UnwindOption::arbitrary(g))
+                    .map(|_| ExtendedUnwindOption::arbitrary(g))
                     .collect(),
             }
         }
     }
 
-    impl Arbitrary for UnwindOption {
+    impl Arbitrary for UnwindPathPartOption {
         fn arbitrary(g: &mut Gen) -> Self {
             let rng = &(0..Self::VARIANT_COUNT).collect::<Vec<_>>();
             match g.choose(rng).unwrap() {
-                0 => {
-                    // The parser only supports Identifiers or Subpath expressions for PATH.
-                    match bool::arbitrary(g) {
-                        true => Self::Path(Expression::Identifier(arbitrary_identifier(g))),
-                        false => Self::Path(Expression::Subpath(SubpathExpr::arbitrary(g))),
-                    }
-                }
+                0 => Self::Index(arbitrary_identifier(g)),
+                1 => Self::Outer(bool::arbitrary(g)),
+                _ => panic!("missing UnwindOption variant(s)"),
+            }
+        }
+    }
+
+    impl Arbitrary for UnwindPathPart {
+        fn arbitrary(g: &mut Gen) -> Self {
+            Self {
+                field: arbitrary_identifier(g),
+                options: (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
+                    .map(|_| {
+                        (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
+                            .map(|_| UnwindPathPartOption::arbitrary(g))
+                            .collect::<Vec<_>>()
+                    })
+                    .collect::<Vec<_>>(),
+            }
+        }
+    }
+
+    impl Arbitrary for ExtendedUnwindOption {
+        fn arbitrary(g: &mut Gen) -> Self {
+            let rng = &(0..Self::VARIANT_COUNT).collect::<Vec<_>>();
+            match g.choose(rng).unwrap() {
+                0 => Self::Paths(
+                    // use low as 1 because there must be at least one PATH
+                    (0..rand_len(1, MAX_COMPOSITE_DATA_LEN))
+                        .map(|_| {
+                            // use low 1 so we don't generate an empty path
+                            (0..rand_len(1, MAX_COMPOSITE_DATA_LEN))
+                                .map(|_| UnwindPathPart::arbitrary(g))
+                                .collect::<Vec<_>>()
+                        })
+                        .collect::<Vec<_>>(),
+                ),
                 1 => Self::Index(arbitrary_identifier(g)),
                 2 => Self::Outer(bool::arbitrary(g)),
-                _ => panic!("missing UnwindOption variant(s)"),
+                _ => panic!("missing ExtendedUnwindOption variant(s)"),
             }
         }
     }
@@ -535,8 +621,8 @@ mod arbitrary {
                         .map(|_| Self::arbitrary(nested_g))
                         .collect(),
                 ),
-                10 => Self::Subquery(Box::new(Query::arbitrary(nested_g))),
-                11 => Self::Exists(Box::new(Query::arbitrary(nested_g))),
+                10 => Self::Subquery(Box::new(arbitrary_non_with_query(nested_g))),
+                11 => Self::Exists(Box::new(arbitrary_non_with_query(nested_g))),
                 12 => Self::SubqueryComparison(SubqueryComparisonExpr::arbitrary(nested_g)),
                 13 => Self::Document(
                     (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
@@ -644,7 +730,7 @@ mod arbitrary {
                 expr: Box::new(Expression::arbitrary(g)),
                 op: ComparisonOp::arbitrary(g),
                 quantifier: SubqueryQuantifier::arbitrary(g),
-                subquery: Box::new(Query::arbitrary(g)),
+                subquery: Box::new(arbitrary_non_with_query(g)),
             }
         }
     }

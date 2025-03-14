@@ -75,6 +75,33 @@ impl Visitor for UnwindOptionVisitor {
         let node = ast::UnwindSource { options, ..node };
         node.walk(self)
     }
+
+    // ExtendedUnwindSource really should be removed before this pass is run, but this allows us
+    // some leeway in pass reordering. We could use a macro to combine these two methods, but that
+    // seems a bit much.
+    fn visit_extended_unwind_source(
+        &mut self,
+        node: ast::definitions::ExtendedUnwindSource,
+    ) -> ast::definitions::ExtendedUnwindSource {
+        let num_outer_opts = node.options.iter().fold(0, |acc, opt| match opt {
+            ast::ExtendedUnwindOption::Outer(_) => acc + 1,
+            _ => acc,
+        });
+
+        // short circuit if we have duplicate outer opts
+        if num_outer_opts > 1 {
+            return node;
+        }
+
+        let options = node
+            .options
+            .into_iter()
+            .filter(|opt| !matches!(opt, ast::ExtendedUnwindOption::Outer(false)))
+            .collect();
+
+        let node = ast::definitions::ExtendedUnwindSource { options, ..node };
+        node.walk(self)
+    }
 }
 
 /// This visitor rewrites implicit ELSE NULLs in case exprs into explicit ELSE
