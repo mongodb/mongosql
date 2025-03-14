@@ -14,6 +14,8 @@ const ERROR_TEST: &str = "errors";
 // tests we don't handle
 const REWRITE_TEST: &str = "rewrite_tests";
 const TYPE_CONSTRAINT_TESTS: &str = "type_constraint_tests";
+// SQL-2677: implement schema derivation test runner
+const SCHEMA_DERIVATION_TESTS: &str = "schema_derivation_tests";
 
 /// sanitize_description sanitizes test names such that they may be used as function names in generated test cases
 fn sanitize_description(description: &str) -> String {
@@ -70,7 +72,7 @@ impl From<&Cow<'_, str>> for ProcessorType {
             Self::E2E
         } else if s.contains(ERROR_TEST) {
             Self::Error
-        } else if s.contains(REWRITE_TEST) || s.contains(TYPE_CONSTRAINT_TESTS) {
+        } else if s.contains(REWRITE_TEST) || s.contains(TYPE_CONSTRAINT_TESTS) || s.contains(SCHEMA_DERIVATION_TESTS) {
             Self::Unhandled
         } else {
             Self::None
