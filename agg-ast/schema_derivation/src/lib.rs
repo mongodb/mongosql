@@ -118,16 +118,16 @@ pub(crate) fn get_schema_for_path_mut(
     schema: &mut Schema,
     path: Vec<String>,
 ) -> Option<&mut Schema> {
-    let mut schema = Some(schema);
-    for field in path {
-        schema = match schema {
-            Some(Schema::Document(d)) => d.keys.get_mut(&field),
-            _ => {
-                return None;
-            }
-        };
+    let mut path = path;
+    if path.is_empty() {
+        return Some(schema);
     }
-    schema
+    let field = path.remove(0);
+    match schema {
+        Schema::Document(d) => get_schema_for_path_mut(d.keys.get_mut(&field)?, path),
+        Schema::Array(s) => get_schema_for_path_mut(&mut **s, path),
+        _ => None,
+    }
 }
 
 /// Gets or creates a mutable reference to a specific field or document path in the schema. This
