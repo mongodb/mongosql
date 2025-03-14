@@ -116,9 +116,8 @@ fn schema_difference(schema: &mut Schema, to_remove: BTreeSet<Schema>) {
 /// operators and stages.
 pub(crate) fn get_schema_for_path_mut(
     schema: &mut Schema,
-    path: Vec<String>,
+    mut path: Vec<String>,
 ) -> Option<&mut Schema> {
-    let mut path = path;
     if path.is_empty() {
         return Some(schema);
     }
@@ -141,66 +140,65 @@ pub(crate) fn get_schema_for_path_mut(
 /// the $match stage will never evaluate to true.
 pub(crate) fn get_or_create_schema_for_path_mut(
     schema: &mut Schema,
-    path: Vec<String>,
+    mut path: Vec<String>,
 ) -> Option<&mut Schema> {
-    let mut schema = Some(schema);
-    for field in path {
-        schema = match schema {
-            Some(Schema::Document(d)) => {
-                if !d.keys.contains_key(&field) && !d.additional_properties {
-                    return None;
-                }
-                d.keys.entry(field.clone()).or_insert(Schema::Any);
-                d.keys.get_mut(&field)
-            }
-            Some(Schema::Any) => {
-                let mut d = schema::Document::any();
-                d.keys.insert(field.clone(), Schema::Any);
-                // this is a wonky way to do this, putting it in the map and then getting it back
-                // out with this match, but it's what the borrow checker forces (we can't keep the
-                // reference across the move of ownership into the Schema::Document constructor).
-                **(schema.as_mut()?) = Schema::Document(d);
-                schema?.get_key_mut(&field)
-            }
-            Some(Schema::AnyOf(schemas)) => {
-                // By first checking to see if there is a Document in the AnyOf, we can avoid
-                // cloning the Document. In general, I expect that the AnyOf will be smaller than
-                // the size of the Document schema, meaning this is more efficient than cloning
-                // even ignoring "constant factors". This is especially true given that cloning
-                // means memory allocation, which is quite a large "constant factor".
-                if !schemas.iter().any(|s| matches!(s, &Schema::Document(_))) {
-                    return None;
-                }
-                // This is how we avoid the clone. By doing a std::mem::take here, we can take
-                // ownership of the schemas, and thus the Document schema. Sadly, we still have to
-                // allocate a BTreeSet::default(), semantically. There is a price to pay for safety
-                // sometimes, but, there is a good chance the compiler will be smart enough to know
-                // that BTreeSet::default() is never used and optimize it out.
-                let schemas = std::mem::take(schemas);
-                let mut d = schemas.into_iter().find_map(|s| {
-                    if let Schema::Document(doc) = s {
-                        // we would have to clone here without the std::mem::take above.
-                        Some(doc)
-                    } else {
-                        None
-                    }
-                })?;
-                // We can only add keys, if additionalProperties is true.
-                if d.additional_properties {
-                    d.keys.entry(field.clone()).or_insert(Schema::Any);
-                }
-                // this is a wonky way to do this, putting it in the map and then getting it back
-                // out with this match, but it's what the borrow checker forces (we can't keep the
-                // reference across the move of ownership into the Schema::Document constructor).
-                **(schema.as_mut()?) = Schema::Document(d);
-                schema?.get_key_mut(&field)
-            }
-            _ => {
+    if path.is_empty() {
+        return Some(schema);
+    }
+    let field = path.remove(0);
+    match schema {
+        Schema::Document(d) => {
+            if !d.keys.contains_key(&field) && !d.additional_properties {
                 return None;
             }
-        };
+            d.keys.entry(field.clone()).or_insert(Schema::Any);
+            get_or_create_schema_for_path_mut(d.keys.get_mut(&field)?, path)
+        }
+        Schema::Array(s) => get_or_create_schema_for_path_mut(&mut **s, path),
+        Schema::Any => {
+            let mut d = schema::Document::any();
+            d.keys.insert(field.clone(), Schema::Any);
+            // this is a wonky way to do this, putting it in the map and then getting it back
+            // out with this match, but it's what the borrow checker forces (we can't keep the
+            // reference across the move of ownership into the Schema::Document constructor).
+            *schema = Schema::Document(d);
+            get_or_create_schema_for_path_mut(schema.get_key_mut(&field)?, path)
+        }
+        Schema::AnyOf(schemas) => {
+            // By first checking to see if there is a Document in the AnyOf, we can avoid
+            // cloning the Document. In general, I expect that the AnyOf will be smaller than
+            // the size of the Document schema, meaning this is more efficient than cloning
+            // even ignoring "constant factors". This is especially true given that cloning
+            // means memory allocation, which is quite a large "constant factor".
+            if !schemas.iter().any(|s| matches!(s, &Schema::Document(_))) {
+                return None;
+            }
+            // This is how we avoid the clone. By doing a std::mem::take here, we can take
+            // ownership of the schemas, and thus the Document schema. Sadly, we still have to
+            // allocate a BTreeSet::default(), semantically. There is a price to pay for safety
+            // sometimes, but, there is a good chance the compiler will be smart enough to know
+            // that BTreeSet::default() is never used and optimize it out.
+            let schemas = std::mem::take(schemas);
+            let mut d = schemas.into_iter().find_map(|s| {
+                if let Schema::Document(doc) = s {
+                    // we would have to clone here without the std::mem::take above.
+                    Some(doc)
+                } else {
+                    None
+                }
+            })?;
+            // We can only add keys, if additionalProperties is true.
+            if d.additional_properties {
+                d.keys.entry(field.clone()).or_insert(Schema::Any);
+            }
+            // this is a wonky way to do this, putting it in the map and then getting it back
+            // out with this match, but it's what the borrow checker forces (we can't keep the
+            // reference across the move of ownership into the Schema::Document constructor).
+            *schema = Schema::Document(d);
+            get_or_create_schema_for_path_mut(schema.get_key_mut(&field)?, path)
+        }
+        _ => None,
     }
-    schema
 }
 
 // this helper simply checks for document schemas and inserts a field with a given schema into
