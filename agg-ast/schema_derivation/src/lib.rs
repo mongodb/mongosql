@@ -15,6 +15,7 @@ mod test;
 
 use bson::{Bson, Document};
 use mongosql::schema::{self, Atomic, JaccardIndex, Schema, UNFOLDED_ANY};
+use tailcall::tailcall;
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -116,15 +117,33 @@ fn schema_difference(schema: &mut Schema, to_remove: BTreeSet<Schema>) {
 /// operators and stages.
 pub(crate) fn get_schema_for_path_mut(
     schema: &mut Schema,
-    mut path: Vec<String>,
+    path: Vec<String>,
 ) -> Option<&mut Schema> {
-    if path.is_empty() {
+    get_schema_for_path_mut_aux(schema, path, None, 0usize)
+}
+
+#[tailcall]
+fn get_schema_for_path_mut_aux(
+    schema: &mut Schema,
+    mut path: Vec<String>,
+    current_field: Option<String>,
+    field_index: usize,
+) -> Option<&mut Schema> {
+    if path.len() == field_index {
         return Some(schema);
     }
-    let field = path.remove(0);
+    // current_field is Some if the last Schema in the call stack was an Array
+    let field = if let Some(current_field) = current_field {
+        current_field
+    } else {
+        // we use index and std::mem::take here rather than remove to avoid resuffling the Vec.
+        std::mem::take(path.get_mut(field_index)?)
+    };
     match schema {
-        Schema::Document(d) => get_schema_for_path_mut(d.keys.get_mut(&field)?, path),
-        Schema::Array(s) => get_schema_for_path_mut(&mut **s, path),
+        Schema::Document(d) => {
+            get_schema_for_path_mut_aux(d.keys.get_mut(&field)?, path, None, field_index + 1)
+        }
+        Schema::Array(s) => get_schema_for_path_mut_aux(&mut **s, path, Some(field), field_index),
         _ => None,
     }
 }
@@ -138,23 +157,46 @@ pub(crate) fn get_schema_for_path_mut(
 /// the field is known to have a Schema that cannot be a Document, we cannot create a path! This
 /// would mean that the aggregation pipeline in question will return no results, in fact, because
 /// the $match stage will never evaluate to true.
-pub(crate) fn get_or_create_schema_for_path_mut(
+fn get_or_create_schema_for_path_mut(
+    schema: &mut Schema,
+    path: Vec<String>,
+) -> Option<&mut Schema> {
+    get_or_create_schema_for_path_mut_aux(schema, path, None, 0usize)
+}
+
+#[tailcall]
+fn get_or_create_schema_for_path_mut_aux(
     schema: &mut Schema,
     mut path: Vec<String>,
+    current_field: Option<String>,
+    field_index: usize,
 ) -> Option<&mut Schema> {
-    if path.is_empty() {
+    if path.len() == field_index {
         return Some(schema);
     }
-    let field = path.remove(0);
+    // current_field is Some if the last Schema in the call stack was an Array
+    let field = if let Some(current_field) = current_field {
+        current_field
+    } else {
+        // we use index and std::mem::take here rather than remove to avoid resuffling the Vec.
+        std::mem::take(path.get_mut(field_index)?)
+    };
     match schema {
         Schema::Document(d) => {
             if !d.keys.contains_key(&field) && !d.additional_properties {
                 return None;
             }
             d.keys.entry(field.clone()).or_insert(Schema::Any);
-            get_or_create_schema_for_path_mut(d.keys.get_mut(&field)?, path)
+            get_or_create_schema_for_path_mut_aux(
+                d.keys.get_mut(&field)?,
+                path,
+                None,
+                field_index + 1,
+            )
         }
-        Schema::Array(s) => get_or_create_schema_for_path_mut(&mut **s, path),
+        Schema::Array(s) => {
+            get_or_create_schema_for_path_mut_aux(&mut **s, path, Some(field), field_index)
+        }
         Schema::Any => {
             let mut d = schema::Document::any();
             d.keys.insert(field.clone(), Schema::Any);
@@ -162,9 +204,18 @@ pub(crate) fn get_or_create_schema_for_path_mut(
             // out with this match, but it's what the borrow checker forces (we can't keep the
             // reference across the move of ownership into the Schema::Document constructor).
             *schema = Schema::Document(d);
-            get_or_create_schema_for_path_mut(schema.get_key_mut(&field)?, path)
+            get_or_create_schema_for_path_mut_aux(
+                schema.get_key_mut(&field)?,
+                path,
+                None,
+                field_index + 1,
+            )
         }
         Schema::AnyOf(schemas) => {
+            // We do not currently support Array in AnyOf. That is an area for future work.
+            // It is difficult because we use BTreeSet instead of Vec, which is not in place
+            // mutable. We may want to reconsider that at some point.
+            //
             // By first checking to see if there is a Document in the AnyOf, we can avoid
             // cloning the Document. In general, I expect that the AnyOf will be smaller than
             // the size of the Document schema, meaning this is more efficient than cloning
@@ -195,7 +246,12 @@ pub(crate) fn get_or_create_schema_for_path_mut(
             // out with this match, but it's what the borrow checker forces (we can't keep the
             // reference across the move of ownership into the Schema::Document constructor).
             *schema = Schema::Document(d);
-            get_or_create_schema_for_path_mut(schema.get_key_mut(&field)?, path)
+            get_or_create_schema_for_path_mut_aux(
+                schema.get_key_mut(&field)?,
+                path,
+                None,
+                field_index + 1,
+            )
         }
         _ => None,
     }

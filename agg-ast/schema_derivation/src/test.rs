@@ -78,6 +78,28 @@ mod get_schema_for_path {
     );
 
     test_schema_for_path!(
+        nested_in_array,
+        expected = Some(&mut Schema::Atomic(Atomic::Integer)),
+        input = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Array(Box::new(Schema::Array(Box::new(Schema::Document(Document {
+                            keys: map! {
+                                "c".to_string() => Schema::Atomic(Atomic::Integer),
+                            },
+                            ..Default::default()
+                        }))))),
+                    },
+                    ..Default::default()
+                })
+            },
+            ..Default::default()
+        }),
+        path = vec!["a".to_string(), "b".to_string(), "c".to_string()]
+    );
+
+    test_schema_for_path!(
         missing,
         expected = None,
         input = Schema::Document(Document {
