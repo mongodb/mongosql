@@ -49,14 +49,6 @@ test_get_partitions!(
 );
 
 test_get_partitions!(
-    uniform_large,
-    expected = LARGE_PARTITIONS,
-    input_db = UNIFORM_DB_NAME,
-    input_coll = LARGE_COLL_NAME,
-    ignore = "SQL-2338"
-);
-
-test_get_partitions!(
     uniform_unit,
     expected = vec![Partition {
         min: Bson::MinKey,
@@ -72,14 +64,6 @@ test_get_partitions!(
     expected = SMALL_PARTITIONS,
     input_db = NONUNIFORM_DB_NAME,
     input_coll = SMALL_COLL_NAME
-);
-
-test_get_partitions!(
-    nonuniform_large,
-    expected = LARGE_PARTITIONS,
-    input_db = NONUNIFORM_DB_NAME,
-    input_coll = LARGE_COLL_NAME,
-    ignore = "SQL-2338"
 );
 
 #[cfg(feature = "integration")]
