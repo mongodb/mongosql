@@ -9,12 +9,31 @@ extern {
 }
 
 pub Query: Query = {
-  SetQuery => Query::Set(<>),
-  SelectQuery => Query::Select(<>),
+  WithQuery => <>,
+  SimpleQuery => <>
 };
 
+SimpleQuery: Query = {
+  SetQuery => Query::Set(<>),
+  SelectQuery => Query::Select(<>),
+}
+
+WithQuery: Query = {
+  WITH <t:CommaPlus<NamedQuery>> LEFT_PAREN <q:SimpleQuery> RIGHT_PAREN => Query::With(WithQuery {
+    queries: t,
+    body: Box::new(q),
+  })
+}
+
+NamedQuery: NamedQuery = {
+  <i:Identifier> AS LEFT_PAREN <q:SimpleQuery> RIGHT_PAREN => NamedQuery {
+    name: i,
+    query: q,
+  }
+}
+
 SetQuery: SetQuery = {
-  <q:Query> <o:SetOperator> <s:SelectQuery>  => SetQuery{left:Box::new(q), op:o, right:Box::new(Query::Select(s))},
+  <q:SimpleQuery> <o:SetOperator> <s:SelectQuery>  => SetQuery{left:Box::new(q), op:o, right:Box::new(Query::Select(s))},
 }
 
 SelectQuery: SelectQuery = {
@@ -247,7 +266,7 @@ SubqueryQuantifier: SubqueryQuantifier = {
 }
 
 SubqueryExpr: Box<Query> = {
-  LEFT_PAREN <s:Query> RIGHT_PAREN => Box::new(s),
+  LEFT_PAREN <s:SimpleQuery> RIGHT_PAREN => Box::new(s),
 }
 
 ExistsExpr: Expression = {

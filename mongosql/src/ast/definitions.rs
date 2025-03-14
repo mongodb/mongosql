@@ -21,6 +21,20 @@ visitgen::generate_visitors! {
 pub enum Query {
     Select(SelectQuery),
     Set(SetQuery),
+    // We won't actually parse into WITH QUERIES inside of WITH QUERIES, but the ast technically supports it.
+    With(WithQuery),
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct WithQuery {
+    pub queries: Vec<NamedQuery>,
+    pub body: Box<Query>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct NamedQuery {
+    pub name: String,
+    pub query: Query,
 }
 
 #[derive(PartialEq, Debug, Clone)]

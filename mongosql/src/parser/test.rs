@@ -3627,7 +3627,7 @@ mod unrecognized_token_suggestion {
     parsable!(
         not_a_valid_query,
         expected = false,
-        expected_error_user_msg = "Unrecognized token `notavalidquery`, expected: `SELECT`",
+        expected_error_user_msg = "Unrecognized token `notavalidquery`, expected: `SELECT`, `WITH`",
         input = "notavalidquery"
     );
 }

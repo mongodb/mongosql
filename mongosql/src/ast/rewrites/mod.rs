@@ -26,6 +26,8 @@ mod optional_parameters;
 use optional_parameters::OptionalParameterRewritePass;
 mod scalar_functions;
 use scalar_functions::ScalarFunctionsRewritePass;
+mod with_query;
+pub use with_query::WithQueryRewritePass;
 
 #[cfg(test)]
 mod test;
@@ -86,6 +88,9 @@ pub fn rewrite_query(query: ast::Query) -> Result<ast::Query> {
         &OptionalParameterRewritePass,
         &NotComparisonRewritePass,
         &ScalarFunctionsRewritePass,
+        // WithQueryRewritePass can introduce duplicated queries, so it should be the last pass so
+        // any rewrites that apply in the WithQuery queries are applied only once.
+        &WithQueryRewritePass,
     ];
 
     let mut rewritten = query;

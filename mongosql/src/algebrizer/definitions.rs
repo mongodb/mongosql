@@ -321,6 +321,7 @@ impl<'a> Algebrizer<'a> {
         match ast_node {
             ast::Query::Select(q) => self.algebrize_select_query(q),
             ast::Query::Set(s) => self.algebrize_set_query(s),
+            ast::Query::With(_) => panic!("WITH should be removed before algebrizing"),
         }
     }
 
