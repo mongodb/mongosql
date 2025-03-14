@@ -46,6 +46,7 @@ futures = "0"
 linked-hash-map = "0"
 base64 = "0.22.1"
 bson = "2"
+tailcall = "1"
 
 [profile.release]
 lto = "fat"

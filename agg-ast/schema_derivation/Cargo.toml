@@ -10,5 +10,6 @@ mongosql = { path = "../../mongosql" }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 linked-hash-map = { workspace = true, features = ["serde_impl"] }
+tailcall = { workspace = true }
 
 [features]
