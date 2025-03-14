@@ -5,10 +5,11 @@ use crate::{
     Result, ResultSetState,
 };
 use agg_ast::definitions::{
-    DateExpression, DateFromParts, DateFromString, DateToParts, DateToString, Expression, Filter,
-    Let, Map, MatchBinaryOp, MatchExpr, MatchExpression, MatchField, MatchLogical,
-    MatchNotExpression, MatchStage, Median, NArrayOp, Reduce, Ref, RegexAggExpression, Replace,
-    SortArray, Switch, TaggedOperator, Trim, UntaggedOperator, Zip,
+    DateAdd, DateDiff, DateExpression, DateFromParts, DateFromString, DateSubtract, DateToParts,
+    DateToString, DateTrunc, Expression, Filter, Let, Map, MatchBinaryOp, MatchExpr,
+    MatchExpression, MatchField, MatchLogical, MatchNotExpression, MatchStage, Median, NArrayOp,
+    Reduce, Ref, RegexAggExpression, Replace, SortArray, Switch, TaggedOperator, Trim,
+    UntaggedOperator, Zip,
 };
 use bson::Bson;
 use mongosql::{
@@ -1727,6 +1728,151 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        fn match_derive_date_arithmetic(
+            start_date: &Expression,
+            unit: &Expression,
+            amount: &Expression,
+            timezone: Option<&Expression>,
+            state: &mut ResultSetState,
+        ) -> Result<()> {
+            macro_rules! handle_arg {
+                ($exp:expr, $basic_schema:expr) => {
+                    if let Expression::Ref(ref reference) = $exp {
+                        match state.null_behavior {
+                            Satisfaction::Not => {
+                                intersect_if_exists(reference, state, $basic_schema);
+                            }
+                            Satisfaction::May | Satisfaction::Must => {
+                                let schema = $basic_schema.union(&NULLISH.clone());
+                                intersect_if_exists(reference, state, schema);
+                            }
+                        }
+                    } else {
+                        $exp.match_derive_schema(state)?;
+                    }
+                };
+            }
+            handle_arg!(
+                start_date,
+                Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Date),
+                    Schema::Atomic(Atomic::ObjectId),
+                    Schema::Atomic(Atomic::Timestamp),
+                ])
+            );
+            handle_arg!(unit, Schema::Atomic(Atomic::String));
+            handle_arg!(amount, NUMERIC.clone());
+            if let Some(ref timezone) = timezone {
+                handle_arg!(timezone, Schema::Atomic(Atomic::String));
+            }
+            Ok(())
+        }
+
+        fn match_derive_date_add(d: &DateAdd, state: &mut ResultSetState) -> Result<()> {
+            let tz = d.timezone.as_ref().map(|tz| tz.as_ref());
+            match_derive_date_arithmetic(
+                d.start_date.as_ref(),
+                d.unit.as_ref(),
+                d.amount.as_ref(),
+                tz,
+                state,
+            )
+        }
+
+        fn match_derive_date_subtract(d: &DateSubtract, state: &mut ResultSetState) -> Result<()> {
+            let tz = d.timezone.as_ref().map(|tz| tz.as_ref());
+            match_derive_date_arithmetic(
+                d.start_date.as_ref(),
+                d.unit.as_ref(),
+                d.amount.as_ref(),
+                tz,
+                state,
+            )
+        }
+
+        fn match_derive_date_diff(d: &DateDiff, state: &mut ResultSetState) -> Result<()> {
+            macro_rules! handle_arg {
+                ($exp:expr, $basic_schema:expr) => {
+                    if let Expression::Ref(ref reference) = $exp {
+                        match state.null_behavior {
+                            Satisfaction::Not => {
+                                intersect_if_exists(reference, state, $basic_schema);
+                            }
+                            Satisfaction::May | Satisfaction::Must => {
+                                let schema = $basic_schema.union(&NULLISH.clone());
+                                intersect_if_exists(reference, state, schema);
+                            }
+                        }
+                    } else {
+                        $exp.match_derive_schema(state)?;
+                    }
+                };
+            }
+            handle_arg!(
+                d.start_date.as_ref(),
+                Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Date),
+                    Schema::Atomic(Atomic::ObjectId),
+                    Schema::Atomic(Atomic::Timestamp),
+                ])
+            );
+            handle_arg!(
+                d.end_date.as_ref(),
+                Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Date),
+                    Schema::Atomic(Atomic::ObjectId),
+                    Schema::Atomic(Atomic::Timestamp),
+                ])
+            );
+            handle_arg!(d.unit.as_ref(), Schema::Atomic(Atomic::String));
+            if let Some(ref timezone) = d.timezone {
+                handle_arg!(timezone.as_ref(), Schema::Atomic(Atomic::String));
+            }
+            if let Some(ref start_of_week) = d.start_of_week {
+                handle_arg!(start_of_week.as_ref(), Schema::Atomic(Atomic::String));
+            }
+            Ok(())
+        }
+
+        fn match_derive_date_trunc(d: &DateTrunc, state: &mut ResultSetState) -> Result<()> {
+            macro_rules! handle_arg {
+                ($exp:expr, $basic_schema:expr) => {
+                    if let Expression::Ref(ref reference) = $exp {
+                        match state.null_behavior {
+                            Satisfaction::Not => {
+                                intersect_if_exists(reference, state, $basic_schema);
+                            }
+                            Satisfaction::May | Satisfaction::Must => {
+                                let schema = $basic_schema.union(&NULLISH.clone());
+                                intersect_if_exists(reference, state, schema);
+                            }
+                        }
+                    } else {
+                        $exp.match_derive_schema(state)?;
+                    }
+                };
+            }
+            handle_arg!(
+                d.date.as_ref(),
+                Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Date),
+                    Schema::Atomic(Atomic::ObjectId),
+                    Schema::Atomic(Atomic::Timestamp),
+                ])
+            );
+            handle_arg!(d.unit.as_ref(), Schema::Atomic(Atomic::String));
+            if let Some(ref bin_size) = d.bin_size {
+                handle_arg!(bin_size.as_ref(), NUMERIC.clone());
+            }
+            if let Some(ref timezone) = d.timezone {
+                handle_arg!(timezone.as_ref(), Schema::Atomic(Atomic::String));
+            }
+            if let Some(ref start_of_week) = d.start_of_week {
+                handle_arg!(start_of_week.as_ref(), Schema::Atomic(Atomic::String));
+            }
+            Ok(())
+        }
+
         /// match_derive_array_to_object constrains the result_set_schema for $arrayToObject
         /// oeprators. For this operator to return a non-null value, the input must be an
         /// array of arrays.
@@ -1973,6 +2119,10 @@ impl MatchConstrainSchema for Expression {
                 TaggedOperator::Trim(t) | TaggedOperator::LTrim(t) | TaggedOperator::RTrim(t) => {
                     match_derive_trim(t, state)?
                 }
+                TaggedOperator::DateAdd(d) => match_derive_date_add(d, state)?,
+                TaggedOperator::DateDiff(d) => match_derive_date_diff(d, state)?,
+                TaggedOperator::DateSubtract(d) => match_derive_date_subtract(d, state)?,
+                TaggedOperator::DateTrunc(d) => match_derive_date_trunc(d, state)?,
                 _ => todo!(),
             },
 
