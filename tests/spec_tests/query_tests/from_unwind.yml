@@ -24,6 +24,8 @@ catalog_data:
     index_conflict:
       - {'_id': 0, arr: [1, 2], i: "abc"}
       - {'_id': 1, arr: [3, 4]}
+    compound:
+      - { '_id': 0, g: [ [ { g: [ 5 ] } ], [ { h: 8 } ], [ { i: 4 } ], { g: [ 9 ]} ], 'a': [ 42 ], 'b': [ 55 ] }
 
 catalog_schema:
   {
@@ -106,7 +108,47 @@ catalog_schema:
         'bsonType': "object",
         'additionalProperties': true
       },
-    }
+     'compound': {
+       "bsonType": "object",
+       "properties": {
+         "g": {
+           "bsonType": "array",
+           "items": {
+             "anyOf": [
+               {
+                 "bsonType":"array",
+                 "items": {
+                   "bsonType":"object",
+                   "properties": {
+                     "h": { "bsonType":"int" },
+                     "i": {"bsonType":"int" },
+                     "g": {"bsonType": "array", "items": { "bsonType":"int" } }
+                   },
+                   "additionalProperties":false }
+               },
+               {
+                 "bsonType":"object",
+                 "properties": {
+                   "g":{ "bsonType":"array","items":{"bsonType":"int"}}},
+                 "required":["g"],
+                 "additionalProperties":false
+               }
+           ]
+         }
+       },
+       "a": {
+         "bsonType": "array",
+         "items": { "bsonType": "int" }
+       },
+       "b": {
+         "bsonType": "array",
+         "items": { "bsonType": "int" }
+       },
+       "_id":{"bsonType":"objectId"}},
+       "required":["_id","g"],
+       "additionalProperties":false
+     }
+   }
   }
 
 tests:
@@ -226,6 +268,50 @@ tests:
       - {'c': {'_id': 1, 'arr': 2, 'comment': "non-empty", 'i': {"$numberLong": "1"}}}
       - {'c': {'_id': 2, 'arr': null, 'comment': "null", 'i': null}}
       - {'c': {'_id': 3, 'comment': "missing", 'i': null}}
+
+  - description: compound paths allow simple unwinds
+    current_db: test
+    query: "SELECT a FROM UNWIND(compound WITH PATHS => (a[]))"
+    result:
+      - { '': {'a': 42 } }
+
+  - description: compound paths allow sibling unwinds
+    current_db: test
+    query: "SELECT a, b FROM UNWIND(compound WITH PATHS => (a[], b[]))"
+    result:
+      - { '': {'a': 42  , 'b': 55 } }
+
+  - description: compound path resolves nested paths
+    current_db: test
+    query: "SELECT g FROM UNWIND(compound WITH PATH => (g[][]))"
+    result:
+      - {'': { 'g': { 'g': [ 5 ]}}}
+      - {'': { 'g': { 'h':  8 }}}
+      - {'': { 'g': { 'i':  4 }}}
+      - {'': { 'g': { 'g': [ 9 ]}}}
+
+  - description: compound path resolves nested and sibling paths
+    current_db: test
+    query: "SELECT * FROM UNWIND(compound WITH PATH => (g[][], a[], b[]))"
+    result:
+      - {'compound': { '_id': 0, 'g': { 'g': [ 5 ]}, 'a': 42, 'b': 55 }}
+      - {'compound': { '_id': 0, 'g': { 'h':  8 }, 'a': 42, 'b': 55 }}
+      - {'compound': { '_id': 0, 'g': { 'i':  4 }, 'a': 42, 'b': 55 }}
+      - {'compound': { '_id': 0, 'g': { 'g': [ 9 ]}, 'a': 42, 'b': 55 }}
+
+  - description: compound path can handle multiple compound paths
+    current_db: test
+    query: "SELECT g FROM UNWIND(compound WITH PATHS => (g[][].g[]))"
+    result:
+      - { '': {'g': {  'g': 5 }  } }
+      - { '': {'g': {  'g': 9 }  } }
+
+  - description: compound path works with existing unwind
+    current_db: test
+    query: "SELECT g from UNWIND(UNWIND(compound WITH PATH => g) WITH PATHS => (g[].g[]))"
+    result:
+      - { '': {'g': {  'g': 5 }  } }
+      - { '': {'g': {  'g': 9 }  } }
 
   - description: PATH option is required
     current_db: test
