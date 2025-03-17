@@ -72,7 +72,10 @@ impl From<&Cow<'_, str>> for ProcessorType {
             Self::E2E
         } else if s.contains(ERROR_TEST) {
             Self::Error
-        } else if s.contains(REWRITE_TEST) || s.contains(TYPE_CONSTRAINT_TESTS) || s.contains(SCHEMA_DERIVATION_TESTS) {
+        } else if s.contains(REWRITE_TEST)
+            || s.contains(TYPE_CONSTRAINT_TESTS)
+            || s.contains(SCHEMA_DERIVATION_TESTS)
+        {
             Self::Unhandled
         } else {
             Self::None
