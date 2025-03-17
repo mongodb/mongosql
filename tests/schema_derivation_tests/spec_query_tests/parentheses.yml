@@ -1,24 +1,27 @@
-catalog_schema:
-  {
-    'foo': {
-      'ternary': {
-        'bsonType': "object",
-        'required': [ '_id', 'a', 'b', 'c' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': { 'bsonType': "int" },
-          'a': { 'bsonType': "int" },
-          'b': { 'bsonType': "int" },
-          'c': { 'bsonType': "int" },
-        }
-      },
-    }
-  }
+%YAML 1.2
+---
+catalog_schema: {foo: {ternary: {bsonType: object, required: [_id, a, b, c], additionalProperties: false,
+      properties: {_id: {bsonType: int}, a: {bsonType: int}, b: {bsonType: int}, c: {
+          bsonType: int}}}}}
 
 tests:
-  - description: parentheses correctness tests
-    current_db: foo
-    query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'a+b*c': a + b * c, '(a+b)*c': (a + b) * c } FROM ternary AS ternary"
-    result:
-      - {'': { "a": 6, "b": 2, "c": 11, "a+b*c": 28, "(a+b)*c": 88 }}
-      - {'': { "a": 6, "b": 1, "c": 10, "a+b*c": 16, "(a+b)*c": 70 }}
+- description: parentheses correctness tests
+  current_db: foo
+  query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'a+b*c': a + b * c, '(a+b)*c': (a
+    + b) * c } FROM ternary AS ternary"
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          b: {bsonType: int}
+          (a+b)*c: {bsonType: int}
+          a+b*c: {bsonType: int}
+          a: {bsonType: int}
+          c: {bsonType: int}
+        required: [(a+b)*c, a, a+b*c, b, c]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false

@@ -1,385 +1,256 @@
-catalog_schema:
-  {
-    "foo": {
-      "unary": {
-        "bsonType": "object",
-        'required': [ '_id', 'a' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "a": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": "long" },
-              { "bsonType": "double" },
-              { "bsonType": "decimal" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "binary": {
-        "bsonType": "object",
-        'required': [ '_id', 'a', 'b' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "a": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": "long" },
-              { "bsonType": "double" },
-              { "bsonType": "decimal" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "b": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": "long" },
-              { "bsonType": "double" },
-              { "bsonType": "decimal" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "integer_division": {
-        "bsonType": "object",
-        "required": ["_id", "a", "b", "c", "d"],
-        "additionalProperties": false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "a": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": "long" },
-            ]
-          },
-          "b": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": "long" },
-            ]
-          },
-          "c": {
-            "bsonType": "int"
-          },
-          "d": {
-            "bsonType": "int"
-          },
-        }
-      }
-    }
-  }
+%YAML 1.2
+---
+catalog_schema: {foo: {unary: {bsonType: object, required: [_id, a], additionalProperties: false,
+      properties: {_id: {bsonType: int}, a: {anyOf: [bsonType: int, bsonType: long,
+            bsonType: double, bsonType: decimal, bsonType: !!str "null"]}}}, binary: {
+      bsonType: object, required: [_id, a, b], additionalProperties: false, properties: {
+        _id: {bsonType: int}, a: {anyOf: [bsonType: int, bsonType: long, bsonType: double,
+            bsonType: decimal, bsonType: !!str "null"]}, b: {anyOf: [bsonType: int,
+            bsonType: long, bsonType: double, bsonType: decimal, bsonType: !!str "null"]}}},
+    integer_division: {bsonType: object, required: [_id, a, b, c, d], additionalProperties: false,
+      properties: {_id: {bsonType: int}, a: {anyOf: [bsonType: int, bsonType: long]},
+        b: {anyOf: [bsonType: int, bsonType: long]}, c: {bsonType: int}, d: {bsonType: int}}}}}
 
 tests:
-  - description: Unary plus correctness tests
-    current_db: foo
-    query: "SELECT VALUE {'a': a, '+a': +a} FROM unary AS unary"
-    result:
-      - {'': {'a': {'$numberInt': '1'}, '+a': {'$numberInt': '1'}}}
-      - {'': {'a': {'$numberInt': '-1'}, '+a': {'$numberInt': '-1'}}}
-      - {'': {'a': {'$numberLong': '1'}, '+a': {'$numberLong': '1'}}}
-      - {'': {'a': {'$numberLong': '-1'}, '+a': {'$numberLong': '-1'}}}
-      - {'': {'a': {'$numberDouble': '1'}, '+a': {'$numberDouble': '1'}}}
-      - {'': {'a': {'$numberDouble': '-1'}, '+a': {'$numberDouble': '-1'}}}
-      - {'': {'a': {'$numberDecimal': '1'}, '+a': {'$numberDecimal': '1'}}}
-      - {'': {'a': {'$numberDecimal': '-1'}, '+a': {'$numberDecimal': '-1'}}}
-      - {'': {'a': null, '+a': null}}
-      - {'': {}}
-      - {'': {'a': {'$numberDecimal': 'NaN'}, '+a': {'$numberDecimal': 'NaN'}}}
-      - {'': {'a': {'$numberDecimal': 'Infinity'}, '+a': {'$numberDecimal': 'Infinity'}}}
-      - {'': {'a': {'$numberDecimal': '-Infinity'}, '+a': {'$numberDecimal': '-Infinity'}}}
-
-  - description: Unary minus correctness tests
-    current_db: foo
-    query: "SELECT VALUE {'a': a, '-a': -a} FROM unary AS unary"
-    result:
-      - {'': {'a': {'$numberInt': '1'}, '-a': {'$numberInt': '-1'}}}
-      - {'': {'a': {'$numberInt': '-1'}, '-a': {'$numberInt': '1'}}}
-      - {'': {'a': {'$numberLong': '1'}, '-a': {'$numberLong': '-1'}}}
-      - {'': {'a': {'$numberLong': '-1'}, '-a': {'$numberLong': '1'}}}
-      - {'': {'a': {'$numberDouble': '1'}, '-a': {'$numberDouble': '-1'}}}
-      - {'': {'a': {'$numberDouble': '-1'}, '-a': {'$numberDouble': '1'}}}
-      - {'': {'a': {'$numberDecimal': '1'}, '-a': {'$numberDecimal': '-1'}}}
-      - {'': {'a': {'$numberDecimal': '-1'}, '-a': {'$numberDecimal': '1'}}}
-      - {'': {'a': null, '-a': null}}
-      - {'': {'-a': null}}
-      - {'': {'a': {'$numberDecimal': 'NaN'}, '-a': {'$numberDecimal': 'NaN'}}}
-      - {'': {'a': {'$numberDecimal': 'Infinity'}, '-a': {'$numberDecimal': '-Infinity'}}}
-      - {'': {'a': {'$numberDecimal': '-Infinity'}, '-a': {'$numberDecimal': 'Infinity'}}}
-
-  - description: Addition correctness tests
-    current_db: foo
-    query: "SELECT VALUE {'a': a, 'b': b, 'a+b': a + b} FROM binary AS binary"
-    result:
-      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberInt': '2'}, 'a+b': {'$numberInt': '8'}}}
-      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberLong': '2'}, 'a+b': {'$numberLong': '8'}}}
-      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberDouble': '2'}, 'a+b': {'$numberDouble': '8'}}}
-      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberDecimal': '2'}, 'a+b': {'$numberDecimal': '8'}}}
-      - {'': {'a': {'$numberInt': '6'}, 'b': null, 'a+b': null}}
-      - {'': {'a': {'$numberInt': '6'}, 'a+b': null}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberInt': '2'}, 'a+b': {'$numberLong': '8'}}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberLong': '2'}, 'a+b': {'$numberLong': '8'}}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberDouble': '2'}, 'a+b': {'$numberDouble': '8'}}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberDecimal': '2'}, 'a+b': {'$numberDecimal': '8'}}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': null, 'a+b': null}}
-      - {'': {'a': {'$numberLong': '6'}, 'a+b': null}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': {'$numberInt': '2'}, 'a+b': {'$numberDouble': '8'}}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': {'$numberLong': '2'}, 'a+b': {'$numberDouble': '8'}}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': {'$numberDouble': '2'}, 'a+b': {'$numberDouble': '8'}}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': {'$numberDecimal': '2'}, 'a+b': {'$numberDecimal': '8'}}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': null, 'a+b': null}}
-      - {'': {'a': {'$numberDouble': '6'}, 'a+b': null}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': {'$numberInt': '2'}, 'a+b': {'$numberDecimal': '8'}}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': {'$numberLong': '2'}, 'a+b': {'$numberDecimal': '8'}}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': {'$numberDouble': '2'}, 'a+b': {'$numberDecimal': '8'}}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': {'$numberDecimal': '2'}, 'a+b': {'$numberDecimal': '8'}}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': null, 'a+b': null}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'a+b': null}}
-      - {'': {'a': null, 'b': {'$numberInt': '2'}, 'a+b': null}}
-      - {'': {'a': null, 'b': {'$numberLong': '2'}, 'a+b': null}}
-      - {'': {'a': null, 'b': {'$numberDouble': '2'}, 'a+b': null}}
-      - {'': {'a': null, 'b': {'$numberDecimal': '2'}, 'a+b': null}}
-      - {'': {'a': null, 'b': null, 'a+b': null}}
-      - {'': {'a': null, 'a+b': null}}
-      - {'': {'b': {'$numberInt': '2'}, 'a+b': null}}
-      - {'': {'b': {'$numberLong': '2'}, 'a+b': null}}
-      - {'': {'b': {'$numberDouble': '2'}, 'a+b': null}}
-      - {'': {'b': {'$numberDecimal': '2'}, 'a+b': null}}
-      - {'': {'b': null, 'a+b': null}}
-      - {'': {'a+b': null}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': 'NaN'}, 'a+b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': 'Infinity'}, 'a+b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': '-Infinity'}, 'a+b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberInt': '2'}, 'a+b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberLong': '2'}, 'a+b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDouble': '2'}, 'a+b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': '2'}, 'a+b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': 'Infinity'}, 'a+b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': '-Infinity'}, 'a+b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberInt': '2'}, 'a+b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberLong': '2'}, 'a+b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDouble': '2'}, 'a+b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': '2'}, 'a+b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': '-Infinity'}, 'a+b': {'$numberDecimal': '-Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': 'Infinity'}, 'a+b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberInt': '2'}, 'a+b': {'$numberDecimal': '-Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberLong': '2'}, 'a+b': {'$numberDecimal': '-Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDouble': '2'}, 'a+b': {'$numberDecimal': '-Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': '2'}, 'a+b': {'$numberDecimal': '-Infinity'}}}
-
-  - description: Subtraction correctness tests
-    current_db: foo
-    query: "SELECT VALUE {'a': a, 'b': b, 'a-b': a - b} FROM binary AS binary"
-    result:
-      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberInt': '2'}, 'a-b': {'$numberInt': '4'}}}
-      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberLong': '2'}, 'a-b': {'$numberLong': '4'}}}
-      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberDouble': '2'}, 'a-b': {'$numberDouble': '4'}}}
-      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberDecimal': '2'}, 'a-b': {'$numberDecimal': '4'}}}
-      - {'': {'a': {'$numberInt': '6'}, 'b': null, 'a-b': null}}
-      - {'': {'a': {'$numberInt': '6'}, 'a-b': null}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberInt': '2'}, 'a-b': {'$numberLong': '4'}}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberLong': '2'}, 'a-b': {'$numberLong': '4'}}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberDouble': '2'}, 'a-b': {'$numberDouble': '4'}}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberDecimal': '2'}, 'a-b': {'$numberDecimal': '4'}}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': null, 'a-b': null}}
-      - {'': {'a': {'$numberLong': '6'}, 'a-b': null}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': {'$numberInt': '2'}, 'a-b': {'$numberDouble': '4'}}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': {'$numberLong': '2'}, 'a-b': {'$numberDouble': '4'}}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': {'$numberDouble': '2'}, 'a-b': {'$numberDouble': '4'}}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': {'$numberDecimal': '2'}, 'a-b': {'$numberDecimal': '4.00000000000000'}}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': null, 'a-b': null}}
-      - {'': {'a': {'$numberDouble': '6'}, 'a-b': null}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': {'$numberInt': '2'}, 'a-b': {'$numberDecimal': '4'}}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': {'$numberLong': '2'}, 'a-b': {'$numberDecimal': '4'}}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': {'$numberDouble': '2'}, 'a-b': {'$numberDecimal': '4.00000000000000'}}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': {'$numberDecimal': '2'}, 'a-b': {'$numberDecimal': '4'}}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': null, 'a-b': null}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'a-b': null}}
-      - {'': {'a': null, 'b': {'$numberInt': '2'}, 'a-b': null}}
-      - {'': {'a': null, 'b': {'$numberLong': '2'}, 'a-b': null}}
-      - {'': {'a': null, 'b': {'$numberDouble': '2'}, 'a-b': null}}
-      - {'': {'a': null, 'b': {'$numberDecimal': '2'}, 'a-b': null}}
-      - {'': {'a': null, 'b': null, 'a-b': null}}
-      - {'': {'a': null, 'a-b': null}}
-      - {'': {'b': {'$numberInt': '2'}, 'a-b': null}}
-      - {'': {'b': {'$numberLong': '2'}, 'a-b': null}}
-      - {'': {'b': {'$numberDouble': '2'}, 'a-b': null}}
-      - {'': {'b': {'$numberDecimal': '2'}, 'a-b': null}}
-      - {'': {'b': null, 'a-b': null}}
-      - {'': {'a-b': null}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': 'NaN'}, 'a-b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': 'Infinity'}, 'a-b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': '-Infinity'}, 'a-b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberInt': '2'}, 'a-b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberLong': '2'}, 'a-b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDouble': '2'}, 'a-b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': '2'}, 'a-b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': 'Infinity'}, 'a-b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': '-Infinity'}, 'a-b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberInt': '2'}, 'a-b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberLong': '2'}, 'a-b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDouble': '2'}, 'a-b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': '2'}, 'a-b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': '-Infinity'}, 'a-b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': 'Infinity'}, 'a-b': {'$numberDecimal': '-Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberInt': '2'}, 'a-b': {'$numberDecimal': '-Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberLong': '2'}, 'a-b': {'$numberDecimal': '-Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDouble': '2'}, 'a-b': {'$numberDecimal': '-Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': '2'}, 'a-b': {'$numberDecimal': '-Infinity'}}}
-
-
-  - description: Multiplication correctness tests
-    current_db: foo
-    query: "SELECT VALUE {'a': a, 'b': b, 'a*b': a * b} FROM binary AS binary"
-    result:
-      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberInt': '2'}, 'a*b': {'$numberInt': '12'}}}
-      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberLong': '2'}, 'a*b': {'$numberLong': '12'}}}
-      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberDouble': '2'}, 'a*b': {'$numberDouble': '12'}}}
-      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberDecimal': '2'}, 'a*b': {'$numberDecimal': '12'}}}
-      - {'': {'a': {'$numberInt': '6'}, 'b': null, 'a*b': null}}
-      - {'': {'a': {'$numberInt': '6'}, 'a*b': null}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberInt': '2'}, 'a*b': {'$numberLong': '12'}}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberLong': '2'}, 'a*b': {'$numberLong': '12'}}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberDouble': '2'}, 'a*b': {'$numberDouble': '12'}}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberDecimal': '2'}, 'a*b': {'$numberDecimal': '12'}}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': null, 'a*b': null}}
-      - {'': {'a': {'$numberLong': '6'}, 'a*b': null}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': {'$numberInt': '2'}, 'a*b': {'$numberDouble': '12'}}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': {'$numberLong': '2'}, 'a*b': {'$numberDouble': '12'}}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': {'$numberDouble': '2'}, 'a*b': {'$numberDouble': '12'}}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': {'$numberDecimal': '2'}, 'a*b': {'$numberDecimal': '12.00000000000000'}}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': null, 'a*b': null}}
-      - {'': {'a': {'$numberDouble': '6'}, 'a*b': null}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': {'$numberInt': '2'}, 'a*b': {'$numberDecimal': '12'}}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': {'$numberLong': '2'}, 'a*b': {'$numberDecimal': '12'}}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': {'$numberDouble': '2'}, 'a*b': {'$numberDecimal': '12.00000000000000'}}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': {'$numberDecimal': '2'}, 'a*b': {'$numberDecimal': '12'}}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': null, 'a*b': null}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'a*b': null}}
-      - {'': {'a': null, 'b': {'$numberInt': '2'}, 'a*b': null}}
-      - {'': {'a': null, 'b': {'$numberLong': '2'}, 'a*b': null}}
-      - {'': {'a': null, 'b': {'$numberDouble': '2'}, 'a*b': null}}
-      - {'': {'a': null, 'b': {'$numberDecimal': '2'}, 'a*b': null}}
-      - {'': {'a': null, 'b': null, 'a*b': null}}
-      - {'': {'a': null, 'a*b': null}}
-      - {'': {'b': {'$numberInt': '2'}, 'a*b': null}}
-      - {'': {'b': {'$numberLong': '2'}, 'a*b': null}}
-      - {'': {'b': {'$numberDouble': '2'}, 'a*b': null}}
-      - {'': {'b': {'$numberDecimal': '2'}, 'a*b': null}}
-      - {'': {'b': null, 'a*b': null}}
-      - {'': {'a*b': null}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': 'NaN'}, 'a*b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': 'Infinity'}, 'a*b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': '-Infinity'}, 'a*b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberInt': '2'}, 'a*b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberLong': '2'}, 'a*b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDouble': '2'}, 'a*b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': '2'}, 'a*b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': 'Infinity'}, 'a*b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': '-Infinity'}, 'a*b': {'$numberDecimal': '-Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberInt': '2'}, 'a*b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberLong': '2'}, 'a*b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDouble': '2'}, 'a*b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': '2'}, 'a*b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': '-Infinity'}, 'a*b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': 'Infinity'}, 'a*b': {'$numberDecimal': '-Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberInt': '2'}, 'a*b': {'$numberDecimal': '-Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberLong': '2'}, 'a*b': {'$numberDecimal': '-Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDouble': '2'}, 'a*b': {'$numberDecimal': '-Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': '2'}, 'a*b': {'$numberDecimal': '-Infinity'}}}
-
-  - description: Division correctness tests
-    current_db: foo
-    query: "SELECT VALUE {'a': a, 'b': b, 'a/b': a / b} FROM binary AS binary"
-    result:
-      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberInt': '2'}, 'a/b': {'$numberDouble': '3'}}}
-      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberLong': '2'}, 'a/b': {'$numberDouble': '3'}}}
-      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberDouble': '2'}, 'a/b': {'$numberDouble': '3'}}}
-      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberDecimal': '2'}, 'a/b': {'$numberDecimal': '3'}}}
-      - {'': {'a': {'$numberInt': '6'}, 'b': null, 'a/b': null}}
-      - {'': {'a': {'$numberInt': '6'}, 'a/b': null}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberInt': '2'}, 'a/b': {'$numberDouble': '3'}}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberLong': '2'}, 'a/b': {'$numberDouble': '3'}}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberDouble': '2'}, 'a/b': {'$numberDouble': '3'}}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberDecimal': '2'}, 'a/b': {'$numberDecimal': '3'}}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': null, 'a/b': null}}
-      - {'': {'a': {'$numberLong': '6'}, 'a/b': null}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': {'$numberInt': '2'}, 'a/b': {'$numberDouble': '3'}}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': {'$numberLong': '2'}, 'a/b': {'$numberDouble': '3'}}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': {'$numberDouble': '2'}, 'a/b': {'$numberDouble': '3'}}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': {'$numberDecimal': '2'}, 'a/b': {'$numberDecimal': '3.00000000000000'}}}
-      - {'': {'a': {'$numberDouble': '6'}, 'b': null, 'a/b': null}}
-      - {'': {'a': {'$numberDouble': '6'}, 'a/b': null}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': {'$numberInt': '2'}, 'a/b': {'$numberDecimal': '3'}}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': {'$numberLong': '2'}, 'a/b': {'$numberDecimal': '3'}}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': {'$numberDouble': '2'}, 'a/b': {'$numberDecimal': '3'}}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': {'$numberDecimal': '2'}, 'a/b': {'$numberDecimal': '3'}}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'b': null, 'a/b': null}}
-      - {'': {'a': {'$numberDecimal': '6'}, 'a/b': null}}
-      - {'': {'a': null, 'b': {'$numberInt': '2'}, 'a/b': null}}
-      - {'': {'a': null, 'b': {'$numberLong': '2'}, 'a/b': null}}
-      - {'': {'a': null, 'b': {'$numberDouble': '2'}, 'a/b': null}}
-      - {'': {'a': null, 'b': {'$numberDecimal': '2'}, 'a/b': null}}
-      - {'': {'a': null, 'b': null, 'a/b': null}}
-      - {'': {'a': null, 'a/b': null}}
-      - {'': {'b': {'$numberInt': '2'}, 'a/b': null}}
-      - {'': {'b': {'$numberLong': '2'}, 'a/b': null}}
-      - {'': {'b': {'$numberDouble': '2'}, 'a/b': null}}
-      - {'': {'b': {'$numberDecimal': '2'}, 'a/b': null}}
-      - {'': {'b': null, 'a/b': null}}
-      - {'': {'a/b': null}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': 'NaN'}, 'a/b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': 'Infinity'}, 'a/b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': '-Infinity'}, 'a/b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberInt': '2'}, 'a/b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberLong': '2'}, 'a/b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDouble': '2'}, 'a/b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': '2'}, 'a/b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': 'Infinity'}, 'a/b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': '-Infinity'}, 'a/b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberInt': '2'}, 'a/b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberLong': '2'}, 'a/b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDouble': '2'}, 'a/b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': '2'}, 'a/b': {'$numberDecimal': 'Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': '-Infinity'}, 'a/b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': 'Infinity'}, 'a/b': {'$numberDecimal': 'NaN'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberInt': '2'}, 'a/b': {'$numberDecimal': '-Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberLong': '2'}, 'a/b': {'$numberDecimal': '-Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDouble': '2'}, 'a/b': {'$numberDecimal': '-Infinity'}}}
-      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': '2'}, 'a/b': {'$numberDecimal': '-Infinity'}}}
-
-  - description: Division by zero results in NULL
-    current_db: foo
-    query: "SELECT VALUE {'a': a, 'n': a / 0} FROM unary AS unary"
-    result:
-      - {'': {'a': {'$numberInt': '1'}, 'n': null}}
-      - {'': {'a': {'$numberInt': '-1'}, 'n': null}}
-      - {'': {'a': {'$numberLong': '1'}, 'n': null}}
-      - {'': {'a': {'$numberLong': '-1'}, 'n': null}}
-      - {'': {'a': {'$numberDouble': '1'}, 'n': null}}
-      - {'': {'a': {'$numberDouble': '-1'}, 'n': null}}
-      - {'': {'a': {'$numberDecimal': '1'}, 'n': null}}
-      - {'': {'a': {'$numberDecimal': '-1'}, 'n': null}}
-      - {'': {'a': null, 'n': null}}
-      - {'': {'n': null}}
-      - {'': {'a': {'$numberDecimal': 'NaN'}, 'n': null}}
-      - {'': {'a': {'$numberDecimal': 'Infinity'}, 'n': null}}
-      - {'': {'a': {'$numberDecimal': '-Infinity'}, 'n': null}}
-
-  - description: Long and integer division with non-integer results truncated
-    current_db: foo
-    query: "SELECT VALUE {'a': a, 'b': b, 'c': c, 'd': d, 'a/b': a / b, 'c/d': c / d} FROM integer_division AS i"
-    result:
-      - {'': {'a': {'$numberInt': '5'}, 'b': {'$numberInt': '2'}, 'c': { '$numberInt': '5' }, 'd': { '$numberInt': '2' }, 'a/b': {'$numberLong': '2'}, 'c/d': {'$numberInt': '2'}}}
-      - {'': {'a': {'$numberInt': '5'}, 'b': {'$numberLong': '2'}, 'c': { '$numberInt': '5' }, 'd': { '$numberInt': '2' }, 'a/b': {'$numberLong': '2'}, 'c/d': {'$numberInt': '2'}}}
-      - {'': {'a': {'$numberLong': '5'}, 'b': {'$numberInt': '2'}, 'c': { '$numberInt': '5' }, 'd': { '$numberInt': '2' }, 'a/b': {'$numberLong': '2'}, 'c/d': {'$numberInt': '2'}}}
-      - {'': {'a': {'$numberLong': '5'}, 'b': {'$numberLong': '2'}, 'c': { '$numberInt': '5' }, 'd': { '$numberInt': '2' }, 'a/b': {'$numberLong': '2'}, 'c/d': {'$numberInt': '2'}}}
+- description: Unary plus correctness tests
+  current_db: foo
+  query: "SELECT VALUE {'a': a, '+a': +a} FROM unary AS unary"
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          +a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - {bsonType: long}
+            - {bsonType: double}
+            - {bsonType: decimal}
+          a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - {bsonType: long}
+            - {bsonType: double}
+            - {bsonType: decimal}
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: Unary minus correctness tests
+  current_db: foo
+  query: "SELECT VALUE {'a': a, '-a': -a} FROM unary AS unary"
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - {bsonType: long}
+            - {bsonType: double}
+            - {bsonType: decimal}
+          -a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - {bsonType: long}
+            - {bsonType: double}
+            - {bsonType: decimal}
+        required: [-a]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: Addition correctness tests
+  current_db: foo
+  query: "SELECT VALUE {'a': a, 'b': b, 'a+b': a + b} FROM binary AS binary"
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          a+b:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - {bsonType: long}
+            - {bsonType: double}
+            - {bsonType: decimal}
+          b:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - {bsonType: long}
+            - {bsonType: double}
+            - {bsonType: decimal}
+          a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - {bsonType: long}
+            - {bsonType: double}
+            - {bsonType: decimal}
+        required: [a+b]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: Subtraction correctness tests
+  current_db: foo
+  query: "SELECT VALUE {'a': a, 'b': b, 'a-b': a - b} FROM binary AS binary"
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - {bsonType: long}
+            - {bsonType: double}
+            - {bsonType: decimal}
+          b:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - {bsonType: long}
+            - {bsonType: double}
+            - {bsonType: decimal}
+          a-b:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - {bsonType: long}
+            - {bsonType: double}
+            - {bsonType: decimal}
+        required: [a-b]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: Multiplication correctness tests
+  current_db: foo
+  query: "SELECT VALUE {'a': a, 'b': b, 'a*b': a * b} FROM binary AS binary"
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - {bsonType: long}
+            - {bsonType: double}
+            - {bsonType: decimal}
+          b:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - {bsonType: long}
+            - {bsonType: double}
+            - {bsonType: decimal}
+          a*b:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - {bsonType: long}
+            - {bsonType: double}
+            - {bsonType: decimal}
+        required: [a*b]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: Division correctness tests
+  current_db: foo
+  query: "SELECT VALUE {'a': a, 'b': b, 'a/b': a / b} FROM binary AS binary"
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          a/b:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: double}
+            - {bsonType: decimal}
+          b:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - {bsonType: long}
+            - {bsonType: double}
+            - {bsonType: decimal}
+          a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - {bsonType: long}
+            - {bsonType: double}
+            - {bsonType: decimal}
+        required: [a/b]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: Division by zero results in NULL
+  current_db: foo
+  query: "SELECT VALUE {'a': a, 'n': a / 0} FROM unary AS unary"
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - {bsonType: long}
+            - {bsonType: double}
+            - {bsonType: decimal}
+          n: {bsonType: 'null'}
+        required: [n]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: Long and integer division with non-integer results truncated
+  current_db: foo
+  query: "SELECT VALUE {'a': a, 'b': b, 'c': c, 'd': d, 'a/b': a / b, 'c/d': c / d}
+    FROM integer_division AS i"
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          d: {bsonType: int}
+          b:
+            anyOf:
+            - {bsonType: int}
+            - {bsonType: long}
+          a:
+            anyOf:
+            - {bsonType: int}
+            - {bsonType: long}
+          a/b: {bsonType: long}
+          c: {bsonType: int}
+          c/d: {bsonType: int}
+        required: [a, a/b, b, c, c/d, d]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false

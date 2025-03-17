@@ -1,110 +1,113 @@
-catalog_schema:
-    {
-        "foo": {
-            "bar": {
-              "bsonType": "object",
-              "required": [ "_id", "foo" ],
-              "additionalProperties": false,
-              "properties": {
-                "_id": { "bsonType": "int" },
-                "foo": { "bsonType": "bool" }
-              }
-            },
-            "baz": {
-              "bsonType": "object",
-              "required": [ "_id", "foo" ],
-              "additionalProperties": false,
-              "properties": {
-                "_id": { "bsonType": "int" },
-                "foo": { "bsonType": "bool" }
-              }
-            },
-            "biz": {
-              "bsonType": "object",
-              "required": [ "_id", "foo" ],
-              "additionalProperties": false,
-              "properties": {
-                "_id": { "bsonType": "int" },
-                "foo": { "bsonType": "array", "items": { "bsonType": "int" } }
-              }
-            },
-            "nested": {
-              "bsonType": "object",
-              "required": [ "_id", "foo" ],
-              "additionalProperties": false,
-              "properties": {
-                "_id": { "bsonType": "int" },
-                "foo": {
-                  "bsonType": "object",
-                  "required": [ "bar" ],
-                  "additionalProperties": false,
-                  "properties": {
-                    "bar": { "bsonType": "array", "items": { "bsonType": "int" } }
-                  }
-                }
-              }
-            },
-            "items": {
-              "bsonType": "object",
-              "required": [ "_id", "foo" ],
-              "additionalProperties": false,
-              "properties": {
-                "_id": { "bsonType": "int" },
-                "foo": {
-                  "bsonType": "array",
-                  "items": {
-                    "bsonType": "object",
-                    "required": [ "bar" ],
-                    "additionalProperties": false,
-                    "properties": {
-                      "bar": { "bsonType": "int" }
-                    }
-                  }
-                }
-              }
-            }
-        }
-    }
+%YAML 1.2
+---
+catalog_schema: {foo: {bar: {bsonType: object, required: [_id, foo], additionalProperties: false,
+      properties: {_id: {bsonType: int}, foo: {bsonType: bool}}}, baz: {bsonType: object,
+      required: [_id, foo], additionalProperties: false, properties: {_id: {bsonType: int},
+        foo: {bsonType: bool}}}, biz: {bsonType: object, required: [_id, foo], additionalProperties: false,
+      properties: {_id: {bsonType: int}, foo: {bsonType: array, items: {bsonType: int}}}},
+    nested: {bsonType: object, required: [_id, foo], additionalProperties: false,
+      properties: {_id: {bsonType: int}, foo: {bsonType: object, required: [bar],
+          additionalProperties: false, properties: {bar: {bsonType: array, items: {
+                bsonType: int}}}}}}, items: {bsonType: object, required: [_id, foo],
+      additionalProperties: false, properties: {_id: {bsonType: int}, foo: {bsonType: array,
+          items: {bsonType: object, required: [bar], additionalProperties: false,
+            properties: {bar: {bsonType: int}}}}}}}}
 
 tests:
-  - description: WHERE with BOOLEAN returning expression
-    query: "SELECT * FROM [{'a': 1}, {'a': 2}, {'a': 3}] AS arr WHERE a >= 2"
-    current_db: test
-    result:
-      - {'arr': {'a': 2}}
-      - {'arr': {'a': 3}}
-
-  - description: WHERE with CAST to BOOLEAN
-    query: "SELECT * FROM [{'a': 0}, {'a': 1}, {'a': 2}, {'a': 3}] AS arr WHERE CAST(a AS BOOLEAN)"
-    current_db: test
-    result:
-      - {'arr': {'a': 1}}
-      - {'arr': {'a': 2}}
-      - {'arr': {'a': 3}}
-
-  - description: WHERE with CASE that must return BOOLEAN
-    query: "SELECT * FROM [{'a': false}, {'a': true}] AS arr WHERE CASE WHEN a IS BOOLEAN THEN a ELSE false END"
-    current_db: test
-    result:
-      - {'arr': {'a': true}}
-
-  - description: WHERE after unwind returns expected results
-    query: "SELECT * FROM UNWIND(foo.biz WITH PATH => foo) WHERE foo = 2"
-    current_db: test
-    result:
-      - {'biz': {'_id': 0, 'foo': 2}}
-      - {'biz': {'_id': 3, 'foo': 2}}
-
-  - description: WHERE after FLATTEN UNWIND returns expected results
-    query: "SELECT * FROM FLATTEN(UNWIND(foo.nested WITH PATH => foo.bar)) WHERE foo_bar = 2"
-    current_db: test
-    result:
-      - {'nested': {'_id': 0, 'foo_bar': 2}}
-      - {'nested': {'_id': 3, 'foo_bar': 2}}
-
-  - description: WHERE after FLATTEN UNWIND an array of objects returns expected results
-    query: "SELECT * FROM FLATTEN(UNWIND(foo.items WITH PATH => foo)) WHERE foo_bar = 2"
-    current_db: test
-    result:
-      - {'items': {'_id': 0, 'foo_bar': 2}}
-      - {'items': {'_id': 4, 'foo_bar': 2}}
+- description: WHERE with BOOLEAN returning expression
+  query: "SELECT * FROM [{'a': 1}, {'a': 2}, {'a': 3}] AS arr WHERE a >= 2"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      arr:
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+        required: [a]
+        additionalProperties: false
+    required: [_id, arr]
+    additionalProperties: false
+- description: WHERE with CAST to BOOLEAN
+  query: "SELECT * FROM [{'a': 0}, {'a': 1}, {'a': 2}, {'a': 3}] AS arr WHERE CAST(a
+    AS BOOLEAN)"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      arr:
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+        required: [a]
+        additionalProperties: false
+    required: [_id, arr]
+    additionalProperties: false
+- description: WHERE with CASE that must return BOOLEAN
+  query: "SELECT * FROM [{'a': false}, {'a': true}] AS arr WHERE CASE WHEN a IS BOOLEAN
+    THEN a ELSE false END"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      arr:
+        bsonType: object
+        properties:
+          a: {bsonType: bool}
+        required: [a]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, arr]
+    additionalProperties: false
+- description: WHERE after unwind returns expected results
+  query: SELECT * FROM UNWIND(foo.biz WITH PATH => foo) WHERE foo = 2
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      biz:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          foo: {bsonType: int}
+        required: [_id, foo]
+        additionalProperties: false
+    required: [_id, biz]
+    additionalProperties: false
+- description: WHERE after FLATTEN UNWIND returns expected results
+  query: SELECT * FROM FLATTEN(UNWIND(foo.nested WITH PATH => foo.bar)) WHERE foo_bar
+    = 2
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      nested:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          foo_bar: {bsonType: int}
+        required: [_id, foo_bar]
+        additionalProperties: false
+    required: [_id, nested]
+    additionalProperties: false
+- description: WHERE after FLATTEN UNWIND an array of objects returns expected results
+  query: SELECT * FROM FLATTEN(UNWIND(foo.items WITH PATH => foo)) WHERE foo_bar =
+    2
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      items:
+        bsonType: object
+        properties:
+          foo_bar: {bsonType: int}
+          _id: {bsonType: int}
+        required: [_id, foo_bar]
+        additionalProperties: false
+    required: [_id, items]
+    additionalProperties: false

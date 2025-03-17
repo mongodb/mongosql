@@ -1,44 +1,46 @@
-catalog_schema:
-  {
-    "foo": {
-      "bar": {
-        "bsonType": "object",
-        "additionalProperties": true
-      },
-      "bar_schema": {
-        "bsonType": "object",
-        "required": [ '_id', 'v1' ],
-        "additionalProperties": false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "v1": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": "int" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-        }
-      }
-    }
-  }
+%YAML 1.2
+---
+catalog_schema: {foo: {bar: {bsonType: object, additionalProperties: true}, bar_schema: {
+      bsonType: object, required: [_id, v1], additionalProperties: false, properties: {
+        _id: {bsonType: int}, v1: {anyOf: [bsonType: string, bsonType: int, bsonType: !!str "null"]}}}}}
 
 tests:
-  - description: correctness test for type assertion in schema mode
-    current_db: "foo"
-    query: "SELECT v1::!INT AS v1 FROM bar_schema"
-    result:
-      - {'': {v1: "abc"}}
-      - {'': {v1: {"$numberInt": "2"}}}
-      - {'': {v1: null}}
-
-  - description: correctness test for type assertion in schema-less mode, target type can be any
-    current_db: "foo"
-    query: "SELECT v1::!DOUBLE AS v1 FROM bar"
-    result:
-      - {'': {v1: "abc"}}
-      - {'': {v1: {"$numberInt": "2"}}}
-      - {'': {v1: null}}
-
+- description: correctness test for type assertion in schema mode
+  current_db: foo
+  query: SELECT v1::!INT AS v1 FROM bar_schema
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          v1:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - {bsonType: string}
+        required: [v1]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: correctness test for type assertion in schema-less mode, target type
+    can be any
+  current_db: foo
+  query: SELECT v1::!DOUBLE AS v1 FROM bar
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          v1:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - {bsonType: string}
+        required: [v1]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false

@@ -1,39 +1,68 @@
+%YAML 1.2
+---
 catalog_schema:
-    db:
-        null_and_missing:
-            bsonType: 'object'
-            additionalProperties: false
-            required: ['_id']
-            properties:
-                '_id': {'bsonType': 'int'}
-                x: {'anyOf': [{'bsonType': 'bool'}, {'bsonType': 'null'}]}
+  db:
+    null_and_missing:
+      bsonType: object
+      additionalProperties: false
+      required: [_id]
+      properties:
+        _id: {bsonType: int}
+        x: {anyOf: [bsonType: bool, bsonType: 'null']}
 
-        missing:
-            bsonType: 'object'
-            additionalProperties: false
-            required: ['_id']
-            properties:
-                '_id': {'bsonType': 'int'}
-                x: {'bsonType': 'bool'}
+    missing:
+      bsonType: object
+      additionalProperties: false
+      required: [_id]
+      properties:
+        _id: {bsonType: int}
+        x: {bsonType: bool}
 
 tests:
-    - description: IS NULL covers missing fields
-      current_db: db
-      query: 'SELECT * FROM null_and_missing WHERE x IS NULL'
-      result:
-          - {'null_and_missing': {'_id': 1, 'x': null}}
-          - {'null_and_missing': {'_id': 2}}
-
-    - description: IS NOT NULL covers missing fields
-      current_db: db
-      query: 'SELECT * FROM null_and_missing WHERE x IS NOT NULL'
-      result:
-          - {'null_and_missing': {'_id': 0, 'x': true}}
-          - {'null_and_missing': {'_id': 3, 'x': false}}
-
-    - description: IS NULL covers missing fields without null schema
-      current_db: db
-      query: 'SELECT * FROM `missing` WHERE x IS NULL'
-      result:
-          - {'missing': {'_id': 1}}
-          - {'missing': {'_id': 3}}
+- description: IS NULL covers missing fields
+  current_db: db
+  query: SELECT * FROM null_and_missing WHERE x IS NULL
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      null_and_missing:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          x: {bsonType: 'null'}
+        required: [_id]
+        additionalProperties: false
+    required: [_id, null_and_missing]
+    additionalProperties: false
+- description: IS NOT NULL covers missing fields
+  current_db: db
+  query: SELECT * FROM null_and_missing WHERE x IS NOT NULL
+  result_set_schema:
+    bsonType: object
+    properties:
+      null_and_missing:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          x: {bsonType: bool}
+        required: [_id, x]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, null_and_missing]
+    additionalProperties: false
+- description: IS NULL covers missing fields without null schema
+  current_db: db
+  query: SELECT * FROM `missing` WHERE x IS NULL
+  result_set_schema:
+    bsonType: object
+    properties:
+      missing:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+        required: [_id]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, missing]
+    additionalProperties: false

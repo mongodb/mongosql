@@ -1,45 +1,101 @@
-catalog_schema:
-  {
-    'mydb': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
+%YAML 1.2
+---
+catalog_schema: {mydb: {foo: {bsonType: object, additionalProperties: true}}}
 
 tests:
-  - description: simple star correctness test
-    current_db: mydb
-    query: "SELECT * FROM foo AS f"
-    result:
-     - {'f': {'_id': 0, 'a': 1, 'b': 1}}
-     - {'f': {'_id': 1, 'a': 2, 'b': 2}}
-
-  - description: simple document correctness test
-    current_db: mydb
-    query: "SELECT VALUE {'a': a, 'b': b} FROM foo AS foo"
-    result:
-      - {'': {'a': 1, 'b': 1}}
-      - {'': {'a': 2, 'b': 2}}
-
-  - description: simple sub-star correctness test
-    current_db: mydb
-    query: "SELECT VALUE f.* FROM foo AS f"
-    result:
-     - {'f': {'_id': 0, 'a': 1, 'b': 1}}
-     - {'f': {'_id': 1, 'a': 2, 'b': 2}}
-
-  - description: correctness test for mixed sub-star and document
-    current_db: mydb
-    query: "SELECT VALUES {'a': foo.a}, foo.* FROM foo AS foo"
-    result:
-      - {'foo': {'_id': 0, 'a': 1, 'b': 1}, '': {'a': 1}}
-      - {'foo': {'_id': 1, 'a': 2, 'b': 2}, '': {'a': 2}}
-
-  - description: SELECT VALUES may create unmaterializable binding tuples
-    current_db: mydb
-    query: "SELECT VALUES {'a': a.a}, a.* FROM foo AS a"
-    result:
-      - {'a': {'_id': 0, 'a': 1, 'b': 1}, '': {'a': 1}}
-      - {'a': {'_id': 1, 'a': 2, 'b': 2}, '': {'a': 2}}
+- description: simple star correctness test
+  current_db: mydb
+  query: SELECT * FROM foo AS f
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      f:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          a: {bsonType: int}
+          b: {bsonType: int}
+        required: [_id, a, b]
+        additionalProperties: false
+    required: [_id, f]
+    additionalProperties: false
+- description: simple document correctness test
+  current_db: mydb
+  query: "SELECT VALUE {'a': a, 'b': b} FROM foo AS foo"
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          b: {bsonType: int}
+          a: {bsonType: int}
+        required: [a, b]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: simple sub-star correctness test
+  current_db: mydb
+  query: SELECT VALUE f.* FROM foo AS f
+  result_set_schema:
+    bsonType: object
+    properties:
+      f:
+        bsonType: object
+        properties:
+          b: {bsonType: int}
+          _id: {bsonType: int}
+          a: {bsonType: int}
+        required: [_id, a, b]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, f]
+    additionalProperties: false
+- description: correctness test for mixed sub-star and document
+  current_db: mydb
+  query: "SELECT VALUES {'a': foo.a}, foo.* FROM foo AS foo"
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+        required: [a]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+      foo:
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+          _id: {bsonType: int}
+          b: {bsonType: int}
+        required: [_id, a, b]
+        additionalProperties: false
+    required: ['', _id, foo]
+    additionalProperties: false
+- description: SELECT VALUES may create unmaterializable binding tuples
+  current_db: mydb
+  query: "SELECT VALUES {'a': a.a}, a.* FROM foo AS a"
+  result_set_schema:
+    bsonType: object
+    properties:
+      a:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          b: {bsonType: int}
+          a: {bsonType: int}
+        required: [_id, a, b]
+        additionalProperties: false
+      '':
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+        required: [a]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id, a]
+    additionalProperties: false

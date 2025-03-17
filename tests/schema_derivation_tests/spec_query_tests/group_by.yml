@@ -1,629 +1,648 @@
-catalog_schema:
-  {
-    "foo":
-      {
-        "bar":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a", "b", "c"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a": { "bsonType": "int" },
-                "b": { "bsonType": "int" },
-                "c": { "bsonType": "int" },
-              },
-          },
-        "multi":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a", "b", "c"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a":
-                  {
-                    "anyOf":
-                      [
-                        { "bsonType": "int" },
-                        { "bsonType": !!str "null" },
-                      ]
-                  },
-                "b":
-                  {
-                    "anyOf":
-                      [
-                        { "bsonType": "int" },
-                        { "bsonType": !!str "null" },
-                      ]
-                  },
-                "c":
-                  {
-                    "anyOf":
-                      [
-                        { "bsonType": "int" },
-                        { "bsonType": !!str "null" },
-                      ]
-                  },
-              },
-          },
-        "nullAndMissing":
-          {
-            "bsonType": "object",
-            "required": ["_id"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "n":
-                  {
-                    "anyOf":
-                      [{ "bsonType": "int" }, { "bsonType": !!str "null" }],
-                  },
-              },
-          },
-        "baz":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a":
-                  {
-                    "bsonType": "object",
-                    "required": ["a", "b"],
-                    "additionalProperties": false,
-                    "properties":
-                      {
-                        "a":
-                          {
-                            "anyOf":
-                              [
-                                { "bsonType": "int" },
-                                { "bsonType": !!str "null" },
-                              ],
-                          },
-                        "b":
-                          {
-                            "anyOf":
-                              [
-                                { "bsonType": "int" },
-                                { "bsonType": !!str "null" },
-                              ],
-                          },
-                      },
-                  },
-              },
-          },
-        "baz2":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a", "doc"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a": { "bsonType": "int" },
-                "doc":
-                  {
-                    "bsonType": "object",
-                    "required": [],
-                    "properties":
-                      {
-                        "a": { "bsonType": "string" },
-                        "b": { "bsonType": "string" },
-                      },
-                  },
-              },
-          },
-        "numerics":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a":
-                  {
-                    "anyOf":
-                      [
-                        { "bsonType": "int" },
-                        { "bsonType": "double" },
-                        { "bsonType": "decimal" },
-                      ],
-                  },
-              },
-          },
-        "dupes":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a"],
-            "additionalProperties": false,
-            "properties":
-              { "_id": { "bsonType": "int" }, "a": { "bsonType": "int" } },
-          },
-        "arr":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a"],
-            "additionalProperties": false,
-            "properties": { "a": { "bsonType": "array" } },
-          },
-        "docs":
-          {
-            "bsonType": "object",
-            "required": ["_id"],
-            "additionalProperties": false,
-            "properties": {
-              "_id": { "bsonType": "int" },
-              "d":
-                {
-                  "anyOf":
-                    [
-                      { "bsonType": !!str "null" },
-                      {
-                        "bsonType": "object",
-                        required: [ ],
-                        additionalProperties: false,
-                        properties:
-                          {
-                            "a":
-                              {
-                                "anyOf":
-                                  [
-                                    { "bsonType": "int" },
-                                    { "bsonType": !!str "null" }
-                                  ]
-                              }
-                          }
-                      }
-                    ]
-                }
-            },
-          },
-        "poly":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a"],
-            "additionalProperties": false,
-            "properties": {
-              "a": {
-                "anyOf": [
-                  { "bsonType": "bool" },
-                  { "bsonType": "string" },
-                ]
-              }
-            },
-          },
-      },
-  }
+%YAML 1.2
+---
+catalog_schema: {foo: {bar: {bsonType: object, required: [_id, a, b, c], additionalProperties: false,
+      properties: {_id: {bsonType: int}, a: {bsonType: int}, b: {bsonType: int}, c: {
+          bsonType: int}}}, multi: {bsonType: object, required: [_id, a, b, c], additionalProperties: false,
+      properties: {_id: {bsonType: int}, a: {anyOf: [bsonType: int, bsonType: !!str "null"]},
+        b: {anyOf: [bsonType: int, bsonType: !!str "null"]}, c: {anyOf: [bsonType: int,
+            bsonType: !!str "null"]}}}, nullAndMissing: {bsonType: object, required: [
+        _id], additionalProperties: false, properties: {_id: {bsonType: int}, n: {
+          anyOf: [bsonType: int, bsonType: !!str "null"]}}}, baz: {bsonType: object,
+      required: [_id, a], additionalProperties: false, properties: {_id: {bsonType: int},
+        a: {bsonType: object, required: [a, b], additionalProperties: false, properties: {
+            a: {anyOf: [bsonType: int, bsonType: !!str "null"]}, b: {anyOf: [bsonType: int,
+                bsonType: !!str "null"]}}}}}, baz2: {bsonType: object, required: [
+        _id, a, doc], additionalProperties: false, properties: {_id: {bsonType: int},
+        a: {bsonType: int}, doc: {bsonType: object, required: [], properties: {a: {
+              bsonType: string}, b: {bsonType: string}}}}}, numerics: {bsonType: object,
+      required: [_id, a], additionalProperties: false, properties: {_id: {bsonType: int},
+        a: {anyOf: [bsonType: int, bsonType: double, bsonType: decimal]}}}, dupes: {
+      bsonType: object, required: [_id, a], additionalProperties: false, properties: {
+        _id: {bsonType: int}, a: {bsonType: int}}}, arr: {bsonType: object, required: [
+        _id, a], additionalProperties: false, properties: {a: {bsonType: array}}},
+    docs: {bsonType: object, required: [_id], additionalProperties: false, properties: {
+        _id: {bsonType: int}, d: {anyOf: [bsonType: !!str "null", {bsonType: object,
+              required: [], additionalProperties: false, properties: {a: {anyOf: [
+                    bsonType: int, bsonType: !!str "null"]}}}]}}}, poly: {bsonType: object,
+      required: [_id, a], additionalProperties: false, properties: {a: {anyOf: [bsonType: bool,
+            bsonType: string]}}}}}
 
 tests:
-  - description: GROUP BY with empty input outputs empty
-    query: "SELECT * FROM [] AS arr GROUP BY NULL AS n"
-    current_db: test
-    result: []
+- description: GROUP BY with empty input outputs empty
+  query: SELECT * FROM [] AS arr GROUP BY NULL AS n
+  current_db: test
+  result: []
 
-  - description: GROUP BY NULL creates only one group
-    query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n"
-    current_db: foo
-    result:
-      - { "": { "n": null } }
+- description: GROUP BY NULL creates only one group
+  query: SELECT * FROM foo.bar AS bar GROUP BY NULL AS n
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          n: {bsonType: 'null'}
+        required: [n]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: GROUP BY 1 creates only one group
+  query: SELECT * FROM foo.bar AS bar GROUP BY 1 AS n
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          n: {bsonType: int}
+        required: [n]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: GROUP BY hello creates only one group
+  query: SELECT * FROM foo.bar AS bar GROUP BY 'hello' AS n
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          n: {bsonType: string}
+        required: [n]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: GROUP BY MISSING converts MISSING to NULL; NULL is not DISTINCT from
+    NULL, but is distinct from non-null values
+  query: SELECT * FROM foo.nullAndMissing AS a GROUP BY a.n AS n
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          n:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+        required: [n]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: GROUP BY keys may be table-qualified
+  query: SELECT * FROM foo.baz AS a GROUP by a.a.a AS a
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+        required: [a]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: qualified top-level field reference keys can be referenced by qualified
+    name
+  query: "SELECT VALUE {'a': bar.a} FROM foo.bar AS bar GROUP BY bar.a"
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+        required: [a]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: qualified top-level field reference keys can be referenced by unqualified
+    name
+  query: "SELECT VALUE {'a': a} FROM foo.bar AS bar GROUP BY bar.a"
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+        required: [a]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: unqualified top-level field reference keys can be referenced by qualified
+    name
+  query: "SELECT VALUE{'a': bar.a} FROM foo.bar AS bar GROUP BY a"
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+        required: [a]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: unqualified top-level field reference keys can be referenced by unqualified
+    name
+  query: "SELECT VALUE {'a': a} FROM foo.bar AS bar GROUP BY a"
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+        required: [a]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: GROUP BY arbitrary expression
+  query: SELECT * FROM foo.bar AS bar GROUP BY a + 2 AS ap2
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          ap2: {bsonType: int}
+        required: [ap2]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: single DISTINCT aggregation function correctness test
+  query: SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a)
+    AS suma
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          suma: {bsonType: int}
+          n: {bsonType: 'null'}
+        required: [n, suma]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: correctness test for DISTINCT and non-DISTINCT aggregation over same
+    field
+  query: SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a)
+    AS dsuma, SUM(a) AS suma
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          dsuma: {bsonType: int}
+          n: {bsonType: 'null'}
+          suma: {bsonType: int}
+        required: [dsuma, n, suma]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: multi-DISTINCT aggregation function correctness test
+  query: "SELECT VALUE {'suma': suma, 'countc': countc} FROM foo.bar AS bar GROUP
+    BY NULL AS n AGGREGATE SUM(DISTINCT a) AS suma, COUNT(DISTINCT c) AS countc"
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          suma: {bsonType: int}
+          countc: {bsonType: int}
+        required: [countc, suma]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: multi-item group key correctness test
+  query: SELECT * FROM foo.multi AS multi GROUP BY a AS a, b AS b AGGREGATE SUM(c)
+    AS sumc
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          sumc: {bsonType: int}
+          b:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+          a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+        required: [a, b, sumc]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: multi-item group key with HAVING correctness test
+  query: SELECT * FROM foo.multi AS multi GROUP BY a AS a, b AS b AGGREGATE SUM(c)
+    AS sumc HAVING a IS NOT NULL AND a != 1 AND sumc != 4
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          b: {bsonType: int}
+          a: {bsonType: int}
+          sumc: {bsonType: int}
+        required: [a, b, sumc]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: HAVING without GROUP BY works as a WHERE clause but happens after the
+    WHERE clause
+  query: SELECT * FROM foo.bar AS bar WHERE a < 15 HAVING a > 5
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      bar:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          c: {bsonType: int}
+          b: {bsonType: int}
+          a: {bsonType: int}
+        required: [_id, a, b, c]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, bar]
+    additionalProperties: false
+- description: ADD_TO_ARRAY correctness test
+  query: SELECT * FROM (SELECT _id, a, b FROM foo.bar AS bar ORDER BY _id) AS arr
+    GROUP BY a AS a AGGREGATE ADD_TO_ARRAY(arr.b) AS garr
+  current_db: foo
+  result:
+  - {'': {a: {$numberInt: '1'}, garr: [$numberInt: '2', $numberInt: '12', $numberInt: '42']}}
+  - {'': {a: {$numberInt: '11'}, garr: [$numberInt: '22']}}
+  - {'': {a: {$numberInt: '111'}, garr: [$numberInt: '142']}}
 
-  - description: GROUP BY 1 creates only one group
-    query: "SELECT * FROM foo.bar AS bar GROUP BY 1 AS n"
-    current_db: foo
-    result:
-      - { "": { "n": { "$numberInt": "1" } } }
+- description: ADD_TO_ARRAY DISTINCT correctness test (equivalent to ADD_TO_SET)
+  query: SELECT * FROM (SELECT _id, a FROM foo.bar AS bar ORDER BY _id) AS arr GROUP
+    BY a AS a AGGREGATE ADD_TO_ARRAY(DISTINCT a) AS garr
+  current_db: foo
+  result:
+  - {'': {a: {$numberInt: '1'}, garr: [$numberInt: '1']}}
+  - {'': {a: {$numberInt: '11'}, garr: [$numberInt: '11']}}
+  - {'': {a: {$numberInt: '111'}, garr: [$numberInt: '111']}}
 
-  - description: GROUP BY hello creates only one group
-    query: "SELECT * FROM foo.bar AS bar GROUP BY 'hello' AS n"
-    current_db: foo
-    result:
-      - { "": { "n": "hello" } }
+- description: ADD_TO_SET keeps first element seen of a duplicate group (resulting
+    in DECIMAL)
+  query: "SELECT VALUE {'gset' : gset} FROM (SELECT * FROM foo.numerics AS numerics
+    ORDER BY _id ASC) AS _numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
+  current_db: foo
+  result:
+  - {'': {gset: [$numberDecimal: '3.0']}}
 
-  - description: GROUP BY MISSING converts MISSING to NULL; NULL is not DISTINCT from NULL, but is distinct from non-null values
-    query: "SELECT * FROM foo.nullAndMissing AS a GROUP BY a.n AS n"
-    current_db: foo
-    result:
-      - { "": { "n": null } }
-      - { "": { "n": { "$numberInt": "1" } } }
+- description: ADD_TO_SET keeps first element seen of a duplicate group (resulting
+    in INT)
+  query: "SELECT VALUE {'gset': gset} FROM (SELECT * FROM foo.numerics AS numerics
+    ORDER BY _id DESC) AS `numeric` GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS
+    gset"
+  current_db: foo
+  result:
+  - {'': {gset: [$numberInt: '3']}}
 
-  - description: GROUP BY keys may be table-qualified
-    query: "SELECT * FROM foo.baz AS a GROUP by a.a.a AS a"
-    current_db: foo
-    result:
-      - { "": { "a": { "$numberInt": "1" } } }
-      - { "": { "a": { "$numberInt": "2" } } }
-      - { "": { "a": null } }
+- description: ADD_TO_SET correctness test
+  query: SELECT * FROM (SELECT _id, a FROM foo.baz AS baz ORDER BY _id) AS arr GROUP
+    BY a.a AS a AGGREGATE ADD_TO_SET(a.a) AS gset
+  current_db: foo
+  result:
+  - {'': {a: {$numberInt: '1'}, gset: [$numberInt: '1']}}
+  - {'': {a: {$numberInt: '2'}, gset: [$numberInt: '2']}}
+  - {'': {a: null, gset: [null]}}
 
-  - description: qualified top-level field reference keys can be referenced by qualified name
-    query: "SELECT VALUE {'a': bar.a} FROM foo.bar AS bar GROUP BY bar.a"
-    current_db: foo
-    result:
-      - { "": { "a": { "$numberInt": "1" } } }
-      - { "": { "a": { "$numberInt": "11" } } }
-      - { "": { "a": { "$numberInt": "111" } } }
+- description: AVG correctness test
+  query: SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE AVG(a.b) AS gavg
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          gavg:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: double}
+          a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+        required: [a, gavg]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: COUNT single column correctness test -- ignores nullish values
+  query: SELECT * FROM foo.multi AS m GROUP BY a AS a AGGREGATE COUNT(b) AS gcount
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          gcount: {bsonType: int}
+          a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+        required: [a, gcount]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: COUNT distinct single column correctness test -- ignores nullish values
+  query: SELECT * FROM foo.multi AS m GROUP BY a AS a AGGREGATE COUNT(DISTINCT b)
+    AS gcount
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          gcount: {bsonType: int}
+          a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+        required: [a, gcount]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: COUNT single document column -- only counts values with at least one
+    non-nullish field
+  query: SELECT * FROM foo.docs AS d GROUP BY NULL AS n AGGREGATE COUNT(d) AS gcount
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          gcount: {bsonType: int}
+          n: {bsonType: 'null'}
+        required: [gcount, n]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: COUNT multi column correctness test -- only counts rows with at least
+    one non-nullish value
+  query: SELECT * FROM foo.multi AS m GROUP BY a AS a AGGREGATE COUNT(b, c) AS gcount
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+          gcount: {bsonType: int}
+        required: [a, gcount]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: COUNT distinct multi column correctness test -- only counts rows with
+    at least one non-nullish value
+  query: SELECT * FROM foo.multi AS m GROUP BY a AS a AGGREGATE COUNT(DISTINCT b,
+    c) AS gcount
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+          gcount: {bsonType: int}
+        required: [a, gcount]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: COUNT(*) correctness test unconditionally count rows
+  query: SELECT * FROM (SELECT a, b FROM foo.multi AS m) AS arr GROUP BY a AS a AGGREGATE
+    COUNT(*) AS gcount
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+          gcount: {bsonType: int}
+        required: [a, gcount]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: COUNT(DISTINCT *) correctness test unconditionally count distinct rows
+  query: SELECT * FROM (SELECT a, b FROM foo.multi AS m) AS arr GROUP BY a AS a AGGREGATE
+    COUNT(DISTINCT *) AS gcount
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+          gcount: {bsonType: int}
+        required: [a, gcount]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: COUNT(MISSING) and COUNT(NULL) skip MISSING and NULL values
+  query: SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE COUNT(a.a) AS gcounta,
+    COUNT(NULL) AS gcountn
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+          gcounta: {bsonType: int}
+          gcountn: {bsonType: int}
+        required: [a, gcounta, gcountn]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: FIRST correctness test
+  query: SELECT * FROM (SELECT _id, a, b FROM foo.bar AS bar ORDER BY _id) AS arr
+    GROUP BY a AS a AGGREGATE FIRST(arr.b) AS gfirst
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+          gfirst: {bsonType: int}
+        required: [a, gfirst]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: LAST correctness test
+  query: SELECT * FROM (SELECT _id, a, b FROM foo.bar AS bar ORDER BY _id) AS arr
+    GROUP BY a AS a AGGREGATE LAST(arr.b) AS glast
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+          glast: {bsonType: int}
+        required: [a, glast]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: LAST DISTINCT correctness test
+  query: SELECT glast FROM (SELECT _id, a FROM foo.dupes AS dupes ORDER BY _id) AS
+    arr GROUP BY NULL AS _ AGGREGATE LAST(DISTINCT arr.a) AS glast
+  skip_reason: SQL-621
+  current_db: foo
+  result:
+  - {'': {glast: {$numberInt: '2'}}}
 
-  - description: qualified top-level field reference keys can be referenced by unqualified name
-    query: "SELECT VALUE {'a': a} FROM foo.bar AS bar GROUP BY bar.a"
-    current_db: foo
-    result:
-      - { "": { "a": { "$numberInt": "1" } } }
-      - { "": { "a": { "$numberInt": "11" } } }
-      - { "": { "a": { "$numberInt": "111" } } }
+- description: MAX correctness test
+  query: SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MAX(b) AS gmax
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+          gmax: {bsonType: int}
+        required: [a, gmax]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: MERGE_DOCUMENTS correctness test
+  query: SELECT * FROM (SELECT _id, a, doc FROM foo.baz2 AS baz2 ORDER BY _id) AS
+    arr GROUP BY a AS a AGGREGATE MERGE_DOCUMENTS(doc) AS gmerge
+  current_db: foo
+  result:
+  - {'': {a: {$numberInt: '1'}, gmerge: {a: a, b: b}}}
+  - {'': {a: {$numberInt: '2'}, gmerge: {a: d}}}
 
-  - description: unqualified top-level field reference keys can be referenced by qualified name
-    query: "SELECT VALUE{'a': bar.a} FROM foo.bar AS bar GROUP BY a"
-    current_db: foo
-    result:
-      - { "": { "a": { "$numberInt": "1" } } }
-      - { "": { "a": { "$numberInt": "11" } } }
-      - { "": { "a": { "$numberInt": "111" } } }
+- description: MIN correctness test
+  query: SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MIN(b) AS gmin
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+          gmin: {bsonType: int}
+        required: [a, gmin]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: STDDEV_POP correctness test
+  query: SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE STDDEV_POP(b) AS gstdp
+  current_db: foo
+  result:
+  - {'': {a: {$numberInt: '1'}, gstdp: {$numberDouble: '16.99673171197595'}}}
+  - {'': {a: {$numberInt: '11'}, gstdp: {$numberDouble: '0'}}}
+  - {'': {a: {$numberInt: '111'}, gstdp: {$numberDouble: '0'}}}
 
-  - description: unqualified top-level field reference keys can be referenced by unqualified name
-    query: "SELECT VALUE {'a': a} FROM foo.bar AS bar GROUP BY a"
-    current_db: foo
-    result:
-      - { "": { "a": { "$numberInt": "1" } } }
-      - { "": { "a": { "$numberInt": "11" } } }
-      - { "": { "a": { "$numberInt": "111" } } }
-
-  - description: GROUP BY arbitrary expression
-    query: "SELECT * FROM foo.bar AS bar GROUP BY a + 2 AS ap2"
-    current_db: foo
-    result:
-      - { "": { "ap2": { "$numberInt": "3" } } }
-      - { "": { "ap2": { "$numberInt": "13" } } }
-      - { "": { "ap2": { "$numberInt": "113" } } }
-
-  - description: single DISTINCT aggregation function correctness test
-    query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS suma"
-    current_db: foo
-    result:
-      - { "": { "n": null, "suma": { "$numberInt": "123" } } }
-
-  - description: correctness test for DISTINCT and non-DISTINCT aggregation over same field
-    query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS dsuma, SUM(a) AS suma"
-    current_db: foo
-    result:
-      - {
-          "":
-            {
-              "n": null,
-              "dsuma": { "$numberInt": "123" },
-              "suma": { "$numberInt": "125" },
-            },
-        }
-
-  - description: multi-DISTINCT aggregation function correctness test
-    query: "SELECT VALUE {'suma': suma, 'countc': countc} FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS suma, COUNT(DISTINCT c) AS countc"
-    current_db: foo
-    result:
-      - {
-          "":
-            {
-              "suma": { "$numberInt": "123" },
-              "countc": { "$numberInt": "2" },
-            },
-        }
-
-  - description: multi-item group key correctness test
-    query: "SELECT * FROM foo.multi AS multi GROUP BY a AS a, b AS b AGGREGATE SUM(c) AS sumc"
-    current_db: foo
-    result:
-      - {
-          "":
-            {
-              "a": { "$numberInt": "1" },
-              "b": { "$numberInt": "2" },
-              "sumc": { "$numberInt": "6" },
-            },
-        }
-      - {
-          "":
-            {
-              "a": { "$numberInt": "2" },
-              "b": { "$numberInt": "2" },
-              "sumc": { "$numberInt": "6" },
-            },
-        }
-      - {
-          "":
-            {
-              "a": { "$numberInt": "2" },
-              "b": { "$numberInt": "3" },
-              "sumc": { "$numberInt": "4" },
-            },
-        }
-      - {
-          "":
-            {
-              "a": null,
-              "b": null,
-              "sumc": 0,
-            },
-        }
-
-  - description: multi-item group key with HAVING correctness test
-    query: "SELECT * FROM foo.multi AS multi GROUP BY a AS a, b AS b AGGREGATE SUM(c) AS sumc HAVING a IS NOT NULL AND a != 1 AND sumc != 4"
-    current_db: foo
-    result:
-      - {
-          "":
-            {
-              "a": { "$numberInt": "2" },
-              "b": { "$numberInt": "2" },
-              "sumc": { "$numberInt": "6" },
-            },
-        }
-
-  - description: HAVING without GROUP BY works as a WHERE clause but happens after the WHERE clause
-    query: "SELECT * FROM foo.bar AS bar WHERE a < 15 HAVING a > 5"
-    current_db: foo
-    result:
-      - {
-          "bar":
-            {
-              "_id": { "$numberInt": "3" },
-              "a": { "$numberInt": "11" },
-              "b": { "$numberInt": "22" },
-              "c": { "$numberInt": "3" },
-            },
-        }
-
-  - description: ADD_TO_ARRAY correctness test
-    query: "SELECT * FROM (SELECT _id, a, b FROM foo.bar AS bar ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE ADD_TO_ARRAY(arr.b) AS garr"
-    current_db: foo
-    result:
-      - {
-          "":
-            {
-              "a": { "$numberInt": "1" },
-              "garr":
-                [
-                  { "$numberInt": "2" },
-                  { "$numberInt": "12" },
-                  { "$numberInt": "42" },
-                ],
-            },
-        }
-      - {
-          "": { "a": { "$numberInt": "11" }, "garr": [{ "$numberInt": "22" }] },
-        }
-      - {
-          "":
-            { "a": { "$numberInt": "111" }, "garr": [{ "$numberInt": "142" }] },
-        }
-
-  - description: ADD_TO_ARRAY DISTINCT correctness test (equivalent to ADD_TO_SET)
-    query: "SELECT * FROM (SELECT _id, a FROM foo.bar AS bar ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE ADD_TO_ARRAY(DISTINCT a) AS garr"
-    current_db: foo
-    result:
-      - { "": { "a": { "$numberInt": "1" }, "garr": [{ "$numberInt": "1" }] } }
-      - {
-          "": { "a": { "$numberInt": "11" }, "garr": [{ "$numberInt": "11" }] },
-        }
-      - {
-          "":
-            { "a": { "$numberInt": "111" }, "garr": [{ "$numberInt": "111" }] },
-        }
-
-  - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in DECIMAL)
-    query: "SELECT VALUE {'gset' : gset} FROM (SELECT * FROM foo.numerics AS numerics ORDER BY _id ASC) AS _numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
-    current_db: foo
-    result:
-      - { "": { "gset": [{ "$numberDecimal": "3.0" }] } }
-
-  - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in INT)
-    query: "SELECT VALUE {'gset': gset} FROM (SELECT * FROM foo.numerics AS numerics ORDER BY _id DESC) AS `numeric` GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
-    current_db: foo
-    result:
-      - { "": { "gset": [{ "$numberInt": "3" }] } }
-
-  - description: ADD_TO_SET correctness test
-    query: "SELECT * FROM (SELECT _id, a FROM foo.baz AS baz ORDER BY _id) AS arr GROUP BY a.a AS a AGGREGATE ADD_TO_SET(a.a) AS gset"
-    current_db: foo
-    result:
-      - { "": { "a": { "$numberInt": "1" }, "gset": [{ "$numberInt": "1" }] } }
-      - { "": { "a": { "$numberInt": "2" }, "gset": [{ "$numberInt": "2" }] } }
-      - { "": { "a": null, "gset": [null] } }
-
-  - description: AVG correctness test
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE AVG(a.b) AS gavg"
-    current_db: foo
-    result:
-      - { "": { "a": { "$numberInt": "1" }, "gavg": { "$numberDouble": "2" } } }
-      - {
-          "":
-            { "a": { "$numberInt": "2" }, "gavg": { "$numberDouble": "2.5" } },
-        }
-      - { "": { "a": null, "gavg": null } }
-
-  - description: COUNT single column correctness test -- ignores nullish values
-    query: "SELECT * FROM foo.multi AS m GROUP BY a AS a AGGREGATE COUNT(b) AS gcount"
-    current_db: foo
-    result:
-      - { "": { "a": 1, "gcount": 2 } }
-      - { "": { "a": 2, "gcount": 3 } }
-      - { "": { "a": null, "gcount": 0 } }
-
-  - description: COUNT distinct single column correctness test -- ignores nullish values
-    query: "SELECT * FROM foo.multi AS m GROUP BY a AS a AGGREGATE COUNT(DISTINCT b) AS gcount"
-    current_db: foo
-    result:
-      - { "": { "a": 1, "gcount": 1 } }
-      - { "": { "a": 2, "gcount": 2 } }
-      - { "": { "a": null, "gcount": 0 } }
-
-  - description: COUNT single document column -- only counts values with at least one non-nullish field
-    query: "SELECT * FROM foo.docs AS d GROUP BY NULL AS n AGGREGATE COUNT(d) AS gcount"
-    current_db: foo
-    result:
-      - { "": { "n": null, "gcount": 2 } }
-
-  - description: COUNT multi column correctness test -- only counts rows with at least one non-nullish value
-    query: "SELECT * FROM foo.multi AS m GROUP BY a AS a AGGREGATE COUNT(b, c) AS gcount"
-    current_db: foo
-    result:
-      - { "": { "a": 1, "gcount": 2 } }
-      - { "": { "a": 2, "gcount": 3 } }
-      - { "": { "a": null, "gcount": 0 } }
-
-  - description: COUNT distinct multi column correctness test -- only counts rows with at least one non-nullish value
-    query: "SELECT * FROM foo.multi AS m GROUP BY a AS a AGGREGATE COUNT(DISTINCT b, c) AS gcount"
-    current_db: foo
-    result:
-      - { "": { "a": 1, "gcount": 2 } }
-      - { "": { "a": 2, "gcount": 2 } }
-      - { "": { "a": null, "gcount": 0 } }
-
-  - description: COUNT(*) correctness test unconditionally count rows
-    query: "SELECT * FROM (SELECT a, b FROM foo.multi AS m) AS arr GROUP BY a AS a AGGREGATE COUNT(*) AS gcount"
-    current_db: foo
-    result:
-      - { "": { "a": 1, "gcount": 2 } }
-      - { "": { "a": 2, "gcount": 3 } }
-      - { "": { "a": null, "gcount": 1 } }
-
-  - description: COUNT(DISTINCT *) correctness test unconditionally count distinct rows
-    query: "SELECT * FROM (SELECT a, b FROM foo.multi AS m) AS arr GROUP BY a AS a AGGREGATE COUNT(DISTINCT *) AS gcount"
-    current_db: foo
-    result:
-      - { "": { "a": 1, "gcount": 1 } }
-      - { "": { "a": 2, "gcount": 2 } }
-      - { "": { "a": null, "gcount": 1 } }
-
-  - description: COUNT(MISSING) and COUNT(NULL) skip MISSING and NULL values
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE COUNT(a.a) AS gcounta, COUNT(NULL) AS gcountn"
-    current_db: foo
-    result:
-      - {
-          "":
-            {
-              "a": { "$numberInt": "1" },
-              "gcounta": { "$numberInt": "1" },
-              "gcountn": { "$numberInt": "0" },
-            },
-        }
-      - {
-          "":
-            {
-              "a": { "$numberInt": "2" },
-              "gcounta": { "$numberInt": "2" },
-              "gcountn": { "$numberInt": "0" },
-            },
-        }
-      - {
-          "":
-            {
-              "a": null,
-              "gcounta": { "$numberInt": "0" },
-              "gcountn": { "$numberInt": "0" },
-            },
-        }
-
-  - description: FIRST correctness test
-    query: "SELECT * FROM (SELECT _id, a, b FROM foo.bar AS bar ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE FIRST(arr.b) AS gfirst"
-    current_db: foo
-    result:
-      - { "": { "a": { "$numberInt": "1" }, "gfirst": { "$numberInt": "2" } } }
-      - {
-          "": { "a": { "$numberInt": "11" }, "gfirst": { "$numberInt": "22" } },
-        }
-      - {
-          "":
-            { "a": { "$numberInt": "111" }, "gfirst": { "$numberInt": "142" } },
-        }
-
-  - description: LAST correctness test
-    query: "SELECT * FROM (SELECT _id, a, b FROM foo.bar AS bar ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE LAST(arr.b) AS glast"
-    current_db: foo
-    result:
-      - { "": { "a": { "$numberInt": "1" }, "glast": { "$numberInt": "42" } } }
-      - { "": { "a": { "$numberInt": "11" }, "glast": { "$numberInt": "22" } } }
-      - {
-          "":
-            { "a": { "$numberInt": "111" }, "glast": { "$numberInt": "142" } },
-        }
-  - description: LAST DISTINCT correctness test
-    query: "SELECT glast FROM (SELECT _id, a FROM foo.dupes AS dupes ORDER BY _id) AS arr GROUP BY NULL AS _ AGGREGATE LAST(DISTINCT arr.a) AS glast"
-    skip_reason: "SQL-621"
-    current_db: foo
-    result:
-      - { "": { "glast": { "$numberInt": "2" } } }
-
-  - description: MAX correctness test
-    query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MAX(b) AS gmax"
-    current_db: foo
-    result:
-      - { "": { "a": { "$numberInt": "1" }, "gmax": { "$numberInt": "42" } } }
-      - { "": { "a": { "$numberInt": "11" }, "gmax": { "$numberInt": "22" } } }
-      - {
-          "": { "a": { "$numberInt": "111" }, "gmax": { "$numberInt": "142" } },
-        }
-
-  - description: MERGE_DOCUMENTS correctness test
-    query: "SELECT * FROM (SELECT _id, a, doc FROM foo.baz2 AS baz2 ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE MERGE_DOCUMENTS(doc) AS gmerge"
-    current_db: foo
-    result:
-      - { "": { "a": { "$numberInt": "1" }, "gmerge": { "a": "a", "b": "b" } } }
-      - { "": { "a": { "$numberInt": "2" }, "gmerge": { "a": "d" } } }
-
-  - description: MIN correctness test
-    query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MIN(b) AS gmin"
-    current_db: foo
-    result:
-      - { "": { "a": { "$numberInt": "1" }, "gmin": { "$numberInt": "2" } } }
-      - { "": { "a": { "$numberInt": "11" }, "gmin": { "$numberInt": "22" } } }
-      - {
-          "": { "a": { "$numberInt": "111" }, "gmin": { "$numberInt": "142" } },
-        }
-
-  - description: STDDEV_POP correctness test
-    query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE STDDEV_POP(b) AS gstdp"
-    current_db: foo
-    result:
-      - {
-          "":
-            {
-              "a": { "$numberInt": "1" },
-              "gstdp": { "$numberDouble": "16.99673171197595" },
-            },
-        }
-      - {
-          "":
-            { "a": { "$numberInt": "11" }, "gstdp": { "$numberDouble": "0" } },
-        }
-      - {
-          "":
-            { "a": { "$numberInt": "111" }, "gstdp": { "$numberDouble": "0" } },
-        }
-
-  - description: STDDEV_SAMP correctness test
-    query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE STDDEV_SAMP(b) as gstds"
-    current_db: foo
-    result:
-      - {
-          "":
-            {
-              "a": { "$numberInt": "1" },
-              "gstds": { "$numberDouble": "20.81665999466133" },
-            },
-        }
-      - { "": { "a": { "$numberInt": "11" }, "gstds": null } }
-      - { "": { "a": { "$numberInt": "111" }, "gstds": null } }
-  - description: SUM correctness test
-    query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE SUM(b) AS gsum"
-    current_db: foo
-    result:
-      - { "": { "a": { "$numberInt": "1" }, "gsum": { "$numberInt": "56" } } }
-      - { "": { "a": { "$numberInt": "11" }, "gsum": { "$numberInt": "22" } } }
-      - {
-          "": { "a": { "$numberInt": "111" }, "gsum": { "$numberInt": "142" } },
-        }
+- description: STDDEV_SAMP correctness test
+  query: SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE STDDEV_SAMP(b) as
+    gstds
+  current_db: foo
+  result:
+  - {'': {a: {$numberInt: '1'}, gstds: {$numberDouble: '20.81665999466133'}}}
+  - {'': {a: {$numberInt: '11'}, gstds: null}}
+  - {'': {a: {$numberInt: '111'}, gstds: null}}
+- description: SUM correctness test
+  query: SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE SUM(b) AS gsum
+  current_db: foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          gsum: {bsonType: int}
+          a: {bsonType: int}
+        required: [a, gsum]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false

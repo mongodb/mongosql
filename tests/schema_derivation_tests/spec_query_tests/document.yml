@@ -1,106 +1,251 @@
-catalog_schema:
-  {
-    'foo': {
-      'bar': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
+%YAML 1.2
+---
+catalog_schema: {foo: {bar: {bsonType: object, additionalProperties: true}}}
 
 tests:
-  - description: SELECT empty document literal
-    query: "SELECT VALUE {'_1': {}} FROM [{}] AS _dual"
-    current_db: test
-    result:
-      - {'': {'_1': {}}}
+- description: SELECT empty document literal
+  query: "SELECT VALUE {'_1': {}} FROM [{}] AS _dual"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          _1:
+            bsonType: object
+            properties: {}
+            additionalProperties: false
+        required: [_1]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: SELECT VALUE empty document literal
+  query: SELECT VALUE {} FROM [{}] AS _dual
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties: {}
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: SELECT non-empty document literals
+  query: "SELECT VALUE {'_1': {'a': 1}, '_2': {'b': 2, 'c': 3}} FROM [{}] AS _dual"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          _2:
+            bsonType: object
+            properties:
+              b: {bsonType: int}
+              c: {bsonType: int}
+            required: [b, c]
+            additionalProperties: false
+          _1:
+            bsonType: object
+            properties:
+              a: {bsonType: int}
+            required: [a]
+            additionalProperties: false
+        required: [_1, _2]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: SELECT VALUE non-empty document literal
+  query: "SELECT VALUE {'a': 1, 'b': 2, 'c': 3} FROM [{}] AS _dual"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+          b: {bsonType: int}
+          c: {bsonType: int}
+        required: [a, b, c]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: Dot notation field access from literal document
+  query: "SELECT VALUE {'a': {'a': 1, 'b': 2}.a} FROM [{}] AS _dual"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+        required: [a]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: Dot notation one-level field access
+  query: "SELECT VALUE {'b': a.b} FROM [{'a': {'b': 100}}] AS arr"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          b: {bsonType: int}
+        required: [b]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: Dot notation multi-level field access
+  query: "SELECT VALUE {'c': a.b.c} FROM [{'a': {'b': {'c': 100}}}] AS arr"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          c: {bsonType: int}
+        required: [c]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: Dot notation field access from expression that evaluates to non-document
+    at runtime
+  current_db: foo
+  query: "SELECT VALUE {'_id': _id, 'a': a, 'b': a.b} FROM bar AS bar"
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          b: {bsonType: int}
+          _id: {bsonType: int}
+          a:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+            - bsonType: object
+              properties:
+                b: {bsonType: int}
+              required: [b]
+              additionalProperties: false
+        required: [_id]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: Dot notation SELECT field called star
+  query: "SELECT VALUE {'*': a.`*`} FROM [{'a': {'*': 100, 'b': 10, 'c': 1}}] AS arr"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          '*': {bsonType: int}
+        required: ['*']
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: Bracket notation field access from literal document
+  query: "SELECT VALUE {'a': {'a': 1, 'b': 2}['a']} FROM [{}] AS _dual"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+        required: [a]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: Bracket notation one-level field access
+  query: "SELECT VALUE {'b': a['b']} FROM [{'a': {'b': 100}}] AS arr"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          b: {bsonType: int}
+        required: [b]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: Bracket notation multi-level field access
+  query: "SELECT VALUE {'c': a['b']['c']} FROM [{'a': {'b': {'c': 100}}}] AS arr"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          c: {bsonType: int}
+        required: [c]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: Bracket notation SELECT field called star
+  query: "SELECT VALUE {'*': a['*']} FROM [{'a': {'*': 100, 'b': 10, 'c': 1}}] AS
+    arr"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          '*': {bsonType: int}
+        required: ['*']
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: Bracket notation CAST to STRING expression
+  query: "SELECT {'_1': a[CAST(b AS STRING)]} FROM [{'a': {'c': 100}, 'b': 'c'}] AS
+    arr"
+  skip_reason: 'SQL-673: add codegen support for ComputedFieldAccess'
+  current_db: test
+  result:
+  - {'': {_1: 100}}
 
-  - description: SELECT VALUE empty document literal
-    query: "SELECT VALUE {} FROM [{}] AS _dual"
-    current_db: test
-    result:
-      - {'': {}}
-
-  - description: SELECT non-empty document literals
-    query: "SELECT VALUE {'_1': {'a': 1}, '_2': {'b': 2, 'c': 3}} FROM [{}] AS _dual"
-    current_db: test
-    result:
-      - {'': {'_1': {'a': 1}, '_2': {'b': 2, 'c': 3}}}
-
-  - description: SELECT VALUE non-empty document literal
-    query: "SELECT VALUE {'a': 1, 'b': 2, 'c': 3} FROM [{}] AS _dual"
-    current_db: test
-    result:
-      - {'': {'a': 1, 'b': 2, 'c': 3}}
-
-  - description: Dot notation field access from literal document
-    query: "SELECT VALUE {'a': {'a': 1, 'b': 2}.a} FROM [{}] AS _dual"
-    current_db: test
-    result:
-      - {'': {'a': 1}}
-
-  - description: Dot notation one-level field access
-    query: "SELECT VALUE {'b': a.b} FROM [{'a': {'b': 100}}] AS arr"
-    current_db: test
-    result:
-      - {'': {'b': 100}}
-
-  - description: Dot notation multi-level field access
-    query: "SELECT VALUE {'c': a.b.c} FROM [{'a': {'b': {'c': 100}}}] AS arr"
-    current_db: test
-    result:
-      - {'': {'c': 100}}
-
-  - description: Dot notation field access from expression that evaluates to non-document at runtime
-    current_db: foo
-    query: "SELECT VALUE {'_id': _id, 'a': a, 'b': a.b} FROM bar AS bar"
-    result:
-      - {'': {'_id': 1, 'a': {'b': 1}, 'b': 1}}
-      - {'': {'_id': 2, 'a': {'b': 2}, 'b': 2}}
-      - {'': {'_id': 3, 'a': 3}}
-      - {'': {'_id': 4, 'a': null}}
-      - {'': {'_id': 5}}
-
-  - description: Dot notation SELECT field called star
-    query: "SELECT VALUE {'*': a.`*`} FROM [{'a': {'*': 100, 'b': 10, 'c': 1}}] AS arr"
-    current_db: test
-    result:
-      - {'': {'*': 100}}
-
-  - description: Bracket notation field access from literal document
-    query: "SELECT VALUE {'a': {'a': 1, 'b': 2}['a']} FROM [{}] AS _dual"
-    current_db: test
-    result:
-      - {'': {'a': 1}}
-
-  - description: Bracket notation one-level field access
-    query: "SELECT VALUE {'b': a['b']} FROM [{'a': {'b': 100}}] AS arr"
-    current_db: test
-    result:
-      - {'': {'b': 100}}
-
-  - description: Bracket notation multi-level field access
-    query: "SELECT VALUE {'c': a['b']['c']} FROM [{'a': {'b': {'c': 100}}}] AS arr"
-    current_db: test
-    result:
-      - {'': {'c': 100}}
-
-  - description: Bracket notation SELECT field called star
-    query: "SELECT VALUE {'*': a['*']} FROM [{'a': {'*': 100, 'b': 10, 'c': 1}}] AS arr"
-    current_db: test
-    result:
-      - {'': {'*': 100}}
-
-  - description: Bracket notation CAST to STRING expression
-    query: "SELECT {'_1': a[CAST(b AS STRING)]} FROM [{'a': {'c': 100}, 'b': 'c'}] AS arr"
-    skip_reason: 'SQL-673: add codegen support for ComputedFieldAccess'
-    current_db: test
-    result:
-      - {'': {'_1': 100}}
-
-  - description: Mixed notation field access
-    query: "SELECT VALUE {'d': a.b['c'].d} FROM [{'a': {'b': {'c': {'d': 100}}}}] AS arr"
-    current_db: test
-    result:
-      - {'': {'d': 100}}
-
+- description: Mixed notation field access
+  query: "SELECT VALUE {'d': a.b['c'].d} FROM [{'a': {'b': {'c': {'d': 100}}}}] AS
+    arr"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          d: {bsonType: int}
+        required: [d]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false

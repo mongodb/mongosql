@@ -1,270 +1,473 @@
-catalog_schema:
-  {
-    'foo': {
-      'bar': {
-        'bsonType': "object",
-        'required': [ '_id', 'v' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'v': {
-            'anyOf': [
-              { 'bsonType': "int" },
-              { 'bsonType': !!str "null" }
-            ]
-          }
-        },
-      },
-      'target': {
-        'bsonType': "object",
-        'required': [ '_id', 'a' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'a': {
-            'anyOf': [
-              { 'bsonType': "int" },
-              { 'bsonType': !!str "null" }
-            ]
-          }
-        },
-      }
-    }
-  }
+%YAML 1.2
+---
+catalog_schema: {foo: {bar: {bsonType: object, required: [_id, v], additionalProperties: false,
+      properties: {_id: {bsonType: int}, v: {anyOf: [bsonType: int, bsonType: !!str "null"]}}},
+    target: {bsonType: object, required: [_id, a], additionalProperties: false, properties: {
+        _id: {bsonType: int}, a: {anyOf: [bsonType: int, bsonType: !!str "null"]}}}}}
 
 tests:
-  - description: correctness test for eq ANY Operator without NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v = ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    result:
-      - {'bar': {'_id': 2, 'v': 2}}
-      - {'bar': {'_id': 3, 'v': 3}}
+- description: correctness test for eq ANY Operator without NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v = ANY(SELECT a FROM target AS target WHERE
+    NOT(a IS NULL))
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      bar:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          v: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+    required: [_id, bar]
+    additionalProperties: false
+- description: correctness test for eq ANY Operator with NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v = ANY(SELECT a FROM target AS target)
+  result_set_schema:
+    bsonType: object
+    properties:
+      bar:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          v: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, bar]
+    additionalProperties: false
+- description: correctness test for neq ANY Operator without NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v <> ANY(SELECT a FROM target AS target WHERE
+    NOT(a IS NULL))
+  result_set_schema:
+    bsonType: object
+    properties:
+      bar:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          v: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, bar]
+    additionalProperties: false
+- description: correctness test for neq ANY Operator with NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v <> ANY(SELECT a FROM target)
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      bar:
+        bsonType: object
+        properties:
+          v: {bsonType: int}
+          _id: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+    required: [_id, bar]
+    additionalProperties: false
+- description: correctness test for lt ANY Operator without NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v < ANY(SELECT a FROM target AS target WHERE
+    NOT(a IS NULL))
+  result_set_schema:
+    bsonType: object
+    properties:
+      bar:
+        bsonType: object
+        properties:
+          v: {bsonType: int}
+          _id: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, bar]
+    additionalProperties: false
+- description: correctness test for lt ANY Operator with NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v < ANY(SELECT a FROM target)
+  result_set_schema:
+    bsonType: object
+    properties:
+      bar:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          v: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, bar]
+    additionalProperties: false
+- description: correctness test for lte ANY Operator without NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v <= ANY(SELECT a FROM target AS target WHERE
+    NOT(a IS NULL))
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      bar:
+        bsonType: object
+        properties:
+          v: {bsonType: int}
+          _id: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+    required: [_id, bar]
+    additionalProperties: false
+- description: correctness test for lte ANY Operator with NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v <= ANY(SELECT a FROM target)
+  result_set_schema:
+    bsonType: object
+    properties:
+      bar:
+        bsonType: object
+        properties:
+          v: {bsonType: int}
+          _id: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, bar]
+    additionalProperties: false
+- description: correctness test for gt ANY Operator without NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v > ANY(SELECT a FROM target AS target WHERE
+    NOT(a IS NULL))
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      bar:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          v: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+    required: [_id, bar]
+    additionalProperties: false
+- description: correctness test for gt ANY Operator with NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v > ANY(SELECT a FROM target)
+  result_set_schema:
+    bsonType: object
+    properties:
+      bar:
+        bsonType: object
+        properties:
+          v: {bsonType: int}
+          _id: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, bar]
+    additionalProperties: false
+- description: correctness test for gte ANY Operator without NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v >= ANY(SELECT a FROM target AS target WHERE
+    NOT(a IS NULL))
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      bar:
+        bsonType: object
+        properties:
+          v: {bsonType: int}
+          _id: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+    required: [_id, bar]
+    additionalProperties: false
+- description: correctness test for gte ANY Operator with NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v >= ANY(SELECT a FROM target)
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      bar:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          v: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+    required: [_id, bar]
+    additionalProperties: false
+- description: correctness test for eq ALL Operator without NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target AS target WHERE
+    NOT(a IS NULL))
+  result: []
 
-  - description: correctness test for eq ANY Operator with NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v = ANY(SELECT a FROM target AS target)"
-    result:
-      - {'bar': {'_id': 2, 'v': 2}}
-      - {'bar': {'_id': 3, 'v': 3}}
+- description: correctness test for eq ALL Operator with NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target)
+  result: []
 
-  - description: correctness test for neq ANY Operator without NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v <> ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    result:
-      - {'bar': {'_id': 1, 'v': 1}}
-      - {'bar': {'_id': 2, 'v': 2}}
-      - {'bar': {'_id': 3, 'v': 3}}
-      - {'bar': {'_id': 4, 'v': 4}}
+- description: correctness test for eq ALL Operator with matching result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target AS target WHERE
+    a = 2)
+  result_set_schema:
+    bsonType: object
+    properties:
+      bar:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          v: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, bar]
+    additionalProperties: false
+- description: ALL comparisons are vacuously true when subquery returns no results
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target AS target WHERE
+    false)
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      bar:
+        bsonType: object
+        properties:
+          v:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+          _id: {bsonType: int}
+        required: [_id]
+        additionalProperties: false
+    required: [_id, bar]
+    additionalProperties: false
+- description: ANY comparisons are vacuously false when subquery returns no results
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v = ANY(SELECT a FROM target AS target WHERE
+    false)
+  result: []
 
-  - description: correctness test for neq ANY Operator with NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v <> ANY(SELECT a FROM target)"
-    result:
-      - {'bar': {'_id': 1, 'v': 1}}
-      - {'bar': {'_id': 2, 'v': 2}}
-      - {'bar': {'_id': 3, 'v': 3}}
-      - {'bar': {'_id': 4, 'v': 4}}
+- description: correctness test for neq ALL Operator without NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v <> ALL(SELECT a FROM target AS target WHERE
+    NOT(a IS NULL))
+  result_set_schema:
+    bsonType: object
+    properties:
+      bar:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          v: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, bar]
+    additionalProperties: false
+- description: correctness test for neq ALL Operator with NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v <> ALL(SELECT a FROM target)
+  result: []
 
-  - description: correctness test for lt ANY Operator without NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v < ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    result:
-      - {'bar': {'_id': 1, 'v': 1}}
-      - {'bar': {'_id': 2, 'v': 2}}
+- description: correctness test for lt ALL Operator without NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v < ALL(SELECT a FROM target AS target WHERE
+    NOT(a IS NULL))
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      bar:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          v: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+    required: [_id, bar]
+    additionalProperties: false
+- description: correctness test for lt ALL Operator with NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v < ALL(SELECT a FROM target)
+  result: []
 
-  - description: correctness test for lt ANY Operator with NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v < ANY(SELECT a FROM target)"
-    result:
-      - {'bar': {'_id': 1, 'v': 1}}
-      - {'bar': {'_id': 2, 'v': 2}}
+- description: correctness test for lte ALL Operator without NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v <= ALL(SELECT a FROM target AS target WHERE
+    NOT(a IS NULL))
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      bar:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          v: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+    required: [_id, bar]
+    additionalProperties: false
+- description: correctness test for lte ALL Operator with NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v <= ALL(SELECT a FROM target)
+  result: []
 
-  - description: correctness test for lte ANY Operator without NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v <= ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    result:
-      - {'bar': {'_id': 1, 'v': 1}}
-      - {'bar': {'_id': 2, 'v': 2}}
-      - {'bar': {'_id': 3, 'v': 3}}
+- description: correctness test for gt ALL Operator without NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v > ALL(SELECT a FROM target AS target WHERE
+    NOT(a IS NULL))
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      bar:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          v: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+    required: [_id, bar]
+    additionalProperties: false
+- description: correctness test for gt ALL Operator with NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v > ALL(SELECT a FROM target)
+  result: []
 
-  - description: correctness test for lte ANY Operator with NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v <= ANY(SELECT a FROM target)"
-    result:
-      - {'bar': {'_id': 1, 'v': 1}}
-      - {'bar': {'_id': 2, 'v': 2}}
-      - {'bar': {'_id': 3, 'v': 3}}
+- description: correctness test for gte ALL Operator without NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v >= ALL(SELECT a FROM target AS target WHERE
+    NOT(a IS NULL))
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      bar:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          v: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+    required: [_id, bar]
+    additionalProperties: false
+- description: correctness test for gte ALL Operator with NULL in subquery result
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE v >= ALL(SELECT a FROM target)
+  result: []
 
-  - description: correctness test for gt ANY Operator without NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v > ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    result:
-      - {'bar': {'_id': 3, 'v': 3}}
-      - {'bar': {'_id': 4, 'v': 4}}
-
-  - description: correctness test for gt ANY Operator with NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v > ANY(SELECT a FROM target)"
-    result:
-      - {'bar': {'_id': 3, 'v': 3}}
-      - {'bar': {'_id': 4, 'v': 4}}
-
-  - description: correctness test for gte ANY Operator without NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v >= ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    result:
-      - {'bar': {'_id': 2, 'v': 2}}
-      - {'bar': {'_id': 3, 'v': 3}}
-      - {'bar': {'_id': 4, 'v': 4}}
-
-  - description: correctness test for gte ANY Operator with NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v >= ANY(SELECT a FROM target)"
-    result:
-      - {'bar': {'_id': 2, 'v': 2}}
-      - {'bar': {'_id': 3, 'v': 3}}
-      - {'bar': {'_id': 4, 'v': 4}}
-
-  - description: correctness test for eq ALL Operator without NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    result: []
-
-  - description: correctness test for eq ALL Operator with NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target)"
-    result: []
-
-  - description: correctness test for eq ALL Operator with matching result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target AS target WHERE a = 2)"
-    result:
-      - {'bar': {'_id': 2, 'v': 2}}
-
-  - description: ALL comparisons are vacuously true when subquery returns no results
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target AS target WHERE false)"
-    result:
-      - {'bar': {'_id': 1, 'v': 1}}
-      - {'bar': {'_id': 2, 'v': 2}}
-      - {'bar': {'_id': 3, 'v': 3}}
-      - {'bar': {'_id': 4, 'v': 4}}
-      - {'bar': {'_id': 5, 'v': null}}
-      - {'bar': {'_id': 6}}
-
-  - description: ANY comparisons are vacuously false when subquery returns no results
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v = ANY(SELECT a FROM target AS target WHERE false)"
-    result: []
-
-  - description: correctness test for neq ALL Operator without NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v <> ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    result:
-      - {'bar': {'_id': 1, 'v': 1}}
-      - {'bar': {'_id': 4, 'v': 4}}
-
-  - description: correctness test for neq ALL Operator with NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v <> ALL(SELECT a FROM target)"
-    result: []
-
-  - description: correctness test for lt ALL Operator without NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v < ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    result:
-      - {'bar': {'_id': 1, 'v': 1}}
-
-  - description: correctness test for lt ALL Operator with NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v < ALL(SELECT a FROM target)"
-    result: []
-
-  - description: correctness test for lte ALL Operator without NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v <= ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    result:
-      - {'bar': {'_id': 1, 'v': 1}}
-      - {'bar': {'_id': 2, 'v': 2}}
-
-  - description: correctness test for lte ALL Operator with NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v <= ALL(SELECT a FROM target)"
-    result: []
-
-  - description: correctness test for gt ALL Operator without NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v > ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    result:
-      - {'bar': {'_id': 4, 'v': 4}}
-
-  - description: correctness test for gt ALL Operator with NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v > ALL(SELECT a FROM target)"
-    result: []
-
-  - description: correctness test for gte ALL Operator without NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v >= ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    result:
-      - {'bar': {'_id': 3, 'v': 3}}
-      - {'bar': {'_id': 4, 'v': 4}}
-
-  - description: correctness test for gte ALL Operator with NULL in subquery result
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v >= ALL(SELECT a FROM target)"
-    result: []
-
-  - description: ANY subquery comparison in SELECT clause
-    current_db: foo
-    query: "SELECT VALUE {'v': v, 'x': bar.v = ANY (SELECT a FROM target AS target)} FROM bar AS bar"
-    result:
-      - {'': {'v': 1, 'x': null}}
-      - {'': {'v': 2, 'x': true}}
-      - {'': {'v': 3, 'x': true}}
-      - {'': {'v': 4, 'x': null}}
-      - {'': {'v': null, 'x': null}}
-      - {'': {'x': null}}
-
-
-  - description: ALL subquery comparison in SELECT clause
-    current_db: foo
-    query: "SELECT VALUE {'v': v, 'x': bar.v = ALL (SELECT a FROM target AS target WHERE NOT(a IS NULL))} FROM bar AS bar"
-    result:
-      - {'': {'v': 1, 'x': false}}
-      - {'': {'v': 2, 'x': false}}
-      - {'': {'v': 3, 'x': false}}
-      - {'': {'v': 4, 'x': false}}
-      - {'': {'v': null, 'x': null}}
-      - {'': {'x': null}}
-
-  - description: correctness test for EXISTS Operator
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE EXISTS(SELECT * FROM target AS target WHERE v = a)"
-    result:
-      - {'bar': {'_id': 2, 'v': 2}}
-      - {'bar': {'_id': 3, 'v': 3}}
-
-  - description: correctness test for NOT EXISTS Operator
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE NOT EXISTS(SELECT * FROM target AS target WHERE v = a)"
-    result:
-      - {'bar': {'_id': 1, 'v': 1}}
-      - {'bar': {'_id': 4, 'v': 4}}
-      - {'bar': {'_id': 5, 'v': null}}
-      - {'bar': {'_id': 6}}
-
-  - description: EXISTS expression in SELECT clause
-    current_db: foo
-    query: "SELECT VALUE {'v': v, 'x': EXISTS(SELECT * FROM target AS target WHERE target.a = bar.v)} FROM bar AS bar"
-    result:
-      - {'': {'v': 1, 'x': false}}
-      - {'': {'v': 2, 'x': true}}
-      - {'': {'v': 3, 'x': true}}
-      - {'': {'v': 4, 'x': false}}
-      - {'': {'v': null, 'x': false}}
-      - {'': {'x': false}}
+- description: ANY subquery comparison in SELECT clause
+  current_db: foo
+  query: "SELECT VALUE {'v': v, 'x': bar.v = ANY (SELECT a FROM target AS target)}
+    FROM bar AS bar"
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          v:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+          x:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: bool}
+        required: [x]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: ALL subquery comparison in SELECT clause
+  current_db: foo
+  query: "SELECT VALUE {'v': v, 'x': bar.v = ALL (SELECT a FROM target AS target WHERE
+    NOT(a IS NULL))} FROM bar AS bar"
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          v:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+          x:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: bool}
+        required: [x]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: correctness test for EXISTS Operator
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE EXISTS(SELECT * FROM target AS target WHERE
+    v = a)
+  result_set_schema:
+    bsonType: object
+    properties:
+      bar:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          v: {bsonType: int}
+        required: [_id, v]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, bar]
+    additionalProperties: false
+- description: correctness test for NOT EXISTS Operator
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE NOT EXISTS(SELECT * FROM target AS target
+    WHERE v = a)
+  result_set_schema:
+    bsonType: object
+    properties:
+      bar:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          v:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+        required: [_id]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, bar]
+    additionalProperties: false
+- description: EXISTS expression in SELECT clause
+  current_db: foo
+  query: "SELECT VALUE {'v': v, 'x': EXISTS(SELECT * FROM target AS target WHERE target.a
+    = bar.v)} FROM bar AS bar"
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          x: {bsonType: bool}
+          v:
+            anyOf:
+            - {bsonType: 'null'}
+            - {bsonType: int}
+        required: [x]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false

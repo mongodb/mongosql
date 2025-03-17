@@ -1,39 +1,69 @@
-catalog_schema:
-  {
-    'test': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
+%YAML 1.2
+---
+catalog_schema: {test: {foo: {bsonType: object, additionalProperties: true}}}
 
 tests:
-  - description: basic array datasource correctness test
-    query: "SELECT * FROM [{'a': 1, 'b': 1}] AS arr"
-    current_db: test
-    result:
-      - {'arr': {'a': 1, 'b': 1}}
+- description: basic array datasource correctness test
+  query: "SELECT * FROM [{'a': 1, 'b': 1}] AS arr"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      arr:
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+          b: {bsonType: int}
+        required: [a, b]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, arr]
+    additionalProperties: false
+- description: unqualified reference to field from array datasource
+  query: "SELECT VALUE {'a': a} FROM [{'a': 1, 'b': 1}] AS arr"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+        required: [a]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: qualified reference to field from array datasource
+  query: "SELECT VALUE {'a': arr.a} FROM [{'a': 1, 'b': 1}] AS arr"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+        required: [a]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: empty array datasource is allowed
+  query: SELECT * FROM [] AS arr
+  current_db: test
+  result: []
 
-  - description: unqualified reference to field from array datasource
-    query: "SELECT VALUE {'a': a} FROM [{'a': 1, 'b': 1}] AS arr"
-    current_db: test
-    result:
-      - {'': {'a': 1}}
-
-  - description: qualified reference to field from array datasource
-    query: "SELECT VALUE {'a': arr.a} FROM [{'a': 1, 'b': 1}] AS arr"
-    current_db: test
-    result:
-      - {'': {'a': 1}}
-
-  - description: empty array datasource is allowed
-    query: "SELECT * FROM [] AS arr"
-    current_db: test
-    result: []
-
-  - description: array datasource with single empty document is allowed
-    query: "SELECT * FROM [{}] AS _dual"
-    current_db: test
-    result:
-      - {'_dual': {}}
+- description: array datasource with single empty document is allowed
+  query: SELECT * FROM [{}] AS _dual
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      _dual:
+        bsonType: object
+        properties: {}
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_dual, _id]
+    additionalProperties: false

@@ -1,34 +1,54 @@
-catalog_schema:
-  {
-    'mydb': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    },
-    'otherdb': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
+%YAML 1.2
+---
+catalog_schema: {mydb: {foo: {bsonType: object, additionalProperties: true}}, otherdb: {
+    foo: {bsonType: object, additionalProperties: true}}}
 
 tests:
-  - description: reference collection in current db by fully qualified name
-    current_db: mydb
-    query: "SELECT * FROM mydb.foo AS foo"
-    result:
-      - {'foo': {'_id': 0, 'a': 1}}
-
-  - description: reference collection in current db by unqualified name
-    current_db: mydb
-    query: "SELECT * FROM foo AS foo"
-    result:
-      - {'foo': {'_id': 0, 'a': 1}}
-
-  - description: reference collection in other db by fully qualified name
-    current_db: mydb
-    query: "SELECT * FROM otherdb.foo AS foo"
-    result:
-      - {'foo': {'_id': 0, 'b': 1}}
+- description: reference collection in current db by fully qualified name
+  current_db: mydb
+  query: SELECT * FROM mydb.foo AS foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      foo:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          a: {bsonType: int}
+        required: [_id, a]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, foo]
+    additionalProperties: false
+- description: reference collection in current db by unqualified name
+  current_db: mydb
+  query: SELECT * FROM foo AS foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      foo:
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+          _id: {bsonType: int}
+        required: [_id, a]
+        additionalProperties: false
+    required: [_id, foo]
+    additionalProperties: false
+- description: reference collection in other db by fully qualified name
+  current_db: mydb
+  query: SELECT * FROM otherdb.foo AS foo
+  result_set_schema:
+    bsonType: object
+    properties:
+      foo:
+        bsonType: object
+        properties:
+          b: {bsonType: int}
+          _id: {bsonType: int}
+        required: [_id, b]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, foo]
+    additionalProperties: false

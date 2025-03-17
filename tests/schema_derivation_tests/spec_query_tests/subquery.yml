@@ -1,144 +1,151 @@
-catalog_schema:
-  {
-    'foo': {
-      'employees': {
-        'bsonType': "object",
-        'required': [ '_id', 'name', 'salary', 'department_id' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'name': {
-            'bsonType': "string"
-          },
-          'salary': {
-            'bsonType': "int"
-          },
-          'department_id': {
-            'bsonType': "int"
-          }
-        }
-      },
-      'department': {
-        'bsonType': "object",
-        'required': [ '_id', 'name' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'name': {
-            'bsonType': "string"
-          }
-        }
-      },
-      'employees_w_schema': {
-        'bsonType': "object",
-        'required': [ '_id', 'name', 'salary', 'department_id' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'name': {
-            'bsonType': "string"
-          },
-          'salary': {
-            'bsonType': "int"
-          },
-          'department_id': {
-            'bsonType': "int"
-          }
-        }
-      },
-      'department_w_schema': {
-        'bsonType': "object",
-        'required': [ '_id', 'name' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'name': {
-            'bsonType': "string"
-          }
-        }
-      },
-      'baz': {
-        'bsonType': 'object',
-        'additionalProperties': true
-      }
-    }
-  }
+%YAML 1.2
+---
+catalog_schema: {foo: {employees: {bsonType: object, required: [_id, name, salary,
+        department_id], additionalProperties: false, properties: {_id: {bsonType: int},
+        name: {bsonType: string}, salary: {bsonType: int}, department_id: {bsonType: int}}},
+    department: {bsonType: object, required: [_id, name], additionalProperties: false,
+      properties: {_id: {bsonType: int}, name: {bsonType: string}}}, employees_w_schema: {
+      bsonType: object, required: [_id, name, salary, department_id], additionalProperties: false,
+      properties: {_id: {bsonType: int}, name: {bsonType: string}, salary: {bsonType: int},
+        department_id: {bsonType: int}}}, department_w_schema: {bsonType: object,
+      required: [_id, name], additionalProperties: false, properties: {_id: {bsonType: int},
+        name: {bsonType: string}}}, baz: {bsonType: object, additionalProperties: true}}}
 
 tests:
-  - description: uncorrelated scalar subquery expression correctness test
-    current_db: foo
-    query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT arr.a FROM [{'a': 4}] AS arr)} FROM employees AS emp"
-    result:
-      - {'': {'name': 'a', 'avg_salary': 4}}
-      - {'': {'name': 'b', 'avg_salary': 4}}
-      - {'': {'name': 'c', 'avg_salary': 4}}
-      - {'': {'name': 'd', 'avg_salary': 4}}
-
-  - description: correlated scalar subquery correctness test
-    current_db: foo
-    query: "SELECT VALUE {'name': name, 'department_name': (SELECT dep.name FROM department_w_schema AS dep WHERE dep.`_id` = emp.department_id LIMIT 1)} FROM employees_w_schema AS emp"
-    result:
-      - {'': {'name': 'a', 'department_name': 'd1'}}
-      - {'': {'name': 'b', 'department_name': 'd1'}}
-      - {'': {'name': 'c', 'department_name': 'd1'}}
-      - {'': {'name': 'd', 'department_name': 'd2'}}
-
-  - description: cardinality of 1 should be inferrable from array datasource
-    current_db: foo
-    query: "SELECT VALUE {'name': name, 'sub': (SELECT a FROM [{'a': 1}] arr)} FROM department AS dep"
-    result:
-      - {'': {'name': 'd1', 'sub': 1}}
-      - {'': {'name': 'd2', 'sub': 1}}
-      - {'': {'name': 'd3', 'sub': 1}}
-  
-  - description: cardinality of 1 should be inferrable from group by constant
-    current_db: foo
-    query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT avg_salary FROM employees AS emp GROUP BY NULL AS _ AGGREGATE AVG(salary) AS avg_salary)} FROM employees AS emp"
-    result:
-      - {'': {'name': 'a', 'avg_salary': {'$numberDouble': "4"}}}
-      - {'': {'name': 'b', 'avg_salary': {'$numberDouble': "4"}}}
-      - {'': {'name': 'c', 'avg_salary': {'$numberDouble': "4"}}}
-      - {'': {'name': 'd', 'avg_salary': {'$numberDouble': "4"}}}
-
-  - description: nested subquery should be able to access field from its grandparent query correctness test
-    current_db: foo
-    query: "SELECT VALUE {'name': name, 'department_name': (SELECT dep.name FROM department_w_schema AS dep WHERE dep._id = (SELECT emp2.department_id FROM employees_w_schema AS emp2 WHERE emp2._id = emp1._id LIMIT 1) LIMIT 1)} FROM employees_w_schema AS emp1"
-    result:
-      - {'': {'name': 'a', 'department_name': 'd1'}}
-      - {'': {'name': 'b', 'department_name': 'd1'}}
-      - {'': {'name': 'c', 'department_name': 'd1'}}
-      - {'': {'name': 'd', 'department_name': 'd2'}}
-
-  - description: allow select star if we can statically prove the degree is equal to one
-    current_db: foo
-    query: "SELECT VALUE {'sub': (SELECT * FROM [{'a': 4}] AS arr)} FROM employees AS emp"
-    result:
-      - { '': {'sub': 4 } }
-      - { '': {'sub': 4 } }
-      - { '': {'sub': 4 } }
-      - { '': {'sub': 4 } }
-
-  - description: allow select substar if we can statically prove the degree is equal to one
-    current_db: foo
-    query: "SELECT VALUE {'sub': (SELECT arr.* FROM [{'a': 4}] AS arr)} FROM employees AS emp"
-    result:
-      - { '': { 'sub': 4 } }
-      - { '': { 'sub': 4 } }
-      - { '': { 'sub': 4 } }
-      - { '': { 'sub': 4 } }
-
-  - description: subquery selecting potentially missing field from collection
-    current_db: foo
-    query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q LIMIT 1)} FROM department_w_schema AS q"
-    result:
-      - {'': {}}
-      - {'': {}}
-      - {'': {}}
+- description: uncorrelated scalar subquery expression correctness test
+  current_db: foo
+  query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT arr.a FROM [{'a': 4}]
+    AS arr)} FROM employees AS emp"
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          avg_salary: {bsonType: int}
+          name: {bsonType: string}
+        required: [avg_salary, name]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: correlated scalar subquery correctness test
+  current_db: foo
+  query: "SELECT VALUE {'name': name, 'department_name': (SELECT dep.name FROM department_w_schema
+    AS dep WHERE dep.`_id` = emp.department_id LIMIT 1)} FROM employees_w_schema AS
+    emp"
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          department_name: {bsonType: string}
+          name: {bsonType: string}
+        required: [department_name, name]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: cardinality of 1 should be inferrable from array datasource
+  current_db: foo
+  query: "SELECT VALUE {'name': name, 'sub': (SELECT a FROM [{'a': 1}] arr)} FROM
+    department AS dep"
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          name: {bsonType: string}
+          sub: {bsonType: int}
+        required: [name, sub]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: cardinality of 1 should be inferrable from group by constant
+  current_db: foo
+  query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT avg_salary FROM employees
+    AS emp GROUP BY NULL AS _ AGGREGATE AVG(salary) AS avg_salary)} FROM employees
+    AS emp"
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          name: {bsonType: string}
+          avg_salary: {bsonType: double}
+        required: [avg_salary, name]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: nested subquery should be able to access field from its grandparent
+    query correctness test
+  current_db: foo
+  query: "SELECT VALUE {'name': name, 'department_name': (SELECT dep.name FROM department_w_schema
+    AS dep WHERE dep._id = (SELECT emp2.department_id FROM employees_w_schema AS emp2
+    WHERE emp2._id = emp1._id LIMIT 1) LIMIT 1)} FROM employees_w_schema AS emp1"
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          department_name: {bsonType: string}
+          name: {bsonType: string}
+        required: [department_name, name]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: allow select star if we can statically prove the degree is equal to
+    one
+  current_db: foo
+  query: "SELECT VALUE {'sub': (SELECT * FROM [{'a': 4}] AS arr)} FROM employees AS
+    emp"
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          sub: {bsonType: int}
+        required: [sub]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: allow select substar if we can statically prove the degree is equal
+    to one
+  current_db: foo
+  query: "SELECT VALUE {'sub': (SELECT arr.* FROM [{'a': 4}] AS arr)} FROM employees
+    AS emp"
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          sub: {bsonType: int}
+        required: [sub]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: subquery selecting potentially missing field from collection
+  current_db: foo
+  query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q LIMIT 1)} FROM department_w_schema
+    AS q"
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties: {}
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false

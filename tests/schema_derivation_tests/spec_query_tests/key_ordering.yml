@@ -1,35 +1,60 @@
-catalog_schema:
-  {
-    'mydb': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'bar': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
+%YAML 1.2
+---
+catalog_schema: {mydb: {foo: {bsonType: object, additionalProperties: true}, bar: {
+      bsonType: object, additionalProperties: true}}}
 
 tests:
-  - description: document literal key ordering is not guaranteed to be preserved
-    current_db: mydb
-    query: "SELECT VALUE {'b': _id, 'c': a} FROM foo AS f"
-    result:
-      - {'': {'b': 0, 'c': 1}}
-      - {'': {'b': 1, 'c': 2}}
-
-  - description: key ordering from docs in collections is not guaranteed to be preserved
-    current_db: mydb
-    query: "SELECT * FROM foo AS f"
-    result:
-      - {'f': {'_id': 0, 'a': 1}}
-      - {'f': {'_id': 1, 'a': 2}}
-
-  - description: subdocument key ordering is not guaranteed to be preserved
-    current_db: mydb
-    query: "SELECT * FROM bar AS b"
-    result:
-      - {'b': {'_id': 0, 'sub': {'a': 1, 'b': 1}}}
-      - {'b': {'_id': 1, 'sub': {'a': 2, 'b': 2}}}
+- description: document literal key ordering is not guaranteed to be preserved
+  current_db: mydb
+  query: "SELECT VALUE {'b': _id, 'c': a} FROM foo AS f"
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          b: {bsonType: int}
+          c: {bsonType: int}
+        required: [b, c]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false
+- description: key ordering from docs in collections is not guaranteed to be preserved
+  current_db: mydb
+  query: SELECT * FROM foo AS f
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      f:
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+          _id: {bsonType: int}
+        required: [_id, a]
+        additionalProperties: false
+    required: [_id, f]
+    additionalProperties: false
+- description: subdocument key ordering is not guaranteed to be preserved
+  current_db: mydb
+  query: SELECT * FROM bar AS b
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      b:
+        bsonType: object
+        properties:
+          sub:
+            bsonType: object
+            properties:
+              b: {bsonType: int}
+              a: {bsonType: int}
+            required: [a, b]
+            additionalProperties: false
+          _id: {bsonType: int}
+        required: [_id, sub]
+        additionalProperties: false
+    required: [_id, b]
+    additionalProperties: false

@@ -1,60 +1,107 @@
-catalog_schema:
-  {
-    "foo":
-      {
-        "bar":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a"],
-            "additionalProperties": false,
-            "properties":
-              { "_id": { "bsonType": "int" }, "a": { "bsonType": "int" } },
-          },
-        "baz":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a"],
-            "additionalProperties": false,
-            "properties":
-              { "_id": { "bsonType": "int" }, "a": { "bsonType": "int" } },
-          },
-      },
-  }
+%YAML 1.2
+---
+catalog_schema: {foo: {bar: {bsonType: object, required: [_id, a], additionalProperties: false,
+      properties: {_id: {bsonType: int}, a: {bsonType: int}}}, baz: {bsonType: object,
+      required: [_id, a], additionalProperties: false, properties: {_id: {bsonType: int},
+        a: {bsonType: int}}}}}
 
 tests:
-  - description: Simple select with limit clause
-    current_db: foo
-    query: "SELECT * FROM bar AS bar ORDER BY a LIMIT 1"
-    result:
-      - { "bar": { "_id": 0, "a": 1 } }
-
-  - description: Simple select with offset clause
-    current_db: foo
-    query: "SELECT * FROM bar AS bar ORDER BY a OFFSET 1"
-    result:
-      - { "bar": { "_id": 1, "a": 2 } }
-      - { "bar": { "_id": 2, "a": 3 } }
-
-  - description: Select with limit and offset
-    current_db: foo
-    query: "SELECT * FROM bar AS bar ORDER BY a LIMIT 1 OFFSET 1"
-    result:
-      - { "bar": { "_id": 1, "a": 2 } }
-
-  - description: Limit in subquery
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY a LIMIT 1)"
-    result:
-      - { "bar": { "_id": 0, "a": 1 } }
-
-  - description: Offset in subquery
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY a OFFSET 1)"
-    result:
-      - { "bar": { "_id": 1, "a": 2 } }
-
-  - description: Limit and offset in subquery
-    current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY a LIMIT 1 OFFSET 1)"
-    result:
-      - { "bar": { "_id": 1, "a": 2 } }
+- description: Simple select with limit clause
+  current_db: foo
+  query: SELECT * FROM bar AS bar ORDER BY a LIMIT 1
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      bar:
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+          _id: {bsonType: int}
+        required: [_id, a]
+        additionalProperties: false
+    required: [_id, bar]
+    additionalProperties: false
+- description: Simple select with offset clause
+  current_db: foo
+  query: SELECT * FROM bar AS bar ORDER BY a OFFSET 1
+  result_set_schema:
+    bsonType: object
+    properties:
+      bar:
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+          _id: {bsonType: int}
+        required: [_id, a]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, bar]
+    additionalProperties: false
+- description: Select with limit and offset
+  current_db: foo
+  query: SELECT * FROM bar AS bar ORDER BY a LIMIT 1 OFFSET 1
+  result_set_schema:
+    bsonType: object
+    properties:
+      bar:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          a: {bsonType: int}
+        required: [_id, a]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, bar]
+    additionalProperties: false
+- description: Limit in subquery
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY
+    a LIMIT 1)
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      bar:
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+          _id: {bsonType: int}
+        required: [_id, a]
+        additionalProperties: false
+    required: [_id, bar]
+    additionalProperties: false
+- description: Offset in subquery
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY
+    a OFFSET 1)
+  result_set_schema:
+    bsonType: object
+    properties:
+      bar:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          a: {bsonType: int}
+        required: [_id, a]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: [_id, bar]
+    additionalProperties: false
+- description: Limit and offset in subquery
+  current_db: foo
+  query: SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY
+    a LIMIT 1 OFFSET 1)
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      bar:
+        bsonType: object
+        properties:
+          _id: {bsonType: int}
+          a: {bsonType: int}
+        required: [_id, a]
+        additionalProperties: false
+    required: [_id, bar]
+    additionalProperties: false
