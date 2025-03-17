@@ -222,6 +222,26 @@ fn get_or_create_schema_for_path_mut_aux(
             // even ignoring "constant factors". This is especially true given that cloning
             // means memory allocation, which is quite a large "constant factor".
             if !schemas.iter().any(|s| matches!(s, &Schema::Document(_))) {
+                // We only investigate Arrays if the AnyOf contains no Document schemas. There
+                // could be a situation where the key should be in the Array and not the Document,
+                // but this is just a best case attempt here. Worst case is we just don't refine a
+                // Schema when we could. We can revisit this in the future, if it comes up more.
+                let schemas = std::mem::take(schemas);
+                if let Some(a) = schemas.into_iter().find_map(|s| {
+                    if let Schema::Array(a) = s {
+                        Some(a)
+                    } else {
+                        None
+                    }
+                }) {
+                    *schema = Schema::Array(a);
+                    return get_or_create_schema_for_path_mut_aux(
+                        schema,
+                        path,
+                        Some(field),
+                        field_index,
+                    );
+                }
                 return None;
             }
             // This is how we avoid the clone. By doing a std::mem::take here, we can take
