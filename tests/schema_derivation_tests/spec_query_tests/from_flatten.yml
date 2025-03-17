@@ -151,21 +151,6 @@ tests:
     result:
       - { 'foo': { '_id': 0, 'a_b': { 'c': 1 } } }
 
-  - description: user-specified depth must be an integer literal
-    current_db: mydb
-    query: "SELECT * FROM FLATTEN(foo WITH depth => 1.2)"
-    parse_error: "Unrecognized token: `1.2`"
-
-  - description: user-specified separator must be a string literal
-    current_db: mydb
-    query: "SELECT * FROM FLATTEN(foo WITH separator => 1)"
-    parse_error: "Unrecognized token: `1`"
-
-  - description: error on unknown option keys
-    current_db: mydb
-    query: "SELECT * FROM FLATTEN(foo WITH INVALID => a)"
-    parse_error: "Unrecognized token: `INVALID`"
-
   - description: flatten polymorphic objects with just null or missing polymorphism
     current_db: mydb
     query: "SELECT * FROM FLATTEN(nullableDoc)"

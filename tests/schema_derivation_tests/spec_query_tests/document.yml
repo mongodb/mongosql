@@ -33,17 +33,6 @@ tests:
     result:
       - {'': {'a': 1, 'b': 2, 'c': 3}}
 
-  - description: SELECT non-empty document literal with invalid (non-string) keys
-    query: "SELECT {1: 1, 2: 2}"
-    should_compile: false
-    parse_error: "Unrecognized token `1`"
-
-  - description: FROM non-empty document literal with invalid (non-string) keys
-    query: "SELECT * FROM [{1: 1, 2: 2}]"
-    current_db: test
-    should_compile: false
-    parse_error: "Unrecognized token `1`"
-
   - description: Dot notation field access from literal document
     query: "SELECT VALUE {'a': {'a': 1, 'b': 2}.a} FROM [{}] AS _dual"
     current_db: test

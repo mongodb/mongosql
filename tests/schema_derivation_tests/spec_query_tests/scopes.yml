@@ -110,12 +110,6 @@ tests:
     result:
       - {'coll': {'_id': 1, 'a': 1, 'b': 2}}
 
-  - description: a qualfied reference in a FROM clause can have no more than two parts
-    current_db: 'foo'
-    query: "SELECT * FROM foo.bar.bar AS bar"
-    should_compile: false
-    parse_error: "collection datasources can only have database qualification, found: foo.bar.bar"
-
   - description: c.a refers to a in baz.a in the subquery and bar.a in the outer query
     current_db: 'foo'
     query: "SELECT * FROM bar AS c WHERE c.a IN (SELECT c.a FROM baz AS c)"

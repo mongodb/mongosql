@@ -27,12 +27,6 @@ tests:
     result:
       - {'': {'a': 1}}
 
-  - description: array datasource must have alias
-    query: "SELECT * FROM [{'a': 1}]"
-    current_db: test
-    should_compile: false
-    parse_error: "array datasources must have aliases"
-
   - description: empty array datasource is allowed
     query: "SELECT * FROM [] AS arr"
     current_db: test
@@ -43,8 +37,3 @@ tests:
     current_db: test
     result:
       - {'_dual': {}}
-
-  - description: array datasource must be array literal
-    query: "SELECT * FROM {'a': [{'b': 1}]}['a'] AS arr"
-    should_compile: false
-    parse_error: "parse error: Error 2000: found unsupported expression used as datasource: {'a': [{'b': 1}]}['a']"

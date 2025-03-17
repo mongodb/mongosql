@@ -133,12 +133,6 @@ tests:
     result:
       - { "bar": { "_id": 6, "$a.$b": { "$c": { "d": 6 } } } }
 
-  - description: Undelimited identifier starting with digit is not parsed as an identifier
-    query: "SELECT 1a FROM [{'1a': 2}] arr"
-    current_db: test
-    should_compile: false
-    parse_error: "Unrecognized token `1a`"
-
   - description: Delimited identifier starting with digit is an identifier
     query: "SELECT VALUE {'1a': `1a`} FROM [{'1a': 2}] arr"
     current_db: test
@@ -163,12 +157,6 @@ tests:
     result:
       - { "": { "a": 1, "b": 2 } }
       - { "": { "a": 3, "b": 4 } }
-
-  - description: Undelimited identifier with non-ASCII characters is invalid
-    query: "SELECT VALUE {'αβγ': αβγ} FROM [{'αβγ': 1}] arr"
-    current_db: test
-    should_compile: false
-    parse_error: "parse error: Error 2000: InvalidToken at 24"
 
   - description: Delimited identifier with non-ASCII characters
     query: "SELECT VALUE {'αβγ': `αβγ`} FROM [{'αβγ': 1}] arr"

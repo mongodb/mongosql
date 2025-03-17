@@ -1,29 +1,63 @@
-catalog_schema:
-  {
-    'db': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
+%YAML 1.2
+---
+catalog_schema: {db: {foo: {bsonType: object, additionalProperties: true}}}
 
 tests:
-  - description: Can use different aliases for same field
-    query: "SELECT VALUE {'a1': a, 'a2': a} FROM [{'a': 1}] arr"
-    current_db: test
-    result:
-      - {'': {'a1': 1, 'a2': 1}}
-
-  - description: Can use different alias for same collection
-    current_db: db
-    query: "SELECT * FROM foo AS foo1, foo AS foo2"
-    result:
-      - {"foo1": {'_id': 0, "a": 1, "b": 2}, "foo2": {'_id': 0, "a": 1, "b": 2}}
-
-  - description: Can use duplicate aliases on both sides of UNION
-    current_db: db
-    query: "SELECT VALUE {'a': a, 'c': b} FROM foo AS alias UNION ALL SELECT VALUE {'a': a, 'c': b} FROM foo AS alias"
-    result:
-      - {'': {'a': 1, 'c': 2}}
-      - {'': {'a': 1, 'c': 2}}
+- description: Can use different aliases for same field
+  query: "SELECT VALUE {'a1': a, 'a2': a} FROM [{'a': 1}] arr"
+  current_db: test
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          a1: {bsonType: int}
+          a2: {bsonType: int}
+        required: [a1, a2]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: Can use different alias for same collection
+  current_db: db
+  query: SELECT * FROM foo AS foo1, foo AS foo2
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      foo1:
+        bsonType: object
+        properties:
+          b: {bsonType: int}
+          a: {bsonType: int}
+          _id: {bsonType: int}
+        required: [_id, a, b]
+        additionalProperties: false
+      foo2:
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+          b: {bsonType: int}
+          _id: {bsonType: int}
+        required: [_id, a, b]
+        additionalProperties: false
+    required: [_id, foo1, foo2]
+    additionalProperties: false
+- description: Can use duplicate aliases on both sides of UNION
+  current_db: db
+  query: "SELECT VALUE {'a': a, 'c': b} FROM foo AS alias UNION ALL SELECT VALUE {'a':
+    a, 'c': b} FROM foo AS alias"
+  result_set_schema:
+    bsonType: object
+    properties:
+      _id: {bsonType: objectId}
+      '':
+        bsonType: object
+        properties:
+          c: {bsonType: int}
+          a: {bsonType: int}
+        required: [a, c]
+        additionalProperties: false
+    required: ['', _id]
+    additionalProperties: false

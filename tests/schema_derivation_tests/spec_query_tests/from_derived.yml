@@ -19,12 +19,6 @@ tests:
     result:
       - {'': {'asub': 1, 'bsub': 1}}
 
-  - description: derived table must have alias
-    query: "SELECT * FROM (SELECT * FROM [{'a': 1}] AS arr)"
-    current_db: test
-    should_compile: false
-    parse_error: "derived query datasources must have aliases"
-
   - description: there is no ambiguity with one schema-less datasource in a derived table
     current_db: test
     query: "SELECT * FROM (SELECT * FROM foo AS foo) AS derived"

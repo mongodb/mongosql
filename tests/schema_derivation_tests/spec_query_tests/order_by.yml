@@ -223,23 +223,6 @@ tests:
         'b': { '_id': 0, 'a': 3, 'b': { 'c': 1 } }
       }
 
-  - description: ordering by a non-integer constant expression is an error
-    current_db: mydb
-    query: "SELECT VALUE {'a': a} FROM foo ORDER BY 1.0 DESC"
-    should_compile: false
-    parse_error: "failed to parse ORDER BY sort key"
-
-  - description: ordering by a complex expression is an error
-    current_db: mydb
-    query: "SELECT VALUE {'a': a} FROM foo ORDER BY 1 + 2 DESC"
-    should_compile: false
-    parse_error: "Unrecognized token `+`"
-
-  - description: ordering by a negative number is an error because it is a complex expr
-    query: "SELECT a FROM foo ORDER BY -1"
-    should_compile: false
-    parse_error: "Unrecognized token `-`"
-
   - description: allowing ordering by column not in Select still supports ordering by computed column
     current_db: mydb
     query: "SELECT _id, a, b + 42 as c from baz order by b, c"

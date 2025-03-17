@@ -32,8 +32,3 @@ tests:
     query: "SELECT * FROM otherdb.foo AS foo"
     result:
       - {'foo': {'_id': 0, 'b': 1}}
-
-  - description: collection references may have at most two parts
-    query: "SELECT * FROM a.b.c"
-    should_compile: false
-    parse_error: "collection datasources can only have database qualification, found: a.b.c"

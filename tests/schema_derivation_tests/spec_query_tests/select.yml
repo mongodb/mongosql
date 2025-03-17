@@ -9,42 +9,6 @@ catalog_schema:
   }
 
 tests:
-  - description: star cannot be used in SELECT VALUE
-    current_db: mydb
-    query: "SELECT VALUE * FROM foo AS f"
-    should_compile: false
-    parse_error: "Unrecognized token `*`"
-
-  - description: star is not an ordinary expression
-    current_db: mydb
-    query: "SELECT VALUE {'a': *} FROM foo AS f"
-    should_compile: false
-    parse_error: "Unrecognized token `*`"
-
-  - description: substar is not an ordinary expression
-    current_db: mydb
-    query: "SELECT VALUE {'a': foo.*} FROM foo AS foo"
-    should_compile: false
-    parse_error: "Unrecognized token `.*`"
-
-  - description: aliases disallowed for substar expressions in SELECT VALUE
-    current_db: mydb
-    query: "SELECT VALUE t.* AS a FROM foo AS f"
-    should_compile: false
-    parse_error: "Unrecognized token `AS`"
-
-  - description: aliases disallowed for substar expressions in standard SELECT
-    current_db: mydb
-    query: "SELECT t.* AS a FROM foo AS f"
-    should_compile: false
-    parse_error: "Unrecognized token `AS`"
-
-  - description: aliases disallowed for document expressions in SELECT VALUE
-    current_db: mydb
-    query: "SELECT VALUE {'a': 1} AS a FROM foo AS f"
-    should_compile: false
-    parse_error: Unrecognized token `AS`
-
   - description: simple star correctness test
     current_db: mydb
     query: "SELECT * FROM foo AS f"
