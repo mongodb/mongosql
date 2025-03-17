@@ -1,0 +1,191 @@
+catalog_schema:
+  {
+    "foo":
+      {
+        "bar":
+          {
+            "bsonType": "object",
+            "additionalProperties": true,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a":
+                  {
+                    "bsonType": "object",
+                    "additionalProperties": true,
+                    "properties":
+                      {
+                        "b": { "bsonType": "int" },
+                        "b.c": { "bsonType": "int" },
+                      },
+                  },
+                "a.b": { "bsonType": "int" },
+                "$a.b": { "bsonType": "int" },
+                "$a.$b":
+                  {
+                    "bsonType": "object",
+                    "additionalProperties": true,
+                    "properties":
+                      {
+                        "$c":
+                          {
+                            "bsonType": "object",
+                            "additionalProperties": true,
+                            "properties": { "d": { "bsonType": "int" } },
+                          },
+                        "$c.d": { "bsonType": "int" },
+                      },
+                  },
+              },
+          },
+      },
+  }
+
+tests:
+  - description: Undelimited identifier containing a . character is a compound identifier
+    query: "SELECT VALUE {'c': a.c} FROM [{'a': {'c': 1}}, {'a': 3}] arr"
+    current_db: test
+    result:
+      - { "": { "c": 1 } }
+      - { "": {} }
+
+  - description: Delimited identifier containing a .
+    query: "SELECT VALUE {'ab': `a.b`} FROM bar"
+    current_db: foo
+    result:
+      - { "": {} }
+      - { "": { "ab": 2 } }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+
+  - description: Nested delimited identifier containing a .
+    query: "SELECT VALUE {'abc': a.`b.c`} FROM bar"
+    current_db: foo
+    result:
+      - { "": {} }
+      - { "": {} }
+      - { "": { "abc": 3 } }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+
+  - description: Delimited identifier with a $
+    query: "SELECT VALUE {'ab': `$a.b`} FROM bar"
+    current_db: foo
+    result:
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": { "ab": 4 } }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+
+  - description: Nested delimited identifiers containing $ and .
+    query: "SELECT VALUE {'abcd': `$a.$b`.`$c.d`} FROM bar"
+    current_db: foo
+    result:
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": { "abcd": 5 } }
+      - { "": {} }
+      - { "": {} }
+
+  - description: Mixed identifiers containing $ and .
+    query: "SELECT VALUE {'abcd': `$a.$b`.`$c`.d} FROM bar"
+    current_db: foo
+    result:
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": { "abcd": 6 } }
+      - { "": {} }
+
+  - description: Delimited identifier containing an empty string
+    query: "SELECT VALUE {'empty': ``} FROM bar"
+    current_db: foo
+    result:
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": { "empty": 7 } }
+
+  - description: Unaliased use of field reference expression with $ and .
+    query: "SELECT * FROM bar WHERE `$a.b` = 4"
+    current_db: foo
+    result:
+      - { "bar": { "_id": 4, "$a.b": 4 } }
+
+  - description: Unaliased use of nested field reference expressions with $ and .
+    query: "SELECT * FROM bar WHERE `$a.$b`.`$c`.d = 6"
+    current_db: foo
+    result:
+      - { "bar": { "_id": 6, "$a.$b": { "$c": { "d": 6 } } } }
+
+  - description: Undelimited identifier starting with digit is not parsed as an identifier
+    query: "SELECT 1a FROM [{'1a': 2}] arr"
+    current_db: test
+    should_compile: false
+    parse_error: "Unrecognized token `1a`"
+
+  - description: Delimited identifier starting with digit is an identifier
+    query: "SELECT VALUE {'1a': `1a`} FROM [{'1a': 2}] arr"
+    current_db: test
+    result:
+      - { "": { "1a": 2 } }
+
+  - description: Backtick delimited identifiers containing delimiter characters
+    query: 'SELECT VALUE {''a`b'': `a``b`, ''a"b'': `a"b`, ''a`"b'': `a``"b`} FROM [{''a`b'': 1, ''a"b'': 2, ''a`"b'': 3}] arr'
+    current_db: test
+    result:
+      - { "": { "a`b": 1, 'a"b': 2, 'a`"b': 3 } }
+
+  - description: Double quote delimited identifiers containing delimiter characters
+    query: 'SELECT VALUE {''a`b'': "a`b", ''a"b'': "a""b", ''a`"b'': "a`""b"} FROM [{''a`b'': 1, ''a"b'': 2, ''a`"b'': 3}] arr'
+    current_db: test
+    result:
+      - { "": { "a`b": 1, 'a"b': 2, 'a`"b': 3 } }
+
+  - description: Regular and delimited identifiers
+    query: "SELECT VALUE {'a': a, 'b': `b`} FROM [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}] arr"
+    current_db: test
+    result:
+      - { "": { "a": 1, "b": 2 } }
+      - { "": { "a": 3, "b": 4 } }
+
+  - description: Undelimited identifier with non-ASCII characters is invalid
+    query: "SELECT VALUE {'αβγ': αβγ} FROM [{'αβγ': 1}] arr"
+    current_db: test
+    should_compile: false
+    parse_error: "parse error: Error 2000: InvalidToken at 24"
+
+  - description: Delimited identifier with non-ASCII characters
+    query: "SELECT VALUE {'αβγ': `αβγ`} FROM [{'αβγ': 1}] arr"
+    current_db: test
+    result:
+      - { "": { "αβγ": 1 } }
+
+  - description: Compound identifier with more than 3 parts
+    query: "SELECT VALUE {'d': a.b.c.d} FROM [{'a': {'b': {'c': {'d': 1}}}}] arr"
+    current_db: test
+    result:
+      - { "": { "d": 1 } }
+
+  - description: Case-sensitive identifiers
+    query: "SELECT VALUE {'a': a, 'A': A} FROM [{'a': 1, 'A': 2}, {'a': 3}, {'A': 4}] arr"
+    current_db: test
+    result:
+      - { "": { "a": 1, "A": 2 } }
+      - { "": { "a": 3 } }
+      - { "": { "A": 4 } }

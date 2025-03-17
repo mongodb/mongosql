@@ -1,0 +1,56 @@
+catalog_schema:
+  {
+    'foo': {
+      'no_start': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'start': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
+tests:
+  - description: SLICE without start argument correctness test
+    current_db: foo
+    query: "SELECT VALUE {'arr': arr, 'len': len, 'slice': SLICE(arr::!ARRAY, len::!INT)} FROM no_start AS ns"
+    result:
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '-1'}, 'slice': [3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'slice': []}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'slice': [1, 2]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '3'}, 'slice': [1, 2, 3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '4'}, 'slice': [1, 2, 3]}}
+      - {'': {'arr': [1, 2, 3], 'len': null, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'slice': null}}
+      - {'': {'arr': null, 'len': {'$numberInt': '1'}, 'slice': null}}
+      - {'': {'len': {'$numberInt': '1'}, 'slice': null}}
+
+  - description: SLICE with start argument correctness test
+    current_db: foo
+    query: "SELECT VALUE {'arr': arr, 'len': len, 'start': start, 'slice': SLICE(arr::!ARRAY, start::!INT, len::!INT)} FROM start AS s"
+    result:
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'start': {'$numberInt': '-1'}, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'start': {'$numberInt': '0'}, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'start': {'$numberInt': '1'}, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'start': {'$numberInt': '-4'}, 'slice': [1, 2]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'start': {'$numberInt': '-2'}, 'slice': [2, 3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'start': {'$numberInt': '0'}, 'slice': [1, 2]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'start': {'$numberInt': '1'}, 'slice': [2, 3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'start': {'$numberInt': '2'}, 'slice': [3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '3'}, 'start': {'$numberInt': '-1'}, 'slice': [3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '3'}, 'start': {'$numberInt': '0'}, 'slice': [1, 2, 3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '3'}, 'start': {'$numberInt': '1'}, 'slice': [2, 3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '4'}, 'start': {'$numberInt': '-1'}, 'slice': [3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '4'}, 'start': {'$numberInt': '0'}, 'slice': [1, 2, 3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '4'}, 'start': {'$numberInt': '1'}, 'slice': [2, 3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '-1'}, 'start': {'$numberInt': '-1'}, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '-1'}, 'start': {'$numberInt': '0'}, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '-1'}, 'start': {'$numberInt': '1'}, 'slice': null}}
+      - {'': {'arr': null, 'len': {'$numberInt': '1'}, 'start': {'$numberInt': '1'}, 'slice': null}}
+      - {'': {'len': {'$numberInt': '1'}, 'start': {'$numberInt': '1'}, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'len': null, 'start': {'$numberInt': '1'}, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'start': {'$numberInt': '1'}, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '1'}, 'start': null, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '1'}, 'slice': null}}

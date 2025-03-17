@@ -1,0 +1,224 @@
+catalog_schema:
+  {
+    "mydb":
+      {
+        "bar":
+          {
+            "bsonType": "object",
+            "required": ["foo"],
+            "additionalProperties": false,
+            "properties":
+              { "_id": { "bsonType": "int" }, "foo": { "bsonType": "int" } },
+          },
+        "bar2":
+          {
+            "bsonType": "object",
+            "required": ["foo"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "foo": { "bsonType": "int" },
+                "baz": { "bsonType": "int" },
+              },
+          },
+        "coll":
+          {
+            "bsonType": "object",
+            "required": ["bar", "car"],
+            "additionalProperties": false,
+            "properties":
+              { "bar": { "bsonType": "int" }, "car": { "bsonType": "int" } },
+          },
+      },
+    "db2":
+      {
+        "foo":
+          {
+            "bsonType": "object",
+            "required": ["x"],
+            "additionalProperties": false,
+            "properties": { "x": { "bsonType": "int" } },
+          },
+      },
+  }
+
+tests:
+  - description: cross join correctness test
+    current_db: mydb
+    query: "SELECT * FROM bar AS bar CROSS JOIN coll AS coll"
+    result:
+      - {
+          "bar": { "_id": 0, "foo": 1 },
+          "coll": { "_id": 0, "bar": 53, "car": 42 },
+        }
+      - {
+          "bar": { "_id": 1, "foo": 42 },
+          "coll": { "_id": 0, "bar": 53, "car": 42 },
+        }
+
+  - description: inner join correctness test
+    current_db: mydb
+    query: "SELECT * FROM bar AS bar INNER JOIN coll AS coll ON bar.foo = coll.car"
+    result:
+      - {
+          "bar": { "_id": 1, "foo": 42 },
+          "coll": { "_id": 0, "bar": 53, "car": 42 },
+        }
+
+  - description: left join correctness test
+    current_db: mydb
+    query: "SELECT * from bar2 AS bar2 LEFT JOIN bar AS bar on bar2.foo = bar.foo"
+    result:
+      - {
+          "bar2": { "_id": 0, "foo": 42, "baz": 63 },
+          "bar": { "_id": 1, "foo": 42 },
+        }
+      - { "bar2": { "_id": 1, "foo": 43 } }
+
+  - description: right join correctness test
+    current_db: mydb
+    query: "SELECT * from bar2 AS bar2 RIGHT JOIN bar as bar ON bar2.foo = bar.foo"
+    result:
+      - {
+          "bar": { "_id": 1, "foo": 42 },
+          "bar2": { "_id": 0, "foo": 42, "baz": 63 },
+        }
+      - { "bar": { "_id": 0, "foo": 1 } }
+
+  - description: natural join is not supported
+    current_db: mydb
+    query: "SELECT * FROM bar NATURAL JOIN coll"
+    should_compile: false
+    parse_error: "Unrecognized token `NATURAL`"
+
+  - description: join predicate must be statically determined to be a BOOLEAN
+    current_db: mydb
+    query: "SELECT * FROM bar INNER JOIN coll ON 123"
+    should_compile: false
+    algebrize_error: "schema checking failed for join condition: required AnyOf({Missing, Atomic(Boolean), Atomic(Null)}), found Atomic(Integer)"
+
+  - description: join predicates can contain complex expressions
+    current_db: mydb
+    query: "SELECT * FROM bar AS bar INNER JOIN bar2 AS bar2 ON bar.foo + 50 > bar2.baz"
+    result:
+      - {
+          "bar": { "_id": 1, "foo": 42 },
+          "bar2": { "_id": 0, "foo": 42, "baz": 63 },
+        }
+
+  - description: join predicates can only reference datasource names from their own join
+    query: "SELECT * FROM [{'v': 1}] AS a INNER JOIN [{'v': 1}] AS b ON b.v = c.v INNER JOIN [{'v': 1}] AS c"
+    current_db: test
+    should_compile: false
+    algebrize_error: "field `c` cannot be resolved to any datasource"
+
+  - description: join predicates can reference columns by table-qualified names
+    current_db: mydb
+    query: "SELECT * FROM bar AS bar INNER JOIN coll AS coll ON bar.foo = coll.car"
+    result:
+      - {
+          "bar": { "_id": 1, "foo": 42 },
+          "coll": { "_id": 0, "bar": 53, "car": 42 },
+        }
+
+  - description: join predicates can reference columns by unambiguous unqualified names
+    current_db: mydb
+    query: "SELECT * FROM bar AS bar INNER JOIN coll AS coll ON foo = car"
+    result:
+      - {
+          "bar": { "_id": 1, "foo": 42 },
+          "coll": { "_id": 0, "bar": 53, "car": 42 },
+        }
+
+  - description: a join datasource cannot be given an alias
+    query: "SELECT * FROM (foo.bar CROSS JOIN foo.coll) AS x"
+    should_compile: false
+    skip_reason: "SQL-810"
+    parse_error: "Unrecognized token `AS`"
+
+  - description: joins are left-associative
+    current_db: mydb
+    query: "SELECT * FROM bar AS a CROSS JOIN bar AS b LEFT JOIN bar AS c ON a.foo = c.foo"
+    result:
+      - {
+          "a": { "_id": 0, "foo": 1 },
+          "b": { "_id": 0, "foo": 1 },
+          "c": { "_id": 0, "foo": 1 },
+        }
+      - {
+          "a": { "_id": 0, "foo": 1 },
+          "b": { "_id": 1, "foo": 42 },
+          "c": { "_id": 0, "foo": 1 },
+        }
+      - {
+          "a": { "_id": 1, "foo": 42 },
+          "b": { "_id": 0, "foo": 1 },
+          "c": { "_id": 1, "foo": 42 },
+        }
+      - {
+          "a": { "_id": 1, "foo": 42 },
+          "b": { "_id": 1, "foo": 42 },
+          "c": { "_id": 1, "foo": 42 },
+        }
+
+  - description: join left and right datasources can be referenced by alias
+    current_db: mydb
+    query: "SELECT t1.*, t2.* FROM bar AS t1 INNER JOIN coll AS t2"
+    result:
+      - {
+          "t1": { "_id": 0, "foo": 1 },
+          "t2": { "_id": 0, "bar": 53, "car": 42 },
+        }
+
+      - {
+          "t1": {"_id": 1, "foo": 42 },
+          "t2": { "_id": 0, "bar": 53, "car": 42 },
+        }
+
+  - description: all datasource names in FROM clause must be unique
+    current_db: mydb
+    query: "SELECT * FROM coll CROSS JOIN coll"
+    should_compile: false
+    algebrize_error: 'cannot create schema environment with duplicate key: Key { datasource: Named("coll"), scope: 0 }'
+
+  - description: cross database join correctness test
+    current_db: mydb
+    query: "SELECT * FROM coll AS coll CROSS JOIN db2.foo AS foo"
+    skip_reason: "SQL-540: cross-database lookups are not supported"
+    result:
+      - {
+          "coll": { "_id": 0, "bar": 53, "car": 42 },
+          "foo": { "_id": 0, "x": 1 },
+        }
+
+  - description: left join with static value comparison to rhs field in ON clause still results in left hand side doc when condition fails
+    current_db: mydb
+    query: "SELECT * FROM bar LEFT JOIN bar2 ON bar._id = bar2._id AND bar2.baz = 63"
+    result:
+      - { "bar": {"_id": 0, "foo": 1}, "bar2": {"_id": 0, "foo": 42, "baz": 63}}
+      - { "bar": {"_id": 1, "foo": 42}}
+
+  - description: left join followed by WHERE with static comparison on rhs value filters out left hand side docs that do not match the WHERE
+    current_db: mydb
+    query: "SELECT * FROM bar LEFT JOIN bar2 ON bar._id = bar2._id WHERE bar2.baz = 63"
+    result:
+      - { "bar": {"_id": 0, "foo": 1}, "bar2": {"_id": 0, "foo": 42, "baz": 63}}
+
+  - description: match filter in left join correctness test
+    current_db: mydb
+    query: "SELECT * FROM bar LEFT JOIN bar2 ON bar._id = bar2._id WHERE bar2.baz IS INT"
+    result:
+      - { "bar": {"_id": 0, "foo": 1}, "bar2": {"_id": 0, "foo": 42, "baz": 63}}
+
+  - description: filter in lateral join correctness test
+    current_db: mydb
+    query: "SELECT * FROM bar LEFT JOIN bar2 ON bar._id = bar2._id AND bar2.baz = 63 WHERE bar2.baz IS NOT MISSING"
+    result:
+      - { "bar": { "_id": 0, "foo": 1 }, "bar2": { "_id": 0, "foo": 42, "baz": 63 } }
+
+  - description: match filter in lateral join correctness test
+    current_db: mydb
+    query: "SELECT * FROM bar LEFT JOIN bar2 ON bar._id = bar2._id AND bar2.baz = 63 WHERE bar2.baz IS INT"
+    result:
+      - { "bar": {"_id": 0, "foo": 1}, "bar2": {"_id": 0, "foo": 42, "baz": 63}}

@@ -1,0 +1,95 @@
+catalog_schema:
+  {
+    "foo": {
+      "unary": {
+        "bsonType": "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "bool" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "binary": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "bool" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "bool" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      }
+    }
+  }
+
+tests:
+  - description: NOT correctness test
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'not_a': NOT a } FROM unary AS unary"
+    result:
+      - {'': {"a": true, "not_a": false } }
+      - {'': {"a": false, "not_a": true } }
+      - {'': {"a": null, "not_a": null } }
+      - {'': {"not_a": null } }
+
+  - description: AND correctness test
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'a_and_b': a AND b } FROM binary AS binary"
+    result:
+      - {'': {"a": true, "b": true, "a_and_b": true } }
+      - {'': {"a": true, "b": false, "a_and_b": false } }
+      - {'': {"a": true, "b": null, "a_and_b": null } }
+      - {'': {"a": true, "a_and_b": null } }
+      - {'': {"a": false, "b": true, "a_and_b": false } }
+      - {'': {"a": false, "b": false, "a_and_b": false } }
+      - {'': {"a": false, "b": null, "a_and_b": false } }
+      - {'': {"a": false, "a_and_b": false } }
+      - {'': {"a": null, "b": true, "a_and_b": null } }
+      - {'': {"a": null, "b": false, "a_and_b": false } }
+      - {'': {"a": null, "b": null, "a_and_b": null } }
+      - {'': {"a": null, "a_and_b": null } }
+      - {'': {"b": true, "a_and_b": null } }
+      - {'': {"b": false, "a_and_b": false } }
+      - {'': {"b": null, "a_and_b": null } }
+      - {'': {"a_and_b": null } }
+
+  - description: OR correctness test
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'a_or_b': a OR b } FROM binary AS binary"
+    result:
+      - {'': {"a": true, "b": true, "a_or_b": true } }
+      - {'': {"a": true, "b": false, "a_or_b": true } }
+      - {'': {"a": true, "b": null, "a_or_b": true } }
+      - {'': {"a": true, "a_or_b": true } }
+      - {'': {"a": false, "b": true, "a_or_b": true } }
+      - {'': {"a": false, "b": false, "a_or_b": false } }
+      - {'': {"a": false, "b": null, "a_or_b": null } }
+      - {'': {"a": false, "a_or_b": null } }
+      - {'': {"a": null, "b": true, "a_or_b": true } }
+      - {'': {"a": null, "b": false, "a_or_b": null } }
+      - {'': {"a": null, "b": null, "a_or_b": null } }
+      - {'': {"a": null, "a_or_b": null } }
+      - {'': {"b": true, "a_or_b": true } }
+      - {'': {"b": false, "a_or_b": null } }
+      - {'': {"b": null, "a_or_b": null } }
+      - {'': {"a_or_b": null } }

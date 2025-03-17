@@ -1,0 +1,320 @@
+catalog_schema:
+  {
+    'test': {
+      'foo': {
+        'bsonType': "object",
+        'required': ["_id", "arr"],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'arr': { 'bsonType': "array" }
+        }
+      },
+      'bar': {
+        'bsonType': "object",
+        'additionalProperties': true
+      },
+      'nested': {
+        'bsonType': "object",
+        'required': ["_id", "a", "z"],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a': {
+            'bsonType': "object",
+            'required': ["b", "y"],
+            'additionalProperties': false,
+            'properties': {
+              'b': {
+                'bsonType': "object",
+                'required': ["c", "x"],
+                'additionalProperties': false,
+                'properties': {
+                  'c': { 'bsonType': "array" },
+                  'x': { 'bsonType': "int" }
+                }
+              },
+              'y': { 'bsonType': "int" }
+            }
+          },
+          'z': { 'bsonType': "int" }
+        }
+      },
+      'two_d': {
+        'bsonType': "object",
+        'additionalProperties': true
+      },
+      'non_arrays': {
+        'bsonType': "object",
+        'required': ["_id", "arr", "comment"],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'arr': {
+            "anyOf": [
+              { "bsonType": "array" },
+              { "bsonType": "string" },
+              { "bsonType": "object" }
+            ]
+          },
+          'comment': { 'bsonType': "string" }
+        }
+      },
+      'empty_null_and_missing': {
+        'bsonType': "object",
+        'required': ["_id", "comment"],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'arr': {
+            "anyOf": [
+              { "bsonType": "array" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          'comment': { 'bsonType': "string" }
+        }
+      },
+      'index_conflict': {
+        'bsonType': "object",
+        'additionalProperties': true
+      },
+     'compound': {
+       "bsonType": "object",
+       "properties": {
+         "g": {
+           "bsonType": "array",
+           "items": {
+             "anyOf": [
+               {
+                 "bsonType":"array",
+                 "items": {
+                   "bsonType":"object",
+                   "properties": {
+                     "h": { "bsonType":"int" },
+                     "i": {"bsonType":"int" },
+                     "g": {"bsonType": "array", "items": { "bsonType":"int" } }
+                   },
+                   "additionalProperties":false }
+               },
+               {
+                 "bsonType":"object",
+                 "properties": {
+                   "g":{ "bsonType":"array","items":{"bsonType":"int"}}},
+                 "required":["g"],
+                 "additionalProperties":false
+               }
+           ]
+         }
+       },
+       "a": {
+         "bsonType": "array",
+         "items": { "bsonType": "int" }
+       },
+       "b": {
+         "bsonType": "array",
+         "items": { "bsonType": "int" }
+       },
+       "_id":{"bsonType":"objectId"}},
+       "required":["_id","g"],
+       "additionalProperties":false
+     }
+   }
+  }
+
+tests:
+  - description: basic correctness test
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo WITH PATH => arr)"
+    result:
+      - {'foo': {'_id': 0, 'arr': 1}}
+      - {'foo': {'_id': 0, 'arr': 2}}
+      - {'foo': {'_id': 0, 'arr': 3}}
+      - {'foo': {'_id': 1, 'arr': 4}}
+      - {'foo': {'_id': 1, 'arr': 5}}
+      - {'foo': {'_id': 1, 'arr': 6}}
+
+  - description: basic correctness test for explicitly aliased datasource
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo AS f WITH PATH => arr)"
+    result:
+      - {'f': {'_id': 0, 'arr': 1}}
+      - {'f': {'_id': 0, 'arr': 2}}
+      - {'f': {'_id': 0, 'arr': 3}}
+      - {'f': {'_id': 1, 'arr': 4}}
+      - {'f': {'_id': 1, 'arr': 5}}
+      - {'f': {'_id': 1, 'arr': 6}}
+
+  - description: basic correctness test for index option
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo WITH PATH => arr, INDEX => i)"
+    result:
+      - {'foo': {'_id': 0, 'arr': 1, 'i': {"$numberLong": "0"}}}
+      - {'foo': {'_id': 0, 'arr': 2, 'i': {"$numberLong": "1"}}}
+      - {'foo': {'_id': 0, 'arr': 3, 'i': {"$numberLong": "2"}}}
+      - {'foo': {'_id': 1, 'arr': 4, 'i': {"$numberLong": "0"}}}
+      - {'foo': {'_id': 1, 'arr': 5, 'i': {"$numberLong": "1"}}}
+      - {'foo': {'_id': 1, 'arr': 6, 'i': {"$numberLong": "2"}}}
+
+  - description: there are no type constraints on the field referenced by PATH, and non-array fields are not unwound
+    current_db: test
+    query: "SELECT * FROM UNWIND(non_arrays WITH PATH => arr, INDEX => i)"
+    result:
+      - {'non_arrays': {'_id': 0, 'arr': 1, 'comment': "array", 'i': {"$numberLong": "0"}}}
+      - {'non_arrays': {'_id': 0, 'arr': 2, 'comment': "array", 'i': {"$numberLong": "1"}}}
+      - {'non_arrays': {'_id': 1, 'arr': "not array", 'comment': "string", 'i': null}}
+      - {'non_arrays': {'_id': 2, 'arr': {'a': [3, 4]}, 'comment': "object", 'i': null}}
+
+  - description: unwinding a nested array puts the unwound value at the same nested path
+    current_db: test
+    query: "SELECT * FROM UNWIND(nested WITH PATH => a.b.c, INDEX => i)"
+    result:
+      - {'nested': {'_id': 0, 'a': {'b': {'c': 1, 'x': 30}, 'y': 20}, 'z': 10, 'i': {"$numberLong": "0"}}}
+      - {'nested': {'_id': 0, 'a': {'b': {'c': 2, 'x': 30}, 'y': 20}, 'z': 10, 'i': {"$numberLong": "1"}}}
+      - {'nested': {'_id': 0, 'a': {'b': {'c': 3, 'x': 30}, 'y': 20}, 'z': 10, 'i': {"$numberLong": "2"}}}
+      - {'nested': {'_id': 1, 'a': {'b': {'c': 4, 'x': 300}, 'y': 200}, 'z': 100, 'i': {"$numberLong": "0"}}}
+      - {'nested': {'_id': 1, 'a': {'b': {'c': 5, 'x': 300}, 'y': 200}, 'z': 100, 'i': {"$numberLong": "1"}}}
+      - {'nested': {'_id': 1, 'a': {'b': {'c': 6, 'x': 300}, 'y': 200}, 'z': 100, 'i': {"$numberLong": "2"}}}
+
+  - description: unwind datasources can be unwound
+    current_db: test
+    query: "SELECT * FROM UNWIND(UNWIND(two_d WITH PATH => arr) WITH PATH => arr)"
+    result:
+      - {'two_d': {'_id': 0, 'arr': 1}}
+      - {'two_d': {'_id': 0, 'arr': 2}}
+      - {'two_d': {'_id': 0, 'arr': 3}}
+      - {'two_d': {'_id': 0, 'arr': 4}}
+      - {'two_d': {'_id': 1, 'arr': 10}}
+      - {'two_d': {'_id': 1, 'arr': 20}}
+      - {'two_d': {'_id': 1, 'arr': 30}}
+      - {'two_d': {'_id': 1, 'arr': 40}}
+
+  - description: join datasources can be unwound, unwound field is nested under correct namespace (left)
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo JOIN bar WITH PATH => foo.arr)"
+    result:
+      - {'foo': {'_id': 0, 'arr': 1}, 'bar': {'_id': 0, 'arr': [10, 20, 30]}}
+      - {'foo': {'_id': 0, 'arr': 2}, 'bar': {'_id': 0, 'arr': [10, 20, 30]}}
+      - {'foo': {'_id': 0, 'arr': 3}, 'bar': {'_id': 0, 'arr': [10, 20, 30]}}
+      - {'foo': {'_id': 0, 'arr': 1}, 'bar': {'_id': 1, 'arr': [40, 50, 60]}}
+      - {'foo': {'_id': 0, 'arr': 2}, 'bar': {'_id': 1, 'arr': [40, 50, 60]}}
+      - {'foo': {'_id': 0, 'arr': 3}, 'bar': {'_id': 1, 'arr': [40, 50, 60]}}
+      - {'foo': {'_id': 1, 'arr': 4}, 'bar': {'_id': 0, 'arr': [10, 20, 30]}}
+      - {'foo': {'_id': 1, 'arr': 5}, 'bar': {'_id': 0, 'arr': [10, 20, 30]}}
+      - {'foo': {'_id': 1, 'arr': 6}, 'bar': {'_id': 0, 'arr': [10, 20, 30]}}
+      - {'foo': {'_id': 1, 'arr': 4}, 'bar': {'_id': 1, 'arr': [40, 50, 60]}}
+      - {'foo': {'_id': 1, 'arr': 5}, 'bar': {'_id': 1, 'arr': [40, 50, 60]}}
+      - {'foo': {'_id': 1, 'arr': 6}, 'bar': {'_id': 1, 'arr': [40, 50, 60]}}
+
+  - description: join datasources can be unwound, unwound field is nested under correct namespace (right)
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo JOIN bar WITH PATH => bar.arr)"
+    result:
+      - {'foo': {'_id': 0, 'arr': [1, 2, 3]}, 'bar': {'_id': 0, 'arr': 10}}
+      - {'foo': {'_id': 0, 'arr': [1, 2, 3]}, 'bar': {'_id': 0, 'arr': 20}}
+      - {'foo': {'_id': 0, 'arr': [1, 2, 3]}, 'bar': {'_id': 0, 'arr': 30}}
+      - {'foo': {'_id': 1, 'arr': [4, 5, 6]}, 'bar': {'_id': 0, 'arr': 10}}
+      - {'foo': {'_id': 1, 'arr': [4, 5, 6]}, 'bar': {'_id': 0, 'arr': 20}}
+      - {'foo': {'_id': 1, 'arr': [4, 5, 6]}, 'bar': {'_id': 0, 'arr': 30}}
+      - {'foo': {'_id': 0, 'arr': [1, 2, 3]}, 'bar': {'_id': 1, 'arr': 40}}
+      - {'foo': {'_id': 0, 'arr': [1, 2, 3]}, 'bar': {'_id': 1, 'arr': 50}}
+      - {'foo': {'_id': 0, 'arr': [1, 2, 3]}, 'bar': {'_id': 1, 'arr': 60}}
+      - {'foo': {'_id': 1, 'arr': [4, 5, 6]}, 'bar': {'_id': 1, 'arr': 40}}
+      - {'foo': {'_id': 1, 'arr': [4, 5, 6]}, 'bar': {'_id': 1, 'arr': 50}}
+      - {'foo': {'_id': 1, 'arr': [4, 5, 6]}, 'bar': {'_id': 1, 'arr': 60}}
+
+  - description: documents containing empty array, null, or missing values are omitted if OUTER => false (default)
+    current_db: test
+    query: "SELECT * FROM UNWIND(empty_null_and_missing AS c WITH PATH => arr, INDEX => i)"
+    result:
+      - {'c': {'_id': 1, 'arr': 1, 'comment': "non-empty", 'i': {"$numberLong": "0"}}}
+      - {'c': {'_id': 1, 'arr': 2, 'comment': "non-empty", 'i': {"$numberLong": "1"}}}
+
+  - description: documents containing empty array, null, or missing values are retained if OUTER => true
+    current_db: test
+    query: "SELECT * FROM UNWIND(empty_null_and_missing AS c WITH PATH => arr, INDEX => i, OUTER => true)"
+    result:
+      - {'c': {'_id': 0, 'comment': "empty", 'i': null}}
+      - {'c': {'_id': 1, 'arr': 1, 'comment': "non-empty", 'i': {"$numberLong": "0"}}}
+      - {'c': {'_id': 1, 'arr': 2, 'comment': "non-empty", 'i': {"$numberLong": "1"}}}
+      - {'c': {'_id': 2, 'arr': null, 'comment': "null", 'i': null}}
+      - {'c': {'_id': 3, 'comment': "missing", 'i': null}}
+
+  - description: compound paths allow simple unwinds
+    current_db: test
+    query: "SELECT a FROM UNWIND(compound WITH PATHS => (a[]))"
+    result:
+      - { '': {'a': 42 } }
+
+  - description: compound paths allow sibling unwinds
+    current_db: test
+    query: "SELECT a, b FROM UNWIND(compound WITH PATHS => (a[], b[]))"
+    result:
+      - { '': {'a': 42  , 'b': 55 } }
+
+  - description: compound path resolves nested paths
+    current_db: test
+    query: "SELECT g FROM UNWIND(compound WITH PATH => (g[][]))"
+    result:
+      - {'': { 'g': { 'g': [ 5 ]}}}
+      - {'': { 'g': { 'h':  8 }}}
+      - {'': { 'g': { 'i':  4 }}}
+      - {'': { 'g': { 'g': [ 9 ]}}}
+
+  - description: compound path resolves nested and sibling paths
+    current_db: test
+    query: "SELECT * FROM UNWIND(compound WITH PATH => (g[][], a[], b[]))"
+    result:
+      - {'compound': { '_id': 0, 'g': { 'g': [ 5 ]}, 'a': 42, 'b': 55 }}
+      - {'compound': { '_id': 0, 'g': { 'h':  8 }, 'a': 42, 'b': 55 }}
+      - {'compound': { '_id': 0, 'g': { 'i':  4 }, 'a': 42, 'b': 55 }}
+      - {'compound': { '_id': 0, 'g': { 'g': [ 9 ]}, 'a': 42, 'b': 55 }}
+
+  - description: compound path can handle multiple compound paths
+    current_db: test
+    query: "SELECT g FROM UNWIND(compound WITH PATHS => (g[][].g[]))"
+    result:
+      - { '': {'g': {  'g': 5 }  } }
+      - { '': {'g': {  'g': 9 }  } }
+
+  - description: compound path works with existing unwind
+    current_db: test
+    query: "SELECT g from UNWIND(UNWIND(compound WITH PATH => g) WITH PATHS => (g[].g[]))"
+    result:
+      - { '': {'g': {  'g': 5 }  } }
+      - { '': {'g': {  'g': 9 }  } }
+
+  - description: PATH option is required
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo)"
+    algebrize_error: 'failed to translate query: rewrite error: UNWIND datasource must have a PATH'
+
+  - description: PATH must be an identifier
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo WITH PATH => [arr])"
+    parse_error: 'failed to translate query: parse error: Error 2001: Unrecognized token `[`, expected: ```, `"`, `ID`, `(`'
+
+  - description: INDEX must be simple identifier
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo WITH PATH => arr, INDEX => invalid.index.identifier)"
+    parse_error: "Unrecognized token: `.`"
+
+  - description: duplicate option keys are disallowed
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo WITH INDEX => arr, INDEX => invalid, PATH => _id)"
+    parse_error: "failed to translate query: rewrite error: duplicate option in UNWIND: INDEX"
+
+  - description: unknown option keys are disallowed
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo WITH PATH => arr, INVALID => invalid)"
+    parse_error: "Unrecognized token: `INVALID`"
+
+  - description: error unless we can definitely prove there is no name conflict for INDEX alias
+    current_db: test
+    query: "SELECT * FROM UNWIND(index_conflict WITH PATH => arr, INDEX => i)"
+    algebrize_error: "UNWIND INDEX name 'i' conflicts with existing field name"
+
+  - description: correlated field references are disallowed for PATH
+    current_db: test
+    query: "SELECT VALUE {'x': (SELECT `inner`.arr FROM UNWIND([{'arr': 1}] AS `inner` WITH PATH => `outer`.arr) LIMIT 1)} FROM [{'arr': [4, 5, 6]}] AS `outer`"
+    algebrize_error: "field `outer` in the `FROM` clause at the 1 scope level cannot be resolved to any datasource"

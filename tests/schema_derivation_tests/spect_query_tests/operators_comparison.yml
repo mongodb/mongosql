@@ -1,0 +1,1049 @@
+catalog_schema:
+  {
+    "foo": {
+      "numbers": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "long" },
+              { "bsonType": "double" },
+              { "bsonType": "decimal" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "long" },
+              { "bsonType": "double" },
+              { "bsonType": "decimal" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "nan": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+           "a": {
+              "bsonType": "decimal" ,
+          },
+          "b": {
+               "bsonType": "decimal" ,
+          }
+        }
+      },
+      "strings": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "bools": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "bool" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "bool" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "dates": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "date" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "date" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "nullAndMissing": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "bsonType": !!str "null"
+          },
+          "b": {
+            "bsonType": !!str "null"
+          }
+        }
+      },
+      "documents": {
+        "bsonType": "object",
+        "required": [ "_id", "comment" ],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "comment": { "bsonType": "string" },
+          "a": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              }
+            ]
+          }
+        }
+      },
+      "arrays": {
+        "bsonType": "object",
+        "required": [ "_id", "comment" ],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "comment": { "bsonType": "string" },
+          "a": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "array",
+                "items": { "bsonType": "int" },
+              }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "array",
+                "items": { "bsonType": "int" },
+              }
+            ]
+          }
+        }
+      },
+      "betweenNumeric": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b', 'c' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "long" },
+              { "bsonType": "double" },
+              { "bsonType": "decimal" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "long" },
+              { "bsonType": "double" },
+              { "bsonType": "decimal" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "c": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "long" },
+              { "bsonType": "double" },
+              { "bsonType": "decimal" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "betweenStrings": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b', 'c' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "c": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "betweenDates": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b', 'c' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "date" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "date" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "c": {
+            "anyOf": [
+              { "bsonType": "date" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "betweenDocuments": {
+        "bsonType": "object",
+        "required": [ "_id", "comment" ],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "comment": { "bsonType": "string" },
+          "a": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              }
+            ]
+          },
+          "c": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              }
+            ]
+          }
+        }
+      },
+      "betweenArrays": {
+        "bsonType": "object",
+        "required": [ "_id", "comment" ],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "comment": { "bsonType": "string" },
+          "a": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "array",
+                "items": { "bsonType": "int" },
+              }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "array",
+                "items": { "bsonType": "int" },
+              }
+            ]
+          },
+          "c": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "array",
+                "items": { "bsonType": "int" },
+              }
+            ]
+          }
+        }
+      },
+    }
+  }
+
+tests:
+  - description: correctness test for lt for numeric types
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM numbers AS numbers"
+    result:
+      - {'': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": true } }
+      - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": false } }
+      - {'': { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": false } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "c": null } }
+      - {'': { "b": { "$numberLong": "3" }, "c": null } }
+      - {'': { "a": { "$numberDecimal": "Infinity" }, "b": { "$numberDecimal": "-Infinity" }, "c": false } }
+      - {'': { "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "Infinity" }, "c": true } }
+
+
+  - description: correctness test for lte for numeric types
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM numbers AS numbers"
+    result:
+      - {'': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": true } }
+      - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": true } }
+      - {'': { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": false } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "c": null } }
+      - {'': { "b": { "$numberLong": "3" }, "c": null } }
+      - {'': { "a": { "$numberDecimal": "Infinity" }, "b": { "$numberDecimal": "-Infinity" }, "c": false } }
+      - {'': { "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "Infinity" }, "c": true } }
+
+  - description: correctness test for neq for numeric types
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM numbers AS numbers"
+    result:
+      - {'': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": true } }
+      - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": false } }
+      - {'': { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": true } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "c": null } }
+      - {'': { "b": { "$numberLong": "3" }, "c": null } }
+      - {'': { "a": { "$numberDecimal": "Infinity" }, "b": { "$numberDecimal": "-Infinity" }, "c": true } }
+      - {'': { "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "Infinity" }, "c": true } }
+
+  - description: correctness test for eq for numeric types
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM numbers AS numbers"
+    result:
+      - {'': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": false } }
+      - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": true } }
+      - {'': { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": false } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "c": null } }
+      - {'': { "b": { "$numberLong": "3" }, "c": null } }
+      - {'': { "a": { "$numberDecimal": "Infinity" }, "b": { "$numberDecimal": "-Infinity" }, "c": false } }
+      - {'': { "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "Infinity" }, "c": false } }
+
+  - description: correctness test for gt for numeric types
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM numbers AS numbers"
+    result:
+      - {'': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": false } }
+      - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": false } }
+      - {'': { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": true } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "c": null } }
+      - {'': { "b": { "$numberLong": "3" }, "c": null } }
+      - {'': { "a": { "$numberDecimal": "Infinity" }, "b": { "$numberDecimal": "-Infinity" }, "c": true } }
+      - {'': { "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "Infinity" }, "c": false } }
+
+  - description: correctness test for gte for numeric types
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM numbers AS numbers"
+    result:
+      - {'': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": false } }
+      - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": true } }
+      - {'': { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": true } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "c": null } }
+      - {'': { "b": { "$numberLong": "3" }, "c": null } }
+      - {'': { "a": { "$numberDecimal": "Infinity" }, "b": { "$numberDecimal": "-Infinity" }, "c": true } }
+      - {'': { "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "Infinity" }, "c": false } }
+
+  - description: correctness test for lt for NaN
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM nan AS nan"
+    result:
+      - {'': { "a": { "$numberDecimal": "NaN" }, "b": { "$numberDecimal": "NaN" }, "c": false } }
+
+  # MongoDB differs from IEEE-754 specification and supports equality comparsion for NaN (NaN == NaN) to support indexes
+  - description: correctness test for lte for NaN
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM nan AS nan"
+    result:
+      - {'': { "a": { "$numberDecimal": "NaN" }, "b": { "$numberDecimal": "NaN" }, "c": true } }
+
+  # MongoDB differs from IEEE-754 specification and supports equality comparison for NaN (NaN == NaN) to support indexes.
+  - description: correctness test for eq for NaN
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM nan AS nan"
+    result:
+      - {'': { "a": { "$numberDecimal": "NaN" }, "b": { "$numberDecimal": "NaN" }, "c": true } }
+
+  - description: correctness test for gt for NaN
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM nan AS nan"
+    result:
+      - {'': { "a": { "$numberDecimal": "NaN" }, "b": { "$numberDecimal": "NaN" }, "c": false } }
+
+  # MongoDB differs from IEEE-754 specification and supports equality comparison for NaN (NaN == NaN) to support indexes.
+  - description: correctness test for gte for NaN
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM nan AS nan"
+    result:
+      - {'': { "a": { "$numberDecimal": "NaN" }, "b": { "$numberDecimal": "NaN" }, "c": true } }
+
+
+  - description: correctness test for lt for strings
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM strings AS strings"
+    result:
+      - {'': { "a": "abc", "b": "def", "c": true } }
+      - {'': { "a": "xyz", "b": "xyz", "c": false } }
+      - {'': { "a": "xyz", "b": "abc", "c": false } }
+      - {'': { "a": "", "b": null, "c": null } }
+      - {'': { "a": null, "b": "abc", "c": null } }
+      - {'': { "a": "abc", "c": null } }
+      - {'': { "b": "", "c": null } }
+
+  - description: correctness test for lte for strings
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM strings AS strings"
+    result:
+      - {'': { "a": "abc", "b": "def", "c": true } }
+      - {'': { "a": "xyz", "b": "xyz", "c": true } }
+      - {'': { "a": "xyz", "b": "abc", "c": false } }
+      - {'': { "a": "", "b": null, "c": null } }
+      - {'': { "a": null, "b": "abc", "c": null } }
+      - {'': { "a": "abc", "c": null } }
+      - {'': { "b": "", "c": null } }
+
+  - description: correctness test for neq for strings
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM strings AS strings"
+    result:
+      - {'': { "a": "abc", "b": "def", "c": true } }
+      - {'': { "a": "xyz", "b": "xyz", "c": false } }
+      - {'': { "a": "xyz", "b": "abc", "c": true } }
+      - {'': { "a": "", "b": null, "c": null } }
+      - {'': { "a": null, "b": "abc", "c": null } }
+      - {'': { "a": "abc", "c": null } }
+      - {'': { "b": "", "c": null } }
+
+  - description: correctness test for eq for strings
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM strings AS strings"
+    result:
+      - {'': { "a": "abc", "b": "def", "c": false } }
+      - {'': { "a": "xyz", "b": "xyz", "c": true } }
+      - {'': { "a": "xyz", "b": "abc", "c": false } }
+      - {'': { "a": "", "b": null, "c": null } }
+      - {'': { "a": null, "b": "abc", "c": null } }
+      - {'': { "a": "abc", "c": null } }
+      - {'': { "b": "", "c": null } }
+
+  - description: correctness test for gt for strings
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM strings AS strings"
+    result:
+      - {'': { "a": "abc", "b": "def", "c": false } }
+      - {'': { "a": "xyz", "b": "xyz", "c": false } }
+      - {'': { "a": "xyz", "b": "abc", "c": true } }
+      - {'': { "a": "", "b": null, "c": null } }
+      - {'': { "a": null, "b": "abc", "c": null } }
+      - {'': { "a": "abc", "c": null } }
+      - {'': { "b": "", "c": null } }
+
+  - description: correctness test for gte for strings
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM strings AS strings"
+    result:
+      - {'': { "a": "abc", "b": "def", "c": false } }
+      - {'': { "a": "xyz", "b": "xyz", "c": true } }
+      - {'': { "a": "xyz", "b": "abc", "c": true } }
+      - {'': { "a": "", "b": null, "c": null } }
+      - {'': { "a": null, "b": "abc", "c": null } }
+      - {'': { "a": "abc", "c": null } }
+      - {'': { "b": "", "c": null } }
+
+  - description: correctness test for lt for bools
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM bools AS bools"
+    result:
+      - {'': { "a": false, "b": true, "c": true } }
+      - {'': { "a": true, "b": true, "c": false } }
+      - {'': { "a": true, "b": false, "c": false } }
+      - {'': { "a": false, "b": null, "c": null } }
+      - {'': { "a": null, "b": true, "c": null } }
+      - {'': { "a": false, "c": null } }
+      - {'': { "b": true, "c": null } }
+
+  - description: correctness test for lte for bools
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM bools AS bools"
+    result:
+      - {'': { "a": false, "b": true, "c": true } }
+      - {'': { "a": true, "b": true, "c": true } }
+      - {'': { "a": true, "b": false, "c": false } }
+      - {'': { "a": false, "b": null, "c": null } }
+      - {'': { "a": null, "b": true, "c": null } }
+      - {'': { "a": false, "c": null } }
+      - {'': { "b": true, "c": null } }
+
+  - description: correctness test for neq for bools
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM bools AS bools"
+    result:
+      - {'': { "a": false, "b": true, "c": true } }
+      - {'': { "a": true, "b": true, "c": false } }
+      - {'': { "a": true, "b": false, "c": true } }
+      - {'': { "a": false, "b": null, "c": null } }
+      - {'': { "a": null, "b": true, "c": null } }
+      - {'': { "a": false, "c": null } }
+      - {'': { "b": true, "c": null } }
+
+  - description: correctness test for eq for bools
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM bools AS bools"
+    result:
+      - {'': { "a": false, "b": true, "c": false } }
+      - {'': { "a": true, "b": true, "c": true } }
+      - {'': { "a": true, "b": false, "c": false } }
+      - {'': { "a": false, "b": null, "c": null } }
+      - {'': { "a": null, "b": true, "c": null } }
+      - {'': { "a": false, "c": null } }
+      - {'': { "b": true, "c": null } }
+
+  - description: correctness test for gt for bools
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM bools AS bools"
+    result:
+      - {'': { "a": false, "b": true, "c": false } }
+      - {'': { "a": true, "b": true, "c": false } }
+      - {'': { "a": true, "b": false, "c": true } }
+      - {'': { "a": false, "b": null, "c": null } }
+      - {'': { "a": null, "b": true, "c": null } }
+      - {'': { "a": false, "c": null } }
+      - {'': { "b": true, "c": null } }
+
+  - description: correctness test for gte for bools
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM bools AS bools"
+    result:
+      - {'': { "a": false, "b": true, "c": false } }
+      - {'': { "a": true, "b": true, "c": true } }
+      - {'': { "a": true, "b": false, "c": true } }
+      - {'': { "a": false, "b": null, "c": null } }
+      - {'': { "a": null, "b": true, "c": null } }
+      - {'': { "a": false, "c": null } }
+      - {'': { "b": true, "c": null } }
+
+  - description: correctness test for lt for dates
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM dates AS dates"
+    result:
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": true } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": false } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": false } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+
+  - description: correctness test for lte for dates
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM dates AS dates"
+    result:
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": true } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": true } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": false } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+
+  - description: correctness test for neq for dates
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM dates AS dates"
+    result:
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": true } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": false } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": true } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+
+  - description: correctness test for eq for dates
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM dates AS dates"
+    result:
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": false } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": true } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": false } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+
+  - description: correctness test for gt for dates
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM dates AS dates"
+    result:
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": false } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": false } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": true } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+
+  - description: correctness test for gte for dates
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM dates AS dates"
+    result:
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": false } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": true } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": true } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+
+
+  - description: correctness test for lt for null and missing
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM nullAndMissing AS nullAndMissing"
+    result:
+      - {'': { "a": null, "b": null, "c": null } }
+      - {'': { "a": null, "c": null } }
+      - {'': { "b": null, "c": null } }
+      - {'': { "c": null } }
+
+  - description: correctness test for lte for null and missing
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM nullAndMissing AS nullAndMissing"
+    result:
+      - {'': { "a": null, "b": null, "c": null } }
+      - {'': { "a": null, "c": null } }
+      - {'': { "b": null, "c": null } }
+      - {'': { "c": null } }
+
+  - description: correctness test for neq for null and missing
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM nullAndMissing AS nullAndMissing"
+    result:
+      - {'': { "a": null, "b": null, "c": null } }
+      - {'': { "a": null, "c": null } }
+      - {'': { "b": null, "c": null } }
+      - {'': { "c": null } }
+
+  - description: correctness test for eq for null and missing
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM nullAndMissing AS nullAndMissing"
+    result:
+      - {'': { "a": null, "b": null, "c": null } }
+      - {'': { "a": null, "c": null } }
+      - {'': { "b": null, "c": null } }
+      - {'': { "c": null } }
+
+  - description: correctness test for gt for null and missing
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM nullAndMissing AS nullAndMissing"
+    result:
+      - {'': { "a": null, "b": null, "c": null } }
+      - {'': { "a": null, "c": null } }
+      - {'': { "b": null, "c": null } }
+      - {'': { "c": null } }
+
+  - description: correctness test for gte for null and missing
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM nullAndMissing AS nullAndMissing"
+    result:
+      - {'': { "a": null, "b": null, "c": null } }
+      - {'': { "a": null, "c": null } }
+      - {'': { "b": null, "c": null } }
+      - {'': { "c": null } }
+
+  - description: correctness test for lt for documents
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b, 'comment': comment } FROM documents AS documents"
+    result:
+      - { '': { "a": { }, "b": { }, "c": false, "comment": "empty empty" } }
+      - { '': { "a": { }, "b": { "x": 1 }, "c": true, "comment": "empty non-empty" } }
+      - { '': { "a": { "x": 1 }, "b": { }, "c": false, "comment": "non-empty empty" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 1, "y": "abc" }, "c": false, "comment": "same keys in same order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 2, "y": "xyz" }, "c": true, "comment": "same keys in same order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "abc", "x": 1 }, "c": true, "comment": "same keys in different order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "xyz", "x": 2 }, "c": true, "comment": "same keys in different order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 1, "m": "abc" }, "c": false, "comment": "different keys with same values" } } # note b's keys are lexicographically less than a's keys
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 2, "m": "xyz" }, "c": false, "comment": "different keys with different values" } } # note b's keys are lexicographically less than a's keys
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "abc"}, "c": false, "comment": "different number of keys with overlapping names and same values" } }
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "xyz" }, "c": true, "comment": "different number of keys with overlapping names and different values" } }
+      - { '': { "a": null, "b": { }, "c": null, "comment": "left null" } }
+      - { '': { "a": { }, "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": { }, "c": null, "comment": "left missing" } }
+      - { '': { "a": { }, "c": null, "comment": "right missing" } }
+
+  - description: correctness test for lte for documents
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b, 'comment': comment } FROM documents AS documents"
+    result:
+      - { '': { "a": { }, "b": { }, "c": true, "comment": "empty empty" } }
+      - { '': { "a": { }, "b": { "x": 1 }, "c": true, "comment": "empty non-empty" } }
+      - { '': { "a": { "x": 1 }, "b": { }, "c": false, "comment": "non-empty empty" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 1, "y": "abc" }, "c": true, "comment": "same keys in same order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 2, "y": "xyz" }, "c": true, "comment": "same keys in same order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "abc", "x": 1 }, "c": true, "comment": "same keys in different order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "xyz", "x": 2 }, "c": true, "comment": "same keys in different order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 1, "m": "abc" }, "c": false, "comment": "different keys with same values" } } # note b's keys are lexicographically less than a's keys
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 2, "m": "xyz" }, "c": false, "comment": "different keys with different values" } } # note b's keys are lexicographically less than a's keys
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "abc"}, "c": false, "comment": "different number of keys with overlapping names and same values" } }
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "xyz" }, "c": true, "comment": "different number of keys with overlapping names and different values" } }
+      - { '': { "a": null, "b": { }, "c": null, "comment": "left null" } }
+      - { '': { "a": { }, "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": { }, "c": null, "comment": "left missing" } }
+      - { '': { "a": { }, "c": null, "comment": "right missing" } }
+
+  - description: correctness test for neq for documents
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b, 'comment': comment } FROM documents AS documents"
+    result:
+      - { '': { "a": { }, "b": { }, "c": false, "comment": "empty empty" } }
+      - { '': { "a": { }, "b": { "x": 1 }, "c": true, "comment": "empty non-empty" } }
+      - { '': { "a": { "x": 1 }, "b": { }, "c": true, "comment": "non-empty empty" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 1, "y": "abc" }, "c": false, "comment": "same keys in same order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 2, "y": "xyz" }, "c": true, "comment": "same keys in same order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "abc", "x": 1 }, "c": true, "comment": "same keys in different order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "xyz", "x": 2 }, "c": true, "comment": "same keys in different order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 1, "m": "abc" }, "c": true, "comment": "different keys with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 2, "m": "xyz" }, "c": true, "comment": "different keys with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "abc"}, "c": true, "comment": "different number of keys with overlapping names and same values" } }
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "xyz" }, "c": true, "comment": "different number of keys with overlapping names and different values" } }
+      - { '': { "a": null, "b": { }, "c": null, "comment": "left null" } }
+      - { '': { "a": { }, "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": { }, "c": null, "comment": "left missing" } }
+      - { '': { "a": { }, "c": null, "comment": "right missing" } }
+
+  - description: correctness test for eq for documents
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b, 'comment': comment } FROM documents AS documents"
+    result:
+      - { '': { "a": { }, "b": { }, "c": true, "comment": "empty empty" } }
+      - { '': { "a": { }, "b": { "x": 1 }, "c": false, "comment": "empty non-empty" } }
+      - { '': { "a": { "x": 1 }, "b": { }, "c": false, "comment": "non-empty empty" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 1, "y": "abc" }, "c": true, "comment": "same keys in same order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 2, "y": "xyz" }, "c": false, "comment": "same keys in same order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "abc", "x": 1 }, "c": false, "comment": "same keys in different order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "xyz", "x": 2 }, "c": false, "comment": "same keys in different order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 1, "m": "abc" }, "c": false, "comment": "different keys with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 2, "m": "xyz" }, "c": false, "comment": "different keys with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "abc"}, "c": false, "comment": "different number of keys with overlapping names and same values" } }
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "xyz" }, "c": false, "comment": "different number of keys with overlapping names and different values" } }
+      - { '': { "a": null, "b": { }, "c": null, "comment": "left null" } }
+      - { '': { "a": { }, "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": { }, "c": null, "comment": "left missing" } }
+      - { '': { "a": { }, "c": null, "comment": "right missing" } }
+
+  - description: correctness test for gt for documents
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b, 'comment': comment } FROM documents AS documents"
+    result:
+      - { '': { "a": { }, "b": { }, "c": false, "comment": "empty empty" } }
+      - { '': { "a": { }, "b": { "x": 1 }, "c": false, "comment": "empty non-empty" } }
+      - { '': { "a": { "x": 1 }, "b": { }, "c": true, "comment": "non-empty empty" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 1, "y": "abc" }, "c": false, "comment": "same keys in same order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 2, "y": "xyz" }, "c": false, "comment": "same keys in same order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "abc", "x": 1 }, "c": false, "comment": "same keys in different order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "xyz", "x": 2 }, "c": false, "comment": "same keys in different order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 1, "m": "abc" }, "c": true, "comment": "different keys with same values" } } # note b's keys are lexicographically less than a's keys
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 2, "m": "xyz" }, "c": true, "comment": "different keys with different values" } } # note b's keys are lexicographically less than a's keys
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "abc"}, "c": true, "comment": "different number of keys with overlapping names and same values" } }
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "xyz" }, "c": false, "comment": "different number of keys with overlapping names and different values" } }
+      - { '': { "a": null, "b": { }, "c": null, "comment": "left null" } }
+      - { '': { "a": { }, "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": { }, "c": null, "comment": "left missing" } }
+      - { '': { "a": { }, "c": null, "comment": "right missing" } }
+
+  - description: correctness test for gte for documents
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b, 'comment': comment } FROM documents AS documents"
+    result:
+      - { '': { "a": { }, "b": { }, "c": true, "comment": "empty empty" } }
+      - { '': { "a": { }, "b": { "x": 1 }, "c": false, "comment": "empty non-empty" } }
+      - { '': { "a": { "x": 1 }, "b": { }, "c": true, "comment": "non-empty empty" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 1, "y": "abc" }, "c": true, "comment": "same keys in same order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "x": 2, "y": "xyz" }, "c": false, "comment": "same keys in same order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "abc", "x": 1 }, "c": false, "comment": "same keys in different order with same values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "y": "xyz", "x": 2 }, "c": false, "comment": "same keys in different order with different values" } }
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 1, "m": "abc" }, "c": true, "comment": "different keys with same values" } } # note b's keys are lexicographically less than a's keys
+      - { '': { "a": { "x": 1, "y": "abc" }, "b": { "n": 2, "m": "xyz" }, "c": true, "comment": "different keys with different values" } } # note b's keys are lexicographically less than a's keys
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "abc"}, "c": true, "comment": "different number of keys with overlapping names and same values" } }
+      - { '': { "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "xyz" }, "c": false, "comment": "different number of keys with overlapping names and different values" } }
+      - { '': { "a": null, "b": { }, "c": null, "comment": "left null" } }
+      - { '': { "a": { }, "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": { }, "c": null, "comment": "left missing" } }
+      - { '': { "a": { }, "c": null, "comment": "right missing" } }
+
+  - description: correctness test for lt for arrays
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b, 'comment': comment } FROM arrays AS arrays"
+    result:
+      - { '': { "a": [ ], "b": [ ], "c": false, "comment": "empty empty" } }
+      - { '': { "a": [ ], "b": [1], "c": true, "comment": "empty non-empty" } }
+      - { '': { "a": [1], "b": [ ], "c": false, "comment": "non-empty empty" } }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 3], "c": false, "comment": "same length, same values"} }
+      - { '': { "a": [1, 2, 3], "b": [500, 2, 3], "c": true, "comment": "same length, different first values"} }
+      - { '': { "a": [1, 2, 3, 4, 5], "b": [1, 2, 3, -10, 5], "c": false, "comment": "same length, same prefix and suffix, different later values"} }
+      - { '': { "a": [1, 2], "b": [1, 2, 3], "c": true, "comment": "different length, one is a prefix of the other"} }
+      - { '': { "a": [1, 2], "b": [24, 2, 3], "c": true, "comment": "different length, different first values"} }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 0, 1, 2], "c": false, "comment": "different length, same prefix, different later values"} }
+      - { '': { "a": null, "b": [], "c": null, "comment": "left null" } }
+      - { '': { "a": [], "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": [], "c": null, "comment": "left missing" } }
+      - { '': { "a": [], "c": null, "comment": "right missing" } }
+
+  - description: correctness test for lte for arrays
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b, 'comment': comment } FROM arrays AS arrays"
+    result:
+      - { '': { "a": [ ], "b": [ ], "c": true, "comment": "empty empty" } }
+      - { '': { "a": [ ], "b": [1], "c": true, "comment": "empty non-empty" } }
+      - { '': { "a": [1], "b": [ ], "c": false, "comment": "non-empty empty" } }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 3], "c": true, "comment": "same length, same values"} }
+      - { '': { "a": [1, 2, 3], "b": [500, 2, 3], "c": true, "comment": "same length, different first values"} }
+      - { '': { "a": [1, 2, 3, 4, 5], "b": [1, 2, 3, -10, 5], "c": false, "comment": "same length, same prefix and suffix, different later values"} }
+      - { '': { "a": [1, 2], "b": [1, 2, 3], "c": true, "comment": "different length, one is a prefix of the other"} }
+      - { '': { "a": [1, 2], "b": [24, 2, 3], "c": true, "comment": "different length, different first values"} }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 0, 1, 2], "c": false, "comment": "different length, same prefix, different later values"} }
+      - { '': { "a": null, "b": [], "c": null, "comment": "left null" } }
+      - { '': { "a": [], "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": [], "c": null, "comment": "left missing" } }
+      - { '': { "a": [], "c": null, "comment": "right missing" } }
+
+  - description: correctness test for neq for arrays
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b, 'comment': comment } FROM arrays AS arrays"
+    result:
+      - { '': { "a": [ ], "b": [ ], "c": false, "comment": "empty empty" } }
+      - { '': { "a": [ ], "b": [1], "c": true, "comment": "empty non-empty" } }
+      - { '': { "a": [1], "b": [ ], "c": true, "comment": "non-empty empty" } }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 3], "c": false, "comment": "same length, same values"} }
+      - { '': { "a": [1, 2, 3], "b": [500, 2, 3], "c": true, "comment": "same length, different first values"} }
+      - { '': { "a": [1, 2, 3, 4, 5], "b": [1, 2, 3, -10, 5], "c": true, "comment": "same length, same prefix and suffix, different later values"} }
+      - { '': { "a": [1, 2], "b": [1, 2, 3], "c": true, "comment": "different length, one is a prefix of the other"} }
+      - { '': { "a": [1, 2], "b": [24, 2, 3], "c": true, "comment": "different length, different first values"} }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 0, 1, 2], "c": true, "comment": "different length, same prefix, different later values"} }
+      - { '': { "a": null, "b": [], "c": null, "comment": "left null" } }
+      - { '': { "a": [], "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": [], "c": null, "comment": "left missing" } }
+      - { '': { "a": [], "c": null, "comment": "right missing" } }
+
+  - description: correctness test for eq for arrays
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b, 'comment': comment } FROM arrays AS arrays"
+    result:
+      - { '': { "a": [ ], "b": [ ], "c": true, "comment": "empty empty" } }
+      - { '': { "a": [ ], "b": [1], "c": false, "comment": "empty non-empty" } }
+      - { '': { "a": [1], "b": [ ], "c": false, "comment": "non-empty empty" } }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 3], "c": true, "comment": "same length, same values"} }
+      - { '': { "a": [1, 2, 3], "b": [500, 2, 3], "c": false, "comment": "same length, different first values"} }
+      - { '': { "a": [1, 2, 3, 4, 5], "b": [1, 2, 3, -10, 5], "c": false, "comment": "same length, same prefix and suffix, different later values"} }
+      - { '': { "a": [1, 2], "b": [1, 2, 3], "c": false, "comment": "different length, one is a prefix of the other"} }
+      - { '': { "a": [1, 2], "b": [24, 2, 3], "c": false, "comment": "different length, different first values"} }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 0, 1, 2], "c": false, "comment": "different length, same prefix, different later values"} }
+      - { '': { "a": null, "b": [], "c": null, "comment": "left null" } }
+      - { '': { "a": [], "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": [], "c": null, "comment": "left missing" } }
+      - { '': { "a": [], "c": null, "comment": "right missing" } }
+
+  - description: correctness test for gt for arrays
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b, 'comment': comment } FROM arrays AS arrays"
+    result:
+      - { '': { "a": [ ], "b": [ ], "c": false, "comment": "empty empty" } }
+      - { '': { "a": [ ], "b": [1], "c": false, "comment": "empty non-empty" } }
+      - { '': { "a": [1], "b": [ ], "c": true, "comment": "non-empty empty" } }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 3], "c": false, "comment": "same length, same values"} }
+      - { '': { "a": [1, 2, 3], "b": [500, 2, 3], "c": false, "comment": "same length, different first values"} }
+      - { '': { "a": [1, 2, 3, 4, 5], "b": [1, 2, 3, -10, 5], "c": true, "comment": "same length, same prefix and suffix, different later values"} }
+      - { '': { "a": [1, 2], "b": [1, 2, 3], "c": false, "comment": "different length, one is a prefix of the other"} }
+      - { '': { "a": [1, 2], "b": [24, 2, 3], "c": false, "comment": "different length, different first values"} }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 0, 1, 2], "c": true, "comment": "different length, same prefix, different later values"} }
+      - { '': { "a": null, "b": [], "c": null, "comment": "left null" } }
+      - { '': { "a": [], "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": [], "c": null, "comment": "left missing" } }
+      - { '': { "a": [], "c": null, "comment": "right missing" } }
+
+  - description: correctness test for gte for arrays
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b, 'comment': comment } FROM arrays AS arrays"
+    result:
+      - { '': { "a": [ ], "b": [ ], "c": true, "comment": "empty empty" } }
+      - { '': { "a": [ ], "b": [1], "c": false, "comment": "empty non-empty" } }
+      - { '': { "a": [1], "b": [ ], "c": true, "comment": "non-empty empty" } }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 3], "c": true, "comment": "same length, same values"} }
+      - { '': { "a": [1, 2, 3], "b": [500, 2, 3], "c": false, "comment": "same length, different first values"} }
+      - { '': { "a": [1, 2, 3, 4, 5], "b": [1, 2, 3, -10, 5], "c": true, "comment": "same length, same prefix and suffix, different later values"} }
+      - { '': { "a": [1, 2], "b": [1, 2, 3], "c": false, "comment": "different length, one is a prefix of the other"} }
+      - { '': { "a": [1, 2], "b": [24, 2, 3], "c": false, "comment": "different length, different first values"} }
+      - { '': { "a": [1, 2, 3], "b": [1, 2, 0, 1, 2], "c": true, "comment": "different length, same prefix, different later values"} }
+      - { '': { "a": null, "b": [], "c": null, "comment": "left null" } }
+      - { '': { "a": [], "b": null, "c": null, "comment": "right null" } }
+      - { '': { "b": [], "c": null, "comment": "left missing" } }
+      - { '': { "a": [], "c": null, "comment": "right missing" } }
+
+  - description: correctness test for BETWEEN for numeric types
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': a BETWEEN b AND c } FROM betweenNumeric AS betweenNumeric"
+    result:
+      - {'': { "a": { "$numberInt": "2" }, "b": { "$numberLong": "1" }, "c": { "$numberDouble": "3.1" }, "r": true } }
+      - {'': { "a": { "$numberInt": "1" }, "b": { "$numberLong": "1" }, "c": { "$numberDecimal": "3.1" }, "r": true } }
+      - {'': { "a": { "$numberInt": "3" }, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": true } }
+      - {'': { "a": { "$numberInt": "0" }, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": false } }
+      - {'': { "a": { "$numberInt": "4" }, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": false } }
+      - {'': { "a": null, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": null } }
+      - {'': { "a": { "$numberLong": "2" }, "b": null, "c": { "$numberInt": "3" }, "r": null } }
+      - {'': { "a": { "$numberLong": "2" }, "b": { "$numberLong": "1" }, "c": null, "r": null } }
+      - {'': { "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": null } }
+      - {'': { "a": { "$numberLong": "2" }, "c": { "$numberInt": "3" }, "r": null } }
+      - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "1" }, "r": null } }
+
+  - description: correctness test for BETWEEN for strings
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': a BETWEEN b AND c } FROM betweenStrings AS betweenStrings"
+    result:
+      - {'': { "a": "y", "b": "x", "c": "z", "r": true } }
+      - {'': { "a": "x", "b": "x", "c": "z", "r": true } }
+      - {'': { "a": "z", "b": "x", "c": "z", "r": true } }
+      - {'': { "a": "w", "b": "x", "c": "z", "r": false } }
+      - {'': { "a": "d", "b": "a", "c": "c", "r": false } }
+      - {'': { "a": null, "b": "x", "c": "z", "r": null } }
+      - {'': { "a": "y", "b": null, "c": "z", "r": null } }
+      - {'': { "a": "y", "b": "x", "c": null, "r": null } }
+      - {'': { "b": "x", "c": "z", "r": null } }
+      - {'': { "a": "y", "c": "z", "r": null } }
+      - {'': { "a": "y", "b": "x", "r": null } }
+
+  - description: correctness test for BETWEEN for dates
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': a BETWEEN b AND c } FROM betweenDates AS betweenDates"
+    result:
+      - {'': { "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": true } }
+      - {'': { "a": { "$date": { "$numberLong": "5" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": true } }
+      - {'': { "a": { "$date": { "$numberLong": "15" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": true } }
+      - {'': { "a": { "$date": { "$numberLong": "0" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": false } }
+      - {'': { "a": { "$date": { "$numberLong": "20" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": false } }
+      - {'': { "a": null, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": null } }
+      - {'': { "a": { "$date": { "$numberLong": "10" } }, "b": null, "c": { "$date": { "$numberLong": "15" } }, "r": null } }
+      - {'': { "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } }, "c": null, "r": null } }
+      - {'': { "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": null } }
+      - {'': { "a": { "$date": { "$numberLong": "10" } }, "c": { "$date": { "$numberLong": "15" } }, "r": null } }
+      - {'': { "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } }, "r": null } }
+
+  - description: correctness test for BETWEEN for documents
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': a BETWEEN b AND c, 'comment': comment } FROM betweenDocuments AS betweenDocuments"
+    result:
+      - { '': { "a": { "y": 1 }, "b": { "x": 1 }, "c": { "z": 1 }, "r": true, "comment": "is between" } }
+      - { '': { "a": { "x": 1 }, "b": { "x": 1 }, "c": { "z": 1 }, "r": true, "comment": "equals lower bound" } }
+      - { '': { "a": { "z": 1 }, "b": { "x": 1 }, "c": { "z": 1 }, "r": true, "comment": "equals upper bound" } }
+      - { '': { "a": { "x": 1, "y": 0 }, "b": { "x": 1, "y": 1 }, "c": { "z": 1, "n": 1 }, "r": false, "comment": "less than lower bound" } }
+      - { '': { "a": { "z": 2, "n": 1 }, "b": { "x": 1, "y": 1 }, "c": { "z": 1, "n": 1 }, "r": false, "comment": "greater than upper bound" } }
+      - { '': { "a": null, "b": { "x": 1 }, "c": { "z": 1 }, "r": null, "comment": "first arg null" } }
+      - { '': { "a": { "y": 1 }, "b": null, "c": { "z": 1 }, "r": null, "comment": "second arg null" } }
+      - { '': { "a": { "y": 1 }, "b": { "x": 1 }, "c": null, "r": null, "comment": "third arg null" } }
+      - { '': { "b": { "x": 1 }, "c": { "z": 1 }, "r": null, "comment": "first arg missing" } }
+      - { '': { "a": { "y": 1 }, "c": { "z": 1 }, "r": null, "comment": "second arg missing" } }
+      - { '': { "a": { "y": 1 }, "b": { "x": 1 }, "r": null, "comment": "third arg missing" } }
+
+  - description: correctness test for BETWEEN for arrays
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': a BETWEEN b AND c, 'comment': comment } FROM betweenArrays AS betweenArrays"
+    result:
+      - { '': { "a": [3, 4], "b": [1, 2], "c": [5, 6], "r": true, "comment": "is between" } }
+      - { '': { "a": [1, 2], "b": [1, 2], "c": [5, 6], "r": true, "comment": "equals lower bound" } }
+      - { '': { "a": [5, 6], "b": [1, 2], "c": [5, 6], "r": true, "comment": "equals upper bound" } }
+      - { '': { "a": [0], "b": [1, 2, 3], "c": [5], "r": false, "comment": "less than lower bound" } }
+      - { '': { "a": [7, 8], "b": [1, 2, 3], "c": [5], "r": false, "comment": "greater than upper bound" } }
+      - { '': { "a": null, "b": [1, 2], "c": [5, 6], "r": null, "comment": "first arg null" } }
+      - { '': { "a": [3, 4], "b": null, "c": [5, 6], "r": null, "comment": "second arg null" } }
+      - { '': { "a": [3, 4], "b": [1, 2], "c": null, "r": null, "comment": "third arg null" } }
+      - { '': { "b": [1, 2], "c": [5, 6], "r": null, "comment": "first arg missing" } }
+      - { '': { "a": [3, 4], "c": [5, 6], "r": null, "comment": "second arg missing" } }
+      - { '': { "a": [3, 4], "b": [1, 2], "r": null, "comment": "third arg missing" } }

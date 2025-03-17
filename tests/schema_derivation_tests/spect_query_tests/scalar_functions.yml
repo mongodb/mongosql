@@ -1,0 +1,1269 @@
+catalog_data:
+  foo:
+    nullif:
+      - {'_id': 0, 'v1': 'a', 'v2': 'a'}
+      - {'_id': 1, 'v1': 'a', 'v2': 'b'}
+      - {'_id': 2, 'v1': 'a', 'v2': null}
+      - {'_id': 3, 'v1': null, 'v2': 'b'}
+      - {'_id': 4, 'v1': 'a'}
+      - {'_id': 5, 'v2': 'b'}
+      - {'_id': 6}
+    twoArgCoalesce:
+      - {'_id': 0, 'v1': 123, 'v2': 456}
+      - {'_id': 1, 'v1': null, 'v2': 456}
+      - {'_id': 2, 'v2': 456}
+    multiArgCoalesce:
+      - {'_id': 0, 'v1': 123, 'v2': null, 'v4': 789, 'v5': null}
+      - {'_id': 1, 'v1': null, 'v3': 456, 'v4': 789}
+      - {'_id': 2, 'v2': null, 'v3': null, 'v5': 789}
+      - {'_id': 3, 'v1': null, 'v2': null, 'v5': null}
+    size:
+      - {'_id': 0, 'a': []}
+      - {'_id': 1, 'a': [1]}
+      - {'_id': 2, 'a': [1, 2, 3]}
+      - {'_id': 3, 'a': null}
+      - {'_id': 4}
+    position:
+      - {'_id': 0, 's1': '', 's2': 'abc'}
+      - {'_id': 1, 's1': 'a', 's2': 'abc'}
+      - {'_id': 2, 's1': 'b', 's2': 'abc'}
+      - {'_id': 3, 's1': 'b', 's2': 'abbbc'}
+      - {'_id': 4, 's1': 'bc', 's2': 'abbcbc'}
+      - {'_id': 5, 's1': 'x', 's2': 'abc'}
+      - {'_id': 6, 's1': null, 's2': 'abc'}
+      - {'_id': 7, 's2': 'abc'}
+      - {'_id': 8, 's1': 'b', 's2': null}
+      - {'_id': 9, 's1': 'b'}
+    length:
+      - {'_id': 0, 's': ''}
+      - {'_id': 1, 's': 'a'}
+      - {'_id': 2, 's': 'ã'}
+      - {'_id': 3, 's': 'abc'}
+      - {'_id': 5, 's': '$€λG', 'comment': '€ is encoded using three bytes. λ is encoded using two bytes.'}
+      - {'_id': 6, 's': '寿司', 'comment': 'Each character is encoded using three bytes.'}
+      - {'_id': 7, 's': null}
+      - {'_id': 8}
+    nullAndMissing:
+      - {'_id': 0, 'd': null}
+      - {'_id': 1}
+    substring:
+      - {'_id': 0, 'str': '', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '1'}}
+      - {'_id': 1, 'str': '', 'start': {'$numberInt': '1'}, 'length': {'$numberInt': '1'}}
+      - {'_id': 2, 'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '-1'}}
+      - {'_id': 3, 'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '0'}}
+      - {'_id': 4, 'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '1'}}
+      - {'_id': 5, 'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '2'}}
+      - {'_id': 6, 'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '4'}}
+      - {'_id': 7, 'str': 'abc', 'start': {'$numberInt': '1'}, 'length': {'$numberInt': '2'}}
+      - {'_id': 8, 'str': 'abc', 'start': {'$numberInt': '2'}, 'length': {'$numberInt': '-1'}}
+      - {'_id': 9, 'str': '$€λGx', 'start': {'$numberInt': '1'}, 'length': {'$numberInt': '3'}}
+      - {'_id': 10, 'str': null, start: {'$numberInt': '1'}, length: {'$numberInt': '1'}}
+      - {'_id': 11, start: {'$numberInt': '1'}, length: {'$numberInt': '1'}}
+      - {'_id': 12, 'str': 'abc', start: null, length: {'$numberInt': '1'}}
+      - {'_id': 13, 'str': 'abc', length: {'$numberInt': '1'}}
+      - {'_id': 14, 'str': 'abc', 'start': {'$numberInt': '1'}, 'length': null}
+      - {'_id': 15, 'str': 'abc', 'start': {'$numberInt': '1'}}
+    fold:
+      - {'_id': 0, 's': ''}
+      - {'_id': 1, 's': 'abcd'}
+      - {'_id': 2, 's': 'aBcD'}
+      - {'_id': 3, 's': 'ABCD'}
+      - {'_id': 4, 's': null}
+      - {'_id': 5}
+    trim:
+      - {'_id': 0, 'substr': '', 'str': ''}
+      - {'_id': 1, 'substr': ' ', 'str': ''}
+      - {'_id': 2, 'substr': ' ', 'str': '   '}
+      - {'_id': 3, 'substr': ' ', 'str': 'abc'}
+      - {'_id': 4, 'substr': ' ', 'str': '  abc  '}
+      - {'_id': 5, 'substr': 'x', 'str': 'x abc x'}
+      - {'_id': 6, 'substr': '123', 'str': '123abc123'}
+      - {'_id': 7, 'substr': null, 'str': 'abc'}
+      - {'_id': 8, 'str': 'abc'}
+      - {'_id': 9, 'substr': ' ', 'str': null}
+      - {'_id': 10, 'substr': ' '}
+    abs:
+      - { '_id': 0, 'v': { "$numberInt": "1" }}
+      - { '_id': 1, 'v': { "$numberLong": "-1" }}
+      - { '_id': 2, 'v': { "$numberDouble": "-1" }}
+      - { '_id': 3, 'v': { "$numberDecimal": "-1" }}
+      - { '_id': 4, 'v': { '$numberDouble': 'NaN' }}
+      - { '_id': 5, 'v': { '$numberDouble': 'Infinity' }}
+      - { '_id': 6, 'v': { '$numberDouble': '-Infinity' }}
+      - { '_id': 7, 'v': null }
+      - { '_id': 8 }
+    ceilAndFloor:
+      - { '_id': 0, 'v': { "$numberInt": "7" }}
+      - { '_id': 1, 'v': { "$numberLong": "7" }}
+      - { '_id': 2, 'v': { "$numberDouble": "-7.8" }}
+      - { '_id': 3, 'v': { "$numberDecimal": "7.8" }}
+      - { '_id': 4, 'v': { '$numberDouble': 'NaN' }}
+      - { '_id': 5, 'v': { '$numberDouble': 'Infinity' }}
+      - { '_id': 6, 'v': { '$numberDouble': '-Infinity' }}
+      - { '_id': 7, 'v': null }
+      - { '_id': 8 }
+    log:
+      - { '_id': 0, 'v': { "$numberInt": "-100" }, 'base': { "$numberInt": "10" }}
+      - { '_id': 1, 'v': { "$numberInt": "0" }, 'base': { "$numberLong": "10" }}
+      - { '_id': 2, 'v': { "$numberInt": "100" }, 'base': { "$numberDouble": "-10" }}
+      - { '_id': 3, 'v': { "$numberInt": "100" }, 'base': { "$numberDecimal": "0" }}
+      - { '_id': 4, 'v': { "$numberInt": "100" }, 'base': null }
+      - { '_id': 5, 'v': { "$numberInt": "100" }}
+      - { '_id': 6, 'v': { "$numberLong": "100" }, 'base': { "$numberInt": "1" }}
+      - { '_id': 7, 'v': { "$numberLong": "100" }, 'base': { "$numberLong": "10" }}
+      - { '_id': 8, 'v': { "$numberLong": "100" }, 'base': { "$numberDouble": "10" }}
+      - { '_id': 9, 'v': { "$numberLong": "100" }, 'base': { "$numberDecimal": "10" }}
+      - { '_id': 10, 'v': { "$numberLong": "100" }, 'base': null }
+      - { '_id': 11, 'v': { "$numberLong": "100" }}
+      - { '_id': 12, 'v': { "$numberDouble": "100" }, 'base': { "$numberInt": "10" }}
+      - { '_id': 13, 'v': { "$numberDouble": "100" }, 'base': { "$numberLong": "10" }}
+      - { '_id': 14, 'v': { "$numberDouble": "100" }, 'base': { "$numberDouble": "10" }}
+      - { '_id': 15, 'v': { "$numberDouble": "100" }, 'base': { "$numberDecimal": "10" }}
+      - { '_id': 16, 'v': { "$numberDouble": "100" }, 'base': null }
+      - { '_id': 17, 'v': { "$numberDouble": "100" }}
+      - { '_id': 18, 'v': { "$numberDecimal": "100" }, 'base': { "$numberInt": "10" }}
+      - { '_id': 19, 'v': { "$numberDecimal": "100" }, 'base': { "$numberLong": "10" }}
+      - { '_id': 20, 'v': { "$numberDecimal": "100" }, 'base': { "$numberDouble": "10" }}
+      - { '_id': 21, 'v': { "$numberDecimal": "100" }, 'base': { "$numberDecimal": "10" }}
+      - { '_id': 22, 'v': { "$numberDecimal": "100" }, 'base': null }
+      - { '_id': 23, 'v': { "$numberDecimal": "100" }}
+      - { '_id': 24, 'v': { '$numberDouble': 'NaN' }, 'base': { "$numberInt": "10" }}
+      - { '_id': 25, 'v': { "$numberInt": "100" }, 'base': { '$numberDouble': 'NaN' }}
+      - { '_id': 26, 'v': { '$numberDouble': 'Infinity' }, 'base': { "$numberInt": "10" }}
+      - { '_id': 27, 'v': { "$numberInt": "100" }, 'base': { '$numberDouble': 'Infinity' }}
+      - { '_id': 28, 'v': { '$numberDouble': '-Infinity' }, 'base': { "$numberInt": "10" }}
+      - { '_id': 29, 'v': { "$numberInt": "100" }, 'base': { '$numberDouble': '-Infinity' }}
+      - { '_id': 30, 'v': null,  'base': { "$numberInt": "10" }}
+      - { '_id': 31, 'v': null, 'base': null }
+      - { '_id': 32, 'v': null }
+      - { '_id': 33 }
+    mod:
+      - { '_id': 0, 'v': { "$numberInt": "-80" }, 'divisor': { "$numberInt": "7" }}
+      - { '_id': 1, 'v': { "$numberInt": "0" }, 'divisor': { "$numberLong": "7" }}
+      - { '_id': 2, 'v': { "$numberInt": "80" }, 'divisor': { "$numberDouble": "-7" }}
+      - { '_id': 3, 'v': { "$numberInt": "80" }, 'divisor': { "$numberDecimal": "0" }}
+      - { '_id': 4, 'v': { "$numberInt": "80" }, 'divisor': null }
+      - { '_id': 5, 'v': { "$numberInt": "80" }}
+      - { '_id': 6, 'v': { "$numberLong": "80" }, 'divisor': { "$numberInt": "7" }}
+      - { '_id': 7, 'v': { "$numberLong": "80" }, 'divisor': { "$numberLong": "7" }}
+      - { '_id': 8, 'v': { "$numberLong": "80" }, 'divisor': { "$numberDouble": "7" }}
+      - { '_id': 9, 'v': { "$numberLong": "80" }, 'divisor': { "$numberDecimal": "7" }}
+      - { '_id': 10, 'v': { "$numberLong": "80" }, 'divisor': null }
+      - { '_id': 11, 'v': { "$numberLong": "80" }}
+      - { '_id': 12, 'v': { "$numberDouble": "80" }, 'divisor': { "$numberInt": "7" }}
+      - { '_id': 13, 'v': { "$numberDouble": "80" }, 'divisor': { "$numberLong": "7" }}
+      - { '_id': 14, 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDouble": "7" }}
+      - { '_id': 15, 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDecimal": "7" }}
+      - { '_id': 16, 'v': { "$numberDouble": "80" }, 'divisor': null }
+      - { '_id': 17, 'v': { "$numberDouble": "80" }}
+      - { '_id': 18, 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberInt": "7" }}
+      - { '_id': 19, 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberLong": "7" }}
+      - { '_id': 20, 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberDouble": "7" }}
+      - { '_id': 21, 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberDecimal": "7" }}
+      - { '_id': 22, 'v': { "$numberDecimal": "80" }, 'divisor': null }
+      - { '_id': 23, 'v': { "$numberDecimal": "80" }}
+      - { '_id': 24, 'v': { '$numberDouble': 'NaN' }, 'divisor': { "$numberInt": "7" }}
+      - { '_id': 25, 'v': { "$numberInt": "80" }, 'divisor': { '$numberDouble': 'NaN' }}
+      - { '_id': 26, 'v': { '$numberDouble': 'Infinity' }, 'divisor': { "$numberInt": "7" }}
+      - { '_id': 27, 'v': { "$numberInt": "80" }, 'divisor': { '$numberDouble': 'Infinity' }}
+      - { '_id': 28, 'v': { '$numberDouble': '-Infinity' }, 'divisor': { "$numberInt": "7" }}
+      - { '_id': 29, 'v': { "$numberInt": "80" }, 'divisor': { '$numberDouble': '-Infinity' }}
+      - { '_id': 30, 'v': null, 'divisor': { "$numberInt": "7" }}
+      - { '_id': 31, 'v': null, 'divisor': null }
+      - { '_id': 32, 'v': null }
+      - { '_id': 33 }
+    pow:
+      - { '_id': 0, 'v': { "$numberInt": "-5" }, 'exponent': { "$numberInt": "2" }}
+      - { '_id': 1, 'v': { "$numberInt": "0" }, 'exponent': { "$numberLong": "2" }}
+      - { '_id': 2, 'v': { "$numberInt": "5" }, 'exponent': { "$numberDouble": "-2" }}
+      - { '_id': 3, 'v': { "$numberInt": "5" }, 'exponent': { "$numberDecimal": "0" }}
+      - { '_id': 4, 'v': { "$numberInt": "5" }, 'exponent': null }
+      - { '_id': 5, 'v': { "$numberInt": "5" }}
+      - { '_id': 6, 'v': { "$numberLong": "5" }, 'exponent': { "$numberInt": "2" }}
+      - { '_id': 7, 'v': { "$numberLong": "5" }, 'exponent': { "$numberLong": "2" }}
+      - { '_id': 8, 'v': { "$numberLong": "5" }, 'exponent': { "$numberDouble": "2" }}
+      - { '_id': 9, 'v': { "$numberLong": "5" }, 'exponent': { "$numberDecimal": "2" }}
+      - { '_id': 10, 'v': { "$numberLong": "5" }, 'exponent': null }
+      - { '_id': 11, 'v': { "$numberLong": "5" }}
+      - { '_id': 12, 'v': { "$numberDouble": "5" }, 'exponent': { "$numberInt": "2" }}
+      - { '_id': 13, 'v': { "$numberDouble": "5" }, 'exponent': { "$numberLong": "2" }}
+      - { '_id': 14, 'v': { "$numberDouble": "5" }, 'exponent': { "$numberDouble": "2" }}
+      - { '_id': 15, 'v': { "$numberDouble": "5" }, 'exponent': { "$numberDecimal": "2" }}
+      - { '_id': 16, 'v': { "$numberDouble": "5" }, 'exponent': null }
+      - { '_id': 17, 'v': { "$numberDouble": "5" }}
+      - { '_id': 18, 'v': { "$numberDecimal": "5" }, 'exponent': { "$numberInt": "2" }}
+      - { '_id': 19, 'v': { "$numberDecimal": "5" }, 'exponent': { "$numberLong": "2" }}
+      - { '_id': 20, 'v': { "$numberDecimal": "5" }, 'exponent': { "$numberDouble": "2" }}
+      - { '_id': 21, 'v': { "$numberDecimal": "5" }, 'exponent': { "$numberDecimal": "2" }}
+      - { '_id': 22, 'v': { "$numberDecimal": "5" }, 'exponent': null }
+      - { '_id': 23, 'v': { "$numberDecimal": "5" }}
+      - { '_id': 24, 'v': { '$numberDouble': 'NaN' }, 'exponent': { "$numberInt": "2" }}
+      - { '_id': 25, 'v': { "$numberInt": "5" }, 'exponent': { '$numberDouble': 'NaN' }}
+      - { '_id': 26, 'v': { '$numberDouble': 'Infinity' }, 'exponent': { "$numberInt": "2" }}
+      - { '_id': 27, 'v': { "$numberInt": "5" }, 'exponent': { '$numberDouble': 'Infinity' }}
+      - { '_id': 28, 'v': { '$numberDouble': '-Infinity' }, 'exponent': { "$numberInt": "2" }}
+      - { '_id': 29, 'v': { "$numberInt": "5" }, 'exponent': { '$numberDouble': '-Infinity' }}
+      - { '_id': 30, 'v': null, 'exponent': { "$numberInt": "2" }}
+      - { '_id': 31, 'v': null, 'exponent': null }
+      - { '_id': 32, 'v': null }
+      - { '_id': 33 }
+    radians:
+      - { '_id': 0, 'degrees': { "$numberInt": "90" }}
+      - { '_id': 1, 'degrees': { "$numberLong": "-90" }}
+      - { '_id': 2, 'degrees': { "$numberDouble": "0" }}
+      - { '_id': 3, 'degrees': { "$numberDecimal": "90" }}
+      - { '_id': 4, 'degrees': { '$numberDouble': 'NaN' }}
+      - { '_id': 5, 'degrees': { '$numberDouble': 'Infinity' }}
+      - { '_id': 6, 'degrees': { '$numberDouble': '-Infinity' }}
+      - { '_id': 7, 'degrees': null }
+      - { '_id': 8 }
+    round:
+      - { '_id': 0, 'v': { "$numberInt": "-1234" }, 'place': { "$numberInt": "-2" }}
+      - { '_id': 1, 'v': { "$numberInt": "0" }, 'place': { "$numberLong": "-2" }}
+      - { '_id': 2, 'v': { "$numberInt": "1234" }, 'place': null }
+      - { '_id': 3, 'v': { "$numberInt": "1234" }}
+      - { '_id': 4, 'v': { "$numberLong": "1234" }, 'place': { "$numberInt": "2" }}
+      - { '_id': 5, 'v': { "$numberLong": "1234" }, 'place': { "$numberLong": "0" }}
+      - { '_id': 6, 'v': { "$numberLong": "1234" }, 'place': null }
+      - { '_id': 7, 'v': { "$numberLong": "1234" }}
+      - { '_id': 8, 'v': { "$numberDouble": "1234.5678" }, 'place': { "$numberInt": "2" }}
+      - { '_id': 9, 'v': { "$numberDouble": "1234.5678" }, 'place': { "$numberLong": "2" }}
+      - { '_id': 10, 'v': { "$numberDouble": "1234.5678" }, 'place': null }
+      - { '_id': 11, 'v': { "$numberDouble": "1234.5678" }}
+      - { '_id': 12, 'v': { "$numberDecimal": "1234.5678" }, 'place': { "$numberInt": "2" }}
+      - { '_id': 13, 'v': { "$numberDecimal": "1234.5678" }, 'place': { "$numberLong": "2" }}
+      - { '_id': 14, 'v': { "$numberDecimal": "1234.5678" }, 'place': null }
+      - { '_id': 15, 'v': { "$numberDecimal": "1234.5678" }}
+      - { '_id': 16, 'v': { '$numberDouble': 'NaN' }, 'place': { "$numberInt": "2" }}
+      - { '_id': 17, 'v': { '$numberDouble': 'Infinity' }, 'place': { "$numberInt": "2" }}
+      - { '_id': 18, 'v': { '$numberDouble': '-Infinity' }, 'place': { "$numberInt": "2" }}
+      - { '_id': 19, 'v': { "$numberInt": "1234" }, 'place': { "$numberInt": "-21" }}
+      - { '_id': 20, 'v': { "$numberInt": "1234" }, 'place': { "$numberInt": "101" }}
+      - { '_id': 21, 'v': null, 'place': { "$numberInt": "-2" }}
+      - { '_id': 22, 'v': null, 'place': null }
+      - { '_id': 23, 'v': null }
+      - { '_id': 24 }
+    sqrt:
+      - { '_id': 0, 'v': { "$numberInt": "16" }}
+      - { '_id': 1, 'v': { "$numberLong": "-16" }}
+      - { '_id': 2, 'v': { "$numberDouble": "0" }}
+      - { '_id': 3, 'v': { "$numberDecimal": "16" }}
+      - { '_id': 4, 'v': { '$numberDouble': 'NaN' }}
+      - { '_id': 5, 'v': { '$numberDouble': 'Infinity' }}
+      - { '_id': 6, 'v': { '$numberDouble': '-Infinity' }}
+      - { '_id': 7, 'v': null }
+      - { '_id': 8 }
+    trigonometry:
+      - { '_id': 0, 'radians': { "$numberInt": "1" }}
+      - { '_id': 1, 'radians': { "$numberLong": "-1" }}
+      - { '_id': 2, 'radians': { "$numberDouble": "0" }}
+      - { '_id': 3, 'radians': { "$numberDecimal": "0.7854" }}
+      - { '_id': 4, 'radians': { '$numberDouble': 'NaN' }}
+      - { '_id': 5, 'radians': { '$numberDouble': 'Infinity' }}
+      - { '_id': 6, 'radians': { '$numberDouble': '-Infinity' }}
+      - { '_id': 7, 'radians': null }
+      - { '_id': 8 }
+    split:
+      - {'_id': 0, 'str': '', 'delim': '-', 'tokenNum': { '$numberInt': '0' }}
+      - {'_id': 1, 'str': 'abcd', 'delim': '-', 'tokenNum': { '$numberInt': '0' }}
+      - {'_id': 2, 'str': 'abcd', 'delim': '', 'tokenNum': { '$numberInt': '0' }}
+      - {'_id': 3, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '1' }}
+      - {'_id': 4, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '-2' }}
+      - {'_id': 5, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '0' }}
+      - {'_id': 6, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '7' }}
+      - {'_id': 7, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '-7' }}
+      - {'_id': 8, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '4' } }
+      - {'_id': 9, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '-4' } }
+      - {'_id': 10, 'str': 'a/\bee/\c/\d', 'delim': '/\', 'tokenNum': { '$numberInt': '2' }}
+      - {'_id': 11, 'str': null, 'delim': '-', 'tokenNum': { '$numberInt': '0' }}
+      - {'_id': 12, 'str': 'a-bee-c-d', 'delim': null, 'tokenNum': { '$numberInt': '0' }}
+      - {'_id': 13, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': null}
+      - {'_id': 14, 'delim': '-', 'tokenNum': { '$numberInt': '0' } }
+      - {'_id': 15, 'str': 'a-bee-c-d', 'tokenNum': { '$numberInt': '0' } }
+      - {'_id': 16, 'str': 'a-bee-c-d', 'delim': '-' }
+      - {'_id': 17, 'str': 'λ-bee-寿-d', 'delim': '-', 'tokenNum': { '$numberInt': '2' }}
+      - {'_id': 18, 'str': 'λ€bee€寿€d', 'delim': '€', 'tokenNum': { '$numberInt': '2' }}
+      - {'_id': 19}
+    # The date function tests use timestamps as opposed to date strings. The date
+    # string to timestamp conversions are provided below for better readability.
+    # { $toLong: new Date('2022-06-02T03:55:13Z') } => 1654142113000
+    # { $toLong: new Date('2024-08-10T05:58:19Z') } => 1723269499000
+    # { $toLong: new Date('2019-03-01T02:35:08Z') } => 1551407708000
+    dates:
+      - { '_id': 0, 'date1': { '$date': { '$numberLong': '1654142113000' } }, 'date2': { '$date': { '$numberLong': '1723269499000' } }, 'interval': { '$numberInt': '3' } }
+      - { '_id': 1, 'date1': { '$date': { '$numberLong': '1654142113000' } }, 'date2': { '$date': { '$numberLong': '1551407708000' } }, 'interval': { '$numberLong': '-3' } }
+    datepart:
+      - { '_id': 0, 'date1': { '$date': { '$numberLong': '1654142113000' } } }
+
+catalog_schema:
+  {
+    "foo": {
+      "nullif": {
+        "bsonType": "object",
+        'required': [ '_id', 'v1', 'v2' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v1": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "v2": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      'twoArgCoalesce': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
+      'multiArgCoalesce': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
+      "size": {
+        "bsonType": "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "array" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "length": {
+        "bsonType": "object",
+        'required': [ '_id', 's' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "s": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "comment": {
+            "bsonType": "string"
+          }
+        }
+      },
+      "nullAndMissing": {
+        "bsonType": "object",
+        'required': [ '_id', 'd' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "d": {
+            "anyOf": [
+              { "bsonType": "date" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "substring": {
+        "bsonType": "object",
+        'required': [ '_id', 'str', 'start', 'length' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "str": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "start": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "length": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "fold": {
+        "bsonType": "object",
+        'required': [ '_id', 's' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "s": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "trim": {
+        "bsonType": "object",
+        'required': [ '_id', 'substr', 'str' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "substr": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "str": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "position": {
+        "bsonType": "object",
+        'required': [ '_id', 's1', 's2' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "s1": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "s2": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "abs": {
+        "bsonType": "object",
+        'required': [ '_id', 'v' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes }
+        }
+      },
+      "ceilAndFloor": {
+        "bsonType": "object",
+        'required': [ '_id', 'v' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes }
+        }
+      },
+      "log": {
+        "bsonType": "object",
+        'required': [ '_id', 'v', 'base' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes },
+          "base": { "anyOf": *numericTypes }
+        }
+      },
+      "mod": {
+        "bsonType": "object",
+        'required': [ '_id', 'v', 'divisor' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes },
+          "divisor": { "anyOf": *numericTypes }
+        }
+      },
+      "pow": {
+        "bsonType": "object",
+        'required': [ '_id', 'v', 'exponent', ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes },
+          "exponent": { "anyOf": *numericTypes }
+        }
+      },
+      "radians": {
+        "bsonType": "object",
+        'required': [ '_id', 'degrees' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "degrees": { "anyOf": *numericTypes }
+        }
+      },
+      "round": {
+        "bsonType": "object",
+        'required': [ '_id', 'v', 'place' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes },
+          "place": { "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "long" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "sqrt": {
+        "bsonType": "object",
+        'required': [ '_id', 'v' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes }
+        }
+      },
+      "trigonometry": {
+        "bsonType": "object",
+        'required': [ '_id', 'radians' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "radians": { "anyOf": *numericTypes }
+        }
+      },
+      "split": {
+        "bsonType": "object",
+        'required': [ '_id', 'str', 'delim', 'tokenNum' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "str": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "delim": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "tokenNum": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "dates": {
+        "bsonType": "object",
+        "required": [ '_id', 'interval', 'date1', 'date2' ],
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "date1": {
+            "bsonType": "date"
+          },
+          "date2": {
+            "bsonType": "date"
+          },
+          "interval": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "long" }
+            ]
+          }
+        },
+        "additionalProperties": false,
+      },
+      "datepart": {
+        "bsonType": "object",
+        "required": [ '_id', 'date1' ],
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "date1": {
+            "bsonType": "date"
+          },
+        },
+        "additionalProperties": false,
+      }
+    }
+  }
+
+tests:
+  - description: NULLIF correctness test
+    current_db: foo
+    query: "SELECT VALUE {'v1': v1, 'v2': v2, 'v': NULLIF(v1, v2)} FROM nullif AS c"
+    result:
+      - {'': {'v1': 'a', 'v2': 'a', 'v': null}}
+      - {'': {'v1': 'a', 'v2': 'b', 'v': 'a'}}
+      - {'': {'v1': 'a', 'v2': null, 'v': 'a'}}
+      - {'': {'v1': null, 'v2': 'b', 'v': null}}
+      - {'': {'v1': 'a', 'v': 'a'}}
+      - {'': {'v2': 'b', 'v': null}}
+      - {'': {'v': null}}
+
+  - description: COALESCE(v1, v2) correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'v1': v1, 'v2': v2, 'v': COALESCE(v1, v2)} FROM twoArgCoalesce AS c"
+    result:
+      - {'': {'v1': 123, 'v2': 456, 'v': 123}}
+      - {'': {'v1': null, 'v2': 456, 'v': 456}}
+      - {'': {'v2': 456, 'v': 456}}
+
+  - description: COALESCE(v1, ..., vn) correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'v1': v1, 'v2': v2, 'v3': v3, 'v4': v4, 'v5': v5, 'v': COALESCE(v1, v2, v3, v4, v5)} FROM multiArgCoalesce AS c"
+    result:
+      - {'': {'v1': 123, 'v2': null, 'v4': 789, 'v5': null, 'v': 123}}
+      - {'': {'v1': null, 'v3': 456, 'v4': 789, 'v': 456}}
+      - {'': {'v2': null, 'v3': null, 'v5': 789, 'v': 789}}
+      - {'': {'v1': null, 'v2': null, 'v5': null, 'v': null}}
+
+  - description: SIZE correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'a': a, 's': SIZE(a)} FROM size AS c"
+    result:
+      - {'': {'a': [], 's': 0}}
+      - {'': {'a': [1], 's': 1}}
+      - {'': {'a': [1, 2, 3], 's': 3}}
+      - {'': {'a': null, 's': null}}
+      - {'': {'s': null}}
+
+  - description: POSITION correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'s1': s1, 's2': s2, 'p': POSITION(s1 IN s2)} FROM `position` AS c"
+    result:
+      - {'': {'s1': '', 's2': 'abc', 'p': 0}}
+      - {'': {'s1': 'a', 's2': 'abc', 'p': 0}}
+      - {'': {'s1': 'b', 's2': 'abc', 'p': 1}}
+      - {'': {'s1': 'b', 's2': 'abbbc', 'p': 1}}
+      - {'': {'s1': 'bc', 's2': 'abbcbc', 'p': 2}}
+      - {'': {'s1': 'x', 's2': 'abc', 'p': {'$numberInt': '-1'}}}
+      - {'': {'s1': null, 's2': 'abc', 'p': null}}
+      - {'': {'s2': 'abc', 'p': null}}
+      - {'': {'s1': 'b', 's2': null, 'p': null}}
+      - {'': {'s1': 'b', 'p': null}}
+
+  - description: CHAR_LENGTH correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'s': s, 'len': CHAR_LENGTH(s), 'comment': comment} FROM length AS c"
+    result:
+      - {'': {'s': '', 'len': 0}}
+      - {'': {'s': 'a', 'len': 1}}
+      - {'': {'s': 'ã', 'len': 1}}
+      - {'': {'s': 'abc', 'len': 3}}
+      - {'': {'s': '$€λG', 'len': 4, 'comment': '€ is encoded using three bytes. λ is encoded using two bytes.'}}
+      - {'': {'s': '寿司', 'len': 2, 'comment': 'Each character is encoded using three bytes.'}}
+      - {'': {'s': null, 'len': null}}
+      - {'': {'len': null}}
+
+  - description: OCTET_LENGTH correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'s': s, 'len': OCTET_LENGTH(s), 'comment': comment} FROM length AS c"
+    result:
+      - {'': {'s': '', 'len': 0}}
+      - {'': {'s': 'a', 'len': 1}}
+      - {'': {'s': 'ã', 'len': 2}}
+      - {'': {'s': 'abc', 'len': 3}}
+      - {'': {'s': '$€λG', 'len': 7, 'comment': '€ is encoded using three bytes. λ is encoded using two bytes.'}}
+      - {'': {'s': '寿司', 'len': 6, 'comment': 'Each character is encoded using three bytes.'}}
+      - {'': {'s': null, 'len': null}}
+      - {'': {'len': null}}
+
+  - description: BIT_LENGTH correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'s': s, 'len': BIT_LENGTH(s), 'comment': comment} FROM length AS c"
+    result:
+      - {'': {'s': '', 'len': 0}}
+      - {'': {'s': 'a', 'len': 8}}
+      - {'': {'s': 'ã', 'len': 16}}
+      - {'': {'s': 'abc', 'len': 24}}
+      - {'': {'s': '$€λG', 'len': 56, 'comment': '€ is encoded using three bytes. λ is encoded using two bytes.'}}
+      - {'': {'s': '寿司', 'len': 48, 'comment': 'Each character is encoded using three bytes.'}}
+      - {'': {'s': null, 'len': null}}
+      - {'': {'len': null}}
+
+  - description: EXTRACT FROM NULL and MISSING correctness test
+    current_db: foo
+    query: "SELECT VALUE {'d': d, 'v': EXTRACT(YEAR FROM d)} FROM nullAndMissing AS c"
+    result:
+      - {'': {'d': null, 'v': null}}
+      - {'': {'v': null}}
+
+  - description: SUBSTRING(str FROM start FOR length) correctness test
+    current_db: foo
+    query: "SELECT VALUE {'str': str, 'start': start, 'length': length, 'substr': SUBSTRING(str FROM start FOR length)} FROM `substring` AS c"
+    skip_reason: "SQL-428: negative length in $substrCP"
+    result:
+      - {'': {'str': '', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '1'}, 'substr': ''}}
+      - {'': {'str': '', 'start': {'$numberInt': '1'}, 'length': {'$numberInt': '1'}, 'substr': ''}}
+      - {'': {'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '-1'}, 'substr': 'abc'}}
+      - {'': {'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '0'}, 'substr': ''}}
+      - {'': {'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '1'}, 'substr': 'a'}}
+      - {'': {'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '2'}, 'substr': 'ab'}}
+      - {'': {'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '4'}, 'substr': 'abc'}}
+      - {'': {'str': 'abc', 'start': {'$numberInt': '1'}, 'length': {'$numberInt': '2'}, 'substr': 'bc'}}
+      - {'': {'str': 'abc', 'start': {'$numberInt': '2'}, 'length': {'$numberInt': '-1'}, 'substr': 'c'}}
+      - {'': {'str': '$€λGx', 'start': {'$numberInt': '1'}, 'length': {'$numberInt': '3'}, 'substr': '€λG'}}
+      - {'': {'str': null, start: {'$numberInt': '1'}, length: {'$numberInt': '1'}, 'substr': null}}
+      - {'': {start: {'$numberInt': '1'}, length: {'$numberInt': '1'}, 'substr': null}}
+      - {'': {'str': 'abc', start: null, length: {'$numberInt': '1'}, 'substr': null}}
+      - {'': {'str': 'abc', length: {'$numberInt': '1'}, 'substr': null}}
+      - {'': {'str': 'abc', 'start': {'$numberInt': '1'}, 'length': null, 'substr': null}}
+      - {'': {'str': 'abc', 'start': {'$numberInt': '1'}, 'substr': null}}
+
+  - description: REPLACE correctness test
+    current_db: foo
+    query: "SELECT VALUE {'s': s, 'v': REPLACE(s, 'c', 'fff')} FROM `fold` AS c"
+    result:
+      - {'': {'s': '', 'v': ''}}
+      - {'': {'s': 'abcd', 'v': 'abfffd'}}
+      - {'': {'s': 'aBcD', 'v': 'aBfffD'}}
+      - {'': {'s': 'ABCD', 'v': 'ABCD'}}
+      - {'': {'s': null, 'v': null}}
+      - {'': {'v': null}}
+
+  - description: UPPER correctness test
+    current_db: foo
+    query: "SELECT VALUE {'s': s, 'v': UPPER(s)} FROM `fold` AS c"
+    result:
+      - {'': {'s': '', 'v': ''}}
+      - {'': {'s': 'abcd', 'v': 'ABCD'}}
+      - {'': {'s': 'aBcD', 'v': 'ABCD'}}
+      - {'': {'s': 'ABCD', 'v': 'ABCD'}}
+      - {'': {'s': null, 'v': null}}
+      - {'': {'v': null}}
+
+  - description: LOWER correctness test
+    current_db: foo
+    query: "SELECT VALUE {'s': s, 'v': LOWER(s)} FROM `fold` AS c"
+    result:
+      - {'': {'s': '', 'v': ''}}
+      - {'': {'s': 'abcd', 'v': 'abcd'}}
+      - {'': {'s': 'aBcD', 'v': 'abcd'}}
+      - {'': {'s': 'ABCD', 'v': 'abcd'}}
+      - {'': {'s': null, 'v': null}}
+      - {'': {'v': null}}
+
+  - description: TRIM(BOTH substr FROM str) correctness test
+    current_db: foo
+    query: "SELECT VALUE {'substr': substr, 'str': str, 'v': TRIM(BOTH substr FROM str)} FROM `trim` AS c"
+    result:
+      - {'': {'substr': '', 'str': '', 'v': ''}}
+      - {'': {'substr': ' ', 'str': '', 'v': ''}}
+      - {'': {'substr': ' ', 'str': '   ', 'v': ''}}
+      - {'': {'substr': ' ', 'str': 'abc', 'v': 'abc'}}
+      - {'': {'substr': ' ', 'str': '  abc  ', 'v': 'abc'}}
+      - {'': {'substr': 'x', 'str': 'x abc x', 'v': ' abc '}}
+      - {'': {'substr': '123', 'str': '123abc123', 'v': 'abc'}}
+      - {'': {'substr': null, 'str': 'abc', 'v': null}}
+      - {'': {'str': 'abc', 'v': null}}
+      - {'': {'substr': ' ', 'str': null, 'v': null}}
+      - {'': {'substr': ' ', 'v': null}}
+
+  - description: TRIM(LEADING substr FROM str) correctness test
+    current_db: foo
+    query: "SELECT VALUE {'substr': substr, 'str': str, 'v': TRIM(LEADING substr FROM str)} FROM `trim` AS c"
+    result:
+      - {'': {'substr': '', 'str': '', 'v': ''}}
+      - {'': {'substr': ' ', 'str': '', 'v': ''}}
+      - {'': {'substr': ' ', 'str': '   ', 'v': ''}}
+      - {'': {'substr': ' ', 'str': 'abc', 'v': 'abc'}}
+      - {'': {'substr': ' ', 'str': '  abc  ', 'v': 'abc  '}}
+      - {'': {'substr': 'x', 'str': 'x abc x', 'v': ' abc x'}}
+      - {'': {'substr': '123', 'str': '123abc123', 'v': 'abc123'}}
+      - {'': {'substr': null, 'str': 'abc', 'v': null}}
+      - {'': {'str': 'abc', 'v': null}}
+      - {'': {'substr': ' ', 'str': null, 'v': null}}
+      - {'': {'substr': ' ', 'v': null}}
+
+  - description: TRIM(TRAILING substr FROM str) correctness test
+    current_db: foo
+    query: "SELECT VALUE {'substr': substr, 'str': str, 'v': TRIM(TRAILING substr FROM str)} FROM `trim` AS c"
+    result:
+      - {'': {'substr': '', 'str': '', 'v': ''}}
+      - {'': {'substr': ' ', 'str': '', 'v': ''}}
+      - {'': {'substr': ' ', 'str': '   ', 'v': ''}}
+      - {'': {'substr': ' ', 'str': 'abc', 'v': 'abc'}}
+      - {'': {'substr': ' ', 'str': '  abc  ', 'v': '  abc'}}
+      - {'': {'substr': 'x', 'str': 'x abc x', 'v': 'x abc '}}
+      - {'': {'substr': '123', 'str': '123abc123', 'v': '123abc'}}
+      - {'': {'substr': null, 'str': 'abc', 'v': null}}
+      - {'': {'str': 'abc', 'v': null}}
+      - {'': {'substr': ' ', 'str': null, 'v': null}}
+      - {'': {'substr': ' ', 'v': null}}
+
+  - description: CURRENT_TIMESTAMP(p) correctness test
+    current_db: foo
+    query: "SELECT VALUE {'v': CURRENT_TIMESTAMP(1) > '2021-01-08T12:00:00Z'::TIMESTAMP} FROM [{}] AS _dual"
+    result:
+      - {'': {'v': true}}
+
+  - description: Multiple CURRENT_TIMESTAMPs are equal across a query
+    current_db: foo
+    query: "SELECT VALUE {'v': CURRENT_TIMESTAMP(6) = CURRENT_TIMESTAMP(6)} FROM [{}] AS _dual"
+    result:
+      - {'': {'v': true}}
+
+  - description: ABS correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'n': ABS(v)} FROM abs AS c"
+    result:
+      - {'': {'v': { "$numberInt": "1" }, 'n': { "$numberInt": "1" }}}
+      - {'': {'v': { "$numberLong": "-1" }, 'n': { "$numberLong": "1" }}}
+      - {'': {'v': { "$numberDouble": "-1" }, 'n': { "$numberDouble": "1" }}}
+      - {'': {'v': { "$numberDecimal": "-1" }, 'n': { "$numberDecimal": "1" }}}
+      - {'': {'v': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': {'v': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': {'v': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': {'v': null, 'n': null }}
+      - {'': {'n': null }}
+
+  - description: CEIL correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'n': CEIL(v)} FROM ceilAndFloor AS c"
+    result:
+      - {'': {'v': { "$numberInt": "7" }, 'n': { "$numberInt": "7" }}}
+      - {'': {'v': { "$numberLong": "7" }, 'n': { "$numberLong": "7" }}}
+      - {'': {'v': { "$numberDouble": "-7.8" }, 'n': { "$numberDouble": "-7" }}}
+      - {'': {'v': { "$numberDecimal": "7.8" }, 'n': { "$numberDecimal": "8" }}}
+      - {'': {'v': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': {'v': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': {'v': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "-Infinity" }}}
+      - {'': {'v': null, 'n': null }}
+      - {'': {'n': null }}
+
+  - description: COS correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'radians': radians, 'n': COS(radians)} FROM trigonometry AS c"
+    result:
+      - {'': {'radians': { "$numberInt": "1" }, 'n': { "$numberDouble": "0.5403023058681398" }}}
+      - {'': {'radians': { "$numberLong": "-1" }, 'n': { "$numberDouble": "0.5403023058681398" }}}
+      - {'': {'radians': { "$numberDouble": "0" }, 'n': { "$numberDouble": "1" }}}
+      - {'': {'radians': { "$numberDecimal": "0.7854" }, 'n': { "$numberDecimal": "0.7071054825112363062434428987321810" }}}
+      - {'': {'radians': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': {'radians': { "$numberDouble": "Infinity" }, 'n': null }}
+      - {'': {'radians': { "$numberDouble": "-Infinity" }, 'n': null }}
+      - {'': {'radians': null, 'n': null }}
+      - {'': {'n': null }}
+
+  - description: DEGREES correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'radians': radians, 'n': DEGREES(radians)} FROM trigonometry AS c"
+    result:
+      - {'': {'radians': { "$numberInt": "1" }, 'n': { "$numberDouble": "57.29577951308232" }}}
+      - {'': {'radians': { "$numberLong": "-1" }, 'n': { "$numberDouble": "-57.29577951308232" }}}
+      - {'': {'radians': { "$numberDouble": "0" }, 'n': { "$numberDouble": "0" }}}
+      - {'': {'radians': { "$numberDecimal": "0.7854" }, 'n': { "$numberDecimal": "45.00010522957485481663727079099820" }}}
+      - {'': {'radians': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': {'radians': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': {'radians': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "-Infinity" }}}
+      - {'': {'radians': null, 'n': null }}
+      - {'': {'n': null }}
+
+  - description: FLOOR correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'n': FLOOR(v)} FROM ceilAndFloor AS c"
+    result:
+      - {'': {'v': { "$numberInt": "7" }, 'n': { "$numberInt": "7" }}}
+      - {'': {'v': { "$numberLong": "7" }, 'n': { "$numberLong": "7" }}}
+      - {'': {'v': { "$numberDouble": "-7.8" }, 'n': { "$numberDouble": "-8" }}}
+      - {'': {'v': { "$numberDecimal": "7.8" }, 'n': { "$numberDecimal": "7" }}}
+      - {'': {'v': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': {'v': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': {'v': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "-Infinity" }}}
+      - {'': {'v': null, 'n': null }}
+      - {'': {'n': null }}
+
+  - description: LOG correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'base': base, 'n': LOG(v, base)} FROM log AS c"
+    result:
+      - {'': {'v': { "$numberInt": "-100" }, 'base': { "$numberInt": "10" }, 'n': null }}
+      - {'': {'v': { "$numberInt": "0" }, 'base': { "$numberLong": "10" }, 'n': null }}
+      - {'': {'v': { "$numberInt": "100" }, 'base': { "$numberDouble": "-10" }, 'n': null }}
+      - {'': {'v': { "$numberInt": "100" }, 'base': { "$numberDecimal": "0" }, 'n': null }}
+      - {'': {'v': { "$numberInt": "100" }, 'base': null, 'n': null }}
+      - {'': {'v': { "$numberInt": "100" }, 'n': null }}
+      - {'': { 'v': { "$numberLong": "100" }, 'base': { "$numberInt": "1" }, 'n': null }}
+      - {'': { 'v': { "$numberLong": "100" }, 'base': { "$numberLong": "10" }, 'n': { "$numberDouble": "2" }}}
+      - {'': { 'v': { "$numberLong": "100" }, 'base': { "$numberDouble": "10" }, 'n': { "$numberDouble": "2" }}}
+      - {'': { 'v': { "$numberLong": "100" }, 'base': { "$numberDecimal": "10" }, 'n': { "$numberDecimal": "2" }}}
+      - {'': { 'v': { "$numberLong": "100" }, 'base': null, 'n': null }}
+      - {'': { 'v': { "$numberLong": "100" }, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "100" }, 'base': { "$numberInt": "10" }, 'n': { "$numberDouble": "2" }}}
+      - {'': { 'v': { "$numberDouble": "100" }, 'base': { "$numberLong": "10" }, 'n': { "$numberDouble": "2" }}}
+      - {'': { 'v': { "$numberDouble": "100" }, 'base': { "$numberDouble": "10" }, 'n': { "$numberDouble": "2" }}}
+      - {'': { 'v': { "$numberDouble": "100" }, 'base': { "$numberDecimal": "10" }, 'n': { "$numberDecimal": "2" }}}
+      - {'': { 'v': { "$numberDouble": "100" }, 'base': null, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "100" }, 'n': null }}
+      - {'': { 'v': { "$numberDecimal": "100" }, 'base': { "$numberInt": "10" }, 'n': { "$numberDecimal": "2" }}}
+      - {'': { 'v': { "$numberDecimal": "100" }, 'base': { "$numberLong": "10" }, 'n': { "$numberDecimal": "2" }}}
+      - {'': { 'v': { "$numberDecimal": "100" }, 'base': { "$numberDouble": "10" }, 'n': { "$numberDecimal": "2" }}}
+      - {'': { 'v': { "$numberDecimal": "100" }, 'base': { "$numberDecimal": "10" }, 'n': { "$numberDecimal": "2" }}}
+      - {'': { 'v': { "$numberDecimal": "100" }, 'base': null, 'n': null }}
+      - {'': { 'v': { "$numberDecimal": "100" }, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "NaN" }, 'base': { "$numberInt": "10" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberInt": "100" }, 'base': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberDouble": "Infinity" }, 'base': { "$numberInt": "10" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': { 'v': { "$numberInt": "100" }, 'base': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "0" }}}
+      - {'': { 'v': { "$numberDouble": "-Infinity" }, 'base': { "$numberInt": "10" }, 'n': null }}
+      - {'': { 'v': { "$numberInt": "100" }, 'base': { "$numberDouble": "-Infinity" }, 'n': null }}
+      - {'': { 'v': null, 'base': { "$numberInt": "10" }, 'n': null }}
+      - {'': { 'v': null, 'base': null, 'n': null }}
+      - {'': { 'v': null, 'n': null }}
+      - {'': { 'n': null }}
+
+  - description: MOD correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'divisor': divisor, 'n': MOD(v, divisor)} FROM mod AS c"
+    result:
+      - {'': {'v': { "$numberInt": "-80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberInt": "-3" }}}
+      - {'': {'v': { "$numberInt": "0" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberLong": "0" }}}
+      - {'': {'v': { "$numberInt": "80" }, 'divisor': { "$numberDouble": "-7" }, 'n': { "$numberInt": "3" }}}
+      - {'': {'v': { "$numberInt": "80" }, 'divisor': { "$numberDecimal": "0" }, 'n': null }}
+      - {'': {'v': { "$numberInt": "80" }, 'divisor': null, 'n': null }}
+      - {'': {'v': { "$numberInt": "80" }, 'n': null }}
+      - {'': { 'v': { "$numberLong": "80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberLong": "3" }}}
+      - {'': { 'v': { "$numberLong": "80" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberLong": "3" }}}
+      - {'': { 'v': { "$numberLong": "80" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberLong": "3" }}}
+      - {'': { 'v': { "$numberLong": "80" }, 'divisor': { "$numberDecimal": "7" }, 'n': { "$numberDecimal": "3" }}}
+      - {'': { 'v': { "$numberLong": "80" }, 'divisor': null, 'n': null }}
+      - {'': { 'v': { "$numberLong": "80" }, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDouble": "3" }}}
+      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberDouble": "3" }}}
+      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDouble": "3" }}}
+      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDecimal": "7" }, 'n': { "$numberDecimal": "3.0000000000000e1" }}}
+      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': null, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "80" }, 'n': null }}
+      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDecimal": "3" }}}
+      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberDecimal": "3" }}}
+      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDecimal": "3.00000000000000E1" }}}
+      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberDecimal": "7" }, 'n': { "$numberDecimal": "3" }}}
+      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': null, 'n': null }}
+      - {'': { 'v': { "$numberDecimal": "80" }, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "NaN" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberInt": "80" }, 'divisor': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberDouble": "Infinity" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberInt": "80" }, 'divisor': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "80" }}}
+      - {'': { 'v': { "$numberDouble": "-Infinity" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberInt": "80" }, 'divisor': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "80" }}}
+      - {'': { 'v': null, 'divisor': { "$numberInt": "7" }, 'n': null }}
+      - {'': { 'v': null, 'divisor': null, 'n': null }}
+      - {'': { 'v': null, 'n': null }}
+      - {'': { 'n': null }}
+
+  - description: POW correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'exponent': exponent, 'n': POW(v, exponent)} FROM pow AS c"
+    result:
+      - {'': {'v': { "$numberInt": "-5" }, 'exponent': { "$numberInt": "2" }, 'n': { "$numberInt": "25" }}}
+      - {'': {'v': { "$numberInt": "0" }, 'exponent': { "$numberLong": "2" }, 'n': { "$numberLong": "0" }}}
+      - {'': {'v': { "$numberInt": "5" }, 'exponent': { "$numberDouble": "-2" }, 'n': { "$numberDouble": "0.04" }}}
+      - {'': {'v': { "$numberInt": "5" }, 'exponent': { "$numberDecimal": "0" }, 'n': { "$numberDecimal": "1.000000000000000000000000000000000" }}}
+      - {'': {'v': { "$numberInt": "5" }, 'exponent': null, 'n': null }}
+      - {'': {'v': { "$numberInt": "5" }, 'n': null }}
+      - {'': { 'v': { "$numberLong": "5" }, 'exponent': { "$numberInt": "2" }, 'n': { "$numberLong": "25" }}}
+      - {'': { 'v': { "$numberLong": "5" }, 'exponent': { "$numberLong": "2" }, 'n': { "$numberLong": "25" }}}
+      - {'': { 'v': { "$numberLong": "5" }, 'exponent': { "$numberDouble": "2" }, 'n': { "$numberDouble": "25" }}}
+      - {'': { 'v': { "$numberLong": "5" }, 'exponent': { "$numberDecimal": "2" }, 'n': { "$numberDecimal": "25.00000000000000000000000000000000" }}}
+      - {'': { 'v': { "$numberLong": "5" }, 'exponent': null, 'n': null }}
+      - {'': { 'v': { "$numberLong": "5" }, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "5" }, 'exponent': { "$numberInt": "2" }, 'n': { "$numberDouble": "25" }}}
+      - {'': { 'v': { "$numberDouble": "5" }, 'exponent': { "$numberLong": "2" }, 'n': { "$numberDouble": "25" }}}
+      - {'': { 'v': { "$numberDouble": "5" }, 'exponent': { "$numberDouble": "2" }, 'n': { "$numberDouble": "25" }}}
+      - {'': { 'v': { "$numberDouble": "5" }, 'exponent': { "$numberDecimal": "2" }, 'n': { "$numberDecimal": "25.00000000000000000000000000000000" }}}
+      - {'': { 'v': { "$numberDouble": "5" }, 'exponent': null, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "5" }, 'n': null }}
+      - {'': { 'v': { "$numberDecimal": "5" }, 'exponent': { "$numberInt": "2" }, 'n': { "$numberDecimal": "25.00000000000000000000000000000000" }}}
+      - {'': { 'v': { "$numberDecimal": "5" }, 'exponent': { "$numberLong": "2" }, 'n': { "$numberDecimal": "25.00000000000000000000000000000000" }}}
+      - {'': { 'v': { "$numberDecimal": "5" }, 'exponent': { "$numberDouble": "2" }, 'n': { "$numberDecimal": "25.00000000000000000000000000000000" }}}
+      - {'': { 'v': { "$numberDecimal": "5" }, 'exponent': { "$numberDecimal": "2" }, 'n': { "$numberDecimal": "25.00000000000000000000000000000000" }}}
+      - {'': { 'v': { "$numberDecimal": "5" }, 'exponent': null, 'n': null }}
+      - {'': { 'v': { "$numberDecimal": "5" }, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "NaN" }, 'exponent': { "$numberInt": "2" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberInt": "5" }, 'exponent': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberDouble": "Infinity" }, 'exponent': { "$numberInt": "2" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': { 'v': { "$numberInt": "5" }, 'exponent': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': { 'v': { "$numberDouble": "-Infinity" }, 'exponent': { "$numberInt": "2" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': { 'v': { "$numberInt": "5" }, 'exponent': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "0" }}}
+      - {'': { 'v': null, 'exponent': { "$numberInt": "2" }, 'n': null }}
+      - {'': { 'v': null, 'exponent': null, 'n': null }}
+      - {'': { 'v': null, 'n': null }}
+      - {'': { 'n': null }}
+
+  - description: RADIANS correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'degrees': degrees, 'n': RADIANS(degrees)} FROM radians AS c"
+    result:
+      - {'': {'degrees': { "$numberInt": "90" }, 'n': { "$numberDouble": "1.5707963267948966" }}}
+      - {'': {'degrees': { "$numberLong": "-90" }, 'n': { "$numberDouble": "-1.5707963267948966" }}}
+      - {'': {'degrees': { "$numberDouble": "0" }, 'n': { "$numberDouble": "0" }}}
+      - {'': {'degrees': { "$numberDecimal": "90" }, 'n': { "$numberDecimal": "1.570796326794896619231321691639752" }}}
+      - {'': {'degrees': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': {'degrees': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': {'degrees': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "-Infinity" }}}
+      - {'': {'degrees': null, 'n': null }}
+      - {'': {'n': null }}
+
+  - description: ROUND correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'place': place, 'n': ROUND(v, place)} FROM round AS c"
+    result:
+      - {'': { 'v': { "$numberInt": "-1234" }, 'place': { "$numberInt": "-2" }, 'n': { "$numberInt": "-1200" }}}
+      - {'': { 'v': { "$numberInt": "0" }, 'place': { "$numberLong": "-2" }, 'n': { "$numberInt": "0" }}}
+      - {'': { 'v': { "$numberInt": "1234" }, 'place': null, 'n': null }}
+      - {'': { 'v': { "$numberInt": "1234" }, 'n': null }}
+      - {'': { 'v': { "$numberLong": "1234" }, 'place': { "$numberInt": "2" }, 'n': { "$numberLong": "1234" }}}
+      - {'': { 'v': { "$numberLong": "1234" }, 'place': { "$numberLong": "0" }, 'n': { "$numberLong": "1234" }}}
+      - {'': { 'v': { "$numberLong": "1234" }, 'place': null, 'n': null }}
+      - {'': { 'v': { "$numberLong": "1234" }, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "1234.5678" }, 'place': { "$numberInt": "2" }, 'n': { "$numberDouble": "1234.57" }}}
+      - {'': { 'v': { "$numberDouble": "1234.5678" }, 'place': { "$numberLong": "2" }, 'n': { "$numberDouble": "1234.57" }}}
+      - {'': { 'v': { "$numberDouble": "1234.5678" }, 'place': null, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "1234.5678" }, 'n': null }}
+      - {'': { 'v': { "$numberDecimal": "1234.5678" }, 'place': { "$numberInt": "2" }, 'n': { "$numberDecimal": "1234.57" }}}
+      - {'': { 'v': { "$numberDecimal": "1234.5678" }, 'place': { "$numberLong": "2" }, 'n': { "$numberDecimal": "1234.57" }}}
+      - {'': { 'v': { "$numberDecimal": "1234.5678" }, 'place': null, 'n': null }}
+      - {'': { 'v': { "$numberDecimal": "1234.5678" }, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "NaN" }, 'place': { "$numberInt": "2" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberDouble": "Infinity" }, 'place': { "$numberInt": "2" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': { 'v': { "$numberDouble": "-Infinity" }, 'place': { "$numberInt": "2" }, 'n': { "$numberDouble": "-Infinity" }}}
+      - {'': { 'v': { "$numberInt": "1234" }, 'place': { "$numberInt": "-21" }, 'n': null }}
+      - {'': { 'v': { "$numberInt": "1234" }, 'place': { "$numberInt": "101" }, 'n': null }}
+      - {'': { 'v': null, 'place': { "$numberInt": "-2" }, 'n': null }}
+      - {'': { 'v': null, 'place': null, 'n': null }}
+      - {'': { 'v': null, 'n': null }}
+      - {'': { 'n': null }}
+
+  - description: SIN correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'radians': radians, 'n': SIN(radians)} FROM trigonometry AS c"
+    result:
+      - {'': {'radians': { "$numberInt": "1" }, 'n': { "$numberDouble": "0.8414709848078965" }}}
+      - {'': {'radians': { "$numberLong": "-1" }, 'n': { "$numberDouble": "-0.8414709848078965" }}}
+      - {'': {'radians': { "$numberDouble": "0" }, 'n': { "$numberDouble": "0" }}}
+      - {'': {'radians': { "$numberDecimal": "0.7854" }, 'n': { "$numberDecimal": "0.7071080798594735943581292183798444" }}}
+      - {'': {'radians': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': {'radians': { "$numberDouble": "Infinity" }, 'n': null }}
+      - {'': {'radians': { "$numberDouble": "-Infinity" }, 'n': null }}
+      - {'': {'radians': null, 'n': null }}
+      - {'': {'n': null }}
+
+  - description: SQRT correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'n': SQRT(v)} FROM sqrt AS c"
+    result:
+      - {'': {'v': { "$numberInt": "16" }, 'n': { "$numberDouble": "4" }}}
+      - {'': {'v': { "$numberLong": "-16" }, 'n': null }}
+      - {'': {'v': { "$numberDouble": "0" }, 'n': { "$numberDouble": "0" }}}
+      - {'': {'v': { "$numberDecimal": "16" }, 'n': { "$numberDecimal": "4" }}}
+      - {'': {'v': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': {'v': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': {'v': { "$numberDouble": "-Infinity" }, 'n': null }}
+      - {'': {'v': null, 'n': null }}
+      - {'': {'n': null }}
+
+  - description: TAN correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'radians': radians, 'n': TAN(radians)} FROM trigonometry AS c"
+    result:
+      - {'': {'radians': { "$numberInt": "1" }, 'n': { "$numberDouble": "1.5574077246549023" }}}
+      - {'': {'radians': { "$numberLong": "-1" }, 'n': { "$numberDouble": "-1.5574077246549023" }}}
+      - {'': {'radians': { "$numberDouble": "0" }, 'n': { "$numberDouble": "0" }}}
+      - {'': {'radians': { "$numberDecimal": "0.7854" }, 'n': { "$numberDecimal": "1.000003673211849615154628758416483" }}}
+      - {'': {'radians': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': {'radians': { "$numberDouble": "Infinity" }, 'n': null }}
+      - {'': {'radians': { "$numberDouble": "-Infinity" }, 'n': null }}
+      - {'': {'radians': null, 'n': null }}
+      - {'': {'n': null }}
+
+  - description: SPLIT correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'str': str, 'delim': delim, 'tokenNum': tokenNum, 'v': SPLIT(str, delim, tokenNum)} FROM split AS c"
+    result:
+      - {'': {'str': '', 'delim': '-', 'tokenNum': {'$numberInt': '0'}, 'v': ''}}
+      - {'': {'str': 'abcd', 'delim': '-', 'tokenNum': {'$numberInt': '0'}, 'v': 'abcd'}}
+      - {'': {'str': 'abcd', 'delim': '', 'tokenNum': {'$numberInt': '0'}, 'v': null}}
+      - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': {'$numberInt': '1'}, 'v': 'bee'}}
+      - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': {'$numberInt': '-2'}, 'v': 'c'}}
+      - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': {'$numberInt': '0'}, 'v': 'a'}}
+      - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': {'$numberInt': '7'}, 'v': ''}}
+      - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': {'$numberInt': '-7'}, 'v': ''}}
+      - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '4' }, 'v': '' }}
+      - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '-4' }, 'v': 'a' }}
+      - {'': {'str': 'a/\bee/\c/\d', 'delim': '/\', 'tokenNum': {'$numberInt': '2'}, 'v': 'c'}}
+      - {'': {'str': null, 'delim': '-', 'tokenNum': {'$numberInt': '0'}, 'v': null}}
+      - {'': {'str': 'a-bee-c-d', 'delim': null, 'tokenNum': {'$numberInt': '0'}, 'v': null}}
+      - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': null, 'v': null}}
+      - {'': {'delim': '-', 'tokenNum': {'$numberInt': '0'}, 'v': null}}
+      - {'': {'str': 'a-bee-c-d', 'tokenNum': {'$numberInt': '0'}, 'v': null}}
+      - {'': {'str': 'a-bee-c-d', 'delim': '-', 'v': null}}
+      - {'': {'str': 'λ-bee-寿-d', 'delim': '-', 'tokenNum': {'$numberInt': '2'}, 'v': '寿'}}
+      - {'': {'str': 'λ€bee€寿€d', 'delim': '€', 'tokenNum': {'$numberInt': '2'}, 'v': '寿'}}
+      - {'': {'v': null}}
+
+  - description: YEAR correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(YEAR, interval, date1), 'datepart': EXTRACT(YEAR FROM date1), 'datediff': DATEDIFF(YEAR, date1, date2), 'datetrunc': DATETRUNC(YEAR, date1)} FROM dates AS d"
+    result:
+      - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { "$date": { '$numberLong': '1748836513000' } }, 'datepart': { '$numberInt': '2022' }, 'datediff': { '$numberLong': '2' }, 'datetrunc': { "$date": { '$numberLong': '1640995200000' } } } }
+      - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { "$date": { '$numberLong': '1559447713000' } }, 'datepart': { '$numberInt': '2022' }, 'datediff': { '$numberLong': '-3' }, 'datetrunc': { "$date": { '$numberLong': '1640995200000' } } } }
+
+  - description: MONTH correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(MONTH, interval, date1), 'datepart': EXTRACT(MONTH FROM date1), 'datediff': DATEDIFF(MONTH, date1, date2), 'datetrunc': DATETRUNC(MONTH, date1)} FROM dates AS d"
+    result:
+      - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1662090913000' } }, 'datepart': { '$numberInt': '6' }, 'datediff': { '$numberLong': '26' }, 'datetrunc': { '$date': { '$numberLong': '1654041600000' } } } }
+      - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1646193313000' } }, 'datepart': { '$numberInt': '6' }, 'datediff': { '$numberLong': '-39' }, 'datetrunc': { '$date': { '$numberLong': '1654041600000' } } } }
+
+  - description: DAY correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(DAY, interval, date1), 'datepart': EXTRACT(DAY FROM date1), 'datediff': DATEDIFF(DAY, date1, date2), 'datetrunc': DATETRUNC(DAY, date1)} FROM dates AS d"
+    result:
+      - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1654401313000' } }, 'datepart': { '$numberInt': '2' }, 'datediff': { '$numberLong': '800' }, 'datetrunc': { '$date': { '$numberLong': '1654128000000' } } } }
+      - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1653882913000' } }, 'datepart': { '$numberInt': '2' }, 'datediff': { '$numberLong': '-1189' }, 'datetrunc': { '$date': { '$numberLong': '1654128000000' } } } }
+
+  - description: HOUR correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(HOUR, interval, date1), 'datepart': EXTRACT(HOUR FROM date1), 'datediff': DATEDIFF(HOUR, date1, date2), 'datetrunc': DATETRUNC(HOUR, date1)} FROM dates AS d"
+    result:
+      - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1654152913000' } }, 'datepart': { '$numberInt': '3' }, 'datediff': { '$numberLong': '19202' }, 'datetrunc': { '$date': { '$numberLong': '1654138800000' } } } }
+      - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1654131313000' } }, 'datepart': { '$numberInt': '3' }, 'datediff': { '$numberLong': '-28537' }, 'datetrunc': { '$date': { '$numberLong': '1654138800000' } } } }
+
+  - description: MINUTE correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(MINUTE, interval, date1), 'datepart': EXTRACT(MINUTE FROM date1), 'datediff': DATEDIFF(MINUTE, date1, date2), 'datetrunc': DATETRUNC(MINUTE, date1)} FROM dates AS d"
+    result:
+      - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1654142293000' } }, 'datepart': { '$numberInt': '55' }, 'datediff': { '$numberLong': '1152123' }, 'datetrunc': { '$date': { '$numberLong': '1654142100000' } } } }
+      - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1654141933000' } }, 'datepart': { '$numberInt': '55' }, 'datediff': { '$numberLong': '-1712240' }, 'datetrunc': { '$date': { '$numberLong': '1654142100000' } } } }
+
+  - description: SECOND correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(SECOND, interval, date1), 'datepart': EXTRACT(SECOND FROM date1), 'datediff': DATEDIFF(SECOND, date1, date2), 'datetrunc': DATETRUNC(SECOND, date1)} FROM dates AS d"
+    result:
+      - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1654142116000' } }, 'datepart': { '$numberInt': '13' }, 'datediff': { '$numberLong': '69127386' }, 'datetrunc': { '$date': { '$numberLong': '1654142113000' } } } }
+      - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1654142110000' } }, 'datepart': { '$numberInt': '13' }, 'datediff': { '$numberLong': '-102734405' }, 'datetrunc': { '$date': { '$numberLong': '1654142113000' } } } }
+
+  - description: MILLISECOND correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(MILLISECOND, interval, date1), 'datepart': EXTRACT(MILLISECOND FROM date1), 'datediff': DATEDIFF(MILLISECOND, date1, date2), 'datetrunc': DATETRUNC(MILLISECOND, date1)} FROM dates AS d"
+    result:
+      - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1654142113003' } }, 'datepart': { '$numberInt': '0' }, 'datediff': { '$numberLong': '69127386000' }, 'datetrunc': { '$date': { '$numberLong': '1654142113000' } } } }
+      - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1654142112997' } }, 'datepart': { '$numberInt': '0' }, 'datediff': { '$numberLong': '-102734405000' }, 'datetrunc': { '$date': { '$numberLong': '1654142113000' } } } }
+
+  - description: QUARTER correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(QUARTER, interval, date1), 'datediff': DATEDIFF(QUARTER, date1, date2), 'datetrunc': DATETRUNC(QUARTER, date1)} FROM dates AS d"
+    result:
+      - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1677729313000' } }, 'datediff': { '$numberLong': '9' }, 'datetrunc': { '$date': { '$numberLong': '1648771200000' } } } }
+      - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1630554913000' } }, 'datediff': { '$numberLong': '-13' }, 'datetrunc': { '$date': { '$numberLong': '1648771200000' } } } }
+
+  - description: WEEK correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(WEEK, interval, date1), 'datepart': EXTRACT(WEEK FROM date1), 'datediff': DATEDIFF(WEEK, date1, date2), 'datetrunc': DATETRUNC(WEEK, date1)} FROM dates AS d"
+    result:
+      - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1655956513000' } }, 'datepart': { '$numberInt': '22' }, 'datediff': { '$numberLong': '114' }, 'datetrunc': { '$date': { '$numberLong': '1653782400000' } } } }
+      - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1652327713000' } }, 'datepart': { '$numberInt': '22' }, 'datediff': { '$numberLong': '-170' }, 'datetrunc': { '$date': { '$numberLong': '1653782400000' } } } }
+
+  - description: DAY_OF_YEAR correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'datepart': EXTRACT(DAY_OF_YEAR FROM date1)} FROM datepart AS d"
+    result:
+      - { '': { 'datepart': { '$numberInt': '153' } } }
+
+  - description: ISO_WEEK correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'datepart': EXTRACT(ISO_WEEK FROM date1)} FROM datepart AS d"
+    result:
+      - { '': { 'datepart': { '$numberInt': '22' } } }
+
+  - description: ISO_WEEKDAY correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'datepart': EXTRACT(ISO_WEEKDAY FROM date1)} FROM datepart AS d"
+    result:
+      - { '': { 'datepart': { '$numberInt': '4' } } }
+
+  - description: DAYOFWEEK correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'datepart': EXTRACT(DAYOFWEEK FROM date1)} FROM datepart AS d"
+    result:
+      - { '': { 'datepart': { '$numberInt': '5' } } }
+
+  - description: DATEDIFF startOfWeek correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'sunday': DATEDIFF(WEEK, date1, date2, 'sunday'), 'friday': DATEDIFF(WEEK, date1, date2, 'friday')} FROM dates AS d"
+    result:
+      - { '': { 'sunday': { '$numberLong': '114' }, 'friday': { '$numberLong': '115' } } }
+      - { '': { 'sunday': { '$numberLong': '-170' }, 'friday': { '$numberLong': '-169' } } }
+
+  - description: TIMESTAMPDIFF startOfWeek correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'sunday': TIMESTAMPDIFF(WEEK, date1, date2, 'sunday'), 'friday': TIMESTAMPDIFF(WEEK, date1, date2, 'friday')} FROM dates AS d"
+    result:
+      - { '': { 'sunday': { '$numberLong': '114' }, 'friday': { '$numberLong': '115' } } }
+      - { '': { 'sunday': { '$numberLong': '-170' }, 'friday': { '$numberLong': '-169' } } }
+
+  - description: DATETRUNC startOfWeek correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'sunday': DATETRUNC(WEEK, date1, 'sunday'), 'friday': DATETRUNC(WEEK, date1, 'friday')} FROM datepart AS d"
+    result:
+      - { '': { 'sunday': { '$date': { '$numberLong': '1653782400000' } }, 'friday': { '$date': { '$numberLong': '1653609600000' } } } }
+
+  - description: TIMESTAMPTRUNC startOfWeek correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'sunday': TIMESTAMPTRUNC(WEEK, date1, 'sunday'), 'friday': TIMESTAMPTRUNC(WEEK, date1, 'friday')} FROM datepart AS d"
+    result:
+      - { '': { 'sunday': { '$date': { '$numberLong': '1653782400000' } }, 'friday': { '$date': { '$numberLong': '1653609600000' } } } }

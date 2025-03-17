@@ -1,0 +1,64 @@
+tests:
+  - description: Null literal
+    query: "SELECT VALUE {'_1': null, '_2': NULL, '_3': nUlL} FROM [{}] AS _dual"
+    current_db: test
+    result:
+      - {'': {'_1': null, '_2': null, '_3': null}}
+
+  - description: Boolean literals
+    query: "SELECT VALUE {'_1': true, '_2': TRUE, '_3': TruE, '_4': false, '_5': FALSE, '_6': fAlSe} FROM [{}] AS _dual"
+    current_db: test
+    result:
+      - {'': {'_1': true, '_2': true, '_3': true, '_4': false, '_5': false, '_6': false}}
+
+  - description: String literals
+    query: "SELECT VALUE {'_1': '', '_2': 'abc', '_3': 'αβγ'} FROM [{}] AS _dual"
+    current_db: test
+    result:
+      - {'': {'_1': '', '_2': 'abc', '_3': 'αβγ'}}
+
+  - description: Unsigned integer literals
+    query: "SELECT VALUE {'_1': 0, '_2': 1, '_3': 10, '_4': 11, '_5': 567} FROM [{}] AS _dual"
+    current_db: test
+    result:
+      - {'': {'_1': 0, '_2': 1, '_3': 10, '_4': 11, '_5': 567}}
+
+  - description: Signed integer literals
+    query: "SELECT VALUE {'_1': -0, '_2': +0, '_3': -1, '_4': +1, '_5': -10, '_6': +10, '_7': -789, '_8': +789} FROM [{}] AS _dual"
+    current_db: test
+    result:
+      - {'': {'_1': 0, '_2': 0, '_3': -1, '_4': 1, '_5': -10, '_6': 10, '_7': -789, '_8': 789}}
+
+  - description: Date escape literal
+    query: "SELECT VALUE { '_1': {ts '2012-01-01 10:10:10'} }"
+    current_db: test
+    result:
+      - {'': {'_1': {'$date': '2012-01-01T10:10:10.000Z'}}}
+
+  - description: Unsigned double literals (no exponent parts)
+    skip_reason: 'SQL-718: fix failing double tests'
+    query: "SELECT VALUE {'_1': 0., '_2': 1., '_3': 0.123, '_4': 2.0, '_5': 3.4, '_6': 50.607, '_7': .1} FROM [{}] AS _dual"
+    current_db: test
+    result:
+      - {'': {'_1': 0, '_2': 1, '_3': 0.123, '_4': 2.0, '_5': 3.4, '_6': 50.607, '_7': 0.1}}
+
+  - description: Unsigned double literals (exponent parts)
+    skip_reason: 'SQL-718: fix failing double tests'
+    query: "SELECT VALUE {'_1': 1e2, '_2': 2E3, '_3': 3.0e4, '_4': 4.567E22, '_5': 8.e23, '_6': 9.E2, '_7': .1e3, '_8': .2E3, '_9': 5e000, '_10': 10E00} FROM [{}] AS _dual"
+    current_db: test
+    result:
+      - {'': {'_1': 100, '_2': 2000, '_3': 30000, '_4': 4.567e+22, '_5': 8e+23, '_6': 900, '_7': 100, '_8': 200, '_9': 5, '_10': 10}}
+
+  - description: Signed double literals (no exponent parts)
+    skip_reason: 'SQL-718: fix failing double tests'
+    query: "SELECT VALUE {'_1': -0., '_2': +0., '_3': -1., '_4': +1., '_5': -0.123, '_6': +0.123, '_7': -2.0, '_8': +2.0, '_9': -3.4, '_10': +3.4, '_11': -50.607, '_12': +50.607, '_13': -.1, '_14': +.1} FROM [{}] AS _dual"
+    current_db: test
+    result:
+      - {'': {'_1': 0, '_2': 0, '_3': -1, '_4': 1, '_5': -0.123, '_6': 0.123, '_7': -2.0, '_8': 2.0, '_9': -3.4, '_10': 3.4, '_11': -50.607, '_12': 50.607, '_13': -.1, '_14': .1}}
+
+  - description: Signed double literals (exponent parts)
+    skip_reason: 'SQL-718: fix failing double tests'
+    query: "SELECT VALUE {'_1': -1e-2, '_2': -3.0e+4, '_3': -4.567e22, '_4': +8.e-23, '_5': +.1e+3, '_6': +5e00} FROM [{}] AS _dual"
+    current_db: test
+    result:
+      - {'': {'_1': -.01, '_2': -30000, '_3': -4.567e+22, '_4': 8e-23, '_5': 100, '_6': 5}}

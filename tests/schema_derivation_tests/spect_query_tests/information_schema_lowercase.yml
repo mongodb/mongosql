@@ -1,0 +1,15 @@
+catalog_schema:
+  {
+    'information_schema': {
+      'mytbl': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
+tests:
+  - description: a user db called information_schema should require no special handling
+    query: "SELECT * FROM information_schema.mytbl"
+    result:
+      - {'mytbl': {'_id': 0, 'a': 1}}
