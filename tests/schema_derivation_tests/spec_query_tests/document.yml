@@ -62,11 +62,6 @@ tests:
     result:
       - {'': {'c': 100}}
 
-  - description: Dot notation field access from statically known non-document
-    query: "SELECT a.b FROM [{'a': 1}] AS arr"
-    should_compile: false
-    algebrize_error: "schema checking failed for FieldAccess: required Document(Document { keys: {}, required: {}, additional_properties: true }), found AnyOf({Atomic(Integer)})"
-
   - description: Dot notation field access from expression that evaluates to non-document at runtime
     current_db: foo
     query: "SELECT VALUE {'_id': _id, 'a': a, 'b': a.b} FROM bar AS bar"
@@ -101,22 +96,11 @@ tests:
     result:
       - {'': {'c': 100}}
 
-  - description: Bracket notation field access from statically known non-document
-    query: "SELECT 1['a']"
-    should_compile: false
-    algebrize_error: "schema checking failed for FieldAccess: required Document(Document { keys: {}, required: {}, additional_properties: true }), found Atomic(Integer)"
-
   - description: Bracket notation SELECT field called star
     query: "SELECT VALUE {'*': a['*']} FROM [{'a': {'*': 100, 'b': 10, 'c': 1}}] AS arr"
     current_db: test
     result:
       - {'': {'*': 100}}
-
-  - description: Bracket notation non-string expression is invalid
-    query: "SELECT a[1] FROM [{'a': {'1': 100}}] AS arr"
-    current_db: test
-    should_compile: false
-    algebrize_error: "schema checking failed for ComputedFieldAccess: required Atomic(String), found Atomic(Integer)"
 
   - description: Bracket notation CAST to STRING expression
     query: "SELECT {'_1': a[CAST(b AS STRING)]} FROM [{'a': {'c': 100}, 'b': 'c'}] AS arr"

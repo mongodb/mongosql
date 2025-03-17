@@ -1,0 +1,38 @@
+catalog_schema:
+  {
+    'test': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'bar': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
+tests:
+  - description: both unqualified and qualified references to derived table datasource fields are allowed
+    query: "SELECT VALUE {'asub': asub, 'bsub': derived.bsub} FROM (SELECT VALUE {'asub': a, 'bsub': b} FROM [{'a': 1, 'b': 1}] AS arr) AS derived"
+    current_db: test
+    result:
+      - {'': {'asub': 1, 'bsub': 1}}
+
+  - description: derived table must have alias
+    query: "SELECT * FROM (SELECT * FROM [{'a': 1}] AS arr)"
+    current_db: test
+    should_compile: false
+    parse_error: "derived query datasources must have aliases"
+
+  - description: there is no ambiguity with one schema-less datasource in a derived table
+    current_db: test
+    query: "SELECT * FROM (SELECT * FROM foo AS foo) AS derived"
+    result:
+      - {'derived': {'_id': {'$numberInt': "0"}, 'x': 11, 'y': 12}}
+
+  - description: derived table merges namespaces under alias namespace
+    query: "SELECT * FROM (SELECT foo.*, bar.* FROM [{'a': 1}] foo JOIN [{'b': 2}] bar) AS derived"
+    current_db: test
+    result:
+      - {'derived': {'b': 2, 'a': 1}}

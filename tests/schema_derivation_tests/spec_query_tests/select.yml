@@ -9,18 +9,6 @@ catalog_schema:
   }
 
 tests:
-  - description: key names in SELECT VALUE document must be unique
-    current_db: mydb
-    query: "SELECT VALUE {'a': 2, 'a': 5} FROM foo AS f"
-    should_compile: false
-    algebrize_error: 'found duplicate document key "a"'
-
-  - description: star cannot be used in conjunction with other select expressions
-    current_db: mydb
-    query: "SELECT *, a FROM foo AS f"
-    should_compile: false
-    algebrize_error: "standard SELECT expressions can only contain *"
-
   - description: star cannot be used in SELECT VALUE
     current_db: mydb
     query: "SELECT VALUE * FROM foo AS f"
@@ -56,18 +44,6 @@ tests:
     query: "SELECT VALUE {'a': 1} AS a FROM foo AS f"
     should_compile: false
     parse_error: Unrecognized token `AS`
-
-  - description: duplicate datasource names disallowed in SELECT VALUES
-    current_db: mydb
-    query: "SELECT VALUES f.*, f.* FROM foo AS f"
-    should_compile: false
-    algebrize_error: 'cannot create schema environment with duplicate key: Key { datasource: Named("f"), scope: 0 }'
-
-  - description: non-document expressions disallowed in SELECT VALUE
-    current_db: mydb
-    query: "SELECT VALUE [a, b] FROM foo"
-    should_compile: false
-    algebrize_error: "schema checking failed for project datasource: required Document(Document { keys: {}, required: {}, additional_properties: true }), found Array(AnyOf({AnyOf({Atomic(String), Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal), Atomic(BinData), Atomic(ObjectId), Atomic(Boolean), Atomic(Date), Atomic(Regex), Atomic(DbPointer), Atomic(Javascript), Atomic(Symbol), Atomic(JavascriptWithScope), Atomic(Timestamp), Atomic(MinKey), Atomic(MaxKey), Array(Any), Document(Document { keys: {}, required: {}, additional_properties: true })})}))"
 
   - description: simple star correctness test
     current_db: mydb

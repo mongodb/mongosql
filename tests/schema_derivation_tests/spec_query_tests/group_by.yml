@@ -234,11 +234,6 @@ tests:
       - { "": { "n": null } }
       - { "": { "n": { "$numberInt": "1" } } }
 
-  - description: group keys must be mutually comparable types
-    query: "SELECT * FROM foo.poly AS a GROUP BY a.a AS p"
-    should_compile: false
-    algebrize_error: "group key at position 0 is not statically comparable to itself"
-
   - description: GROUP BY keys may be table-qualified
     query: "SELECT * FROM foo.baz AS a GROUP by a.a.a AS a"
     current_db: foo
@@ -279,11 +274,6 @@ tests:
       - { "": { "a": { "$numberInt": "11" } } }
       - { "": { "a": { "$numberInt": "111" } } }
 
-  - description: top-level field reference keys cannot be referenced by qualified name if aliased
-    query: "SELECT VALUE {'a': bar.a} FROM foo.bar GROUP BY bar.a AS a"
-    should_compile: false
-    algebrize_error: "field `bar` cannot be resolved to any datasource"
-
   - description: GROUP BY arbitrary expression
     query: "SELECT * FROM foo.bar AS bar GROUP BY a + 2 AS ap2"
     current_db: foo
@@ -297,21 +287,6 @@ tests:
     current_db: foo
     result:
       - { "": { "n": null, "suma": { "$numberInt": "123" } } }
-
-  - description: argument to DISTINCT aggregation function must have statically determined type that is mutually comparable
-    query: "SELECT * FROM foo.baz AS baz GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS suma"
-    should_compile: false
-    algebrize_error: 'cannot have "Sum DISTINCT" aggregations over the schema: Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false }) as it is not comparable to itself'
-
-  - description: argument to DISTINCT aggregation function cannot have type DOCUMENT
-    query: "SELECT * FROM foo.baz AS baz GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a::!DOCUMENT) AS suma"
-    should_compile: false
-    algebrize_error: 'cannot have "Sum DISTINCT" aggregations over the schema: Document(Document { keys: {}, required: {}, additional_properties: true }) as it is not comparable to itself'
-
-  - description: argument to DISTINCT aggregation function cannot have type ARRAY
-    query: "SELECT * FROM foo.arr AS arr GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a::!ARRAY) AS suma"
-    should_compile: false
-    algebrize_error: 'cannot have "Sum DISTINCT" aggregations over the schema: Array(Any) as it is not comparable to itself'
 
   - description: correctness test for DISTINCT and non-DISTINCT aggregation over same field
     query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS dsuma, SUM(a) AS suma"
@@ -388,26 +363,6 @@ tests:
             },
         }
 
-  - description: AGGREGATE expressions must be aggregation functions not arbitrary expressions
-    query: "SELECT * FROM foo.bar AS bar GROUP BY a AS a AGGREGATE 1 + SUM(a) as suma"
-    should_compile: false
-    algebrize_error: "non-aggregation expression found in GROUP BY aggregation function list at position 0"
-
-  - description: AGGREGATE expressions must be aggregation functions not scalar functions
-    query: "SELECT * FROM foo.bar AS bar GROUP BY a AS a AGGREGATE UPPER(a) as upper"
-    should_compile: false
-    algebrize_error: "scalar function UPPER used in aggregation position"
-
-  - description: field reference a is undefined in GROUP BY
-    query: "SELECT VALUE {'a': a, 'sb': sb} FROM foo.bar AS bar GROUP BY c AS c AGGREGATE SUM(b) AS sb"
-    should_compile: false
-    algebrize_error: "field `a` cannot be resolved to any datasource"
-
-  - description: Aggregation functions are not allowed in SELECT VALUE
-    query: "SELECT VALUE {'suma': SUM(a)} FROM foo.bar AS bar GROUP BY a AS a"
-    should_compile: false
-    algebrize_error: "aggregation function SUM used in scalar position"
-
   - description: HAVING without GROUP BY works as a WHERE clause but happens after the WHERE clause
     query: "SELECT * FROM foo.bar AS bar WHERE a < 15 HAVING a > 5"
     current_db: foo
@@ -459,11 +414,6 @@ tests:
             { "a": { "$numberInt": "111" }, "garr": [{ "$numberInt": "111" }] },
         }
 
-  - description: ADD_TO_ARRAY star is currently an error
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE ADD_TO_ARRAY(*) AS garr"
-    should_compile: false
-    algebrize_error: "* argument only valid in COUNT function"
-
   - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in DECIMAL)
     query: "SELECT VALUE {'gset' : gset} FROM (SELECT * FROM foo.numerics AS numerics ORDER BY _id ASC) AS _numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
     current_db: foo
@@ -475,11 +425,6 @@ tests:
     current_db: foo
     result:
       - { "": { "gset": [{ "$numberInt": "3" }] } }
-
-  - description: ADD_TO_SET star is currently an error
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE ADD_TO_SET(*) AS gset"
-    should_compile: false
-    algebrize_error: "* argument only valid in COUNT function"
 
   - description: ADD_TO_SET correctness test
     query: "SELECT * FROM (SELECT _id, a FROM foo.baz AS baz ORDER BY _id) AS arr GROUP BY a.a AS a AGGREGATE ADD_TO_SET(a.a) AS gset"
@@ -499,16 +444,6 @@ tests:
             { "a": { "$numberInt": "2" }, "gavg": { "$numberDouble": "2.5" } },
         }
       - { "": { "a": null, "gavg": null } }
-
-  - description: AVG star is currently an error
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE AVG(*) AS gavg"
-    should_compile: false
-    algebrize_error: "* argument only valid in COUNT function"
-
-  - description: AVG requires a statically numeric argument
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE AVG(a) AS gavg"
-    should_compile: false
-    algebrize_error: 'schema checking failed for Avg: required AnyOf({Missing, Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal), Atomic(Null)}), found Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false })'
 
   - description: COUNT single column correctness test -- ignores nullish values
     query: "SELECT * FROM foo.multi AS m GROUP BY a AS a AGGREGATE COUNT(b) AS gcount"
@@ -606,11 +541,6 @@ tests:
             { "a": { "$numberInt": "111" }, "gfirst": { "$numberInt": "142" } },
         }
 
-  - description: FIRST star is currently an error
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE FIRST(*) AS gfirst"
-    should_compile: false
-    algebrize_error: "* argument only valid in COUNT function"
-
   - description: LAST correctness test
     query: "SELECT * FROM (SELECT _id, a, b FROM foo.bar AS bar ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE LAST(arr.b) AS glast"
     current_db: foo
@@ -628,11 +558,6 @@ tests:
     result:
       - { "": { "glast": { "$numberInt": "2" } } }
 
-  - description: LAST star is currently an error
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE LAST(*) AS glast"
-    should_compile: false
-    algebrize_error: "* argument only valid in COUNT function"
-
   - description: MAX correctness test
     query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MAX(b) AS gmax"
     current_db: foo
@@ -643,27 +568,12 @@ tests:
           "": { "a": { "$numberInt": "111" }, "gmax": { "$numberInt": "142" } },
         }
 
-  - description: MAX star is currently an error
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE MAX(*) AS gmax"
-    should_compile: false
-    algebrize_error: "* argument only valid in COUNT function"
-
   - description: MERGE_DOCUMENTS correctness test
     query: "SELECT * FROM (SELECT _id, a, doc FROM foo.baz2 AS baz2 ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE MERGE_DOCUMENTS(doc) AS gmerge"
     current_db: foo
     result:
       - { "": { "a": { "$numberInt": "1" }, "gmerge": { "a": "a", "b": "b" } } }
       - { "": { "a": { "$numberInt": "2" }, "gmerge": { "a": "d" } } }
-
-  - description: MERGE_DOCUMENTS star is currently an error
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE MERGE_DOCUMENTS(*) AS gmerge"
-    should_compile: false
-    algebrize_error: "* argument only valid in COUNT function"
-
-  - description: MERGE_DOCUMENTS requires a statically document argument
-    query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MERGE_DOCUMENTS(a) AS gmerge"
-    should_compile: false
-    algebrize_error: "schema checking failed for MergeDocuments: required Document(Document { keys: {}, required: {}, additional_properties: true }), found Atomic(Integer)"
 
   - description: MIN correctness test
     query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MIN(b) AS gmin"
@@ -674,11 +584,6 @@ tests:
       - {
           "": { "a": { "$numberInt": "111" }, "gmin": { "$numberInt": "142" } },
         }
-
-  - description: MIN star is currently an error
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE MIN(*) AS gmin"
-    should_compile: false
-    algebrize_error: "* argument only valid in COUNT function"
 
   - description: STDDEV_POP correctness test
     query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE STDDEV_POP(b) AS gstdp"
@@ -700,16 +605,6 @@ tests:
             { "a": { "$numberInt": "111" }, "gstdp": { "$numberDouble": "0" } },
         }
 
-  - description: STDDEV_POP star is currently an error
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE STDDEV_POP(*) AS gstdp"
-    should_compile: false
-    algebrize_error: "* argument only valid in COUNT function"
-
-  - description: STDDEV_POP requires a statically numeric argument
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE STDDEV_POP(a) AS gstdp"
-    should_compile: false
-    algebrize_error: 'schema checking failed for StddevPop: required AnyOf({Missing, Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal), Atomic(Null)}), found Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false })'
-
   - description: STDDEV_SAMP correctness test
     query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE STDDEV_SAMP(b) as gstds"
     current_db: foo
@@ -723,17 +618,6 @@ tests:
         }
       - { "": { "a": { "$numberInt": "11" }, "gstds": null } }
       - { "": { "a": { "$numberInt": "111" }, "gstds": null } }
-
-  - description: STDDEV_SAMP star is currently an error
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE STDDEV_SAMP(*) AS gstds"
-    should_compile: false
-    algebrize_error: "* argument only valid in COUNT function"
-
-  - description: STDDEV_SAMP requires a statically numeric argument
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE STDDEV_SAMP(a) AS gstds"
-    should_compile: false
-    algebrize_error: 'schema checking failed for StddevSamp: required AnyOf({Missing, Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal), Atomic(Null)}), found Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false })'
-
   - description: SUM correctness test
     query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE SUM(b) AS gsum"
     current_db: foo
@@ -743,13 +627,3 @@ tests:
       - {
           "": { "a": { "$numberInt": "111" }, "gsum": { "$numberInt": "142" } },
         }
-
-  - description: SUM star is currently an error
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE SUM(*) AS gsum"
-    should_compile: false
-    algebrize_error: "* argument only valid in COUNT function"
-
-  - description: SUM requires a statically numeric argument
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE SUM(a) AS gsum"
-    should_compile: false
-    algebrize_error: 'schema checking failed for Sum: required AnyOf({Missing, Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal), Atomic(Null)}), found Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false })'

@@ -26,12 +26,6 @@ catalog_schema:
   }
 
 tests:
-  - description: for expression with determined types, asserted type must be among those types
-    current_db: "foo"
-    query: "SELECT v1::!DOUBLE AS v1 FROM bar_schema"
-    should_compile: false
-    algebrize_error: "schema checking failed for ::!: required Atomic(Double), found AnyOf({Atomic(String), Atomic(Integer), Atomic(Null)})"
-
   - description: correctness test for type assertion in schema mode
     current_db: "foo"
     query: "SELECT v1::!INT AS v1 FROM bar_schema"

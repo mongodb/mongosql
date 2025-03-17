@@ -1,0 +1,29 @@
+catalog_schema:
+  {
+    'db': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
+tests:
+  - description: Can use different aliases for same field
+    query: "SELECT VALUE {'a1': a, 'a2': a} FROM [{'a': 1}] arr"
+    current_db: test
+    result:
+      - {'': {'a1': 1, 'a2': 1}}
+
+  - description: Can use different alias for same collection
+    current_db: db
+    query: "SELECT * FROM foo AS foo1, foo AS foo2"
+    result:
+      - {"foo1": {'_id': 0, "a": 1, "b": 2}, "foo2": {'_id': 0, "a": 1, "b": 2}}
+
+  - description: Can use duplicate aliases on both sides of UNION
+    current_db: db
+    query: "SELECT VALUE {'a': a, 'c': b} FROM foo AS alias UNION ALL SELECT VALUE {'a': a, 'c': b} FROM foo AS alias"
+    result:
+      - {'': {'a': 1, 'c': 2}}
+      - {'': {'a': 1, 'c': 2}}

@@ -166,16 +166,6 @@ tests:
     query: "SELECT * FROM FLATTEN(foo WITH INVALID => a)"
     parse_error: "Unrecognized token: `INVALID`"
 
-  - description: error on duplicate option keys
-    current_db: mydb
-    query: "SELECT * FROM FLATTEN(foo WITH depth => 1, depth => 2)"
-    algebrize_error: "found duplicate FLATTEN option Depth(2)"
-
-  - description: do not flatten polymorphic objects with non-nullable other types
-    current_db: mydb
-    query: "SELECT * FROM FLATTEN(docOrInt)"
-    algebrize_error: 'cannot flatten field "a" since it has a polymorphic object schema'
-
   - description: flatten polymorphic objects with just null or missing polymorphism
     current_db: mydb
     query: "SELECT * FROM FLATTEN(nullableDoc)"
@@ -184,21 +174,6 @@ tests:
       - { 'nullableDoc': { '_id': 1, 'a_b': 1 } }
       - { 'nullableDoc': { '_id': 2} }
       - { 'nullableDoc': { '_id': 3} }
-
-  - description: error if schema's field paths cannot be exhaustively enumerated
-    current_db: mydb
-    query: "SELECT * FROM FLATTEN(noSchemaInfo)"
-    algebrize_error: "cannot exhaustively enumerate all field paths in schema Document(Document { keys: {}, required: {}, additional_properties: true })"
-
-  - description: error if naming collision MUST occur
-    current_db: mydb
-    query: "SELECT * FROM FLATTEN(mustCollide)"
-    algebrize_error: 'found duplicate document key "a_b"'
-
-  - description: error if naming collision MAY occur
-    current_db: mydb
-    query: "SELECT * FROM FLATTEN(mayCollide)"
-    algebrize_error: 'cannot exhaustively enumerate all field paths in schema Document(Document { keys: {"_id": Atomic(Integer), "a": Document(Document { keys: {"b": Atomic(Integer)}, required: {"b"}, additional_properties: false })}, required: {"_id", "a"}, additional_properties: true })'
 
   - description: FLATTENing a FLATTENed datasource is allowed
     current_db: mydb

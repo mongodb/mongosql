@@ -91,18 +91,6 @@ tests:
       - {'': {'name': 'c', 'department_name': 'd1'}}
       - {'': {'name': 'd', 'department_name': 'd2'}}
 
-  - description: scalar subquery fails if it cannot prove that it statically returns a single row
-    current_db: foo
-    query: "SELECT VALUE {'department_name': (SELECT dep.name FROM department_w_schema AS dep WHERE dep.`_id` = emp.department_id)} FROM employees_w_schema AS emp"
-    should_compile: false
-    algebrize_error: "cardinality of the subquery's result set may be greater than 1"
-
-  - description: scalar subquery fails if it cannot prove that it statically returns a single column
-    current_db: foo
-    query: "SELECT VALUE {'department_name': (SELECT * FROM department_w_schema AS dep WHERE dep._id = emp.department_id LIMIT 1)} FROM employees_w_schema AS emp"
-    should_compile: false
-    algebrize_error: "subquery expressions must have a degree of 1"
-
   - description: cardinality of 1 should be inferrable from array datasource
     current_db: foo
     query: "SELECT VALUE {'name': name, 'sub': (SELECT a FROM [{'a': 1}] arr)} FROM department AS dep"
@@ -128,12 +116,6 @@ tests:
       - {'': {'name': 'b', 'department_name': 'd1'}}
       - {'': {'name': 'c', 'department_name': 'd1'}}
       - {'': {'name': 'd', 'department_name': 'd2'}}
-
-  - description: an empty array datasource does not have a degree of one
-    current_db: foo
-    query: "SELECT VALUE {'sub': (SELECT * FROM [] AS arr)} FROM employees AS emp"
-    should_compile: false
-    algebrize_error: "subquery expressions must have a degree of 1"
 
   - description: allow select star if we can statically prove the degree is equal to one
     current_db: foo

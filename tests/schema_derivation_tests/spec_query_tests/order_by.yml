@@ -135,12 +135,6 @@ tests:
       - { '': { 'a': null } }
       - { '': { 'a': 1 } }
 
-  - description: sort keys must be mutually comparable types
-    current_db: mydb
-    query: "SELECT VALUE {'a': a} FROM foo ORDER BY a ASC"
-    should_compile: false
-    algebrize_error: "sort key at position 0 is not statically comparable to itself because it has the schema AnyOf({Any, Missing})"
-
   - description: column references in sort keys can be qualified with table name after select star
     current_db: mydb
     query: "SELECT * FROM bar AS bar ORDER BY bar.a ASC"
@@ -229,12 +223,6 @@ tests:
         'b': { '_id': 0, 'a': 3, 'b': { 'c': 1 } }
       }
 
-  - description: ordering by ambiguous column reference is an error
-    current_db: mydb
-    query: "SELECT * FROM bar AS b1 JOIN bar AS b2 ORDER BY a ASC"
-    should_compile: false
-    algebrize_error: "ambiguous field `a`"
-
   - description: ordering by a non-integer constant expression is an error
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM foo ORDER BY 1.0 DESC"
@@ -304,11 +292,6 @@ tests:
               "a": { "$numberInt": "2" },
             }
       }
-
-  - description: ordering by column not in Select in join must be qualified
-    current_db: mydb
-    query: "SELECT a._id, b.a, b.b + 42 as c from baz a join baz b order by b, c"
-    algebrize_error: "Error 3009: Field `b` in the `ORDER BY` clause at the 0 scope level exists in multiple datasources and is ambiguous. Please qualify."
 
   - description: ordering by column not in Select in join works when qualified
     current_db: mydb

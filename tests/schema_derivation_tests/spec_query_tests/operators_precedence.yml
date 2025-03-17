@@ -128,27 +128,6 @@ tests:
 
   # The expression
   #
-  #   a LIKE b IN <tuple>
-  #
-  # is parsed as
-  #
-  #   a LIKE (b IN <tuple>)
-  #
-  # not as
-  #
-  #   (a LIKE b) IN <tuple>
-  #
-  # This test breaks the convention of using "core syntax" in the query field.
-  # <expr> IN <tuple> is syntactically rewritten to <expr> = ANY <subquery> in
-  # the "core syntax". Here, though, we leave IN in the query intentionally to
-  # show precedence behavior.
-  - description: IN binds tighter than LIKE
-    current_db: db
-    query: "SELECT VALUE {'v': a LIKE b IN ('str', 'string')} FROM [{'a': 'str', 'b': 'string'}] AS arr"
-    algebrize_error: "failed to translate query: algebrize error: Error 1002: Incorrect argument type for `Like`. Required: nullable string. Found: boolean.\n\tCaused by:\n\tschema checking failed for Like: required AnyOf({Missing, Atomic(Null), Atomic(String)}), found Atomic(Boolean)"
-
-  # The expression
-  #
   #   a BETWEEN b AND c IN <tuple>
   #
   # is parsed as
@@ -172,22 +151,6 @@ tests:
 
   # The expression
   #
-  #   a <comp op> b BETWEEN c AND d
-  #
-  # is parsed as
-  #
-  #   (a <comp op> b) BETWEEN c AND d
-  #
-  # not as
-  #
-  #   a <comp op> (b BETWEEN c AND d)
-  - description: comparison ops bind tighter than BETWEEN
-    current_db: db
-    query: "SELECT VALUE {'v': a = b BETWEEN c AND d} FROM [{'a': 1.5, 'b': 1.5, 'c': 1, 'd': 2}] AS arr"
-    algebrize_error: "failed to translate query: algebrize error: Error 1005: Invalid use of `Between` due to incomparable types: `boolean` cannot be compared to `int`"
-
-  # The expression
-  #
   #   a || b <comp op> c
   #
   # is parsed as
@@ -202,23 +165,6 @@ tests:
     query: "SELECT VALUE {'a': a, 'b': b, 'c': c, 'v': a || b = c} FROM [{'a': 'a', 'b': 'b', 'c': 'ab'}] AS arr"
     result:
       - {'': {'a': 'a', 'b': 'b', 'c': 'ab', 'v': true}}
-
-  # The expression
-  #
-  #   a +/- b || c
-  #
-  # is parsed as
-  #
-  #   (a +/- b) || c
-  #
-  # not as
-  #
-  #   a +/- (b || c)
-  - description: add/sub bind tighter than ||
-    current_db: db
-    query: "SELECT VALUE {'v': a + b || c} FROM [{'a': 1.5, 'b': 1, 'c': 'str'}] AS arr"
-    # If || was higher precedence than +, the error would read "... found Atomic(Integer)"
-    algebrize_error: "failed to translate query: algebrize error: Error 1002: Incorrect argument type for `Concat`. Required: nullable string. Found: double.\n\tCaused by:\n\tschema checking failed for Concat: required AnyOf({Missing, Atomic(Null), Atomic(String)}), found Atomic(Double)"
 
   # The expression
   #
@@ -254,27 +200,6 @@ tests:
     query: "SELECT VALUE {'a': a, 'b': b, 'v': - a * b, 'alt': - (a * b)} FROM [{'a': -1, 'b': 1}] AS arr"
     result:
       - {'': {'a': { '$numberInt': '-1' }, 'b': 1, 'v': 1, 'alt': 1}}
-
-  # The expression
-  #
-  #   +/- a::/::!<type>
-  #
-  # is parsed as
-  #
-  #   +/- (a::/::!<type>)
-  #
-  # not as
-  #
-  #   (+/- a)::/::!<type>
-  #
-  # This test breaks the convention of using "core syntax" in the query field.
-  # <expr>::<type> is syntactically rewritten to CAST(<expr> AS <type>) in the
-  # "core syntax". Here, though, we leave :: in the query intentionally to
-  # show precedence behavior.
-  - description: type ops bind tighter than unary ops
-    current_db: db
-    query: "SELECT VALUE {'v': +a::STRING} FROM [{'a': 1}] AS arr"
-    algebrize_error: "failed to translate query: algebrize error: Error 1002: Incorrect argument type for `Pos`. Required: nullable numeric type. Found: polymorphic type.\n\tCaused by:\n\tschema checking failed for Pos: required AnyOf({Missing, Atomic(Null), Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal)}), found AnyOf({Atomic(Null), Atomic(String)})"
 
   # The expression
   #
