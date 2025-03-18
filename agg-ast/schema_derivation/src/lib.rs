@@ -122,6 +122,9 @@ pub(crate) fn get_schema_for_path_mut(
     get_schema_for_path_mut_aux(schema, path, None, 0usize)
 }
 
+// This auxiliary function is a tail recursive helper for get_schema_for_path_mut. This allows us
+// ways around the borrow checker that are very difficult to do in an iterative version. The
+// tailcall package will ensure that this is optimized to a loop.
 #[tailcall]
 fn get_schema_for_path_mut_aux(
     schema: &mut Schema,
@@ -129,6 +132,8 @@ fn get_schema_for_path_mut_aux(
     current_field: Option<String>,
     field_index: usize,
 ) -> Option<&mut Schema> {
+    // since field_index is 0-indexed, if field_index == path.len(), we have already gone through each segment of the path,
+    // so we should return the current schema
     if path.len() == field_index {
         return Some(schema);
     }
@@ -136,7 +141,7 @@ fn get_schema_for_path_mut_aux(
     let field = if let Some(current_field) = current_field {
         current_field
     } else {
-        // we use index and std::mem::take here rather than remove to avoid resuffling the Vec.
+        // we use index and std::mem::take here rather than remove to avoid reshuffling the Vec.
         std::mem::take(path.get_mut(field_index)?)
     };
     match schema {
@@ -164,6 +169,9 @@ fn get_or_create_schema_for_path_mut(
     get_or_create_schema_for_path_mut_aux(schema, path, None, 0usize)
 }
 
+// This auxiliary function is a tail recursive helper for get_schema_for_path_mut. This allows us
+// ways around the borrow checker that are very difficult to do in an iterative version. The
+// tailcall package will ensure that this is optimized to a loop.
 #[tailcall]
 fn get_or_create_schema_for_path_mut_aux(
     schema: &mut Schema,
@@ -171,6 +179,8 @@ fn get_or_create_schema_for_path_mut_aux(
     current_field: Option<String>,
     field_index: usize,
 ) -> Option<&mut Schema> {
+    // since field_index is 0-indexed, if field_index == path.len(), we have already gone through each segment of the path,
+    // so we should return the current schema
     if path.len() == field_index {
         return Some(schema);
     }
@@ -178,7 +188,7 @@ fn get_or_create_schema_for_path_mut_aux(
     let field = if let Some(current_field) = current_field {
         current_field
     } else {
-        // we use index and std::mem::take here rather than remove to avoid resuffling the Vec.
+        // we use index and std::mem::take here rather than remove to avoid reshuffling the Vec.
         std::mem::take(path.get_mut(field_index)?)
     };
     match schema {
