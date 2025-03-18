@@ -1025,6 +1025,38 @@ tasks:
           workload_filename: "workload_norm_sf0.01.yml"
           s3_prefix: "SF0.01"
 
+  - name: tpch-0.001-normalized-distinct-atlas-sql
+    allow_for_git_tag: false
+    disable: true
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
+      - func: "install rust toolchain"
+      - func: "run TPC-H benchmark"
+        vars:
+          dataset_filename: "tpch-0.001-normalized-indexed.archive.gz"
+          pipeline_dir: atlas_sql/normalized
+          workload_filename: "workload_norm_distinct_sf0.001.yml"
+          s3_prefix: "SF0.001"
+
+  - name: tpch-0.01-normalized-distinct-atlas-sql
+    allow_for_git_tag: false
+    disable: true
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
+      - func: "install rust toolchain"
+      - func: "run TPC-H benchmark"
+        vars:
+          dataset_filename: "tpch-0.01-normalized-indexed.archive.gz"
+          pipeline_dir: atlas_sql/normalized
+          workload_filename: "workload_norm_distinct_sf0.01.yml"
+          s3_prefix: "SF0.01"
+
   - name: tpch-0.01-denormalized-atlas-sql
     depends_on:
       - name: tpch-0.001-denormalized-validation
@@ -1159,6 +1191,38 @@ tasks:
         vars:
           dataset_filename: "tpch-0.01-normalized-indexed.archive.gz"
           pipeline_dir: bic/normalized
+          workload_filename: "workload.yml"
+          s3_prefix: "SF0.01"
+
+  - name: tpch-0.001-normalized-distinct-bic
+    allow_for_git_tag: false
+    disable: true
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
+      - func: "install rust toolchain"
+      - func: "run TPC-H benchmark"
+        vars:
+          dataset_filename: "tpch-0.001-normalized-indexed.archive.gz"
+          pipeline_dir: bic/normalized_distinct
+          workload_filename: "workload.yml"
+          s3_prefix: "SF0.001"
+
+  - name: tpch-0.01-normalized-distinct-bic
+    allow_for_git_tag: false
+    disable: true
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
+      - func: "install rust toolchain"
+      - func: "run TPC-H benchmark"
+        vars:
+          dataset_filename: "tpch-0.01-normalized-indexed.archive.gz"
+          pipeline_dir: bic/normalized_distinct
           workload_filename: "workload.yml"
           s3_prefix: "SF0.01"
 
