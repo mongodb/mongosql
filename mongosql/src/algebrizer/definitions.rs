@@ -321,6 +321,7 @@ impl<'a> Algebrizer<'a> {
         match ast_node {
             ast::Query::Select(q) => self.algebrize_select_query(q),
             ast::Query::Set(s) => self.algebrize_set_query(s),
+            ast::Query::With(_) => panic!("WITH should be removed before algebrizing"),
         }
     }
 
@@ -349,7 +350,9 @@ impl<'a> Algebrizer<'a> {
         let plan = self.algebrize_where_clause(ast_node.where_clause, plan)?;
         let plan = self.algebrize_group_by_clause(ast_node.group_by_clause, plan)?;
         let plan = self.algebrize_having_clause(ast_node.having_clause, plan)?;
-        let plan = if self.allow_order_by_missing_columns {
+        let plan = if self.allow_order_by_missing_columns
+            && ast_node.select_clause.set_quantifier != ast::SetQuantifier::Distinct
+        {
             self.algebrize_select_and_order_by_clause(
                 ast_node.select_clause,
                 ast_node.order_by_clause,
@@ -623,6 +626,9 @@ impl<'a> Algebrizer<'a> {
             ast::Datasource::Derived(d) => self.algebrize_derived_datasource(d),
             ast::Datasource::Flatten(f) => self.algebrize_flatten_datasource(f),
             ast::Datasource::Unwind(u) => self.algebrize_unwind_datasource(u),
+            ast::Datasource::ExtendedUnwind(_) => {
+                panic!("ExtendedUnwind should be removed before algebrizing")
+            }
         }
     }
 

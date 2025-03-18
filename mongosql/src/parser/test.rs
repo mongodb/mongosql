@@ -3378,6 +3378,11 @@ mod flatten {
         input = "SELECT * FROM FLATTEN(UNWIND(foo WITH PATH => arr))"
     );
     parsable!(
+        unwind_multi_paths,
+        expected = true,
+        input = "SELECT * FROM UNWIND(foo WITH PATHS => (a.b[INDEX=>b, OUTER=>false].c, q.r.s[INDEX=>c, OUTER=>true]), INDEX => i, OUTER=>false)"
+    );
+    parsable!(
         depth_neg,
         expected = false,
         input = "SELECT * FROM FLATTEN(foo WITH depth => -1)"
@@ -3450,6 +3455,11 @@ mod unwind {
         path,
         expected = true,
         input = "SELECT * FROM UNWIND(foo WITH PATH => arr)"
+    );
+    parsable!(
+        path_multi_arrays,
+        expected = true,
+        input = "SELECT * FROM UNWIND(foo WITH PATH => arr[].b[].c.d[].e)"
     );
     parsable!(
         index,
@@ -3544,18 +3554,24 @@ mod unwind {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
             },
-            from_clause: Some(Datasource::Unwind(UnwindSource {
+            from_clause: Some(Datasource::ExtendedUnwind(ExtendedUnwindSource {
                 datasource: Box::new(Datasource::Collection(CollectionSource {
                     database: None,
                     collection: "foo".to_string(),
                     alias: None
                 })),
                 options: vec![
-                    UnwindOption::Path(Expression::Identifier("arr".into())),
-                    UnwindOption::Index("i".into()),
-                    UnwindOption::Index("idx".into()),
-                    UnwindOption::Path(Expression::Identifier("a".into())),
-                    UnwindOption::Outer(false),
+                    ExtendedUnwindOption::Paths(vec![vec![UnwindPathPart {
+                        field: "arr".to_string(),
+                        options: vec![]
+                    }]]),
+                    ExtendedUnwindOption::Index("i".into()),
+                    ExtendedUnwindOption::Index("idx".into()),
+                    ExtendedUnwindOption::Paths(vec![vec![UnwindPathPart {
+                        field: "a".to_string(),
+                        options: vec![]
+                    }]]),
+                    ExtendedUnwindOption::Outer(false),
                 ]
             })),
             where_clause: None,
@@ -3611,7 +3627,7 @@ mod unrecognized_token_suggestion {
     parsable!(
         not_a_valid_query,
         expected = false,
-        expected_error_user_msg = "Unrecognized token `notavalidquery`, expected: `SELECT`",
+        expected_error_user_msg = "Unrecognized token `notavalidquery`, expected: `SELECT`, `WITH`",
         input = "notavalidquery"
     );
 }

@@ -900,6 +900,87 @@ mod optional_parameters {
         );
     }
 
+    mod extended_unwind {
+        use super::*;
+
+        test_rewrite!(
+            unwind_composite_a_b,
+            pass = ExtendedUnwindRewritePass,
+            expected =
+                Ok("SELECT a.b.c AS c FROM UNWIND(UNWIND(foo WITH PATH => a) WITH PATH => a.b)"),
+            input = "SELECT a.b.c AS c FROM UNWIND(foo WITH PATHS => (a[].b[]))",
+        );
+
+        test_rewrite!(
+            unwind_composite_a_b_no_opts,
+            pass = ExtendedUnwindRewritePass,
+            expected =
+                Ok("SELECT a.b.c AS c FROM UNWIND(UNWIND(foo WITH PATH => a) WITH PATH => a.b)"),
+            input = "SELECT a.b.c AS c FROM UNWIND(foo WITH PATHS => (a[].b))",
+        );
+
+        test_rewrite!(
+            unwind_composite_a_b_in_derived,
+            pass = ExtendedUnwindRewritePass,
+            expected =
+                Ok("SELECT a.b.c AS c FROM (SELECT * FROM UNWIND(UNWIND(foo WITH PATH => a) WITH PATH => a.b)) AS zaz"),
+            input = "SELECT a.b.c AS c FROM (SELECT * FROM UNWIND(foo WITH PATHS => (a[].b[]))) AS zaz",
+        );
+
+        test_rewrite!(
+            unwind_nested_composite_a_b,
+            pass = ExtendedUnwindRewritePass,
+            expected =
+                Ok("SELECT a.b.c AS c FROM UNWIND(UNWIND(UNWIND(foo WITH PATH => a) WITH PATH => a.b) WITH PATH => x)"),
+            input = "SELECT a.b.c AS c FROM UNWIND(UNWIND(foo WITH PATHS => (a[].b[])) WITH PATH => x)",
+        );
+
+        test_rewrite!(
+            unwind_composite_w_x_and_w_y_z,
+            pass = ExtendedUnwindRewritePass,
+            expected = Ok(
+                "SELECT w.x AS x, w.y.z AS z FROM UNWIND(UNWIND(UNWIND(foo WITH PATH => w.x) WITH PATH => w.y) WITH PATH => w.y.z)"
+            ),
+            input = "SELECT w.x AS x, w.y.z AS z FROM UNWIND(foo WITH PATHS => (w.x[], w.y[].z[]))",
+        );
+
+        test_rewrite!(
+            unwind_composite_a_b_and_b,
+            pass = ExtendedUnwindRewritePass,
+            expected = Ok(
+                "SELECT a.b.c AS c, b.d AS d FROM UNWIND(UNWIND(UNWIND(foo WITH PATH => a) WITH PATH => a.b) WITH PATH => b)"
+            ),
+            input = "SELECT a.b.c AS c, b.d AS d FROM UNWIND(foo WITH PATHS => (a[].b[], b[]))",
+        );
+
+        test_rewrite!(
+            unwind_with_global_index,
+            pass = ExtendedUnwindRewritePass,
+            expected = Ok(
+                "SELECT a.b.c AS c, a_ix, b_ix, b.d AS d FROM UNWIND(UNWIND(UNWIND(foo WITH INDEX => a_ix, PATH => a) \
+                   WITH INDEX => a_b_ix, PATH => a.b) WITH INDEX => b_ix, PATH => b)"),
+            input = "SELECT a.b.c AS c, a_ix, b_ix, b.d as d FROM UNWIND(foo WITH PATHS => (a[].b[], b[]), INDEX => ix)",
+        );
+
+        test_rewrite!(
+            unwind_local_index_overwrites_global_index,
+            pass = ExtendedUnwindRewritePass,
+            expected = Ok(
+                "SELECT a.b.c AS c, a_ix, b_ix, b.d AS d FROM UNWIND(UNWIND(UNWIND(foo WITH INDEX => FOOO, PATH => a) \
+                   WITH INDEX => a_b_ix, PATH => a.b) WITH INDEX => b_ix, PATH => b)"),
+            input = "SELECT a.b.c AS c, a_ix, b_ix, b.d as d FROM UNWIND(foo WITH PATHS => (a[INDEX=>FOOO].b[], b[]), INDEX => ix)",
+        );
+
+        test_rewrite!(
+            unwind_local_outer_overwrites_global_outer,
+            pass = ExtendedUnwindRewritePass,
+            expected = Ok(
+                "SELECT a.b.c AS c, a_ix, b_ix, b.d AS d FROM UNWIND(UNWIND(UNWIND(foo WITH INDEX => FOOO, OUTER => true, PATH => a) \
+                   WITH OUTER => false, INDEX => a_b_ix, PATH => a.b) WITH INDEX => b_ix, OUTER => true, PATH => b)"),
+            input = "SELECT a.b.c AS c, a_ix, b_ix, b.d as d FROM UNWIND(foo WITH PATHS => (a[INDEX=>FOOO].b[OUTER=>false], b[]), INDEX => ix, OUTER => true)",
+        );
+    }
+
     mod unwind {
         use super::*;
 
@@ -1017,6 +1098,31 @@ mod optional_parameters {
             input = "SELECT SUBSTRING(CAST(CURRENT_TIMESTAMP AS STRING), 1) FROM foo",
         );
     }
+}
+
+mod with_query {
+    use super::*;
+
+    test_rewrite!(
+        multi,
+        pass = WithQueryRewritePass,
+        expected = Ok("SELECT * FROM (SELECT * FROM (SELECT a FROM bar) AS foo) AS baz"),
+        input = "WITH foo AS (SELECT a FROM bar), baz AS (SELECT * FROM foo) (SELECT * FROM baz)",
+    );
+
+    test_rewrite!(
+        rewrite_in_derived,
+        pass = WithQueryRewritePass,
+        expected = Ok("SELECT * FROM (SELECT * FROM (SELECT a FROM (SELECT a FROM bar) AS foo) AS craz) AS baz"),
+        input = "WITH foo AS (SELECT a FROM bar), baz AS (SELECT * FROM (SELECT a FROM foo) AS craz) (SELECT * FROM baz)",
+    );
+
+    test_rewrite!(
+        do_not_rewrite_scoped_collection,
+        pass = WithQueryRewritePass,
+        expected = Ok("SELECT * FROM foo.bar AS bar"),
+        input = "WITH bar AS (SELECT a FROM baz) (SELECT * FROM foo.bar AS bar)",
+    );
 }
 
 mod not {

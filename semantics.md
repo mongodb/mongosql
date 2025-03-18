@@ -1831,9 +1831,9 @@ not distinct is implementation-dependent.
 The only addition we make to the ordering behavior described in the SQL
 92 Specification is to clarify an implementation-defined behavior:
 
-- MongoSQL sorts MISSING before NULL, and NULL before all other values
-  (this is consistent with the behavior of MongoSQL's less-than
-  operator)
+- MongoSQL sorts NULL and MISSING (these are considered to be equivalent 
+  values when sorting) before all other values. (this is consistent with 
+  the behavior of MongoSQL's less-than operator)
 
 #### Rewrite: Positional sort keys to references
 
