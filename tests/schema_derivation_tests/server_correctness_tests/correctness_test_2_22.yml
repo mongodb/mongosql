@@ -1,0 +1,36 @@
+current_db: test
+pipeline:  [ { "$match" : { "$or" : [ { "obj.obj.obj.obj.str" : { "$lte" : "drive regional Mauritius" } }, { "$or" : [ { "obj.obj.str" : { "$ne" : "action-items" } }, { "obj.obj.num" : { "$bitsAnySet" : {"$numberLong": "10001000"} } } ] }, { "$and" : [ { "obj.obj.obj.obj.date" : { "$gt" : {"$date": {"$numberLong": "1566839836920"}} } } ] }, { "obj.obj.obj.obj.date" : { "$gte" : {"$date": {"$numberLong": "1564352712418"}} } } ] } }, { "$redact" : { "$cond" : { "if" : { "$and" : [ "$obj.obj.num", "$obj.obj.num" ] }, "then" : "$$PRUNE", "else" : "$$KEEP" } } }, { "$redact" : { "$cond" : { "if" : { "$eq" : [ { "$let" : { "vars" : { "leta" : { "$map" : { "input" : [ -3.14159265859, { "$sqrt" : { "$abs" : "$obj.obj.num" } }, "$obj.obj.num", "$obj.num" ], "in" : { "$isoDayOfWeek" : { "date" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$dateAdd" : { "startDate" : "$obj.obj.obj.obj.obj.date", "unit" : "minute", "amount" : { "$toInt" : { "$isoDayOfWeek" : { "date" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$dateFromParts" : { "year" : 13, "month" : {"$numberLong": "17"}, "day" : {"$numberLong": "16"}, "millisecond" : { "$toInt" : { "$toDecimal" : { "$trim" : { "input" : "$$this", "chars" : { "$substrCP" : [ "$obj.obj.obj.str", 2, 7 ] } } } } }, "timezone" : "Europe/Volgograd" } } ] }, "timezone" : "America/Virgin" } } }, "timezone" : "Pacific/Kanton" } } ] }, "timezone" : "Asia/Tbilisi" } } } } }, "in" : { "$sortArray" : { "input" : { "$setDifference" : [ [ ISODate("2019-12-20T17:37:23.778Z"), true ], [ "$obj.obj.obj.obj.str", "structure" ] ] }, "sortBy" : 1 } } } }, { "$bitXor" : [ {"$numberLong": "65846"}, {"$numberLong": "58050"} ] } ] }, "then" : "$$KEEP", "else" : "$$DESCEND" } } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "date": { "bsonType": "null" },
+      "array": {
+        "bsonType": "array",
+        "items": {
+          "bsonType": "object",
+          "properties": {
+            "num": { "bsonType": "decimal" },
+            "obj": {
+              "bsonType": "object",
+              "properties": {
+                "num": { "bsonType": "decimal" }
+              },
+              "required": ["num"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["num", "obj"],
+          "additionalProperties": false
+        }
+      },
+      "_id": { "bsonType": "bool" },
+      "obj": {
+        "bsonType": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    "required": ["_id", "array", "date", "obj"],
+    "additionalProperties": false
+  }

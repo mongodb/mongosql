@@ -1,0 +1,20 @@
+current_db: test
+pipeline: [ { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : "$obj.obj.num", "str" : { "$max" : { "$toUpper" : "Future" } }, "num" : { "$first" : { "$exp" : 1 } } } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "str": { "bsonType": "string" },
+      "_id": {
+        "any_of": [
+          { "bsonType": "null" },
+          { "bsonType": "int" },
+          { "bsonType": "decimal" }
+        ]
+      },
+
+      "num": { "bsonType": "double" }
+    },
+    "required": ["_id", "num", "str"],
+    "additionalProperties": false
+  }

@@ -1,0 +1,22 @@
+current_db: test
+pipeline: [ { "$sort" : { "_id" : 1 } }, { "$limit" : 13 }, { "$replaceRoot" : { "newRoot" : { "$setField" : { "field" : "obj.date", "input" : { "k" : "Courts Paradigm", "v" : { "$ifNull" : [ "$num", null ] } }, "value" : { "$toBool" : { "$mergeObjects" : [ { "k" : "Savings Account", "v" : { "$ifNull" : [ true, null ] } } ] } } } } } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "obj.date": { "bsonType": "bool" },
+      "k": { "bsonType": "string" },
+      "v": {
+        "any_of": [
+          { "bsonType": "null" },
+          { "bsonType": "int" },
+          { "bsonType": "decimal" }
+        ]
+      },
+      "_id": {
+        "bsonType": "objectId"
+      }
+    },
+    "required": ["_id", "k", "obj.date", "v"],
+    "additionalProperties": false
+  }

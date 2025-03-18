@@ -1,0 +1,37 @@
+current_db: test
+pipeline:  [ { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : "$obj.obj.obj.str", "array" : { "$bottom" : { "output" : { "$setField" : { "field" : "obj.date", "input" : { "$min" : [ { "$ifNull" : [ "$obj.obj", {  } ] }, { "str" : "Gorgeous web-enabled", "array" : [ [ ], [ ], true, /^fuchsia/, { "num" : -5 }, true ] } ] }, "value" : { "$let" : { "vars" : { "kameron" : { "$range" : [ 19, 4 ] }, "maybelle" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$dateTrunc" : { "date" : ObjectId("507f191e810c19729de860ea"), "unit" : "minute", "binSize" : {"$numberLong": "11707592"}, "timezone" : "Africa/Mbabane" } } ] }, "lelah" : { "$regexFind" : { "input" : "$str", "regex" : "^secondary", "options" : "" } }, "gay" : { "$let" : { "vars" : { "shanie" : { "$toLower" : "West Virginia" } }, "in" : { "$sortArray" : { "input" : { "$setDifference" : [ [ ISODate("2019-12-26T13:17:36.803Z"), "$obj.obj.obj.obj.num" ], [ false, true ] ] }, "sortBy" : -1 } } } } }, "in" : { "$split" : [ { "$toLower" : { "$substrBytes" : [ "$obj.obj.obj.str", 7, 0 ] } }, "$obj.obj.str" ] } } } } }, "sortBy" : { "obj.obj.obj.obj.obj.any" : 1, "obj.obj.obj.array" : 1, "_id" : 1 } } }, "obj" : { "$last" : { "$min" : [ { "obj" : { "date" : ISODate("2019-11-28T08:35:46.923Z") } } ] } }, "num" : { "$bottom" : { "output" : "$obj.obj.obj.obj.num", "sortBy" : { "obj.obj.array" : 1, "str" : -1, "obj.obj.obj.obj.obj.any" : -1, "obj.obj.obj.obj.geoJson" : -1, "obj.obj" : -1, "obj.obj.obj.num" : 1, "obj.date" : -1, "_id" : 1 } } } } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "_id": {
+        "bsonType": "object",
+        "properties": {
+          "indexing Cayman Islands supply-chains": { "bsonType": "date" },
+          "multi-byte Georgia SMTP": {
+            "any_of": [
+              { "bsonType": "null" },
+              { "bsonType": "date" }
+            ]
+          }
+        },
+        "required": ["indexing Cayman Islands supply-chains", "multi-byte Georgia SMTP"],
+        "additionalProperties": false
+      },
+      "array": {
+        "bsonType": "object",
+        "properties": {
+          "k": { "bsonType": "string" },
+          "obj.obj.date": {
+            "bsonType": "array",
+            "items": { "bsonType": "int" }
+          },
+          "v": { "bsonType": "date" }
+        },
+        "required": ["k", "obj.obj.date", "v"],
+        "additionalProperties": false
+      }
+    },
+    "required": ["_id", "array"],
+    "additionalProperties": false
+  }
