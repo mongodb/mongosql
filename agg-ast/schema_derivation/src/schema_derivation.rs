@@ -4,10 +4,10 @@ use crate::{
     MatchConstrainSchema, Result,
 };
 use agg_ast::definitions::{
-    Bucket, BucketAuto, ConciseSubqueryLookup, Densify, EqualityLookup, Expression, GraphLookup,
-    Group, LiteralValue, Lookup, LookupFrom, ProjectItem, ProjectStage, Ref, SetWindowFields,
-    Stage, SubqueryLookup, TaggedOperator, UnionWith, Unset, UntaggedOperator,
-    UntaggedOperatorName, Unwind,
+    Bucket, BucketAuto, ConciseSubqueryLookup, Densify, EqualityLookup, Expression, Fill,
+    FillOutput, GraphLookup, Group, LiteralValue, Lookup, LookupFrom, ProjectItem, ProjectStage,
+    Ref, SetWindowFields, Stage, SubqueryLookup, TaggedOperator, UnionWith, Unset,
+    UntaggedOperator, UntaggedOperatorName, Unwind,
 };
 use linked_hash_map::LinkedHashMap;
 use mongosql::{
@@ -170,6 +170,47 @@ impl DeriveSchema for Stage {
                 keys: facet_schema,
                 ..Default::default()
             }))
+        }
+
+        fn fill_derive_schema(fill: &Fill, state: &mut ResultSetState) -> Result<Schema> {
+            for (path, fill_output) in fill.output.iter() {
+                // Every key that appears in the output can no longer be missing, and can only be
+                // null if the fill value is null.
+                let path_vec = path
+                    .split('.')
+                    .map(|s| s.to_string())
+                    .collect::<Vec<String>>();
+                macro_rules! get_path_schema {
+                    () => {{
+                        // Unfortunately, the borrow checker requires us to compute path_schema in
+                        // both branches because we have a mutable borrow on state when
+                        // we compute the fill_schema in the Value case. This macro cleans up some
+                        // duplication.
+                        get_schema_for_path_mut(&mut state.result_set_schema, path_vec)
+                            .ok_or_else(|| Error::UnknownReference(path.clone()))?
+                    }};
+                }
+                match fill_output {
+                    FillOutput::Value(e) => {
+                        let fill_schema = e.derive_schema(state)?;
+                        let path_schema = get_path_schema!();
+                        // Null is possible if the value expression can evaluate to null, but
+                        // missing will always be impossible. We subtract NULL so it can only be
+                        // reintroduced via the union of the fill_schema
+                        *path_schema = std::mem::take(path_schema)
+                            .subtract_nullish()
+                            .union(&fill_schema);
+                    }
+                    // The method does not matter, either of the currently supported methdos will
+                    // remove null and missing from the schema, and cannot change the schema in
+                    // any other meaningful way.
+                    FillOutput::Method(_m) => {
+                        let path_schema = get_path_schema!();
+                        *path_schema = std::mem::take(path_schema).subtract_nullish();
+                    }
+                }
+            }
+            Ok(state.result_set_schema.to_owned())
         }
 
         fn graph_lookup_derive_schema(
@@ -664,12 +705,12 @@ impl DeriveSchema for Stage {
             }
             Stage::Densify(d) => densify_derive_schema(d, state),
             Stage::Documents(d) => documents_derive_schema(d, state),
-            Stage::EquiJoin(_) => todo!(),
+            e @ Stage::EquiJoin(_) => Err(Error::InvalidStage(e.clone())),
             Stage::Facet(f) => facet_derive_schema(f, state),
-            Stage::Fill(_) => todo!(),
+            Stage::Fill(f) => fill_derive_schema(f, state),
             Stage::GraphLookup(g) => graph_lookup_derive_schema(g, state),
             Stage::Group(g) => group_derive_schema(g, state),
-            Stage::Join(_) => todo!(),
+            j @ Stage::Join(_) => Err(Error::InvalidStage(j.clone())),
             Stage::Limit(_) => Ok(state.result_set_schema.to_owned()),
             Stage::Lookup(l) => lookup_derive_schema(l, state),
             Stage::Match(ref m) => m.derive_schema(state),

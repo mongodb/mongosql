@@ -435,74 +435,100 @@ mod documents {
 }
 
 mod facet {
-    // SQL-2369: implement schema derivation for bucketing stages
-    //     use super::*;
+    use super::*;
 
-    //     test_derive_stage_schema!(
-    //         empty,
-    //         expected = Ok(Schema::Document(Document::default())),
-    //         input = r#"stage: {"$facet": {}}"#
-    //     );
+    test_derive_stage_schema!(
+        empty,
+        expected = Ok(Schema::Document(Document::default())),
+        input = r#"stage: {"$facet": {}}"#
+    );
 
-    //     test_derive_stage_schema!(
-    //         single,
-    //         expected = Ok(Schema::Document(Document {
-    //             keys: map! {
-    //                 "outputField1".to_string() => Schema::Array(Box::new(
-    //                     Schema::Document(Document {
-    //                         keys: map! {
-    //                             "x".to_string() => Schema::Atomic(Atomic::Integer)
-    //                         },
-    //                         required: set!("x".to_string()),
-    //                         ..Default::default()
-    //                     })
-    //                 ))
-    //             },
-    //             required: set!("outputField1".to_string()),
-    //             ..Default::default()
-    //         })),
-    //         input = r#"{"$facet": { "outputField1": [{"$count": "x"}] }}"#
-    //     );
+    test_derive_stage_schema!(
+        single,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "outputField1".to_string() => Schema::Array(Box::new(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "x".to_string() => Schema::Atomic(Atomic::Integer)
+                        },
+                        required: set!("x".to_string()),
+                        ..Default::default()
+                    })
+                ))
+            },
+            required: set!("outputField1".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$facet": { "outputField1": [{"$count": "x"}] }}"#
+    );
 
-    //     test_derive_stage_schema!(
-    //         multiple,
-    //         expected = Ok(Schema::Document(Document {
-    //             keys: map! {
-    //                 "o1".to_string() => Schema::Array(Box::new(
-    //                     Schema::Document(Document {
-    //                         keys: map! {
-    //                             "x".to_string() => Schema::Atomic(Atomic::String),
-    //                         },
-    //                         required: set!(),
-    //                         ..Default::default()
-    //                     })
-    //                 )),
-    //                 "outputField2".to_string() => Schema::Array(Box::new(
-    //                     Schema::Document(Document {
-    //                         keys: map! {
-    //                             "x".to_string() => Schema::Atomic(Atomic::Integer)
-    //                         },
-    //                         required: set!(),
-    //                         ..Default::default()
-    //                     })
-    //                 ))
-    //             },
-    //             required: set!("outputField1".to_string()),
-    //             ..Default::default()
-    //         })),
-    //         input = r#"{"$facet": {
-    //             "o1": [{"$limit": 10}, {"$project": {"_id": 0}}],
-    //             "outputField2": [{"$count": "x"}],
-    //         }}"#,
-    //         starting_schema = Schema::Document(Document {
-    //             keys: map! {
-    //                 "x".to_string() => Schema::Atomic(Atomic::String),
-    //                 "_id".to_string() => Schema::Atomic(Atomic::ObjectId)
-    //             },
-    //             required: set!("_id".to_string()),
-    //             ..Default::default()
-    //         })
-    //     );
+    test_derive_stage_schema!(
+        multiple,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "o1".to_string() => Schema::Array(Box::new(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "x".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!(),
+                        ..Default::default()
+                    })
+                )),
+                "outputField2".to_string() => Schema::Array(Box::new(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "x".to_string() => Schema::Atomic(Atomic::Integer)
+                        },
+                        required: set!(),
+                        ..Default::default()
+                    })
+                ))
+            },
+            required: set!("outputField1".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$facet": {
+            "o1": [{"$limit": 10}, {"$project": {"_id": 0}}],
+            "outputField2": [{"$count": "x"}],
+        }}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "_id".to_string() => Schema::Atomic(Atomic::ObjectId)
+            },
+            required: set!("_id".to_string()),
+            ..Default::default()
+        })
+    );
+}
+
+mod fill {
+    use super::*;
+
+    test_derive_stage_schema!(
+        fill,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!{Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long)}),
+                "bar".to_string() => Schema::Atomic(Atomic::String),
+                "baz".to_string() => Schema::AnyOf(set!{Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)}),
+            },
+            required: set!("foo".to_string(), "bar".to_string(), "baz".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$fill": {"output": {"foo": {"value": {"$add": [3, 4]}}, "bar": {"method": "linear"}, "baz": {"value": null}}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!{Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)}),
+                "bar".to_string() => Schema::Atomic(Atomic::String),
+                "baz".to_string() => Schema::AnyOf(set!{Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)}),
+            },
+            required: set!(),
+            ..Default::default()
+        })
+    );
 }
 
 mod group {
