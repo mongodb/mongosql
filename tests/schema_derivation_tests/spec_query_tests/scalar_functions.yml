@@ -1,5 +1,3 @@
-%YAML 1.2
----
 variables:
   numericTypes: &numericTypes
   - {bsonType: int}
@@ -8,60 +6,386 @@ variables:
   - {bsonType: decimal}
   - {bsonType: !!str "null"}
 
-catalog_schema: {foo: {nullif: {bsonType: object, required: [_id, v1, v2], additionalProperties: false,
-      properties: {_id: {bsonType: int}, v1: {anyOf: [bsonType: string, bsonType: !!str "null"]},
-        v2: {anyOf: [bsonType: string, bsonType: !!str "null"]}}}, twoArgCoalesce: {
-      bsonType: object, additionalProperties: true}, multiArgCoalesce: {bsonType: object,
-      additionalProperties: true}, size: {bsonType: object, required: [_id, a], additionalProperties: false,
-      properties: {_id: {bsonType: int}, a: {anyOf: [bsonType: array, bsonType: !!str "null"]}}},
-    length: {bsonType: object, required: [_id, s], additionalProperties: false, properties: {
-        _id: {bsonType: int}, s: {anyOf: [bsonType: string, bsonType: !!str "null"]},
-        comment: {bsonType: string}}}, nullAndMissing: {bsonType: object, required: [
-        _id, d], additionalProperties: false, properties: {_id: {bsonType: int}, d: {
-          anyOf: [bsonType: date, bsonType: !!str "null"]}}}, substring: {bsonType: object,
-      required: [_id, str, start, length], additionalProperties: false, properties: {
-        _id: {bsonType: int}, str: {anyOf: [bsonType: string, bsonType: !!str "null"]},
-        start: {anyOf: [bsonType: int, bsonType: !!str "null"]}, length: {anyOf: [
-            bsonType: int, bsonType: !!str "null"]}}}, fold: {bsonType: object, required: [
-        _id, s], additionalProperties: false, properties: {_id: {bsonType: int}, s: {
-          anyOf: [bsonType: string, bsonType: !!str "null"]}}}, trim: {bsonType: object,
-      required: [_id, substr, str], additionalProperties: false, properties: {_id: {
-          bsonType: int}, substr: {anyOf: [bsonType: string, bsonType: !!str "null"]},
-        str: {anyOf: [bsonType: string, bsonType: !!str "null"]}}}, position: {bsonType: object,
-      required: [_id, s1, s2], additionalProperties: false, properties: {_id: {bsonType: int},
-        s1: {anyOf: [bsonType: string, bsonType: !!str "null"]}, s2: {anyOf: [bsonType: string,
-            bsonType: !!str "null"]}}}, abs: {bsonType: object, required: [_id, v],
-      additionalProperties: false, properties: {_id: {bsonType: int}, v: {anyOf: *numericTypes}}},
-    ceilAndFloor: {bsonType: object, required: [_id, v], additionalProperties: false,
-      properties: {_id: {bsonType: int}, v: {anyOf: *numericTypes}}}, log: {bsonType: object,
-      required: [_id, v, base], additionalProperties: false, properties: {_id: {bsonType: int},
-        v: {anyOf: *numericTypes}, base: {anyOf: *numericTypes}}}, mod: {bsonType: object,
-      required: [_id, v, divisor], additionalProperties: false, properties: {_id: {
-          bsonType: int}, v: {anyOf: *numericTypes}, divisor: {anyOf: *numericTypes}}},
-    pow: {bsonType: object, required: [_id, v, exponent], additionalProperties: false,
-      properties: {_id: {bsonType: int}, v: {anyOf: *numericTypes}, exponent: {anyOf: *numericTypes}}},
-    radians: {bsonType: object, required: [_id, degrees], additionalProperties: false,
-      properties: {_id: {bsonType: int}, degrees: {anyOf: *numericTypes}}}, round: {
-      bsonType: object, required: [_id, v, place], additionalProperties: false, properties: {
-        _id: {bsonType: int}, v: {anyOf: *numericTypes}, place: {anyOf: [bsonType: int,
-            bsonType: long, bsonType: !!str "null"]}}}, sqrt: {bsonType: object, required: [
-        _id, v], additionalProperties: false, properties: {_id: {bsonType: int}, v: {
-          anyOf: *numericTypes}}}, trigonometry: {bsonType: object, required: [_id,
-        radians], additionalProperties: false, properties: {_id: {bsonType: int},
-        radians: {anyOf: *numericTypes}}}, split: {bsonType: object, required: [_id,
-        str, delim, tokenNum], additionalProperties: false, properties: {_id: {bsonType: int},
-        str: {anyOf: [bsonType: string, bsonType: !!str "null"]}, delim: {anyOf: [
-            bsonType: string, bsonType: !!str "null"]}, tokenNum: {anyOf: [bsonType: int,
-            bsonType: !!str "null"]}}}, dates: {bsonType: object, required: [_id,
-        interval, date1, date2], properties: {_id: {bsonType: int}, date1: {bsonType: date},
-        date2: {bsonType: date}, interval: {anyOf: [bsonType: int, bsonType: long]}},
-      additionalProperties: false}, datepart: {bsonType: object, required: [_id, date1],
-      properties: {_id: {bsonType: int}, date1: {bsonType: date}}, additionalProperties: false}}}
+catalog_schema:
+  {
+    "foo": {
+      "nullif": {
+        "bsonType": "object",
+        'required': [ '_id', 'v1', 'v2' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v1": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "v2": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      'twoArgCoalesce': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
+      'multiArgCoalesce': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
+      "size": {
+        "bsonType": "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "array" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "length": {
+        "bsonType": "object",
+        'required': [ '_id', 's' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "s": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "comment": {
+            "bsonType": "string"
+          }
+        }
+      },
+      "nullAndMissing": {
+        "bsonType": "object",
+        'required': [ '_id', 'd' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "d": {
+            "anyOf": [
+              { "bsonType": "date" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "substring": {
+        "bsonType": "object",
+        'required': [ '_id', 'str', 'start', 'length' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "str": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "start": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "length": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "fold": {
+        "bsonType": "object",
+        'required': [ '_id', 's' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "s": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "trim": {
+        "bsonType": "object",
+        'required': [ '_id', 'substr', 'str' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "substr": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "str": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "position": {
+        "bsonType": "object",
+        'required': [ '_id', 's1', 's2' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "s1": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "s2": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "abs": {
+        "bsonType": "object",
+        'required': [ '_id', 'v' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes }
+        }
+      },
+      "ceilAndFloor": {
+        "bsonType": "object",
+        'required': [ '_id', 'v' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes }
+        }
+      },
+      "log": {
+        "bsonType": "object",
+        'required': [ '_id', 'v', 'base' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes },
+          "base": { "anyOf": *numericTypes }
+        }
+      },
+      "mod": {
+        "bsonType": "object",
+        'required': [ '_id', 'v', 'divisor' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes },
+          "divisor": { "anyOf": *numericTypes }
+        }
+      },
+      "pow": {
+        "bsonType": "object",
+        'required': [ '_id', 'v', 'exponent', ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes },
+          "exponent": { "anyOf": *numericTypes }
+        }
+      },
+      "radians": {
+        "bsonType": "object",
+        'required': [ '_id', 'degrees' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "degrees": { "anyOf": *numericTypes }
+        }
+      },
+      "round": {
+        "bsonType": "object",
+        'required': [ '_id', 'v', 'place' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes },
+          "place": { "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "long" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "sqrt": {
+        "bsonType": "object",
+        'required': [ '_id', 'v' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes }
+        }
+      },
+      "trigonometry": {
+        "bsonType": "object",
+        'required': [ '_id', 'radians' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "radians": { "anyOf": *numericTypes }
+        }
+      },
+      "split": {
+        "bsonType": "object",
+        'required': [ '_id', 'str', 'delim', 'tokenNum' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "str": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "delim": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "tokenNum": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "dates": {
+        "bsonType": "object",
+        "required": [ '_id', 'interval', 'date1', 'date2' ],
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "date1": {
+            "bsonType": "date"
+          },
+          "date2": {
+            "bsonType": "date"
+          },
+          "interval": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "long" }
+            ]
+          }
+        },
+        "additionalProperties": false,
+      },
+      "datepart": {
+        "bsonType": "object",
+        "required": [ '_id', 'date1' ],
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "date1": {
+            "bsonType": "date"
+          },
+        },
+        "additionalProperties": false,
+      }
+    }
+  }
 
 tests:
 - description: NULLIF correctness test
   current_db: foo
-  query: "SELECT VALUE {'v1': v1, 'v2': v2, 'v': NULLIF(v1, v2)} FROM nullif AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v1: $c.v1
+        v2: $c.v2
+        v:
+          $let:
+            vars:
+              expr1:
+                $ifNull:
+                - $c.v1
+                - $literal: null
+            in:
+              $cond:
+              - $eq:
+                - $$expr1
+                - $c.v2
+              - $literal: null
+              - $$expr1
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -87,8 +411,38 @@ tests:
     additionalProperties: false
 - description: COALESCE(v1, v2) correctness tests
   current_db: foo
-  query: "SELECT VALUE {'v1': v1, 'v2': v2, 'v': COALESCE(v1, v2)} FROM twoArgCoalesce
-    AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v1: $c.v1
+        v2: $c.v2
+        v:
+          $switch:
+            branches:
+            - case:
+                $gt:
+                - $c.v1
+                - $literal: null
+              then: $c.v1
+            - case:
+                $gt:
+                - $c.v2
+                - $literal: null
+              then: $c.v2
+            default:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -108,8 +462,56 @@ tests:
     additionalProperties: false
 - description: COALESCE(v1, ..., vn) correctness tests
   current_db: foo
-  query: "SELECT VALUE {'v1': v1, 'v2': v2, 'v3': v3, 'v4': v4, 'v5': v5, 'v': COALESCE(v1,
-    v2, v3, v4, v5)} FROM multiArgCoalesce AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v1: $c.v1
+        v2: $c.v2
+        v3: $c.v3
+        v4: $c.v4
+        v5: $c.v5
+        v:
+          $switch:
+            branches:
+            - case:
+                $gt:
+                - $c.v1
+                - $literal: null
+              then: $c.v1
+            - case:
+                $gt:
+                - $c.v2
+                - $literal: null
+              then: $c.v2
+            - case:
+                $gt:
+                - $c.v3
+                - $literal: null
+              then: $c.v3
+            - case:
+                $gt:
+                - $c.v4
+                - $literal: null
+              then: $c.v4
+            - case:
+                $gt:
+                - $c.v5
+                - $literal: null
+              then: $c.v5
+            default:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v1: 123, v2: null, v4: 789, v5: null, v: 123}}
   - {'': {v1: null, v3: 456, v4: 789, v: 456}}
@@ -118,7 +520,34 @@ tests:
 
 - description: SIZE correctness tests
   current_db: foo
-  query: "SELECT VALUE {'a': a, 's': SIZE(a)} FROM size AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        a: $c.a
+        s:
+          $let:
+            vars:
+              desugared_sqlSize_input0: $c.a
+            in:
+              $cond:
+              - $lte:
+                - $$desugared_sqlSize_input0
+                - $literal: null
+              - $literal: null
+              - $size:
+                - $$desugared_sqlSize_input0
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -141,8 +570,41 @@ tests:
     additionalProperties: false
 - description: POSITION correctness tests
   current_db: foo
-  query: "SELECT VALUE {'s1': s1, 's2': s2, 'p': POSITION(s1 IN s2)} FROM `position`
-    AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        s1: $c.s1
+        s2: $c.s2
+        p:
+          $let:
+            vars:
+              desugared_sqlIndexOfCP_input0: $c.s2
+              desugared_sqlIndexOfCP_input1: $c.s1
+            in:
+              $cond:
+              - $or:
+                - $lte:
+                  - $$desugared_sqlIndexOfCP_input0
+                  - $literal: null
+                - $lte:
+                  - $$desugared_sqlIndexOfCP_input1
+                  - $literal: null
+              - $literal: null
+              - $indexOfCP:
+                - $$desugared_sqlIndexOfCP_input0
+                - $$desugared_sqlIndexOfCP_input1
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -168,8 +630,35 @@ tests:
     additionalProperties: false
 - description: CHAR_LENGTH correctness tests
   current_db: foo
-  query: "SELECT VALUE {'s': s, 'len': CHAR_LENGTH(s), 'comment': comment} FROM length
-    AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        s: $c.s
+        len:
+          $let:
+            vars:
+              desugared_sqlStrLenCP_input0: $c.s
+            in:
+              $cond:
+              - $lte:
+                - $$desugared_sqlStrLenCP_input0
+                - $literal: null
+              - $literal: null
+              - $strLenCP:
+                - $$desugared_sqlStrLenCP_input0
+        comment: $c.comment
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {s: '', len: 0}}
   - {'': {s: a, len: 1}}
@@ -183,8 +672,35 @@ tests:
 
 - description: OCTET_LENGTH correctness tests
   current_db: foo
-  query: "SELECT VALUE {'s': s, 'len': OCTET_LENGTH(s), 'comment': comment} FROM length
-    AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        s: $c.s
+        len:
+          $let:
+            vars:
+              desugared_sqlStrLenBytes_input0: $c.s
+            in:
+              $cond:
+              - $lte:
+                - $$desugared_sqlStrLenBytes_input0
+                - $literal: null
+              - $literal: null
+              - $strLenBytes:
+                - $$desugared_sqlStrLenBytes_input0
+        comment: $c.comment
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {s: '', len: 0}}
   - {'': {s: a, len: 1}}
@@ -198,8 +714,37 @@ tests:
 
 - description: BIT_LENGTH correctness tests
   current_db: foo
-  query: "SELECT VALUE {'s': s, 'len': BIT_LENGTH(s), 'comment': comment} FROM length
-    AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        s: $c.s
+        len:
+          $multiply:
+          - $let:
+              vars:
+                desugared_sqlStrLenBytes_input0: $c.s
+              in:
+                $cond:
+                - $lte:
+                  - $$desugared_sqlStrLenBytes_input0
+                  - $literal: null
+                - $literal: null
+                - $strLenBytes:
+                  - $$desugared_sqlStrLenBytes_input0
+          - $literal: 8
+        comment: $c.comment
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {s: '', len: 0}}
   - {'': {s: a, len: 8}}
@@ -213,8 +758,25 @@ tests:
 
 - description: EXTRACT FROM NULL and MISSING correctness test
   current_db: foo
-  query: "SELECT VALUE {'d': d, 'v': EXTRACT(YEAR FROM d)} FROM nullAndMissing AS
-    c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        d: $c.d
+        v:
+          $year:
+          - $c.d
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -230,8 +792,47 @@ tests:
     additionalProperties: false
 - description: SUBSTRING(str FROM start FOR length) correctness test
   current_db: foo
-  query: "SELECT VALUE {'str': str, 'start': start, 'length': length, 'substr': SUBSTRING(str
-    FROM start FOR length)} FROM `substring` AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        str: $c.str
+        start: $c.start
+        length: $c.length
+        substr:
+          $let:
+            vars:
+              desugared_sqlSubstrCP_input0: $c.str
+              desugared_sqlSubstrCP_input1: $c.start
+              desugared_sqlSubstrCP_input2: $c.length
+            in:
+              $cond:
+              - $or:
+                - $lte:
+                  - $$desugared_sqlSubstrCP_input0
+                  - $literal: null
+                - $lte:
+                  - $$desugared_sqlSubstrCP_input1
+                  - $literal: null
+                - $lte:
+                  - $$desugared_sqlSubstrCP_input2
+                  - $literal: null
+              - $literal: null
+              - $substrCP:
+                - $$desugared_sqlSubstrCP_input0
+                - $$desugared_sqlSubstrCP_input1
+                - $$desugared_sqlSubstrCP_input2
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   skip_reason: 'SQL-428: negative length in $substrCP'
   result:
   - {'': {str: '', start: {$numberInt: '0'}, length: {$numberInt: '1'}, substr: ''}}
@@ -253,7 +854,29 @@ tests:
 
 - description: REPLACE correctness test
   current_db: foo
-  query: "SELECT VALUE {'s': s, 'v': REPLACE(s, 'c', 'fff')} FROM `fold` AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        s: $c.s
+        v:
+          $replaceAll:
+            input: $c.s
+            find:
+              $literal: c
+            replacement:
+              $literal: fff
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -275,7 +898,34 @@ tests:
     additionalProperties: false
 - description: UPPER correctness test
   current_db: foo
-  query: "SELECT VALUE {'s': s, 'v': UPPER(s)} FROM `fold` AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        s: $c.s
+        v:
+          $let:
+            vars:
+              desugared_sqlToUpper_input0: $c.s
+            in:
+              $cond:
+              - $lte:
+                - $$desugared_sqlToUpper_input0
+                - $literal: null
+              - $literal: null
+              - $toUpper:
+                - $$desugared_sqlToUpper_input0
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -297,7 +947,34 @@ tests:
     additionalProperties: false
 - description: LOWER correctness test
   current_db: foo
-  query: "SELECT VALUE {'s': s, 'v': LOWER(s)} FROM `fold` AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        s: $c.s
+        v:
+          $let:
+            vars:
+              desugared_sqlToLower_input0: $c.s
+            in:
+              $cond:
+              - $lte:
+                - $$desugared_sqlToLower_input0
+                - $literal: null
+              - $literal: null
+              - $toLower:
+                - $$desugared_sqlToLower_input0
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -319,8 +996,27 @@ tests:
     additionalProperties: false
 - description: TRIM(BOTH substr FROM str) correctness test
   current_db: foo
-  query: "SELECT VALUE {'substr': substr, 'str': str, 'v': TRIM(BOTH substr FROM str)}
-    FROM `trim` AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        substr: $c.substr
+        str: $c.str
+        v:
+          $trim:
+            input: $c.str
+            chars: $c.substr
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -346,8 +1042,27 @@ tests:
     additionalProperties: false
 - description: TRIM(LEADING substr FROM str) correctness test
   current_db: foo
-  query: "SELECT VALUE {'substr': substr, 'str': str, 'v': TRIM(LEADING substr FROM
-    str)} FROM `trim` AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        substr: $c.substr
+        str: $c.str
+        v:
+          $ltrim:
+            input: $c.str
+            chars: $c.substr
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -373,8 +1088,27 @@ tests:
     additionalProperties: false
 - description: TRIM(TRAILING substr FROM str) correctness test
   current_db: foo
-  query: "SELECT VALUE {'substr': substr, 'str': str, 'v': TRIM(TRAILING substr FROM
-    str)} FROM `trim` AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        substr: $c.substr
+        str: $c.str
+        v:
+          $rtrim:
+            input: $c.str
+            chars: $c.substr
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -400,21 +1134,94 @@ tests:
     additionalProperties: false
 - description: CURRENT_TIMESTAMP(p) correctness test
   current_db: foo
-  query: "SELECT VALUE {'v': CURRENT_TIMESTAMP(1) > '2021-01-08T12:00:00Z'::TIMESTAMP}
-    FROM [{}] AS _dual"
+  pipeline:
+  - $documents:
+    - $literal: {}
+  - $project:
+      _dual: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v:
+          $let:
+            vars:
+              desugared_sqlGt_input0: $$NOW
+              desugared_sqlGt_input1:
+                $literal:
+                  $date:
+                    $numberLong: '1610107200000'
+            in:
+              $cond:
+              - $or:
+                - $lte:
+                  - $$desugared_sqlGt_input0
+                  - $literal: null
+                - $lte:
+                  - $$desugared_sqlGt_input1
+                  - $literal: null
+              - $literal: null
+              - $gt:
+                - $$desugared_sqlGt_input0
+                - $$desugared_sqlGt_input1
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: true}}
 
 - description: Multiple CURRENT_TIMESTAMPs are equal across a query
   current_db: foo
-  query: "SELECT VALUE {'v': CURRENT_TIMESTAMP(6) = CURRENT_TIMESTAMP(6)} FROM [{}]
-    AS _dual"
+  pipeline:
+  - $documents:
+    - $literal: {}
+  - $project:
+      _dual: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v:
+          $eq:
+          - $$NOW
+          - $$NOW
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: true}}
 
 - description: ABS correctness tests
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'n': ABS(v)} FROM abs AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $c.v
+        n:
+          $abs:
+          - $c.v
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -442,7 +1249,25 @@ tests:
     additionalProperties: false
 - description: CEIL correctness tests
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'n': CEIL(v)} FROM ceilAndFloor AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $c.v
+        n:
+          $ceil:
+          - $c.v
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -470,8 +1295,34 @@ tests:
     additionalProperties: false
 - description: COS correctness tests
   current_db: foo
-  query: "SELECT VALUE {'radians': radians, 'n': COS(radians)} FROM trigonometry AS
-    c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        radians: $c.radians
+        n:
+          $cond:
+          - $or:
+            - $eq:
+              - $c.radians
+              - $literal: .inf
+            - $eq:
+              - $c.radians
+              - $literal: -.inf
+          - $literal: null
+          - $cos:
+            - $c.radians
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -497,8 +1348,25 @@ tests:
     additionalProperties: false
 - description: DEGREES correctness tests
   current_db: foo
-  query: "SELECT VALUE {'radians': radians, 'n': DEGREES(radians)} FROM trigonometry
-    AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        radians: $c.radians
+        n:
+          $radiansToDegrees:
+          - $c.radians
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -524,7 +1392,25 @@ tests:
     additionalProperties: false
 - description: FLOOR correctness tests
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'n': FLOOR(v)} FROM ceilAndFloor AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $c.v
+        n:
+          $floor:
+          - $c.v
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -552,7 +1438,48 @@ tests:
     additionalProperties: false
 - description: LOG correctness tests
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'base': base, 'n': LOG(v, base)} FROM log AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $c.v
+        base: $c.base
+        n:
+          $cond:
+          - $or:
+            - $eq:
+              - $c.v
+              - $literal: .nan
+            - $eq:
+              - $c.base
+              - $literal: .nan
+          - $literal: .nan
+          - $cond:
+            - $or:
+              - $lte:
+                - $c.v
+                - $literal: 0
+              - $eq:
+                - $c.base
+                - $literal: 1
+              - $lte:
+                - $c.base
+                - $literal: 0
+            - $literal: null
+            - $log:
+              - $c.v
+              - $c.base
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -585,8 +1512,37 @@ tests:
     additionalProperties: false
 - description: MOD correctness tests
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'divisor': divisor, 'n': MOD(v, divisor)} FROM mod
-    AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $c.v
+        divisor: $c.divisor
+        n:
+          $let:
+            vars:
+              desugared_sqlMod_input0: $c.v
+              desugared_sqlMod_input1: $c.divisor
+            in:
+              $cond:
+              - $eq:
+                - $$desugared_sqlMod_input1
+                - $literal: 0
+              - $literal: null
+              - $mod:
+                - $$desugared_sqlMod_input0
+                - $$desugared_sqlMod_input1
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -621,8 +1577,27 @@ tests:
     additionalProperties: false
 - description: POW correctness tests
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'exponent': exponent, 'n': POW(v, exponent)} FROM
-    pow AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $c.v
+        exponent: $c.exponent
+        n:
+          $pow:
+          - $c.v
+          - $c.exponent
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -657,8 +1632,25 @@ tests:
     additionalProperties: false
 - description: RADIANS correctness tests
   current_db: foo
-  query: "SELECT VALUE {'degrees': degrees, 'n': RADIANS(degrees)} FROM radians AS
-    c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        degrees: $c.degrees
+        n:
+          $degreesToRadians:
+          - $c.degrees
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -684,8 +1676,46 @@ tests:
     additionalProperties: false
 - description: ROUND correctness tests
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'place': place, 'n': ROUND(v, place)} FROM round AS
-    c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $c.v
+        place: $c.place
+        n:
+          $let:
+            vars:
+              desugared_sqlRound_input0: $c.v
+              desugared_sqlRound_input1: $c.place
+            in:
+              $cond:
+              - $eq:
+                - $$desugared_sqlRound_input1
+                - $literal: .nan
+              - $literal: .nan
+              - $cond:
+                - $and:
+                  - $gte:
+                    - $$desugared_sqlRound_input1
+                    - $literal: -20
+                  - $lte:
+                    - $$desugared_sqlRound_input1
+                    - $literal: 100
+                - $round:
+                  - $$desugared_sqlRound_input0
+                  - $$desugared_sqlRound_input1
+                - $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -718,8 +1748,34 @@ tests:
     additionalProperties: false
 - description: SIN correctness tests
   current_db: foo
-  query: "SELECT VALUE {'radians': radians, 'n': SIN(radians)} FROM trigonometry AS
-    c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        radians: $c.radians
+        n:
+          $cond:
+          - $or:
+            - $eq:
+              - $c.radians
+              - $literal: .inf
+            - $eq:
+              - $c.radians
+              - $literal: -.inf
+          - $literal: null
+          - $sin:
+            - $c.radians
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -745,7 +1801,39 @@ tests:
     additionalProperties: false
 - description: SQRT correctness tests
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'n': SQRT(v)} FROM sqrt AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $c.v
+        n:
+          $let:
+            vars:
+              desugared_sqlSqrt_input: $c.v
+            in:
+              $cond:
+              - $eq:
+                - $$desugared_sqlSqrt_input
+                - $literal: .nan
+              - $literal: .nan
+              - $cond:
+                - $lt:
+                  - $$desugared_sqlSqrt_input
+                  - $literal: 0
+                - $literal: null
+                - $sqrt:
+                  - $$desugared_sqlSqrt_input
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -771,8 +1859,34 @@ tests:
     additionalProperties: false
 - description: TAN correctness tests
   current_db: foo
-  query: "SELECT VALUE {'radians': radians, 'n': TAN(radians)} FROM trigonometry AS
-    c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        radians: $c.radians
+        n:
+          $cond:
+          - $or:
+            - $eq:
+              - $c.radians
+              - $literal: .inf
+            - $eq:
+              - $c.radians
+              - $literal: -.inf
+          - $literal: null
+          - $tan:
+            - $c.radians
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -798,8 +1912,72 @@ tests:
     additionalProperties: false
 - description: SPLIT correctness tests
   current_db: foo
-  query: "SELECT VALUE {'str': str, 'delim': delim, 'tokenNum': tokenNum, 'v': SPLIT(str,
-    delim, tokenNum)} FROM split AS c"
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        str: $c.str
+        delim: $c.delim
+        tokenNum: $c.tokenNum
+        v:
+          $let:
+            vars:
+              desugared_sqlSplit_input0: $c.str
+              desugared_sqlSplit_input1: $c.delim
+              desugared_sqlSplit_input2: $c.tokenNum
+            in:
+              $cond:
+              - $eq:
+                - $$desugared_sqlSplit_input1
+                - $literal: ''
+              - $literal: null
+              - $let:
+                  vars:
+                    desugared_sqlSplit_split_expr:
+                      $split:
+                      - $$desugared_sqlSplit_input0
+                      - $$desugared_sqlSplit_input1
+                  in:
+                    $cond:
+                    - $lte:
+                      - $$desugared_sqlSplit_split_expr
+                      - $literal: null
+                    - $literal: null
+                    - $let:
+                        vars:
+                          desugared_sqlSplit_slice_expr:
+                            $slice:
+                            - $$desugared_sqlSplit_split_expr
+                            - $cond:
+                              - $gt:
+                                - $abs:
+                                  - $$desugared_sqlSplit_input2
+                                - $size:
+                                  - $$desugared_sqlSplit_split_expr
+                              - $abs:
+                                - $$desugared_sqlSplit_input2
+                              - $$desugared_sqlSplit_input2
+                            - $literal: 1
+                        in:
+                          $arrayElemAt:
+                          - $cond:
+                            - $eq:
+                              - $$desugared_sqlSplit_slice_expr
+                              - []
+                            - - $literal: ''
+                            - $$desugared_sqlSplit_slice_expr
+                          - $literal: 0
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -829,9 +2007,46 @@ tests:
     additionalProperties: false
 - description: YEAR correctness tests
   current_db: foo
-  query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(YEAR, interval, date1),
-    'datepart': EXTRACT(YEAR FROM date1), 'datediff': DATEDIFF(YEAR, date1, date2),
-    'datetrunc': DATETRUNC(YEAR, date1)} FROM dates AS d"
+  pipeline:
+  - $project:
+      d: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        interval: $d.interval
+        dateadd:
+          $dateAdd:
+            startDate: $d.date1
+            unit:
+              $literal: year
+            amount: $d.interval
+        datepart:
+          $year:
+          - $d.date1
+        datediff:
+          $dateDiff:
+            startDate: $d.date1
+            endDate: $d.date2
+            unit:
+              $literal: year
+            startOfWeek:
+              $literal: sunday
+        datetrunc:
+          $dateTrunc:
+            date: $d.date1
+            unit:
+              $literal: year
+            startOfWeek:
+              $literal: sunday
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -853,9 +2068,46 @@ tests:
     additionalProperties: false
 - description: MONTH correctness tests
   current_db: foo
-  query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(MONTH, interval,
-    date1), 'datepart': EXTRACT(MONTH FROM date1), 'datediff': DATEDIFF(MONTH, date1,
-    date2), 'datetrunc': DATETRUNC(MONTH, date1)} FROM dates AS d"
+  pipeline:
+  - $project:
+      d: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        interval: $d.interval
+        dateadd:
+          $dateAdd:
+            startDate: $d.date1
+            unit:
+              $literal: month
+            amount: $d.interval
+        datepart:
+          $month:
+          - $d.date1
+        datediff:
+          $dateDiff:
+            startDate: $d.date1
+            endDate: $d.date2
+            unit:
+              $literal: month
+            startOfWeek:
+              $literal: sunday
+        datetrunc:
+          $dateTrunc:
+            date: $d.date1
+            unit:
+              $literal: month
+            startOfWeek:
+              $literal: sunday
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -877,9 +2129,46 @@ tests:
     additionalProperties: false
 - description: DAY correctness tests
   current_db: foo
-  query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(DAY, interval, date1),
-    'datepart': EXTRACT(DAY FROM date1), 'datediff': DATEDIFF(DAY, date1, date2),
-    'datetrunc': DATETRUNC(DAY, date1)} FROM dates AS d"
+  pipeline:
+  - $project:
+      d: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        interval: $d.interval
+        dateadd:
+          $dateAdd:
+            startDate: $d.date1
+            unit:
+              $literal: day
+            amount: $d.interval
+        datepart:
+          $dayOfMonth:
+          - $d.date1
+        datediff:
+          $dateDiff:
+            startDate: $d.date1
+            endDate: $d.date2
+            unit:
+              $literal: day
+            startOfWeek:
+              $literal: sunday
+        datetrunc:
+          $dateTrunc:
+            date: $d.date1
+            unit:
+              $literal: day
+            startOfWeek:
+              $literal: sunday
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -901,9 +2190,46 @@ tests:
     additionalProperties: false
 - description: HOUR correctness tests
   current_db: foo
-  query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(HOUR, interval, date1),
-    'datepart': EXTRACT(HOUR FROM date1), 'datediff': DATEDIFF(HOUR, date1, date2),
-    'datetrunc': DATETRUNC(HOUR, date1)} FROM dates AS d"
+  pipeline:
+  - $project:
+      d: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        interval: $d.interval
+        dateadd:
+          $dateAdd:
+            startDate: $d.date1
+            unit:
+              $literal: hour
+            amount: $d.interval
+        datepart:
+          $hour:
+          - $d.date1
+        datediff:
+          $dateDiff:
+            startDate: $d.date1
+            endDate: $d.date2
+            unit:
+              $literal: hour
+            startOfWeek:
+              $literal: sunday
+        datetrunc:
+          $dateTrunc:
+            date: $d.date1
+            unit:
+              $literal: hour
+            startOfWeek:
+              $literal: sunday
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -925,9 +2251,46 @@ tests:
     additionalProperties: false
 - description: MINUTE correctness tests
   current_db: foo
-  query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(MINUTE, interval,
-    date1), 'datepart': EXTRACT(MINUTE FROM date1), 'datediff': DATEDIFF(MINUTE, date1,
-    date2), 'datetrunc': DATETRUNC(MINUTE, date1)} FROM dates AS d"
+  pipeline:
+  - $project:
+      d: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        interval: $d.interval
+        dateadd:
+          $dateAdd:
+            startDate: $d.date1
+            unit:
+              $literal: minute
+            amount: $d.interval
+        datepart:
+          $minute:
+          - $d.date1
+        datediff:
+          $dateDiff:
+            startDate: $d.date1
+            endDate: $d.date2
+            unit:
+              $literal: minute
+            startOfWeek:
+              $literal: sunday
+        datetrunc:
+          $dateTrunc:
+            date: $d.date1
+            unit:
+              $literal: minute
+            startOfWeek:
+              $literal: sunday
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -949,9 +2312,46 @@ tests:
     additionalProperties: false
 - description: SECOND correctness tests
   current_db: foo
-  query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(SECOND, interval,
-    date1), 'datepart': EXTRACT(SECOND FROM date1), 'datediff': DATEDIFF(SECOND, date1,
-    date2), 'datetrunc': DATETRUNC(SECOND, date1)} FROM dates AS d"
+  pipeline:
+  - $project:
+      d: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        interval: $d.interval
+        dateadd:
+          $dateAdd:
+            startDate: $d.date1
+            unit:
+              $literal: second
+            amount: $d.interval
+        datepart:
+          $second:
+          - $d.date1
+        datediff:
+          $dateDiff:
+            startDate: $d.date1
+            endDate: $d.date2
+            unit:
+              $literal: second
+            startOfWeek:
+              $literal: sunday
+        datetrunc:
+          $dateTrunc:
+            date: $d.date1
+            unit:
+              $literal: second
+            startOfWeek:
+              $literal: sunday
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -973,9 +2373,46 @@ tests:
     additionalProperties: false
 - description: MILLISECOND correctness tests
   current_db: foo
-  query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(MILLISECOND, interval,
-    date1), 'datepart': EXTRACT(MILLISECOND FROM date1), 'datediff': DATEDIFF(MILLISECOND,
-    date1, date2), 'datetrunc': DATETRUNC(MILLISECOND, date1)} FROM dates AS d"
+  pipeline:
+  - $project:
+      d: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        interval: $d.interval
+        dateadd:
+          $dateAdd:
+            startDate: $d.date1
+            unit:
+              $literal: millisecond
+            amount: $d.interval
+        datepart:
+          $millisecond:
+          - $d.date1
+        datediff:
+          $dateDiff:
+            startDate: $d.date1
+            endDate: $d.date2
+            unit:
+              $literal: millisecond
+            startOfWeek:
+              $literal: sunday
+        datetrunc:
+          $dateTrunc:
+            date: $d.date1
+            unit:
+              $literal: millisecond
+            startOfWeek:
+              $literal: sunday
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -997,9 +2434,43 @@ tests:
     additionalProperties: false
 - description: QUARTER correctness tests
   current_db: foo
-  query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(QUARTER, interval,
-    date1), 'datediff': DATEDIFF(QUARTER, date1, date2), 'datetrunc': DATETRUNC(QUARTER,
-    date1)} FROM dates AS d"
+  pipeline:
+  - $project:
+      d: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        interval: $d.interval
+        dateadd:
+          $dateAdd:
+            startDate: $d.date1
+            unit:
+              $literal: quarter
+            amount: $d.interval
+        datediff:
+          $dateDiff:
+            startDate: $d.date1
+            endDate: $d.date2
+            unit:
+              $literal: quarter
+            startOfWeek:
+              $literal: sunday
+        datetrunc:
+          $dateTrunc:
+            date: $d.date1
+            unit:
+              $literal: quarter
+            startOfWeek:
+              $literal: sunday
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1020,9 +2491,46 @@ tests:
     additionalProperties: false
 - description: WEEK correctness tests
   current_db: foo
-  query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(WEEK, interval, date1),
-    'datepart': EXTRACT(WEEK FROM date1), 'datediff': DATEDIFF(WEEK, date1, date2),
-    'datetrunc': DATETRUNC(WEEK, date1)} FROM dates AS d"
+  pipeline:
+  - $project:
+      d: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        interval: $d.interval
+        dateadd:
+          $dateAdd:
+            startDate: $d.date1
+            unit:
+              $literal: week
+            amount: $d.interval
+        datepart:
+          $week:
+          - $d.date1
+        datediff:
+          $dateDiff:
+            startDate: $d.date1
+            endDate: $d.date2
+            unit:
+              $literal: week
+            startOfWeek:
+              $literal: sunday
+        datetrunc:
+          $dateTrunc:
+            date: $d.date1
+            unit:
+              $literal: week
+            startOfWeek:
+              $literal: sunday
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1044,29 +2552,93 @@ tests:
     additionalProperties: false
 - description: DAY_OF_YEAR correctness tests
   current_db: foo
-  query: "SELECT VALUE {'datepart': EXTRACT(DAY_OF_YEAR FROM date1)} FROM datepart
-    AS d"
+  pipeline:
+  - $project:
+      d: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        datepart:
+          $dayOfYear:
+          - $d.date1
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {datepart: {$numberInt: '153'}}}
 
 - description: ISO_WEEK correctness tests
   current_db: foo
-  query: "SELECT VALUE {'datepart': EXTRACT(ISO_WEEK FROM date1)} FROM datepart AS
-    d"
+  pipeline:
+  - $project:
+      d: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        datepart:
+          $isoWeek:
+          - $d.date1
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {datepart: {$numberInt: '22'}}}
 
 - description: ISO_WEEKDAY correctness tests
   current_db: foo
-  query: "SELECT VALUE {'datepart': EXTRACT(ISO_WEEKDAY FROM date1)} FROM datepart
-    AS d"
+  pipeline:
+  - $project:
+      d: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        datepart:
+          $isoDayOfWeek:
+          - $d.date1
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {datepart: {$numberInt: '4'}}}
 
 - description: DAYOFWEEK correctness tests
   current_db: foo
-  query: "SELECT VALUE {'datepart': EXTRACT(DAYOFWEEK FROM date1)} FROM datepart AS
-    d"
+  pipeline:
+  - $project:
+      d: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        datepart:
+          $dayOfWeek:
+          - $d.date1
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1081,8 +2653,37 @@ tests:
     additionalProperties: false
 - description: DATEDIFF startOfWeek correctness tests
   current_db: foo
-  query: "SELECT VALUE {'sunday': DATEDIFF(WEEK, date1, date2, 'sunday'), 'friday':
-    DATEDIFF(WEEK, date1, date2, 'friday')} FROM dates AS d"
+  pipeline:
+  - $project:
+      d: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        sunday:
+          $dateDiff:
+            startDate: $d.date1
+            endDate: $d.date2
+            unit:
+              $literal: week
+            startOfWeek:
+              $literal: sunday
+        friday:
+          $dateDiff:
+            startDate: $d.date1
+            endDate: $d.date2
+            unit:
+              $literal: week
+            startOfWeek:
+              $literal: friday
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1098,8 +2699,37 @@ tests:
     additionalProperties: false
 - description: TIMESTAMPDIFF startOfWeek correctness tests
   current_db: foo
-  query: "SELECT VALUE {'sunday': TIMESTAMPDIFF(WEEK, date1, date2, 'sunday'), 'friday':
-    TIMESTAMPDIFF(WEEK, date1, date2, 'friday')} FROM dates AS d"
+  pipeline:
+  - $project:
+      d: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        sunday:
+          $dateDiff:
+            startDate: $d.date1
+            endDate: $d.date2
+            unit:
+              $literal: week
+            startOfWeek:
+              $literal: sunday
+        friday:
+          $dateDiff:
+            startDate: $d.date1
+            endDate: $d.date2
+            unit:
+              $literal: week
+            startOfWeek:
+              $literal: friday
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1115,8 +2745,35 @@ tests:
     additionalProperties: false
 - description: DATETRUNC startOfWeek correctness tests
   current_db: foo
-  query: "SELECT VALUE {'sunday': DATETRUNC(WEEK, date1, 'sunday'), 'friday': DATETRUNC(WEEK,
-    date1, 'friday')} FROM datepart AS d"
+  pipeline:
+  - $project:
+      d: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        sunday:
+          $dateTrunc:
+            date: $d.date1
+            unit:
+              $literal: week
+            startOfWeek:
+              $literal: sunday
+        friday:
+          $dateTrunc:
+            date: $d.date1
+            unit:
+              $literal: week
+            startOfWeek:
+              $literal: friday
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1132,8 +2789,35 @@ tests:
     additionalProperties: false
 - description: TIMESTAMPTRUNC startOfWeek correctness tests
   current_db: foo
-  query: "SELECT VALUE {'sunday': TIMESTAMPTRUNC(WEEK, date1, 'sunday'), 'friday':
-    TIMESTAMPTRUNC(WEEK, date1, 'friday')} FROM datepart AS d"
+  pipeline:
+  - $project:
+      d: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        sunday:
+          $dateTrunc:
+            date: $d.date1
+            unit:
+              $literal: week
+            startOfWeek:
+              $literal: sunday
+        friday:
+          $dateTrunc:
+            date: $d.date1
+            unit:
+              $literal: week
+            startOfWeek:
+              $literal: friday
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:

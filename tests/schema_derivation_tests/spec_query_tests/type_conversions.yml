@@ -1,19 +1,88 @@
-%YAML 1.2
----
-catalog_schema: {foo: {doubles: {bsonType: object, additionalProperties: true}, strings: {
-      bsonType: object, additionalProperties: true}, documents: {bsonType: object,
-      additionalProperties: true}, arrays: {bsonType: object, additionalProperties: true},
-    bindatum: {bsonType: object, additionalProperties: true}, objectIDs: {bsonType: object,
-      additionalProperties: true}, bools: {bsonType: object, additionalProperties: true},
-    dates: {bsonType: object, additionalProperties: true}, nullAndMissing: {bsonType: object,
-      additionalProperties: true}, ints: {bsonType: object, additionalProperties: true},
-    longs: {bsonType: object, additionalProperties: true}, decimals: {bsonType: object,
-      additionalProperties: true}, invalidSourceTypes: {bsonType: object, additionalProperties: true}}}
+catalog_schema:
+  {
+    'foo': {
+      'doubles': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'strings': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'documents': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'arrays': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'bindatum': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'objectIDs': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'bools': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'dates': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'nullAndMissing': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'ints': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'longs': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'decimals': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'invalidSourceTypes': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+    }
+  }
 
 tests:
 - description: Cast DOUBLE to BOOL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM doubles AS doubles"
+  pipeline:
+  - $project:
+      doubles: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $doubles.v
+        asBool:
+          $convert:
+            input: $doubles.v
+            to: bool
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -29,7 +98,30 @@ tests:
     additionalProperties: false
 - description: Cast STRING to BOOL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM strings AS strings"
+  pipeline:
+  - $project:
+      strings: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $strings.v
+        asBool:
+          $convert:
+            input: $strings.v
+            to: bool
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -46,7 +138,30 @@ tests:
 - description: Cast DOCUMENT to BOOL
   current_db: foo
   type_compare: true
-  query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM documents AS documents"
+  pipeline:
+  - $project:
+      documents: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $documents.v
+        asBool:
+          $convert:
+            input: $documents.v
+            to: bool
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -67,7 +182,30 @@ tests:
     additionalProperties: false
 - description: Cast ARRAY to BOOL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM arrays AS arrays"
+  pipeline:
+  - $project:
+      arrays: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $arrays.v
+        asBool:
+          $convert:
+            input: $arrays.v
+            to: bool
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -85,7 +223,30 @@ tests:
     additionalProperties: false
 - description: Cast OBJECTID to BOOL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM objectIDs AS objectIDs"
+  pipeline:
+  - $project:
+      objectIDs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $objectIDs.v
+        asBool:
+          $convert:
+            input: $objectIDs.v
+            to: bool
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -101,7 +262,31 @@ tests:
     additionalProperties: false
 - description: Cast BOOL to BOOL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM bools AS bools"
+  pipeline:
+  - $project:
+      bools: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $bools.v
+        asBool:
+          $convert:
+            input: $bools.v
+            to: bool
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
+
   result_set_schema:
     bsonType: object
     properties:
@@ -117,7 +302,30 @@ tests:
     additionalProperties: false
 - description: Cast BSON_DATE to BOOL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM dates AS dates"
+  pipeline:
+  - $project:
+      dates: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $dates.v
+        asBool:
+          $convert:
+            input: $dates.v
+            to: bool
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: {$date: {$numberLong: '0'}}, asBool: true}}
   - {'': {v: {$date: {$numberLong: '253402300799999'}}, asBool: true}}
@@ -126,8 +334,38 @@ tests:
 - description: Cast NULL and MISSING to BOOL, returns NULL by default and ON NULL
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asBoolDefault': CAST(v AS BOOL), 'asBoolOnNull':
-    CAST(v AS BOOL, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+  pipeline:
+  - $project:
+      nullAndMissing: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $nullAndMissing.v
+        asBoolDefault:
+          $convert:
+            input: $nullAndMissing.v
+            to: bool
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asBoolOnNull:
+          $convert:
+            input: $nullAndMissing.v
+            to: bool
+            onNull:
+              $literal: 'null'
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -144,7 +382,30 @@ tests:
     additionalProperties: false
 - description: Cast INT to BOOL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM ints AS ints"
+  pipeline:
+  - $project:
+      ints: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $ints.v
+        asBool:
+          $convert:
+            input: $ints.v
+            to: bool
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -160,7 +421,30 @@ tests:
     additionalProperties: false
 - description: Cast LONG to BOOL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM longs AS longs"
+  pipeline:
+  - $project:
+      longs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $longs.v
+        asBool:
+          $convert:
+            input: $longs.v
+            to: bool
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -176,7 +460,30 @@ tests:
     additionalProperties: false
 - description: Cast DECIMAL to BOOL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM decimals AS decimals"
+  pipeline:
+  - $project:
+      decimals: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $decimals.v
+        asBool:
+          $convert:
+            input: $decimals.v
+            to: bool
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -192,8 +499,30 @@ tests:
     additionalProperties: false
 - description: Cast invalid source types to BOOL returns True
   current_db: foo
-  query: "SELECT VALUE {'type': type, 'asBool': CAST(v AS BOOL)} FROM invalidSourceTypes
-    AS invalidSourceTypes"
+  pipeline:
+  - $project:
+      invalidSourceTypes: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        type: $invalidSourceTypes.type
+        asBool:
+          $convert:
+            input: $invalidSourceTypes.v
+            to: bool
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -212,7 +541,30 @@ tests:
     additionalProperties: false
 - description: Cast DOUBLE to INT, out of range numbers are invalid and return NULL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM doubles AS doubles"
+  pipeline:
+  - $project:
+      doubles: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $doubles.v
+        asInt:
+          $convert:
+            input: $doubles.v
+            to: int
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -232,7 +584,30 @@ tests:
 - description: Cast STRING to INT, non-numbers, non-ints, and out of range numbers
     are invalid and return NULL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM strings AS strings"
+  pipeline:
+  - $project:
+      strings: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $strings.v
+        asInt:
+          $convert:
+            input: $strings.v
+            to: int
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -252,8 +627,38 @@ tests:
 - description: Cast DOCUMENT to INT is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnError': CAST(v
-    AS INT, 'null' ON ERROR)} FROM documents AS documents"
+  pipeline:
+  - $project:
+      documents: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $documents.v
+        asIntDefault:
+          $convert:
+            input: $documents.v
+            to: int
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asIntOnError:
+          $convert:
+            input: $documents.v
+            to: int
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -276,8 +681,38 @@ tests:
 - description: Cast ARRAY to INT is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnError': CAST(v
-    AS INT, 'null' ON ERROR)} FROM arrays AS arrays"
+  pipeline:
+  - $project:
+      arrays: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $arrays.v
+        asIntDefault:
+          $convert:
+            input: $arrays.v
+            to: int
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asIntOnError:
+          $convert:
+            input: $arrays.v
+            to: int
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -297,8 +732,38 @@ tests:
 - description: Cast OBJECTID to INT is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnError': CAST(v
-    AS INT, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
+  pipeline:
+  - $project:
+      objectIDs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $objectIDs.v
+        asIntDefault:
+          $convert:
+            input: $objectIDs.v
+            to: int
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asIntOnError:
+          $convert:
+            input: $objectIDs.v
+            to: int
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -315,7 +780,30 @@ tests:
     additionalProperties: false
 - description: Cast BOOL to INT
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM bools AS bools"
+  pipeline:
+  - $project:
+      bools: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $bools.v
+        asInt:
+          $convert:
+            input: $bools.v
+            to: int
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -332,8 +820,38 @@ tests:
 - description: Cast BSON_DATE to INT is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnError': CAST(v
-    AS INT, 'null' ON ERROR)} FROM dates AS dates"
+  pipeline:
+  - $project:
+      dates: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $dates.v
+        asIntDefault:
+          $convert:
+            input: $dates.v
+            to: int
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asIntOnError:
+          $convert:
+            input: $dates.v
+            to: int
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: {$date: {$numberLong: '0'}}, asIntDefault: null, asIntOnError: !!str 'null'}}
   - {'': {v: {$date: {$numberLong: '253402300799999'}}, asIntDefault: null, asIntOnError: !!str 'null'}}
@@ -342,8 +860,38 @@ tests:
 - description: Cast NULL and MISSING to INT, returns NULL by default and ON NULL when
     set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnNull': CAST(v
-    AS INT, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+  pipeline:
+  - $project:
+      nullAndMissing: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $nullAndMissing.v
+        asIntDefault:
+          $convert:
+            input: $nullAndMissing.v
+            to: int
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asIntOnNull:
+          $convert:
+            input: $nullAndMissing.v
+            to: int
+            onNull:
+              $literal: 'null'
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -360,7 +908,30 @@ tests:
     additionalProperties: false
 - description: Cast INT to INT
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM ints AS ints"
+  pipeline:
+  - $project:
+      ints: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $ints.v
+        asInt:
+          $convert:
+            input: $ints.v
+            to: int
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -376,7 +947,30 @@ tests:
     additionalProperties: false
 - description: Cast LONG to INT, out of range numbers are invalid and return NULL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM longs AS longs"
+  pipeline:
+  - $project:
+      longs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $longs.v
+        asInt:
+          $convert:
+            input: $longs.v
+            to: int
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -395,7 +989,30 @@ tests:
     additionalProperties: false
 - description: Cast DECIMAL to INT, out of range numbers are invalid and return NULL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM decimals AS decimals"
+  pipeline:
+  - $project:
+      decimals: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $decimals.v
+        asInt:
+          $convert:
+            input: $decimals.v
+            to: int
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -414,8 +1031,30 @@ tests:
     additionalProperties: false
 - description: Cast invalid source types to INT
   current_db: foo
-  query: "SELECT VALUE {'type': type, 'asInt': CAST(v AS INT)} FROM invalidSourceTypes
-    AS invalidSourceTypes"
+  pipeline:
+  - $project:
+      invalidSourceTypes: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        type: $invalidSourceTypes.type
+        asInt:
+          $convert:
+            input: $invalidSourceTypes.v
+            to: int
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -431,7 +1070,30 @@ tests:
     additionalProperties: false
 - description: Cast DOUBLE to DECIMAL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM doubles AS doubles"
+  pipeline:
+  - $project:
+      doubles: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $doubles.v
+        asDecimal:
+          $convert:
+            input: $doubles.v
+            to: decimal
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -447,7 +1109,30 @@ tests:
     additionalProperties: false
 - description: Cast STRING to DECIMAL, non-numbers return NULL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM strings AS strings"
+  pipeline:
+  - $project:
+      strings: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $strings.v
+        asDecimal:
+          $convert:
+            input: $strings.v
+            to: decimal
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -467,8 +1152,38 @@ tests:
 - description: Cast DOCUMENT to DECIMAL is invalid, returns NULL by default and ON
     ERROR when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDecimalDefault': CAST(v AS DECIMAL), 'asDecimalOnError':
-    CAST(v AS DECIMAL, 'null' ON ERROR)} FROM documents AS documents"
+  pipeline:
+  - $project:
+      documents: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $documents.v
+        asDecimalDefault:
+          $convert:
+            input: $documents.v
+            to: decimal
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asDecimalOnError:
+          $convert:
+            input: $documents.v
+            to: decimal
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -491,8 +1206,38 @@ tests:
 - description: Cast ARRAY to DECIMAL is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDecimalDefault': CAST(v AS DECIMAL), 'asDecimalOnError':
-    CAST(v AS DECIMAL, 'null' ON ERROR)} FROM arrays AS arrays"
+  pipeline:
+  - $project:
+      arrays: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $arrays.v
+        asDecimalDefault:
+          $convert:
+            input: $arrays.v
+            to: decimal
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asDecimalOnError:
+          $convert:
+            input: $arrays.v
+            to: decimal
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -512,8 +1257,38 @@ tests:
 - description: Cast OBJECTID to DECIMAL is invalid, returns NULL by default and ON
     ERROR when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDecimalDefault': CAST(v AS DECIMAL), 'asDecimalOnError':
-    CAST(v AS DECIMAL, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
+  pipeline:
+  - $project:
+      objectIDs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $objectIDs.v
+        asDecimalDefault:
+          $convert:
+            input: $objectIDs.v
+            to: decimal
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asDecimalOnError:
+          $convert:
+            input: $objectIDs.v
+            to: decimal
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -530,7 +1305,30 @@ tests:
     additionalProperties: false
 - description: Cast BOOL to DECIMAL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM bools AS bools"
+  pipeline:
+  - $project:
+      bools: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $bools.v
+        asDecimal:
+          $convert:
+            input: $bools.v
+            to: decimal
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -546,7 +1344,30 @@ tests:
     additionalProperties: false
 - description: Cast BSON_DATE to DECIMAL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM dates AS dates"
+  pipeline:
+  - $project:
+      dates: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $dates.v
+        asDecimal:
+          $convert:
+            input: $dates.v
+            to: decimal
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: {$date: {$numberLong: '0'}}, asDecimal: {$numberDecimal: '0'}}}
   - {'': {v: {$date: {$numberLong: '253402300799999'}}, asDecimal: {$numberDecimal: '253402300799999'}}}
@@ -555,8 +1376,38 @@ tests:
 - description: Cast NULL and MISSING to DECIMAL, returns NULL by default and ON NULL
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDecimalDefault': CAST(v AS DECIMAL), 'asDecimalOnNull':
-    CAST(v AS DECIMAL, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+  pipeline:
+  - $project:
+      nullAndMissing: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $nullAndMissing.v
+        asDecimalDefault:
+          $convert:
+            input: $nullAndMissing.v
+            to: decimal
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asDecimalOnNull:
+          $convert:
+            input: $nullAndMissing.v
+            to: decimal
+            onNull:
+              $literal: 'null'
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -573,7 +1424,30 @@ tests:
     additionalProperties: false
 - description: Cast INT to DECIMAL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM ints AS ints"
+  pipeline:
+  - $project:
+      ints: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $ints.v
+        asDecimal:
+          $convert:
+            input: $ints.v
+            to: decimal
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -589,7 +1463,30 @@ tests:
     additionalProperties: false
 - description: Cast LONG to DECIMAL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM longs AS longs"
+  pipeline:
+  - $project:
+      longs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $longs.v
+        asDecimal:
+          $convert:
+            input: $longs.v
+            to: decimal
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -605,8 +1502,30 @@ tests:
     additionalProperties: false
 - description: Cast DECIMAL to DECIMAL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM decimals AS
-    decimals"
+  pipeline:
+  - $project:
+      decimals: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $decimals.v
+        asDecimal:
+          $convert:
+            input: $decimals.v
+            to: decimal
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -622,8 +1541,30 @@ tests:
     additionalProperties: false
 - description: Cast invalid source types to DECIMAL
   current_db: foo
-  query: "SELECT VALUE {'type': type, 'asDecimal': CAST(v AS DECIMAL)} FROM invalidSourceTypes
-    AS invalidSourceTypes"
+  pipeline:
+  - $project:
+      invalidSourceTypes: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        type: $invalidSourceTypes.type
+        asDecimal:
+          $convert:
+            input: $invalidSourceTypes.v
+            to: decimal
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -639,7 +1580,30 @@ tests:
     additionalProperties: false
 - description: Cast DOUBLE to DOUBLE
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM doubles AS doubles"
+  pipeline:
+  - $project:
+      doubles: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $doubles.v
+        asDouble:
+          $convert:
+            input: $doubles.v
+            to: double
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -656,7 +1620,30 @@ tests:
 - description: Cast STRING to DOUBLE, non-numbers and out of range numbers are invalid
     and return NULL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM strings AS strings"
+  pipeline:
+  - $project:
+      strings: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $strings.v
+        asDouble:
+          $convert:
+            input: $strings.v
+            to: double
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -676,8 +1663,38 @@ tests:
 - description: Cast DOCUMENT to DOUBLE is invalid, returns NULL by default and ON
     ERROR when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDoubleDefault': CAST(v AS DOUBLE), 'asDoubleOnError':
-    CAST(v AS DOUBLE, 'null' ON ERROR)} FROM documents AS documents"
+  pipeline:
+  - $project:
+      documents: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $documents.v
+        asDoubleDefault:
+          $convert:
+            input: $documents.v
+            to: double
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asDoubleOnError:
+          $convert:
+            input: $documents.v
+            to: double
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -700,8 +1717,38 @@ tests:
 - description: Cast ARRAY to DOUBLE is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDoubleDefault': CAST(v AS DOUBLE), 'asDoubleOnError':
-    CAST(v AS DOUBLE, 'null' ON ERROR)} FROM arrays AS arrays"
+  pipeline:
+  - $project:
+      arrays: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $arrays.v
+        asDoubleDefault:
+          $convert:
+            input: $arrays.v
+            to: double
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asDoubleOnError:
+          $convert:
+            input: $arrays.v
+            to: double
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -721,8 +1768,38 @@ tests:
 - description: Cast OBJECTID to DOUBLE is invalid, returns NULL by default and ON
     ERROR when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDoubleDefault': CAST(v AS DOUBLE), 'asDoubleOnError':
-    CAST(v AS DOUBLE, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
+  pipeline:
+  - $project:
+      objectIDs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $objectIDs.v
+        asDoubleDefault:
+          $convert:
+            input: $objectIDs.v
+            to: double
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asDoubleOnError:
+          $convert:
+            input: $objectIDs.v
+            to: double
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -739,7 +1816,30 @@ tests:
     additionalProperties: false
 - description: Cast BOOL to DOUBLE
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM bools AS bools"
+  pipeline:
+  - $project:
+      bools: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $bools.v
+        asDouble:
+          $convert:
+            input: $bools.v
+            to: double
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -755,7 +1855,30 @@ tests:
     additionalProperties: false
 - description: Cast BSON_DATE to DOUBLE
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM dates AS dates"
+  pipeline:
+  - $project:
+      dates: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $dates.v
+        asDouble:
+          $convert:
+            input: $dates.v
+            to: double
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: {$date: {$numberLong: '0'}}, asDouble: {$numberDouble: '0'}}}
   - {'': {v: {$date: {$numberLong: '253402300799999'}}, asDouble: {$numberDouble: '253402300799999'}}}
@@ -764,8 +1887,38 @@ tests:
 - description: Cast NULL and MISSING to DOUBLE, returns NULL by default and ON NULL
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDoubleDefault': CAST(v AS DOUBLE), 'asDoubleOnNull':
-    CAST(v AS DOUBLE, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+  pipeline:
+  - $project:
+      nullAndMissing: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $nullAndMissing.v
+        asDoubleDefault:
+          $convert:
+            input: $nullAndMissing.v
+            to: double
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asDoubleOnNull:
+          $convert:
+            input: $nullAndMissing.v
+            to: double
+            onNull:
+              $literal: 'null'
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -782,7 +1935,30 @@ tests:
     additionalProperties: false
 - description: Cast INT to DOUBLE
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM ints AS ints"
+  pipeline:
+  - $project:
+      ints: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $ints.v
+        asDouble:
+          $convert:
+            input: $ints.v
+            to: double
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -798,7 +1974,30 @@ tests:
     additionalProperties: false
 - description: Cast LONG to DOUBLE
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM longs AS longs"
+  pipeline:
+  - $project:
+      longs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $longs.v
+        asDouble:
+          $convert:
+            input: $longs.v
+            to: double
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -815,7 +2014,30 @@ tests:
 - description: Cast DECIMAL to DOUBLE, out of range numbers are invalid and return
     NULL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM decimals AS decimals"
+  pipeline:
+  - $project:
+      decimals: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $decimals.v
+        asDouble:
+          $convert:
+            input: $decimals.v
+            to: double
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -834,8 +2056,30 @@ tests:
     additionalProperties: false
 - description: Cast invalid source types to DOUBLE
   current_db: foo
-  query: "SELECT VALUE {'type': type, 'asDouble': CAST(v AS DOUBLE)} FROM invalidSourceTypes
-    AS invalidSourceTypes"
+  pipeline:
+  - $project:
+      invalidSourceTypes: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        type: $invalidSourceTypes.type
+        asDouble:
+          $convert:
+            input: $invalidSourceTypes.v
+            to: double
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -851,7 +2095,30 @@ tests:
     additionalProperties: false
 - description: Cast DOUBLE to LONG
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM doubles AS doubles"
+  pipeline:
+  - $project:
+      doubles: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $doubles.v
+        asLong:
+          $convert:
+            input: $doubles.v
+            to: long
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -868,7 +2135,30 @@ tests:
 - description: Cast STRING to LONG, non-numbers, non-ints, and out of range numbers
     are invalid and return NULL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM strings AS strings"
+  pipeline:
+  - $project:
+      strings: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $strings.v
+        asLong:
+          $convert:
+            input: $strings.v
+            to: long
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -888,8 +2178,38 @@ tests:
 - description: Cast DOCUMENT to LONG is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asLongDefault': CAST(v AS LONG), 'asLongOnError':
-    CAST(v AS LONG, 'null' ON ERROR)} FROM documents AS documents"
+  pipeline:
+  - $project:
+      documents: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $documents.v
+        asLongDefault:
+          $convert:
+            input: $documents.v
+            to: long
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asLongOnError:
+          $convert:
+            input: $documents.v
+            to: long
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -912,8 +2232,38 @@ tests:
 - description: Cast ARRAY to LONG is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asLongDefault': CAST(v AS LONG), 'asLongOnError':
-    CAST(v AS LONG, 'null' ON ERROR)} FROM arrays AS arrays"
+  pipeline:
+  - $project:
+      arrays: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $arrays.v
+        asLongDefault:
+          $convert:
+            input: $arrays.v
+            to: long
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asLongOnError:
+          $convert:
+            input: $arrays.v
+            to: long
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -933,8 +2283,38 @@ tests:
 - description: Cast OBJECTID to LONG is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asLongDefault': CAST(v AS LONG), 'asLongOnError':
-    CAST(v AS LONG, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
+  pipeline:
+  - $project:
+      objectIDs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $objectIDs.v
+        asLongDefault:
+          $convert:
+            input: $objectIDs.v
+            to: long
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asLongOnError:
+          $convert:
+            input: $objectIDs.v
+            to: long
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -951,7 +2331,30 @@ tests:
     additionalProperties: false
 - description: Cast BOOL to LONG
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM bools AS bools"
+  pipeline:
+  - $project:
+      bools: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $bools.v
+        asLong:
+          $convert:
+            input: $bools.v
+            to: long
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -967,7 +2370,30 @@ tests:
     additionalProperties: false
 - description: Cast BSON_DATE to LONG
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM dates AS dates"
+  pipeline:
+  - $project:
+      dates: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $dates.v
+        asLong:
+          $convert:
+            input: $dates.v
+            to: long
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: {$date: {$numberLong: '0'}}, asLong: {$numberLong: '0'}}}
   - {'': {v: {$date: {$numberLong: '253402300799999'}}, asLong: {$numberLong: '253402300799999'}}}
@@ -976,8 +2402,38 @@ tests:
 - description: Cast NULL and MISSING to LONG, returns NULL by default and ON NULL
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asLongDefault': CAST(v AS LONG), 'asLongOnNull':
-    CAST(v AS LONG, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+  pipeline:
+  - $project:
+      nullAndMissing: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $nullAndMissing.v
+        asLongDefault:
+          $convert:
+            input: $nullAndMissing.v
+            to: long
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asLongOnNull:
+          $convert:
+            input: $nullAndMissing.v
+            to: long
+            onNull:
+              $literal: 'null'
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -994,7 +2450,30 @@ tests:
     additionalProperties: false
 - description: Cast INT to LONG
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM ints AS ints"
+  pipeline:
+  - $project:
+      ints: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $ints.v
+        asLong:
+          $convert:
+            input: $ints.v
+            to: long
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1010,7 +2489,30 @@ tests:
     additionalProperties: false
 - description: Cast LONG to LONG
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM longs AS longs"
+  pipeline:
+  - $project:
+      longs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $longs.v
+        asLong:
+          $convert:
+            input: $longs.v
+            to: long
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1026,7 +2528,30 @@ tests:
     additionalProperties: false
 - description: Cast DECIMAL to LONG, out of range numbers are invalid and return NULL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM decimals AS decimals"
+  pipeline:
+  - $project:
+      decimals: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $decimals.v
+        asLong:
+          $convert:
+            input: $decimals.v
+            to: long
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1045,8 +2570,30 @@ tests:
     additionalProperties: false
 - description: Cast invalid source types to LONG
   current_db: foo
-  query: "SELECT VALUE {'type': type, 'asLong': CAST(v AS LONG)} FROM invalidSourceTypes
-    AS invalidSourceTypes"
+  pipeline:
+  - $project:
+      invalidSourceTypes: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        type: $invalidSourceTypes.type
+        asLong:
+          $convert:
+            input: $invalidSourceTypes.v
+            to: long
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1062,7 +2609,30 @@ tests:
     additionalProperties: false
 - description: Cast DOUBLE to BSON_DATE
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM doubles AS doubles"
+  pipeline:
+  - $project:
+      doubles: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $doubles.v
+        asDate:
+          $convert:
+            input: $doubles.v
+            to: date
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: {$numberDouble: '0'}, asDate: {$date: {$numberLong: '0'}}}}
   - {'': {v: {$numberDouble: '1.9'}, asDate: {$date: {$numberLong: '1'}}}}
@@ -1072,7 +2642,30 @@ tests:
 
 - description: Cast STRING to BSON_DATE, non-dates are invalid and return NULL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM strings AS strings"
+  pipeline:
+  - $project:
+      strings: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $strings.v
+        asDate:
+          $convert:
+            input: $strings.v
+            to: date
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: '', asDate: null}}
   - {'': {v: string, asDate: null}}
@@ -1096,8 +2689,38 @@ tests:
 - description: Cast DOCUMENT to BSON_DATE is invalid, returns NULL by default and
     ON ERROR when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnError':
-    CAST(v AS BSON_DATE, 'null' ON ERROR)} FROM documents AS documents"
+  pipeline:
+  - $project:
+      documents: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $documents.v
+        asDateDefault:
+          $convert:
+            input: $documents.v
+            to: date
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asDateOnError:
+          $convert:
+            input: $documents.v
+            to: date
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: {}, asDateDefault: null, asDateOnError: !!str 'null'}}
   - {'': {v: {a: 1, b: 2}, asDateDefault: null, asDateOnError: !!str 'null'}}
@@ -1105,31 +2728,136 @@ tests:
 - description: Cast ARRAY to BSON_DATE is invalid, returns NULL by default and ON
     ERROR when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnError':
-    CAST(v AS BSON_DATE, 'null' ON ERROR)} FROM arrays AS arrays"
+  pipeline:
+  - $project:
+      arrays: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $arrays.v
+        asDateDefault:
+          $convert:
+            input: $arrays.v
+            to: date
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asDateOnError:
+          $convert:
+            input: $arrays.v
+            to: date
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: [], asDateDefault: null, asDateOnError: !!str 'null'}}
   - {'': {v: [1, 2, 3], asDateDefault: null, asDateOnError: !!str 'null'}}
 
 - description: Cast OBJECTID to BSON_DATE
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM objectIDs AS
-    objectIDs"
+  pipeline:
+  - $project:
+      objectIDs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $objectIDs.v
+        asDate:
+          $convert:
+            input: $objectIDs.v
+            to: date
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: {$oid: 5ab9c3da31c2ab715d421285}, asDate: {$date: {$numberLong: '1522123738000'}}}}
 
 - description: Cast BOOL to BSON_DATE is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnError':
-    CAST(v AS BSON_DATE, 'null' ON ERROR)} FROM bools AS bools"
+  pipeline:
+  - $project:
+      bools: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $bools.v
+        asDateDefault:
+          $convert:
+            input: $bools.v
+            to: date
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asDateOnError:
+          $convert:
+            input: $bools.v
+            to: date
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: true, asDateDefault: null, asDateOnError: !!str 'null'}}
   - {'': {v: false, asDateDefault: null, asDateOnError: !!str 'null'}}
 
 - description: Cast BSON_DATE to BSON_DATE
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM dates AS dates"
+  pipeline:
+  - $project:
+      dates: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $dates.v
+        asDate:
+          $convert:
+            input: $dates.v
+            to: date
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: {$date: {$numberLong: '0'}}, asDate: {$date: {$numberLong: '0'}}}}
   - {'': {v: {$date: {$numberLong: '253402300799999'}}, asDate: {$date: {$numberLong: '253402300799999'}}}}
@@ -1138,8 +2866,38 @@ tests:
 - description: Cast NULL and MISSING to BSON_DATE, returns NULL by default and ON
     NULL when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnNull':
-    CAST(v AS BSON_DATE, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+  pipeline:
+  - $project:
+      nullAndMissing: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $nullAndMissing.v
+        asDateDefault:
+          $convert:
+            input: $nullAndMissing.v
+            to: date
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asDateOnNull:
+          $convert:
+            input: $nullAndMissing.v
+            to: date
+            onNull:
+              $literal: 'null'
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: null, asDateDefault: null, asDateOnNull: !!str 'null'}}
   - {'': {asDateDefault: null, asDateOnNull: !!str 'null'}}
@@ -1147,8 +2905,38 @@ tests:
 - description: Cast INT to BSON_DATE is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnError':
-    CAST(v AS BSON_DATE, 'null' ON ERROR)} FROM ints AS ints"
+  pipeline:
+  - $project:
+      ints: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $ints.v
+        asDateDefault:
+          $convert:
+            input: $ints.v
+            to: date
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asDateOnError:
+          $convert:
+            input: $ints.v
+            to: date
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: {$numberInt: '0'}, asDateDefault: null, asDateOnError: !!str 'null'}}
   - {'': {v: {$numberInt: '1'}, asDateDefault: null, asDateOnError: !!str 'null'}}
@@ -1156,7 +2944,30 @@ tests:
 
 - description: Cast LONG to BSON_DATE
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM longs AS longs"
+  pipeline:
+  - $project:
+      longs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $longs.v
+        asDate:
+          $convert:
+            input: $longs.v
+            to: date
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: {$numberLong: '0'}, asDate: {$date: {$numberLong: '0'}}}}
   - {'': {v: {$numberLong: '1'}, asDate: {$date: {$numberLong: '1'}}}}
@@ -1167,7 +2978,30 @@ tests:
 - description: Cast DECIMAL to BSON_DATE, out of range numbers are invalid and return
     NULL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM decimals AS decimals"
+  pipeline:
+  - $project:
+      decimals: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $decimals.v
+        asDate:
+          $convert:
+            input: $decimals.v
+            to: date
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: {$numberDecimal: '0'}, asDate: {$date: {$numberLong: '0'}}}}
   - {'': {v: {$numberDecimal: '1.9'}, asDate: {$date: {$numberLong: '1'}}}}
@@ -1181,8 +3015,30 @@ tests:
 
 - description: Cast invalid source types to BSON_DATE
   current_db: foo
-  query: "SELECT VALUE {'type': type, 'asDate': CAST(v AS BSON_DATE)} FROM invalidSourceTypes
-    AS invalidSourceTypes"
+  pipeline:
+  - $project:
+      invalidSourceTypes: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        type: $invalidSourceTypes.type
+        asDate:
+          $convert:
+            input: $invalidSourceTypes.v
+            to: date
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {type: binData, asDate: null}}
   - {'': {type: undefined, asDate: null}}
@@ -1198,8 +3054,38 @@ tests:
 - description: Cast DOUBLE to OBJECTID is invalid, returns NULL by default and ON
     ERROR when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError':
-    CAST(v AS OBJECTID, 'null' ON ERROR)} FROM doubles AS doubles"
+  pipeline:
+  - $project:
+      doubles: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $doubles.v
+        asObjectIDDefault:
+          $convert:
+            input: $doubles.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asObjectIDOnError:
+          $convert:
+            input: $doubles.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1216,8 +3102,30 @@ tests:
     additionalProperties: false
 - description: Cast STRING to OBJECTID, non-objectIDs are invalid and return NULL
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asObjectID': CAST(v AS OBJECTID)} FROM strings AS
-    strings"
+  pipeline:
+  - $project:
+      strings: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $strings.v
+        asObjectID:
+          $convert:
+            input: $strings.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1237,8 +3145,38 @@ tests:
 - description: Cast DOCUMENT to OBJECTID is invalid, returns NULL by default and ON
     ERROR when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError':
-    CAST(v AS OBJECTID, 'null' ON ERROR)} FROM documents AS documents"
+  pipeline:
+  - $project:
+      documents: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $documents.v
+        asObjectIDDefault:
+          $convert:
+            input: $documents.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asObjectIDOnError:
+          $convert:
+            input: $documents.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1261,8 +3199,38 @@ tests:
 - description: Cast ARRAY to OBJECTID is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError':
-    CAST(v AS OBJECTID, 'null' ON ERROR)} FROM arrays AS arrays"
+  pipeline:
+  - $project:
+      arrays: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $arrays.v
+        asObjectIDDefault:
+          $convert:
+            input: $arrays.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asObjectIDOnError:
+          $convert:
+            input: $arrays.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1281,8 +3249,30 @@ tests:
     additionalProperties: false
 - description: Cast OBJECTID to OBJECTID
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asObjectID': CAST(v AS OBJECTID)} FROM objectIDs
-    AS objectIDs"
+  pipeline:
+  - $project:
+      objectIDs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $objectIDs.v
+        asObjectID:
+          $convert:
+            input: $objectIDs.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1299,8 +3289,38 @@ tests:
 - description: Cast BOOL to OBJECTID is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError':
-    CAST(v AS OBJECTID, 'null' ON ERROR)} FROM bools AS bools"
+  pipeline:
+  - $project:
+      bools: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $bools.v
+        asObjectIDDefault:
+          $convert:
+            input: $bools.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asObjectIDOnError:
+          $convert:
+            input: $bools.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1318,8 +3338,38 @@ tests:
 - description: Cast BSON_DATE to OBJECTID is invalid, returns NULL by default and
     ON ERROR when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError':
-    CAST(v AS OBJECTID, 'null' ON ERROR)} FROM dates AS dates"
+  pipeline:
+  - $project:
+      dates: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $dates.v
+        asObjectIDDefault:
+          $convert:
+            input: $dates.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asObjectIDOnError:
+          $convert:
+            input: $dates.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: {$date: {$numberLong: '0'}}, asObjectIDDefault: null, asObjectIDOnError: !!str 'null'}}
   - {'': {v: {$date: {$numberLong: '253402300799999'}}, asObjectIDDefault: null, asObjectIDOnError: !!str 'null'}}
@@ -1328,8 +3378,38 @@ tests:
 - description: Cast NULL and MISSING to OBJECTID, returns NULL by default and ON NULL
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnNull':
-    CAST(v AS OBJECTID, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+  pipeline:
+  - $project:
+      nullAndMissing: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $nullAndMissing.v
+        asObjectIDDefault:
+          $convert:
+            input: $nullAndMissing.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asObjectIDOnNull:
+          $convert:
+            input: $nullAndMissing.v
+            to: objectId
+            onNull:
+              $literal: 'null'
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1347,8 +3427,38 @@ tests:
 - description: Cast INT to OBJECTID is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError':
-    CAST(v AS OBJECTID, 'null' ON ERROR)} FROM ints AS ints"
+  pipeline:
+  - $project:
+      ints: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $ints.v
+        asObjectIDDefault:
+          $convert:
+            input: $ints.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asObjectIDOnError:
+          $convert:
+            input: $ints.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1366,8 +3476,38 @@ tests:
 - description: Cast LONG to OBJECTID is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError':
-    CAST(v AS OBJECTID, 'null' ON ERROR)} FROM longs AS longs"
+  pipeline:
+  - $project:
+      longs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $longs.v
+        asObjectIDDefault:
+          $convert:
+            input: $longs.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asObjectIDOnError:
+          $convert:
+            input: $longs.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1385,8 +3525,38 @@ tests:
 - description: Cast DECIMAL to OBJECTID is invalid, returns NULL by default and ON
     ERROR when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError':
-    CAST(v AS OBJECTID, 'null' ON ERROR)} FROM decimals AS decimals"
+  pipeline:
+  - $project:
+      decimals: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $decimals.v
+        asObjectIDDefault:
+          $convert:
+            input: $decimals.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asObjectIDOnError:
+          $convert:
+            input: $decimals.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1403,8 +3573,30 @@ tests:
     additionalProperties: false
 - description: Cast invalid source types to OBJECTID
   current_db: foo
-  query: "SELECT VALUE {'type': type, 'asObjectID': CAST(v AS OBJECTID)} FROM invalidSourceTypes
-    AS invalidSourceTypes"
+  pipeline:
+  - $project:
+      invalidSourceTypes: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        type: $invalidSourceTypes.type
+        asObjectID:
+          $convert:
+            input: $invalidSourceTypes.v
+            to: objectId
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1420,7 +3612,36 @@ tests:
     additionalProperties: false
 - description: Cast DOUBLE to STRING
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM doubles AS doubles"
+  pipeline:
+  - $project:
+      doubles: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $doubles.v
+        asString:
+          $convert:
+            input: $doubles.v
+            to:
+              $cond:
+              - $eq:
+                - $type: $doubles.v
+                - binData
+              - 'null'
+              - string
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   type_compare: true
   result_set_schema:
     bsonType: object
@@ -1437,7 +3658,36 @@ tests:
     additionalProperties: false
 - description: Cast STRING to STRING
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM strings AS strings"
+  pipeline:
+  - $project:
+      strings: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $strings.v
+        asString:
+          $convert:
+            input: $strings.v
+            to:
+              $cond:
+              - $eq:
+                - $type: $strings.v
+                - binData
+              - 'null'
+              - string
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1454,8 +3704,50 @@ tests:
 - description: Cast DOCUMENT to STRING is invalid, returns NULL by default and ON
     ERROR when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asStringDefault': CAST(v AS STRING), 'asStringOnError':
-    CAST(v AS STRING, 'null' ON ERROR)} FROM documents AS documents"
+  pipeline:
+  - $project:
+      documents: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $documents.v
+        asStringDefault:
+          $convert:
+            input: $documents.v
+            to:
+              $cond:
+              - $eq:
+                - $type: $documents.v
+                - binData
+              - 'null'
+              - string
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asStringOnError:
+          $convert:
+            input: $documents.v
+            to:
+              $cond:
+              - $eq:
+                - $type: $documents.v
+                - binData
+              - 'null'
+              - string
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1478,8 +3770,50 @@ tests:
 - description: Cast ARRAY to STRING is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asStringDefault': CAST(v AS STRING), 'asStringOnError':
-    CAST(v AS STRING, 'null' ON ERROR)} FROM arrays AS arrays"
+  pipeline:
+  - $project:
+      arrays: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $arrays.v
+        asStringDefault:
+          $convert:
+            input: $arrays.v
+            to:
+              $cond:
+              - $eq:
+                - $type: $arrays.v
+                - binData
+              - 'null'
+              - string
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asStringOnError:
+          $convert:
+            input: $arrays.v
+            to:
+              $cond:
+              - $eq:
+                - $type: $arrays.v
+                - binData
+              - 'null'
+              - string
+            onNull:
+              $literal: null
+            onError:
+              $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1498,7 +3832,36 @@ tests:
     additionalProperties: false
 - description: Cast OBJECTID to STRING
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM objectIDs AS objectIDs"
+  pipeline:
+  - $project:
+      objectIDs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $objectIDs.v
+        asString:
+          $convert:
+            input: $objectIDs.v
+            to:
+              $cond:
+              - $eq:
+                - $type: $objectIDs.v
+                - binData
+              - 'null'
+              - string
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1514,7 +3877,36 @@ tests:
     additionalProperties: false
 - description: Cast BOOL to STRING
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM bools AS bools"
+  pipeline:
+  - $project:
+      bools: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $bools.v
+        asString:
+          $convert:
+            input: $bools.v
+            to:
+              $cond:
+              - $eq:
+                - $type: $bools.v
+                - binData
+              - 'null'
+              - string
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1530,7 +3922,36 @@ tests:
     additionalProperties: false
 - description: Cast BSON_DATE to STRING
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM dates AS dates"
+  pipeline:
+  - $project:
+      dates: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $dates.v
+        asString:
+          $convert:
+            input: $dates.v
+            to:
+              $cond:
+              - $eq:
+                - $type: $dates.v
+                - binData
+              - 'null'
+              - string
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: {$date: {$numberLong: '0'}}, asString: '1970-01-01T00:00:00.000Z'}}
   - {'': {v: {$date: {$numberLong: '253402300799999'}}, asString: '9999-12-31T23:59:59.999Z'}}
@@ -1539,8 +3960,50 @@ tests:
 - description: Cast NULL and MISSING to STRING, returns NULL by default and ON NULL
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asStringDefault': CAST(v AS STRING), 'asStringOnNull':
-    CAST(v AS STRING, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+  pipeline:
+  - $project:
+      nullAndMissing: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $nullAndMissing.v
+        asStringDefault:
+          $convert:
+            input: $nullAndMissing.v
+            to:
+              $cond:
+              - $eq:
+                - $type: $nullAndMissing.v
+                - binData
+              - 'null'
+              - string
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+        asStringOnNull:
+          $convert:
+            input: $nullAndMissing.v
+            to:
+              $cond:
+              - $eq:
+                - $type: $nullAndMissing.v
+                - binData
+              - 'null'
+              - string
+            onNull:
+              $literal: 'null'
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1557,7 +4020,36 @@ tests:
     additionalProperties: false
 - description: Cast INT to STRING
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM ints AS ints"
+  pipeline:
+  - $project:
+      ints: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $ints.v
+        asString:
+          $convert:
+            input: $ints.v
+            to:
+              $cond:
+              - $eq:
+                - $type: $ints.v
+                - binData
+              - 'null'
+              - string
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1573,7 +4065,36 @@ tests:
     additionalProperties: false
 - description: Cast LONG to STRING
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM longs AS longs"
+  pipeline:
+  - $project:
+      longs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $longs.v
+        asString:
+          $convert:
+            input: $longs.v
+            to:
+              $cond:
+              - $eq:
+                - $type: $longs.v
+                - binData
+              - 'null'
+              - string
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1589,7 +4110,36 @@ tests:
     additionalProperties: false
 - description: Cast DECIMAL to STRING
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM decimals AS decimals"
+  pipeline:
+  - $project:
+      decimals: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $decimals.v
+        asString:
+          $convert:
+            input: $decimals.v
+            to:
+              $cond:
+              - $eq:
+                - $type: $decimals.v
+                - binData
+              - 'null'
+              - string
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   type_compare: true
   result_set_schema:
     bsonType: object
@@ -1606,8 +4156,36 @@ tests:
     additionalProperties: false
 - description: Cast invalid source types to STRING
   current_db: foo
-  query: "SELECT VALUE {'type': type, 'asString': CAST(v AS STRING)} FROM invalidSourceTypes
-    AS invalidSourceTypes"
+  pipeline:
+  - $project:
+      invalidSourceTypes: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        type: $invalidSourceTypes.type
+        asString:
+          $convert:
+            input: $invalidSourceTypes.v
+            to:
+              $cond:
+              - $eq:
+                - $type: $invalidSourceTypes.v
+                - binData
+              - 'null'
+              - string
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1623,7 +4201,36 @@ tests:
     additionalProperties: false
 - description: Cast BINDATA to STRING
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM bindatum as bindatum"
+  pipeline:
+  - $project:
+      bindatum: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $bindatum.v
+        asString:
+          $convert:
+            input: $bindatum.v
+            to:
+              $cond:
+              - $eq:
+                - $type: $bindatum.v
+                - binData
+              - 'null'
+              - string
+            onNull:
+              $literal: null
+            onError:
+              $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1640,8 +4247,64 @@ tests:
 - description: Cast DOUBLE to DOCUMENT is invalid, returns NULL by default and ON
     ERROR when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError':
-    CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM doubles AS doubles"
+  pipeline:
+  - $project:
+      doubles: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $doubles.v
+        asDocumentDefault:
+          $let:
+            vars:
+              sqlConvert_input: $doubles.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+        asDocumentOnError:
+          $let:
+            vars:
+              sqlConvert_input: $doubles.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1659,8 +4322,64 @@ tests:
 - description: Cast STRING to DOCUMENT is invalid, returns NULL by default and ON
     ERROR when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError':
-    CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM strings AS strings"
+  pipeline:
+  - $project:
+      strings: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $strings.v
+        asDocumentDefault:
+          $let:
+            vars:
+              sqlConvert_input: $strings.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+        asDocumentOnError:
+          $let:
+            vars:
+              sqlConvert_input: $strings.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1677,8 +4396,43 @@ tests:
     additionalProperties: false
 - description: Cast DOCUMENT to DOCUMENT
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDocument': CAST(v AS DOCUMENT)} FROM documents
-    AS documents"
+  pipeline:
+  - $project:
+      documents: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $documents.v
+        asDocument:
+          $let:
+            vars:
+              sqlConvert_input: $documents.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1705,8 +4459,64 @@ tests:
 - description: Cast ARRAY to DOCUMENT is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError':
-    CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM arrays AS arrays"
+  pipeline:
+  - $project:
+      arrays: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $arrays.v
+        asDocumentDefault:
+          $let:
+            vars:
+              sqlConvert_input: $arrays.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+        asDocumentOnError:
+          $let:
+            vars:
+              sqlConvert_input: $arrays.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1726,8 +4536,64 @@ tests:
 - description: Cast OBJECTID to DOCUMENT is invalid, returns NULL by default and ON
     ERROR when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError':
-    CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
+  pipeline:
+  - $project:
+      objectIDs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $objectIDs.v
+        asDocumentDefault:
+          $let:
+            vars:
+              sqlConvert_input: $objectIDs.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+        asDocumentOnError:
+          $let:
+            vars:
+              sqlConvert_input: $objectIDs.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1745,8 +4611,64 @@ tests:
 - description: Cast BOOL to DOCUMENT is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError':
-    CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM bools AS bools"
+  pipeline:
+  - $project:
+      bools: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $bools.v
+        asDocumentDefault:
+          $let:
+            vars:
+              sqlConvert_input: $bools.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+        asDocumentOnError:
+          $let:
+            vars:
+              sqlConvert_input: $bools.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1764,8 +4686,64 @@ tests:
 - description: Cast BSON_DATE to DOCUMENT is invalid, returns NULL by default and
     ON ERROR when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError':
-    CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM dates AS dates"
+  pipeline:
+  - $project:
+      dates: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $dates.v
+        asDocumentDefault:
+          $let:
+            vars:
+              sqlConvert_input: $dates.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+        asDocumentOnError:
+          $let:
+            vars:
+              sqlConvert_input: $dates.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: {$date: {$numberLong: '0'}}, asDocumentDefault: null, asDocumentOnError: !!str 'null'}}
   - {'': {v: {$date: {$numberLong: '253402300799999'}}, asDocumentDefault: null, asDocumentOnError: !!str 'null'}}
@@ -1774,8 +4752,64 @@ tests:
 - description: Cast NULL and MISSING to DOCUMENT, returns NULL by default and ON NULL
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnNull':
-    CAST(v AS DOCUMENT, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+  pipeline:
+  - $project:
+      nullAndMissing: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $nullAndMissing.v
+        asDocumentDefault:
+          $let:
+            vars:
+              sqlConvert_input: $nullAndMissing.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+        asDocumentOnNull:
+          $let:
+            vars:
+              sqlConvert_input: $nullAndMissing.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: 'null'
+                default:
+                  $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1793,8 +4827,64 @@ tests:
 - description: Cast INT to DOCUMENT is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError':
-    CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM ints AS ints"
+  pipeline:
+  - $project:
+      ints: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $ints.v
+        asDocumentDefault:
+          $let:
+            vars:
+              sqlConvert_input: $ints.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+        asDocumentOnError:
+          $let:
+            vars:
+              sqlConvert_input: $ints.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1812,8 +4902,64 @@ tests:
 - description: Cast LONG to DOCUMENT is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError':
-    CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM longs AS longs"
+  pipeline:
+  - $project:
+      longs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $longs.v
+        asDocumentDefault:
+          $let:
+            vars:
+              sqlConvert_input: $longs.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+        asDocumentOnError:
+          $let:
+            vars:
+              sqlConvert_input: $longs.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1831,8 +4977,65 @@ tests:
 - description: Cast DECIMAL to DOCUMENT is invalid, returns NULL by default and ON
     ERROR when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError':
-    CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM decimals AS decimals"
+  pipeline:
+  - $project:
+      decimals: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $decimals.v
+        asDocumentDefault:
+          $let:
+            vars:
+              sqlConvert_input: $decimals.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+        asDocumentOnError:
+          $let:
+            vars:
+              sqlConvert_input: $decimals.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
+
   result_set_schema:
     bsonType: object
     properties:
@@ -1849,8 +5052,43 @@ tests:
     additionalProperties: false
 - description: Cast invalid source types to DOCUMENT
   current_db: foo
-  query: "SELECT VALUE {'type': type, 'asDocument': CAST(v AS DOCUMENT)} FROM invalidSourceTypes
-    AS invalidSourceTypes"
+  pipeline:
+  - $project:
+      invalidSourceTypes: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        type: $invalidSourceTypes.type
+        asDocument:
+          $let:
+            vars:
+              sqlConvert_input: $invalidSourceTypes.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: object
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1867,8 +5105,64 @@ tests:
 - description: Cast DOUBLE to ARRAY is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError':
-    CAST(v AS ARRAY, 'null' ON ERROR)} FROM doubles AS doubles"
+  pipeline:
+  - $project:
+      doubles: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $doubles.v
+        asArrayDefault:
+          $let:
+            vars:
+              sqlConvert_input: $doubles.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: array
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+        asArrayOnError:
+          $let:
+            vars:
+              sqlConvert_input: $doubles.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: array
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1886,8 +5180,64 @@ tests:
 - description: Cast STRING to ARRAY is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError':
-    CAST(v AS ARRAY, 'null' ON ERROR)} FROM strings AS strings"
+  pipeline:
+  - $project:
+      strings: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $strings.v
+        asArrayDefault:
+          $let:
+            vars:
+              sqlConvert_input: $strings.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: array
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+        asArrayOnError:
+          $let:
+            vars:
+              sqlConvert_input: $strings.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: array
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1905,8 +5255,64 @@ tests:
 - description: Cast DOCUMENT to ARRAY is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError':
-    CAST(v AS ARRAY, 'null' ON ERROR)} FROM documents AS documents"
+  pipeline:
+  - $project:
+      documents: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $documents.v
+        asArrayDefault:
+          $let:
+            vars:
+              sqlConvert_input: $documents.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: array
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+        asArrayOnError:
+          $let:
+            vars:
+              sqlConvert_input: $documents.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: array
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1928,7 +5334,43 @@ tests:
     additionalProperties: false
 - description: Cast ARRAY to ARRAY
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asArray': CAST(v AS ARRAY)} FROM arrays AS arrays"
+  pipeline:
+  - $project:
+      arrays: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $arrays.v
+        asArray:
+          $let:
+            vars:
+              sqlConvert_input: $arrays.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: array
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1949,8 +5391,64 @@ tests:
 - description: Cast OBJECTID to ARRAY is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError':
-    CAST(v AS ARRAY, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
+  pipeline:
+  - $project:
+      objectIDs: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $objectIDs.v
+        asArrayDefault:
+          $let:
+            vars:
+              sqlConvert_input: $objectIDs.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: array
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+        asArrayOnError:
+          $let:
+            vars:
+              sqlConvert_input: $objectIDs.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: array
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1968,8 +5466,64 @@ tests:
 - description: Cast BOOL to ARRAY is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError':
-    CAST(v AS ARRAY, 'null' ON ERROR)} FROM bools AS bools"
+  pipeline:
+  - $project:
+      bools: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $bools.v
+        asArrayDefault:
+          $let:
+            vars:
+              sqlConvert_input: $bools.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: array
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+        asArrayOnError:
+          $let:
+            vars:
+              sqlConvert_input: $bools.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: array
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -1987,8 +5541,64 @@ tests:
 - description: Cast BSON_DATE to ARRAY is invalid, returns NULL by default and ON
     ERROR when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError':
-    CAST(v AS ARRAY, 'null' ON ERROR)} FROM dates AS dates"
+  pipeline:
+  - $project:
+      dates: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $dates.v
+        asArrayDefault:
+          $let:
+            vars:
+              sqlConvert_input: $dates.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: array
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+        asArrayOnError:
+          $let:
+            vars:
+              sqlConvert_input: $dates.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: array
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: 'null'
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result:
   - {'': {v: {$date: {$numberLong: '0'}}, asArrayDefault: null, asArrayOnError: !!str 'null'}}
   - {'': {v: {$date: {$numberLong: '253402300799999'}}, asArrayDefault: null, asArrayOnError: !!str 'null'}}
@@ -1997,8 +5607,64 @@ tests:
 - description: Cast NULL and MISSING to ARRAY, returns NULL by default and ON NULL
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnNull':
-    CAST(v AS ARRAY, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+  pipeline:
+  - $project:
+      nullAndMissing: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        v: $nullAndMissing.v
+        asArrayDefault:
+          $let:
+            vars:
+              sqlConvert_input: $nullAndMissing.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: array
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: null
+                default:
+                  $literal: null
+        asArrayOnNull:
+          $let:
+            vars:
+              sqlConvert_input: $nullAndMissing.v
+            in:
+              $switch:
+                branches:
+                - case:
+                    $eq:
+                    - $type:
+                      - $$sqlConvert_input
+                    - $literal: array
+                  then: $$sqlConvert_input
+                - case:
+                    $lte:
+                    - $$sqlConvert_input
+                    - $literal: null
+                  then:
+                    $literal: 'null'
+                default:
+                  $literal: null
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -2016,8 +5682,124 @@ tests:
 - description: Cast INT to ARRAY is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError':
-    CAST(v AS ARRAY, 'null' ON ERROR)} FROM ints AS ints"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "ints": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "asArrayDefault": {
+            "$let": {
+              "vars": {
+                "sqlConvert_input": "$ints.v"
+              }, 
+              "in": {
+                "$switch": {
+                  "default": {
+                    "$literal": null
+                  }, 
+                  "branches": [
+                    {
+                      "case": {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$$sqlConvert_input"
+                            ]
+                          }, 
+                          {
+                            "$literal": "array"
+                          }
+                        ]
+                      }, 
+                      "then": "$$sqlConvert_input"
+                    }, 
+                    {
+                      "case": {
+                        "$lte": [
+                          "$$sqlConvert_input", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      "then": {
+                        "$literal": null
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }, 
+          "asArrayOnError": {
+            "$let": {
+              "vars": {
+                "sqlConvert_input": "$ints.v"
+              }, 
+              "in": {
+                "$switch": {
+                  "default": {
+                    "$literal": "null"
+                  }, 
+                  "branches": [
+                    {
+                      "case": {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$$sqlConvert_input"
+                            ]
+                          }, 
+                          {
+                            "$literal": "array"
+                          }
+                        ]
+                      }, 
+                      "then": "$$sqlConvert_input"
+                    }, 
+                    {
+                      "case": {
+                        "$lte": [
+                          "$$sqlConvert_input", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      "then": {
+                        "$literal": null
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }, 
+          "v": "$ints.v"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -2035,8 +5817,124 @@ tests:
 - description: Cast LONG to ARRAY is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError':
-    CAST(v AS ARRAY, 'null' ON ERROR)} FROM longs AS longs"
+  "pipeline": [
+    {
+      "$project": {
+        "longs": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "asArrayDefault": {
+            "$let": {
+              "vars": {
+                "sqlConvert_input": "$longs.v"
+              }, 
+              "in": {
+                "$switch": {
+                  "default": {
+                    "$literal": null
+                  }, 
+                  "branches": [
+                    {
+                      "case": {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$$sqlConvert_input"
+                            ]
+                          }, 
+                          {
+                            "$literal": "array"
+                          }
+                        ]
+                      }, 
+                      "then": "$$sqlConvert_input"
+                    }, 
+                    {
+                      "case": {
+                        "$lte": [
+                          "$$sqlConvert_input", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      "then": {
+                        "$literal": null
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }, 
+          "asArrayOnError": {
+            "$let": {
+              "vars": {
+                "sqlConvert_input": "$longs.v"
+              }, 
+              "in": {
+                "$switch": {
+                  "default": {
+                    "$literal": "null"
+                  }, 
+                  "branches": [
+                    {
+                      "case": {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$$sqlConvert_input"
+                            ]
+                          }, 
+                          {
+                            "$literal": "array"
+                          }
+                        ]
+                      }, 
+                      "then": "$$sqlConvert_input"
+                    }, 
+                    {
+                      "case": {
+                        "$lte": [
+                          "$$sqlConvert_input", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      "then": {
+                        "$literal": null
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }, 
+          "v": "$longs.v"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -2054,8 +5952,124 @@ tests:
 - description: Cast DECIMAL to ARRAY is invalid, returns NULL by default and ON ERROR
     when set
   current_db: foo
-  query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError':
-    CAST(v AS ARRAY, 'null' ON ERROR)} FROM decimals AS decimals"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "decimals": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "asArrayDefault": {
+            "$let": {
+              "vars": {
+                "sqlConvert_input": "$decimals.v"
+              }, 
+              "in": {
+                "$switch": {
+                  "default": {
+                    "$literal": null
+                  }, 
+                  "branches": [
+                    {
+                      "case": {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$$sqlConvert_input"
+                            ]
+                          }, 
+                          {
+                            "$literal": "array"
+                          }
+                        ]
+                      }, 
+                      "then": "$$sqlConvert_input"
+                    }, 
+                    {
+                      "case": {
+                        "$lte": [
+                          "$$sqlConvert_input", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      "then": {
+                        "$literal": null
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }, 
+          "asArrayOnError": {
+            "$let": {
+              "vars": {
+                "sqlConvert_input": "$decimals.v"
+              }, 
+              "in": {
+                "$switch": {
+                  "default": {
+                    "$literal": "null"
+                  }, 
+                  "branches": [
+                    {
+                      "case": {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$$sqlConvert_input"
+                            ]
+                          }, 
+                          {
+                            "$literal": "array"
+                          }
+                        ]
+                      }, 
+                      "then": "$$sqlConvert_input"
+                    }, 
+                    {
+                      "case": {
+                        "$lte": [
+                          "$$sqlConvert_input", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      "then": {
+                        "$literal": null
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }, 
+          "v": "$decimals.v"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -2072,8 +6086,80 @@ tests:
     additionalProperties: false
 - description: Cast invalid source types to ARRAY
   current_db: foo
-  query: "SELECT VALUE {'type': type, 'asArray': CAST(v AS ARRAY)} FROM invalidSourceTypes
-    AS invalidSourceTypes"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "invalidSourceTypes": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "asArray": {
+            "$let": {
+              "vars": {
+                "sqlConvert_input": "$invalidSourceTypes.v"
+              }, 
+              "in": {
+                "$switch": {
+                  "default": {
+                    "$literal": null
+                  }, 
+                  "branches": [
+                    {
+                      "case": {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$$sqlConvert_input"
+                            ]
+                          }, 
+                          {
+                            "$literal": "array"
+                          }
+                        ]
+                      }, 
+                      "then": "$$sqlConvert_input"
+                    }, 
+                    {
+                      "case": {
+                        "$lte": [
+                          "$$sqlConvert_input", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      "then": {
+                        "$literal": null
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }, 
+          "type": "$invalidSourceTypes.type"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:

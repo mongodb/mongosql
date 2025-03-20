@@ -1,16 +1,63 @@
-%YAML 1.2
----
-catalog_schema: {mydb: {biz: {bsonType: object, required: [_id, foo], additionalProperties: false,
-      properties: {_id: {bsonType: int}, foo: {bsonType: int}}}, bar: {bsonType: object,
-      required: [_id, foo], additionalProperties: false, properties: {_id: {bsonType: int},
-        foo: {bsonType: int}, baz: {bsonType: int}}}, baz: {bsonType: object, required: [
-        bar, car], additionalProperties: false, properties: {_id: {bsonType: int},
-        bar: {bsonType: int}, car: {bsonType: int}}}}}
+catalog_schema:
+  {
+    "mydb":
+      {
+        "biz":
+          {
+            "bsonType": "object",
+            "required": ["_id", "foo"],
+            "additionalProperties": false,
+            "properties":
+              { "_id": { "bsonType": "int" }, "foo": { "bsonType": "int" } },
+          },
+        "bar":
+          {
+            "bsonType": "object",
+            "required": ["_id", "foo"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "foo": { "bsonType": "int" },
+                "baz": { "bsonType": "int" },
+              },
+          },
+        "baz":
+          {
+            "bsonType": "object",
+            "required": ["bar", "car"],
+            "additionalProperties": false,
+            "properties":
+              { "_id": { "bsonType": "int" }, "bar": { "bsonType": "int" }, "car": { "bsonType": "int" } },
+          },
+      },
+  }
 
 tests:
 - description: WITH clause simple query
   current_db: mydb
-  query: WITH t as (SELECT foo from biz) (SELECT * from t)
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "biz": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "foo": "$biz.foo"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "t": "$__bot"
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -25,8 +72,88 @@ tests:
     additionalProperties: false
 - description: WITH clause join query
   current_db: mydb
-  query: WITH t as (SELECT foo, bar, car from biz JOIN baz ON biz._id = baz._id) (SELECT
-    * from t)
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "biz": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "baz", 
+        "pipeline": [
+          {
+            "$match": {
+              "$expr": {
+                "$and": [
+                  {
+                    "$gt": [
+                      "$_id", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  {
+                    "$eq": [
+                      "$$vbiz_1._id", 
+                      "$_id"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "baz": "$$ROOT"
+            }
+          }
+        ], 
+        "let": {
+          "vbiz_1": "$biz"
+        }, 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "car": "$baz.car", 
+          "foo": "$biz.foo", 
+          "bar": "$baz.bar"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "t": "$__bot"
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -43,8 +170,103 @@ tests:
     additionalProperties: false
 - description: WITH clause multiple derived with a join
   current_db: mydb
-  query: WITH t as (SELECT _id, foo from biz), u as (SELECT _id, bar, car from baz)
-    (SELECT * from t JOIN u ON t._id = u._id)
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "biz": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "_id": "$biz._id", 
+          "foo": "$biz.foo"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "t": "$__bot"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "baz", 
+        "pipeline": [
+          {
+            "$match": {
+              "$expr": {
+                "$gt": [
+                  "$_id", 
+                  {
+                    "$literal": null
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "baz": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "car": "$baz.car", 
+                "_id": "$baz._id", 
+                "bar": "$baz.bar"
+              }, 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "u": "$__bot"
+            }
+          }, 
+          {
+            "$match": {
+              "$expr": {
+                "$eq": [
+                  "$$vt_0._id", 
+                  "$u._id"
+                ]
+              }
+            }
+          }
+        ], 
+        "let": {
+          "vt_0": "$t"
+        }, 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -68,8 +290,67 @@ tests:
     additionalProperties: false
 - description: WITH clause filters
   current_db: mydb
-  query: WITH t as (SELECT foo from biz WHERE foo > 1), u as (SELECT baz from bar
-    where baz > 1) (SELECT t.foo, u.baz from t, u)
+  pipeline:
+- $match:
+    $expr:
+      $gt:
+      - $foo
+      - $literal: 1
+- $project:
+    biz: $$ROOT
+    _id: 0
+- $project:
+    __bot:
+      foo: $biz.foo
+    _id: 0
+- $project:
+    t: $__bot
+    _id: 0
+- $lookup:
+    from: bar
+    pipeline:
+    - $match:
+        $expr:
+          $and:
+          - $gt:
+            - $baz
+            - $literal: null
+          - $gt:
+            - $baz
+            - $literal: 1
+    - $project:
+        bar: $$ROOT
+        _id: 0
+    - $project:
+        __bot:
+          baz: $bar.baz
+        _id: 0
+    - $project:
+        u: $__bot
+        _id: 0
+    as: eca58228-b657-498a-b76e-f48a9161a404
+- $unwind:
+    path: $eca58228-b657-498a-b76e-f48a9161a404
+- $replaceWith:
+    $mergeObjects:
+    - $$ROOT
+    - $eca58228-b657-498a-b76e-f48a9161a404
+- $project:
+    _id: 0
+    eca58228-b657-498a-b76e-f48a9161a404: 0
+- $project:
+    __bot:
+      foo: $t.foo
+      baz: $u.baz
+    _id: 0
+- $replaceWith:
+    $unsetField:
+      field: __bot
+      input:
+        $setField:
+          field: ''
+          input: $$ROOT
+          value: $__bot
   result_set_schema:
     bsonType: object
     properties:

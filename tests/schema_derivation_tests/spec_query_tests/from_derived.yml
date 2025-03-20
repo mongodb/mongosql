@@ -1,14 +1,78 @@
-%YAML 1.2
----
-catalog_schema: {test: {foo: {bsonType: object, additionalProperties: true}, bar: {
-      bsonType: object, additionalProperties: true}}}
+catalog_schema:
+  {
+    'test': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'bar': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
 
 tests:
-- description: both unqualified and qualified references to derived table datasource
-    fields are allowed
-  query: "SELECT VALUE {'asub': asub, 'bsub': derived.bsub} FROM (SELECT VALUE {'asub':
-    a, 'bsub': b} FROM [{'a': 1, 'b': 1}] AS arr) AS derived"
+- description: both unqualified and qualified references to derived table datasource fields are allowed
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }, 
+          "b": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "bsub": "$arr.b", 
+          "asub": "$arr.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "derived": "$__bot"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "bsub": "$derived.bsub", 
+          "asub": "$derived.asub"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -22,10 +86,22 @@ tests:
       _id: {bsonType: objectId}
     required: ['', _id]
     additionalProperties: false
-- description: there is no ambiguity with one schema-less datasource in a derived
-    table
+- description: there is no ambiguity with one schema-less datasource in a derived table
   current_db: test
-  query: SELECT * FROM (SELECT * FROM foo AS foo) AS derived
+  "pipeline": [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "derived": "$foo"
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -41,9 +117,83 @@ tests:
     required: [_id, derived]
     additionalProperties: false
 - description: derived table merges namespaces under alias namespace
-  query: "SELECT * FROM (SELECT foo.*, bar.* FROM [{'a': 1}] foo JOIN [{'b': 2}] bar)
-    AS derived"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        "pipeline": [
+          {
+            "$documents": [
+              {
+                "b": {
+                  "$literal": 2
+                }
+              }
+            ]
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "bar": "$$ROOT"
+            }
+          }
+        ], 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "foo": "$foo", 
+        "bar": "$bar", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "derived": {
+          "$mergeObjects": [
+            "$bar", 
+            "$foo"
+          ]
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:

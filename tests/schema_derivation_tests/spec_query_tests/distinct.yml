@@ -1,19 +1,93 @@
-%YAML 1.2
----
-catalog_schema: {db: {foo: {bsonType: object, required: [_id, a, b], additionalProperties: false,
-      properties: {_id: {bsonType: int}, a: {bsonType: int}, b: {bsonType: int}, c: {
-          bsonType: bool}, d: {bsonType: string}, e: {bsonType: 'null'}}}, bar: {
-      bsonType: object, required: [_id, a, b], additionalProperties: false, properties: {
-        _id: {bsonType: int}, a: {bsonType: int}, b: {bsonType: int}, c: {bsonType: int}}},
-    documents: {bsonType: object, required: [_id, doc], additionalProperties: false,
-      properties: {_id: {bsonType: int}, doc: {bsonType: object, required: [a, b],
-          properties: {a: {bsonType: int}, b: {bsonType: int}, c: {bsonType: int}}}}},
-    arrays: {bsonType: object, required: [_id, arr], additionalProperties: false,
-      properties: {_id: {bsonType: int}, arr: {bsonType: array, items: {bsonType: int}}}}}}
+catalog_schema:
+  {
+    "db": {
+      "foo": {
+        "bsonType": "object",
+        "required": ["_id", "a", "b"],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "a":   { "bsonType": "int" },
+          "b":   { "bsonType": "int" },
+          "c":   { "bsonType": "bool" },
+          "d":   { "bsonType": "string" },
+          "e":   { "bsonType": "null" }
+        }
+      },
+      "bar": {
+        "bsonType": "object",
+        "required": [ "_id", "a", "b" ],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "a": { "bsonType": "int" },
+          "b": { "bsonType": "int" },
+          "c": { "bsonType": "int" }
+        }
+      },
+      "documents": {
+        "bsonType": "object",
+        "required": ["_id", "doc"],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "doc": {
+            "bsonType": "object",
+            "required": ["a", "b"],
+            "properties": {
+              "a": { "bsonType": "int" },
+              "b": { "bsonType": "int" },
+              "c": { "bsonType": "int" }
+            }
+          }
+        }
+      },
+      "arrays": {
+        "bsonType": "object",
+        "required": ["_id", "arr"],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "arr": {
+            "bsonType": "array",
+            "items": { "bsonType": "int" }
+          }
+        }
+      }
+    }
+  }
 
 tests:
 - description: SELECT DISTINCT * ensures unique rows for entire document
-  query: SELECT DISTINCT * FROM db.foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "__groupKey0": "$$ROOT"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "__groupKey0": "$_id.__groupKey0"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "foo": "$__bot.__groupKey0", 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -32,22 +106,108 @@ tests:
     required: [_id, foo]
     additionalProperties: false
 - description: SELECT DISTINCT in nested subquery omitting _id selects unique rows
-  query: |
-    SELECT *
-      FROM (
-        SELECT DISTINCT *
-        FROM (
-          SELECT a, b, c
-          FROM db.foo
-        ) AS t1
-      ) AS t2
+  "pipeline": [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$foo.a", 
+          "c": "$foo.c", 
+          "b": "$foo.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "t1": "$__bot"
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "__groupKey0": "$t1"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "__groupKey0": "$_id.__groupKey0"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "t1": "$__bot.__groupKey0"
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "t2": "$t1"
+      }
+    }
+  ]
   result:
   - {t2: {a: 1, b: 2}}
   - {t2: {a: 2, b: 2}}
   - {t2: {a: 2, b: 2, c: true}}
 
 - description: SELECT DISTINCT * on joined tables unique rows for entire document
-  query: SELECT DISTINCT * FROM db.foo,db.bar WHERE foo._id = bar._id
+  "pipeline": [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "_id", 
+        "as": "bar", 
+        "from": "bar", 
+        "localField": "foo._id"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$bar"
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "__groupKey1": "$foo", 
+          "__groupKey0": "$bar"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "__groupKey1": "$_id.__groupKey1", 
+          "__groupKey0": "$_id.__groupKey0"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "foo": "$__bot.__groupKey1", 
+        "bar": "$__bot.__groupKey0", 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -75,7 +235,71 @@ tests:
     required: [_id, bar, foo]
     additionalProperties: false
 - description: SELECT DISTINCT specific columns from joined tables
-  query: SELECT DISTINCT foo.a, bar.b FROM db.foo, db.bar WHERE foo._id = bar._id
+  "pipeline": [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "_id", 
+        "as": "bar", 
+        "from": "bar", 
+        "localField": "foo._id"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$bar"
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "__groupKey0": {
+            "a": "$foo.a", 
+            "b": "$bar.b"
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "__groupKey0": "$_id.__groupKey0"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot.__groupKey0", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -90,7 +314,58 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: SELECT DISTINCT columns ensures we see unique values
-  query: SELECT DISTINCT a, b FROM db.foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "__groupKey0": {
+            "a": "$a", 
+            "b": "$b"
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "__groupKey0": "$_id.__groupKey0"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot.__groupKey0", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -105,7 +380,58 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: SELECT DISTINCT columns with alias
-  query: SELECT DISTINCT a as col1, b as col2 FROM db.foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "__groupKey0": {
+            "col2": "$b", 
+            "col1": "$a"
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "__groupKey0": "$_id.__groupKey0"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot.__groupKey0", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -120,7 +446,57 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: SELECT DISTINCT document column of repeated documents
-  query: SELECT DISTINCT doc FROM db.documents
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "__groupKey0": {
+            "doc": "$doc"
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "__groupKey0": "$_id.__groupKey0"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot.__groupKey0", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -141,7 +517,57 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: SELECT DISTINCT arr checking deduplication of repeated arrays
-  query: SELECT DISTINCT arr FROM db.arrays
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "__groupKey0": {
+            "arr": "$arr"
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "__groupKey0": "$_id.__groupKey0"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot.__groupKey0", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -157,7 +583,62 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: SELECT DISTINCT with ORDER BY
-  query: SELECT DISTINCT a FROM db.foo ORDER BY a ASC
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "__groupKey0": {
+            "a": "$a"
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "__groupKey0": "$_id.__groupKey0"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$sort": {
+        "__bot.__groupKey0.a": 1
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot.__groupKey0", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   ordered: true
   result_set_schema:
     bsonType: object
@@ -173,7 +654,78 @@ tests:
     additionalProperties: false
 - description: basic UNION distinct correctness test
   current_db: db
-  query: "SELECT VALUE {'a': a} FROM foo UNION SELECT VALUE {'a': a} FROM foo"
+  "pipeline": [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$foo.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unionWith": {
+        "coll": "foo", 
+        "pipeline": [
+          {
+            "$project": {
+              "foo": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$foo.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ]
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "__groupKey0": "$__bot"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "__groupKey0": "$_id.__groupKey0"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot.__groupKey0", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -189,8 +741,79 @@ tests:
 - description: duplicates are still removed when collections with different schema
     are unioned
   current_db: db
-  query: "SELECT VALUE {'a': a} FROM foo AS foo UNION SELECT VALUE {'b': b, 'c': c}
-    FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$foo.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unionWith": {
+        "coll": "bar", 
+        "pipeline": [
+          {
+            "$project": {
+              "_id": 0, 
+              "bar": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "c": "$bar.c", 
+                "b": "$bar.b"
+              }, 
+              "_id": 0
+            }
+          }
+        ]
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "__groupKey0": "$__bot"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "__groupKey0": "$_id.__groupKey0"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot.__groupKey0", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -206,8 +829,99 @@ tests:
     additionalProperties: false
 - description: UNION is left associative
   current_db: db
-  query: "SELECT VALUE {'a': a} FROM foo UNION ALL SELECT VALUE {'a': a} FROM foo
-    UNION SELECT VALUE {'a': a} FROM foo"
+  "pipeline": [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$foo.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unionWith": {
+        "coll": "foo", 
+        "pipeline": [
+          {
+            "$project": {
+              "foo": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$foo.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ]
+      }
+    }, 
+    {
+      "$unionWith": {
+        "coll": "foo", 
+        "pipeline": [
+          {
+            "$project": {
+              "foo": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$foo.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ]
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "__groupKey0": "$__bot"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "__groupKey0": "$_id.__groupKey0"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot.__groupKey0", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -222,10 +936,83 @@ tests:
     additionalProperties: false
 - description: UNION distinct with select * in both queries
   current_db: db
-  query: |
-    SELECT * FROM (SELECT a,b,c FROM foo) AS foo 
-    UNION 
-    SELECT * FROM (SELECT a,b,c FROM bar) AS bar
+  "pipeline": [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$foo.a", 
+          "c": "$foo.c", 
+          "b": "$foo.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "foo": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unionWith": {
+        "coll": "bar", 
+        "pipeline": [
+          {
+            "$project": {
+              "_id": 0, 
+              "bar": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$bar.a", 
+                "c": "$bar.c", 
+                "b": "$bar.b"
+              }, 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "bar": "$__bot"
+            }
+          }
+        ]
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "__groupKey1": "$foo", 
+          "__groupKey0": "$bar"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "__groupKey1": "$_id.__groupKey1", 
+          "__groupKey0": "$_id.__groupKey0"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "foo": "$__bot.__groupKey1", 
+        "bar": "$__bot.__groupKey0", 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -250,7 +1037,80 @@ tests:
     additionalProperties: false
 - description: UNION distinct with same value order
   current_db: db
-  query: SELECT a,b FROM foo UNION SELECT a,b FROM bar
+  "pipeline": [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$foo.a", 
+          "b": "$foo.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unionWith": {
+        "coll": "bar", 
+        "pipeline": [
+          {
+            "$project": {
+              "_id": 0, 
+              "bar": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$bar.a", 
+                "b": "$bar.b"
+              }, 
+              "_id": 0
+            }
+          }
+        ]
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "__groupKey0": "$__bot"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "__groupKey0": "$_id.__groupKey0"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot.__groupKey0", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -266,7 +1126,44 @@ tests:
     additionalProperties: false
 - description: UNION distinct with mixed value order
   current_db: db
-  query: SELECT a,b FROM foo UNION SELECT b,a FROM bar
+  pipeline:
+- $project:
+    foo: $$ROOT
+    _id: 0
+- $project:
+    __bot:
+      a: $foo.a
+      b: $foo.b
+    _id: 0
+- $unionWith:
+    coll: bar
+    pipeline:
+    - $project:
+        bar: $$ROOT
+        _id: 0
+    - $project:
+        __bot:
+          b: $bar.b
+          a: $bar.a
+        _id: 0
+- $group:
+    _id:
+      __groupKey0: $__bot
+- $project:
+    __bot:
+      __groupKey0: $_id.__groupKey0
+    _id: 0
+- $project:
+    __bot: $__bot.__groupKey0
+    _id: 0
+- $replaceWith:
+    $unsetField:
+      field: __bot
+      input:
+        $setField:
+          field: ''
+          input: $$ROOT
+          value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -282,7 +1179,74 @@ tests:
     additionalProperties: false
 - description: UNION distinct with mixed star and values select list
   current_db: db
-  query: SELECT * FROM foo UNION SELECT a,b from bar
+  "pipeline": [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unionWith": {
+        "coll": "bar", 
+        "pipeline": [
+          {
+            "$project": {
+              "_id": 0, 
+              "bar": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$bar.a", 
+                "b": "$bar.b"
+              }, 
+              "_id": 0
+            }
+          }
+        ]
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "__groupKey1": "$foo", 
+          "__groupKey0": "$__bot"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "__groupKey1": "$_id.__groupKey1", 
+          "__groupKey0": "$_id.__groupKey0"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot.__groupKey0", 
+        "foo": "$__bot.__groupKey1", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -309,13 +1273,140 @@ tests:
     additionalProperties: false
 - description: UNION distinct with join
   current_db: db
-  query: |
-    SELECT *
-    FROM 
-      (SELECT a, b FROM foo) AS foo, 
-      (SELECT a, b FROM bar) AS bar
-    UNION 
-    SELECT a, b FROM bar
+  "pipeline": [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$foo.a", 
+          "b": "$foo.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "foo": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        "pipeline": [
+          {
+            "$project": {
+              "_id": 0, 
+              "bar": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$bar.a", 
+                "b": "$bar.b"
+              }, 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "bar": "$__bot"
+            }
+          }
+        ], 
+        "from": "bar", 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unionWith": {
+        "coll": "bar", 
+        "pipeline": [
+          {
+            "$project": {
+              "_id": 0, 
+              "bar": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$bar.a", 
+                "b": "$bar.b"
+              }, 
+              "_id": 0
+            }
+          }
+        ]
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "__groupKey2": "$foo", 
+          "__groupKey1": "$bar", 
+          "__groupKey0": "$__bot"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "__groupKey2": "$_id.__groupKey2", 
+          "__groupKey1": "$_id.__groupKey1", 
+          "__groupKey0": "$_id.__groupKey0"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot.__groupKey0", 
+        "foo": "$__bot.__groupKey2", 
+        "bar": "$__bot.__groupKey1", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:

@@ -1,17 +1,92 @@
-%YAML 1.2
----
-catalog_schema: {mydb: {bar: {bsonType: object, required: [foo], additionalProperties: false,
-      properties: {_id: {bsonType: int}, foo: {bsonType: int}}}, bar2: {bsonType: object,
-      required: [foo], additionalProperties: false, properties: {_id: {bsonType: int},
-        foo: {bsonType: int}, baz: {bsonType: int}}}, coll: {bsonType: object, required: [
-        bar, car], additionalProperties: false, properties: {bar: {bsonType: int},
-        car: {bsonType: int}}}}, db2: {foo: {bsonType: object, required: [x], additionalProperties: false,
-      properties: {x: {bsonType: int}}}}}
+catalog_schema:
+  {
+    "mydb":
+      {
+        "bar":
+          {
+            "bsonType": "object",
+            "required": ["foo"],
+            "additionalProperties": false,
+            "properties":
+              { "_id": { "bsonType": "int" }, "foo": { "bsonType": "int" } },
+          },
+        "bar2":
+          {
+            "bsonType": "object",
+            "required": ["foo"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "foo": { "bsonType": "int" },
+                "baz": { "bsonType": "int" },
+              },
+          },
+        "coll":
+          {
+            "bsonType": "object",
+            "required": ["bar", "car"],
+            "additionalProperties": false,
+            "properties":
+              { "bar": { "bsonType": "int" }, "car": { "bsonType": "int" } },
+          },
+      },
+    "db2":
+      {
+        "foo":
+          {
+            "bsonType": "object",
+            "required": ["x"],
+            "additionalProperties": false,
+            "properties": { "x": { "bsonType": "int" } },
+          },
+      },
+  }
 
 tests:
 - description: cross join correctness test
   current_db: mydb
-  query: SELECT * FROM bar AS bar CROSS JOIN coll AS coll
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "pipeline": [
+          {
+            "$project": {
+              "coll": "$$ROOT", 
+              "_id": 0
+            }
+          }
+        ], 
+        "from": "coll", 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -35,7 +110,27 @@ tests:
     additionalProperties: false
 - description: inner join correctness test
   current_db: mydb
-  query: SELECT * FROM bar AS bar INNER JOIN coll AS coll ON bar.foo = coll.car
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "car", 
+        "as": "coll", 
+        "from": "coll", 
+        "localField": "bar.foo"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$coll"
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -59,7 +154,28 @@ tests:
     additionalProperties: false
 - description: left join correctness test
   current_db: mydb
-  query: SELECT * from bar2 AS bar2 LEFT JOIN bar AS bar on bar2.foo = bar.foo
+  "pipeline": [
+    {
+      "$project": {
+        "bar2": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "foo", 
+        "as": "bar", 
+        "from": "bar", 
+        "localField": "bar2.foo"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$bar", 
+        "preserveNullAndEmptyArrays": true
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -83,7 +199,28 @@ tests:
     additionalProperties: false
 - description: right join correctness test
   current_db: mydb
-  query: SELECT * from bar2 AS bar2 RIGHT JOIN bar as bar ON bar2.foo = bar.foo
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "foo", 
+        "as": "bar2", 
+        "from": "bar2", 
+        "localField": "bar.foo"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$bar2", 
+        "preserveNullAndEmptyArrays": true
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -107,7 +244,79 @@ tests:
     additionalProperties: false
 - description: join predicates can contain complex expressions
   current_db: mydb
-  query: SELECT * FROM bar AS bar INNER JOIN bar2 AS bar2 ON bar.foo + 50 > bar2.baz
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "bar2", 
+        "pipeline": [
+          {
+            "$match": {
+              "$expr": {
+                "$and": [
+                  {
+                    "$gt": [
+                      "$baz", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  {
+                    "$gt": [
+                      {
+                        "$add": [
+                          {
+                            "$literal": 50
+                          }, 
+                          "$$vbar_0.foo"
+                        ]
+                      }, 
+                      "$baz"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "bar2": "$$ROOT", 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -131,7 +340,27 @@ tests:
     additionalProperties: false
 - description: join predicates can reference columns by table-qualified names
   current_db: mydb
-  query: SELECT * FROM bar AS bar INNER JOIN coll AS coll ON bar.foo = coll.car
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "car", 
+        "as": "coll", 
+        "from": "coll", 
+        "localField": "bar.foo"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$coll"
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -155,7 +384,27 @@ tests:
     additionalProperties: false
 - description: join predicates can reference columns by unambiguous unqualified names
   current_db: mydb
-  query: SELECT * FROM bar AS bar INNER JOIN coll AS coll ON foo = car
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "car", 
+        "as": "coll", 
+        "from": "coll", 
+        "localField": "bar.foo"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$coll"
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -179,8 +428,61 @@ tests:
     additionalProperties: false
 - description: joins are left-associative
   current_db: mydb
-  query: SELECT * FROM bar AS a CROSS JOIN bar AS b LEFT JOIN bar AS c ON a.foo =
-    c.foo
+  "pipeline": [
+    {
+      "$project": {
+        "a": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        "pipeline": [
+          {
+            "$project": {
+              "b": "$$ROOT", 
+              "_id": 0
+            }
+          }
+        ], 
+        "from": "bar", 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "foo", 
+        "as": "c", 
+        "from": "bar", 
+        "localField": "a.foo"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$c", 
+        "preserveNullAndEmptyArrays": true
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -210,7 +512,54 @@ tests:
     additionalProperties: false
 - description: join left and right datasources can be referenced by alias
   current_db: mydb
-  query: SELECT t1.*, t2.* FROM bar AS t1 INNER JOIN coll AS t2
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "t1": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "pipeline": [
+          {
+            "$project": {
+              "_id": 0, 
+              "t2": "$$ROOT"
+            }
+          }
+        ], 
+        "from": "coll", 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "t2": "$t2", 
+        "t1": "$t1"
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -232,17 +581,192 @@ tests:
         additionalProperties: false
     required: [_id, t1, t2]
     additionalProperties: false
-- description: cross database join correctness test
-  current_db: mydb
-  query: SELECT * FROM coll AS coll CROSS JOIN db2.foo AS foo
-  skip_reason: 'SQL-540: cross-database lookups are not supported'
-  result:
-  - {coll: {_id: 0, bar: 53, car: 42}, foo: {_id: 0, x: 1}}
 
-- description: left join with static value comparison to rhs field in ON clause still
-    results in left hand side doc when condition fails
+- description: left join with static value comparison to rhs field in ON clause still results in left hand side doc when condition fails
   current_db: mydb
-  query: SELECT * FROM bar LEFT JOIN bar2 ON bar._id = bar2._id AND bar2.baz = 63
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "bar2", 
+        "pipeline": [
+          {
+            "$match": {
+              "$expr": {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlAnd_input0": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$$vbar_0._id", 
+                          "desugared_sqlEq_input1": "$_id"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0", 
+                                "$$desugared_sqlEq_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }, 
+                    "desugared_sqlAnd_input1": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$baz"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlEq_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0", 
+                                {
+                                  "$literal": 63
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }, 
+                  "in": {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input0", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input1", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }
+                        ]
+                      }, 
+                      {
+                        "$literal": false
+                      }, 
+                      {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$literal": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "bar2": "$$ROOT", 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404", 
+        "preserveNullAndEmptyArrays": true
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -264,10 +788,66 @@ tests:
         additionalProperties: false
     required: [_id, bar]
     additionalProperties: false
-- description: left join followed by WHERE with static comparison on rhs value filters
-    out left hand side docs that do not match the WHERE
+- description: left join followed by WHERE with static comparison on rhs value filters out left hand side docs that do not match the WHERE
   current_db: mydb
-  query: SELECT * FROM bar LEFT JOIN bar2 ON bar._id = bar2._id WHERE bar2.baz = 63
+  "pipeline": [
+    {
+      "$match": {
+        "$expr": {
+          "$gt": [
+            "$_id", 
+            {
+              "$literal": null
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "_id", 
+        "as": "bar2", 
+        "from": "bar2", 
+        "localField": "bar._id"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$bar2", 
+        "preserveNullAndEmptyArrays": true
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$and": [
+            {
+              "$eq": [
+                "$bar2.baz", 
+                {
+                  "$literal": 63
+                }
+              ]
+            }, 
+            {
+              "$gt": [
+                "$bar2.baz", 
+                {
+                  "$literal": null
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -291,8 +871,47 @@ tests:
     additionalProperties: false
 - description: match filter in left join correctness test
   current_db: mydb
-  query: SELECT * FROM bar LEFT JOIN bar2 ON bar._id = bar2._id WHERE bar2.baz IS
-    INT
+  "pipeline": [
+    {
+      "$match": {
+        "$expr": {
+          "$gt": [
+            "$_id", 
+            {
+              "$literal": null
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "_id", 
+        "as": "bar2", 
+        "from": "bar2", 
+        "localField": "bar._id"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$bar2", 
+        "preserveNullAndEmptyArrays": true
+      }
+    }, 
+    {
+      "$match": {
+        "bar2.baz": {
+          "$type": "int"
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -316,8 +935,209 @@ tests:
     additionalProperties: false
 - description: filter in lateral join correctness test
   current_db: mydb
-  query: SELECT * FROM bar LEFT JOIN bar2 ON bar._id = bar2._id AND bar2.baz = 63
-    WHERE bar2.baz IS NOT MISSING
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "bar2", 
+        "pipeline": [
+          {
+            "$match": {
+              "$expr": {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlAnd_input0": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$$vbar_0._id", 
+                          "desugared_sqlEq_input1": "$_id"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0", 
+                                "$$desugared_sqlEq_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }, 
+                    "desugared_sqlAnd_input1": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$baz"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlEq_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0", 
+                                {
+                                  "$literal": 63
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }, 
+                  "in": {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input0", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input1", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }
+                        ]
+                      }, 
+                      {
+                        "$literal": false
+                      }, 
+                      {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$literal": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "bar2": "$$ROOT", 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404", 
+        "preserveNullAndEmptyArrays": true
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$not": [
+            {
+              "$eq": [
+                {
+                  "$type": [
+                    "$bar2.baz"
+                  ]
+                }, 
+                {
+                  "$literal": "missing"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -341,8 +1161,196 @@ tests:
     additionalProperties: false
 - description: match filter in lateral join correctness test
   current_db: mydb
-  query: SELECT * FROM bar LEFT JOIN bar2 ON bar._id = bar2._id AND bar2.baz = 63
-    WHERE bar2.baz IS INT
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "bar2", 
+        "pipeline": [
+          {
+            "$match": {
+              "$expr": {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlAnd_input0": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$$vbar_0._id", 
+                          "desugared_sqlEq_input1": "$_id"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0", 
+                                "$$desugared_sqlEq_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }, 
+                    "desugared_sqlAnd_input1": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$baz"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlEq_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0", 
+                                {
+                                  "$literal": 63
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }, 
+                  "in": {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input0", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input1", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }
+                        ]
+                      }, 
+                      {
+                        "$literal": false
+                      }, 
+                      {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$literal": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "bar2": "$$ROOT", 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404", 
+        "preserveNullAndEmptyArrays": true
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$match": {
+        "bar2.baz": {
+          "$type": "int"
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:

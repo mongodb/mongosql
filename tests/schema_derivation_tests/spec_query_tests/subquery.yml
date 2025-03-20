@@ -1,21 +1,122 @@
-%YAML 1.2
----
-catalog_schema: {foo: {employees: {bsonType: object, required: [_id, name, salary,
-        department_id], additionalProperties: false, properties: {_id: {bsonType: int},
-        name: {bsonType: string}, salary: {bsonType: int}, department_id: {bsonType: int}}},
-    department: {bsonType: object, required: [_id, name], additionalProperties: false,
-      properties: {_id: {bsonType: int}, name: {bsonType: string}}}, employees_w_schema: {
-      bsonType: object, required: [_id, name, salary, department_id], additionalProperties: false,
-      properties: {_id: {bsonType: int}, name: {bsonType: string}, salary: {bsonType: int},
-        department_id: {bsonType: int}}}, department_w_schema: {bsonType: object,
-      required: [_id, name], additionalProperties: false, properties: {_id: {bsonType: int},
-        name: {bsonType: string}}}, baz: {bsonType: object, additionalProperties: true}}}
+catalog_schema:
+  {
+    'foo': {
+      'employees': {
+        'bsonType': "object",
+        'required': [ '_id', 'name', 'salary', 'department_id' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'name': {
+            'bsonType': "string"
+          },
+          'salary': {
+            'bsonType': "int"
+          },
+          'department_id': {
+            'bsonType': "int"
+          }
+        }
+      },
+      'department': {
+        'bsonType': "object",
+        'required': [ '_id', 'name' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'name': {
+            'bsonType': "string"
+          }
+        }
+      },
+      'employees_w_schema': {
+        'bsonType': "object",
+        'required': [ '_id', 'name', 'salary', 'department_id' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'name': {
+            'bsonType': "string"
+          },
+          'salary': {
+            'bsonType': "int"
+          },
+          'department_id': {
+            'bsonType': "int"
+          }
+        }
+      },
+      'department_w_schema': {
+        'bsonType': "object",
+        'required': [ '_id', 'name' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'name': {
+            'bsonType': "string"
+          }
+        }
+      },
+      'baz': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      }
+    }
+  }
 
 tests:
 - description: uncorrelated scalar subquery expression correctness test
   current_db: foo
-  query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT arr.a FROM [{'a': 4}]
-    AS arr)} FROM employees AS emp"
+  pipeline:
+  - $project:
+      emp: $$ROOT
+      _id: 0
+  - $lookup:
+      let:
+        vemp_0: $emp
+      pipeline:
+      - $documents:
+        - a:
+            $literal: 4
+      - $project:
+          arr: $$ROOT
+          _id: 0
+      - $project:
+          __bot:
+            a: $arr.a
+          _id: 0
+      as: __subquery_result_0
+  - $project:
+      __bot:
+        name: $emp.name
+        avg_salary:
+          $let:
+            vars:
+              docExpr:
+                $arrayElemAt:
+                - $__subquery_result_0
+                - $literal: 0
+            in: $$docExpr.__bot.a
+      _id: 0
+  - $project:
+      __subquery_result_0: 0
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -31,9 +132,52 @@ tests:
     additionalProperties: false
 - description: correlated scalar subquery correctness test
   current_db: foo
-  query: "SELECT VALUE {'name': name, 'department_name': (SELECT dep.name FROM department_w_schema
-    AS dep WHERE dep.`_id` = emp.department_id LIMIT 1)} FROM employees_w_schema AS
-    emp"
+  pipeline:
+  - $project:
+      emp: $$ROOT
+      _id: 0
+  - $lookup:
+      from: department_w_schema
+      let:
+        vemp_0: $emp
+      pipeline:
+      - $match:
+          $expr:
+            $eq:
+            - $_id
+            - $$vemp_0.department_id
+      - $limit: 1
+      - $project:
+          dep: $$ROOT
+          _id: 0
+      - $project:
+          __bot:
+            name: $dep.name
+          _id: 0
+      as: __subquery_result_0
+  - $project:
+      __bot:
+        name: $emp.name
+        department_name:
+          $let:
+            vars:
+              docExpr:
+                $arrayElemAt:
+                - $__subquery_result_0
+                - $literal: 0
+            in: $$docExpr.__bot.name
+      _id: 0
+  - $project:
+      __subquery_result_0: 0
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -49,8 +193,48 @@ tests:
     additionalProperties: false
 - description: cardinality of 1 should be inferrable from array datasource
   current_db: foo
-  query: "SELECT VALUE {'name': name, 'sub': (SELECT a FROM [{'a': 1}] arr)} FROM
-    department AS dep"
+  pipeline:
+  - $project:
+      dep: $$ROOT
+      _id: 0
+  - $lookup:
+      let:
+        vdep_0: $dep
+      pipeline:
+      - $documents:
+        - a:
+            $literal: 1
+      - $project:
+          arr: $$ROOT
+          _id: 0
+      - $project:
+          __bot:
+            a: $arr.a
+          _id: 0
+      as: __subquery_result_0
+  - $project:
+      __bot:
+        name: $dep.name
+        sub:
+          $let:
+            vars:
+              docExpr:
+                $arrayElemAt:
+                - $__subquery_result_0
+                - $literal: 0
+            in: $$docExpr.__bot.a
+      _id: 0
+  - $project:
+      __subquery_result_0: 0
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -66,9 +250,57 @@ tests:
     additionalProperties: false
 - description: cardinality of 1 should be inferrable from group by constant
   current_db: foo
-  query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT avg_salary FROM employees
-    AS emp GROUP BY NULL AS _ AGGREGATE AVG(salary) AS avg_salary)} FROM employees
-    AS emp"
+  pipeline:
+  - $project:
+      emp: $$ROOT
+      _id: 0
+  - $lookup:
+      from: employees
+      let:
+        vemp_0: $emp
+      pipeline:
+      - $group:
+          _id:
+            _:
+              $literal: null
+          avg_salary:
+            $avg: $salary
+      - $project:
+          __bot:
+            _: $_id._
+            avg_salary: $avg_salary
+          _id: 0
+      - $project:
+          __bot: $__bot
+          _id: 0
+      - $project:
+          __bot:
+            avg_salary: $__bot.avg_salary
+          _id: 0
+      as: __subquery_result_0
+  - $project:
+      __bot:
+        name: $emp.name
+        avg_salary:
+          $let:
+            vars:
+              docExpr:
+                $arrayElemAt:
+                - $__subquery_result_0
+                - $literal: 0
+            in: $$docExpr.__bot.avg_salary
+      _id: 0
+  - $project:
+      __subquery_result_0: 0
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -85,9 +317,81 @@ tests:
 - description: nested subquery should be able to access field from its grandparent
     query correctness test
   current_db: foo
-  query: "SELECT VALUE {'name': name, 'department_name': (SELECT dep.name FROM department_w_schema
-    AS dep WHERE dep._id = (SELECT emp2.department_id FROM employees_w_schema AS emp2
-    WHERE emp2._id = emp1._id LIMIT 1) LIMIT 1)} FROM employees_w_schema AS emp1"
+  pipeline:
+  - $project:
+      emp1: $$ROOT
+      _id: 0
+  - $lookup:
+      from: department_w_schema
+      let:
+        vemp1_0: $emp1
+      pipeline:
+      - $project:
+          dep: $$ROOT
+          _id: 0
+      - $lookup:
+          from: employees_w_schema
+          let:
+            vdep_1: $dep
+            vemp1_0: $$vemp1_0
+          pipeline:
+          - $match:
+              $expr:
+                $eq:
+                - $_id
+                - $$vemp1_0._id
+          - $limit: 1
+          - $project:
+              emp2: $$ROOT
+              _id: 0
+          - $project:
+              __bot:
+                department_id: $emp2.department_id
+              _id: 0
+          as: __subquery_result_0
+      - $match:
+          $expr:
+            $eq:
+            - $dep._id
+            - $let:
+                vars:
+                  docExpr:
+                    $arrayElemAt:
+                    - $__subquery_result_0
+                    - $literal: 0
+                in: $$docExpr.__bot.department_id
+      - $project:
+          __subquery_result_0: 0
+          _id: 0
+      - $limit: 1
+      - $project:
+          __bot:
+            name: $dep.name
+          _id: 0
+      as: __subquery_result_0
+  - $project:
+      __bot:
+        name: $emp1.name
+        department_name:
+          $let:
+            vars:
+              docExpr:
+                $arrayElemAt:
+                - $__subquery_result_0
+                - $literal: 0
+            in: $$docExpr.__bot.name
+      _id: 0
+  - $project:
+      __subquery_result_0: 0
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -104,8 +408,43 @@ tests:
 - description: allow select star if we can statically prove the degree is equal to
     one
   current_db: foo
-  query: "SELECT VALUE {'sub': (SELECT * FROM [{'a': 4}] AS arr)} FROM employees AS
-    emp"
+  pipeline:
+  - $project:
+      emp: $$ROOT
+      _id: 0
+  - $lookup:
+      let:
+        vemp_0: $emp
+      pipeline:
+      - $documents:
+        - a:
+            $literal: 4
+      - $project:
+          arr: $$ROOT
+          _id: 0
+      as: __subquery_result_0
+  - $project:
+      __bot:
+        sub:
+          $let:
+            vars:
+              docExpr:
+                $arrayElemAt:
+                - $__subquery_result_0
+                - $literal: 0
+            in: $$docExpr.arr.a
+      _id: 0
+  - $project:
+      __subquery_result_0: 0
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -121,8 +460,46 @@ tests:
 - description: allow select substar if we can statically prove the degree is equal
     to one
   current_db: foo
-  query: "SELECT VALUE {'sub': (SELECT arr.* FROM [{'a': 4}] AS arr)} FROM employees
-    AS emp"
+  pipeline:
+  - $project:
+      emp: $$ROOT
+      _id: 0
+  - $lookup:
+      let:
+        vemp_0: $emp
+      pipeline:
+      - $documents:
+        - a:
+            $literal: 4
+      - $project:
+          arr: $$ROOT
+          _id: 0
+      - $project:
+          arr: $arr
+          _id: 0
+      as: __subquery_result_0
+  - $project:
+      __bot:
+        sub:
+          $let:
+            vars:
+              docExpr:
+                $arrayElemAt:
+                - $__subquery_result_0
+                - $literal: 0
+            in: $$docExpr.arr.a
+      _id: 0
+  - $project:
+      __subquery_result_0: 0
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -137,8 +514,46 @@ tests:
     additionalProperties: false
 - description: subquery selecting potentially missing field from collection
   current_db: foo
-  query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q LIMIT 1)} FROM department_w_schema
-    AS q"
+  pipeline:
+  - $project:
+      q: $$ROOT
+      _id: 0
+  - $lookup:
+      from: baz
+      let:
+        vq_0: $q
+      pipeline:
+      - $limit: 1
+      - $project:
+          q: $$ROOT
+          _id: 0
+      - $project:
+          __bot:
+            bar: $q.bar
+          _id: 0
+      as: __subquery_result_0
+  - $project:
+      __bot:
+        bar:
+          $let:
+            vars:
+              docExpr:
+                $arrayElemAt:
+                - $__subquery_result_0
+                - $literal: 0
+            in: $$docExpr.__bot.bar
+      _id: 0
+  - $project:
+      __subquery_result_0: 0
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:

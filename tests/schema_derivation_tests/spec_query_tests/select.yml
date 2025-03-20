@@ -1,11 +1,20 @@
-%YAML 1.2
----
-catalog_schema: {mydb: {foo: {bsonType: object, additionalProperties: true}}}
+catalog_schema:
+  {
+    'mydb': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
 
 tests:
 - description: simple star correctness test
   current_db: mydb
-  query: SELECT * FROM foo AS f
+  pipeline:
+  - $project:
+      f: $$ROOT
+      _id: 0
   result_set_schema:
     bsonType: object
     properties:
@@ -22,7 +31,23 @@ tests:
     additionalProperties: false
 - description: simple document correctness test
   current_db: mydb
-  query: "SELECT VALUE {'a': a, 'b': b} FROM foo AS foo"
+  pipeline:
+  - $project:
+      foo: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        a: $foo.a
+        b: $foo.b
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -38,7 +63,13 @@ tests:
     additionalProperties: false
 - description: simple sub-star correctness test
   current_db: mydb
-  query: SELECT VALUE f.* FROM foo AS f
+  pipeline:
+  - $project:
+      f: $$ROOT
+      _id: 0
+  - $project:
+      f: $f
+      _id: 0
   result_set_schema:
     bsonType: object
     properties:
@@ -55,7 +86,23 @@ tests:
     additionalProperties: false
 - description: correctness test for mixed sub-star and document
   current_db: mydb
-  query: "SELECT VALUES {'a': foo.a}, foo.* FROM foo AS foo"
+  pipeline:
+  - $project:
+      foo: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        a: $foo.a
+      foo: $foo
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -78,7 +125,23 @@ tests:
     additionalProperties: false
 - description: SELECT VALUES may create unmaterializable binding tuples
   current_db: mydb
-  query: "SELECT VALUES {'a': a.a}, a.* FROM foo AS a"
+  pipeline:
+  - $project:
+      a: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        a: $a.a
+      a: $a
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:

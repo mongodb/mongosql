@@ -1,28 +1,90 @@
-%YAML 1.2
----
-catalog_schema: {mydb: {foo: {bsonType: object, additionalProperties: true}, bar: {
-      bsonType: object, additionalProperties: true}}}
+catalog_schema:
+  {
+    'mydb': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'bar': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
 
 tests:
 - description: document literal key ordering is not guaranteed to be preserved
   current_db: mydb
-  query: "SELECT VALUE {'b': _id, 'c': a} FROM foo AS f"
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          b: {bsonType: int}
-          c: {bsonType: int}
-        required: [b, c]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "f": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "c": "$f.a", 
+          "b": "$f._id"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  "result_set_schema": {
+    "additionalProperties": false, 
+    "required": [
+      "", 
+      "_id"
+    ], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "b", 
+          "c"
+        ], 
+        "properties": {
+          "c": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "_id": {
+        "bsonType": "objectId"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: key ordering from docs in collections is not guaranteed to be preserved
   current_db: mydb
-  query: SELECT * FROM foo AS f
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "f": "$$ROOT"
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -38,7 +100,14 @@ tests:
     additionalProperties: false
 - description: subdocument key ordering is not guaranteed to be preserved
   current_db: mydb
-  query: SELECT * FROM bar AS b
+  "pipeline": [
+    {
+      "$project": {
+        "b": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:

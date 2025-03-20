@@ -1,12 +1,30 @@
-%YAML 1.2
----
-catalog_schema: {mydb: {foo: {bsonType: object, additionalProperties: true}}, otherdb: {
-    foo: {bsonType: object, additionalProperties: true}}}
+catalog_schema:
+  {
+    'mydb': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    },
+    'otherdb': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
 
 tests:
 - description: reference collection in current db by fully qualified name
   current_db: mydb
-  query: SELECT * FROM mydb.foo AS foo
+  "pipeline": [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -22,7 +40,14 @@ tests:
     additionalProperties: false
 - description: reference collection in current db by unqualified name
   current_db: mydb
-  query: SELECT * FROM foo AS foo
+  "pipeline": [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -38,7 +63,14 @@ tests:
     additionalProperties: false
 - description: reference collection in other db by fully qualified name
   current_db: mydb
-  query: SELECT * FROM otherdb.foo AS foo
+  "pipeline": [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:

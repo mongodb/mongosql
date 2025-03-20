@@ -1,11 +1,55 @@
-%YAML 1.2
----
-catalog_schema: {foo: {bar: {bsonType: object, additionalProperties: true}}}
+catalog_schema:
+  {
+    'foo': {
+      'bar': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
 
 tests:
 - description: SELECT empty document literal
-  query: "SELECT VALUE {'_1': {}} FROM [{}] AS _dual"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "$literal": {}
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "_dual": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "_1": {
+            "$literal": {}
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -22,8 +66,44 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: SELECT VALUE empty document literal
-  query: SELECT VALUE {} FROM [{}] AS _dual
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "$literal": {}
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "_dual": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "$literal": {}
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -35,8 +115,56 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: SELECT non-empty document literals
-  query: "SELECT VALUE {'_1': {'a': 1}, '_2': {'b': 2, 'c': 3}} FROM [{}] AS _dual"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "$literal": {}
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "_dual": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "_2": {
+            "c": {
+              "$literal": 3
+            }, 
+            "b": {
+              "$literal": 2
+            }
+          }, 
+          "_1": {
+            "a": {
+              "$literal": 1
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -62,8 +190,52 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: SELECT VALUE non-empty document literal
-  query: "SELECT VALUE {'a': 1, 'b': 2, 'c': 3} FROM [{}] AS _dual"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "$literal": {}
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "_dual": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": {
+            "$literal": 1
+          }, 
+          "c": {
+            "$literal": 3
+          }, 
+          "b": {
+            "$literal": 2
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -79,8 +251,46 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: Dot notation field access from literal document
-  query: "SELECT VALUE {'a': {'a': 1, 'b': 2}.a} FROM [{}] AS _dual"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "$literal": {}
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "_dual": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": {
+            "$literal": 1
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -94,8 +304,48 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: Dot notation one-level field access
-  query: "SELECT VALUE {'b': a.b} FROM [{'a': {'b': 100}}] AS arr"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "b": {
+              "$literal": 100
+            }
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "b": "$arr.a.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -109,8 +359,50 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: Dot notation multi-level field access
-  query: "SELECT VALUE {'c': a.b.c} FROM [{'a': {'b': {'c': 100}}}] AS arr"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "b": {
+              "c": {
+                "$literal": 100
+              }
+            }
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "c": "$arr.a.b.c"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -123,10 +415,40 @@ tests:
         additionalProperties: false
     required: ['', _id]
     additionalProperties: false
-- description: Dot notation field access from expression that evaluates to non-document
-    at runtime
+- description: Dot notation field access from expression that evaluates to non-document at runtime
   current_db: foo
-  query: "SELECT VALUE {'_id': _id, 'a': a, 'b': a.b} FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a", 
+          "_id": "$bar._id", 
+          "b": "$bar.a.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -150,8 +472,54 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: Dot notation SELECT field called star
-  query: "SELECT VALUE {'*': a.`*`} FROM [{'a': {'*': 100, 'b': 10, 'c': 1}}] AS arr"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "c": {
+              "$literal": 1
+            }, 
+            "*": {
+              "$literal": 100
+            }, 
+            "b": {
+              "$literal": 10
+            }
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "*": "$arr.a.*"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -165,8 +533,46 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: Bracket notation field access from literal document
-  query: "SELECT VALUE {'a': {'a': 1, 'b': 2}['a']} FROM [{}] AS _dual"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "$literal": {}
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "_dual": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": {
+            "$literal": 1
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -180,8 +586,48 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: Bracket notation one-level field access
-  query: "SELECT VALUE {'b': a['b']} FROM [{'a': {'b': 100}}] AS arr"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "b": {
+              "$literal": 100
+            }
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "b": "$arr.a.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -195,8 +641,50 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: Bracket notation multi-level field access
-  query: "SELECT VALUE {'c': a['b']['c']} FROM [{'a': {'b': {'c': 100}}}] AS arr"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "b": {
+              "c": {
+                "$literal": 100
+              }
+            }
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "c": "$arr.a.b.c"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -210,9 +698,54 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: Bracket notation SELECT field called star
-  query: "SELECT VALUE {'*': a['*']} FROM [{'a': {'*': 100, 'b': 10, 'c': 1}}] AS
-    arr"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "c": {
+              "$literal": 1
+            }, 
+            "*": {
+              "$literal": 100
+            }, 
+            "b": {
+              "$literal": 10
+            }
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "*": "$arr.a.*"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -225,18 +758,54 @@ tests:
       _id: {bsonType: objectId}
     required: ['', _id]
     additionalProperties: false
-- description: Bracket notation CAST to STRING expression
-  query: "SELECT {'_1': a[CAST(b AS STRING)]} FROM [{'a': {'c': 100}, 'b': 'c'}] AS
-    arr"
-  skip_reason: 'SQL-673: add codegen support for ComputedFieldAccess'
-  current_db: test
-  result:
-  - {'': {_1: 100}}
 
 - description: Mixed notation field access
-  query: "SELECT VALUE {'d': a.b['c'].d} FROM [{'a': {'b': {'c': {'d': 100}}}}] AS
-    arr"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "b": {
+              "c": {
+                "d": {
+                  "$literal": 100
+                }
+              }
+            }
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "d": "$arr.a.b.c.d"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:

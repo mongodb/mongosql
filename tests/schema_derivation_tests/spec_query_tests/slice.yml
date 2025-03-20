@@ -1,13 +1,41 @@
-%YAML 1.2
----
-catalog_schema: {foo: {no_start: {bsonType: object, additionalProperties: true}, start: {
-      bsonType: object, additionalProperties: true}}}
+catalog_schema:
+  {
+    'foo': {
+      'no_start': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'start': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
 
 tests:
 - description: SLICE without start argument correctness test
   current_db: foo
-  query: "SELECT VALUE {'arr': arr, 'len': len, 'slice': SLICE(arr::!ARRAY, len::!INT)}
-    FROM no_start AS ns"
+  pipeline:
+  - $project:
+      ns: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        arr: $ns.arr
+        len: $ns.len
+        slice:
+          $slice:
+          - $ns.arr
+          - $ns.len
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot arr, 'len': len, 'slice': SLICE(arr::!ARRAY, len::!INT)}
   result_set_schema:
     bsonType: object
     properties:
@@ -35,8 +63,34 @@ tests:
     additionalProperties: false
 - description: SLICE with start argument correctness test
   current_db: foo
-  query: "SELECT VALUE {'arr': arr, 'len': len, 'start': start, 'slice': SLICE(arr::!ARRAY,
-    start::!INT, len::!INT)} FROM start AS s"
+  pipeline:
+  - $project:
+      s: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        arr: $s.arr
+        len: $s.len
+        start: $s.start
+        slice:
+          $cond:
+          - $lte:
+            - $s.len
+            - $literal: 0
+          - $literal: null
+          - $slice:
+            - $s.arr
+            - $s.start
+            - $s.len
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:

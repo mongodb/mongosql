@@ -1,53 +1,206 @@
-%YAML 1.2
----
-catalog_schema: {foo: {bar: {bsonType: object, required: [d, i], additionalProperties: false,
-      properties: {d: {bsonType: double}, i: {bsonType: int}}}}}
+catalog_schema:
+  {
+    'foo': {
+      'bar': {
+        'bsonType': "object",
+        'required': [ 'd', 'i' ],
+        'additionalProperties': false,
+        'properties': {
+          'd': {
+            'bsonType': "double"
+          },
+          'i': {
+            'bsonType': "int"
+          },
+        }
+      }
+    }
+  }
 
 tests:
   - description: SELECT empty array literal
-    query: "SELECT VALUE {'_1': []} FROM [{}] AS _dual"
     current_db: test
-    result_set_schema:
-      bsonType: object
-      properties:
-        '':
-          bsonType: object
-          properties:
-            _1:
-              bsonType: array
-          required: [_1]
-          additionalProperties: false
-      required: ['']
-      additionalProperties: false
+    pipeline: [
+      {
+        "$documents": [
+          {
+            "$literal": {}
+          }
+        ]
+      }, 
+      {
+        "$project": {
+          "_dual": "$$ROOT", 
+          "_id": 0
+        }
+      }, 
+      {
+        "$project": {
+          "__bot": {
+            "_1": []
+          }, 
+          "_id": 0
+        }
+      }, 
+      {
+        "$replaceWith": {
+          "$unsetField": {
+            "field": "__bot", 
+            "input": {
+              "$setField": {
+                "field": "", 
+                "value": "$__bot", 
+                "input": "$$ROOT"
+              }
+            }
+          }
+        }
+      }
+    ]
+    result_set_schema: {
+      "additionalProperties": false, 
+      "required": [
+        ""
+      ], 
+      "properties": {
+        "": {
+          "additionalProperties": false, 
+          "required": [
+            "_1"
+          ], 
+          "properties": {
+            "_1": {
+              "bsonType": "array"
+            }
+          }, 
+          "bsonType": "object"
+        }
+      }, 
+      "bsonType": "object"
+    }
   
   - description: SELECT non-empty array literal
-    query: "SELECT VALUE {'_1': [1, true, 'yes', {'a': 'b'}, [1.0, false]]} FROM [{}] AS _dual"
     current_db: test
-    result_set_schema:
-      bsonType: object
-      properties:
-        '':
-          bsonType: object
-          properties:
-            _1:
-              bsonType: array
-              items:
-                anyOf:
-                - {bsonType: int}
-                - {bsonType: string}
-                - {bsonType: bool}
-                - bsonType: array
-                  items:
-                    anyOf:
-                    - {bsonType: double}
-                    - {bsonType: bool}
-                - bsonType: object
-                  properties:
-                    a: {bsonType: string}
-                  required: [a]
-                  additionalProperties: false
-          required: [_1]
-          additionalProperties: false
-        _id: {bsonType: objectId}
-      required: ['', _id]
-      additionalProperties: false
+    pipeline: [
+      {
+        "$documents": [
+          {
+            "$literal": {}
+          }
+        ]
+      }, 
+      {
+        "$project": {
+          "_dual": "$$ROOT", 
+          "_id": 0
+        }
+      }, 
+      {
+        "$project": {
+          "__bot": {
+            "_1": [
+              {
+                "$literal": 1
+              }, 
+              {
+                "$literal": true
+              }, 
+              {
+                "$literal": true
+              }, 
+              {
+                "a": {
+                  "$literal": "b"
+                }
+              }, 
+              [
+                {
+                  "$literal": 1.0
+                }, 
+                {
+                  "$literal": false
+                }
+              ]
+            ]
+          }, 
+          "_id": 0
+        }
+      }, 
+      {
+        "$replaceWith": {
+          "$unsetField": {
+            "field": "__bot", 
+            "input": {
+              "$setField": {
+                "field": "", 
+                "value": "$__bot", 
+                "input": "$$ROOT"
+              }
+            }
+          }
+        }
+      }
+    ]
+    result_set_schema: {
+        "additionalProperties": false, 
+        "required": [
+          "", 
+          "_id"
+        ], 
+        "properties": {
+          "": {
+            "additionalProperties": false, 
+            "required": [
+              "_1"
+            ], 
+            "properties": {
+              "_1": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "bsonType": "int"
+                    }, 
+                    {
+                      "bsonType": "string"
+                    }, 
+                    {
+                      "bsonType": "bool"
+                    }, 
+                    {
+                      "items": {
+                        "anyOf": [
+                          {
+                            "bsonType": "double"
+                          }, 
+                          {
+                            "bsonType": "bool"
+                          }
+                        ]
+                      }, 
+                      "bsonType": "array"
+                    }, 
+                    {
+                      "additionalProperties": false, 
+                      "required": [
+                        "a"
+                      ], 
+                      "properties": {
+                        "a": {
+                          "bsonType": "string"
+                        }
+                      }, 
+                      "bsonType": "object"
+                    }
+                  ]
+                }, 
+                "bsonType": "array"
+              }
+            }, 
+            "bsonType": "object"
+          }, 
+          "_id": {
+            "bsonType": "objectId"
+          }
+        }, 
+        "bsonType": "object"
+      }

@@ -1,22 +1,134 @@
-%YAML 1.2
----
-catalog_schema: {foo: {concat: {bsonType: object, required: [_id, s1, s2], additionalProperties: false,
-      properties: {_id: {bsonType: int}, s1: {bsonType: string}, s2: {anyOf: [bsonType: string,
-            bsonType: !!str "null"]}}}, nullAndMissing: {bsonType: object, required: [
-        _id, s, p], additionalProperties: false, properties: {_id: {bsonType: int},
-        s: {anyOf: [bsonType: string, bsonType: !!str "null"]}, p: {anyOf: [bsonType: string,
-            bsonType: !!str "null"]}}}, like: {bsonType: object, required: [_id, s,
-        p], additionalProperties: false, properties: {_id: {bsonType: int}, s: {anyOf: [
-            bsonType: string, bsonType: !!str "null"]}, p: {anyOf: [bsonType: string,
-            bsonType: !!str "null"]}}}, escape: {bsonType: object, required: [_id,
-        s, p], additionalProperties: false, properties: {_id: {bsonType: int}, s: {
-          anyOf: [bsonType: string, bsonType: !!str "null"]}, p: {anyOf: [bsonType: string,
-            bsonType: !!str "null"]}}}}}
+catalog_schema:
+  {
+    "foo": {
+      "concat": {
+        "bsonType": "object",
+        'required': [ '_id', 's1', 's2' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "s1": {
+            "bsonType": "string"
+          },
+          "s2": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "nullAndMissing": {
+        "bsonType": "object",
+        'required': [ '_id', 's', 'p' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "s": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "p": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "like": {
+        "bsonType": "object",
+        'required': [ '_id', 's', 'p' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "s": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "p": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "escape": {
+        "bsonType": "object",
+        'required': [ '_id', 's', 'p' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "s": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "p": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      }
+    }
+  }
 
 tests:
 - description: correctness test for string concatentation
   current_db: foo
-  query: "SELECT VALUE {'s1': s1, 's2': s2, 's': s1 || s2} FROM concat AS c"
+  "pipeline": [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "s2": "$c.s2", 
+          "s1": "$c.s1", 
+          "s": {
+            "$concat": [
+              "$c.s1", 
+              "$c.s2"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -37,37 +149,3 @@ tests:
         additionalProperties: false
     required: ['', _id]
     additionalProperties: false
-- description: LIKE operator - NULL or MISSING arguments result in NULL
-  current_db: foo
-  query: "SELECT VALUE {'s': s, 'p': p, 'r': s LIKE p} FROM nullAndMissing AS n"
-  skip_reason: 'SQL-330: Update $like desugarer to work for non-literal patterns'
-  result:
-  - {'': {s: null, p: abc, r: null}}
-  - {'': {p: abc, r: null}}
-  - {'': {s: abc, p: null, r: null}}
-  - {'': {s: abc, r: null}}
-
-- description: LIKE operator with no ESCAPE correctness tests
-  current_db: foo
-  query: "SELECT VALUE {'s': s, 'p': p, 'r': s LIKE p} FROM `like` AS l"
-  skip_reason: 'SQL-330: Update $like desugarer to work for non-literal patterns'
-  result:
-  - {'': {s: abc, p: abc, r: true}}
-  - {'': {s: abc, p: a_c, r: true}}
-  - {'': {s: abc, p: a%, r: true}}
-  - {'': {s: abc, p: ab_%, r: true}}
-  - {'': {s: bc, p: abc, r: false}}
-  - {'': {s: bc, p: _bc, r: false}}
-  - {'': {s: bc, p: ab%c, r: false}}
-  - {'': {s: bc, p: '%_bc', r: false}}
-
-- description: LIKE operator with ESCAPE correctness tests
-  current_db: foo
-  query: "SELECT VALUE {'s': s, 'p': p, 'r': s LIKE p ESCAPE '$'} FROM `escape` AS
-    e"
-  skip_reason: "SQL-521: wrap '$' in $literal document"
-  result:
-  - {'': {s: abc, p: abc, r: true}}
-  - {'': {s: abc, p: a$_c, r: false}}
-  - {'': {s: a$_%c, p: a$$$_$%c, r: true}}
-  - {'': {s: abc, p: ab$c, r: true}}

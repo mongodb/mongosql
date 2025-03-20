@@ -1,13 +1,55 @@
-%YAML 1.2
----
-catalog_schema: {db: {and_or_tier: {bsonType: object, required: [_id, a, b, c], additionalProperties: false,
-      properties: {_id: {bsonType: int}, a: {bsonType: bool}, b: {bsonType: bool},
-        c: {bsonType: bool}}}, not_and_tier: {bsonType: object, required: [_id, a,
-        b], additionalProperties: false, properties: {_id: {bsonType: int}, a: {bsonType: bool},
-        b: {anyOf: [bsonType: bool, bsonType: !!str "null"]}}}, mul_add_tier: {bsonType: object,
-      required: [_id, a, b, c], additionalProperties: false, properties: {_id: {bsonType: int},
-        a: {bsonType: int}, b: {bsonType: int}, c: {bsonType: int}}}, subpath_type_tier: {
-      bsonType: object, additionalProperties: true}}}
+catalog_schema:
+  {
+    'db': {
+      'and_or_tier': {
+        'bsonType': 'object',
+        'required': [ '_id', 'a', 'b', 'c' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': 'int'
+          },
+          'a': { 'bsonType': 'bool' },
+          'b': { 'bsonType': 'bool' },
+          'c': { 'bsonType': 'bool' }
+        }
+      },
+      'not_and_tier': {
+        'bsonType': 'object',
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': 'int'
+          },
+          'a': { 'bsonType': 'bool' },
+          'b': {
+            'anyOf': [
+              { 'bsonType': 'bool' },
+              { 'bsonType': !!str "null" }
+            ]
+          }
+        }
+      },
+      'mul_add_tier': {
+        'bsonType': 'object',
+        'required': [ '_id', 'a', 'b', 'c' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': 'int'
+          },
+          'a': { 'bsonType': 'int' },
+          'b': { 'bsonType': 'int' },
+          'c': { 'bsonType': 'int' }
+        }
+      },
+      'subpath_type_tier': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      }
+    }
+  }
 
 tests:
   # The expression
@@ -23,8 +65,60 @@ tests:
   #   a AND (b OR c)
 - description: AND binds tighter than OR
   current_db: db
-  query: "SELECT VALUE {'a': a, 'b': b, 'c': c, 'v': a AND b OR c, 'alt': a AND (b
-    OR c)} FROM and_or_tier AS coll"
+  "pipeline": [
+    {
+      "$project": {
+        "coll": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$coll.a", 
+          "c": "$coll.c", 
+          "b": "$coll.b", 
+          "alt": {
+            "$and": [
+              "$coll.a", 
+              {
+                "$or": [
+                  "$coll.b", 
+                  "$coll.c"
+                ]
+              }
+            ]
+          }, 
+          "v": {
+            "$or": [
+              {
+                "$and": [
+                  "$coll.a", 
+                  "$coll.b"
+                ]
+              }, 
+              "$coll.c"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -43,8 +137,197 @@ tests:
     additionalProperties: false
 - description: NOT binds tighter than AND
   current_db: db
-  query: "SELECT VALUE {'a': a, 'b': b, 'v': NOT a AND b, 'alt': NOT (a AND b)} FROM
-    not_and_tier AS coll"
+  "pipeline": [
+    {
+      "$project": {
+        "coll": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$coll.a", 
+          "alt": {
+            "$let": {
+              "vars": {
+                "desugared_sqlNot_input0": {
+                  "$let": {
+                    "vars": {
+                      "desugared_sqlAnd_input0": "$coll.a", 
+                      "desugared_sqlAnd_input1": "$coll.b"
+                    }, 
+                    "in": {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$eq": [
+                                "$$desugared_sqlAnd_input0", 
+                                {
+                                  "$literal": false
+                                }
+                              ]
+                            }, 
+                            {
+                              "$eq": [
+                                "$$desugared_sqlAnd_input1", 
+                                {
+                                  "$literal": false
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": false
+                        }, 
+                        {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlAnd_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlAnd_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$lte": [
+                      "$$desugared_sqlNot_input0", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$not": [
+                      "$$desugared_sqlNot_input0"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$coll.b", 
+          "v": {
+            "$let": {
+              "vars": {
+                "desugared_sqlAnd_input0": {
+                  "$not": [
+                    "$coll.a"
+                  ]
+                }, 
+                "desugared_sqlAnd_input1": "$coll.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$eq": [
+                          "$$desugared_sqlAnd_input0", 
+                          {
+                            "$literal": false
+                          }
+                        ]
+                      }, 
+                      {
+                        "$eq": [
+                          "$$desugared_sqlAnd_input1", 
+                          {
+                            "$literal": false
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": false
+                  }, 
+                  {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$lte": [
+                              "$$desugared_sqlAnd_input0", 
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          }, 
+                          {
+                            "$lte": [
+                              "$$desugared_sqlAnd_input1", 
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          }
+                        ]
+                      }, 
+                      {
+                        "$literal": null
+                      }, 
+                      {
+                        "$literal": true
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -71,8 +354,104 @@ tests:
     additionalProperties: false
 - description: IS binds tighter than NOT
   current_db: db
-  query: "SELECT VALUE {'a': a, 'v': NOT a IS BOOL, 'alt': (NOT a) IS BOOL} FROM [{'a':
-    true}, {'a': null}] AS arr"
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": true
+          }
+        }, 
+        {
+          "a": {
+            "$literal": null
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$arr.a", 
+          "alt": {
+            "$eq": [
+              {
+                "$type": [
+                  {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlNot_input0": "$arr.a"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$lte": [
+                              "$$desugared_sqlNot_input0", 
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$not": [
+                              "$$desugared_sqlNot_input0"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }, 
+              {
+                "$literal": "bool"
+              }
+            ]
+          }, 
+          "v": {
+            "$not": [
+              {
+                "$eq": [
+                  {
+                    "$type": [
+                      "$arr.a"
+                    ]
+                  }, 
+                  {
+                    "$literal": "bool"
+                  }
+                ]
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -90,14 +469,6 @@ tests:
       _id: {bsonType: objectId}
     required: ['', _id]
     additionalProperties: false
-- description: LIKE binds tighter than IS
-  current_db: db
-  query: "SELECT VALUE {'a': a, 'b': b, 'v': a LIKE b IS NULL} FROM [{'a': 'str',
-    'b': 'str'}, {'a': 'str', 'b': null}] AS arr"
-  skip_reason: 'SQL-330: Update $like desugarer to work for non-literal patterns'
-  result:
-  - {'': {a: str, b: str, v: false}}
-  - {'': {a: str, b: null, v: true}}
 
   # The expression
   #
@@ -117,8 +488,127 @@ tests:
   # show precedence behavior.
 - description: BETWEEN binds tighter than IN
   current_db: db
-  query: "SELECT VALUE {'a': a, 'v': a BETWEEN 0 AND 2 IN (true)} FROM [{'a': 1},
-    {'a': 3}] AS arr"
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }
+        }, 
+        {
+          "a": {
+            "$literal": 3
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        "pipeline": [
+          {
+            "$documents": [
+              {
+                "_1": {
+                  "$literal": true
+                }
+              }
+            ]
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "_arr": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "_1": "$_arr._1"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "varr_0": "$arr"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$arr.a", 
+          "v": {
+            "$reduce": {
+              "input": "$__subquery_result_0", 
+              "initialValue": {
+                "$literal": false
+              }, 
+              "in": {
+                "$or": [
+                  "$$value", 
+                  {
+                    "$eq": [
+                      {
+                        "$and": [
+                          {
+                            "$gte": [
+                              "$arr.a", 
+                              {
+                                "$literal": 0
+                              }
+                            ]
+                          }, 
+                          {
+                            "$lte": [
+                              "$arr.a", 
+                              {
+                                "$literal": 2
+                              }
+                            ]
+                          }
+                        ]
+                      }, 
+                      "$$this.__bot._1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -134,8 +624,64 @@ tests:
     additionalProperties: false
 - description: '|| binds tighter than comparison ops'
   current_db: db
-  query: "SELECT VALUE {'a': a, 'b': b, 'c': c, 'v': a || b = c} FROM [{'a': 'a',
-    'b': 'b', 'c': 'ab'}] AS arr"
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": "a"
+          }, 
+          "c": {
+            "$literal": "ab"
+          }, 
+          "b": {
+            "$literal": "b"
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$arr.a", 
+          "c": "$arr.c", 
+          "b": "$arr.b", 
+          "v": {
+            "$eq": [
+              {
+                "$concat": [
+                  "$arr.a", 
+                  "$arr.b"
+                ]
+              }, 
+              "$arr.c"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -153,8 +699,60 @@ tests:
     additionalProperties: false
 - description: mul/div bind tighter than add/sub
   current_db: db
-  query: "SELECT VALUE {'a': a, 'b': b, 'c': c, 'v': a * b + c, 'alt': a * (b + c)}
-    FROM mul_add_tier AS coll"
+  "pipeline": [
+    {
+      "$project": {
+        "coll": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$coll.a", 
+          "c": "$coll.c", 
+          "b": "$coll.b", 
+          "alt": {
+            "$multiply": [
+              "$coll.a", 
+              {
+                "$add": [
+                  "$coll.b", 
+                  "$coll.c"
+                ]
+              }
+            ]
+          }, 
+          "v": {
+            "$add": [
+              {
+                "$multiply": [
+                  "$coll.a", 
+                  "$coll.b"
+                ]
+              }, 
+              "$coll.c"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -173,8 +771,75 @@ tests:
     additionalProperties: false
 - description: unary ops bind tighter than mul/div
   current_db: db
-  query: "SELECT VALUE {'a': a, 'b': b, 'v': - a * b, 'alt': - (a * b)} FROM [{'a':
-    -1, 'b': 1}] AS arr"
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": -1
+          }, 
+          "b": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$arr.a", 
+          "alt": {
+            "$multiply": [
+              {
+                "$multiply": [
+                  "$arr.a", 
+                  "$arr.b"
+                ]
+              }, 
+              {
+                "$literal": -1
+              }
+            ]
+          }, 
+          "b": "$arr.b", 
+          "v": {
+            "$multiply": [
+              {
+                "$multiply": [
+                  "$arr.a", 
+                  {
+                    "$literal": -1
+                  }
+                ]
+              }, 
+              "$arr.b"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -192,7 +857,48 @@ tests:
     additionalProperties: false
 - description: subpath op binds tighter than type ops
   current_db: db
-  query: "SELECT VALUE {'a': a, 'v': a.b::INT} FROM subpath_type_tier AS coll"
+  "pipeline": [
+    {
+      "$project": {
+        "coll": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$coll.a", 
+          "v": {
+            "$convert": {
+              "onError": {
+                "$literal": null
+              }, 
+              "input": "$coll.a.b", 
+              "onNull": {
+                "$literal": null
+              }, 
+              "to": "int"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:

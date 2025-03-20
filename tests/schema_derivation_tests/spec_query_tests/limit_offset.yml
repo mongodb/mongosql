@@ -1,14 +1,45 @@
-%YAML 1.2
----
-catalog_schema: {foo: {bar: {bsonType: object, required: [_id, a], additionalProperties: false,
-      properties: {_id: {bsonType: int}, a: {bsonType: int}}}, baz: {bsonType: object,
-      required: [_id, a], additionalProperties: false, properties: {_id: {bsonType: int},
-        a: {bsonType: int}}}}}
+catalog_schema:
+  {
+    "foo":
+      {
+        "bar":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a"],
+            "additionalProperties": false,
+            "properties":
+              { "_id": { "bsonType": "int" }, "a": { "bsonType": "int" } },
+          },
+        "baz":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a"],
+            "additionalProperties": false,
+            "properties":
+              { "_id": { "bsonType": "int" }, "a": { "bsonType": "int" } },
+          },
+      },
+  }
 
 tests:
 - description: Simple select with limit clause
   current_db: foo
-  query: SELECT * FROM bar AS bar ORDER BY a LIMIT 1
+  "pipeline": [
+    {
+      "$sort": {
+        "a": 1
+      }
+    }, 
+    {
+      "$limit": 1
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -24,7 +55,22 @@ tests:
     additionalProperties: false
 - description: Simple select with offset clause
   current_db: foo
-  query: SELECT * FROM bar AS bar ORDER BY a OFFSET 1
+  "pipeline": [
+    {
+      "$sort": {
+        "a": 1
+      }
+    }, 
+    {
+      "$skip": 1
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -40,7 +86,25 @@ tests:
     additionalProperties: false
 - description: Select with limit and offset
   current_db: foo
-  query: SELECT * FROM bar AS bar ORDER BY a LIMIT 1 OFFSET 1
+  "pipeline": [
+    {
+      "$sort": {
+        "a": 1
+      }
+    }, 
+    {
+      "$skip": 1
+    }, 
+    {
+      "$limit": 1
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -56,8 +120,76 @@ tests:
     additionalProperties: false
 - description: Limit in subquery
   current_db: foo
-  query: SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY
-    a LIMIT 1)
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "baz", 
+        "pipeline": [
+          {
+            "$sort": {
+              "a": 1
+            }
+          }, 
+          {
+            "$limit": 1
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "baz": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$baz.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$or": [
+                "$$value", 
+                {
+                  "$eq": [
+                    "$bar.a", 
+                    "$$this.__bot.a"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -73,8 +205,76 @@ tests:
     additionalProperties: false
 - description: Offset in subquery
   current_db: foo
-  query: SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY
-    a OFFSET 1)
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "baz", 
+        "pipeline": [
+          {
+            "$sort": {
+              "a": 1
+            }
+          }, 
+          {
+            "$skip": 1
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "baz": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$baz.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$or": [
+                "$$value", 
+                {
+                  "$eq": [
+                    "$bar.a", 
+                    "$$this.__bot.a"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -90,8 +290,79 @@ tests:
     additionalProperties: false
 - description: Limit and offset in subquery
   current_db: foo
-  query: SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY
-    a LIMIT 1 OFFSET 1)
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "baz", 
+        "pipeline": [
+          {
+            "$sort": {
+              "a": 1
+            }
+          }, 
+          {
+            "$skip": 1
+          }, 
+          {
+            "$limit": 1
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "baz": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$baz.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$or": [
+                "$$value", 
+                {
+                  "$eq": [
+                    "$bar.a", 
+                    "$$this.__bot.a"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:

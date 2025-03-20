@@ -1,22 +1,114 @@
-%YAML 1.2
----
-catalog_schema: {foo: {bar: {bsonType: object, required: [_id, foo], additionalProperties: false,
-      properties: {_id: {bsonType: int}, foo: {bsonType: bool}}}, baz: {bsonType: object,
-      required: [_id, foo], additionalProperties: false, properties: {_id: {bsonType: int},
-        foo: {bsonType: bool}}}, biz: {bsonType: object, required: [_id, foo], additionalProperties: false,
-      properties: {_id: {bsonType: int}, foo: {bsonType: array, items: {bsonType: int}}}},
-    nested: {bsonType: object, required: [_id, foo], additionalProperties: false,
-      properties: {_id: {bsonType: int}, foo: {bsonType: object, required: [bar],
-          additionalProperties: false, properties: {bar: {bsonType: array, items: {
-                bsonType: int}}}}}}, items: {bsonType: object, required: [_id, foo],
-      additionalProperties: false, properties: {_id: {bsonType: int}, foo: {bsonType: array,
-          items: {bsonType: object, required: [bar], additionalProperties: false,
-            properties: {bar: {bsonType: int}}}}}}}}
+catalog_schema:
+    {
+        "foo": {
+            "bar": {
+              "bsonType": "object",
+              "required": [ "_id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": { "bsonType": "bool" }
+              }
+            },
+            "baz": {
+              "bsonType": "object",
+              "required": [ "_id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": { "bsonType": "bool" }
+              }
+            },
+            "biz": {
+              "bsonType": "object",
+              "required": [ "_id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": { "bsonType": "array", "items": { "bsonType": "int" } }
+              }
+            },
+            "nested": {
+              "bsonType": "object",
+              "required": [ "_id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": {
+                  "bsonType": "object",
+                  "required": [ "bar" ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "bar": { "bsonType": "array", "items": { "bsonType": "int" } }
+                  }
+                }
+              }
+            },
+            "items": {
+              "bsonType": "object",
+              "required": [ "_id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": {
+                  "bsonType": "array",
+                  "items": {
+                    "bsonType": "object",
+                    "required": [ "bar" ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "bar": { "bsonType": "int" }
+                    }
+                  }
+                }
+              }
+            }
+        }
+    }
+
 
 tests:
 - description: WHERE with BOOLEAN returning expression
-  query: "SELECT * FROM [{'a': 1}, {'a': 2}, {'a': 3}] AS arr WHERE a >= 2"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }
+        }, 
+        {
+          "a": {
+            "$literal": 2
+          }
+        }, 
+        {
+          "a": {
+            "$literal": 3
+          }
+        }
+      ]
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$gte": [
+            "$a", 
+            {
+              "$literal": 2
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -30,9 +122,55 @@ tests:
     required: [_id, arr]
     additionalProperties: false
 - description: WHERE with CAST to BOOLEAN
-  query: "SELECT * FROM [{'a': 0}, {'a': 1}, {'a': 2}, {'a': 3}] AS arr WHERE CAST(a
-    AS BOOLEAN)"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 0
+          }
+        }, 
+        {
+          "a": {
+            "$literal": 1
+          }
+        }, 
+        {
+          "a": {
+            "$literal": 2
+          }
+        }, 
+        {
+          "a": {
+            "$literal": 3
+          }
+        }
+      ]
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$convert": {
+            "onError": {
+              "$literal": null
+            }, 
+            "input": "$a", 
+            "onNull": {
+              "$literal": null
+            }, 
+            "to": "bool"
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -46,9 +184,57 @@ tests:
     required: [_id, arr]
     additionalProperties: false
 - description: WHERE with CASE that must return BOOLEAN
-  query: "SELECT * FROM [{'a': false}, {'a': true}] AS arr WHERE CASE WHEN a IS BOOLEAN
-    THEN a ELSE false END"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": false
+          }
+        }, 
+        {
+          "a": {
+            "$literal": true
+          }
+        }
+      ]
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$switch": {
+            "default": {
+              "$literal": false
+            }, 
+            "branches": [
+              {
+                "case": {
+                  "$eq": [
+                    {
+                      "$type": [
+                        "$a"
+                      ]
+                    }, 
+                    {
+                      "$literal": "bool"
+                    }
+                  ]
+                }, 
+                "then": "$a"
+              }
+            ]
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -62,8 +248,41 @@ tests:
     required: [_id, arr]
     additionalProperties: false
 - description: WHERE after unwind returns expected results
-  query: SELECT * FROM UNWIND(foo.biz WITH PATH => foo) WHERE foo = 2
   current_db: test
+  "pipeline": [
+    {
+      "$match": {
+        "foo": {
+          "$elemMatch": {
+            "$eq": 2
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "biz": "$$ROOT"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$biz.foo"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$eq": [
+            "$biz.foo", 
+            {
+              "$literal": 2
+            }
+          ]
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -78,9 +297,41 @@ tests:
     required: [_id, biz]
     additionalProperties: false
 - description: WHERE after FLATTEN UNWIND returns expected results
-  query: SELECT * FROM FLATTEN(UNWIND(foo.nested WITH PATH => foo.bar)) WHERE foo_bar
-    = 2
   current_db: test
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "nested": "$$ROOT"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$nested.foo.bar"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$eq": [
+            "$nested.foo.bar", 
+            {
+              "$literal": 2
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "nested": {
+          "foo_bar": "$nested.foo.bar", 
+          "_id": "$nested._id"
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -95,9 +346,41 @@ tests:
     required: [_id, nested]
     additionalProperties: false
 - description: WHERE after FLATTEN UNWIND an array of objects returns expected results
-  query: SELECT * FROM FLATTEN(UNWIND(foo.items WITH PATH => foo)) WHERE foo_bar =
-    2
   current_db: test
+  "pipeline": [
+    {
+      "$project": {
+        "items": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$items.foo"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$eq": [
+            "$items.foo.bar", 
+            {
+              "$literal": 2
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "items": {
+          "foo_bar": "$items.foo.bar", 
+          "_id": "$items._id"
+        }, 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:

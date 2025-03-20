@@ -1,18 +1,63 @@
-%YAML 1.2
----
-catalog_schema: {foo: {coll: {bsonType: object, additionalProperties: true}, nested: {
-      bsonType: object, additionalProperties: true}, bar: {bsonType: object, properties: {
-        a: {bsonType: int}}, additionalProperties: true}, baz: {bsonType: object,
-      properties: {a: {bsonType: int}}, additionalProperties: true}, schema_coll: {
-      bsonType: object, required: [bar, car], additionalProperties: false, properties: {
-        bar: {bsonType: int}, car: {bsonType: int}}}, schema_foo: {bsonType: object,
-      required: [baz], additionalProperties: false, properties: {baz: {bsonType: int}}}},
-  foo2: {coll: {bsonType: object, additionalProperties: true}}}
+catalog_schema:
+  {
+    'foo': {
+      'coll': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
+      'nested': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
+      'bar': {
+        'bsonType': 'object',
+        'properties': {a: {bsonType: 'int'}},
+        'additionalProperties': true
+      },
+      'baz': {
+        'bsonType': 'object',
+        'properties': {a: {bsonType: 'int'}},
+        'additionalProperties': true
+      },
+      'schema_coll': {
+        'bsonType': "object",
+        'required': [ 'bar', 'car' ],
+        'additionalProperties': false,
+        'properties': {
+          'bar': {
+            'bsonType': "int"
+          },
+          'car': {
+            'bsonType': "int"
+          }
+        }
+      },
+      'schema_foo': {
+        'bsonType': "object",
+        'required': [ 'baz' ],
+        'additionalProperties': false,
+        'properties': {
+          'baz': {
+            'bsonType': "int"
+          }
+        }
+      }
+    },
+    'foo2': {
+      'coll': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
+    }
+  }
 
 tests:
 - description: compound collection references are fully qualified
   current_db: foo
-  query: SELECT * FROM foo.coll AS coll
+  pipeline:
+  - $project:
+      coll: $$ROOT
+      _id: 0
   result_set_schema:
     bsonType: object
     properties:
@@ -29,7 +74,23 @@ tests:
     additionalProperties: false
 - description: equivalent qualified and unqualified references to the same field
   current_db: foo
-  query: "SELECT VALUE {'ubar': bar, 'qbar': coll.bar} FROM foo.coll AS coll"
+  pipeline:
+  - $project:
+      coll: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        ubar: $coll.bar
+        qbar: $coll.bar
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -45,7 +106,22 @@ tests:
     additionalProperties: false
 - description: compound field references prefer qualified names to field references
   current_db: foo
-  query: "SELECT VALUE {'a': n.a} FROM nested AS n"
+  pipeline:
+  - $project:
+      n: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        a: $n.a
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -59,7 +135,22 @@ tests:
 - description: compound field reference is treated as unqualified if no datasource
     name matches first identifier
   current_db: foo
-  query: "SELECT VALUE {'a': n.a} FROM nested AS nested"
+  pipeline:
+  - $project:
+      nested: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        a: $nested.n.a
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -74,7 +165,22 @@ tests:
     additionalProperties: false
 - description: field references never resolve to the catalog environment
   current_db: foo
-  query: "SELECT VALUE {'a': foo.coll} FROM foo.coll AS coll"
+  pipeline:
+  - $project:
+      coll: $$ROOT
+      _id: 0
+  - $project:
+      __bot:
+        a: $coll.foo.coll
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -87,7 +193,38 @@ tests:
     additionalProperties: false
 - description: qualified reference is not ambiguous with multiple datasources
   current_db: foo
-  query: "SELECT VALUE {'a': coll.bar} FROM foo.coll AS coll JOIN foo.nested AS nested"
+  pipeline:
+  - $project:
+      coll: $$ROOT
+      _id: 0
+  - $lookup:
+      from: nested
+      pipeline:
+      - $project:
+          nested: $$ROOT
+          _id: 0
+      as: eca58228-b657-498a-b76e-f48a9161a404
+  - $unwind:
+      path: $eca58228-b657-498a-b76e-f48a9161a404
+  - $replaceWith:
+      $mergeObjects:
+      - $$ROOT
+      - $eca58228-b657-498a-b76e-f48a9161a404
+  - $project:
+      _id: 0
+      eca58228-b657-498a-b76e-f48a9161a404: 0
+  - $project:
+      __bot:
+        a: $coll.bar
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -103,8 +240,38 @@ tests:
 - description: unqualified references are not ambiguous when there are multiple datasources
     with schema that disambiguates
   current_db: foo
-  query: "SELECT VALUE {'a': bar} FROM foo.schema_coll AS coll JOIN foo.schema_foo
-    AS coll2"
+  pipeline:
+  - $project:
+      coll: $$ROOT
+      _id: 0
+  - $lookup:
+      from: schema_foo
+      pipeline:
+      - $project:
+          coll2: $$ROOT
+          _id: 0
+      as: eca58228-b657-498a-b76e-f48a9161a404
+  - $unwind:
+      path: $eca58228-b657-498a-b76e-f48a9161a404
+  - $replaceWith:
+      $mergeObjects:
+      - $$ROOT
+      - $eca58228-b657-498a-b76e-f48a9161a404
+  - $project:
+      _id: 0
+      eca58228-b657-498a-b76e-f48a9161a404: 0
+  - $project:
+      __bot:
+        a: $coll.bar
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -119,7 +286,10 @@ tests:
     additionalProperties: false
 - description: unqualified collection reference refers to current database
   current_db: foo2
-  query: SELECT * FROM coll AS coll
+  pipeline:
+  - $project:
+      coll: $$ROOT
+      _id: 0
   result_set_schema:
     bsonType: object
     properties:
@@ -136,7 +306,74 @@ tests:
     additionalProperties: false
 - description: c.a refers to a in baz.a in the subquery and bar.a in the outer query
   current_db: foo
-  query: SELECT * FROM bar AS c WHERE c.a IN (SELECT c.a FROM baz AS c)
+  pipeline:
+  - $project:
+      c: $$ROOT
+      _id: 0
+  - $lookup:
+      from: baz
+      let:
+        vc_0: $c
+      pipeline:
+      - $project:
+          c: $$ROOT
+          _id: 0
+      - $project:
+          __bot:
+            a: $c.a
+          _id: 0
+      as: __subquery_result_0
+  - $match:
+      $expr:
+        $reduce:
+          input: $__subquery_result_0
+          initialValue:
+            $literal: false
+          in:
+            $let:
+              vars:
+                desugared_sqlOr_input0: $$value
+                desugared_sqlOr_input1:
+                  $let:
+                    vars:
+                      desugared_sqlEq_input0: $c.a
+                      desugared_sqlEq_input1: $$this.__bot.a
+                    in:
+                      $cond:
+                      - $or:
+                        - $lte:
+                          - $$desugared_sqlEq_input0
+                          - $literal: null
+                        - $lte:
+                          - $$desugared_sqlEq_input1
+                          - $literal: null
+                      - $literal: null
+                      - $eq:
+                        - $$desugared_sqlEq_input0
+                        - $$desugared_sqlEq_input1
+              in:
+                $cond:
+                - $or:
+                  - $eq:
+                    - $$desugared_sqlOr_input0
+                    - $literal: true
+                  - $eq:
+                    - $$desugared_sqlOr_input1
+                    - $literal: true
+                - $literal: true
+                - $cond:
+                  - $or:
+                    - $lte:
+                      - $$desugared_sqlOr_input0
+                      - $literal: null
+                    - $lte:
+                      - $$desugared_sqlOr_input1
+                      - $literal: null
+                  - $literal: null
+                  - $literal: false
+  - $project:
+      __subquery_result_0: 0
+      _id: 0
   result_set_schema:
     bsonType: object
     properties:
@@ -153,8 +390,46 @@ tests:
 - description: if an unqualified reference CANNOT be from subquery's datasource and
     MUST be from outer query's datasource, use outer query's datasource
   current_db: foo
-  query: "SELECT VALUE{'bar': (SELECT bar FROM schema_foo AS q LIMIT 1)} FROM schema_coll
-    AS q"
+  pipeline:
+  - $project:
+      q: $$ROOT
+      _id: 0
+  - $lookup:
+      from: schema_foo
+      let:
+        vq_0: $q
+      pipeline:
+      - $limit: 1
+      - $project:
+          q: $$ROOT
+          _id: 0
+      - $project:
+          __bot:
+            bar: $$vq_0.bar
+          _id: 0
+      as: __subquery_result_0
+  - $project:
+      __bot:
+        bar:
+          $let:
+            vars:
+              docExpr:
+                $arrayElemAt:
+                - $__subquery_result_0
+                - $literal: 0
+            in: $$docExpr.__bot.bar
+      _id: 0
+  - $project:
+      __subquery_result_0: 0
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -170,8 +445,46 @@ tests:
 - description: if an unqualified reference CANNOT be from subquery's datasource and
     MAY be from outer query's datasource, use outer query's datasource
   current_db: foo
-  query: "SELECT VALUE{'bar': (SELECT bar FROM schema_foo AS q LIMIT 1)} FROM coll
-    AS q"
+  pipeline:
+  - $project:
+      q: $$ROOT
+      _id: 0
+  - $lookup:
+      from: schema_foo
+      let:
+        vq_0: $q
+      pipeline:
+      - $limit: 1
+      - $project:
+          q: $$ROOT
+          _id: 0
+      - $project:
+          __bot:
+            bar: $$vq_0.bar
+          _id: 0
+      as: __subquery_result_0
+  - $project:
+      __bot:
+        bar:
+          $let:
+            vars:
+              docExpr:
+                $arrayElemAt:
+                - $__subquery_result_0
+                - $literal: 0
+            in: $$docExpr.__bot.bar
+      _id: 0
+  - $project:
+      __subquery_result_0: 0
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -187,8 +500,46 @@ tests:
 - description: if an unqualified reference MAY be from subquery's datasource and CANNOT
     be from outer query's datasource, use subquery's datasource
   current_db: foo
-  query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q LIMIT 1)} FROM schema_foo
-    AS q"
+  pipeline:
+  - $project:
+      q: $$ROOT
+      _id: 0
+  - $lookup:
+      from: baz
+      let:
+        vq_0: $q
+      pipeline:
+      - $limit: 1
+      - $project:
+          q: $$ROOT
+          _id: 0
+      - $project:
+          __bot:
+            bar: $q.bar
+          _id: 0
+      as: __subquery_result_0
+  - $project:
+      __bot:
+        bar:
+          $let:
+            vars:
+              docExpr:
+                $arrayElemAt:
+                - $__subquery_result_0
+                - $literal: 0
+            in: $$docExpr.__bot.bar
+      _id: 0
+  - $project:
+      __subquery_result_0: 0
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -202,8 +553,46 @@ tests:
 - description: if an unqualified reference MUST be from subquery's datasource and
     MUST be from outer query's datasource, the highest scope number is chosen
   current_db: foo
-  query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q LIMIT 1)} FROM schema_coll
-    AS q"
+  pipeline:
+  - $project:
+      q: $$ROOT
+      _id: 0
+  - $lookup:
+      from: schema_coll
+      let:
+        vq_0: $q
+      pipeline:
+      - $limit: 1
+      - $project:
+          q: $$ROOT
+          _id: 0
+      - $project:
+          __bot:
+            bar: $q.bar
+          _id: 0
+      as: __subquery_result_0
+  - $project:
+      __bot:
+        bar:
+          $let:
+            vars:
+              docExpr:
+                $arrayElemAt:
+                - $__subquery_result_0
+                - $literal: 0
+            in: $$docExpr.__bot.bar
+      _id: 0
+  - $project:
+      __subquery_result_0: 0
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -219,8 +608,46 @@ tests:
 - description: if an unqualified reference MUST be from subquery's datasource and
     MAY be from outer query's datasource, use subquery's datasource
   current_db: foo
-  query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q LIMIT 1)} FROM coll
-    AS q"
+  pipeline:
+  - $project:
+      q: $$ROOT
+      _id: 0
+  - $lookup:
+      from: schema_coll
+      let:
+        vq_0: $q
+      pipeline:
+      - $limit: 1
+      - $project:
+          q: $$ROOT
+          _id: 0
+      - $project:
+          __bot:
+            bar: $q.bar
+          _id: 0
+      as: __subquery_result_0
+  - $project:
+      __bot:
+        bar:
+          $let:
+            vars:
+              docExpr:
+                $arrayElemAt:
+                - $__subquery_result_0
+                - $literal: 0
+            in: $$docExpr.__bot.bar
+      _id: 0
+  - $project:
+      __subquery_result_0: 0
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:
@@ -236,8 +663,46 @@ tests:
 - description: if an unqualified reference MUST be from subquery's datasource and
     CANNOT be from outer query's datasource, use subquery's datasource
   current_db: foo
-  query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q LIMIT 1)} FROM schema_foo
-    AS q"
+  pipeline:
+  - $project:
+      q: $$ROOT
+      _id: 0
+  - $lookup:
+      from: schema_coll
+      let:
+        vq_0: $q
+      pipeline:
+      - $limit: 1
+      - $project:
+          q: $$ROOT
+          _id: 0
+      - $project:
+          __bot:
+            bar: $q.bar
+          _id: 0
+      as: __subquery_result_0
+  - $project:
+      __bot:
+        bar:
+          $let:
+            vars:
+              docExpr:
+                $arrayElemAt:
+                - $__subquery_result_0
+                - $literal: 0
+            in: $$docExpr.__bot.bar
+      _id: 0
+  - $project:
+      __subquery_result_0: 0
+      _id: 0
+  - $replaceWith:
+      $unsetField:
+        field: __bot
+        input:
+          $setField:
+            field: ''
+            input: $$ROOT
+            value: $__bot
   result_set_schema:
     bsonType: object
     properties:

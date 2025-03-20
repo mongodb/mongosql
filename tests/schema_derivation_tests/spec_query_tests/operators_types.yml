@@ -1,11 +1,58 @@
-%YAML 1.2
----
-catalog_schema: {foo: {bar: {bsonType: object, additionalProperties: true}}}
+catalog_schema:
+  {
+    'foo': {
+      'bar': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
 
 tests:
 - description: Correctness test for IS DOUBLE
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS DOUBLE } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "double"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -21,7 +68,48 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS STRING
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS STRING } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "string"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -37,7 +125,48 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS DOCUMENT
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS DOCUMENT } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "object"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -53,7 +182,41 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS ARRAY
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS ARRAY } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$isArray": [
+              "$bar.v"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -69,7 +232,48 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS BINDATA
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS BINDATA } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "binData"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -85,7 +289,48 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS UNDEFINED
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS UNDEFINED } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "undefined"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -101,7 +346,48 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS OBJECTID
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS OBJECTID } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "objectId"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -117,7 +403,48 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS BOOL
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS BOOL } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "bool"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -133,7 +460,49 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS BSON_DATE
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS BSON_DATE } FROM bar AS bar"
+  
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "date"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result:
   - {'': {type: double, tc: false}}
   - {'': {type: string, tc: false}}
@@ -160,7 +529,49 @@ tests:
 
 - description: Correctness test for IS NULL
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS NULL } FROM bar AS bar"
+  
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "null"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -176,7 +587,48 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS MISSING
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS MISSING } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "missing"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -192,7 +644,48 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS REGEX
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS REGEX } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "regex"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -208,7 +701,48 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS DBPOINTER
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS DBPOINTER } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "dbPointer"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -224,7 +758,48 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS JAVASCRIPT
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS JAVASCRIPT } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "javascript"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -240,7 +815,48 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS SYMBOL
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS SYMBOL } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "symbol"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -256,8 +872,48 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS JAVASCRIPTWITHSCOPE
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS JAVASCRIPTWITHSCOPE } FROM bar AS
-    bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "javascriptWithScope"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -273,7 +929,48 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS INT
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS INT } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "int"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -289,7 +986,48 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS BSON_TIMESTAMP
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS BSON_TIMESTAMP } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "timestamp"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result:
   - {'': {type: double, tc: false}}
   - {'': {type: string, tc: false}}
@@ -316,7 +1054,48 @@ tests:
 
 - description: Correctness test for IS LONG
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS LONG } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "long"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -332,7 +1111,48 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS DECIMAL
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS DECIMAL } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "decimal"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -348,7 +1168,48 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS MINKEY
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS MINKEY } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "minKey"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -364,7 +1225,48 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS MAXKEY
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS MAXKEY } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$eq": [
+              {
+                "$type": [
+                  "$bar.v"
+                ]
+              }, 
+              {
+                "$literal": "maxKey"
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -380,7 +1282,41 @@ tests:
     additionalProperties: false
 - description: Correctness test for IS NUMBER
   current_db: foo
-  query: "SELECT VALUE { 'type': type, 'tc': v IS NUMBER } FROM bar AS bar"
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "type": "$bar.type", 
+          "tc": {
+            "$isNumber": [
+              "$bar.v"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:

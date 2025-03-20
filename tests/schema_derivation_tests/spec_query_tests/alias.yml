@@ -1,10 +1,55 @@
-%YAML 1.2
----
-catalog_schema: {db: {foo: {bsonType: object, additionalProperties: true}}}
+catalog_schema:
+  {
+    'db': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
 
 tests:
 - description: Can use different aliases for same field
-  query: "SELECT VALUE {'a1': a, 'a2': a} FROM [{'a': 1}] arr"
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a1": "$arr.a", 
+          "a2": "$arr.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   current_db: test
   result_set_schema:
     bsonType: object
@@ -21,7 +66,47 @@ tests:
     additionalProperties: false
 - description: Can use different alias for same collection
   current_db: db
-  query: SELECT * FROM foo AS foo1, foo AS foo2
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "foo1": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "pipeline": [
+          {
+            "$project": {
+              "_id": 0, 
+              "foo2": "$$ROOT"
+            }
+          }
+        ], 
+        "from": "foo", 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -46,8 +131,59 @@ tests:
     additionalProperties: false
 - description: Can use duplicate aliases on both sides of UNION
   current_db: db
-  query: "SELECT VALUE {'a': a, 'c': b} FROM foo AS alias UNION ALL SELECT VALUE {'a':
-    a, 'c': b} FROM foo AS alias"
+  pipeline: [
+    {
+      "$project": {
+        "alias": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$alias.a", 
+          "c": "$alias.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unionWith": {
+        "coll": "foo", 
+        "pipeline": [
+          {
+            "$project": {
+              "alias": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$alias.a", 
+                "c": "$alias.b"
+              }, 
+              "_id": 0
+            }
+          }
+        ]
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -60,4 +196,33 @@ tests:
         required: [a, c]
         additionalProperties: false
     required: ['', _id]
+    additionalProperties: false
+- description: _id is a valid alias for datasources
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "_id": "$$ROOT"
+      }
+    }
+  ]
+  result_set_schema:
+    bsonType: object
+    properties:
+      '_id':
+        bsonType: object
+        properties:
+          a: {bsonType: int}
+        required: [a]
+        additionalProperties: false
+    required: [_id]
     additionalProperties: false

@@ -1,12 +1,40 @@
-%YAML 1.2
----
-catalog_schema: {mydb: {foo: {bsonType: object, additionalProperties: true}, bar: {
-      bsonType: object, additionalProperties: true}}}
-
+catalog_schema:
+  {
+    'mydb': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'bar': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
 tests:
 - description: collections with different schema can be unioned
   current_db: mydb
-  query: SELECT * FROM foo AS foo UNION ALL SELECT * FROM bar AS bar
+  "pipeline": [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unionWith": {
+        "coll": "bar", 
+        "pipeline": [
+          {
+            "$project": {
+              "_id": 0, 
+              "bar": "$$ROOT"
+            }
+          }
+        ]
+      }
+    }
+  ]
   ordered: false
   result_set_schema:
     bsonType: object
@@ -31,7 +59,57 @@ tests:
     additionalProperties: false
 - description: basic union all correctness test
   current_db: mydb
-  query: "SELECT VALUE {'a': a} FROM foo UNION ALL SELECT VALUE {'a': a} FROM foo"
+  "pipeline": [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$foo.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unionWith": {
+        "coll": "foo", 
+        "pipeline": [
+          {
+            "$project": {
+              "foo": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$foo.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ]
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   ordered: false
   result_set_schema:
     bsonType: object
@@ -47,8 +125,62 @@ tests:
     additionalProperties: false
 - description: union works with array datasources
   current_db: mydb
-  query: "SELECT VALUE {'a': a} FROM foo AS foo UNION ALL SELECT * FROM [{'b': 1},
-    {'b': 2}] AS arr"
+  "pipeline": [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$foo.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unionWith": {
+        "pipeline": [
+          {
+            "$documents": [
+              {
+                "b": {
+                  "$literal": 1
+                }
+              }, 
+              {
+                "b": {
+                  "$literal": 2
+                }
+              }
+            ]
+          }, 
+          {
+            "$project": {
+              "arr": "$$ROOT", 
+              "_id": 0
+            }
+          }
+        ]
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   ordered: false
   result_set_schema:
     bsonType: object

@@ -1,41 +1,296 @@
-%YAML 1.2
----
-catalog_schema: {foo: {bar: {bsonType: object, required: [_id, a, b, c], additionalProperties: false,
-      properties: {_id: {bsonType: int}, a: {bsonType: int}, b: {bsonType: int}, c: {
-          bsonType: int}}}, multi: {bsonType: object, required: [_id, a, b, c], additionalProperties: false,
-      properties: {_id: {bsonType: int}, a: {anyOf: [bsonType: int, bsonType: !!str "null"]},
-        b: {anyOf: [bsonType: int, bsonType: !!str "null"]}, c: {anyOf: [bsonType: int,
-            bsonType: !!str "null"]}}}, nullAndMissing: {bsonType: object, required: [
-        _id], additionalProperties: false, properties: {_id: {bsonType: int}, n: {
-          anyOf: [bsonType: int, bsonType: !!str "null"]}}}, baz: {bsonType: object,
-      required: [_id, a], additionalProperties: false, properties: {_id: {bsonType: int},
-        a: {bsonType: object, required: [a, b], additionalProperties: false, properties: {
-            a: {anyOf: [bsonType: int, bsonType: !!str "null"]}, b: {anyOf: [bsonType: int,
-                bsonType: !!str "null"]}}}}}, baz2: {bsonType: object, required: [
-        _id, a, doc], additionalProperties: false, properties: {_id: {bsonType: int},
-        a: {bsonType: int}, doc: {bsonType: object, required: [], properties: {a: {
-              bsonType: string}, b: {bsonType: string}}}}}, numerics: {bsonType: object,
-      required: [_id, a], additionalProperties: false, properties: {_id: {bsonType: int},
-        a: {anyOf: [bsonType: int, bsonType: double, bsonType: decimal]}}}, dupes: {
-      bsonType: object, required: [_id, a], additionalProperties: false, properties: {
-        _id: {bsonType: int}, a: {bsonType: int}}}, arr: {bsonType: object, required: [
-        _id, a], additionalProperties: false, properties: {a: {bsonType: array}}},
-    docs: {bsonType: object, required: [_id], additionalProperties: false, properties: {
-        _id: {bsonType: int}, d: {anyOf: [bsonType: !!str "null", {bsonType: object,
-              required: [], additionalProperties: false, properties: {a: {anyOf: [
-                    bsonType: int, bsonType: !!str "null"]}}}]}}}, poly: {bsonType: object,
-      required: [_id, a], additionalProperties: false, properties: {a: {anyOf: [bsonType: bool,
-            bsonType: string]}}}}}
+catalog_schema:
+  {
+    "foo":
+      {
+        "bar":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a", "b", "c"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a": { "bsonType": "int" },
+                "b": { "bsonType": "int" },
+                "c": { "bsonType": "int" },
+              },
+          },
+        "multi":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a", "b", "c"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a":
+                  {
+                    "anyOf":
+                      [
+                        { "bsonType": "int" },
+                        { "bsonType": !!str "null" },
+                      ]
+                  },
+                "b":
+                  {
+                    "anyOf":
+                      [
+                        { "bsonType": "int" },
+                        { "bsonType": !!str "null" },
+                      ]
+                  },
+                "c":
+                  {
+                    "anyOf":
+                      [
+                        { "bsonType": "int" },
+                        { "bsonType": !!str "null" },
+                      ]
+                  },
+              },
+          },
+        "nullAndMissing":
+          {
+            "bsonType": "object",
+            "required": ["_id"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "n":
+                  {
+                    "anyOf":
+                      [{ "bsonType": "int" }, { "bsonType": !!str "null" }],
+                  },
+              },
+          },
+        "baz":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a":
+                  {
+                    "bsonType": "object",
+                    "required": ["a", "b"],
+                    "additionalProperties": false,
+                    "properties":
+                      {
+                        "a":
+                          {
+                            "anyOf":
+                              [
+                                { "bsonType": "int" },
+                                { "bsonType": !!str "null" },
+                              ],
+                          },
+                        "b":
+                          {
+                            "anyOf":
+                              [
+                                { "bsonType": "int" },
+                                { "bsonType": !!str "null" },
+                              ],
+                          },
+                      },
+                  },
+              },
+          },
+        "baz2":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a", "doc"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a": { "bsonType": "int" },
+                "doc":
+                  {
+                    "bsonType": "object",
+                    "required": [],
+                    "properties":
+                      {
+                        "a": { "bsonType": "string" },
+                        "b": { "bsonType": "string" },
+                      },
+                  },
+              },
+          },
+        "numerics":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a":
+                  {
+                    "anyOf":
+                      [
+                        { "bsonType": "int" },
+                        { "bsonType": "double" },
+                        { "bsonType": "decimal" },
+                      ],
+                  },
+              },
+          },
+        "dupes":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a"],
+            "additionalProperties": false,
+            "properties":
+              { "_id": { "bsonType": "int" }, "a": { "bsonType": "int" } },
+          },
+        "arr":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a"],
+            "additionalProperties": false,
+            "properties": { "a": { "bsonType": "array" } },
+          },
+        "docs":
+          {
+            "bsonType": "object",
+            "required": ["_id"],
+            "additionalProperties": false,
+            "properties": {
+              "_id": { "bsonType": "int" },
+              "d":
+                {
+                  "anyOf":
+                    [
+                      { "bsonType": !!str "null" },
+                      {
+                        "bsonType": "object",
+                        required: [ ],
+                        additionalProperties: false,
+                        properties:
+                          {
+                            "a":
+                              {
+                                "anyOf":
+                                  [
+                                    { "bsonType": "int" },
+                                    { "bsonType": !!str "null" }
+                                  ]
+                              }
+                          }
+                      }
+                    ]
+                }
+            },
+          },
+        "poly":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a"],
+            "additionalProperties": false,
+            "properties": {
+              "a": {
+                "anyOf": [
+                  { "bsonType": "bool" },
+                  { "bsonType": "string" },
+                ]
+              }
+            },
+          },
+      },
+  }
 
 tests:
 - description: GROUP BY with empty input outputs empty
-  query: SELECT * FROM [] AS arr GROUP BY NULL AS n
   current_db: test
+  "pipeline": [
+    {
+      "$documents": []
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "n": {
+            "$literal": null
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "n": "$_id.n"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result: []
 
 - description: GROUP BY NULL creates only one group
-  query: SELECT * FROM foo.bar AS bar GROUP BY NULL AS n
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "n": {
+            "$literal": null
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "n": "$_id.n"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -49,8 +304,46 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: GROUP BY 1 creates only one group
-  query: SELECT * FROM foo.bar AS bar GROUP BY 1 AS n
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "n": {
+            "$literal": 1
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "n": "$_id.n"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -64,8 +357,46 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: GROUP BY hello creates only one group
-  query: SELECT * FROM foo.bar AS bar GROUP BY 'hello' AS n
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "n": {
+            "$literal": "hello"
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "n": "$_id.n"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -78,10 +409,45 @@ tests:
         additionalProperties: false
     required: ['', _id]
     additionalProperties: false
-- description: GROUP BY MISSING converts MISSING to NULL; NULL is not DISTINCT from
-    NULL, but is distinct from non-null values
-  query: SELECT * FROM foo.nullAndMissing AS a GROUP BY a.n AS n
+- description: GROUP BY MISSING converts MISSING to NULL; NULL is not DISTINCT from NULL, but is distinct from non-null values
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "n": "$n"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "n": "$_id.n"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -98,8 +464,44 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: GROUP BY keys may be table-qualified
-  query: SELECT * FROM foo.baz AS a GROUP by a.a.a AS a
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "a": "$a.a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -115,10 +517,53 @@ tests:
         additionalProperties: false
     required: ['', _id]
     additionalProperties: false
-- description: qualified top-level field reference keys can be referenced by qualified
-    name
-  query: "SELECT VALUE {'a': bar.a} FROM foo.bar AS bar GROUP BY bar.a"
+- description: qualified top-level field reference keys can be referenced by qualified name
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "__unaliasedKey1": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": {
+          "a": "$_id.__unaliasedKey1"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$bar"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -131,10 +576,53 @@ tests:
         additionalProperties: false
     required: ['', _id]
     additionalProperties: false
-- description: qualified top-level field reference keys can be referenced by unqualified
-    name
-  query: "SELECT VALUE {'a': a} FROM foo.bar AS bar GROUP BY bar.a"
+- description: qualified top-level field reference keys can be referenced by unqualified name
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "__unaliasedKey1": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": {
+          "a": "$_id.__unaliasedKey1"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$bar"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -147,10 +635,53 @@ tests:
         additionalProperties: false
     required: ['', _id]
     additionalProperties: false
-- description: unqualified top-level field reference keys can be referenced by qualified
-    name
-  query: "SELECT VALUE{'a': bar.a} FROM foo.bar AS bar GROUP BY a"
+- description: unqualified top-level field reference keys can be referenced by qualified name
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "__unaliasedKey1": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": {
+          "a": "$_id.__unaliasedKey1"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$bar"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -163,10 +694,53 @@ tests:
       _id: {bsonType: objectId}
     required: ['', _id]
     additionalProperties: false
-- description: unqualified top-level field reference keys can be referenced by unqualified
-    name
-  query: "SELECT VALUE {'a': a} FROM foo.bar AS bar GROUP BY a"
+- description: unqualified top-level field reference keys can be referenced by unqualified name
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "__unaliasedKey1": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": {
+          "a": "$_id.__unaliasedKey1"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$bar"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -180,8 +754,51 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: GROUP BY arbitrary expression
-  query: SELECT * FROM foo.bar AS bar GROUP BY a + 2 AS ap2
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "ap2": {
+            "$add": [
+              {
+                "$literal": 2
+              }, 
+              "$a"
+            ]
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "ap2": "$_id.ap2"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -195,9 +812,60 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: single DISTINCT aggregation function correctness test
-  query: SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a)
-    AS suma
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "n": {
+            "$literal": null
+          }
+        }, 
+        "suma": {
+          "$addToSet": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 1, 
+        "suma": {
+          "$sum": [
+            "$suma"
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "suma": "$suma", 
+          "n": "$_id.n"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -211,11 +879,66 @@ tests:
       _id: {bsonType: objectId}
     required: ['', _id]
     additionalProperties: false
-- description: correctness test for DISTINCT and non-DISTINCT aggregation over same
-    field
-  query: SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a)
-    AS dsuma, SUM(a) AS suma
+- description: correctness test for DISTINCT and non-DISTINCT aggregation over same field
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "n": {
+            "$literal": null
+          }
+        }, 
+        "dsuma": {
+          "$addToSet": "$a"
+        }, 
+        "suma": {
+          "$sum": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 1, 
+        "dsuma": {
+          "$sum": [
+            "$dsuma"
+          ]
+        }, 
+        "suma": 1
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "dsuma": "$dsuma", 
+          "suma": "$suma", 
+          "n": "$_id.n"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -231,9 +954,100 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: multi-DISTINCT aggregation function correctness test
-  query: "SELECT VALUE {'suma': suma, 'countc': countc} FROM foo.bar AS bar GROUP
-    BY NULL AS n AGGREGATE SUM(DISTINCT a) AS suma, COUNT(DISTINCT c) AS countc"
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "countc": {
+          "$addToSet": {
+            "$cond": [
+              {
+                "$in": [
+                  {
+                    "$type": [
+                      "$c"
+                    ]
+                  }, 
+                  [
+                    {
+                      "$literal": "missing"
+                    }, 
+                    {
+                      "$literal": "null"
+                    }
+                  ]
+                ]
+              }, 
+              "$$REMOVE", 
+              "$c"
+            ]
+          }
+        }, 
+        "_id": {
+          "n": {
+            "$literal": null
+          }
+        }, 
+        "suma": {
+          "$addToSet": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "countc": {
+          "$size": [
+            "$countc"
+          ]
+        }, 
+        "_id": 1, 
+        "suma": {
+          "$sum": [
+            "$suma"
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "countc": "$countc", 
+          "suma": "$suma", 
+          "n": "$_id.n"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "countc": "$__bot.countc", 
+          "suma": "$__bot.suma"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -248,9 +1062,50 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: multi-item group key correctness test
-  query: SELECT * FROM foo.multi AS multi GROUP BY a AS a, b AS b AGGREGATE SUM(c)
-    AS sumc
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "a": "$a", 
+          "b": "$b"
+        }, 
+        "sumc": {
+          "$sum": "$c"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "b": "$_id.b", 
+          "sumc": "$sumc"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -272,9 +1127,130 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: multi-item group key with HAVING correctness test
-  query: SELECT * FROM foo.multi AS multi GROUP BY a AS a, b AS b AGGREGATE SUM(c)
-    AS sumc HAVING a IS NOT NULL AND a != 1 AND sumc != 4
   current_db: foo
+  "pipeline": [
+    {
+      "$match": {
+        "$expr": {
+          "$and": [
+            {
+              "$ne": [
+                "$a", 
+                {
+                  "$literal": 1
+                }
+              ]
+            }, 
+            {
+              "$gt": [
+                "$a", 
+                {
+                  "$literal": null
+                }
+              ]
+            }, 
+            {
+              "$not": [
+                {
+                  "$or": [
+                    {
+                      "$eq": [
+                        {
+                          "$type": [
+                            "$a"
+                          ]
+                        }, 
+                        {
+                          "$literal": "null"
+                        }
+                      ]
+                    }, 
+                    {
+                      "$eq": [
+                        {
+                          "$type": [
+                            "$a"
+                          ]
+                        }, 
+                        {
+                          "$literal": "missing"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "a": "$a", 
+          "b": "$b"
+        }, 
+        "sumc": {
+          "$sum": "$c"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "b": "$_id.b", 
+          "sumc": "$sumc"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$and": [
+            {
+              "$gt": [
+                "$__bot.sumc", 
+                {
+                  "$literal": null
+                }
+              ]
+            }, 
+            {
+              "$ne": [
+                "$__bot.sumc", 
+                {
+                  "$literal": 4
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -289,10 +1265,40 @@ tests:
         additionalProperties: false
     required: ['', _id]
     additionalProperties: false
-- description: HAVING without GROUP BY works as a WHERE clause but happens after the
-    WHERE clause
-  query: SELECT * FROM foo.bar AS bar WHERE a < 15 HAVING a > 5
+- description: HAVING without GROUP BY works as a WHERE clause but happens after the WHERE clause
   current_db: foo
+  "pipeline": [
+    {
+      "$match": {
+        "$expr": {
+          "$and": [
+            {
+              "$lt": [
+                "$a", 
+                {
+                  "$literal": 15
+                }
+              ]
+            }, 
+            {
+              "$gt": [
+                "$a", 
+                {
+                  "$literal": 5
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -309,52 +1315,387 @@ tests:
     required: [_id, bar]
     additionalProperties: false
 - description: ADD_TO_ARRAY correctness test
-  query: SELECT * FROM (SELECT _id, a, b FROM foo.bar AS bar ORDER BY _id) AS arr
-    GROUP BY a AS a AGGREGATE ADD_TO_ARRAY(arr.b) AS garr
   current_db: foo
+  "pipeline": [
+    {
+      "$sort": {
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a", 
+          "_id": "$bar._id", 
+          "b": "$bar.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "a": "$arr.a"
+        }, 
+        "garr": {
+          "$push": "$arr.b"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "garr": "$garr"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result:
   - {'': {a: {$numberInt: '1'}, garr: [$numberInt: '2', $numberInt: '12', $numberInt: '42']}}
   - {'': {a: {$numberInt: '11'}, garr: [$numberInt: '22']}}
   - {'': {a: {$numberInt: '111'}, garr: [$numberInt: '142']}}
 
 - description: ADD_TO_ARRAY DISTINCT correctness test (equivalent to ADD_TO_SET)
-  query: SELECT * FROM (SELECT _id, a FROM foo.bar AS bar ORDER BY _id) AS arr GROUP
-    BY a AS a AGGREGATE ADD_TO_ARRAY(DISTINCT a) AS garr
   current_db: foo
+  "pipeline": [
+    {
+      "$sort": {
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a", 
+          "_id": "$bar._id"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "a": "$arr.a"
+        }, 
+        "garr": {
+          "$addToSet": "$arr.a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "garr": "$garr"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result:
   - {'': {a: {$numberInt: '1'}, garr: [$numberInt: '1']}}
   - {'': {a: {$numberInt: '11'}, garr: [$numberInt: '11']}}
   - {'': {a: {$numberInt: '111'}, garr: [$numberInt: '111']}}
 
-- description: ADD_TO_SET keeps first element seen of a duplicate group (resulting
-    in DECIMAL)
-  query: "SELECT VALUE {'gset' : gset} FROM (SELECT * FROM foo.numerics AS numerics
-    ORDER BY _id ASC) AS _numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
+- description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in DECIMAL)
   current_db: foo
+  "pipeline": [
+    {
+      "$sort": {
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "numerics": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "_numeric": "$numerics", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "_": {
+            "$literal": null
+          }
+        }, 
+        "gset": {
+          "$addToSet": "$_numeric.a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "gset": "$gset", 
+          "_": "$_id._"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "gset": "$__bot.gset"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result:
   - {'': {gset: [$numberDecimal: '3.0']}}
 
-- description: ADD_TO_SET keeps first element seen of a duplicate group (resulting
-    in INT)
-  query: "SELECT VALUE {'gset': gset} FROM (SELECT * FROM foo.numerics AS numerics
-    ORDER BY _id DESC) AS `numeric` GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS
-    gset"
+- description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in INT)
   current_db: foo
+  "pipeline": [
+    {
+      "$sort": {
+        "_id": -1
+      }
+    }, 
+    {
+      "$project": {
+        "numerics": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "numeric": "$numerics"
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "_": {
+            "$literal": null
+          }
+        }, 
+        "gset": {
+          "$addToSet": "$numeric.a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "gset": "$gset", 
+          "_": "$_id._"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "gset": "$__bot.gset"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result:
   - {'': {gset: [$numberInt: '3']}}
 
 - description: ADD_TO_SET correctness test
-  query: SELECT * FROM (SELECT _id, a FROM foo.baz AS baz ORDER BY _id) AS arr GROUP
-    BY a.a AS a AGGREGATE ADD_TO_SET(a.a) AS gset
   current_db: foo
+  "pipeline": [
+    {
+      "$sort": {
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "baz": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$baz.a", 
+          "_id": "$baz._id"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "a": "$arr.a.a"
+        }, 
+        "gset": {
+          "$addToSet": "$arr.a.a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gset": "$gset"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result:
   - {'': {a: {$numberInt: '1'}, gset: [$numberInt: '1']}}
   - {'': {a: {$numberInt: '2'}, gset: [$numberInt: '2']}}
   - {'': {a: null, gset: [null]}}
 
 - description: AVG correctness test
-  query: SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE AVG(a.b) AS gavg
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "a": "$a.a"
+        }, 
+        "gavg": {
+          "$avg": "$a.b"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gavg": "$gavg"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -375,8 +1716,74 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: COUNT single column correctness test -- ignores nullish values
-  query: SELECT * FROM foo.multi AS m GROUP BY a AS a AGGREGATE COUNT(b) AS gcount
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "gcount": {
+          "$sum": {
+            "$cond": [
+              {
+                "$in": [
+                  {
+                    "$type": [
+                      "$b"
+                    ]
+                  }, 
+                  [
+                    {
+                      "$literal": "missing"
+                    }, 
+                    {
+                      "$literal": "null"
+                    }
+                  ]
+                ]
+              }, 
+              {
+                "$literal": 0
+              }, 
+              {
+                "$literal": 1
+              }
+            ]
+          }
+        }, 
+        "_id": {
+          "a": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gcount": "$gcount"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -394,9 +1801,80 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: COUNT distinct single column correctness test -- ignores nullish values
-  query: SELECT * FROM foo.multi AS m GROUP BY a AS a AGGREGATE COUNT(DISTINCT b)
-    AS gcount
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "gcount": {
+          "$addToSet": {
+            "$cond": [
+              {
+                "$in": [
+                  {
+                    "$type": [
+                      "$b"
+                    ]
+                  }, 
+                  [
+                    {
+                      "$literal": "missing"
+                    }, 
+                    {
+                      "$literal": "null"
+                    }
+                  ]
+                ]
+              }, 
+              "$$REMOVE", 
+              "$b"
+            ]
+          }
+        }, 
+        "_id": {
+          "a": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "gcount": {
+          "$size": [
+            "$gcount"
+          ]
+        }, 
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gcount": "$gcount"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -413,10 +1891,115 @@ tests:
         additionalProperties: false
     required: ['', _id]
     additionalProperties: false
-- description: COUNT single document column -- only counts values with at least one
-    non-nullish field
-  query: SELECT * FROM foo.docs AS d GROUP BY NULL AS n AGGREGATE COUNT(d) AS gcount
+- description: COUNT single document column -- only counts values with at least one non-nullish field
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "gcount": {
+          "$sum": {
+            "$cond": [
+              {
+                "$or": [
+                  {
+                    "$in": [
+                      {
+                        "$type": [
+                          "$d"
+                        ]
+                      }, 
+                      [
+                        {
+                          "$literal": "missing"
+                        }, 
+                        {
+                          "$literal": "null"
+                        }
+                      ]
+                    ]
+                  }, 
+                  {
+                    "$eq": [
+                      "$d", 
+                      {
+                        "$literal": {}
+                      }
+                    ]
+                  }, 
+                  {
+                    "$allElementsTrue": [
+                      {
+                        "$ifNull": [
+                          {
+                            "$map": {
+                              "input": {
+                                "$objectToArray": [
+                                  "$d"
+                                ]
+                              }, 
+                              "in": {
+                                "$eq": [
+                                  "$$this.v", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            }
+                          }, 
+                          []
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }, 
+              {
+                "$literal": 0
+              }, 
+              {
+                "$literal": 1
+              }
+            ]
+          }
+        }, 
+        "_id": {
+          "n": {
+            "$literal": null
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "gcount": "$gcount", 
+          "n": "$_id.n"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -430,10 +2013,102 @@ tests:
         additionalProperties: false
     required: ['', _id]
     additionalProperties: false
-- description: COUNT multi column correctness test -- only counts rows with at least
-    one non-nullish value
-  query: SELECT * FROM foo.multi AS m GROUP BY a AS a AGGREGATE COUNT(b, c) AS gcount
+- description: COUNT multi column correctness test -- only counts rows with at least one non-nullish value
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "gcount": {
+          "$sum": {
+            "$cond": [
+              {
+                "$or": [
+                  {
+                    "$eq": [
+                      {
+                        "_arg0": "$b", 
+                        "_arg1": "$c"
+                      }, 
+                      {
+                        "$literal": {}
+                      }
+                    ]
+                  }, 
+                  {
+                    "$allElementsTrue": [
+                      {
+                        "$ifNull": [
+                          {
+                            "$map": {
+                              "input": {
+                                "$objectToArray": [
+                                  {
+                                    "_arg0": "$b", 
+                                    "_arg1": "$c"
+                                  }
+                                ]
+                              }, 
+                              "in": {
+                                "$eq": [
+                                  "$$this.v", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            }
+                          }, 
+                          []
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }, 
+              {
+                "$literal": 0
+              }, 
+              {
+                "$literal": 1
+              }
+            ]
+          }
+        }, 
+        "_id": {
+          "a": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gcount": "$gcount"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -450,11 +2125,111 @@ tests:
         additionalProperties: false
     required: ['', _id]
     additionalProperties: false
-- description: COUNT distinct multi column correctness test -- only counts rows with
-    at least one non-nullish value
-  query: SELECT * FROM foo.multi AS m GROUP BY a AS a AGGREGATE COUNT(DISTINCT b,
-    c) AS gcount
+- description: COUNT distinct multi column correctness test -- only counts rows with at least one non-nullish value
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "gcount": {
+          "$addToSet": {
+            "$cond": [
+              {
+                "$or": [
+                  {
+                    "$eq": [
+                      {
+                        "_arg0": "$b", 
+                        "_arg1": "$c"
+                      }, 
+                      {
+                        "$literal": {}
+                      }
+                    ]
+                  }, 
+                  {
+                    "$allElementsTrue": [
+                      {
+                        "$ifNull": [
+                          {
+                            "$map": {
+                              "input": {
+                                "$objectToArray": [
+                                  {
+                                    "_arg0": "$b", 
+                                    "_arg1": "$c"
+                                  }
+                                ]
+                              }, 
+                              "in": {
+                                "$eq": [
+                                  "$$this.v", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            }
+                          }, 
+                          []
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }, 
+              "$$REMOVE", 
+              {
+                "_arg0": "$b", 
+                "_arg1": "$c"
+              }
+            ]
+          }
+        }, 
+        "_id": {
+          "a": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "gcount": {
+          "$size": [
+            "$gcount"
+          ]
+        }, 
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gcount": "$gcount"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -472,9 +2247,65 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: COUNT(*) correctness test unconditionally count rows
-  query: SELECT * FROM (SELECT a, b FROM foo.multi AS m) AS arr GROUP BY a AS a AGGREGATE
-    COUNT(*) AS gcount
   current_db: foo
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "m": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$m.a", 
+          "b": "$m.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$group": {
+        "gcount": {
+          "$sum": {
+            "$literal": 1
+          }
+        }, 
+        "_id": {
+          "a": "$arr.a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gcount": "$gcount"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -492,9 +2323,73 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: COUNT(DISTINCT *) correctness test unconditionally count distinct rows
-  query: SELECT * FROM (SELECT a, b FROM foo.multi AS m) AS arr GROUP BY a AS a AGGREGATE
-    COUNT(DISTINCT *) AS gcount
   current_db: foo
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "m": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$m.a", 
+          "b": "$m.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$group": {
+        "gcount": {
+          "$addToSet": "$$ROOT"
+        }, 
+        "_id": {
+          "a": "$arr.a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "gcount": {
+          "$size": [
+            "$gcount"
+          ]
+        }, 
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gcount": "$gcount"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -512,9 +2407,80 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: COUNT(MISSING) and COUNT(NULL) skip MISSING and NULL values
-  query: SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE COUNT(a.a) AS gcounta,
-    COUNT(NULL) AS gcountn
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "gcounta": {
+          "$sum": {
+            "$cond": [
+              {
+                "$in": [
+                  {
+                    "$type": [
+                      "$a.a"
+                    ]
+                  }, 
+                  [
+                    {
+                      "$literal": "missing"
+                    }, 
+                    {
+                      "$literal": "null"
+                    }
+                  ]
+                ]
+              }, 
+              {
+                "$literal": 0
+              }, 
+              {
+                "$literal": 1
+              }
+            ]
+          }
+        }, 
+        "_id": {
+          "a": "$a.a"
+        }, 
+        "gcountn": {
+          "$sum": {
+            "$literal": 0
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gcounta": "$gcounta", 
+          "gcountn": "$gcountn"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -533,9 +2499,69 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: FIRST correctness test
-  query: SELECT * FROM (SELECT _id, a, b FROM foo.bar AS bar ORDER BY _id) AS arr
-    GROUP BY a AS a AGGREGATE FIRST(arr.b) AS gfirst
   current_db: foo
+  "pipeline": [
+    {
+      "$sort": {
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a", 
+          "_id": "$bar._id", 
+          "b": "$bar.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "a": "$arr.a"
+        }, 
+        "gfirst": {
+          "$first": "$arr.b"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gfirst": "$gfirst"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -550,9 +2576,69 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: LAST correctness test
-  query: SELECT * FROM (SELECT _id, a, b FROM foo.bar AS bar ORDER BY _id) AS arr
-    GROUP BY a AS a AGGREGATE LAST(arr.b) AS glast
   current_db: foo
+  "pipeline": [
+    {
+      "$sort": {
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a", 
+          "_id": "$bar._id", 
+          "b": "$bar.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "a": "$arr.a"
+        }, 
+        "glast": {
+          "$last": "$arr.b"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "glast": "$glast"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -566,17 +2652,50 @@ tests:
       _id: {bsonType: objectId}
     required: ['', _id]
     additionalProperties: false
-- description: LAST DISTINCT correctness test
-  query: SELECT glast FROM (SELECT _id, a FROM foo.dupes AS dupes ORDER BY _id) AS
-    arr GROUP BY NULL AS _ AGGREGATE LAST(DISTINCT arr.a) AS glast
-  skip_reason: SQL-621
-  current_db: foo
-  result:
-  - {'': {glast: {$numberInt: '2'}}}
 
 - description: MAX correctness test
-  query: SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MAX(b) AS gmax
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "a": "$a"
+        }, 
+        "gmax": {
+          "$max": "$b"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gmax": "$gmax"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -591,16 +2710,116 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: MERGE_DOCUMENTS correctness test
-  query: SELECT * FROM (SELECT _id, a, doc FROM foo.baz2 AS baz2 ORDER BY _id) AS
-    arr GROUP BY a AS a AGGREGATE MERGE_DOCUMENTS(doc) AS gmerge
   current_db: foo
+  "pipeline": [
+    {
+      "$sort": {
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "baz2": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$baz2.a", 
+          "doc": "$baz2.doc", 
+          "_id": "$baz2._id"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "a": "$arr.a"
+        }, 
+        "gmerge": {
+          "$mergeObjects": "$arr.doc"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gmerge": "$gmerge"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result:
   - {'': {a: {$numberInt: '1'}, gmerge: {a: a, b: b}}}
   - {'': {a: {$numberInt: '2'}, gmerge: {a: d}}}
 
 - description: MIN correctness test
-  query: SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MIN(b) AS gmin
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "gmin": {
+          "$min": "$b"
+        }, 
+        "_id": {
+          "a": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gmin": "$gmin"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -615,24 +2834,143 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: STDDEV_POP correctness test
-  query: SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE STDDEV_POP(b) AS gstdp
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "a": "$a"
+        }, 
+        "gstdp": {
+          "$stdDevPop": "$b"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gstdp": "$gstdp"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result:
   - {'': {a: {$numberInt: '1'}, gstdp: {$numberDouble: '16.99673171197595'}}}
   - {'': {a: {$numberInt: '11'}, gstdp: {$numberDouble: '0'}}}
   - {'': {a: {$numberInt: '111'}, gstdp: {$numberDouble: '0'}}}
 
 - description: STDDEV_SAMP correctness test
-  query: SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE STDDEV_SAMP(b) as
-    gstds
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "a": "$a"
+        }, 
+        "gstds": {
+          "$stdDevSamp": "$b"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gstds": "$gstds"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result:
   - {'': {a: {$numberInt: '1'}, gstds: {$numberDouble: '20.81665999466133'}}}
   - {'': {a: {$numberInt: '11'}, gstds: null}}
   - {'': {a: {$numberInt: '111'}, gstds: null}}
 - description: SUM correctness test
-  query: SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE SUM(b) AS gsum
   current_db: foo
+  "pipeline": [
+    {
+      "$group": {
+        "_id": {
+          "a": "$a"
+        }, 
+        "gsum": {
+          "$sum": "$b"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gsum": "$gsum"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:

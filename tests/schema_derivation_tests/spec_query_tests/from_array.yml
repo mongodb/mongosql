@@ -1,11 +1,36 @@
-%YAML 1.2
----
-catalog_schema: {test: {foo: {bsonType: object, additionalProperties: true}}}
+catalog_schema:
+  {
+    'test': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
 
 tests:
 - description: basic array datasource correctness test
-  query: "SELECT * FROM [{'a': 1, 'b': 1}] AS arr"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }, 
+          "b": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -20,8 +45,49 @@ tests:
     required: [_id, arr]
     additionalProperties: false
 - description: unqualified reference to field from array datasource
-  query: "SELECT VALUE {'a': a} FROM [{'a': 1, 'b': 1}] AS arr"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }, 
+          "b": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$arr.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -35,8 +101,49 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: qualified reference to field from array datasource
-  query: "SELECT VALUE {'a': arr.a} FROM [{'a': 1, 'b': 1}] AS arr"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }, 
+          "b": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$arr.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -50,13 +157,37 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: empty array datasource is allowed
-  query: SELECT * FROM [] AS arr
   current_db: test
+  "pipeline": [
+    {
+      "$documents": []
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
   result: []
 
 - description: array datasource with single empty document is allowed
-  query: SELECT * FROM [{}] AS _dual
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "$literal": {}
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "_dual": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:

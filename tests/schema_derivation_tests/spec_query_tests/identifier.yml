@@ -1,16 +1,95 @@
-%YAML 1.2
----
-catalog_schema: {foo: {bar: {bsonType: object, additionalProperties: true, properties: {
-        _id: {bsonType: int}, a: {bsonType: object, additionalProperties: true, properties: {
-            b: {bsonType: int}, b.c: {bsonType: int}}}, a.b: {bsonType: int}, $a.b: {
-          bsonType: int}, $a.$b: {bsonType: object, additionalProperties: true, properties: {
-            $c: {bsonType: object, additionalProperties: true, properties: {d: {bsonType: int}}},
-            $c.d: {bsonType: int}}}}}}}
+catalog_schema:
+  {
+    "foo":
+      {
+        "bar":
+          {
+            "bsonType": "object",
+            "additionalProperties": true,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a":
+                  {
+                    "bsonType": "object",
+                    "additionalProperties": true,
+                    "properties":
+                      {
+                        "b": { "bsonType": "int" },
+                        "b.c": { "bsonType": "int" },
+                      },
+                  },
+                "a.b": { "bsonType": "int" },
+                "$a.b": { "bsonType": "int" },
+                "$a.$b":
+                  {
+                    "bsonType": "object",
+                    "additionalProperties": true,
+                    "properties":
+                      {
+                        "$c":
+                          {
+                            "bsonType": "object",
+                            "additionalProperties": true,
+                            "properties": { "d": { "bsonType": "int" } },
+                          },
+                        "$c.d": { "bsonType": "int" },
+                      },
+                  },
+              },
+          },
+      },
+  }
 
 tests:
 - description: Undelimited identifier containing a . character is a compound identifier
-  query: "SELECT VALUE {'c': a.c} FROM [{'a': {'c': 1}}, {'a': 3}] arr"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "c": {
+              "$literal": 1
+            }
+          }
+        }, 
+        {
+          "a": {
+            "$literal": 3
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "c": "$arr.a.c"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -23,8 +102,42 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: Delimited identifier containing a .
-  query: "SELECT VALUE {'ab': `a.b`} FROM bar"
   current_db: foo
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "ab": {
+            "$getField": {
+              "field": "a.b", 
+              "input": "$bar"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result:
   - {'': {}}
   - {'': {ab: 2}}
@@ -35,8 +148,42 @@ tests:
   - {'': {}}
 
 - description: Nested delimited identifier containing a .
-  query: "SELECT VALUE {'abc': a.`b.c`} FROM bar"
   current_db: foo
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "abc": {
+            "$getField": {
+              "field": "b.c", 
+              "input": "$bar.a"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result:
   - {'': {}}
   - {'': {}}
@@ -47,8 +194,44 @@ tests:
   - {'': {}}
 
 - description: Delimited identifier with a $
-  query: "SELECT VALUE {'ab': `$a.b`} FROM bar"
   current_db: foo
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "ab": {
+            "$getField": {
+              "field": {
+                "$literal": "$a.b"
+              }, 
+              "input": "$bar"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result:
   - {'': {}}
   - {'': {}}
@@ -59,8 +242,51 @@ tests:
   - {'': {}}
 
 - description: Nested delimited identifiers containing $ and .
-  query: "SELECT VALUE {'abcd': `$a.$b`.`$c.d`} FROM bar"
   current_db: foo
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "abcd": {
+            "$getField": {
+              "field": {
+                "$literal": "$c.d"
+              }, 
+              "input": {
+                "$getField": {
+                  "field": {
+                    "$literal": "$a.$b"
+                  }, 
+                  "input": "$bar"
+                }
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result:
   - {'': {}}
   - {'': {}}
@@ -71,8 +297,56 @@ tests:
   - {'': {}}
 
 - description: Mixed identifiers containing $ and .
-  query: "SELECT VALUE {'abcd': `$a.$b`.`$c`.d} FROM bar"
   current_db: foo
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "abcd": {
+            "$getField": {
+              "field": "d", 
+              "input": {
+                "$getField": {
+                  "field": {
+                    "$literal": "$c"
+                  }, 
+                  "input": {
+                    "$getField": {
+                      "field": {
+                        "$literal": "$a.$b"
+                      }, 
+                      "input": "$bar"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result:
   - {'': {}}
   - {'': {}}
@@ -83,8 +357,42 @@ tests:
   - {'': {}}
 
 - description: Delimited identifier containing an empty string
-  query: "SELECT VALUE {'empty': ``} FROM bar"
   current_db: foo
+  "pipeline": [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "empty": {
+            "$getField": {
+              "field": "", 
+              "input": "$bar"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -97,20 +405,172 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: Unaliased use of field reference expression with $ and .
-  query: SELECT * FROM bar WHERE `$a.b` = 4
   current_db: foo
+  "pipeline": [
+    {
+      "$match": {
+        "$expr": {
+          "$and": [
+            {
+              "$gt": [
+                {
+                  "$getField": {
+                    "field": {
+                      "$literal": "$a.b"
+                    }, 
+                    "input": "$$ROOT"
+                  }
+                }, 
+                {
+                  "$literal": null
+                }
+              ]
+            }, 
+            {
+              "$eq": [
+                {
+                  "$getField": {
+                    "field": {
+                      "$literal": "$a.b"
+                    }, 
+                    "input": "$$ROOT"
+                  }
+                }, 
+                {
+                  "$literal": 4
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }
+  ]
   result:
   - {bar: {_id: 4, $a.b: 4}}
 
 - description: Unaliased use of nested field reference expressions with $ and .
-  query: SELECT * FROM bar WHERE `$a.$b`.`$c`.d = 6
   current_db: foo
+  "pipeline": [
+    {
+      "$match": {
+        "$expr": {
+          "$and": [
+            {
+              "$gt": [
+                {
+                  "$getField": {
+                    "field": "d", 
+                    "input": {
+                      "$getField": {
+                        "field": {
+                          "$literal": "$c"
+                        }, 
+                        "input": {
+                          "$getField": {
+                            "field": {
+                              "$literal": "$a.$b"
+                            }, 
+                            "input": "$$ROOT"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }, 
+                {
+                  "$literal": null
+                }
+              ]
+            }, 
+            {
+              "$eq": [
+                {
+                  "$getField": {
+                    "field": "d", 
+                    "input": {
+                      "$getField": {
+                        "field": {
+                          "$literal": "$c"
+                        }, 
+                        "input": {
+                          "$getField": {
+                            "field": {
+                              "$literal": "$a.$b"
+                            }, 
+                            "input": "$$ROOT"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }, 
+                {
+                  "$literal": 6
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }
+  ]
   result:
   - {bar: {_id: 6, $a.$b: {$c: {d: 6}}}}
 
 - description: Delimited identifier starting with digit is an identifier
-  query: "SELECT VALUE {'1a': `1a`} FROM [{'1a': 2}] arr"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "1a": {
+            "$literal": 2
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "1a": "$arr.1a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -124,9 +584,54 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: Backtick delimited identifiers containing delimiter characters
-  query: "SELECT VALUE {'a`b': `a``b`, 'a\"b': `a\"b`, 'a`\"b': `a``\"b`} FROM [{'a`b':
-    1, 'a\"b': 2, 'a`\"b': 3}] arr"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a`b": {
+            "$literal": 1
+          }, 
+          "a\"b": {
+            "$literal": 2
+          }, 
+          "a`\"b": {
+            "$literal": 3
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a`b": "$arr.a`b", 
+          "a\"b": "$arr.a\"b", 
+          "a`\"b": "$arr.a`\"b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -142,9 +647,54 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: Double quote delimited identifiers containing delimiter characters
-  query: "SELECT VALUE {'a`b': \"a`b\", 'a\"b': \"a\"\"b\", 'a`\"b': \"a`\"\"b\"}
-    FROM [{'a`b': 1, 'a\"b': 2, 'a`\"b': 3}] arr"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a`b": {
+            "$literal": 1
+          }, 
+          "a\"b": {
+            "$literal": 2
+          }, 
+          "a`\"b": {
+            "$literal": 3
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a`b": "$arr.a`b", 
+          "a\"b": "$arr.a\"b", 
+          "a`\"b": "$arr.a`\"b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -160,9 +710,58 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: Regular and delimited identifiers
-  query: "SELECT VALUE {'a': a, 'b': `b`} FROM [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]
-    arr"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }, 
+          "b": {
+            "$literal": 2
+          }
+        }, 
+        {
+          "a": {
+            "$literal": 3
+          }, 
+          "b": {
+            "$literal": 4
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$arr.a", 
+          "b": "$arr.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -177,8 +776,46 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: Delimited identifier with non-ASCII characters
-  query: "SELECT VALUE {'αβγ': `αβγ`} FROM [{'αβγ': 1}] arr"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "\u03b1\u03b2\u03b3": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "\u03b1\u03b2\u03b3": "$arr.\u03b1\u03b2\u03b3"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -192,8 +829,52 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: Compound identifier with more than 3 parts
-  query: "SELECT VALUE {'d': a.b.c.d} FROM [{'a': {'b': {'c': {'d': 1}}}}] arr"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "b": {
+              "c": {
+                "d": {
+                  "$literal": 1
+                }
+              }
+            }
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "d": "$arr.a.b.c.d"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
@@ -207,9 +888,60 @@ tests:
     required: ['', _id]
     additionalProperties: false
 - description: Case-sensitive identifiers
-  query: "SELECT VALUE {'a': a, 'A': A} FROM [{'a': 1, 'A': 2}, {'a': 3}, {'A': 4}]
-    arr"
   current_db: test
+  "pipeline": [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }, 
+          "A": {
+            "$literal": 2
+          }
+        }, 
+        {
+          "a": {
+            "$literal": 3
+          }
+        }, 
+        {
+          "A": {
+            "$literal": 4
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$arr.a", 
+          "A": "$arr.A"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
   result_set_schema:
     bsonType: object
     properties:
