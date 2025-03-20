@@ -1,9 +1,9 @@
 use agg_ast::{
     definitions::{
-        Expression, Let, LiteralValue, MatchArrayExpression, MatchArrayQuery, MatchBinaryOp,
-        MatchElement, MatchExpr, MatchExpression, MatchField, MatchLogical, MatchMisc, MatchNot,
-        MatchNotExpression, MatchRegex, Ref, TaggedOperator, UntaggedOperator,
-        UntaggedOperatorName,
+        Expression, Let, LiteralValue, MatchArrayExpression, MatchArrayQuery,
+        MatchBinaryOp, MatchElement, MatchExpr, MatchExpression, MatchField, MatchLogical,
+        MatchMisc, MatchNot, MatchNotExpression, MatchRegex, Ref, TaggedOperator,
+        UntaggedOperator, UntaggedOperatorName,
     },
     map,
 };
@@ -104,21 +104,14 @@ impl NegativeNormalize<Expression> for Expression {
             // would have no effect.
             Expression::Array(_) | Expression::Document(_) | Expression::Literal(_) => self.clone(),
             // to negate a field reference, we should assert that it has falsish behavior
-            Expression::Ref(_)
-            | Expression::TaggedOperator(TaggedOperator::GetField(_))
-            | Expression::TaggedOperator(TaggedOperator::Reduce(_))
-            | Expression::TaggedOperator(TaggedOperator::SetField(_))
-            | Expression::TaggedOperator(TaggedOperator::Switch(_))
-            | Expression::TaggedOperator(TaggedOperator::UnsetField(_)) => {
-                Expression::UntaggedOperator(UntaggedOperator {
-                    op: UntaggedOperatorName::Or,
-                    args: vec![
-                        wrap_in_null_or_missing_check!(self.clone()),
-                        wrap_in_zero_check!(self.clone()),
-                        wrap_in_false_check!(self.clone()),
-                    ],
-                })
-            }
+            Expression::Ref(_) => Expression::UntaggedOperator(UntaggedOperator {
+                op: UntaggedOperatorName::Or,
+                args: vec![
+                    wrap_in_null_or_missing_check!(self.clone()),
+                    wrap_in_zero_check!(self.clone()),
+                    wrap_in_false_check!(self.clone()),
+                ],
+            }),
             Expression::TaggedOperator(t) => match t {
                 // The following operators may evaluate to null, so the negation simply asserts
                 // that they are less than or equal to null. Although they should never evaluate to
@@ -188,17 +181,35 @@ impl NegativeNormalize<Expression> for Expression {
                         inside: Box::new(negated_inside)
                     }))
                 }
-                TaggedOperator::Reduce(_)
+                // to negate the following we should assert that it has falsish behavior
+                TaggedOperator::Convert(_)
+                | TaggedOperator::GetField(_)
+                | TaggedOperator::Like(_)
+                | TaggedOperator::Reduce(_)
                 | TaggedOperator::Switch(_)
-                | TaggedOperator::SetField(_) => Expression::UntaggedOperator(UntaggedOperator {
-                    op: UntaggedOperatorName::Or,
-                    args: vec![
-                        wrap_in_null_or_missing_check!(self.clone()),
-                        wrap_in_zero_check!(self.clone()),
-                        wrap_in_false_check!(self.clone()),
-                    ],
-                }),
-                _ => todo!(),
+                | TaggedOperator::SetField(_)
+                | TaggedOperator::UnsetField(_) 
+                | TaggedOperator::SQLConvert(_)
+                | TaggedOperator::SQLAvg(_)
+                | TaggedOperator::SQLCount(_)
+                | TaggedOperator::SQLDivide(_)
+                | TaggedOperator::SQLFirst(_)
+                | TaggedOperator::SQLLast(_)
+                | TaggedOperator::SQLMax(_)
+                | TaggedOperator::SQLMin(_)
+                | TaggedOperator::SQLSum(_)
+                => {
+                    Expression::UntaggedOperator(UntaggedOperator {
+                        op: UntaggedOperatorName::Or,
+                        args: vec![
+                            wrap_in_null_or_missing_check!(self.clone()),
+                            wrap_in_zero_check!(self.clone()),
+                            wrap_in_false_check!(self.clone()),
+                        ],
+                    })
+                }
+                a @ TaggedOperator::Accumulator(_) => Expression::TaggedOperator(a.clone()),
+                f @ TaggedOperator::Function(_) => Expression::TaggedOperator(f.clone()),   
             },
             Expression::UntaggedOperator(u) => {
                 let (op, args) = match u.op {
