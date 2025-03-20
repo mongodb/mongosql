@@ -815,6 +815,7 @@ mod numeric_ops {
 }
 
 mod date_ops {
+
     use super::*;
 
     macro_rules! test_derive_schema_for_date_expression_match {
@@ -1395,6 +1396,303 @@ mod date_ops {
                 "isoDayOfWeek".to_string() => Schema::Any,
             },
             required: set!(),
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema_for_match_stage!(
+        date_add_not_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "d".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Date),
+                    Schema::Atomic(Atomic::ObjectId),
+                    Schema::Atomic(Atomic::Timestamp),
+                ]),
+                "u".to_string() => Schema::Atomic(Atomic::String),
+                "a".to_string() => NUMERIC.clone(),
+                "tz".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!(
+                "d".to_string(),
+                "u".to_string(),
+                "a".to_string(),
+                "tz".to_string()
+            ),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$dateAdd": {"startDate": "$d", "unit": "$u", "amount": "$a", "timezone": "$tz"}}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "d".to_string() => Schema::Any,
+                "u".to_string() => Schema::Any,
+                "a".to_string() => Schema::Any,
+                "tz".to_string() => Schema::Any,
+            },
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema_for_match_stage!(
+        date_add_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "d".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Date),
+                    Schema::Atomic(Atomic::ObjectId),
+                    Schema::Atomic(Atomic::Timestamp),
+                    Schema::Atomic(Atomic::Null),
+                ]),
+                "u".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Null),
+                ]),
+                "a".to_string() => NUMERIC_OR_NULL.clone(),
+                "tz".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Null),
+                ]),
+            },
+            required: set!(),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$eq": [null, {"$dateAdd": {"startDate": "$d", "unit": "$u", "amount": "$a", "timezone": "$tz"}}] }}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "d".to_string() => Schema::Any,
+                "u".to_string() => Schema::Any,
+                "a".to_string() => Schema::Any,
+                "tz".to_string() => Schema::Any,
+            },
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema_for_match_stage!(
+        date_sub_not_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "d".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Date),
+                    Schema::Atomic(Atomic::ObjectId),
+                    Schema::Atomic(Atomic::Timestamp),
+                ]),
+                "u".to_string() => Schema::Atomic(Atomic::String),
+                "a".to_string() => NUMERIC.clone(),
+                "tz".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!(
+                "d".to_string(),
+                "u".to_string(),
+                "a".to_string(),
+                "tz".to_string()
+            ),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$dateSubtract": {"startDate": "$d", "unit": "$u", "amount": "$a", "timezone": "$tz"}}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "d".to_string() => Schema::Any,
+                "u".to_string() => Schema::Any,
+                "a".to_string() => Schema::Any,
+                "tz".to_string() => Schema::Any,
+            },
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema_for_match_stage!(
+        date_sub_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "d".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Date),
+                    Schema::Atomic(Atomic::ObjectId),
+                    Schema::Atomic(Atomic::Timestamp),
+                    Schema::Atomic(Atomic::Null),
+                ]),
+                "u".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Null),
+                ]),
+                "a".to_string() => NUMERIC_OR_NULL.clone(),
+                "tz".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Null),
+                ]),
+            },
+            required: set!(),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$eq": [null, {"$dateSubtract": {"startDate": "$d", "unit": "$u", "amount": "$a", "timezone": "$tz"}}] }}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "d".to_string() => Schema::Any,
+                "u".to_string() => Schema::Any,
+                "a".to_string() => Schema::Any,
+                "tz".to_string() => Schema::Any,
+            },
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema_for_match_stage!(
+        date_diff_not_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "d".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Date),
+                    Schema::Atomic(Atomic::ObjectId),
+                    Schema::Atomic(Atomic::Timestamp),
+                ]),
+                "e".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Date),
+                    Schema::Atomic(Atomic::ObjectId),
+                    Schema::Atomic(Atomic::Timestamp),
+                ]),
+                "u".to_string() => Schema::Atomic(Atomic::String),
+                "tz".to_string() => Schema::Atomic(Atomic::String),
+                "sow".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!(
+                "d".to_string(),
+                "e".to_string(),
+                "u".to_string(),
+                "tz".to_string(),
+                "sow".to_string(),
+            ),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$dateDiff": {"startDate": "$d", "endDate": "$e", "unit": "$u", "timezone": "$tz", "startOfWeek": "$sow"}}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "d".to_string() => Schema::Any,
+                "e".to_string() => Schema::Any,
+                "u".to_string() => Schema::Any,
+                "tz".to_string() => Schema::Any,
+                "sow".to_string() => Schema::Any,
+            },
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema_for_match_stage!(
+        date_diff_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "d".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Date),
+                    Schema::Atomic(Atomic::ObjectId),
+                    Schema::Atomic(Atomic::Timestamp),
+                    Schema::Atomic(Atomic::Null),
+                ]),
+                "e".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Date),
+                    Schema::Atomic(Atomic::ObjectId),
+                    Schema::Atomic(Atomic::Timestamp),
+                    Schema::Atomic(Atomic::Null),
+                ]),
+                "u".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Null),
+                ]),
+                "tz".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Null),
+                ]),
+                "sow".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Null),
+                ]),
+            },
+            required: set!(),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$eq": [null, {"$dateDiff": {"startDate": "$d", "endDate": "$e", "unit": "$u", "timezone": "$tz", "startOfWeek": "$sow"}}] }}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "d".to_string() => Schema::Any,
+                "e".to_string() => Schema::Any,
+                "u".to_string() => Schema::Any,
+                "tz".to_string() => Schema::Any,
+                "sow".to_string() => Schema::Any,
+            },
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema_for_match_stage!(
+        date_trunc_not_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "d".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Date),
+                    Schema::Atomic(Atomic::ObjectId),
+                    Schema::Atomic(Atomic::Timestamp),
+                ]),
+                "u".to_string() => Schema::Atomic(Atomic::String),
+                "b".to_string() => NUMERIC.clone(),
+                "tz".to_string() => Schema::Atomic(Atomic::String),
+                "sow".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!(
+                "d".to_string(),
+                "u".to_string(),
+                "b".to_string(),
+                "tz".to_string(),
+                "sow".to_string(),
+            ),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$dateTrunc": {"date": "$d", "unit": "$u", "binSize": "$b", "timezone": "$tz", "startOfWeek": "$sow"}}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "d".to_string() => Schema::Any,
+                "u".to_string() => Schema::Any,
+                "b".to_string() => Schema::Any,
+                "tz".to_string() => Schema::Any,
+                "sow".to_string() => Schema::Any,
+            },
+            ..Default::default()
+        })
+    );
+
+    test_derive_schema_for_match_stage!(
+        date_trunc_null,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "d".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Date),
+                    Schema::Atomic(Atomic::ObjectId),
+                    Schema::Atomic(Atomic::Timestamp),
+                    Schema::Atomic(Atomic::Null),
+                ]),
+                "u".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Null),
+                ]),
+                "b".to_string() => NUMERIC_OR_NULL.clone(),
+                "tz".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Null),
+                ]),
+                "sow".to_string() => Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Null),
+                ]),
+            },
+            required: set!(),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$eq": [null, {"$dateTrunc": {"date": "$d", "unit": "$u", "binSize": "$b", "timezone": "$tz", "startOfWeek": "$sow"}}] }}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "d".to_string() => Schema::Any,
+                "u".to_string() => Schema::Any,
+                "b".to_string() => Schema::Any,
+                "tz".to_string() => Schema::Any,
+                "sow".to_string() => Schema::Any,
+            },
             ..Default::default()
         })
     );

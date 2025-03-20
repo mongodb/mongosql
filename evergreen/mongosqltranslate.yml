@@ -410,10 +410,14 @@ tasks:
   - name: mongosqltranslate-sbom
     commands:
       - func: "install rust toolchain"
+      - func: "set and check packages version"
       - func: "generate SBOM"
         vars:
           project_folder: "mongosqltranslate"
       - func: "scan SBOM"
+        vars:
+          project_folder: "mongosqltranslate"
+      - func: "augment SBOM"
         vars:
           project_folder: "mongosqltranslate"
 

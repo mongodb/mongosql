@@ -854,7 +854,6 @@ fn arguments_schema_satisfies(
     let mut satisfaction = Satisfaction::Not;
     for arg in args.iter() {
         let arg_schema = arg.derive_schema(state)?.upconvert_missing_to_null();
-        dbg!(&arg_schema, schema, arg_schema.satisfies(schema));
         match (arg_schema.satisfies(schema), satisfaction) {
             (Satisfaction::May, Satisfaction::Not) => {
                 satisfaction = Satisfaction::May;
@@ -1518,7 +1517,6 @@ fn get_decimal_double_or_nullish(
     args: Vec<&Expression>,
     state: &mut ResultSetState,
 ) -> Result<Schema> {
-    dbg!(&args);
     let decimal_satisfaction =
         arguments_schema_satisfies(&args, state, &Schema::Atomic(Atomic::Decimal))?;
     let numeric_satisfaction = arguments_schema_satisfies(
@@ -1530,7 +1528,6 @@ fn get_decimal_double_or_nullish(
             Schema::Atomic(Atomic::Long),
         )),
     )?;
-    dbg!(decimal_satisfaction, numeric_satisfaction);
     let schema = match (decimal_satisfaction, numeric_satisfaction) {
         (Satisfaction::Must, _) | (Satisfaction::May, Satisfaction::Not) => {
             Schema::Atomic(Atomic::Decimal)

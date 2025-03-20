@@ -835,6 +835,53 @@ functions:
           echo "---------------------------------------------"
           echo "<<<< Done scanning SBOM"
 
+  "augment SBOM":
+    - command: ec2.assume_role
+      display_name: Assume IAM role with permissions to pull Kondukto API token
+      params:
+        role_arn: ${kondukto_role_arn}
+    - command: shell.exec
+      display_name: Pull Kondukto API token from AWS Secrets Manager and write it to file
+      params:
+        silent: true
+        shell: bash
+        working_dir: mongosql-rs
+        include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
+        script: |
+          # use AWS CLI to get the Kondukto API token from AWS Secrets Manager
+          kondukto_token=$(aws secretsmanager get-secret-value --secret-id "kondukto-token" --region "us-east-1" --query 'SecretString' --output text)
+          if [ $? -ne 0 ]; then
+              exit 1
+          fi
+          # set the KONDUKTO_TOKEN environment variable
+          echo "KONDUKTO_TOKEN=$kondukto_token" > ${workdir}/kondukto_credentials.env
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+          
+          SBOM_FINAL=${project_folder}.full.cdx.json
+          echo "SBOM_FINAL = $SBOM_FINAL"
+          
+          echo "-- Augmenting SBOM Lite --"
+          docker run -i --platform="linux/amd64" --rm -v "$PWD":/pwd \
+          --env-file ${workdir}/kondukto_credentials.env \
+          artifactory.corp.mongodb.com/release-tools-container-registry-public-local/silkbomb:2.0 \
+          augment --repo mongodb/mongosql --branch ${branch_name} --sbom-in /pwd/$SBOM_FINAL --sbom-out /pwd/${project_folder}.augmented.sbom.json --force
+          echo "-------------------------------"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/${project_folder}.augmented.sbom.json
+        remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/${project_folder}/${project_folder}.augmented.sbom.json
+        content_type: application/json
+        bucket: mciuploads
+        permissions: public-read
+
   "generate static code analysis":
     - command: shell.exec
       type: test
@@ -1025,6 +1072,38 @@ tasks:
           workload_filename: "workload_norm_sf0.01.yml"
           s3_prefix: "SF0.01"
 
+  - name: tpch-0.001-normalized-distinct-atlas-sql
+    allow_for_git_tag: false
+    disable: true
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
+      - func: "install rust toolchain"
+      - func: "run TPC-H benchmark"
+        vars:
+          dataset_filename: "tpch-0.001-normalized-indexed.archive.gz"
+          pipeline_dir: atlas_sql/normalized
+          workload_filename: "workload_norm_distinct_sf0.001.yml"
+          s3_prefix: "SF0.001"
+
+  - name: tpch-0.01-normalized-distinct-atlas-sql
+    allow_for_git_tag: false
+    disable: true
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
+      - func: "install rust toolchain"
+      - func: "run TPC-H benchmark"
+        vars:
+          dataset_filename: "tpch-0.01-normalized-indexed.archive.gz"
+          pipeline_dir: atlas_sql/normalized
+          workload_filename: "workload_norm_distinct_sf0.01.yml"
+          s3_prefix: "SF0.01"
+
   - name: tpch-0.01-denormalized-atlas-sql
     depends_on:
       - name: tpch-0.001-denormalized-validation
@@ -1159,6 +1238,38 @@ tasks:
         vars:
           dataset_filename: "tpch-0.01-normalized-indexed.archive.gz"
           pipeline_dir: bic/normalized
+          workload_filename: "workload.yml"
+          s3_prefix: "SF0.01"
+
+  - name: tpch-0.001-normalized-distinct-bic
+    allow_for_git_tag: false
+    disable: true
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
+      - func: "install rust toolchain"
+      - func: "run TPC-H benchmark"
+        vars:
+          dataset_filename: "tpch-0.001-normalized-indexed.archive.gz"
+          pipeline_dir: bic/normalized_distinct
+          workload_filename: "workload.yml"
+          s3_prefix: "SF0.001"
+
+  - name: tpch-0.01-normalized-distinct-bic
+    allow_for_git_tag: false
+    disable: true
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
+      - func: "install rust toolchain"
+      - func: "run TPC-H benchmark"
+        vars:
+          dataset_filename: "tpch-0.01-normalized-indexed.archive.gz"
+          pipeline_dir: bic/normalized_distinct
           workload_filename: "workload.yml"
           s3_prefix: "SF0.01"
 
