@@ -440,7 +440,7 @@ mod facet {
     test_derive_stage_schema!(
         empty,
         expected = Ok(Schema::Document(Document::default())),
-        input = r#"stage: {"$facet": {}}"#
+        input = r#"{"$facet": {}}"#
     );
 
     test_derive_stage_schema!(
@@ -450,7 +450,10 @@ mod facet {
                 "outputField1".to_string() => Schema::Array(Box::new(
                     Schema::Document(Document {
                         keys: map! {
-                            "x".to_string() => Schema::Atomic(Atomic::Integer)
+                            "x".to_string() => Schema::AnyOf(set!{
+                                Schema::Atomic(Atomic::Integer),
+                                Schema::Atomic(Atomic::Long)
+                            })
                         },
                         required: set!("x".to_string()),
                         ..Default::default()
@@ -479,19 +482,22 @@ mod facet {
                 "outputField2".to_string() => Schema::Array(Box::new(
                     Schema::Document(Document {
                         keys: map! {
-                            "x".to_string() => Schema::Atomic(Atomic::Integer)
+                            "x".to_string() => Schema::AnyOf(set!{
+                                Schema::Atomic(Atomic::Integer),
+                                Schema::Atomic(Atomic::Long)
+                            })
                         },
-                        required: set!(),
+                        required: set!("x".to_string()),
                         ..Default::default()
                     })
                 ))
             },
-            required: set!("outputField1".to_string()),
+            required: set!("o1".to_string(), "outputField2".to_string()),
             ..Default::default()
         })),
         input = r#"{"$facet": {
             "o1": [{"$limit": 10}, {"$project": {"_id": 0}}],
-            "outputField2": [{"$count": "x"}],
+            "outputField2": [{"$count": "x"}]
         }}"#,
         starting_schema = Schema::Document(Document {
             keys: map! {

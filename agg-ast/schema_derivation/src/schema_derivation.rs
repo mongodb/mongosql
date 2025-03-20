@@ -160,8 +160,10 @@ impl DeriveSchema for Stage {
                 .into_iter()
                 .map(|(field, pipeline)| {
                     let mut field_state = state.clone();
-                    let field_schema =
-                        derive_schema_for_pipeline(pipeline.clone(), &mut field_state)?;
+                    let field_schema = Schema::Array(Box::new(derive_schema_for_pipeline(
+                        pipeline.clone(),
+                        &mut field_state,
+                    )?));
                     Ok((field.clone(), field_schema))
                 })
                 .collect::<Result<BTreeMap<String, Schema>>>()?;
