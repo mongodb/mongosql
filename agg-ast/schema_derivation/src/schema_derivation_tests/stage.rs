@@ -1429,6 +1429,92 @@ mod replace {
     );
 }
 
+mod search {
+    use super::*;
+
+    test_derive_stage_schema!(
+        search,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "bar".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string(), "bar".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$search": {
+            "near": {
+                "path": "released",
+                "origin": "2011-09-01T00:00:00.000+00:00",
+                "pivot": 7776000000
+            }
+        }}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "bar".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("foo".to_string(), "bar".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        vector_search,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "bar".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!("foo".to_string(), "bar".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$vectorSearch": {
+                "exact": true,
+                "filter": {},
+                "index": "x",
+                "limit": 23,
+                "numCandidates": 42,
+                "path": "baz",
+                "queryVector": [1,2,3,41]
+            }
+        }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "bar".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("foo".to_string(), "bar".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        search_meta,
+        expected = Ok(crate::schema_derivation::SEARCH_META.clone()),
+        input = r#"{
+            "$searchMeta": {
+                "range": {
+                    "path": "year",
+                    "gte": 1998,
+                    "lt": 1999
+                },
+                "count": {
+                    "type": "total"
+                }
+            }
+        }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+                "bar".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("foo".to_string(), "bar".to_string()),
+            ..Default::default()
+        })
+    );
+}
+
 mod unset_fields {
     use super::*;
 

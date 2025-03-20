@@ -4,10 +4,10 @@ use crate::{
     MatchConstrainSchema, Result,
 };
 use agg_ast::definitions::{
-    Bucket, BucketAuto, ConciseSubqueryLookup, Densify, EqualityLookup, Expression, Fill,
-    FillOutput, GraphLookup, Group, LiteralValue, Lookup, LookupFrom, ProjectItem, ProjectStage,
-    Ref, SetWindowFields, Stage, SubqueryLookup, TaggedOperator, UnionWith, Unset,
-    UntaggedOperator, UntaggedOperatorName, Unwind,
+    AtlasSearchStage, Bucket, BucketAuto, ConciseSubqueryLookup, Densify, EqualityLookup,
+    Expression, Fill, FillOutput, GraphLookup, Group, LiteralValue, Lookup, LookupFrom,
+    ProjectItem, ProjectStage, Ref, SetWindowFields, Stage, SubqueryLookup, TaggedOperator,
+    UnionWith, Unset, UntaggedOperator, UntaggedOperatorName, Unwind,
 };
 use linked_hash_map::LinkedHashMap;
 use mongosql::{
@@ -22,7 +22,27 @@ use mongosql::{
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::{Display, Formatter},
+    sync::LazyLock,
 };
+
+pub static SEARCH_META: LazyLock<Schema> = LazyLock::new(|| {
+    Schema::Document(Document {
+        keys: map! {
+            "count".to_string() => Schema::Document(Document {
+                keys: map! {
+                    "total".to_string() => Schema::Atomic(Atomic::Long),
+                    "lowerBound".to_string() => Schema::Atomic(Atomic::Long),
+                },
+                // one key is required, but the result will always include one or
+                // the other, so we cannot say that either is required.
+                required: set![],
+                ..Default::default()
+            }),
+        },
+        required: set!["count".to_string(),],
+        ..Default::default()
+    })
+});
 
 #[allow(dead_code)]
 pub(crate) trait DeriveSchema {
@@ -683,7 +703,12 @@ impl DeriveSchema for Stage {
 
         match self {
             Stage::AddFields(a) => add_fields_derive_schema(a, state),
-            Stage::AtlasSearchStage(_) => todo!(),
+            Stage::AtlasSearchStage(a) => match a {
+                AtlasSearchStage::Search(_) | AtlasSearchStage::VectorSearch(_) => {
+                    Ok(state.result_set_schema.to_owned())
+                }
+                AtlasSearchStage::SearchMeta(_) => Ok(SEARCH_META.clone()),
+            },
             Stage::Bucket(b) => bucket_derive_schema(b, state),
             Stage::BucketAuto(b) => bucket_auto_derive_schema(b, state),
             Stage::Collection(c) => {
@@ -833,22 +858,7 @@ impl DeriveSchema for Expression {
                         required: set!["_id".to_string(), "role".to_string(), "db".to_string()],
                         ..Default::default()
                     })))),
-                    "SEARCH_META" => Ok(Schema::Document(Document {
-                        keys: map! {
-                            "count".to_string() => Schema::Document(Document {
-                                keys: map! {
-                                    "total".to_string() => Schema::Atomic(Atomic::Long),
-                                    "lowerBound".to_string() => Schema::Atomic(Atomic::Long),
-                                },
-                                // one key is required, but the result will always include one or
-                                // the other, so we cannot say that either is required.
-                                required: set![],
-                                ..Default::default()
-                            }),
-                        },
-                        required: set!["count".to_string(),],
-                        ..Default::default()
-                    })),
+                    "SEARCH_META" => Ok(SEARCH_META.clone()),
                     v => {
                         let path: Vec<String> = v.split('.').map(|s| s.to_string()).collect();
                         let var_schema = if v.contains(".") {
