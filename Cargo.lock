@@ -3566,6 +3566,7 @@ dependencies = [
  "linked-hash-map",
  "mongosql",
  "serde_json",
+ "tailcall",
  "thiserror 2.0.12",
 ]
 
