@@ -33,7 +33,7 @@ struct Cli {
     #[arg(
         short,
         long,
-        help = "The current database where collections in the query are assumed to live (cross database queries are not supported). Required if `execute` is specified, or of no `schema_file` is specified. default = test"
+        help = "The current database where collections in the query are assumed to live (cross database queries are not supported). Required if `execute` is specified, or if no `schema_file` is specified. default = test"
     )]
     db: Option<String>,
     #[arg(index = 1, help = "The query to translate")]
@@ -81,7 +81,6 @@ fn main() -> Result<(), CliError> {
             .and_then(|ext| ext.to_str())
             .map(|ext| ext.to_lowercase());
 
-        // Parse based on file extension
         let catalog: SchemaFile = match extension.as_deref() {
             Some("yaml") | Some("yml") => serde_yaml::from_str(&contents)?,
             Some("json") => serde_json::from_str(&contents)?,
