@@ -24,6 +24,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     #[error("Cannot derive schema for undefined literals")]
     InvalidLiteralType,
+    #[error("Invalid JsonSchema")]
+    InvalidJsonSchema,
     #[error("Type value for convert invalid: {0}")]
     InvalidConvertTypeValue(String),
     #[error("Cannot derive schema for unsupported group accumulator: {0}")]

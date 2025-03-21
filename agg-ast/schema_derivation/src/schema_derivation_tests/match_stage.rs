@@ -112,6 +112,22 @@ test_derive_schema_for_match_stage! {
 }
 
 test_derive_schema_for_match_stage! {
+    derivation_for_json_schema,
+    expected = Ok(Schema::Document(Document {
+        keys: map! {
+            "foo".to_string() => Schema::Atomic(Atomic::Null),
+        },
+        required: set!{"foo".to_string()},
+        ..Default::default()
+    })),
+    input = r#"{"$match": {"$jsonSchema": {"bsonType": "object", "required": ["foo"], "properties": {"foo": {"bsonType": "null"}}, "required": ["foo"]}}}"#,
+    ref_schema = Schema::AnyOf(set!{
+        Schema::Atomic(Atomic::Null),
+        Schema::Missing,
+    })
+}
+
+test_derive_schema_for_match_stage! {
     derivation_for_two_constraints,
     expected = Ok(Schema::Document(Document {
         keys: map! {

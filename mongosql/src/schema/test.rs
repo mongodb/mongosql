@@ -3266,7 +3266,7 @@ mod intersection {
                 "a".to_string() => Schema::Atomic(Atomic::Integer),
                 "b".to_string() => Schema::Atomic(Atomic::String),
             },
-            required: set!["a".into()],
+            required: set!["a".into(), "b".into()],
             additional_properties: false,
             ..Default::default()
         }),
@@ -3310,7 +3310,7 @@ mod intersection {
                 "a".to_string() => Schema::Atomic(Atomic::Integer),
                 "b".to_string() => Schema::Atomic(Atomic::String),
             },
-            required: set!["a".into()],
+            required: set!["a".into(), "b".into()],
             additional_properties: false,
             ..Default::default()
         }),
@@ -3346,7 +3346,7 @@ mod intersection {
                     "a".to_string() => Schema::Atomic(Atomic::Integer),
                     "b".to_string() => Schema::Atomic(Atomic::String),
                 },
-                required: set!["a".into()],
+                required: set!["a".into(), "b".into()],
                 additional_properties: false,
                 ..Default::default()
             }),
