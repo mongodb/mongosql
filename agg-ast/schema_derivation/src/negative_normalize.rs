@@ -1,9 +1,9 @@
 use agg_ast::{
     definitions::{
-        Expression, Let, LiteralValue, MatchArrayExpression, MatchArrayQuery,
-        MatchBinaryOp, MatchElement, MatchExpr, MatchExpression, MatchField, MatchLogical,
-        MatchMisc, MatchNot, MatchNotExpression, MatchRegex, Ref, TaggedOperator,
-        UntaggedOperator, UntaggedOperatorName,
+        Expression, Let, LiteralValue, MatchArrayExpression, MatchArrayQuery, MatchBinaryOp,
+        MatchElement, MatchExpr, MatchExpression, MatchField, MatchLogical, MatchMisc, MatchNot,
+        MatchNotExpression, MatchRegex, Ref, TaggedOperator, UntaggedOperator,
+        UntaggedOperatorName,
     },
     map,
 };
@@ -182,13 +182,28 @@ impl NegativeNormalize<Expression> for Expression {
                     }))
                 }
                 // to negate the following we should assert that it has falsish behavior
-                TaggedOperator::Convert(_)
+                // some of these operators are actually only accumulators and should never occur in
+                // a context where we negate them, but are maintained for completeness.
+                TaggedOperator::Accumulator(_)
+                | TaggedOperator::Bottom(_)
+                | TaggedOperator::BottomN(_)
+                | TaggedOperator::Cond(_)
+                | TaggedOperator::Convert(_)
+                | TaggedOperator::DenseRank(_)
+                | TaggedOperator::Derivative(_)
+                | TaggedOperator::DocumentNumber(_)
+                | TaggedOperator::ExpMovingAvg(_)
+                | TaggedOperator::Function(_)
                 | TaggedOperator::GetField(_)
+                | TaggedOperator::Integral(_)
                 | TaggedOperator::Like(_)
+                | TaggedOperator::Rank(_)
                 | TaggedOperator::Reduce(_)
+                | TaggedOperator::Shift(_)
                 | TaggedOperator::Switch(_)
                 | TaggedOperator::SetField(_)
-                | TaggedOperator::UnsetField(_) 
+                // SQL operators should be rewritten before we get here, but it's easy enough to
+                // support them here as well.
                 | TaggedOperator::SQLConvert(_)
                 | TaggedOperator::SQLAvg(_)
                 | TaggedOperator::SQLCount(_)
@@ -196,20 +211,33 @@ impl NegativeNormalize<Expression> for Expression {
                 | TaggedOperator::SQLFirst(_)
                 | TaggedOperator::SQLLast(_)
                 | TaggedOperator::SQLMax(_)
+                | TaggedOperator::SQLMergeObjects(_)
                 | TaggedOperator::SQLMin(_)
+                | TaggedOperator::SQLStdDevPop(_)
+                | TaggedOperator::SQLStdDevSamp(_)
                 | TaggedOperator::SQLSum(_)
-                => {
-                    Expression::UntaggedOperator(UntaggedOperator {
-                        op: UntaggedOperatorName::Or,
-                        args: vec![
-                            wrap_in_null_or_missing_check!(self.clone()),
-                            wrap_in_zero_check!(self.clone()),
-                            wrap_in_false_check!(self.clone()),
-                        ],
-                    })
+                | TaggedOperator::Subquery(_)
+                | TaggedOperator::SubqueryExists(_)
+                | TaggedOperator::SubqueryComparison(_)
+                | TaggedOperator::Top(_)
+                | TaggedOperator::TopN(_)
+                | TaggedOperator::UnsetField(_) => {
+                    // Some of these expressions would be fairly expensive, so we bind them to a
+                    // $let variable to avoid repeating the calculation three times.
+                    Expression::TaggedOperator(TaggedOperator::Let(Let {
+                        vars: map!{"expression_to_negate".to_string() => self.clone()},
+                        inside: Box::new(
+                            Expression::UntaggedOperator(UntaggedOperator {
+                                op: UntaggedOperatorName::Or,
+                                args: vec![
+                                    wrap_in_null_or_missing_check!(Expression::Ref(Ref::VariableRef("expression_to_negate".to_string()))),
+                                    wrap_in_zero_check!(Expression::Ref(Ref::VariableRef("expression_to_negate".to_string()))),
+                                    wrap_in_false_check!(Expression::Ref(Ref::VariableRef("expression_to_negate".to_string()))),
+                                ],
+                            })
+                        ),
+                    }))
                 }
-                a @ TaggedOperator::Accumulator(_) => Expression::TaggedOperator(a.clone()),
-                f @ TaggedOperator::Function(_) => Expression::TaggedOperator(f.clone()),   
             },
             Expression::UntaggedOperator(u) => {
                 let (op, args) = match u.op {
