@@ -73,8 +73,7 @@ fn main() -> Result<(), CliError> {
     let current_db = args.db.unwrap_or("test".to_string());
     let query = args.query;
     let namespaces = mongosql::get_namespaces(current_db.as_str(), query.as_str())?;
-    let schema_file = args.schema_file;
-    let catalog = if let Some(schema_file) = schema_file {
+    let catalog = if let Some(schema_file) = args.schema_file {
         let contents = std::fs::read_to_string(&schema_file)?;
         let path = std::path::Path::new(&schema_file);
         let extension = path
