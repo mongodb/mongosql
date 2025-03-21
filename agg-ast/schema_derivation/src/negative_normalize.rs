@@ -411,7 +411,18 @@ impl NegativeNormalize<MatchExpression> for MatchExpression {
                     UntaggedOperatorName::Not => MatchExpression::Expr(MatchExpr {
                         expr: Box::new(untagged_operator.args[0].get_negation()),
                     }),
-                    UntaggedOperatorName::Cond => todo!(),
+                    UntaggedOperatorName::Cond => {
+                        MatchExpression::Expr(MatchExpr {
+                            expr: Box::new(Expression::UntaggedOperator(UntaggedOperator {
+                                op: UntaggedOperatorName::Cond,
+                                args: vec![
+                                    untagged_operator.args[0].get_negative_normal_form(),
+                                    untagged_operator.args[1].get_negative_normal_form(),
+                                    untagged_operator.args[2].get_negative_normal_form(),
+                                ],
+                            })),
+                        })
+                    }
                     _ => self.clone(),
                 },
                 _ => self.clone(),
