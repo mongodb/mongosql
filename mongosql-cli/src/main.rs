@@ -69,15 +69,16 @@ fn main() -> Result<(), CliError> {
         let schema = serde_json::to_string_pretty(&translation.result_set_schema)
             .map_err(|e| CliError(e.to_string()))?;
         println!(
-            "target_db: {},\ntarget_collection: {:?},\nresult set schema:\n{}\npipeline:",
+            "target_db: {},\ntarget_collection: {:?},\nresult set schema:\n{}\npipeline:\n[",
             translation.target_db, translation.target_collection, schema
         );
         let bson::Bson::Array(pipeline) = pipeline else {
             return Err(CliError("pipeline is not an array".to_string()));
         };
         for doc in pipeline {
-            println!("    {}", doc);
+            println!("    {},", doc);
         }
+        println!("]");
         Ok(())
     };
     // If the result flag is not set, we always want to print the translation, regardless of the translation flag.
