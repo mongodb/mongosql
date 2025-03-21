@@ -2149,7 +2149,7 @@ impl MatchConstrainSchema for Expression {
                 TaggedOperator::DateDiff(d) => match_derive_date_diff(d, state)?,
                 TaggedOperator::DateSubtract(d) => match_derive_date_subtract(d, state)?,
                 TaggedOperator::DateTrunc(d) => match_derive_date_trunc(d, state)?,
-                _ => todo!(),
+                _ => {}
             },
 
             Expression::UntaggedOperator(u) => match u.op {
@@ -2248,7 +2248,7 @@ impl MatchConstrainSchema for Expression {
                 UntaggedOperatorName::IndexOfCP | UntaggedOperatorName::IndexOfBytes => {
                     match_derive_index_of(u, state)?
                 }
-                _ => todo!(),
+                _ => {}
             },
             _ => {}
         }
