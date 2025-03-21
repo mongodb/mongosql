@@ -260,47 +260,47 @@ impl NegativeNormalize<Expression> for Expression {
                     // these operators will never return nullish values -- instead, they may return empty string,
                     // or array, which are truish. Wrapping with null will ensure if they are negated, the schema
                     // will evaluate to Unsat
-                    | UntaggedOperatorName::Meta | UntaggedOperatorName::MergeObjects 
-                    | UntaggedOperatorName::Rand | UntaggedOperatorName::Range 
-                    | UntaggedOperatorName::Substr | UntaggedOperatorName::SubstrBytes 
-                    | UntaggedOperatorName::SubstrCP | UntaggedOperatorName::ToHashedIndexKey 
-                    | UntaggedOperatorName::ToLower | UntaggedOperatorName::ToUpper 
+                    | UntaggedOperatorName::Meta | UntaggedOperatorName::MergeObjects
+                    | UntaggedOperatorName::Rand | UntaggedOperatorName::Range
+                    | UntaggedOperatorName::Substr | UntaggedOperatorName::SubstrBytes
+                    | UntaggedOperatorName::SubstrCP | UntaggedOperatorName::ToHashedIndexKey
+                    | UntaggedOperatorName::ToLower | UntaggedOperatorName::ToUpper
                     | UntaggedOperatorName::Type => return wrap_in_null_or_missing_check!(self.clone()),
                     // The following operators may evaluate to the falsy values null or 0, so the
                     // negation asserts that equality to any of those values.
-                    UntaggedOperatorName::Abs | UntaggedOperatorName::Acos 
-                    | UntaggedOperatorName::Acosh | UntaggedOperatorName::Asin 
-                    | UntaggedOperatorName::Asinh | UntaggedOperatorName::Atan 
-                    | UntaggedOperatorName::Atan2 | UntaggedOperatorName::Atanh 
+                    UntaggedOperatorName::Abs | UntaggedOperatorName::Acos
+                    | UntaggedOperatorName::Acosh | UntaggedOperatorName::Asin
+                    | UntaggedOperatorName::Asinh | UntaggedOperatorName::Atan
+                    | UntaggedOperatorName::Atan2 | UntaggedOperatorName::Atanh
                     | UntaggedOperatorName::Avg | UntaggedOperatorName::Count
-                    | UntaggedOperatorName::Cos | UntaggedOperatorName::Cosh 
-                    | UntaggedOperatorName::SQLCos | UntaggedOperatorName::DegreesToRadians 
-                    | UntaggedOperatorName::Divide | UntaggedOperatorName::Exp 
-                    | UntaggedOperatorName::Ln | UntaggedOperatorName::Log 
-                    | UntaggedOperatorName::Log10 | UntaggedOperatorName::Mod 
-                    | UntaggedOperatorName::Multiply | UntaggedOperatorName::Pow 
-                    | UntaggedOperatorName::RadiansToDegrees | UntaggedOperatorName::Sin 
-                    | UntaggedOperatorName::Sinh | UntaggedOperatorName::SQLSin 
-                    | UntaggedOperatorName::Sqrt | UntaggedOperatorName::Tan 
-                    | UntaggedOperatorName::Tanh | UntaggedOperatorName::Trunc 
-                    | UntaggedOperatorName::Ceil | UntaggedOperatorName::Floor 
+                    | UntaggedOperatorName::Cos | UntaggedOperatorName::Cosh
+                    | UntaggedOperatorName::SQLCos | UntaggedOperatorName::DegreesToRadians
+                    | UntaggedOperatorName::Divide | UntaggedOperatorName::Exp
+                    | UntaggedOperatorName::Ln | UntaggedOperatorName::Log
+                    | UntaggedOperatorName::Log10 | UntaggedOperatorName::Mod
+                    | UntaggedOperatorName::Multiply | UntaggedOperatorName::Pow
+                    | UntaggedOperatorName::RadiansToDegrees | UntaggedOperatorName::Sin
+                    | UntaggedOperatorName::Sinh | UntaggedOperatorName::SQLSin
+                    | UntaggedOperatorName::Sqrt | UntaggedOperatorName::Tan
+                    | UntaggedOperatorName::Tanh | UntaggedOperatorName::Trunc
+                    | UntaggedOperatorName::Ceil | UntaggedOperatorName::Floor
                     | UntaggedOperatorName::IndexOfArray | UntaggedOperatorName::IndexOfBytes
-                    | UntaggedOperatorName::IndexOfCP | UntaggedOperatorName::ToInt 
-                    | UntaggedOperatorName::Add | UntaggedOperatorName::Subtract 
-                    | UntaggedOperatorName::ArrayElemAt | UntaggedOperatorName::BinarySize 
+                    | UntaggedOperatorName::IndexOfCP | UntaggedOperatorName::ToInt
+                    | UntaggedOperatorName::Add | UntaggedOperatorName::Subtract
+                    | UntaggedOperatorName::ArrayElemAt | UntaggedOperatorName::BinarySize
                     | UntaggedOperatorName::SQLBitLength | UntaggedOperatorName::SQLIndexOfCP
                     | UntaggedOperatorName::SQLStrLenBytes | UntaggedOperatorName::SQLStrLenCP
                     | UntaggedOperatorName::SQLLog | UntaggedOperatorName::SQLMod
-                    | UntaggedOperatorName::SQLNeg | UntaggedOperatorName::SQLPos 
+                    | UntaggedOperatorName::SQLNeg | UntaggedOperatorName::SQLPos
                     | UntaggedOperatorName::SQLRound | UntaggedOperatorName::SQLSize
-                    | UntaggedOperatorName::SQLSqrt | UntaggedOperatorName::BitAnd 
-                    | UntaggedOperatorName::BitNot | UntaggedOperatorName::BitOr 
-                    | UntaggedOperatorName::BitXor | UntaggedOperatorName::BsonSize 
-                    | UntaggedOperatorName::CovariancePop | UntaggedOperatorName::CovarianceSamp 
-                    | UntaggedOperatorName::StdDevPop| UntaggedOperatorName::StdDevSamp 
-                    | UntaggedOperatorName::Round | UntaggedOperatorName::ToDecimal 
-                    | UntaggedOperatorName::ToDouble | UntaggedOperatorName::ToLong 
-                    | UntaggedOperatorName::NumberDouble | UntaggedOperatorName::SQLSum 
+                    | UntaggedOperatorName::SQLSqrt | UntaggedOperatorName::BitAnd
+                    | UntaggedOperatorName::BitNot | UntaggedOperatorName::BitOr
+                    | UntaggedOperatorName::BitXor | UntaggedOperatorName::BsonSize
+                    | UntaggedOperatorName::CovariancePop | UntaggedOperatorName::CovarianceSamp
+                    | UntaggedOperatorName::StdDevPop| UntaggedOperatorName::StdDevSamp
+                    | UntaggedOperatorName::Round | UntaggedOperatorName::ToDecimal
+                    | UntaggedOperatorName::ToDouble | UntaggedOperatorName::ToLong
+                    | UntaggedOperatorName::NumberDouble | UntaggedOperatorName::SQLSum
                     | UntaggedOperatorName::SQLTan => {
                         let null_check = wrap_in_null_or_missing_check!(self.clone());
                         let zero_check = wrap_in_zero_check!(self.clone());
@@ -315,8 +315,8 @@ impl NegativeNormalize<Expression> for Expression {
                     // The following operators may evaluate to the falsy values missing, null, 0, or
                     // false, so the negation asserts equality to any of those values.
                     UntaggedOperatorName::Coalesce | UntaggedOperatorName::NullIf
-                    | UntaggedOperatorName::First | UntaggedOperatorName::IfNull 
-                    | UntaggedOperatorName::Last | UntaggedOperatorName::Literal 
+                    | UntaggedOperatorName::First | UntaggedOperatorName::IfNull
+                    | UntaggedOperatorName::Last | UntaggedOperatorName::Literal
                     | UntaggedOperatorName::Max | UntaggedOperatorName::Min => {
                         let null_check = wrap_in_null_or_missing_check!(self.clone());
                         let zero_check = wrap_in_zero_check!(self.clone());
@@ -338,7 +338,7 @@ impl NegativeNormalize<Expression> for Expression {
                     | UntaggedOperatorName::SQLAnd | UntaggedOperatorName::SQLOr
                     | UntaggedOperatorName::SQLBetween | UntaggedOperatorName::SQLEq
                     | UntaggedOperatorName::SQLGt | UntaggedOperatorName::SQLGte
-                    | UntaggedOperatorName::SQLIs | UntaggedOperatorName::SQLLt 
+                    | UntaggedOperatorName::SQLIs | UntaggedOperatorName::SQLLt
                     | UntaggedOperatorName::SQLLte | UntaggedOperatorName::SQLNe
                     | UntaggedOperatorName::SQLNot => {
                         let null_check = wrap_in_null_or_missing_check!(self.clone());
@@ -385,7 +385,7 @@ impl NegativeNormalize<Expression> for Expression {
                     // the negation of not(X) is X, so we short circuit here and just return X
                     UntaggedOperatorName::Not => return u.args[0].clone(),
                     // arrays are always truthy
-                    UntaggedOperatorName::AddToSet | UntaggedOperatorName::Push 
+                    UntaggedOperatorName::AddToSet | UntaggedOperatorName::Push
                     | UntaggedOperatorName::SQLSlice | UntaggedOperatorName::SQLSplit => return Expression::Literal(LiteralValue::Boolean(false)),
                     // sampleRate is always truthy
                     UntaggedOperatorName::SampleRate => return Expression::Literal(LiteralValue::Boolean(false)),
@@ -404,18 +404,16 @@ impl NegativeNormalize<MatchExpression> for MatchExpression {
                     UntaggedOperatorName::Not => MatchExpression::Expr(MatchExpr {
                         expr: Box::new(untagged_operator.args[0].get_negation()),
                     }),
-                    UntaggedOperatorName::Cond => {
-                        MatchExpression::Expr(MatchExpr {
-                            expr: Box::new(Expression::UntaggedOperator(UntaggedOperator {
-                                op: UntaggedOperatorName::Cond,
-                                args: vec![
-                                    untagged_operator.args[0].get_negative_normal_form(),
-                                    untagged_operator.args[1].get_negative_normal_form(),
-                                    untagged_operator.args[2].get_negative_normal_form(),
-                                ],
-                            })),
-                        })
-                    }
+                    UntaggedOperatorName::Cond => MatchExpression::Expr(MatchExpr {
+                        expr: Box::new(Expression::UntaggedOperator(UntaggedOperator {
+                            op: UntaggedOperatorName::Cond,
+                            args: vec![
+                                untagged_operator.args[0].get_negative_normal_form(),
+                                untagged_operator.args[1].get_negative_normal_form(),
+                                untagged_operator.args[2].get_negative_normal_form(),
+                            ],
+                        })),
+                    }),
                     _ => self.clone(),
                 },
                 _ => self.clone(),
