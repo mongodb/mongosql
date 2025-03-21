@@ -1,7 +1,10 @@
 use bson::{doc, Document};
 use clap::Parser;
 use mongodb::sync::{Client, Collection};
-use mongosql::{catalog::Catalog, json_schema::Schema, Namespace};
+use mongosql::{
+    build_catalog_from_catalog_schema, catalog::Catalog, json_schema::Schema, Namespace,
+};
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 const SQL_SCHEMAS_COLLECTION: &str = "__sql_schemas";
@@ -30,7 +33,7 @@ struct Cli {
     #[arg(
         short,
         long,
-        help = "The current database where collections in the query are assumed to live (cross database queries are not supported), default = test"
+        help = "The current database where collections in the query are assumed to live (cross database queries are not supported). Required if `execute` is specified, or if no `schema_file` is specified. default = test"
     )]
     db: Option<String>,
     #[arg(index = 1, help = "The query to translate")]
@@ -49,6 +52,18 @@ struct Cli {
         help = "The mongodb uri, default = mongodb://localhost:27017"
     )]
     uri: Option<String>,
+    #[arg(
+        short = 'f',
+        long,
+        help = "A schema file to use instead of querying the database for schema"
+    )]
+    schema_file: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SchemaFile {
+    #[serde(flatten)]
+    pub schemas: BTreeMap<String, BTreeMap<String, Schema>>,
 }
 
 fn main() -> Result<(), CliError> {
@@ -58,7 +73,28 @@ fn main() -> Result<(), CliError> {
     let current_db = args.db.unwrap_or("test".to_string());
     let query = args.query;
     let namespaces = mongosql::get_namespaces(current_db.as_str(), query.as_str())?;
-    let catalog = get_schema_catalog(uri.as_str(), current_db.as_str(), namespaces)?;
+    let catalog = if let Some(schema_file) = args.schema_file {
+        let contents = std::fs::read_to_string(&schema_file)?;
+        let path = std::path::Path::new(&schema_file);
+        let extension = path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| ext.to_lowercase());
+
+        let catalog: SchemaFile = match extension.as_deref() {
+            Some("yaml") | Some("yml") => serde_yaml::from_str(&contents)?,
+            Some("json") => serde_json::from_str(&contents)?,
+            _ => {
+                return Err(CliError(format!(
+                "Unsupported schema file extension: {:?}. Supported formats are .yml, .yaml, .json",
+                extension
+                )))
+            }
+        };
+        build_catalog_from_catalog_schema(catalog.schemas)?
+    } else {
+        get_schema_catalog(uri.as_str(), current_db.as_str(), namespaces)?
+    };
     let options = mongosql::options::SqlOptions {
         allow_order_by_missing_columns: true,
         ..Default::default()
