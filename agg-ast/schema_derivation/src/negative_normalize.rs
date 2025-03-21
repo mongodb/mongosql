@@ -222,21 +222,14 @@ impl NegativeNormalize<Expression> for Expression {
                 | TaggedOperator::Top(_)
                 | TaggedOperator::TopN(_)
                 | TaggedOperator::UnsetField(_) => {
-                    // Some of these expressions would be fairly expensive, so we bind them to a
-                    // $let variable to avoid repeating the calculation three times.
-                    Expression::TaggedOperator(TaggedOperator::Let(Let {
-                        vars: map!{"expression_to_negate".to_string() => self.clone()},
-                        inside: Box::new(
-                            Expression::UntaggedOperator(UntaggedOperator {
-                                op: UntaggedOperatorName::Or,
-                                args: vec![
-                                    wrap_in_null_or_missing_check!(Expression::Ref(Ref::VariableRef("expression_to_negate".to_string()))),
-                                    wrap_in_zero_check!(Expression::Ref(Ref::VariableRef("expression_to_negate".to_string()))),
-                                    wrap_in_false_check!(Expression::Ref(Ref::VariableRef("expression_to_negate".to_string()))),
-                                ],
-                            })
-                        ),
-                    }))
+                     Expression::UntaggedOperator(UntaggedOperator {
+                         op: UntaggedOperatorName::Or,
+                         args: vec![
+                             wrap_in_null_or_missing_check!(self.clone()),
+                             wrap_in_zero_check!(self.clone()),
+                             wrap_in_false_check!(self.clone()),
+                         ],
+                     })
                 }
             },
             Expression::UntaggedOperator(u) => {

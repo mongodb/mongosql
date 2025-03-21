@@ -7,12 +7,13 @@ use crate::{
 use agg_ast::definitions::{
     DateAdd, DateDiff, DateExpression, DateFromParts, DateFromString, DateSubtract, DateToParts,
     DateToString, DateTrunc, Expression, Filter, Let, Map, MatchBinaryOp, MatchExpr,
-    MatchExpression, MatchField, MatchLogical, MatchNotExpression, MatchStage, Median, NArrayOp,
-    Reduce, Ref, RegexAggExpression, Replace, SortArray, Switch, TaggedOperator, Trim,
+    MatchExpression, MatchField, MatchLogical, MatchMisc, MatchNotExpression, MatchStage, Median,
+    NArrayOp, Reduce, Ref, RegexAggExpression, Replace, SortArray, Switch, TaggedOperator, Trim,
     UntaggedOperator, Zip,
 };
 use bson::Bson;
 use mongosql::{
+    json_schema::Schema as JsonSchema,
     schema::{
         Atomic, Document, Satisfaction, Schema, BITS_APPLICABLE, DATE_COERCIBLE,
         DATE_COERCIBLE_OR_NULLISH, GEO, INTEGER_LONG_OR_NULLISH, NULLISH, NUMERIC,
@@ -167,7 +168,7 @@ impl MatchConstrainSchema for MatchExpression {
     fn match_derive_schema(&self, state: &mut ResultSetState) -> Result<()> {
         match self {
             MatchExpression::Expr(e) => e.match_derive_schema(state),
-            MatchExpression::Misc(_) => todo!(),
+            MatchExpression::Misc(m) => m.match_derive_schema(state),
             MatchExpression::Logical(l) => l.match_derive_schema(state),
             MatchExpression::Field(f) => f.match_derive_schema(state),
         }
@@ -238,6 +239,31 @@ impl MatchConstrainSchema for MatchField {
             match_derive_schema_for_op(&self.field, *op, b, state);
         });
         Ok(())
+    }
+}
+
+impl MatchConstrainSchema for MatchMisc {
+    fn match_derive_schema(&self, state: &mut ResultSetState) -> Result<()> {
+        match self {
+            MatchMisc::Regex(_) => Ok(()),
+            // We could probably do something for MatchElement, but it's rather tedious, and doing
+            // nothing is conservatively correct.
+            MatchMisc::Element(_) => Ok(()),
+            MatchMisc::Where(_) => Ok(()),
+            MatchMisc::JsonSchema(s) => {
+                let Bson::Document(ref d) = s.schema else {
+                    return Err(Error::InvalidJsonSchema);
+                };
+                let schema: Schema = JsonSchema::from_document(d)
+                    .map_err(|_| Error::InvalidJsonSchema)?
+                    .try_into()
+                    .map_err(|_| Error::InvalidJsonSchema)?;
+                state.result_set_schema = state.result_set_schema.intersection(&schema);
+                Ok(())
+            }
+            MatchMisc::Text(_) => Ok(()),
+            MatchMisc::Comment(_) => Ok(()),
+        }
     }
 }
 
