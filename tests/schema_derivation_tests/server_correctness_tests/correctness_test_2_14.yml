@@ -1,0 +1,23 @@
+current_db: test
+pipeline:  [ { "$redact" : { "$cond" : { "if" : { "$isArray" : [ { "$sum" : [ "$count", {"$numberDecimal": "-781.4727454170092"} ] } ] }, "then" : "$$KEEP", "else" : "$$DESCEND" } } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$lookup" : { "from" : "fuzzer_coll_lookup", "let" : { "bria" : { "$let" : { "vars" : { "glennie" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$dateAdd" : { "startDate" : ObjectId("507f191e810c19729de860ea"), "unit" : "millisecond", "amount" : { "$toInt" : { "$mod" : [ "$obj.obj.obj.obj.num", "$obj.obj.obj.num" ] } } } } ] } }, "in" : { "$max" : [ "$obj.obj.obj.date" ] } } }, "adella" : { "$minN" : { "n" : 14, "input" : { "$ifNull" : [ "$obj.obj.obj.obj.obj.array", [ ] ] } } }, "lorenzo" : { "$setField" : { "field" : "obj.obj.array", "input" : { "str" : "overriding Kwanza", "array" : [ 0, { "date" : ISODate("2019-04-19T20:50:34.662Z"), "num" : {"$numberDecimal": "394.72337515758477"} }, {  }, "XML" ] }, "value" : { "$toObjectId" : { "$let" : { "vars" : { "eldridge" : { "$lte" : [ { "$filter" : { "input" : "$obj.obj.obj.obj.obj.array", "as" : "rosamond", "cond" : { "$allElementsTrue" : [ { "$ifNull" : [ [ "$num", "$$rosamond" ], [ ] ] } ] } } }, { "$setField" : { "field" : "Credit Card Account", "input" : { "$ifNull" : [ "$obj.obj.obj.obj", {  } ] }, "value" : { "$sqrt" : { "$abs" : {"$numberLong": "66954"} } } } } ] }, "mikel" : { "$map" : { "input" : [ ], "as" : "jeanie", "in" : { "$substr" : [ { "$substr" : [ { "$reduce" : { "input" : [ "$$jeanie" ], "initialValue" : "$$jeanie", "in" : { "$concat" : [ ] } } }, {"$numberLong": "15"}, 19 ] }, 7, {"$numberLong": "8"} ] } } }, "cindy" : { "$sortArray" : { "input" : { "$setDifference" : [ [ "$obj.obj.obj.obj.date", { "$max" : [ ] } ], [ -8, true ] ] }, "sortBy" : -1 } } }, "in" : { "$ltrim" : { "input" : "$obj.obj.obj.obj.obj.str" } } } } } } }, "justice" : { "$max" : [ { "obj" : { "num" : 24115, "array" : [ 80032, "Credit Card Account Marshall Islands Cape Verde Escudo", "system payment", 67180 ], "date" : ISODate("2019-12-19T03:05:49.329Z") } } ] }, "mellie" : { "$setField" : { "field" : "obj.obj.obj.obj.str", "input" : { "$ifNull" : [ "$obj.obj", {  } ] }, "value" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$dateFromParts" : { "isoWeekYear" : 17, "hour" : 1, "second" : {"$numberLong": "8"}, "timezone" : "Hongkong" } } ] } } }, "lempi" : { "$max" : [ [ "$count", "Awesome", false, "$obj.num" ], [ ], [ "$obj.obj.obj.obj.num", "$count" ], [ "$obj.obj.obj.num" ] ] } }, "pipeline" : [ { "$sort" : { "_id" : 1 } }, { "$skip" : 2147483647 }, { "$sort" : { "_id" : 1 } }, { "$limit" : 10 } ], "as" : "array" } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "_id": {
+        "bsonType": "object",
+        "properties": {
+          "min": { "bsonType": "int" },
+          "max": { "bsonType": "int" }
+        },
+        "required": ["max", "min"],
+        "additionalProperties": false
+      },
+      "count": { "bsonType": "int" },
+      "_id": {
+        "bsonType": "objectId"
+      }
+    },
+    "required": ["_id", "count"],
+    "additionalProperties": false
+  }

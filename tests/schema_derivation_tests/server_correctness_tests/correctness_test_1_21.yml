@@ -1,0 +1,13 @@
+current_db: test
+pipeline: [ { "$sort" : { "_id" : 1 } }, { "$bucket" : { "groupBy" : { "$abs" : -314159215 }, "boundaries" : [ 21185, 35626, 38179, 41262, 45595, 46040, 88919 ], "default" : ISODate("2019-09-28T23:38:42.347Z"), "output" : { "str" : { "$last" : { "$replaceAll" : { "input" : "connect", "find" : { "$toUpper" : "emulation array" }, "replacement" : "$str" } } } } } }, { "$unset" : [ "obj.obj.obj.str" ] } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+
+      "_id": { "bsonType": "date" },
+      "str": { "bsonType": "string" }
+    },
+    "required": ["_id", "str"],
+    "additionalProperties": false
+  }

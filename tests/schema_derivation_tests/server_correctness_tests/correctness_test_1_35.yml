@@ -1,0 +1,30 @@
+current_db: test
+pipeline: [ { "$match" : { "$or" : [ { "any" : { "$type" : "decimal" } }, { "obj.num" : { "$lte" : 314.15 } } ] } }, { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : "$geoJson" } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "_id": {
+        "any_of": [
+          { "bsonType": "null" },
+          {
+            "bsonType": "object",
+            "properties": {
+              "type": { "bsonType": "string" },
+              "coordinates": {
+                "bsonType": "array",
+                "items": { "bsonType": "double" }
+              }
+            },
+            "required": ["coordinates", "type"],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "_id": {
+        "bsonType": "objectId"
+      }
+    },
+    "required": ["_id"],
+    "additionalProperties": false
+  }

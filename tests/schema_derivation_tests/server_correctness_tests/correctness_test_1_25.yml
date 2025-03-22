@@ -1,0 +1,13 @@
+current_db: test
+pipeline: [ { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$avg" : [ 0, "$obj.obj.obj.obj.num", {"$numerDecimal": "Infinity"}, "$obj.obj.num", { "$strcasecmp" : [ "architect Handcrafted", { "$rtrim" : { "input" : { "$toUpper" : "$obj.obj.str" } } } ] }, {"$numberLong": "314159265358979373"}, { "$log" : [ 7, 15 ] } ] } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "count": { "bsonType": "int" },
+
+      "_id": { "bsonType": "decimal" }
+    },
+    "required": ["_id", "count"],
+    "additionalProperties": false
+  }

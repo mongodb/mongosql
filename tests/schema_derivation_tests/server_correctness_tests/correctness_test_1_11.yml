@@ -1,0 +1,21 @@
+current_db: test
+pipeline: [ { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$max" : [ { "k" : "Ways", "v" : { "$ifNull" : [ { "$rtrim" : { "input" : "heuristic incubate", "chars" : "$obj.obj.obj.obj.obj.str" } }, null ] } } ] } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "count": { "bsonType": "int" },
+
+      "_id": {
+        "bsonType": "object",
+        "properties": {
+          "k": { "bsonType": "string" },
+          "v": { "bsonType": "null" }
+        },
+        "required": ["k", "v"],
+        "additionalProperties": false
+      }
+    },
+    "required": ["_id", "count"],
+    "additionalProperties": false
+  }

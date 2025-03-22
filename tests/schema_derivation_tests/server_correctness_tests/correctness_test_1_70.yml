@@ -1,0 +1,909 @@
+current_db: test
+pipeline: [ { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$unionWith" : { "coll" : "fuzzer_coll", "pipeline" : [ { "$count" : "num" } ] } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "array": {
+        "bsonType": "array",
+        "items": {
+          "any_of": [
+            { "bsonType": "null" },
+            { "bsonType": "int" },
+            { "bsonType": "decimal" },
+            { "bsonType": "string" },
+            { "bsonType": "bool" },
+            { "bsonType": "date" },
+            {
+              "bsonType": "array",
+              "maxItems": {
+                "$numberLong": "0"
+              }
+            },
+            {
+              "bsonType": "array",
+              "items": {
+                "any_of": [
+                  { "bsonType": "null" },
+                  { "bsonType": "int" },
+                  { "bsonType": "string" },
+                  { "bsonType": "bool" },
+                  { "bsonType": "date" },
+                  {
+                    "bsonType": "object",
+                    "properties": {
+                      "date": { "bsonType": "date" },
+                      "any": { "bsonType": "string" },
+                      "num": { "bsonType": "int" },
+                      "obj": {
+                        "bsonType": "object",
+                        "properties": {
+                          "obj": {
+                            "bsonType": "object",
+                            "properties": {
+                              "str": { "bsonType": "string" },
+                              "_id": { "bsonType": "int" },
+                              "num": { "bsonType": "int" },
+                              "array": {
+                                "bsonType": "array",
+                                "items": {
+                                  "any_of": [
+                                    { "bsonType": "string" },
+                                    { "bsonType": "date" }
+                                  ]
+                                }
+                              },
+                              "bool": { "bsonType": "bool" },
+                              "geoLegacy": {
+                                "bsonType": "array",
+                                "items": { "bsonType": "double" }
+                              },
+                              "date": { "bsonType": "date" }
+                            },
+                            "required": ["_id", "array", "bool", "date", "geoLegacy", "num", "str"],
+                            "additionalProperties": false
+                          },
+                          "_id": { "bsonType": "int" },
+                          "str": { "bsonType": "string" },
+                          "bool": { "bsonType": "bool" },
+                          "array": {
+                            "bsonType": "array",
+                            "items": {
+                              "any_of": [
+                                { "bsonType": "null" },
+                                { "bsonType": "decimal" },
+                                { "bsonType": "date" }
+                              ]
+                            }
+                          },
+                          "date": { "bsonType": "date" },
+                          "num": { "bsonType": "int" }
+                        },
+                        "required": ["_id", "array", "bool", "date", "num", "obj", "str"],
+                        "additionalProperties": false
+                      },
+                      "_id": { "bsonType": "int" },
+                      "geoJson": {
+                        "bsonType": "object",
+                        "properties": {
+                          "coordinates": {
+                            "bsonType": "array",
+                            "items": { "bsonType": "double" }
+                          },
+                          "type": { "bsonType": "string" }
+                        },
+                        "required": ["coordinates", "type"],
+                        "additionalProperties": false
+                      },
+                      "bool": { "bsonType": "null" },
+                      "str": { "bsonType": "string" },
+                      "array": {
+                        "bsonType": "array",
+                        "maxItems": {
+                          "$numberLong": "0"
+                        }
+                      }
+                    },
+                    "required": ["_id", "any", "array", "bool", "date", "geoJson", "num", "obj", "str"],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            {
+              "bsonType": "array",
+              "items": {
+                "any_of": [
+                  { "bsonType": "null" },
+                  { "bsonType": "bool" }
+                ]
+              }
+            },
+            {
+              "bsonType": "array",
+              "items": {
+                "any_of": [
+                  { "bsonType": "string" },
+                  { "bsonType": "date" }
+                ]
+              }
+            },
+            {
+              "bsonType": "object",
+              "properties": {
+                "bool": {
+                  "any_of": [
+                    { "bsonType": "null" },
+                    { "bsonType": "bool" }
+                  ]
+                },
+                "num": { "bsonType": "int" },
+                "any": { "bsonType": "null" },
+                "obj": {
+                  "bsonType": "object",
+                  "properties": {
+                    "obj": {
+                      "bsonType": "object",
+                      "properties": {
+                        "date": { "bsonType": "date" },
+                        "any": {
+                          "any_of": [
+                            { "bsonType": "null" },
+                            { "bsonType": "date" }
+                          ]
+                        },
+                        "geoJson": {
+                          "bsonType": "object",
+                          "properties": {
+                            "coordinates": {
+                              "bsonType": "array",
+                              "items": { "bsonType": "double" }
+                            },
+                            "type": { "bsonType": "string" }
+                          },
+                          "required": ["coordinates", "type"],
+                          "additionalProperties": false
+                        },
+                        "str": { "bsonType": "string" },
+                        "obj": {
+                          "bsonType": "object",
+                          "properties": {},
+                          "additionalProperties": false
+                        },
+                        "num": { "bsonType": "int" },
+                        "array": {
+                          "bsonType": "array",
+                          "items": {
+                            "any_of": [
+                              { "bsonType": "null" },
+                              { "bsonType": "int" },
+                              { "bsonType": "decimal" },
+                              { "bsonType": "string" },
+                              { "bsonType": "bool" }
+                            ]
+                          }
+                        },
+                        "bool": {
+                          "any_of": [
+                            { "bsonType": "null" },
+                            { "bsonType": "bool" }
+                          ]
+                        },
+                        "_id": { "bsonType": "int" }
+                      },
+                      "required": ["_id", "any", "array", "bool", "date", "num"],
+                      "additionalProperties": false
+                    },
+                    "any": { "bsonType": "string" },
+                    "str": {
+                      "any_of": [
+                        { "bsonType": "null" },
+                        { "bsonType": "string" }
+                      ]
+                    },
+                    "_id": { "bsonType": "int" },
+                    "num": {
+                      "any_of": [
+                        { "bsonType": "null" },
+                        { "bsonType": "int" },
+                        { "bsonType": "decimal" }
+                      ]
+                    },
+                    "array": {
+                      "bsonType": "array",
+                      "items": {
+                        "any_of": [
+                          { "bsonType": "null" },
+                          { "bsonType": "int" },
+                          { "bsonType": "string" },
+                          { "bsonType": "date" },
+                          {
+                            "bsonType": "object",
+                            "properties": {
+                              "array": {
+                                "bsonType": "array",
+                                "maxItems": {
+                                  "$numberLong": "0"
+                                }
+                              },
+                              "_id": { "bsonType": "int" },
+                              "obj": {
+                                "bsonType": "object",
+                                "properties": {
+                                  "num": { "bsonType": "int" },
+                                  "_id": { "bsonType": "int" },
+                                  "array": {
+                                    "bsonType": "array",
+                                    "items": {
+                                      "any_of": [
+                                        { "bsonType": "int" },
+                                        { "bsonType": "string" },
+                                        { "bsonType": "date" }
+                                      ]
+                                    }
+                                  },
+                                  "date": { "bsonType": "date" },
+                                  "bool": { "bsonType": "bool" }
+                                },
+                                "required": ["_id", "array", "bool", "date", "num"],
+                                "additionalProperties": false
+                              },
+                              "geoJson": {
+                                "bsonType": "object",
+                                "properties": {
+                                  "type": { "bsonType": "string" },
+                                  "coordinates": {
+                                    "bsonType": "array",
+                                    "items": { "bsonType": "double" }
+                                  }
+                                },
+                                "required": ["coordinates", "type"],
+                                "additionalProperties": false
+                              },
+                              "date": { "bsonType": "date" },
+                              "bool": { "bsonType": "null" },
+                              "str": { "bsonType": "string" },
+                              "num": { "bsonType": "decimal" }
+                            },
+                            "required": ["_id", "array", "bool", "date", "geoJson", "num", "obj", "str"],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    },
+                    "bool": {
+                      "any_of": [
+                        { "bsonType": "null" },
+                        { "bsonType": "bool" }
+                      ]
+                    },
+                    "geoJson": {
+                      "bsonType": "object",
+                      "properties": {
+                        "coordinates": {
+                          "bsonType": "array",
+                          "items": { "bsonType": "double" }
+                        },
+                        "type": { "bsonType": "string" }
+                      },
+                      "required": ["coordinates", "type"],
+                      "additionalProperties": false
+                    },
+                    "date": { "bsonType": "date" }
+                  },
+                  "required": ["_id", "bool", "num"],
+                  "additionalProperties": false
+                },
+                "array": {
+                  "bsonType": "array",
+                  "items": {
+                    "any_of": [
+                      { "bsonType": "null" },
+                      { "bsonType": "string" },
+                      { "bsonType": "bool" },
+                      { "bsonType": "date" }
+                    ]
+                  }
+                },
+                "str": { "bsonType": "string" },
+                "_id": { "bsonType": "int" },
+                "date": { "bsonType": "date" },
+                "geoLegacy": {
+                  "bsonType": "array",
+                  "items": { "bsonType": "double" }
+                }
+              },
+              "required": ["_id", "array", "bool", "date", "obj"],
+              "additionalProperties": false
+            },
+            {
+              "bsonType": "object",
+              "properties": {
+                "num": { "bsonType": "int" },
+                "date": { "bsonType": "date" },
+                "geoJson": {
+                  "bsonType": "object",
+                  "properties": {
+                    "coordinates": {
+                      "bsonType": "array",
+                      "items": { "bsonType": "double" }
+                    },
+                    "type": { "bsonType": "string" }
+                  },
+                  "required": ["coordinates", "type"],
+                  "additionalProperties": false
+                },
+                "bool": { "bsonType": "bool" },
+                "str": { "bsonType": "string" },
+                "array": {
+                  "bsonType": "array",
+                  "items": {
+                    "any_of": [
+                      { "bsonType": "int" },
+                      { "bsonType": "string" },
+                      { "bsonType": "bool" },
+                      { "bsonType": "date" }
+                    ]
+                  }
+                },
+                "obj": {
+                  "bsonType": "object",
+                  "properties": {
+                    "_id": { "bsonType": "int" },
+                    "array": {
+                      "bsonType": "array",
+                      "items": {
+                        "any_of": [
+                          { "bsonType": "null" },
+                          { "bsonType": "int" },
+                          { "bsonType": "string" },
+                          { "bsonType": "date" }
+                        ]
+                      }
+                    },
+                    "date": { "bsonType": "date" },
+                    "bool": { "bsonType": "null" },
+                    "geoJson": {
+                      "bsonType": "object",
+                      "properties": {
+                        "coordinates": {
+                          "bsonType": "array",
+                          "items": { "bsonType": "double" }
+                        },
+                        "type": { "bsonType": "string" }
+                      },
+                      "required": ["coordinates", "type"],
+                      "additionalProperties": false
+                    },
+                    "num": { "bsonType": "int" },
+                    "obj": {
+                      "bsonType": "object",
+                      "properties": {
+                        "_id": { "bsonType": "int" },
+                        "array": {
+                          "bsonType": "array",
+                          "items": {
+                            "any_of": [
+                              { "bsonType": "null" },
+                              { "bsonType": "int" },
+                              { "bsonType": "string" },
+                              { "bsonType": "date" }
+                            ]
+                          }
+                        },
+                        "num": { "bsonType": "int" },
+                        "date": { "bsonType": "date" },
+                        "geoLegacy": {
+                          "bsonType": "object",
+                          "properties": {
+                            "x": { "bsonType": "double" },
+                            "y": { "bsonType": "double" }
+                          },
+                          "required": ["x", "y"],
+                          "additionalProperties": false
+                        },
+                        "bool": { "bsonType": "null" },
+                        "str": { "bsonType": "string" }
+                      },
+                      "required": ["_id", "array", "bool", "date", "geoLegacy", "num", "str"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": ["_id", "array", "bool", "date", "geoJson", "num", "obj"],
+                  "additionalProperties": false
+                },
+                "any": { "bsonType": "int" },
+                "_id": { "bsonType": "int" }
+              },
+              "required": ["_id", "any", "array", "bool", "date", "geoJson", "num", "obj", "str"],
+              "additionalProperties": false
+            },
+            {
+              "bsonType": "object",
+              "properties": {
+                "str": { "bsonType": "string" },
+                "any": { "bsonType": "int" },
+                "geoJson": {
+                  "bsonType": "object",
+                  "properties": {
+                    "coordinates": {
+                      "bsonType": "array",
+                      "items": { "bsonType": "double" }
+                    },
+                    "type": { "bsonType": "string" }
+                  },
+                  "required": ["coordinates", "type"],
+                  "additionalProperties": false
+                },
+                "num": { "bsonType": "decimal" },
+                "array": {
+                  "bsonType": "array",
+                  "items": {
+                    "any_of": [
+                      { "bsonType": "bool" },
+                      { "bsonType": "date" }
+                    ]
+                  }
+                },
+                "obj": {
+                  "bsonType": "object",
+                  "properties": {
+                    "str": { "bsonType": "string" },
+                    "_id": { "bsonType": "int" },
+                    "bool": { "bsonType": "null" },
+                    "date": { "bsonType": "date" },
+                    "geoJson": {
+                      "bsonType": "object",
+                      "properties": {
+                        "coordinates": {
+                          "bsonType": "array",
+                          "items": { "bsonType": "double" }
+                        },
+                        "type": { "bsonType": "string" }
+                      },
+                      "required": ["coordinates", "type"],
+                      "additionalProperties": false
+                    },
+                    "num": { "bsonType": "int" },
+                    "obj": {
+                      "bsonType": "object",
+                      "properties": {},
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": ["_id", "bool", "date", "geoJson", "num", "obj", "str"],
+                  "additionalProperties": false
+                },
+                "_id": { "bsonType": "int" },
+                "bool": { "bsonType": "null" },
+                "date": { "bsonType": "date" }
+              },
+              "required": ["_id", "any", "array", "bool", "date", "geoJson", "num", "obj", "str"],
+              "additionalProperties": false
+            },
+            {
+              "bsonType": "object",
+              "properties": {
+                "obj": {
+                  "bsonType": "object",
+                  "properties": {
+                    "obj": {
+                      "bsonType": "object",
+                      "properties": {
+                        "geoJson": {
+                          "bsonType": "object",
+                          "properties": {
+                            "coordinates": {
+                              "bsonType": "array",
+                              "items": { "bsonType": "double" }
+                            },
+                            "type": { "bsonType": "string" }
+                          },
+                          "required": ["coordinates", "type"],
+                          "additionalProperties": false
+                        },
+                        "array": {
+                          "bsonType": "array",
+                          "items": {
+                            "any_of": [
+                              { "bsonType": "decimal" },
+                              { "bsonType": "string" },
+                              { "bsonType": "bool" },
+                              { "bsonType": "date" },
+                              {
+                                "bsonType": "object",
+                                "properties": {
+                                  "any": { "bsonType": "bool" },
+                                  "bool": { "bsonType": "null" },
+                                  "_id": { "bsonType": "int" },
+                                  "date": { "bsonType": "date" },
+                                  "array": {
+                                    "bsonType": "array",
+                                    "maxItems": {
+                                      "$numberLong": "0"
+                                    }
+                                  },
+                                  "obj": {
+                                    "bsonType": "object",
+                                    "properties": {},
+                                    "additionalProperties": false
+                                  },
+                                  "str": { "bsonType": "string" },
+                                  "num": { "bsonType": "int" }
+                                },
+                                "required": ["_id", "any", "array", "bool", "date", "num", "obj", "str"],
+                                "additionalProperties": false
+                              }
+                            ]
+                          }
+                        },
+                        "num": { "bsonType": "int" },
+                        "date": { "bsonType": "date" },
+                        "_id": { "bsonType": "int" },
+                        "bool": { "bsonType": "null" },
+                        "str": { "bsonType": "string" },
+                        "any": { "bsonType": "int" }
+                      },
+                      "required": ["_id", "any", "array", "bool", "date", "geoJson", "num", "str"],
+                      "additionalProperties": false
+                    },
+                    "num": { "bsonType": "decimal" },
+                    "str": { "bsonType": "string" },
+                    "_id": { "bsonType": "int" },
+                    "date": { "bsonType": "date" },
+                    "any": { "bsonType": "int" },
+                    "geoLegacy": {
+                      "bsonType": "object",
+                      "properties": {
+                        "y": { "bsonType": "double" },
+                        "x": { "bsonType": "double" }
+                      },
+                      "required": ["x", "y"],
+                      "additionalProperties": false
+                    },
+                    "array": {
+                      "bsonType": "array",
+                      "items": {
+                        "any_of": [
+                          { "bsonType": "null" },
+                          { "bsonType": "int" },
+                          { "bsonType": "date" }
+                        ]
+                      }
+                    }
+                  },
+                  "required": ["_id", "any", "array", "date", "geoLegacy", "num", "obj", "str"],
+                  "additionalProperties": false
+                },
+                "geoJson": {
+                  "bsonType": "object",
+                  "properties": {
+                    "type": { "bsonType": "string" },
+                    "coordinates": {
+                      "bsonType": "array",
+                      "items": { "bsonType": "double" }
+                    }
+                  },
+                  "required": ["coordinates", "type"],
+                  "additionalProperties": false
+                },
+                "_id": { "bsonType": "int" },
+                "num": { "bsonType": "int" },
+                "array": {
+                  "bsonType": "array",
+                  "items": {
+                    "any_of": [
+                      { "bsonType": "null" },
+                      { "bsonType": "int" },
+                      { "bsonType": "decimal" },
+                      { "bsonType": "string" },
+                      { "bsonType": "bool" },
+                      { "bsonType": "date" }
+                    ]
+                  }
+                },
+                "date": { "bsonType": "date" },
+                "any": { "bsonType": "date" },
+                "bool": { "bsonType": "bool" }
+              },
+              "required": ["_id", "any", "array", "bool", "date", "geoJson", "num", "obj"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "any": {
+        "any_of": [
+          { "bsonType": "null" },
+          { "bsonType": "double" },
+          { "bsonType": "decimal" },
+          { "bsonType": "date" }
+        ]
+      },
+      "geoLegacy": {
+        "any_of": [
+          {
+            "bsonType": "array",
+            "items": { "bsonType": "double" }
+          },
+          {
+            "bsonType": "object",
+            "properties": {
+              "x": { "bsonType": "double" },
+              "y": { "bsonType": "double" }
+            },
+            "required": ["x", "y"],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "str": { "bsonType": "string" },
+      "geoJson": {
+        "bsonType": "object",
+        "properties": {
+          "coordinates": {
+            "bsonType": "array",
+            "items": { "bsonType": "double" }
+          },
+          "type": { "bsonType": "string" }
+        },
+        "required": ["coordinates", "type"],
+        "additionalProperties": false
+      },
+
+      "date": { "bsonType": "date" },
+      "bool": {
+        "any_of": [
+          { "bsonType": "null" },
+          { "bsonType": "bool" }
+        ]
+      },
+      "_id": { "bsonType": "int" },
+      "obj": {
+        "bsonType": "object",
+        "properties": {
+          "date": {
+            "any_of": [
+              { "bsonType": "null" },
+              { "bsonType": "date" }
+            ]
+          },
+          "num": {
+            "any_of": [
+              { "bsonType": "int" },
+              { "bsonType": "decimal" }
+            ]
+          },
+          "obj": {
+            "bsonType": "object",
+            "properties": {
+              "str": {
+                "any_of": [
+                  { "bsonType": "null" },
+                  { "bsonType": "string" }
+                ]
+              },
+              "_id": { "bsonType": "int" },
+              "array": {
+                "bsonType": "array",
+                "items": {
+                  "any_of": [
+                    { "bsonType": "null" },
+                    { "bsonType": "int" },
+                    { "bsonType": "decimal" },
+                    { "bsonType": "string" },
+                    { "bsonType": "bool" },
+                    { "bsonType": "date" },
+                    {
+                      "bsonType": "array",
+                      "items": {
+                        "any_of": [
+                          { "bsonType": "null" },
+                          { "bsonType": "int" },
+                          { "bsonType": "string" },
+                          { "bsonType": "bool" },
+                          { "bsonType": "date" }
+                        ]
+                      }
+                    },
+                    {
+                      "bsonType": "object",
+                      "properties": {
+                        "_id": { "bsonType": "int" },
+                        "bool": { "bsonType": "bool" },
+                        "obj": {
+                          "bsonType": "object",
+                          "properties": {
+                            "date": { "bsonType": "date" },
+                            "obj": {
+                              "bsonType": "object",
+                              "properties": {},
+                              "additionalProperties": false
+                            },
+                            "_id": { "bsonType": "int" },
+                            "num": { "bsonType": "int" },
+                            "bool": { "bsonType": "null" },
+                            "str": { "bsonType": "string" },
+                            "array": {
+                              "bsonType": "array",
+                              "maxItems": {
+                                "$numberLong": "0"
+                              }
+                            }
+                          },
+                          "required": ["_id", "array", "bool", "date", "num", "obj", "str"],
+                          "additionalProperties": false
+                        },
+                        "str": { "bsonType": "string" },
+                        "array": {
+                          "bsonType": "array",
+                          "maxItems": {
+                            "$numberLong": "0"
+                          }
+                        },
+                        "date": { "bsonType": "date" },
+                        "geoLegacy": {
+                          "bsonType": "object",
+                          "properties": {
+                            "x": { "bsonType": "double" },
+                            "y": { "bsonType": "double" }
+                          },
+                          "required": ["x", "y"],
+                          "additionalProperties": false
+                        },
+                        "num": { "bsonType": "int" },
+                        "any": { "bsonType": "decimal" }
+                      },
+                      "required": ["_id", "any", "array", "bool", "date", "geoLegacy", "num", "obj", "str"],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              },
+              "num": { "bsonType": "int" },
+              "obj": {
+                "bsonType": "object",
+                "properties": {
+                  "bool": { "bsonType": "null" },
+                  "num": { "bsonType": "decimal" },
+                  "_id": { "bsonType": "int" },
+                  "array": {
+                    "bsonType": "array",
+                    "items": {
+                      "any_of": [
+                        { "bsonType": "null" },
+                        { "bsonType": "int" },
+                        { "bsonType": "decimal" },
+                        { "bsonType": "string" },
+                        { "bsonType": "date" },
+                        {
+                          "bsonType": "object",
+                          "properties": {
+                            "any": {
+                              "bsonType": "array",
+                              "items": {
+                                "any_of": [
+                                  { "bsonType": "null" },
+                                  { "bsonType": "int" },
+                                  { "bsonType": "string" },
+                                  { "bsonType": "date" }
+                                ]
+                              }
+                            },
+                            "bool": { "bsonType": "null" },
+                            "str": { "bsonType": "string" },
+                            "obj": {
+                              "bsonType": "object",
+                              "properties": {},
+                              "additionalProperties": false
+                            },
+                            "geoLegacy": {
+                              "bsonType": "array",
+                              "items": { "bsonType": "double" }
+                            },
+                            "_id": { "bsonType": "int" },
+                            "num": { "bsonType": "decimal" },
+                            "array": {
+                              "bsonType": "array",
+                              "maxItems": {
+                                "$numberLong": "0"
+                              }
+                            }
+                          },
+                          "required": ["_id", "any", "array", "bool", "geoLegacy", "num", "obj", "str"],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  }
+                },
+                "required": ["_id", "array", "bool", "num"],
+                "additionalProperties": false
+              },
+              "bool": { "bsonType": "null" },
+              "date": { "bsonType": "date" }
+            },
+            "additionalProperties": false
+          },
+          "geoJson": {
+            "bsonType": "object",
+            "properties": {
+              "coordinates": {
+                "bsonType": "array",
+                "items": { "bsonType": "double" }
+              },
+              "type": { "bsonType": "string" }
+            },
+            "required": ["coordinates", "type"],
+            "additionalProperties": false
+          },
+          "any": {
+            "any_of": [
+              { "bsonType": "int" },
+              { "bsonType": "string" },
+              { "bsonType": "date" }
+            ]
+          },
+          "array": {
+            "bsonType": "array",
+            "items": {
+              "any_of": [
+                { "bsonType": "null" },
+                { "bsonType": "int" },
+                { "bsonType": "double" },
+                { "bsonType": "decimal" },
+                { "bsonType": "string" },
+                { "bsonType": "bool" },
+                { "bsonType": "date" },
+                {
+                  "bsonType": "array",
+                  "items": { "bsonType": "date" }
+                },
+                {
+                  "bsonType": "array",
+                  "items": {
+                    "any_of": [
+                      { "bsonType": "date" },
+                      {
+                        "bsonType": "array",
+                        "maxItems": {
+                          "$numberLong": "0"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "bool": {
+            "any_of": [
+              { "bsonType": "null" },
+              { "bsonType": "bool" }
+            ]
+          },
+          "str": { "bsonType": "string" },
+          "geoLegacy": {
+            "bsonType": "object",
+            "properties": {
+              "x": { "bsonType": "double" },
+              "y": { "bsonType": "double" }
+            },
+            "required": ["x", "y"],
+            "additionalProperties": false
+          },
+          "_id": { "bsonType": "int" }
+        },
+        "additionalProperties": false
+      },
+      "num": {
+        "any_of": [
+          { "bsonType": "null" },
+          { "bsonType": "int" },
+          { "bsonType": "decimal" }
+        ]
+      }
+    },
+    "required": ["_id"],
+    "additionalProperties": false
+  }

@@ -1,0 +1,29 @@
+current_db: test
+pipeline: [ { "$match" : { "$expr" : { "$max" : [ { "k" : "discrete circuit workforce", "v" : { "$ifNull" : [ { "$max" : [ ] }, null ] } } ] } } }, { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$objectToArray" : { "k" : "Home Loan Account Bedfordshire", "v" : { "$ifNull" : [ false, null ] } } } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+
+      "_id": {
+        "bsonType": "array",
+        "items": {
+          "bsonType": "object",
+          "properties": {
+            "v": {
+              "any_of": [
+                { "bsonType": "string" },
+                { "bsonType": "bool" }
+              ]
+            },
+            "k": { "bsonType": "string" }
+          },
+          "required": ["k", "v"],
+          "additionalProperties": false
+        }
+      },
+      "count": { "bsonType": "int" }
+    },
+    "required": ["_id", "count"],
+    "additionalProperties": false
+  }

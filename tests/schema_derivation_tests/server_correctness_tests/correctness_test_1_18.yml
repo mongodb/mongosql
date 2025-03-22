@@ -1,0 +1,15 @@
+current_db: test
+pipeline: [ { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : { "$and" : [ "$num", "$num", "$num" ] }, "str" : { "$accumulator" : { "init" : "function() {return \"\";}", "accumulate" : "function(state, input) { return input > state ? input : state; }", "accumulateArgs" : [ { "$ltrim" : { "input" : { "$replaceOne" : { "input" : "Saint Lucia", "find" : "$obj.str", "replacement" : "$obj.obj.obj.str" } } } } ], "merge" : "function(state1, state2) { return state1 > state2 ? state1 : state2; }", "lang" : "js" } } } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "str": { "bsonType": "string" },
+      "_id": { "bsonType": "bool" },
+      "_id": {
+        "bsonType": "objectId"
+      }
+    },
+    "required": ["_id", "str"],
+    "additionalProperties": false
+  }

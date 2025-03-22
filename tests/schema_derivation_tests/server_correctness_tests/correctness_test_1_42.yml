@@ -1,0 +1,23 @@
+current_db: test
+pipeline: [ { "$match" : { "$or" : [ { "obj.obj.obj.obj.str" : { "$regex" : /primary/, "$options" : "" } }, { "obj.obj.obj.obj.any" : { "$not" : { "$in" : [ [ "bus", [ ISODate("2019-04-08T09:21:45.093Z"), [ true, true ] ], { "array" : [ ISODate("2019-08-20T17:01:55.389Z") ], "date" : ISODate("2019-11-26T10:23:09.517Z") } ], ISODate("2019-03-29T16:39:38.500Z"), {"$numberDecimal": "NaN"} ] } } }, { "obj.obj.obj.obj.obj.bool" : { "$gt" : true } } ] } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$facet" : { "array" : [ { "$sort" : { "_id" : 1 } }, { "$bucket" : { "groupBy" : { "$stdDevPop" : [ 10, "$obj.obj.obj.num", "$obj.obj.obj.obj.obj.num", "$count" ] }, "boundaries" : [ 23423, 34918, 35513, 47890, 48655, 51720, 69885, 85709, 98616 ], "default" : 18325 } } ] } } ]    
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+
+      "array": {
+        "bsonType": "array",
+        "items": {
+          "bsonType": "object",
+          "properties": {
+            "_id": { "bsonType": "int" },
+            "count": { "bsonType": "int" }
+          },
+          "required": ["_id", "count"],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": ["_id", "array"],
+    "additionalProperties": false
+  }

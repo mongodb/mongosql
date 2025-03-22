@@ -1,0 +1,20 @@
+current_db: test
+pipeline: [ { "$match" : { "obj.obj.obj.str" : { "$not" : { "$gt" : "microchip" } } } }, { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$regexFindAll" : { "input" : "superstructure Personal Loan Account", "regex" : "Virgin Islands, British|protocol|District|utilize", "options" : "" } } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "count": {
+        "bsonType": "int"
+      },
+      "_id": {
+        "bsonType": "array",
+        "maxItems": 0
+      },
+    },
+    "required": [
+      "_id",
+      "count"
+    ],
+    "additionalProperties": false
+  }

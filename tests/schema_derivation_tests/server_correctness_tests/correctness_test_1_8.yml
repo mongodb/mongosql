@@ -1,0 +1,12 @@
+current_db: test
+pipeline: [ { "$count" : "num" }, { "$unwind" : { "path" : "$array", "preserveNullAndEmptyArrays" : true } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+
+      "num": { "bsonType": "int" }
+    },
+    "required": ["_id", "num"],
+    "additionalProperties": false
+  }

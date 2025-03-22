@@ -1,0 +1,20 @@
+current_db: test
+pipeline: [ { "$match" : { "$or" : [ { "obj.obj.obj.obj.any" : { "$not" : { "$exists" : false } } }, { "obj.obj.obj.obj.obj.str" : { "$lte" : "payment" } }, { "obj.obj.obj.obj.bool" : { "$gt" : false } }, { "$or" : [ { "str" : { "$regex" : /^Administrator|synergistic|Trafficway|Corporate|Italy/, "$options" : "" } }, { "$and" : [ { "obj.obj.obj.str" : { "$regex" : /Tasty Fresh Chair|transmitting|back up/, "$options" : "" } }, { "obj.obj.obj.any" : { "$not" : { "$nin" : [ "Cambridgeshire e-services Cambridgeshire", /d(?:irectional|eploy)|(?:Hondura|portal)s|Shoes/, true, 46874, true ] } } } ] }, { "$and" : [ { "obj.obj.obj.obj.obj.bool" : { "$lt" : true } } ] } ] } ] } }, { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : { "$range" : [ 12, {"$numberLong": "14"} ] }, "array" : { "$topN" : { "n" : { "$abs" : { "$ceil" : { "$toDecimal" : { "$isoWeek" : ISODate("2019-06-15T12:27:40.051Z") } } } }, "output" : { "$concatArrays" : [ [ "input attitude", "$obj.str", "$obj.obj.obj.obj.str" ], [ "$obj.obj.obj.obj.num" ], "$obj.obj.obj.obj.obj.array" ] }, "sortBy" : { "obj.obj.obj.obj.geoLegacy" : 1, "obj.str" : -1, "obj.obj.array" : 1, "obj.obj.obj.str" : 1, "obj.obj.obj.obj.obj.geoJson" : -1, "_id" : 1 } } }, "str" : { "$last" : "$obj.obj.str" } } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "_id": {
+        "bsonType": "object",
+        "properties": {
+          "min": { "bsonType": "date" },
+          "max": { "bsonType": "date" }
+        },
+        "required": ["max", "min"],
+        "additionalProperties": false
+      },
+      "count": { "bsonType": "int" }
+    },
+    "required": ["_id", "count"],
+    "additionalProperties": false
+  }
