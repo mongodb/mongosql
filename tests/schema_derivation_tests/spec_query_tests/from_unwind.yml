@@ -142,7 +142,6 @@ tests:
     "additionalProperties": false, 
     "required": ["foo"], 
     "properties": {
-, 
       "foo": {
         "additionalProperties": false, 
         "required": [
@@ -181,7 +180,6 @@ tests:
     "additionalProperties": false, 
     "required": ["f"], 
     "properties": {
-, 
       "f": {
         "additionalProperties": false, 
         "required": [
@@ -221,7 +219,6 @@ tests:
     "additionalProperties": false, 
     "required": ["foo"], 
     "properties": {
-, 
       "foo": {
         "additionalProperties": false, 
         "required": [
@@ -341,7 +338,6 @@ tests:
     "additionalProperties": false, 
     "required": ["nested"], 
     "properties": {
-, 
       "nested": {
         "additionalProperties": false, 
         "required": [
@@ -419,7 +415,6 @@ tests:
     "additionalProperties": false, 
     "required": ["two_d"], 
     "properties": {
-, 
       "two_d": {
         "additionalProperties": false, 
         "required": [
@@ -491,7 +486,6 @@ tests:
     "additionalProperties": false, 
     "required": ["bar", "foo"], 
     "properties": {
-, 
       "bar": {
         "additionalProperties": false, 
         "required": [
@@ -941,7 +935,6 @@ tests:
     "additionalProperties": false, 
     "required": ["compound"], 
     "properties": {
-, 
       "compound": {
         "additionalProperties": false, 
         "required": [

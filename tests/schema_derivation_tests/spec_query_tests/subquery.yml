@@ -763,8 +763,8 @@ tests:
         "__subquery_result_0": 0, 
         "_id": 0
       }
-    }, 
-   
+    }
+  ]
   result_set_schema: {
     "additionalProperties": false, 
     "required": [""], 

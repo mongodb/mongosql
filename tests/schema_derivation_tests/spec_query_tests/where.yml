@@ -308,7 +308,6 @@ tests:
     "additionalProperties": false, 
     "required": ["biz"], 
     "properties": {
-, 
       "biz": {
         "additionalProperties": false, 
         "required": [

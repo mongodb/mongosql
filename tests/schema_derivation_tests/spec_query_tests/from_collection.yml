@@ -62,7 +62,6 @@ tests:
     "additionalProperties": false, 
     "required": ["foo"], 
     "properties": {
-, 
       "foo": {
         "additionalProperties": false, 
         "required": [

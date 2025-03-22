@@ -146,7 +146,6 @@ tests:
     "additionalProperties": false, 
     "required": ["missing"], 
     "properties": {
-, 
       "missing": {
         "additionalProperties": false, 
         "required": [

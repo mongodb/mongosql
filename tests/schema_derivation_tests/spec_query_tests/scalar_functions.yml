@@ -1103,7 +1103,6 @@ tests:
   result_set_schema: {
     "bsonType": "object",
     "properties": {
-,
       "": {
         "bsonType": "object",
         "properties": {
@@ -1211,7 +1210,6 @@ tests:
   result_set_schema: {
     "bsonType": "object",
     "properties": {
-,
       "": {
         "bsonType": "object",
         "properties": {
@@ -1920,7 +1918,6 @@ tests:
   result_set_schema: {
     "bsonType": "object",
     "properties": {
-,
       "": {
         "bsonType": "object",
         "properties": {
@@ -4706,7 +4703,6 @@ tests:
   result_set_schema: {
     "bsonType": "object",
     "properties": {
-,
       "": {
         "bsonType": "object",
         "properties": {

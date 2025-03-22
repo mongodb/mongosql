@@ -519,7 +519,6 @@ tests:
   result_set_schema: {
     "bsonType": "object",
     "properties": {
-,
       "": {
         "bsonType": "object",
         "properties": {
@@ -1439,7 +1438,6 @@ tests:
   result_set_schema: {
     "bsonType": "object",
     "properties": {
-,
       "": {
         "bsonType": "object",
         "properties": {
@@ -2349,7 +2347,6 @@ tests:
   result_set_schema: {
     "bsonType": "object",
     "properties": {
-,
       "": {
         "bsonType": "object",
         "properties": {
@@ -3242,7 +3239,6 @@ tests:
   result_set_schema: {
     "bsonType": "object",
     "properties": {
-,
       "": {
         "bsonType": "object",
         "properties": {
@@ -4458,7 +4454,7 @@ tests:
   }
 - description: Cast invalid source types to LONG
   current_db: foo
- pipeline: [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -4823,7 +4819,6 @@ tests:
   result_set_schema: {
     "bsonType": "object",
     "properties": {
-,
       "": {
         "bsonType": "object",
         "properties": {
@@ -4899,7 +4894,6 @@ tests:
   result_set_schema: {
     "bsonType": "object",
     "properties": {
-,
       "": {
         "bsonType": "object",
         "properties": {
@@ -5074,7 +5068,7 @@ tests:
     },
     "required": [""],
     "additionalProperties": false
-  
+  }
 
 - description: Cast NULL and MISSING to BSON_DATE, returns NULL by default and ON
     NULL when set
@@ -5221,7 +5215,6 @@ tests:
   result_set_schema: {
     "bsonType": "object",
     "properties": {
-,
       "": {
         "bsonType": "object",
         "properties": {
@@ -5294,7 +5287,6 @@ tests:
   result_set_schema: {
     "bsonType": "object",
     "properties": {
-,
       "": {
         "bsonType": "object",
         "properties": {
@@ -6018,7 +6010,6 @@ tests:
   result_set_schema: {
     "bsonType": "object",
     "properties": {
-,
       "": {
         "bsonType": "object",
         "properties": {
@@ -6808,6 +6799,7 @@ tests:
         }
       }
     }
+  ]
   result_set_schema: {
     "additionalProperties": false, 
     "required": [""], 
@@ -7058,7 +7050,6 @@ tests:
   result_set_schema: {
     "bsonType": "object",
     "properties": {
-,
       "": {
         "bsonType": "object",
         "properties": {

@@ -124,7 +124,6 @@ tests:
       "foo2"
     ], 
     "properties": {
-, 
       "foo1": {
         "additionalProperties": false, 
         "required": [

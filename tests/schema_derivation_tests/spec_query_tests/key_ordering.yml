@@ -83,7 +83,6 @@ tests:
     "additionalProperties": false, 
     "required": ["f"], 
     "properties": {
-, 
       "f": {
         "additionalProperties": false, 
         "required": [
@@ -117,7 +116,6 @@ tests:
     "additionalProperties": false, 
     "required": ["b"], 
     "properties": {
-, 
       "b": {
         "additionalProperties": false, 
         "required": [

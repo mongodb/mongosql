@@ -111,7 +111,6 @@ tests:
         }, 
         "bsonType": "object"
       }, 
-, 
       "bar": {
         "additionalProperties": false, 
         "required": [
@@ -178,7 +177,6 @@ tests:
         }, 
         "bsonType": "object"
       }, 
-, 
       "bar": {
         "additionalProperties": false, 
         "required": [
@@ -226,7 +224,6 @@ tests:
     "additionalProperties": false, 
     "required": ["bar2"], 
     "properties": {
-, 
       "bar": {
         "additionalProperties": false, 
         "required": [
@@ -497,7 +494,6 @@ tests:
         }, 
         "bsonType": "object"
       }, 
-, 
       "bar": {
         "additionalProperties": false, 
         "required": [
@@ -564,7 +560,6 @@ tests:
         }, 
         "bsonType": "object"
       }, 
-, 
       "bar": {
         "additionalProperties": false, 
         "required": [
@@ -677,7 +672,6 @@ tests:
         }, 
         "bsonType": "object"
       }, 
-, 
       "b": {
         "additionalProperties": false, 
         "required": [
@@ -751,7 +745,6 @@ tests:
     "additionalProperties": false, 
     "required": ["t1", "t2"], 
     "properties": {
-, 
       "t2": {
         "additionalProperties": false, 
         "required": [
@@ -981,7 +974,6 @@ tests:
     "additionalProperties": false, 
     "required": ["bar"], 
     "properties": {
-, 
       "bar": {
         "additionalProperties": false, 
         "required": [
@@ -1085,7 +1077,6 @@ tests:
     "additionalProperties": false, 
     "required": ["bar", "bar2"], 
     "properties": {
-, 
       "bar": {
         "additionalProperties": false, 
         "required": [
@@ -1655,7 +1646,6 @@ tests:
     "additionalProperties": false, 
     "required": ["bar", "bar2"], 
     "properties": {
-, 
       "bar": {
         "additionalProperties": false, 
         "required": [

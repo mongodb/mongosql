@@ -132,7 +132,6 @@ tests:
     "additionalProperties": false, 
     "required": ["foo"], 
     "properties": {
-, 
       "foo": {
         "additionalProperties": false, 
         "required": [
@@ -175,7 +174,6 @@ tests:
     "additionalProperties": false, 
     "required": ["f"], 
     "properties": {
-, 
       "f": {
         "additionalProperties": false, 
         "required": [
@@ -260,7 +258,6 @@ tests:
     "additionalProperties": false, 
     "required": ["foo"], 
     "properties": {
-, 
       "foo": {
         "additionalProperties": false, 
         "required": [
@@ -438,7 +435,6 @@ tests:
     "additionalProperties": false, 
     "required": ["nullableDoc"], 
     "properties": {
-, 
       "nullableDoc": {
         "additionalProperties": false, 
         "required": [

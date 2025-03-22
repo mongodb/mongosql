@@ -1451,7 +1451,6 @@ tests:
     "additionalProperties": false, 
     "required": ["bar"], 
     "properties": {
-, 
       "bar": {
         "additionalProperties": false, 
         "required": [
@@ -1856,7 +1855,6 @@ tests:
   result_set_schema: {
     "bsonType": "object",
     "properties": {
-,
       "": {
         "bsonType": "object",
         "properties": {
