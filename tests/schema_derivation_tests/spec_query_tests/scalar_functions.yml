@@ -355,2479 +355,4849 @@ catalog_schema:
 tests:
 - description: NULLIF correctness test
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        v1: $c.v1
-        v2: $c.v2
-        v:
-          $let:
-            vars:
-              expr1:
-                $ifNull:
-                - $c.v1
-                - $literal: null
-            in:
-              $cond:
-              - $eq:
-                - $$expr1
-                - $c.v2
-              - $literal: null
-              - $$expr1
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          v2:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          v:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          v1:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-        required: [v]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "v1": "$c.v1", 
+          "v2": "$c.v2", 
+          "v": {
+            "$let": {
+              "vars": {
+                "expr1": {
+                  "$ifNull": [
+                    "$c.v1", 
+                    {
+                      "$literal": null
+                    }
+                  ]
+                }
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$eq": [
+                      "$$expr1", 
+                      "$c.v2"
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  "$$expr1"
+                ]
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "v"
+        ], 
+        "properties": {
+          "v1": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "v2": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: COALESCE(v1, v2) correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        v1: $c.v1
-        v2: $c.v2
-        v:
-          $switch:
-            branches:
-            - case:
-                $gt:
-                - $c.v1
-                - $literal: null
-              then: $c.v1
-            - case:
-                $gt:
-                - $c.v2
-                - $literal: null
-              then: $c.v2
-            default:
-              $literal: null
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          v2: {bsonType: int}
-          v1:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-          v: {bsonType: int}
-        required: [v, v2]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "v1": "$c.v1", 
+          "v2": "$c.v2", 
+          "v": {
+            "$switch": {
+              "default": {
+                "$literal": null
+              }, 
+              "branches": [
+                {
+                  "case": {
+                    "$gt": [
+                      "$c.v1", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  "then": "$c.v1"
+                }, 
+                {
+                  "case": {
+                    "$gt": [
+                      "$c.v2", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  "then": "$c.v2"
+                }
+              ]
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "v", 
+          "v2"
+        ], 
+        "properties": {
+          "v1": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "v2": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: COALESCE(v1, ..., vn) correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        v1: $c.v1
-        v2: $c.v2
-        v3: $c.v3
-        v4: $c.v4
-        v5: $c.v5
-        v:
-          $switch:
-            branches:
-            - case:
-                $gt:
-                - $c.v1
-                - $literal: null
-              then: $c.v1
-            - case:
-                $gt:
-                - $c.v2
-                - $literal: null
-              then: $c.v2
-            - case:
-                $gt:
-                - $c.v3
-                - $literal: null
-              then: $c.v3
-            - case:
-                $gt:
-                - $c.v4
-                - $literal: null
-              then: $c.v4
-            - case:
-                $gt:
-                - $c.v5
-                - $literal: null
-              then: $c.v5
-            default:
-              $literal: null
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result:
-  - {'': {v1: 123, v2: null, v4: 789, v5: null, v: 123}}
-  - {'': {v1: null, v3: 456, v4: 789, v: 456}}
-  - {'': {v2: null, v3: null, v5: 789, v: 789}}
-  - {'': {v1: null, v2: null, v5: null, v: null}}
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "v1": "$c.v1", 
+          "v2": "$c.v2", 
+          "v3": "$c.v3", 
+          "v4": "$c.v4", 
+          "v5": "$c.v5", 
+          "v": {
+            "$switch": {
+              "default": {
+                "$literal": null
+              }, 
+              "branches": [
+                {
+                  "case": {
+                    "$gt": [
+                      "$c.v1", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  "then": "$c.v1"
+                }, 
+                {
+                  "case": {
+                    "$gt": [
+                      "$c.v2", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  "then": "$c.v2"
+                }, 
+                {
+                  "case": {
+                    "$gt": [
+                      "$c.v3", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  "then": "$c.v3"
+                }, 
+                {
+                  "case": {
+                    "$gt": [
+                      "$c.v4", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  "then": "$c.v4"
+                }, 
+                {
+                  "case": {
+                    "$gt": [
+                      "$c.v5", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  "then": "$c.v5"
+                }
+              ]
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "v1": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              },
+              {
+                "bsonType": "int"
+              }
+            ]
+          },
+          "v2": {
+            "bsonType": "null"
+          },
+          "v4": {
+            "bsonType": "int"
+          },
+          "v5": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              },
+              {
+                "bsonType": "int"
+              }
+            ]
+          },
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              },
+              {
+                "bsonType": "int"
+              }
+            ]
+          },
+          "v3": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              },
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        },
+        "required": [
+          "v"
+        ],
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: SIZE correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        a: $c.a
-        s:
-          $let:
-            vars:
-              desugared_sqlSize_input0: $c.a
-            in:
-              $cond:
-              - $lte:
-                - $$desugared_sqlSize_input0
-                - $literal: null
-              - $literal: null
-              - $size:
-                - $$desugared_sqlSize_input0
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          s:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: array
-              items: {bsonType: int}
-        required: [s]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$c.a", 
+          "s": {
+            "$let": {
+              "vars": {
+                "desugared_sqlSize_input0": "$c.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$lte": [
+                      "$$desugared_sqlSize_input0", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$size": [
+                      "$$desugared_sqlSize_input0"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "s"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "s": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: POSITION correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        s1: $c.s1
-        s2: $c.s2
-        p:
-          $let:
-            vars:
-              desugared_sqlIndexOfCP_input0: $c.s2
-              desugared_sqlIndexOfCP_input1: $c.s1
-            in:
-              $cond:
-              - $or:
-                - $lte:
-                  - $$desugared_sqlIndexOfCP_input0
-                  - $literal: null
-                - $lte:
-                  - $$desugared_sqlIndexOfCP_input1
-                  - $literal: null
-              - $literal: null
-              - $indexOfCP:
-                - $$desugared_sqlIndexOfCP_input0
-                - $$desugared_sqlIndexOfCP_input1
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          p:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-          s1:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          s2:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-        required: [p]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "s2": "$c.s2", 
+          "s1": "$c.s1", 
+          "p": {
+            "$let": {
+              "vars": {
+                "desugared_sqlIndexOfCP_input1": "$c.s1", 
+                "desugared_sqlIndexOfCP_input0": "$c.s2"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlIndexOfCP_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlIndexOfCP_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$indexOfCP": [
+                      "$$desugared_sqlIndexOfCP_input0", 
+                      "$$desugared_sqlIndexOfCP_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "p"
+        ], 
+        "properties": {
+          "p": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "s1": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "s2": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: CHAR_LENGTH correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        s: $c.s
-        len:
-          $let:
-            vars:
-              desugared_sqlStrLenCP_input0: $c.s
-            in:
-              $cond:
-              - $lte:
-                - $$desugared_sqlStrLenCP_input0
-                - $literal: null
-              - $literal: null
-              - $strLenCP:
-                - $$desugared_sqlStrLenCP_input0
-        comment: $c.comment
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result:
-  - {'': {s: '', len: 0}}
-  - {'': {s: a, len: 1}}
-  - {'': {s: ã, len: 1}}
-  - {'': {s: abc, len: 3}}
-  - {'': {s: $€λG, len: 4, comment: € is encoded using three bytes. λ is encoded using
-        two bytes.}}
-  - {'': {s: 寿司, len: 2, comment: Each character is encoded using three bytes.}}
-  - {'': {s: null, len: null}}
-  - {'': {len: null}}
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "comment": "$c.comment", 
+          "s": "$c.s", 
+          "len": {
+            "$let": {
+              "vars": {
+                "desugared_sqlStrLenCP_input0": "$c.s"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$lte": [
+                      "$$desugared_sqlStrLenCP_input0", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$strLenCP": [
+                      "$$desugared_sqlStrLenCP_input0"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "len": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              },
+              {
+                "bsonType": "int"
+              }
+            ]
+          },
+          "s": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              },
+              {
+                "bsonType": "string"
+              }
+            ]
+          },
+          "comment": {
+            "bsonType": "string"
+          }
+        },
+        "required": [
+          "len"
+        ],
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: OCTET_LENGTH correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        s: $c.s
-        len:
-          $let:
-            vars:
-              desugared_sqlStrLenBytes_input0: $c.s
-            in:
-              $cond:
-              - $lte:
-                - $$desugared_sqlStrLenBytes_input0
-                - $literal: null
-              - $literal: null
-              - $strLenBytes:
-                - $$desugared_sqlStrLenBytes_input0
-        comment: $c.comment
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result:
-  - {'': {s: '', len: 0}}
-  - {'': {s: a, len: 1}}
-  - {'': {s: ã, len: 2}}
-  - {'': {s: abc, len: 3}}
-  - {'': {s: $€λG, len: 7, comment: € is encoded using three bytes. λ is encoded using
-        two bytes.}}
-  - {'': {s: 寿司, len: 6, comment: Each character is encoded using three bytes.}}
-  - {'': {s: null, len: null}}
-  - {'': {len: null}}
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "comment": "$c.comment", 
+          "s": "$c.s", 
+          "len": {
+            "$let": {
+              "vars": {
+                "desugared_sqlStrLenBytes_input0": "$c.s"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$lte": [
+                      "$$desugared_sqlStrLenBytes_input0", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$strLenBytes": [
+                      "$$desugared_sqlStrLenBytes_input0"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+,
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "len": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              },
+              {
+                "bsonType": "int"
+              }
+            ]
+          },
+          "s": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              },
+              {
+                "bsonType": "string"
+              }
+            ]
+          },
+          "comment": {
+            "bsonType": "string"
+          }
+        },
+        "required": [
+          "len"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: BIT_LENGTH correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        s: $c.s
-        len:
-          $multiply:
-          - $let:
-              vars:
-                desugared_sqlStrLenBytes_input0: $c.s
-              in:
-                $cond:
-                - $lte:
-                  - $$desugared_sqlStrLenBytes_input0
-                  - $literal: null
-                - $literal: null
-                - $strLenBytes:
-                  - $$desugared_sqlStrLenBytes_input0
-          - $literal: 8
-        comment: $c.comment
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result:
-  - {'': {s: '', len: 0}}
-  - {'': {s: a, len: 8}}
-  - {'': {s: ã, len: 16}}
-  - {'': {s: abc, len: 24}}
-  - {'': {s: $€λG, len: 56, comment: € is encoded using three bytes. λ is encoded
-        using two bytes.}}
-  - {'': {s: 寿司, len: 48, comment: Each character is encoded using three bytes.}}
-  - {'': {s: null, len: null}}
-  - {'': {len: null}}
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "comment": "$c.comment", 
+          "s": "$c.s", 
+          "len": {
+            "$multiply": [
+              {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlStrLenBytes_input0": "$c.s"
+                  }, 
+                  "in": {
+                    "$cond": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlStrLenBytes_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$literal": null
+                      }, 
+                      {
+                        "$strLenBytes": [
+                          "$$desugared_sqlStrLenBytes_input0"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }, 
+              {
+                "$literal": 8
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+,
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          },
+          "len": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              },
+              {
+                "bsonType": "int"
+              }
+            ]
+          },
+          "s": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              },
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        },
+        "required": [
+          "len"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: EXTRACT FROM NULL and MISSING correctness test
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        d: $c.d
-        v:
-          $year:
-          - $c.d
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          v: {bsonType: 'null'}
-          d: {bsonType: 'null'}
-        required: [v]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
-- description: SUBSTRING(str FROM start FOR length) correctness test
-  current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        str: $c.str
-        start: $c.start
-        length: $c.length
-        substr:
-          $let:
-            vars:
-              desugared_sqlSubstrCP_input0: $c.str
-              desugared_sqlSubstrCP_input1: $c.start
-              desugared_sqlSubstrCP_input2: $c.length
-            in:
-              $cond:
-              - $or:
-                - $lte:
-                  - $$desugared_sqlSubstrCP_input0
-                  - $literal: null
-                - $lte:
-                  - $$desugared_sqlSubstrCP_input1
-                  - $literal: null
-                - $lte:
-                  - $$desugared_sqlSubstrCP_input2
-                  - $literal: null
-              - $literal: null
-              - $substrCP:
-                - $$desugared_sqlSubstrCP_input0
-                - $$desugared_sqlSubstrCP_input1
-                - $$desugared_sqlSubstrCP_input2
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  skip_reason: 'SQL-428: negative length in $substrCP'
-  result:
-  - {'': {str: '', start: {$numberInt: '0'}, length: {$numberInt: '1'}, substr: ''}}
-  - {'': {str: '', start: {$numberInt: '1'}, length: {$numberInt: '1'}, substr: ''}}
-  - {'': {str: abc, start: {$numberInt: '0'}, length: {$numberInt: '-1'}, substr: abc}}
-  - {'': {str: abc, start: {$numberInt: '0'}, length: {$numberInt: '0'}, substr: ''}}
-  - {'': {str: abc, start: {$numberInt: '0'}, length: {$numberInt: '1'}, substr: a}}
-  - {'': {str: abc, start: {$numberInt: '0'}, length: {$numberInt: '2'}, substr: ab}}
-  - {'': {str: abc, start: {$numberInt: '0'}, length: {$numberInt: '4'}, substr: abc}}
-  - {'': {str: abc, start: {$numberInt: '1'}, length: {$numberInt: '2'}, substr: bc}}
-  - {'': {str: abc, start: {$numberInt: '2'}, length: {$numberInt: '-1'}, substr: c}}
-  - {'': {str: $€λGx, start: {$numberInt: '1'}, length: {$numberInt: '3'}, substr: €λG}}
-  - {'': {str: null, start: {$numberInt: '1'}, length: {$numberInt: '1'}, substr: null}}
-  - {'': {start: {$numberInt: '1'}, length: {$numberInt: '1'}, substr: null}}
-  - {'': {str: abc, start: null, length: {$numberInt: '1'}, substr: null}}
-  - {'': {str: abc, length: {$numberInt: '1'}, substr: null}}
-  - {'': {str: abc, start: {$numberInt: '1'}, length: null, substr: null}}
-  - {'': {str: abc, start: {$numberInt: '1'}, substr: null}}
-
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "d": "$c.d", 
+          "v": {
+            "$year": [
+              "$c.d"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "v"
+        ], 
+        "properties": {
+          "d": {
+            "bsonType": "null"
+          }, 
+          "v": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: REPLACE correctness test
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        s: $c.s
-        v:
-          $replaceAll:
-            input: $c.s
-            find:
-              $literal: c
-            replacement:
-              $literal: fff
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          s:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          v:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-        required: [v]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "s": "$c.s", 
+          "v": {
+            "$replaceAll": {
+              "input": "$c.s", 
+              "find": {
+                "$literal": "c"
+              }, 
+              "replacement": {
+                "$literal": "fff"
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "v"
+        ], 
+        "properties": {
+          "s": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: UPPER correctness test
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        s: $c.s
-        v:
-          $let:
-            vars:
-              desugared_sqlToUpper_input0: $c.s
-            in:
-              $cond:
-              - $lte:
-                - $$desugared_sqlToUpper_input0
-                - $literal: null
-              - $literal: null
-              - $toUpper:
-                - $$desugared_sqlToUpper_input0
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          v:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          s:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-        required: [v]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "s": "$c.s", 
+          "v": {
+            "$let": {
+              "vars": {
+                "desugared_sqlToUpper_input0": "$c.s"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$lte": [
+                      "$$desugared_sqlToUpper_input0", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$toUpper": [
+                      "$$desugared_sqlToUpper_input0"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "v"
+        ], 
+        "properties": {
+          "s": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: LOWER correctness test
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        s: $c.s
-        v:
-          $let:
-            vars:
-              desugared_sqlToLower_input0: $c.s
-            in:
-              $cond:
-              - $lte:
-                - $$desugared_sqlToLower_input0
-                - $literal: null
-              - $literal: null
-              - $toLower:
-                - $$desugared_sqlToLower_input0
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          v:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          s:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-        required: [v]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "s": "$c.s", 
+          "v": {
+            "$let": {
+              "vars": {
+                "desugared_sqlToLower_input0": "$c.s"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$lte": [
+                      "$$desugared_sqlToLower_input0", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$toLower": [
+                      "$$desugared_sqlToLower_input0"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "v"
+        ], 
+        "properties": {
+          "s": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: TRIM(BOTH substr FROM str) correctness test
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        substr: $c.substr
-        str: $c.str
-        v:
-          $trim:
-            input: $c.str
-            chars: $c.substr
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          substr:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          str:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          v:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-        required: [v]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "substr": "$c.substr", 
+          "str": "$c.str", 
+          "v": {
+            "$trim": {
+              "input": "$c.str", 
+              "chars": "$c.substr"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "v"
+        ], 
+        "properties": {
+          "substr": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "str": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: TRIM(LEADING substr FROM str) correctness test
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        substr: $c.substr
-        str: $c.str
-        v:
-          $ltrim:
-            input: $c.str
-            chars: $c.substr
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          str:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          v:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          substr:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-        required: [v]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "substr": "$c.substr", 
+          "str": "$c.str", 
+          "v": {
+            "$ltrim": {
+              "input": "$c.str", 
+              "chars": "$c.substr"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "v"
+        ], 
+        "properties": {
+          "substr": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "str": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: TRIM(TRAILING substr FROM str) correctness test
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        substr: $c.substr
-        str: $c.str
-        v:
-          $rtrim:
-            input: $c.str
-            chars: $c.substr
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          substr:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          str:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          v:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-        required: [v]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "substr": "$c.substr", 
+          "str": "$c.str", 
+          "v": {
+            "$rtrim": {
+              "input": "$c.str", 
+              "chars": "$c.substr"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "v"
+        ], 
+        "properties": {
+          "substr": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "str": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: CURRENT_TIMESTAMP(p) correctness test
   current_db: foo
-  pipeline:
-  - $documents:
-    - $literal: {}
-  - $project:
-      _dual: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        v:
-          $let:
-            vars:
-              desugared_sqlGt_input0: $$NOW
-              desugared_sqlGt_input1:
-                $literal:
-                  $date:
-                    $numberLong: '1610107200000'
-            in:
-              $cond:
-              - $or:
-                - $lte:
-                  - $$desugared_sqlGt_input0
-                  - $literal: null
-                - $lte:
-                  - $$desugared_sqlGt_input1
-                  - $literal: null
-              - $literal: null
-              - $gt:
-                - $$desugared_sqlGt_input0
-                - $$desugared_sqlGt_input1
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result:
-  - {'': {v: true}}
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "$literal": {}
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "_dual": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "v": {
+            "$let": {
+              "vars": {
+                "desugared_sqlGt_input1": {
+                  "$literal": {
+                    "$date": {
+                      "$numberLong": "1610107200000"
+                    }
+                  }
+                }, 
+                "desugared_sqlGt_input0": "$$NOW"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGt_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGt_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$gt": [
+                      "$$desugared_sqlGt_input0", 
+                      "$$desugared_sqlGt_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+,
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "v": {
+            "bsonType": "bool"
+          }
+        },
+        "required": [
+          "v"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: Multiple CURRENT_TIMESTAMPs are equal across a query
   current_db: foo
-  pipeline:
-  - $documents:
-    - $literal: {}
-  - $project:
-      _dual: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        v:
-          $eq:
-          - $$NOW
-          - $$NOW
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result:
-  - {'': {v: true}}
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "$literal": {}
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "_dual": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "v": {
+            "$eq": [
+              "$$NOW", 
+              "$$NOW"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "v": {
+            "bsonType": "bool"
+          }
+        },
+        "required": [
+          "v"
+        ],
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: ABS correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        v: $c.v
-        n:
-          $abs:
-          - $c.v
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          n:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          v:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [n]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "v": "$c.v", 
+          "n": {
+            "$abs": [
+              "$c.v"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "n": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: CEIL correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        v: $c.v
-        n:
-          $ceil:
-          - $c.v
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          v:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          n:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [n]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "v": "$c.v", 
+          "n": {
+            "$ceil": [
+              "$c.v"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "n": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: COS correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        radians: $c.radians
-        n:
-          $cond:
-          - $or:
-            - $eq:
-              - $c.radians
-              - $literal: .inf
-            - $eq:
-              - $c.radians
-              - $literal: -.inf
-          - $literal: null
-          - $cos:
-            - $c.radians
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          n:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          radians:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [n]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "radians": "$c.radians", 
+          "n": {
+            "$cond": [
+              {
+                "$or": [
+                  {
+                    "$eq": [
+                      "$c.radians", 
+                      {
+                        "$literal": Infinity
+                      }
+                    ]
+                  }, 
+                  {
+                    "$eq": [
+                      "$c.radians", 
+                      {
+                        "$literal": -Infinity
+                      }
+                    ]
+                  }
+                ]
+              }, 
+              {
+                "$literal": null
+              }, 
+              {
+                "$cos": [
+                  "$c.radians"
+                ]
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "radians": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "n": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: DEGREES correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        radians: $c.radians
-        n:
-          $radiansToDegrees:
-          - $c.radians
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          n:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          radians:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [n]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "radians": "$c.radians", 
+          "n": {
+            "$radiansToDegrees": [
+              "$c.radians"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "radians": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "n": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: FLOOR correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        v: $c.v
-        n:
-          $floor:
-          - $c.v
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          v:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          n:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [n]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "v": "$c.v", 
+          "n": {
+            "$floor": [
+              "$c.v"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "n": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: LOG correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        v: $c.v
-        base: $c.base
-        n:
-          $cond:
-          - $or:
-            - $eq:
-              - $c.v
-              - $literal: .nan
-            - $eq:
-              - $c.base
-              - $literal: .nan
-          - $literal: .nan
-          - $cond:
-            - $or:
-              - $lte:
-                - $c.v
-                - $literal: 0
-              - $eq:
-                - $c.base
-                - $literal: 1
-              - $lte:
-                - $c.base
-                - $literal: 0
-            - $literal: null
-            - $log:
-              - $c.v
-              - $c.base
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          base:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          n:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          v:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [n]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "base": "$c.base", 
+          "v": "$c.v", 
+          "n": {
+            "$cond": [
+              {
+                "$or": [
+                  {
+                    "$eq": [
+                      "$c.v", 
+                      {
+                        "$literal": NaN
+                      }
+                    ]
+                  }, 
+                  {
+                    "$eq": [
+                      "$c.base", 
+                      {
+                        "$literal": NaN
+                      }
+                    ]
+                  }
+                ]
+              }, 
+              {
+                "$literal": NaN
+              }, 
+              {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$c.v", 
+                          {
+                            "$literal": 0
+                          }
+                        ]
+                      }, 
+                      {
+                        "$eq": [
+                          "$c.base", 
+                          {
+                            "$literal": 1
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$c.base", 
+                          {
+                            "$literal": 0
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$log": [
+                      "$c.v", 
+                      "$c.base"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "n": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "base": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: MOD correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        v: $c.v
-        divisor: $c.divisor
-        n:
-          $let:
-            vars:
-              desugared_sqlMod_input0: $c.v
-              desugared_sqlMod_input1: $c.divisor
-            in:
-              $cond:
-              - $eq:
-                - $$desugared_sqlMod_input1
-                - $literal: 0
-              - $literal: null
-              - $mod:
-                - $$desugared_sqlMod_input0
-                - $$desugared_sqlMod_input1
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          n:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          divisor:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          v:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [n]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "v": "$c.v", 
+          "divisor": "$c.divisor", 
+          "n": {
+            "$let": {
+              "vars": {
+                "desugared_sqlMod_input1": "$c.divisor", 
+                "desugared_sqlMod_input0": "$c.v"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$eq": [
+                      "$$desugared_sqlMod_input1", 
+                      {
+                        "$literal": 0
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$mod": [
+                      "$$desugared_sqlMod_input0", 
+                      "$$desugared_sqlMod_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "n": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "divisor": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: POW correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        v: $c.v
-        exponent: $c.exponent
-        n:
-          $pow:
-          - $c.v
-          - $c.exponent
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          v:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          n:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          exponent:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [n]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "v": "$c.v", 
+          "exponent": "$c.exponent", 
+          "n": {
+            "$pow": [
+              "$c.v", 
+              "$c.exponent"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "exponent": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "n": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: RADIANS correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        degrees: $c.degrees
-        n:
-          $degreesToRadians:
-          - $c.degrees
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          n:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          degrees:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [n]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "degrees": "$c.degrees", 
+          "n": {
+            "$degreesToRadians": [
+              "$c.degrees"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "degrees": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "n": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: ROUND correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        v: $c.v
-        place: $c.place
-        n:
-          $let:
-            vars:
-              desugared_sqlRound_input0: $c.v
-              desugared_sqlRound_input1: $c.place
-            in:
-              $cond:
-              - $eq:
-                - $$desugared_sqlRound_input1
-                - $literal: .nan
-              - $literal: .nan
-              - $cond:
-                - $and:
-                  - $gte:
-                    - $$desugared_sqlRound_input1
-                    - $literal: -20
-                  - $lte:
-                    - $$desugared_sqlRound_input1
-                    - $literal: 100
-                - $round:
-                  - $$desugared_sqlRound_input0
-                  - $$desugared_sqlRound_input1
-                - $literal: null
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          n:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          place:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-          v:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [n]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "v": "$c.v", 
+          "place": "$c.place", 
+          "n": {
+            "$let": {
+              "vars": {
+                "desugared_sqlRound_input1": "$c.place", 
+                "desugared_sqlRound_input0": "$c.v"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$eq": [
+                      "$$desugared_sqlRound_input1", 
+                      {
+                        "$literal": NaN
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": NaN
+                  }, 
+                  {
+                    "$cond": [
+                      {
+                        "$and": [
+                          {
+                            "$gte": [
+                              "$$desugared_sqlRound_input1", 
+                              {
+                                "$literal": -20
+                              }
+                            ]
+                          }, 
+                          {
+                            "$lte": [
+                              "$$desugared_sqlRound_input1", 
+                              {
+                                "$literal": 100
+                              }
+                            ]
+                          }
+                        ]
+                      }, 
+                      {
+                        "$round": [
+                          "$$desugared_sqlRound_input0", 
+                          "$$desugared_sqlRound_input1"
+                        ]
+                      }, 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "n": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "place": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: SIN correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        radians: $c.radians
-        n:
-          $cond:
-          - $or:
-            - $eq:
-              - $c.radians
-              - $literal: .inf
-            - $eq:
-              - $c.radians
-              - $literal: -.inf
-          - $literal: null
-          - $sin:
-            - $c.radians
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          radians:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          n:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [n]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+      {
+        "$project": {
+          "c": "$$ROOT", 
+          "_id": 0
+        }
+      }, 
+      {
+        "$project": {
+          "__bot": {
+            "radians": "$c.radians", 
+            "n": {
+              "$cond": [
+                {
+                  "$or": [
+                    {
+                      "$eq": [
+                        "$c.radians", 
+                        {
+                          "$literal": Infinity
+                        }
+                      ]
+                    }, 
+                    {
+                      "$eq": [
+                        "$c.radians", 
+                        {
+                          "$literal": -Infinity
+                        }
+                      ]
+                    }
+                  ]
+                }, 
+                {
+                  "$literal": null
+                }, 
+                {
+                  "$sin": [
+                    "$c.radians"
+                  ]
+                }
+              ]
+            }
+          }, 
+          "_id": 0
+        }
+      }, 
+      {
+        "$replaceWith": {
+          "$unsetField": {
+            "field": "__bot", 
+            "input": {
+              "$setField": {
+                "field": "", 
+                "value": "$__bot", 
+                "input": "$$ROOT"
+              }
+            }
+          }
+        }
+      }
+    ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "radians": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "n": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: SQRT correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        v: $c.v
-        n:
-          $let:
-            vars:
-              desugared_sqlSqrt_input: $c.v
-            in:
-              $cond:
-              - $eq:
-                - $$desugared_sqlSqrt_input
-                - $literal: .nan
-              - $literal: .nan
-              - $cond:
-                - $lt:
-                  - $$desugared_sqlSqrt_input
-                  - $literal: 0
-                - $literal: null
-                - $sqrt:
-                  - $$desugared_sqlSqrt_input
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          v:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          n:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [n]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "v": "$c.v", 
+          "n": {
+            "$let": {
+              "vars": {
+                "desugared_sqlSqrt_input": "$c.v"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$eq": [
+                      "$$desugared_sqlSqrt_input", 
+                      {
+                        "$literal": NaN
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": NaN
+                  }, 
+                  {
+                    "$cond": [
+                      {
+                        "$lt": [
+                          "$$desugared_sqlSqrt_input", 
+                          {
+                            "$literal": 0
+                          }
+                        ]
+                      }, 
+                      {
+                        "$literal": null
+                      }, 
+                      {
+                        "$sqrt": [
+                          "$$desugared_sqlSqrt_input"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "n": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: TAN correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        radians: $c.radians
-        n:
-          $cond:
-          - $or:
-            - $eq:
-              - $c.radians
-              - $literal: .inf
-            - $eq:
-              - $c.radians
-              - $literal: -.inf
-          - $literal: null
-          - $tan:
-            - $c.radians
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          radians:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          n:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [n]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "radians": "$c.radians", 
+          "n": {
+            "$cond": [
+              {
+                "$or": [
+                  {
+                    "$eq": [
+                      "$c.radians", 
+                      {
+                        "$literal": Infinity
+                      }
+                    ]
+                  }, 
+                  {
+                    "$eq": [
+                      "$c.radians", 
+                      {
+                        "$literal": -Infinity
+                      }
+                    ]
+                  }
+                ]
+              }, 
+              {
+                "$literal": null
+              }, 
+              {
+                "$tan": [
+                  "$c.radians"
+                ]
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "radians": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "n": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: SPLIT correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      c: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        str: $c.str
-        delim: $c.delim
-        tokenNum: $c.tokenNum
-        v:
-          $let:
-            vars:
-              desugared_sqlSplit_input0: $c.str
-              desugared_sqlSplit_input1: $c.delim
-              desugared_sqlSplit_input2: $c.tokenNum
-            in:
-              $cond:
-              - $eq:
-                - $$desugared_sqlSplit_input1
-                - $literal: ''
-              - $literal: null
-              - $let:
-                  vars:
-                    desugared_sqlSplit_split_expr:
-                      $split:
-                      - $$desugared_sqlSplit_input0
-                      - $$desugared_sqlSplit_input1
-                  in:
-                    $cond:
-                    - $lte:
-                      - $$desugared_sqlSplit_split_expr
-                      - $literal: null
-                    - $literal: null
-                    - $let:
-                        vars:
-                          desugared_sqlSplit_slice_expr:
-                            $slice:
-                            - $$desugared_sqlSplit_split_expr
-                            - $cond:
-                              - $gt:
-                                - $abs:
-                                  - $$desugared_sqlSplit_input2
-                                - $size:
-                                  - $$desugared_sqlSplit_split_expr
-                              - $abs:
-                                - $$desugared_sqlSplit_input2
-                              - $$desugared_sqlSplit_input2
-                            - $literal: 1
-                        in:
-                          $arrayElemAt:
-                          - $cond:
-                            - $eq:
-                              - $$desugared_sqlSplit_slice_expr
-                              - []
-                            - - $literal: ''
-                            - $$desugared_sqlSplit_slice_expr
-                          - $literal: 0
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          delim:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          str:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          tokenNum:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-          v:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-        required: [v]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "tokenNum": "$c.tokenNum", 
+          "delim": "$c.delim", 
+          "str": "$c.str", 
+          "v": {
+            "$let": {
+              "vars": {
+                "desugared_sqlSplit_input1": "$c.delim", 
+                "desugared_sqlSplit_input0": "$c.str", 
+                "desugared_sqlSplit_input2": "$c.tokenNum"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$eq": [
+                      "$$desugared_sqlSplit_input1", 
+                      {
+                        "$literal": ""
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlSplit_split_expr": {
+                          "$split": [
+                            "$$desugared_sqlSplit_input0", 
+                            "$$desugared_sqlSplit_input1"
+                          ]
+                        }
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$lte": [
+                              "$$desugared_sqlSplit_split_expr", 
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$let": {
+                              "vars": {
+                                "desugared_sqlSplit_slice_expr": {
+                                  "$slice": [
+                                    "$$desugared_sqlSplit_split_expr", 
+                                    {
+                                      "$cond": [
+                                        {
+                                          "$gt": [
+                                            {
+                                              "$abs": [
+                                                "$$desugared_sqlSplit_input2"
+                                              ]
+                                            }, 
+                                            {
+                                              "$size": [
+                                                "$$desugared_sqlSplit_split_expr"
+                                              ]
+                                            }
+                                          ]
+                                        }, 
+                                        {
+                                          "$abs": [
+                                            "$$desugared_sqlSplit_input2"
+                                          ]
+                                        }, 
+                                        "$$desugared_sqlSplit_input2"
+                                      ]
+                                    }, 
+                                    {
+                                      "$literal": 1
+                                    }
+                                  ]
+                                }
+                              }, 
+                              "in": {
+                                "$arrayElemAt": [
+                                  {
+                                    "$cond": [
+                                      {
+                                        "$eq": [
+                                          "$$desugared_sqlSplit_slice_expr", 
+                                          []
+                                        ]
+                                      }, 
+                                      [
+                                        {
+                                          "$literal": ""
+                                        }
+                                      ], 
+                                      "$$desugared_sqlSplit_slice_expr"
+                                    ]
+                                  }, 
+                                  {
+                                    "$literal": 0
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "v"
+        ], 
+        "properties": {
+          "tokenNum": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "delim": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "str": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: YEAR correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      d: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        interval: $d.interval
-        dateadd:
-          $dateAdd:
-            startDate: $d.date1
-            unit:
-              $literal: year
-            amount: $d.interval
-        datepart:
-          $year:
-          - $d.date1
-        datediff:
-          $dateDiff:
-            startDate: $d.date1
-            endDate: $d.date2
-            unit:
-              $literal: year
-            startOfWeek:
-              $literal: sunday
-        datetrunc:
-          $dateTrunc:
-            date: $d.date1
-            unit:
-              $literal: year
-            startOfWeek:
-              $literal: sunday
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          dateadd: {bsonType: date}
-          interval:
-            anyOf:
-            - {bsonType: int}
-            - {bsonType: long}
-          datediff: {bsonType: long}
-          datepart: {bsonType: int}
-          datetrunc: {bsonType: date}
-        required: [dateadd, datediff, datepart, datetrunc, interval]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "d": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "datediff": {
+            "$dateDiff": {
+              "startDate": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "year"
+              }, 
+              "endDate": "$d.date2"
+            }
+          }, 
+          "dateadd": {
+            "$dateAdd": {
+              "startDate": "$d.date1", 
+              "amount": "$d.interval", 
+              "unit": {
+                "$literal": "year"
+              }
+            }
+          }, 
+          "interval": "$d.interval", 
+          "datepart": {
+            "$year": [
+              "$d.date1"
+            ]
+          }, 
+          "datetrunc": {
+            "$dateTrunc": {
+              "date": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "year"
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "dateadd", 
+          "datediff", 
+          "datepart", 
+          "datetrunc", 
+          "interval"
+        ], 
+        "properties": {
+          "datediff": {
+            "bsonType": "long"
+          }, 
+          "dateadd": {
+            "bsonType": "date"
+          }, 
+          "interval": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "datepart": {
+            "bsonType": "int"
+          }, 
+          "datetrunc": {
+            "bsonType": "date"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: MONTH correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      d: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        interval: $d.interval
-        dateadd:
-          $dateAdd:
-            startDate: $d.date1
-            unit:
-              $literal: month
-            amount: $d.interval
-        datepart:
-          $month:
-          - $d.date1
-        datediff:
-          $dateDiff:
-            startDate: $d.date1
-            endDate: $d.date2
-            unit:
-              $literal: month
-            startOfWeek:
-              $literal: sunday
-        datetrunc:
-          $dateTrunc:
-            date: $d.date1
-            unit:
-              $literal: month
-            startOfWeek:
-              $literal: sunday
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          interval:
-            anyOf:
-            - {bsonType: int}
-            - {bsonType: long}
-          datetrunc: {bsonType: date}
-          dateadd: {bsonType: date}
-          datepart: {bsonType: int}
-          datediff: {bsonType: long}
-        required: [dateadd, datediff, datepart, datetrunc, interval]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "d": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "datediff": {
+            "$dateDiff": {
+              "startDate": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "month"
+              }, 
+              "endDate": "$d.date2"
+            }
+          }, 
+          "dateadd": {
+            "$dateAdd": {
+              "startDate": "$d.date1", 
+              "amount": "$d.interval", 
+              "unit": {
+                "$literal": "month"
+              }
+            }
+          }, 
+          "interval": "$d.interval", 
+          "datepart": {
+            "$month": [
+              "$d.date1"
+            ]
+          }, 
+          "datetrunc": {
+            "$dateTrunc": {
+              "date": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "month"
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "dateadd", 
+          "datediff", 
+          "datepart", 
+          "datetrunc", 
+          "interval"
+        ], 
+        "properties": {
+          "datediff": {
+            "bsonType": "long"
+          }, 
+          "dateadd": {
+            "bsonType": "date"
+          }, 
+          "interval": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "datepart": {
+            "bsonType": "int"
+          }, 
+          "datetrunc": {
+            "bsonType": "date"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: DAY correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      d: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        interval: $d.interval
-        dateadd:
-          $dateAdd:
-            startDate: $d.date1
-            unit:
-              $literal: day
-            amount: $d.interval
-        datepart:
-          $dayOfMonth:
-          - $d.date1
-        datediff:
-          $dateDiff:
-            startDate: $d.date1
-            endDate: $d.date2
-            unit:
-              $literal: day
-            startOfWeek:
-              $literal: sunday
-        datetrunc:
-          $dateTrunc:
-            date: $d.date1
-            unit:
-              $literal: day
-            startOfWeek:
-              $literal: sunday
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          datetrunc: {bsonType: date}
-          interval:
-            anyOf:
-            - {bsonType: int}
-            - {bsonType: long}
-          datepart: {bsonType: int}
-          dateadd: {bsonType: date}
-          datediff: {bsonType: long}
-        required: [dateadd, datediff, datepart, datetrunc, interval]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "d": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "datediff": {
+            "$dateDiff": {
+              "startDate": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "day"
+              }, 
+              "endDate": "$d.date2"
+            }
+          }, 
+          "dateadd": {
+            "$dateAdd": {
+              "startDate": "$d.date1", 
+              "amount": "$d.interval", 
+              "unit": {
+                "$literal": "day"
+              }
+            }
+          }, 
+          "interval": "$d.interval", 
+          "datepart": {
+            "$dayOfMonth": [
+              "$d.date1"
+            ]
+          }, 
+          "datetrunc": {
+            "$dateTrunc": {
+              "date": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "day"
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "dateadd", 
+          "datediff", 
+          "datepart", 
+          "datetrunc", 
+          "interval"
+        ], 
+        "properties": {
+          "datediff": {
+            "bsonType": "long"
+          }, 
+          "dateadd": {
+            "bsonType": "date"
+          }, 
+          "interval": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "datepart": {
+            "bsonType": "int"
+          }, 
+          "datetrunc": {
+            "bsonType": "date"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: HOUR correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      d: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        interval: $d.interval
-        dateadd:
-          $dateAdd:
-            startDate: $d.date1
-            unit:
-              $literal: hour
-            amount: $d.interval
-        datepart:
-          $hour:
-          - $d.date1
-        datediff:
-          $dateDiff:
-            startDate: $d.date1
-            endDate: $d.date2
-            unit:
-              $literal: hour
-            startOfWeek:
-              $literal: sunday
-        datetrunc:
-          $dateTrunc:
-            date: $d.date1
-            unit:
-              $literal: hour
-            startOfWeek:
-              $literal: sunday
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          datetrunc: {bsonType: date}
-          interval:
-            anyOf:
-            - {bsonType: int}
-            - {bsonType: long}
-          dateadd: {bsonType: date}
-          datepart: {bsonType: int}
-          datediff: {bsonType: long}
-        required: [dateadd, datediff, datepart, datetrunc, interval]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "d": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "datediff": {
+            "$dateDiff": {
+              "startDate": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "hour"
+              }, 
+              "endDate": "$d.date2"
+            }
+          }, 
+          "dateadd": {
+            "$dateAdd": {
+              "startDate": "$d.date1", 
+              "amount": "$d.interval", 
+              "unit": {
+                "$literal": "hour"
+              }
+            }
+          }, 
+          "interval": "$d.interval", 
+          "datepart": {
+            "$hour": [
+              "$d.date1"
+            ]
+          }, 
+          "datetrunc": {
+            "$dateTrunc": {
+              "date": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "hour"
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "dateadd", 
+          "datediff", 
+          "datepart", 
+          "datetrunc", 
+          "interval"
+        ], 
+        "properties": {
+          "datediff": {
+            "bsonType": "long"
+          }, 
+          "dateadd": {
+            "bsonType": "date"
+          }, 
+          "interval": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "datepart": {
+            "bsonType": "int"
+          }, 
+          "datetrunc": {
+            "bsonType": "date"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: MINUTE correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      d: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        interval: $d.interval
-        dateadd:
-          $dateAdd:
-            startDate: $d.date1
-            unit:
-              $literal: minute
-            amount: $d.interval
-        datepart:
-          $minute:
-          - $d.date1
-        datediff:
-          $dateDiff:
-            startDate: $d.date1
-            endDate: $d.date2
-            unit:
-              $literal: minute
-            startOfWeek:
-              $literal: sunday
-        datetrunc:
-          $dateTrunc:
-            date: $d.date1
-            unit:
-              $literal: minute
-            startOfWeek:
-              $literal: sunday
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          interval:
-            anyOf:
-            - {bsonType: int}
-            - {bsonType: long}
-          dateadd: {bsonType: date}
-          datediff: {bsonType: long}
-          datepart: {bsonType: int}
-          datetrunc: {bsonType: date}
-        required: [dateadd, datediff, datepart, datetrunc, interval]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "d": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "datediff": {
+            "$dateDiff": {
+              "startDate": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "minute"
+              }, 
+              "endDate": "$d.date2"
+            }
+          }, 
+          "dateadd": {
+            "$dateAdd": {
+              "startDate": "$d.date1", 
+              "amount": "$d.interval", 
+              "unit": {
+                "$literal": "minute"
+              }
+            }
+          }, 
+          "interval": "$d.interval", 
+          "datepart": {
+            "$minute": [
+              "$d.date1"
+            ]
+          }, 
+          "datetrunc": {
+            "$dateTrunc": {
+              "date": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "minute"
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "dateadd", 
+          "datediff", 
+          "datepart", 
+          "datetrunc", 
+          "interval"
+        ], 
+        "properties": {
+          "datediff": {
+            "bsonType": "long"
+          }, 
+          "dateadd": {
+            "bsonType": "date"
+          }, 
+          "interval": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "datepart": {
+            "bsonType": "int"
+          }, 
+          "datetrunc": {
+            "bsonType": "date"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: SECOND correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      d: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        interval: $d.interval
-        dateadd:
-          $dateAdd:
-            startDate: $d.date1
-            unit:
-              $literal: second
-            amount: $d.interval
-        datepart:
-          $second:
-          - $d.date1
-        datediff:
-          $dateDiff:
-            startDate: $d.date1
-            endDate: $d.date2
-            unit:
-              $literal: second
-            startOfWeek:
-              $literal: sunday
-        datetrunc:
-          $dateTrunc:
-            date: $d.date1
-            unit:
-              $literal: second
-            startOfWeek:
-              $literal: sunday
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          datetrunc: {bsonType: date}
-          interval:
-            anyOf:
-            - {bsonType: int}
-            - {bsonType: long}
-          datepart: {bsonType: int}
-          datediff: {bsonType: long}
-          dateadd: {bsonType: date}
-        required: [dateadd, datediff, datepart, datetrunc, interval]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "d": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "datediff": {
+            "$dateDiff": {
+              "startDate": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "second"
+              }, 
+              "endDate": "$d.date2"
+            }
+          }, 
+          "dateadd": {
+            "$dateAdd": {
+              "startDate": "$d.date1", 
+              "amount": "$d.interval", 
+              "unit": {
+                "$literal": "second"
+              }
+            }
+          }, 
+          "interval": "$d.interval", 
+          "datepart": {
+            "$second": [
+              "$d.date1"
+            ]
+          }, 
+          "datetrunc": {
+            "$dateTrunc": {
+              "date": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "second"
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "dateadd", 
+          "datediff", 
+          "datepart", 
+          "datetrunc", 
+          "interval"
+        ], 
+        "properties": {
+          "datediff": {
+            "bsonType": "long"
+          }, 
+          "dateadd": {
+            "bsonType": "date"
+          }, 
+          "interval": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "datepart": {
+            "bsonType": "int"
+          }, 
+          "datetrunc": {
+            "bsonType": "date"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: MILLISECOND correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      d: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        interval: $d.interval
-        dateadd:
-          $dateAdd:
-            startDate: $d.date1
-            unit:
-              $literal: millisecond
-            amount: $d.interval
-        datepart:
-          $millisecond:
-          - $d.date1
-        datediff:
-          $dateDiff:
-            startDate: $d.date1
-            endDate: $d.date2
-            unit:
-              $literal: millisecond
-            startOfWeek:
-              $literal: sunday
-        datetrunc:
-          $dateTrunc:
-            date: $d.date1
-            unit:
-              $literal: millisecond
-            startOfWeek:
-              $literal: sunday
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          datepart: {bsonType: int}
-          dateadd: {bsonType: date}
-          interval:
-            anyOf:
-            - {bsonType: int}
-            - {bsonType: long}
-          datediff: {bsonType: long}
-          datetrunc: {bsonType: date}
-        required: [dateadd, datediff, datepart, datetrunc, interval]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "d": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "datediff": {
+            "$dateDiff": {
+              "startDate": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "millisecond"
+              }, 
+              "endDate": "$d.date2"
+            }
+          }, 
+          "dateadd": {
+            "$dateAdd": {
+              "startDate": "$d.date1", 
+              "amount": "$d.interval", 
+              "unit": {
+                "$literal": "millisecond"
+              }
+            }
+          }, 
+          "interval": "$d.interval", 
+          "datepart": {
+            "$millisecond": [
+              "$d.date1"
+            ]
+          }, 
+          "datetrunc": {
+            "$dateTrunc": {
+              "date": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "millisecond"
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "dateadd", 
+          "datediff", 
+          "datepart", 
+          "datetrunc", 
+          "interval"
+        ], 
+        "properties": {
+          "datediff": {
+            "bsonType": "long"
+          }, 
+          "dateadd": {
+            "bsonType": "date"
+          }, 
+          "datepart": {
+            "bsonType": "int"
+          }, 
+          "interval": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "datetrunc": {
+            "bsonType": "date"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: QUARTER correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      d: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        interval: $d.interval
-        dateadd:
-          $dateAdd:
-            startDate: $d.date1
-            unit:
-              $literal: quarter
-            amount: $d.interval
-        datediff:
-          $dateDiff:
-            startDate: $d.date1
-            endDate: $d.date2
-            unit:
-              $literal: quarter
-            startOfWeek:
-              $literal: sunday
-        datetrunc:
-          $dateTrunc:
-            date: $d.date1
-            unit:
-              $literal: quarter
-            startOfWeek:
-              $literal: sunday
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          interval:
-            anyOf:
-            - {bsonType: int}
-            - {bsonType: long}
-          dateadd: {bsonType: date}
-          datetrunc: {bsonType: date}
-          datediff: {bsonType: long}
-        required: [dateadd, datediff, datetrunc, interval]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "d": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "datediff": {
+            "$dateDiff": {
+              "startDate": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "quarter"
+              }, 
+              "endDate": "$d.date2"
+            }
+          }, 
+          "dateadd": {
+            "$dateAdd": {
+              "startDate": "$d.date1", 
+              "amount": "$d.interval", 
+              "unit": {
+                "$literal": "quarter"
+              }
+            }
+          }, 
+          "interval": "$d.interval", 
+          "datetrunc": {
+            "$dateTrunc": {
+              "date": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "quarter"
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "dateadd", 
+          "datediff", 
+          "datetrunc", 
+          "interval"
+        ], 
+        "properties": {
+          "datediff": {
+            "bsonType": "long"
+          }, 
+          "dateadd": {
+            "bsonType": "date"
+          }, 
+          "interval": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "datetrunc": {
+            "bsonType": "date"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: WEEK correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      d: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        interval: $d.interval
-        dateadd:
-          $dateAdd:
-            startDate: $d.date1
-            unit:
-              $literal: week
-            amount: $d.interval
-        datepart:
-          $week:
-          - $d.date1
-        datediff:
-          $dateDiff:
-            startDate: $d.date1
-            endDate: $d.date2
-            unit:
-              $literal: week
-            startOfWeek:
-              $literal: sunday
-        datetrunc:
-          $dateTrunc:
-            date: $d.date1
-            unit:
-              $literal: week
-            startOfWeek:
-              $literal: sunday
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          interval:
-            anyOf:
-            - {bsonType: int}
-            - {bsonType: long}
-          dateadd: {bsonType: date}
-          datediff: {bsonType: long}
-          datepart: {bsonType: int}
-          datetrunc: {bsonType: date}
-        required: [dateadd, datediff, datepart, datetrunc, interval]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "d": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "datediff": {
+            "$dateDiff": {
+              "startDate": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "week"
+              }, 
+              "endDate": "$d.date2"
+            }
+          }, 
+          "dateadd": {
+            "$dateAdd": {
+              "startDate": "$d.date1", 
+              "amount": "$d.interval", 
+              "unit": {
+                "$literal": "week"
+              }
+            }
+          }, 
+          "interval": "$d.interval", 
+          "datepart": {
+            "$week": [
+              "$d.date1"
+            ]
+          }, 
+          "datetrunc": {
+            "$dateTrunc": {
+              "date": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "week"
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "dateadd", 
+          "datediff", 
+          "datepart", 
+          "datetrunc", 
+          "interval"
+        ], 
+        "properties": {
+          "datediff": {
+            "bsonType": "long"
+          }, 
+          "dateadd": {
+            "bsonType": "date"
+          }, 
+          "interval": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "datepart": {
+            "bsonType": "int"
+          }, 
+          "datetrunc": {
+            "bsonType": "date"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: DAY_OF_YEAR correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      d: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        datepart:
-          $dayOfYear:
-          - $d.date1
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result:
-  - {'': {datepart: {$numberInt: '153'}}}
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "d": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "datepart": {
+            "$dayOfYear": [
+              "$d.date1"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+,
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "datepart": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "datepart"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: ISO_WEEK correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      d: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        datepart:
-          $isoWeek:
-          - $d.date1
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result:
-  - {'': {datepart: {$numberInt: '22'}}}
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "d": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "datepart": {
+            "$isoWeek": [
+              "$d.date1"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "datepart": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "datepart"
+        ],
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: ISO_WEEKDAY correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      d: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        datepart:
-          $isoDayOfWeek:
-          - $d.date1
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result:
-  - {'': {datepart: {$numberInt: '4'}}}
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "d": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "datepart": {
+            "$isoDayOfWeek": [
+              "$d.date1"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "datepart": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "datepart"
+        ],
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: DAYOFWEEK correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      d: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        datepart:
-          $dayOfWeek:
-          - $d.date1
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          datepart: {bsonType: int}
-        required: [datepart]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "d": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "datepart": {
+            "$dayOfWeek": [
+              "$d.date1"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "datepart"
+        ], 
+        "properties": {
+          "datepart": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: DATEDIFF startOfWeek correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      d: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        sunday:
-          $dateDiff:
-            startDate: $d.date1
-            endDate: $d.date2
-            unit:
-              $literal: week
-            startOfWeek:
-              $literal: sunday
-        friday:
-          $dateDiff:
-            startDate: $d.date1
-            endDate: $d.date2
-            unit:
-              $literal: week
-            startOfWeek:
-              $literal: friday
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          friday: {bsonType: long}
-          sunday: {bsonType: long}
-        required: [friday, sunday]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "d": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "sunday": {
+            "$dateDiff": {
+              "startDate": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "week"
+              }, 
+              "endDate": "$d.date2"
+            }
+          }, 
+          "friday": {
+            "$dateDiff": {
+              "startDate": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "friday"
+              }, 
+              "unit": {
+                "$literal": "week"
+              }, 
+              "endDate": "$d.date2"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "friday", 
+          "sunday"
+        ], 
+        "properties": {
+          "sunday": {
+            "bsonType": "long"
+          }, 
+          "friday": {
+            "bsonType": "long"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: TIMESTAMPDIFF startOfWeek correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      d: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        sunday:
-          $dateDiff:
-            startDate: $d.date1
-            endDate: $d.date2
-            unit:
-              $literal: week
-            startOfWeek:
-              $literal: sunday
-        friday:
-          $dateDiff:
-            startDate: $d.date1
-            endDate: $d.date2
-            unit:
-              $literal: week
-            startOfWeek:
-              $literal: friday
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          sunday: {bsonType: long}
-          friday: {bsonType: long}
-        required: [friday, sunday]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "d": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "sunday": {
+            "$dateDiff": {
+              "startDate": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "week"
+              }, 
+              "endDate": "$d.date2"
+            }
+          }, 
+          "friday": {
+            "$dateDiff": {
+              "startDate": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "friday"
+              }, 
+              "unit": {
+                "$literal": "week"
+              }, 
+              "endDate": "$d.date2"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "friday", 
+          "sunday"
+        ], 
+        "properties": {
+          "sunday": {
+            "bsonType": "long"
+          }, 
+          "friday": {
+            "bsonType": "long"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: DATETRUNC startOfWeek correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      d: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        sunday:
-          $dateTrunc:
-            date: $d.date1
-            unit:
-              $literal: week
-            startOfWeek:
-              $literal: sunday
-        friday:
-          $dateTrunc:
-            date: $d.date1
-            unit:
-              $literal: week
-            startOfWeek:
-              $literal: friday
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          friday: {bsonType: date}
-          sunday: {bsonType: date}
-        required: [friday, sunday]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "d": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "sunday": {
+            "$dateTrunc": {
+              "date": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "week"
+              }
+            }
+          }, 
+          "friday": {
+            "$dateTrunc": {
+              "date": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "friday"
+              }, 
+              "unit": {
+                "$literal": "week"
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "friday", 
+          "sunday"
+        ], 
+        "properties": {
+          "sunday": {
+            "bsonType": "date"
+          }, 
+          "friday": {
+            "bsonType": "date"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: TIMESTAMPTRUNC startOfWeek correctness tests
   current_db: foo
-  pipeline:
-  - $project:
-      d: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        sunday:
-          $dateTrunc:
-            date: $d.date1
-            unit:
-              $literal: week
-            startOfWeek:
-              $literal: sunday
-        friday:
-          $dateTrunc:
-            date: $d.date1
-            unit:
-              $literal: week
-            startOfWeek:
-              $literal: friday
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          friday: {bsonType: date}
-          sunday: {bsonType: date}
-        required: [friday, sunday]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "d": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "sunday": {
+            "$dateTrunc": {
+              "date": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "sunday"
+              }, 
+              "unit": {
+                "$literal": "week"
+              }
+            }
+          }, 
+          "friday": {
+            "$dateTrunc": {
+              "date": "$d.date1", 
+              "startOfWeek": {
+                "$literal": "friday"
+              }, 
+              "unit": {
+                "$literal": "week"
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "friday", 
+          "sunday"
+        ], 
+        "properties": {
+          "sunday": {
+            "bsonType": "date"
+          }, 
+          "friday": {
+            "bsonType": "date"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

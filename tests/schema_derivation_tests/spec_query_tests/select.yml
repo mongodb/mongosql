@@ -11,154 +11,284 @@ catalog_schema:
 tests:
 - description: simple star correctness test
   current_db: mydb
-  pipeline:
-  - $project:
-      f: $$ROOT
-      _id: 0
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      f:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          a: {bsonType: int}
-          b: {bsonType: int}
-        required: [_id, a, b]
-        additionalProperties: false
-    required: [_id, f]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "f": "$$ROOT"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["f"], 
+    "properties": {
+, 
+      "f": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: simple document correctness test
   current_db: mydb
-  pipeline:
-  - $project:
-      foo: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        a: $foo.a
-        b: $foo.b
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          b: {bsonType: int}
-          a: {bsonType: int}
-        required: [a, b]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$foo.a", 
+          "b": "$foo.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: simple sub-star correctness test
   current_db: mydb
-  pipeline:
-  - $project:
-      f: $$ROOT
-      _id: 0
-  - $project:
-      f: $f
-      _id: 0
-  result_set_schema:
-    bsonType: object
-    properties:
-      f:
-        bsonType: object
-        properties:
-          b: {bsonType: int}
-          _id: {bsonType: int}
-          a: {bsonType: int}
-        required: [_id, a, b]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, f]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "f": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "f": "$f"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["f"], 
+    "properties": {
+, 
+      "f": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for mixed sub-star and document
   current_db: mydb
-  pipeline:
-  - $project:
-      foo: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        a: $foo.a
-      foo: $foo
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-        required: [a]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-      foo:
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          _id: {bsonType: int}
-          b: {bsonType: int}
-        required: [_id, a, b]
-        additionalProperties: false
-    required: ['', _id, foo]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$foo.a"
+        }, 
+        "foo": "$foo", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["", "foo"], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+, 
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: SELECT VALUES may create unmaterializable binding tuples
   current_db: mydb
-  pipeline:
-  - $project:
-      a: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        a: $a.a
-      a: $a
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      a:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          b: {bsonType: int}
-          a: {bsonType: int}
-        required: [_id, a, b]
-        additionalProperties: false
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-        required: [a]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id, a]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "a": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$a.a"
+        }, 
+        "a": "$a", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["", "a"], 
+    "properties": {
+      "a": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

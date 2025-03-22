@@ -1,7 +1,7 @@
 tests:
 - description: Null literal
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -46,23 +46,36 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          _1: {bsonType: 'null'}
-          _2: {bsonType: 'null'}
-          _3: {bsonType: 'null'}
-        required: [_1, _2, _3]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_1", 
+          "_2", 
+          "_3"
+        ], 
+        "properties": {
+          "_3": {
+            "bsonType": "null"
+          }, 
+          "_2": {
+            "bsonType": "null"
+          }, 
+          "_1": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Boolean literals
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -116,26 +129,48 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          _4: {bsonType: bool}
-          _5: {bsonType: bool}
-          _1: {bsonType: bool}
-          _6: {bsonType: bool}
-          _3: {bsonType: bool}
-          _2: {bsonType: bool}
-        required: [_1, _2, _3, _4, _5, _6]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_1", 
+          "_2", 
+          "_3", 
+          "_4", 
+          "_5", 
+          "_6"
+        ], 
+        "properties": {
+          "_6": {
+            "bsonType": "bool"
+          }, 
+          "_5": {
+            "bsonType": "bool"
+          }, 
+          "_4": {
+            "bsonType": "bool"
+          }, 
+          "_3": {
+            "bsonType": "bool"
+          }, 
+          "_2": {
+            "bsonType": "bool"
+          }, 
+          "_1": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: String literals
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -180,23 +215,36 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          _1: {bsonType: string}
-          _2: {bsonType: string}
-          _3: {bsonType: string}
-        required: [_1, _2, _3]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_1", 
+          "_2", 
+          "_3"
+        ], 
+        "properties": {
+          "_3": {
+            "bsonType": "string"
+          }, 
+          "_2": {
+            "bsonType": "string"
+          }, 
+          "_1": {
+            "bsonType": "string"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Unsigned integer literals
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -247,25 +295,44 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          _1: {bsonType: int}
-          _2: {bsonType: int}
-          _3: {bsonType: int}
-          _4: {bsonType: int}
-          _5: {bsonType: int}
-        required: [_1, _2, _3, _4, _5]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_1", 
+          "_2", 
+          "_3", 
+          "_4", 
+          "_5"
+        ], 
+        "properties": {
+          "_5": {
+            "bsonType": "int"
+          }, 
+          "_4": {
+            "bsonType": "int"
+          }, 
+          "_3": {
+            "bsonType": "int"
+          }, 
+          "_2": {
+            "bsonType": "int"
+          }, 
+          "_1": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Signed integer literals
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -325,28 +392,56 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          _7: {bsonType: int}
-          _4: {bsonType: int}
-          _3: {bsonType: int}
-          _1: {bsonType: int}
-          _5: {bsonType: int}
-          _8: {bsonType: int}
-          _6: {bsonType: int}
-          _2: {bsonType: int}
-        required: [_1, _2, _3, _4, _5, _6, _7, _8]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_1", 
+          "_2", 
+          "_3", 
+          "_4", 
+          "_5", 
+          "_6", 
+          "_7", 
+          "_8"
+        ], 
+        "properties": {
+          "_8": {
+            "bsonType": "int"
+          }, 
+          "_7": {
+            "bsonType": "int"
+          }, 
+          "_6": {
+            "bsonType": "int"
+          }, 
+          "_5": {
+            "bsonType": "int"
+          }, 
+          "_4": {
+            "bsonType": "int"
+          }, 
+          "_3": {
+            "bsonType": "int"
+          }, 
+          "_2": {
+            "bsonType": "int"
+          }, 
+          "_1": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Date escape literal
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -389,15 +484,22 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          _1: {bsonType: date}
-        required: [_1]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_1"
+        ], 
+        "properties": {
+          "_1": {
+            "bsonType": "date"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

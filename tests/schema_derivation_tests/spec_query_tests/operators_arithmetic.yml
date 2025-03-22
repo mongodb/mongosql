@@ -82,7 +82,7 @@ catalog_schema:
 tests:
 - description: Unary plus correctness tests
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "unary": "$$ROOT", 
@@ -113,33 +113,60 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          +a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "+a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Unary minus correctness tests
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "unary": "$$ROOT", 
@@ -177,34 +204,63 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          -a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [-a]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "-a"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "-a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Addition correctness tests
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "binary": "$$ROOT", 
@@ -241,41 +297,82 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a+b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [a+b]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a+b"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "a+b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Subtraction correctness tests
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "binary": "$$ROOT", 
@@ -312,41 +409,82 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          a-b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [a-b]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a-b"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "a-b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Multiplication correctness tests
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "binary": "$$ROOT", 
@@ -383,41 +521,82 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          a*b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [a*b]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a*b"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "a*b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Division correctness tests
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "binary": "$$ROOT", 
@@ -469,39 +648,76 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a/b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [a/b]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a/b"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "a/b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Division by zero results in NULL
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "unary": "$$ROOT", 
@@ -534,28 +750,47 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          n: {bsonType: 'null'}
-        required: [n]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "n": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Long and integer division with non-integer results truncated
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "i": "$$ROOT", 
@@ -652,26 +887,56 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          d: {bsonType: int}
-          b:
-            anyOf:
-            - {bsonType: int}
-            - {bsonType: long}
-          a:
-            anyOf:
-            - {bsonType: int}
-            - {bsonType: long}
-          a/b: {bsonType: long}
-          c: {bsonType: int}
-          c/d: {bsonType: int}
-        required: [a, a/b, b, c, c/d, d]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "a/b", 
+          "b", 
+          "c", 
+          "c/d", 
+          "d"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "c": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "d": {
+            "bsonType": "int"
+          }, 
+          "a/b": {
+            "bsonType": "long"
+          }, 
+          "c/d": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

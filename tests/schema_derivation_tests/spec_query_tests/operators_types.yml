@@ -11,7 +11,7 @@ catalog_schema:
 tests:
 - description: Correctness test for IS DOUBLE
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -53,22 +53,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          tc: {bsonType: bool}
-          type: {bsonType: string}
-        required: [tc, type]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS STRING
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -110,22 +120,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          tc: {bsonType: bool}
-          type: {bsonType: string}
-        required: [tc, type]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS DOCUMENT
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -167,22 +187,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          type: {bsonType: string}
-          tc: {bsonType: bool}
-        required: [tc, type]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS ARRAY
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -217,22 +247,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          tc: {bsonType: bool}
-          type: {bsonType: string}
-        required: [tc, type]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS BINDATA
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -274,22 +314,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          tc: {bsonType: bool}
-          type: {bsonType: string}
-        required: [tc, type]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS UNDEFINED
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -331,22 +381,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          type: {bsonType: string}
-          tc: {bsonType: bool}
-        required: [tc, type]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS OBJECTID
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -388,22 +448,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          tc: {bsonType: bool}
-          type: {bsonType: string}
-        required: [tc, type]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS BOOL
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -445,23 +515,33 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          tc: {bsonType: bool}
-          type: {bsonType: string}
-        required: [tc, type]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS BSON_DATE
   current_db: foo
   
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -503,34 +583,34 @@ tests:
       }
     }
   ]
-  result:
-  - {'': {type: double, tc: false}}
-  - {'': {type: string, tc: false}}
-  - {'': {type: document, tc: false}}
-  - {'': {type: array, tc: false}}
-  - {'': {type: binData, tc: false}}
-  - {'': {type: undefined, tc: false}}
-  - {'': {type: objectid, tc: false}}
-  - {'': {type: boolean, tc: false}}
-  - {'': {type: date, tc: true}}
-  - {'': {type: 'null', tc: false}}
-  - {'': {type: missing, tc: false}}
-  - {'': {type: regex, tc: false}}
-  - {'': {type: dbPointer, tc: false}}
-  - {'': {type: javascript, tc: false}}
-  - {'': {type: symbol, tc: false}}
-  - {'': {type: javascriptWithScope, tc: false}}
-  - {'': {type: int, tc: false}}
-  - {'': {type: timestamp, tc: false}}
-  - {'': {type: long, tc: false}}
-  - {'': {type: decimal, tc: false}}
-  - {'': {type: minKey, tc: false}}
-  - {'': {type: maxKey, tc: false}}
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "tc": {
+            "bsonType": "bool"
+          },
+          "type": {
+            "bsonType": "string"
+          }
+        },
+        "required": [
+          "tc",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: Correctness test for IS NULL
   current_db: foo
-  
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -572,22 +652,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          tc: {bsonType: bool}
-          type: {bsonType: string}
-        required: [tc, type]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS MISSING
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -629,22 +719,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          tc: {bsonType: bool}
-          type: {bsonType: string}
-        required: [tc, type]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS REGEX
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -686,22 +786,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          type: {bsonType: string}
-          tc: {bsonType: bool}
-        required: [tc, type]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS DBPOINTER
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -743,22 +853,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          type: {bsonType: string}
-          tc: {bsonType: bool}
-        required: [tc, type]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS JAVASCRIPT
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -800,22 +920,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          tc: {bsonType: bool}
-          type: {bsonType: string}
-        required: [tc, type]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS SYMBOL
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -857,22 +987,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          tc: {bsonType: bool}
-          type: {bsonType: string}
-        required: [tc, type]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS JAVASCRIPTWITHSCOPE
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -914,22 +1054,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          type: {bsonType: string}
-          tc: {bsonType: bool}
-        required: [tc, type]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS INT
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -971,22 +1121,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          type: {bsonType: string}
-          tc: {bsonType: bool}
-        required: [tc, type]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS BSON_TIMESTAMP
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1028,33 +1188,34 @@ tests:
       }
     }
   ]
-  result:
-  - {'': {type: double, tc: false}}
-  - {'': {type: string, tc: false}}
-  - {'': {type: document, tc: false}}
-  - {'': {type: array, tc: false}}
-  - {'': {type: binData, tc: false}}
-  - {'': {type: undefined, tc: false}}
-  - {'': {type: objectid, tc: false}}
-  - {'': {type: boolean, tc: false}}
-  - {'': {type: date, tc: false}}
-  - {'': {type: 'null', tc: false}}
-  - {'': {type: missing, tc: false}}
-  - {'': {type: regex, tc: false}}
-  - {'': {type: dbPointer, tc: false}}
-  - {'': {type: javascript, tc: false}}
-  - {'': {type: symbol, tc: false}}
-  - {'': {type: javascriptWithScope, tc: false}}
-  - {'': {type: int, tc: false}}
-  - {'': {type: timestamp, tc: true}}
-  - {'': {type: long, tc: false}}
-  - {'': {type: decimal, tc: false}}
-  - {'': {type: minKey, tc: false}}
-  - {'': {type: maxKey, tc: false}}
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+,
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "tc": {
+            "bsonType": "bool"
+          },
+          "type": {
+            "bsonType": "string"
+          }
+        },
+        "required": [
+          "tc",
+          "type"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: Correctness test for IS LONG
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1096,22 +1257,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          type: {bsonType: string}
-          tc: {bsonType: bool}
-        required: [tc, type]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS DECIMAL
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1153,22 +1324,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          type: {bsonType: string}
-          tc: {bsonType: bool}
-        required: [tc, type]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS MINKEY
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1210,22 +1391,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          tc: {bsonType: bool}
-          type: {bsonType: string}
-        required: [tc, type]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS MAXKEY
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1267,22 +1458,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          type: {bsonType: string}
-          tc: {bsonType: bool}
-        required: [tc, type]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Correctness test for IS NUMBER
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1317,16 +1518,26 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          tc: {bsonType: bool}
-          type: {bsonType: string}
-        required: [tc, type]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "tc", 
+          "type"
+        ], 
+        "properties": {
+          "type": {
+            "bsonType": "string"
+          }, 
+          "tc": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

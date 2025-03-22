@@ -45,7 +45,7 @@ catalog_schema:
 tests:
 - description: NOT correctness test
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "unary": "$$ROOT", 
@@ -102,28 +102,45 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          not_a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [not_a]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "not_a"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "not_a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: AND correctness test
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "binary": "$$ROOT", 
@@ -219,32 +236,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a_and_b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [a_and_b]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a_and_b"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "a_and_b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: OR correctness test
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "binary": "$$ROOT", 
@@ -340,26 +380,49 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a_or_b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [a_or_b]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a_or_b"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "a_or_b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

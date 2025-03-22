@@ -144,8 +144,7 @@ tests:
     result_set_schema: {
         "additionalProperties": false, 
         "required": [
-          "", 
-          "_id"
+          ""
         ], 
         "properties": {
           "": {
@@ -197,10 +196,7 @@ tests:
               }
             }, 
             "bsonType": "object"
-          }, 
-          "_id": {
-            "bsonType": "objectId"
-          }
+          },
         }, 
         "bsonType": "object"
       }

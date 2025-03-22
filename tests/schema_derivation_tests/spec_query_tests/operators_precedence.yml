@@ -65,7 +65,7 @@ tests:
   #   a AND (b OR c)
 - description: AND binds tighter than OR
   current_db: db
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "coll": "$$ROOT", 
@@ -119,25 +119,44 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          alt: {bsonType: bool}
-          c: {bsonType: bool}
-          v: {bsonType: bool}
-          b: {bsonType: bool}
-          a: {bsonType: bool}
-        required: [a, alt, b, c, v]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "alt", 
+          "b", 
+          "c", 
+          "v"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "bool"
+          }, 
+          "alt": {
+            "bsonType": "bool"
+          }, 
+          "b": {
+            "bsonType": "bool"
+          }, 
+          "c": {
+            "bsonType": "bool"
+          }, 
+          "v": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: NOT binds tighter than AND
   current_db: db
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "coll": "$$ROOT", 
@@ -328,33 +347,61 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: bool}
-          v:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          alt:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [a, alt, b, v]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "alt", 
+          "b", 
+          "v"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "bool"
+          }, 
+          "alt": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: IS binds tighter than NOT
   current_db: db
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -452,23 +499,40 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          v: {bsonType: bool}
-          alt: {bsonType: bool}
-        required: [a, alt, v]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "alt", 
+          "v"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "alt": {
+            "bsonType": "bool"
+          }, 
+          "v": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 
   # The expression
   #
@@ -488,7 +552,7 @@ tests:
   # show precedence behavior.
 - description: BETWEEN binds tighter than IN
   current_db: db
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -511,7 +575,7 @@ tests:
     }, 
     {
       "$lookup": {
-        "pipeline": [
+        pipeline: [
           {
             "$documents": [
               {
@@ -609,22 +673,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          v: {bsonType: bool}
-        required: [a, v]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "v"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: '|| binds tighter than comparison ops'
   current_db: db
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -682,24 +756,40 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          v: {bsonType: bool}
-          b: {bsonType: string}
-          c: {bsonType: string}
-          a: {bsonType: string}
-        required: [a, b, c, v]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "c", 
+          "v"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "string"
+          }, 
+          "c": {
+            "bsonType": "string"
+          }, 
+          "b": {
+            "bsonType": "string"
+          }, 
+          "v": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: mul/div bind tighter than add/sub
   current_db: db
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "coll": "$$ROOT", 
@@ -753,25 +843,44 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          alt: {bsonType: int}
-          c: {bsonType: int}
-          b: {bsonType: int}
-          v: {bsonType: int}
-          a: {bsonType: int}
-        required: [a, alt, b, c, v]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "alt", 
+          "b", 
+          "c", 
+          "v"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "alt": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: unary ops bind tighter than mul/div
   current_db: db
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -840,24 +949,40 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          alt: {bsonType: int}
-          b: {bsonType: int}
-          v: {bsonType: int}
-        required: [a, alt, b, v]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "alt", 
+          "b", 
+          "v"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "alt": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: subpath op binds tighter than type ops
   current_db: db
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "coll": "$$ROOT", 
@@ -899,22 +1024,39 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          v: {bsonType: int}
-          a:
-            bsonType: object
-            properties:
-              b: {bsonType: bool}
-              c: {bsonType: int}
-            required: [b, c]
-            additionalProperties: false
-        required: [a, v]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "v"
+        ], 
+        "properties": {
+          "a": {
+            "additionalProperties": false, 
+            "required": [
+              "b", 
+              "c"
+            ], 
+            "properties": {
+              "c": {
+                "bsonType": "int"
+              }, 
+              "b": {
+                "bsonType": "bool"
+              }
+            }, 
+            "bsonType": "object"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

@@ -14,7 +14,7 @@ catalog_schema:
 tests:
 - description: collections with different schema can be unioned
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -24,7 +24,7 @@ tests:
     {
       "$unionWith": {
         "coll": "bar", 
-        "pipeline": [
+        pipeline: [
           {
             "$project": {
               "_id": 0, 
@@ -36,30 +36,52 @@ tests:
     }
   ]
   ordered: false
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      bar:
-        bsonType: object
-        properties:
-          b: {bsonType: int}
-          c: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, b, c]
-        additionalProperties: false
-      foo:
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, a]
-        additionalProperties: false
-    required: [_id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [], 
+    "properties": {
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "b", 
+          "c"
+        ], 
+        "properties": {
+          "c": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: basic union all correctness test
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -77,7 +99,7 @@ tests:
     {
       "$unionWith": {
         "coll": "foo", 
-        "pipeline": [
+        pipeline: [
           {
             "$project": {
               "foo": "$$ROOT", 
@@ -111,21 +133,28 @@ tests:
     }
   ]
   ordered: false
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-        required: [a]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: union works with array datasources
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -142,7 +171,7 @@ tests:
     }, 
     {
       "$unionWith": {
-        "pipeline": [
+        pipeline: [
           {
             "$documents": [
               {
@@ -182,21 +211,34 @@ tests:
     }
   ]
   ordered: false
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      arr:
-        bsonType: object
-        properties:
-          b: {bsonType: int}
-        required: [b]
-        additionalProperties: false
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-        required: [a]
-        additionalProperties: false
-    required: [_id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "arr": {
+        "additionalProperties": false, 
+        "required": [
+          "b"
+        ], 
+        "properties": {
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }

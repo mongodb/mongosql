@@ -352,7 +352,7 @@ catalog_schema:
 tests:
 - description: correctness test for lt for numeric types
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -424,38 +424,73 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for lte for numeric types
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -527,38 +562,73 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for neq for numeric types
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -630,38 +700,73 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [c]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for eq for numeric types
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -733,38 +838,73 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for gt for numeric types
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -836,38 +976,73 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [c]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for gte for numeric types
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -939,38 +1114,73 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-            - {bsonType: double}
-            - {bsonType: decimal}
-        required: [c]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for lt for NaN
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1007,23 +1217,36 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          c: {bsonType: bool}
-          a: {bsonType: decimal}
-          b: {bsonType: decimal}
-        required: [a, b, c]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "decimal"
+          }, 
+          "c": {
+            "bsonType": "bool"
+          }, 
+          "b": {
+            "bsonType": "decimal"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for lte for NaN
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1060,23 +1283,36 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          c: {bsonType: bool}
-          a: {bsonType: decimal}
-          b: {bsonType: decimal}
-        required: [a, b, c]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "decimal"
+          }, 
+          "c": {
+            "bsonType": "bool"
+          }, 
+          "b": {
+            "bsonType": "decimal"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for eq for NaN
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1113,23 +1349,36 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          c: {bsonType: bool}
-          a: {bsonType: decimal}
-          b: {bsonType: decimal}
-        required: [a, b, c]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "decimal"
+          }, 
+          "c": {
+            "bsonType": "bool"
+          }, 
+          "b": {
+            "bsonType": "decimal"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for gt for NaN
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1166,23 +1415,36 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: decimal}
-          c: {bsonType: bool}
-          b: {bsonType: decimal}
-        required: [a, b, c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "decimal"
+          }, 
+          "c": {
+            "bsonType": "bool"
+          }, 
+          "b": {
+            "bsonType": "decimal"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for gte for NaN
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1219,23 +1481,36 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          c: {bsonType: bool}
-          b: {bsonType: decimal}
-          a: {bsonType: decimal}
-        required: [a, b, c]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "decimal"
+          }, 
+          "c": {
+            "bsonType": "bool"
+          }, 
+          "b": {
+            "bsonType": "decimal"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for lt for strings
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1307,32 +1582,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for lte for strings
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1404,32 +1702,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for neq for strings
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1501,32 +1822,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for eq for strings
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1598,32 +1942,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for gt for strings
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1695,32 +2062,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for gte for strings
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1792,32 +2182,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-        required: [c]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for lt for bools
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1889,32 +2302,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for lte for bools
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1986,32 +2422,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for neq for bools
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -2083,32 +2542,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for eq for bools
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -2180,32 +2662,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [c]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for gt for bools
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -2277,32 +2782,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for gte for bools
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -2374,32 +2902,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for lt for dates
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "dates": "$$ROOT", 
@@ -2471,32 +3022,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: date}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: date}
-        required: [c]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for lte for dates
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "dates": "$$ROOT", 
@@ -2568,32 +3142,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: date}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: date}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for neq for dates
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "dates": "$$ROOT", 
@@ -2665,32 +3262,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: date}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: date}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for eq for dates
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "dates": "$$ROOT", 
@@ -2762,32 +3382,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: date}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: date}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for gt for dates
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "dates": "$$ROOT", 
@@ -2859,32 +3502,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: date}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: date}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for gte for dates
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "dates": "$$ROOT", 
@@ -2956,32 +3622,55 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: date}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: date}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for lt for null and missing
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "nullAndMissing": "$$ROOT", 
@@ -3053,23 +3742,34 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          b: {bsonType: 'null'}
-          a: {bsonType: 'null'}
-          c: {bsonType: 'null'}
-        required: [c]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "null"
+          }, 
+          "c": {
+            "bsonType": "null"
+          }, 
+          "b": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for lte for null and missing
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "nullAndMissing": "$$ROOT", 
@@ -3141,23 +3841,34 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: 'null'}
-          b: {bsonType: 'null'}
-          c: {bsonType: 'null'}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "null"
+          }, 
+          "c": {
+            "bsonType": "null"
+          }, 
+          "b": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for neq for null and missing
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "nullAndMissing": "$$ROOT", 
@@ -3229,23 +3940,34 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          b: {bsonType: 'null'}
-          a: {bsonType: 'null'}
-          c: {bsonType: 'null'}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "null"
+          }, 
+          "c": {
+            "bsonType": "null"
+          }, 
+          "b": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for eq for null and missing
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "nullAndMissing": "$$ROOT", 
@@ -3317,23 +4039,34 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          c: {bsonType: 'null'}
-          a: {bsonType: 'null'}
-          b: {bsonType: 'null'}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "null"
+          }, 
+          "c": {
+            "bsonType": "null"
+          }, 
+          "b": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for gt for null and missing
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "nullAndMissing": "$$ROOT", 
@@ -3405,23 +4138,34 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          b: {bsonType: 'null'}
-          c: {bsonType: 'null'}
-          a: {bsonType: 'null'}
-        required: [c]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "null"
+          }, 
+          "c": {
+            "bsonType": "null"
+          }, 
+          "b": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for gte for null and missing
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "nullAndMissing": "$$ROOT", 
@@ -3493,23 +4237,34 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          c: {bsonType: 'null'}
-          b: {bsonType: 'null'}
-          a: {bsonType: 'null'}
-        required: [c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "null"
+          }, 
+          "c": {
+            "bsonType": "null"
+          }, 
+          "b": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for lt for documents
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "documents": "$$ROOT", 
@@ -3582,44 +4337,86 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          comment: {bsonType: string}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: object
-              properties:
-                x: {bsonType: int}
-                y: {bsonType: string}
-                z: {bsonType: bool}
-              additionalProperties: false
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: object
-              properties:
-                y: {bsonType: string}
-                m: {bsonType: string}
-                x: {bsonType: int}
-                n: {bsonType: int}
-              additionalProperties: false
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [c, comment]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "z": {
+                    "bsonType": "bool"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "m": {
+                    "bsonType": "string"
+                  }, 
+                  "n": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for lte for documents
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "documents": "$$ROOT", 
@@ -3692,44 +4489,86 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: object
-              properties:
-                y: {bsonType: string}
-                n: {bsonType: int}
-                m: {bsonType: string}
-                x: {bsonType: int}
-              additionalProperties: false
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          comment: {bsonType: string}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: object
-              properties:
-                z: {bsonType: bool}
-                y: {bsonType: string}
-                x: {bsonType: int}
-              additionalProperties: false
-        required: [c, comment]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "z": {
+                    "bsonType": "bool"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "m": {
+                    "bsonType": "string"
+                  }, 
+                  "n": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for neq for documents
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "documents": "$$ROOT", 
@@ -3802,44 +4641,86 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: object
-              properties:
-                n: {bsonType: int}
-                m: {bsonType: string}
-                y: {bsonType: string}
-                x: {bsonType: int}
-              additionalProperties: false
-          comment: {bsonType: string}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: object
-              properties:
-                z: {bsonType: bool}
-                x: {bsonType: int}
-                y: {bsonType: string}
-              additionalProperties: false
-        required: [c, comment]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "z": {
+                    "bsonType": "bool"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "m": {
+                    "bsonType": "string"
+                  }, 
+                  "n": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for eq for documents
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "documents": "$$ROOT", 
@@ -3912,51 +4793,105 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: object
-              properties:
-                z: {bsonType: bool}
-                x: {bsonType: int}
-                y: {bsonType: string}
-              additionalProperties: false
-            - bsonType: object
-              properties:
-                x: {bsonType: int}
-                y: {bsonType: string}
-                z: {bsonType: bool}
-              required: [x, y]
-              additionalProperties: false
-          comment: {bsonType: string}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: object
-              properties:
-                m: {bsonType: string}
-                y: {bsonType: string}
-                x: {bsonType: int}
-                n: {bsonType: int}
-              additionalProperties: false
-        required: [c, comment]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "z": {
+                    "bsonType": "bool"
+                  }
+                }, 
+                "bsonType": "object"
+              }, 
+              {
+                "additionalProperties": false, 
+                "required": [
+                  "x", 
+                  "y"
+                ], 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "z": {
+                    "bsonType": "bool"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "m": {
+                    "bsonType": "string"
+                  }, 
+                  "n": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for gt for documents
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "documents": "$$ROOT", 
@@ -4029,44 +4964,86 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          comment: {bsonType: string}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: object
-              properties:
-                n: {bsonType: int}
-                y: {bsonType: string}
-                x: {bsonType: int}
-                m: {bsonType: string}
-              additionalProperties: false
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: object
-              properties:
-                z: {bsonType: bool}
-                x: {bsonType: int}
-                y: {bsonType: string}
-              additionalProperties: false
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [c, comment]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "z": {
+                    "bsonType": "bool"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "m": {
+                    "bsonType": "string"
+                  }, 
+                  "n": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for gte for documents
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "documents": "$$ROOT", 
@@ -4139,44 +5116,86 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: object
-              properties:
-                z: {bsonType: bool}
-                y: {bsonType: string}
-                x: {bsonType: int}
-              additionalProperties: false
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: object
-              properties:
-                m: {bsonType: string}
-                x: {bsonType: int}
-                y: {bsonType: string}
-                n: {bsonType: int}
-              additionalProperties: false
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          comment: {bsonType: string}
-        required: [c, comment]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "z": {
+                    "bsonType": "bool"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "m": {
+                    "bsonType": "string"
+                  }, 
+                  "n": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for lt for arrays
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "arrays": "$$ROOT", 
@@ -4249,35 +5268,65 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: array
-              items: {bsonType: int}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: array
-              items: {bsonType: int}
-          comment: {bsonType: string}
-        required: [c, comment]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for lte for arrays
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "arrays": "$$ROOT", 
@@ -4350,37 +5399,71 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          comment: {bsonType: string}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: array}
-            - bsonType: array
-              items: {bsonType: int}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: array}
-            - bsonType: array
-              items: {bsonType: int}
-        required: [c, comment]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "array"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "array"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for neq for arrays
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "arrays": "$$ROOT", 
@@ -4453,35 +5536,65 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: array
-              items: {bsonType: int}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: array
-              items: {bsonType: int}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          comment: {bsonType: string}
-        required: [c, comment]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for eq for arrays
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "arrays": "$$ROOT", 
@@ -4554,37 +5667,71 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: array}
-            - bsonType: array
-              items: {bsonType: int}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: array}
-            - bsonType: array
-              items: {bsonType: int}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          comment: {bsonType: string}
-        required: [c, comment]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "array"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "array"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for gt for arrays
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "arrays": "$$ROOT", 
@@ -4657,35 +5804,65 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: array
-              items: {bsonType: int}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: array
-              items: {bsonType: int}
-          comment: {bsonType: string}
-        required: [c, comment]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for gte for arrays
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "arrays": "$$ROOT", 
@@ -4758,35 +5935,65 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: array
-              items: {bsonType: int}
-          comment: {bsonType: string}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: array
-              items: {bsonType: int}
-        required: [c, comment]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for BETWEEN for numeric types
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -4970,40 +6177,77 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: double}
-            - {bsonType: decimal}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-            - {bsonType: long}
-          r:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [r]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "r"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "r": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for BETWEEN for strings
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -5187,36 +6431,65 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          r:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-        required: [r]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "r"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "r": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for BETWEEN for dates
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "betweenDates": "$$ROOT", 
@@ -5400,36 +6673,65 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: date}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: date}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: date}
-          r:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-        required: [r]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "r"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }, 
+          "r": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for BETWEEN for documents
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "betweenDocuments": "$$ROOT", 
@@ -5614,56 +6916,113 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: object
-              properties:
-                z: {bsonType: int}
-                n: {bsonType: int}
-              required: [z]
-              additionalProperties: false
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: object
-              properties:
-                x: {bsonType: int}
-                y: {bsonType: int}
-              required: [x]
-              additionalProperties: false
-          comment: {bsonType: string}
-          r:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: object
-              properties: {}
-              additionalProperties: true
-            - bsonType: object
-              properties:
-                y: {bsonType: int}
-                x: {bsonType: int}
-                n: {bsonType: int}
-                z: {bsonType: int}
-              additionalProperties: false
-        required: [comment, r]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "comment", 
+          "r"
+        ], 
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": true, 
+                "properties": {}, 
+                "bsonType": "object"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "int"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "z": {
+                    "bsonType": "int"
+                  }, 
+                  "n": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "required": [
+                  "z"
+                ], 
+                "properties": {
+                  "z": {
+                    "bsonType": "int"
+                  }, 
+                  "n": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "required": [
+                  "x"
+                ], 
+                "properties": {
+                  "y": {
+                    "bsonType": "int"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "r": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for BETWEEN for arrays
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "betweenArrays": "$$ROOT", 
@@ -5848,34 +7207,72 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: array
-              items: {bsonType: int}
-          c:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: array
-              items: {bsonType: int}
-          r:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: bool}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: array
-              items: {bsonType: int}
-          comment: {bsonType: string}
-        required: [comment, r]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "comment", 
+          "r"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "r": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

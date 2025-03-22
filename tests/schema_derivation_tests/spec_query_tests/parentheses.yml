@@ -18,7 +18,7 @@ catalog_schema:
 tests:
 - description: parentheses correctness tests
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -72,19 +72,38 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          b: {bsonType: int}
-          (a+b)*c: {bsonType: int}
-          a+b*c: {bsonType: int}
-          a: {bsonType: int}
-          c: {bsonType: int}
-        required: [(a+b)*c, a, a+b*c, b, c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "(a+b)*c", 
+          "a", 
+          "a+b*c", 
+          "b", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "(a+b)*c": {
+            "bsonType": "int"
+          }, 
+          "a+b*c": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

@@ -44,7 +44,7 @@ catalog_schema:
 tests:
 - description: Undelimited identifier containing a . character is a compound identifier
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -90,20 +90,25 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          c: {bsonType: int}
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "properties": {
+          "c": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Delimited identifier containing a .
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -138,18 +143,27 @@ tests:
       }
     }
   ]
-  result:
-  - {'': {}}
-  - {'': {ab: 2}}
-  - {'': {}}
-  - {'': {}}
-  - {'': {}}
-  - {'': {}}
-  - {'': {}}
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "ab": {
+            "bsonType": "int"
+          }
+        },
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: Nested delimited identifier containing a .
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -184,18 +198,27 @@ tests:
       }
     }
   ]
-  result:
-  - {'': {}}
-  - {'': {}}
-  - {'': {abc: 3}}
-  - {'': {}}
-  - {'': {}}
-  - {'': {}}
-  - {'': {}}
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "abc": {
+            "bsonType": "int"
+          }
+        },
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: Delimited identifier with a $
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -232,18 +255,27 @@ tests:
       }
     }
   ]
-  result:
-  - {'': {}}
-  - {'': {}}
-  - {'': {}}
-  - {'': {ab: 4}}
-  - {'': {}}
-  - {'': {}}
-  - {'': {}}
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "ab": {
+            "bsonType": "int"
+          }
+        },
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: Nested delimited identifiers containing $ and .
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -287,18 +319,27 @@ tests:
       }
     }
   ]
-  result:
-  - {'': {}}
-  - {'': {}}
-  - {'': {}}
-  - {'': {}}
-  - {'': {abcd: 5}}
-  - {'': {}}
-  - {'': {}}
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "abcd": {
+            "bsonType": "int"
+          }
+        },
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: Mixed identifiers containing $ and .
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -347,18 +388,27 @@ tests:
       }
     }
   ]
-  result:
-  - {'': {}}
-  - {'': {}}
-  - {'': {}}
-  - {'': {}}
-  - {'': {}}
-  - {'': {abcd: 6}}
-  - {'': {}}
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+,
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "abcd": {
+            "bsonType": "int"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: Delimited identifier containing an empty string
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -393,20 +443,25 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          empty: {bsonType: int}
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "properties": {
+          "empty": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Unaliased use of field reference expression with $ and .
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$match": {
         "$expr": {
@@ -452,12 +507,37 @@ tests:
       }
     }
   ]
-  result:
-  - {bar: {_id: 4, $a.b: 4}}
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+,
+      "bar": {
+        "bsonType": "object",
+        "properties": {
+          "$a.b": {
+            "bsonType": "int"
+          },
+          "_id": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "$a.b",
+          "_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "_id",
+      "bar"
+    ],
+    "additionalProperties": false
+  }
 
 - description: Unaliased use of nested field reference expressions with $ and .
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$match": {
         "$expr": {
@@ -527,12 +607,52 @@ tests:
       }
     }
   ]
-  result:
-  - {bar: {_id: 6, $a.$b: {$c: {d: 6}}}}
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+,
+      "bar": {
+        "bsonType": "object",
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "$a.$b": {
+            "bsonType": "object",
+            "properties": {
+              "$c": {
+                "bsonType": "object",
+                "properties": {
+                  "d": {
+                    "bsonType": "int"
+                  }
+                },
+                "required": [
+                  "d"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "$c"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "$a.$b",
+          "_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": ["bar"],
+    "additionalProperties": false
+  }
 
 - description: Delimited identifier starting with digit is an identifier
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -571,21 +691,28 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          1a: {bsonType: int}
-        required: [1a]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "1a"
+        ], 
+        "properties": {
+          "1a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Backtick delimited identifiers containing delimiter characters
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -632,23 +759,36 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a`b: {bsonType: int}
-          a`"b: {bsonType: int}
-          a"b: {bsonType: int}
-        required: [a"b, a`"b, a`b]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a\"b", 
+          "a`\"b", 
+          "a`b"
+        ], 
+        "properties": {
+          "a`b": {
+            "bsonType": "int"
+          }, 
+          "a\"b": {
+            "bsonType": "int"
+          }, 
+          "a`\"b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Double quote delimited identifiers containing delimiter characters
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -695,23 +835,36 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a"b: {bsonType: int}
-          a`"b: {bsonType: int}
-          a`b: {bsonType: int}
-        required: [a"b, a`"b, a`b]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a\"b", 
+          "a`\"b", 
+          "a`b"
+        ], 
+        "properties": {
+          "a`b": {
+            "bsonType": "int"
+          }, 
+          "a\"b": {
+            "bsonType": "int"
+          }, 
+          "a`\"b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Regular and delimited identifiers
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -762,22 +915,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          b: {bsonType: int}
-          a: {bsonType: int}
-        required: [a, b]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Delimited identifier with non-ASCII characters
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -816,21 +979,28 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          αβγ: {bsonType: int}
-        required: [αβγ]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "\u03b1\u03b2\u03b3"
+        ], 
+        "properties": {
+          "\u03b1\u03b2\u03b3": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Compound identifier with more than 3 parts
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -875,21 +1045,28 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          d: {bsonType: int}
-        required: [d]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "d"
+        ], 
+        "properties": {
+          "d": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Case-sensitive identifiers
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -942,15 +1119,22 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          A: {bsonType: int}
-          a: {bsonType: int}
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "properties": {
+          "A": {
+            "bsonType": "int"
+          }, 
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

@@ -125,7 +125,7 @@ catalog_schema:
 tests:
 - description: basic correctness test
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -138,22 +138,33 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      foo:
-        bsonType: object
-        properties:
-          arr: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, arr]
-        additionalProperties: false
-    required: [_id, foo]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+, 
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr"
+        ], 
+        "properties": {
+          "arr": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: basic correctness test for explicitly aliased datasource
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -166,22 +177,33 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      f:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          arr: {bsonType: int}
-        required: [_id, arr]
-        additionalProperties: false
-    required: [_id, f]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["f"], 
+    "properties": {
+, 
+      "f": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr"
+        ], 
+        "properties": {
+          "arr": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: basic correctness test for index option
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -195,23 +217,37 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      foo:
-        bsonType: object
-        properties:
-          i: {bsonType: long}
-          _id: {bsonType: int}
-          arr: {bsonType: int}
-        required: [_id, arr, i]
-        additionalProperties: false
-    required: [_id, foo]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+, 
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr", 
+          "i"
+        ], 
+        "properties": {
+          "i": {
+            "bsonType": "long"
+          }, 
+          "arr": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: there are no type constraints on the field referenced by PATH, and non-array fields are not unwound
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "non_arrays": "$$ROOT", 
@@ -225,37 +261,69 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      non_arrays:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          comment: {bsonType: string}
-          arr:
-            anyOf:
-            - {bsonType: int}
-            - {bsonType: string}
-            - bsonType: object
-              properties:
-                a:
-                  bsonType: array
-                  items: {bsonType: int}
-              required: [a]
-              additionalProperties: false
-          i:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: long}
-        required: [_id, arr, comment, i]
-        additionalProperties: false
-    required: [_id, non_arrays]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["non_arrays"], 
+    "properties": {
+      "non_arrays": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr", 
+          "comment", 
+          "i"
+        ], 
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "i": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "arr": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "string"
+              }, 
+              {
+                "additionalProperties": false, 
+                "required": [
+                  "a"
+                ], 
+                "properties": {
+                  "a": {
+                    "items": {
+                      "bsonType": "int"
+                    }, 
+                    "bsonType": "array"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: unwinding a nested array puts the unwound value at the same nested path
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -269,36 +337,67 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      nested:
-        bsonType: object
-        properties:
-          a:
-            bsonType: object
-            properties:
-              b:
-                bsonType: object
-                properties:
-                  x: {bsonType: int}
-                  c: {bsonType: int}
-                required: [c, x]
-                additionalProperties: false
-              y: {bsonType: int}
-            required: [b, y]
-            additionalProperties: false
-          i: {bsonType: long}
-          _id: {bsonType: int}
-          z: {bsonType: int}
-        required: [_id, a, i, z]
-        additionalProperties: false
-    required: [_id, nested]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["nested"], 
+    "properties": {
+, 
+      "nested": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "i", 
+          "z"
+        ], 
+        "properties": {
+          "a": {
+            "additionalProperties": false, 
+            "required": [
+              "b", 
+              "y"
+            ], 
+            "properties": {
+              "y": {
+                "bsonType": "int"
+              }, 
+              "b": {
+                "additionalProperties": false, 
+                "required": [
+                  "c", 
+                  "x"
+                ], 
+                "properties": {
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "c": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            }, 
+            "bsonType": "object"
+          }, 
+          "i": {
+            "bsonType": "long"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "z": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: unwind datasources can be unwound
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -316,22 +415,33 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      two_d:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          arr: {bsonType: int}
-        required: [_id, arr]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, two_d]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["two_d"], 
+    "properties": {
+, 
+      "two_d": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr"
+        ], 
+        "properties": {
+          "arr": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: join datasources can be unwound, unwound field is nested under correct namespace (left)
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -340,7 +450,7 @@ tests:
     }, 
     {
       "$lookup": {
-        "pipeline": [
+        pipeline: [
           {
             "$project": {
               "_id": 0, 
@@ -377,31 +487,52 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      foo:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          arr: {bsonType: int}
-        required: [_id, arr]
-        additionalProperties: false
-      bar:
-        bsonType: object
-        properties:
-          arr:
-            bsonType: array
-            items: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, arr]
-        additionalProperties: false
-    required: [_id, bar, foo]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "foo"], 
+    "properties": {
+, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr"
+        ], 
+        "properties": {
+          "arr": {
+            "items": {
+              "bsonType": "int"
+            }, 
+            "bsonType": "array"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr"
+        ], 
+        "properties": {
+          "arr": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: join datasources can be unwound, unwound field is nested under correct namespace (right)
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -410,7 +541,7 @@ tests:
     }, 
     {
       "$lookup": {
-        "pipeline": [
+        pipeline: [
           {
             "$project": {
               "_id": 0, 
@@ -447,31 +578,51 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      bar:
-        bsonType: object
-        properties:
-          arr: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, arr]
-        additionalProperties: false
-      foo:
-        bsonType: object
-        properties:
-          arr:
-            bsonType: array
-            items: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, arr]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, bar, foo]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "foo"], 
+    "properties": {
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr"
+        ], 
+        "properties": {
+          "arr": {
+            "items": {
+              "bsonType": "int"
+            }, 
+            "bsonType": "array"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr"
+        ], 
+        "properties": {
+          "arr": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: documents containing empty array, null, or missing values are omitted if OUTER => false (default)
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "c": "$$ROOT", 
@@ -485,24 +636,40 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      c:
-        bsonType: object
-        properties:
-          comment: {bsonType: string}
-          arr: {bsonType: int}
-          i: {bsonType: long}
-          _id: {bsonType: int}
-        required: [_id, arr, comment, i]
-        additionalProperties: false
-    required: [_id, c]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["c"], 
+    "properties": {
+      "c": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr", 
+          "comment", 
+          "i"
+        ], 
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "i": {
+            "bsonType": "long"
+          }, 
+          "arr": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: documents containing empty array, null, or missing values are retained if OUTER => true
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "c": "$$ROOT", 
@@ -517,30 +684,53 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      c:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          arr:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-          comment: {bsonType: string}
-          i:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: long}
-        required: [_id, comment, i]
-        additionalProperties: false
-    required: [_id, c]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["c"], 
+    "properties": {
+      "c": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "comment", 
+          "i"
+        ], 
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "i": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "arr": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: compound paths allow simple unwinds
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -575,21 +765,28 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-        required: [a]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: compound paths allow sibling unwinds
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -630,22 +827,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          b: {bsonType: int}
-          a: {bsonType: int}
-        required: [a, b]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: compound path resolves nested paths
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -702,7 +909,7 @@ tests:
     additionalProperties: false
 - description: compound path resolves nested and sibling paths
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -730,32 +937,56 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      compound:
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          b: {bsonType: int}
-          g:
-            bsonType: object
-            properties:
-              h: {bsonType: int}
-              i: {bsonType: int}
-              g:
-                bsonType: array
-                items: {bsonType: int}
-            additionalProperties: false
-          _id: {bsonType: int}
-        required: [_id, a, b, g]
-        additionalProperties: false
-    required: [_id, compound]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["compound"], 
+    "properties": {
+, 
+      "compound": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b", 
+          "g"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "g": {
+            "additionalProperties": false, 
+            "properties": {
+              "i": {
+                "bsonType": "int"
+              }, 
+              "h": {
+                "bsonType": "int"
+              }, 
+              "g": {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            }, 
+            "bsonType": "object"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: compound path can handle multiple compound paths
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -800,26 +1031,37 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          g:
-            bsonType: object
-            properties:
-              g: {bsonType: int}
-            required: [g]
-            additionalProperties: false
-        required: [g]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "g"
+        ], 
+        "properties": {
+          "g": {
+            "additionalProperties": false, 
+            "required": [
+              "g"
+            ], 
+            "properties": {
+              "g": {
+                "bsonType": "int"
+              }
+            }, 
+            "bsonType": "object"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: compound path works with existing unwind
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -864,20 +1106,31 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          g:
-            bsonType: object
-            properties:
-              g: {bsonType: int}
-            required: [g]
-            additionalProperties: false
-        required: [g]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "g"
+        ], 
+        "properties": {
+          "g": {
+            "additionalProperties": false, 
+            "required": [
+              "g"
+            ], 
+            "properties": {
+              "g": {
+                "bsonType": "int"
+              }
+            }, 
+            "bsonType": "object"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

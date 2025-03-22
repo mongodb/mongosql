@@ -36,7 +36,7 @@ catalog_schema:
 tests:
 - description: Normal non-missing reference
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -66,21 +66,28 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-        required: [a]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: NULL vs MISSING in direct field ref
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -110,20 +117,25 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          b: {bsonType: 'null'}
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "properties": {
+          "b": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Normal field access
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -153,21 +165,28 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          d: {bsonType: string}
-        required: [d]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "d"
+        ], 
+        "properties": {
+          "d": {
+            "bsonType": "string"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Scalar vs missing field ref
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -197,21 +216,26 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          e: {bsonType: int}
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "properties": {
+          "e": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Scalar vs missing field ref- the field ref is upgraded to NULL because
     of plus sign
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -248,26 +272,42 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          e: {bsonType: int}
-          _3:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-          a: {bsonType: int}
-        required: [_3, a]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_3", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "e": {
+            "bsonType": "int"
+          }, 
+          "_3": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: MISSING upgraded to NULL due to plus sign
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -304,23 +344,34 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          e: {bsonType: int}
-          _3: {bsonType: 'null'}
-          b: {bsonType: 'null'}
-        required: [_3]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_3"
+        ], 
+        "properties": {
+          "e": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "null"
+          }, 
+          "_3": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: MISSING fields in arrays are upgrade to NULLS
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -356,20 +407,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          arr:
-            bsonType: array
-            items:
-              anyOf:
-              - {bsonType: 'null'}
-              - {bsonType: int}
-        required: [arr]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "arr"
+        ], 
+        "properties": {
+          "arr": {
+            "items": {
+              "anyOf": [
+                {
+                  "bsonType": "null"
+                }, 
+                {
+                  "bsonType": "int"
+                }
+              ]
+            }, 
+            "bsonType": "array"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

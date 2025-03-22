@@ -15,108 +15,210 @@ catalog_schema:
 tests:
 - description: SLICE without start argument correctness test
   current_db: foo
-  pipeline:
-  - $project:
-      ns: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        arr: $ns.arr
-        len: $ns.len
-        slice:
-          $slice:
-          - $ns.arr
-          - $ns.len
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot arr, 'len': len, 'slice': SLICE(arr::!ARRAY, len::!INT)}
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          slice:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: array
-              items: {bsonType: int}
-          len:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-          arr:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: array
-              items: {bsonType: int}
-        required: [slice]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "ns": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "arr": "$ns.arr", 
+          "slice": {
+            "$slice": [
+              "$ns.arr", 
+              "$ns.len"
+            ]
+          }, 
+          "len": "$ns.len"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "input": "$$ROOT",
+              "value": {"$__bot arr", 'len': 'len', 'slice': SLICE(arr::!ARRAY, len::!INT)}
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "slice"
+        ], 
+        "properties": {
+          "arr": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "slice": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "len": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: SLICE with start argument correctness test
   current_db: foo
-  pipeline:
-  - $project:
-      s: $$ROOT
-      _id: 0
-  - $project:
-      __bot:
-        arr: $s.arr
-        len: $s.len
-        start: $s.start
-        slice:
-          $cond:
-          - $lte:
-            - $s.len
-            - $literal: 0
-          - $literal: null
-          - $slice:
-            - $s.arr
-            - $s.start
-            - $s.len
-      _id: 0
-  - $replaceWith:
-      $unsetField:
-        field: __bot
-        input:
-          $setField:
-            field: ''
-            input: $$ROOT
-            value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          len:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-          arr:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: array
-              items: {bsonType: int}
-          start:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-          slice:
-            anyOf:
-            - {bsonType: 'null'}
-            - bsonType: array
-              items: {bsonType: int}
-        required: [slice]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "s": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "start": "$s.start", 
+          "arr": "$s.arr", 
+          "slice": {
+            "$cond": [
+              {
+                "$lte": [
+                  "$s.len", 
+                  {
+                    "$literal": 0
+                  }
+                ]
+              }, 
+              {
+                "$literal": null
+              }, 
+              {
+                "$slice": [
+                  "$s.arr", 
+                  "$s.start", 
+                  "$s.len"
+                ]
+              }
+            ]
+          }, 
+          "len": "$s.len"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "slice"
+        ], 
+        "properties": {
+          "start": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "arr": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "slice": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "len": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

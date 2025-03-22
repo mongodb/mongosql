@@ -206,7 +206,7 @@ catalog_schema:
 tests:
 - description: GROUP BY with empty input outputs empty
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": []
     }, 
@@ -248,11 +248,14 @@ tests:
       }
     }
   ]
-  result: []
+  result_set_schema: {
+    'bsonType': 'object',
+    'additionalProperties': true,
+  }
 
 - description: GROUP BY NULL creates only one group
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -291,21 +294,28 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          n: {bsonType: 'null'}
-        required: [n]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "n": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: GROUP BY 1 creates only one group
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -344,21 +354,28 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          n: {bsonType: int}
-        required: [n]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "n": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: GROUP BY hello creates only one group
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -397,21 +414,28 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          n: {bsonType: string}
-        required: [n]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "n": {
+            "bsonType": "string"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: GROUP BY MISSING converts MISSING to NULL; NULL is not DISTINCT from NULL, but is distinct from non-null values
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -448,24 +472,35 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          n:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-        required: [n]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "n": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: GROUP BY keys may be table-qualified
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -502,24 +537,35 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-        required: [a]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: qualified top-level field reference keys can be referenced by qualified name
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -564,21 +610,28 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-        required: [a]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: qualified top-level field reference keys can be referenced by unqualified name
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -623,21 +676,28 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-        required: [a]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: unqualified top-level field reference keys can be referenced by qualified name
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -682,21 +742,28 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-        required: [a]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: unqualified top-level field reference keys can be referenced by unqualified name
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -741,21 +808,28 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-        required: [a]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: GROUP BY arbitrary expression
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -799,21 +873,28 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          ap2: {bsonType: int}
-        required: [ap2]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "ap2"
+        ], 
+        "properties": {
+          "ap2": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: single DISTINCT aggregation function correctness test
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -866,22 +947,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          suma: {bsonType: int}
-          n: {bsonType: 'null'}
-        required: [n, suma]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n", 
+          "suma"
+        ], 
+        "properties": {
+          "suma": {
+            "bsonType": "int"
+          }, 
+          "n": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: correctness test for DISTINCT and non-DISTINCT aggregation over same field
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -939,23 +1030,36 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          dsuma: {bsonType: int}
-          n: {bsonType: 'null'}
-          suma: {bsonType: int}
-        required: [dsuma, n, suma]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "dsuma", 
+          "n", 
+          "suma"
+        ], 
+        "properties": {
+          "dsuma": {
+            "bsonType": "int"
+          }, 
+          "suma": {
+            "bsonType": "int"
+          }, 
+          "n": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: multi-DISTINCT aggregation function correctness test
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "countc": {
@@ -1048,22 +1152,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          suma: {bsonType: int}
-          countc: {bsonType: int}
-        required: [countc, suma]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "countc", 
+          "suma"
+        ], 
+        "properties": {
+          "countc": {
+            "bsonType": "int"
+          }, 
+          "suma": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: multi-item group key correctness test
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -1106,29 +1220,50 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          sumc: {bsonType: int}
-          b:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-        required: [a, b, sumc]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "sumc"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "sumc": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: multi-item group key with HAVING correctness test
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$match": {
         "$expr": {
@@ -1251,23 +1386,36 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          b: {bsonType: int}
-          a: {bsonType: int}
-          sumc: {bsonType: int}
-        required: [a, b, sumc]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "sumc"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "sumc": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: HAVING without GROUP BY works as a WHERE clause but happens after the WHERE clause
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$match": {
         "$expr": {
@@ -1299,24 +1447,41 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      bar:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          c: {bsonType: int}
-          b: {bsonType: int}
-          a: {bsonType: int}
-        required: [_id, a, b, c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, bar]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: ADD_TO_ARRAY correctness test
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$sort": {
         "_id": 1
@@ -1378,14 +1543,18 @@ tests:
       }
     }
   ]
-  result:
-  - {'': {a: {$numberInt: '1'}, garr: [$numberInt: '2', $numberInt: '12', $numberInt: '42']}}
-  - {'': {a: {$numberInt: '11'}, garr: [$numberInt: '22']}}
-  - {'': {a: {$numberInt: '111'}, garr: [$numberInt: '142']}}
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: ADD_TO_ARRAY DISTINCT correctness test (equivalent to ADD_TO_SET)
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$sort": {
         "_id": 1
@@ -1446,14 +1615,18 @@ tests:
       }
     }
   ]
-  result:
-  - {'': {a: {$numberInt: '1'}, garr: [$numberInt: '1']}}
-  - {'': {a: {$numberInt: '11'}, garr: [$numberInt: '11']}}
-  - {'': {a: {$numberInt: '111'}, garr: [$numberInt: '111']}}
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in DECIMAL)
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$sort": {
         "_id": 1
@@ -1515,12 +1688,28 @@ tests:
       }
     }
   ]
-  result:
-  - {'': {gset: [$numberDecimal: '3.0']}}
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "gset": {
+            "bsonType": "array",
+            "items": { "bsonType": "decimal" }
+          }
+        }
+      }
+    },
+    "required": [
+      "",
+    ],
+    "additionalProperties": false
+  }
 
 - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in INT)
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$sort": {
         "_id": -1
@@ -1582,12 +1771,28 @@ tests:
       }
     }
   ]
-  result:
-  - {'': {gset: [$numberInt: '3']}}
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "gset": {
+            "bsonType": "array",
+            "items": { "bsonType": "int" }
+          }
+        }
+      }
+    },
+    "required": [
+      "",
+    ],
+    "additionalProperties": false
+  }
 
 - description: ADD_TO_SET correctness test
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$sort": {
         "_id": 1
@@ -1648,14 +1853,51 @@ tests:
       }
     }
   ]
-  result:
-  - {'': {a: {$numberInt: '1'}, gset: [$numberInt: '1']}}
-  - {'': {a: {$numberInt: '2'}, gset: [$numberInt: '2']}}
-  - {'': {a: null, gset: [null]}}
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+,
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "gset": {
+            "bsonType": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "bsonType": "null"
+                },
+                {
+                  "bsonType": "int"
+                }
+              ]
+            }
+          },
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              },
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        },
+        "required": [
+          "a",
+          "gset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: AVG correctness test
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -1696,28 +1938,46 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          gavg:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: double}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-        required: [a, gavg]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gavg"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "gavg": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "double"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: COUNT single column correctness test -- ignores nullish values
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "gcount": {
@@ -1784,25 +2044,39 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          gcount: {bsonType: int}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-        required: [a, gcount]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gcount"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "gcount": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: COUNT distinct single column correctness test -- ignores nullish values
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "gcount": {
@@ -1875,25 +2149,39 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          gcount: {bsonType: int}
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-        required: [a, gcount]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gcount"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "gcount": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: COUNT single document column -- only counts values with at least one non-nullish field
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "gcount": {
@@ -2000,22 +2288,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          gcount: {bsonType: int}
-          n: {bsonType: 'null'}
-        required: [gcount, n]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "gcount", 
+          "n"
+        ], 
+        "properties": {
+          "gcount": {
+            "bsonType": "int"
+          }, 
+          "n": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: COUNT multi column correctness test -- only counts rows with at least one non-nullish value
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "gcount": {
@@ -2109,25 +2407,39 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-          gcount: {bsonType: int}
-        required: [a, gcount]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gcount"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "gcount": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: COUNT distinct multi column correctness test -- only counts rows with at least one non-nullish value
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "gcount": {
@@ -2230,25 +2542,39 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-          gcount: {bsonType: int}
-        required: [a, gcount]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gcount"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "gcount": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: COUNT(*) correctness test unconditionally count rows
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -2306,25 +2632,39 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-          gcount: {bsonType: int}
-        required: [a, gcount]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gcount"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "gcount": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: COUNT(DISTINCT *) correctness test unconditionally count distinct rows
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -2390,25 +2730,39 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-          gcount: {bsonType: int}
-        required: [a, gcount]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gcount"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "gcount": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: COUNT(MISSING) and COUNT(NULL) skip MISSING and NULL values
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "gcounta": {
@@ -2481,26 +2835,43 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: int}
-          gcounta: {bsonType: int}
-          gcountn: {bsonType: int}
-        required: [a, gcounta, gcountn]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gcounta", 
+          "gcountn"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "gcounta": {
+            "bsonType": "int"
+          }, 
+          "gcountn": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: FIRST correctness test
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$sort": {
         "_id": 1
@@ -2562,22 +2933,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          gfirst: {bsonType: int}
-        required: [a, gfirst]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gfirst"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "gfirst": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: LAST correctness test
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$sort": {
         "_id": 1
@@ -2639,23 +3020,33 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          glast: {bsonType: int}
-        required: [a, glast]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "glast"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "glast": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 
 - description: MAX correctness test
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -2696,22 +3087,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          gmax: {bsonType: int}
-        required: [a, gmax]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gmax"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "gmax": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: MERGE_DOCUMENTS correctness test
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$sort": {
         "_id": 1
@@ -2773,13 +3174,46 @@ tests:
       }
     }
   ]
-  result:
-  - {'': {a: {$numberInt: '1'}, gmerge: {a: a, b: b}}}
-  - {'': {a: {$numberInt: '2'}, gmerge: {a: d}}}
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "gmerge": {
+            "bsonType": "object",
+            "properties": {
+              "a": {
+                "bsonType": "string"
+              },
+              "b": {
+                "bsonType": "string"
+              }
+            },
+            "required": [
+              "a"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "a",
+          "gmerge"
+        ],
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: MIN correctness test
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "gmin": {
@@ -2820,22 +3254,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          gmin: {bsonType: int}
-        required: [a, gmin]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gmin"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "gmin": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: STDDEV_POP correctness test
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -2876,14 +3320,34 @@ tests:
       }
     }
   ]
-  result:
-  - {'': {a: {$numberInt: '1'}, gstdp: {$numberDouble: '16.99673171197595'}}}
-  - {'': {a: {$numberInt: '11'}, gstdp: {$numberDouble: '0'}}}
-  - {'': {a: {$numberInt: '111'}, gstdp: {$numberDouble: '0'}}}
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "gstdp": {
+            "bsonType": "double"
+          },
+          "a": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "gstdp"
+        ],
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 
 - description: STDDEV_SAMP correctness test
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -2924,13 +3388,40 @@ tests:
       }
     }
   ]
-  result:
-  - {'': {a: {$numberInt: '1'}, gstds: {$numberDouble: '20.81665999466133'}}}
-  - {'': {a: {$numberInt: '11'}, gstds: null}}
-  - {'': {a: {$numberInt: '111'}, gstds: null}}
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "gstds": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              },
+              {
+                "bsonType": "double"
+              }
+            ]
+          },
+          "a": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "gstds"
+        ],
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
 - description: SUM correctness test
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -2971,16 +3462,27 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          gsum: {bsonType: int}
-          a: {bsonType: int}
-        required: [a, gsum]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gsum"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "gsum": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+

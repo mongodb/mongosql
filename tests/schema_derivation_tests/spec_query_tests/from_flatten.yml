@@ -111,7 +111,7 @@ catalog_schema:
 tests:
 - description: basic correctness test
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -128,22 +128,33 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      foo:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          a_b_c: {bsonType: int}
-        required: [_id, a_b_c]
-        additionalProperties: false
-    required: [_id, foo]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+, 
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a_b_c"
+        ], 
+        "properties": {
+          "a_b_c": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: datasource argument can optionally include an alias
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -160,22 +171,33 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      f:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          a_b_c: {bsonType: int}
-        required: [_id, a_b_c]
-        additionalProperties: false
-    required: [_id, f]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["f"], 
+    "properties": {
+, 
+      "f": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a_b_c"
+        ], 
+        "properties": {
+          "a_b_c": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: basic correctness test for user-specified separator
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -192,22 +214,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      foo:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          a:b:c: {bsonType: int}
-        required: [_id, a:b:c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, foo]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a:b:c"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "a:b:c": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: user-specified separator with length less than one is allowed
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -224,22 +256,33 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      foo:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          abc: {bsonType: int}
-        required: [_id, abc]
-        additionalProperties: false
-    required: [_id, foo]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+, 
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "abc"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "abc": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: user-specified separator with length greater than one is allowed
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -256,22 +299,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      foo:
-        bsonType: object
-        properties:
-          a_DOT_b_DOT_c: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, a_DOT_b_DOT_c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, foo]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a_DOT_b_DOT_c"
+        ], 
+        "properties": {
+          "a_DOT_b_DOT_c": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: a user-specified depth greater than max nesting depth causes all documents to be flattened
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -288,22 +341,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      foo:
-        bsonType: object
-        properties:
-          a_b_c: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, a_b_c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, foo]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a_b_c"
+        ], 
+        "properties": {
+          "a_b_c": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: a user-specified depth less than max nesting depth causes more deeply nested documents to remain unflattened
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -320,27 +383,41 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      foo:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          a_b:
-            bsonType: object
-            properties:
-              c: {bsonType: int}
-            required: [c]
-            additionalProperties: false
-        required: [_id, a_b]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, foo]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a_b"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "a_b": {
+            "additionalProperties": false, 
+            "required": [
+              "c"
+            ], 
+            "properties": {
+              "c": {
+                "bsonType": "int"
+              }
+            }, 
+            "bsonType": "object"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: flatten polymorphic objects with just null or missing polymorphism
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -357,22 +434,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      nullableDoc:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          a_b: {bsonType: int}
-        required: [_id]
-        additionalProperties: false
-    required: [_id, nullableDoc]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["nullableDoc"], 
+    "properties": {
+, 
+      "nullableDoc": {
+        "additionalProperties": false, 
+        "required": [
+          "_id"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "a_b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: FLATTENing a FLATTENed datasource is allowed
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -398,16 +485,26 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      foo:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          a_b_c: {bsonType: int}
-        required: [_id, a_b_c]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, foo]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a_b_c"
+        ], 
+        "properties": {
+          "a_b_c": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

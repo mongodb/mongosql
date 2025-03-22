@@ -70,7 +70,7 @@ catalog_schema:
 tests:
 - description: WHERE with BOOLEAN returning expression
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -109,21 +109,28 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      arr:
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-        required: [a]
-        additionalProperties: false
-    required: [_id, arr]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false,
+    "required": ["arr"],
+    "properties": {
+      "arr": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: WHERE with CAST to BOOLEAN
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -171,21 +178,28 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      arr:
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-        required: [a]
-        additionalProperties: false
-    required: [_id, arr]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false,
+    "required": ["arr"],
+    "properties": {
+      "arr": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: WHERE with CASE that must return BOOLEAN
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -235,21 +249,28 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      arr:
-        bsonType: object
-        properties:
-          a: {bsonType: bool}
-        required: [a]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, arr]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false,
+    "required": ["arr"], 
+    "properties": {
+      "arr": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: WHERE after unwind returns expected results
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$match": {
         "foo": {
@@ -283,22 +304,33 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      biz:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          foo: {bsonType: int}
-        required: [_id, foo]
-        additionalProperties: false
-    required: [_id, biz]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["biz"], 
+    "properties": {
+, 
+      "biz": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: WHERE after FLATTEN UNWIND returns expected results
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -332,22 +364,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      nested:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          foo_bar: {bsonType: int}
-        required: [_id, foo_bar]
-        additionalProperties: false
-    required: [_id, nested]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["nested"], 
+    "properties": {
+      "nested": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo_bar"
+        ], 
+        "properties": {
+          "foo_bar": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: WHERE after FLATTEN UNWIND an array of objects returns expected results
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "items": "$$ROOT", 
@@ -381,16 +423,26 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      items:
-        bsonType: object
-        properties:
-          foo_bar: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, foo_bar]
-        additionalProperties: false
-    required: [_id, items]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["items"], 
+    "properties": {
+      "items": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo_bar"
+        ], 
+        "properties": {
+          "foo_bar": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

@@ -24,7 +24,7 @@ catalog_schema:
 tests:
 - description: Simple select with limit clause
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$sort": {
         "a": 1
@@ -40,22 +40,33 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      bar:
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, a]
-        additionalProperties: false
-    required: [_id, bar]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: Simple select with offset clause
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$sort": {
         "a": 1
@@ -71,22 +82,33 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      bar:
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, a]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, bar]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: Select with limit and offset
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$sort": {
         "a": 1
@@ -105,22 +127,33 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      bar:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          a: {bsonType: int}
-        required: [_id, a]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, bar]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: Limit in subquery
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -130,7 +163,7 @@ tests:
     {
       "$lookup": {
         "from": "baz", 
-        "pipeline": [
+        pipeline: [
           {
             "$sort": {
               "a": 1
@@ -190,22 +223,33 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      bar:
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, a]
-        additionalProperties: false
-    required: [_id, bar]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: Offset in subquery
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -215,7 +259,7 @@ tests:
     {
       "$lookup": {
         "from": "baz", 
-        "pipeline": [
+        pipeline: [
           {
             "$sort": {
               "a": 1
@@ -275,22 +319,33 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      bar:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          a: {bsonType: int}
-        required: [_id, a]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, bar]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: Limit and offset in subquery
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -300,7 +355,7 @@ tests:
     {
       "$lookup": {
         "from": "baz", 
-        "pipeline": [
+        pipeline: [
           {
             "$sort": {
               "a": 1
@@ -363,16 +418,27 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      bar:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          a: {bsonType: int}
-        required: [_id, a]
-        additionalProperties: false
-    required: [_id, bar]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }

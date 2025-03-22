@@ -15,7 +15,7 @@ catalog_schema:
 tests:
 - description: document literal key ordering is not guaranteed to be preserved
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -46,12 +46,9 @@ tests:
       }
     }
   ]
-  "result_set_schema": {
+  result_set_schema: {
     "additionalProperties": false, 
-    "required": [
-      "", 
-      "_id"
-    ], 
+    "required": [""], 
     "properties": {
       "": {
         "additionalProperties": false, 
@@ -68,16 +65,13 @@ tests:
           }
         }, 
         "bsonType": "object"
-      }, 
-      "_id": {
-        "bsonType": "objectId"
-      }
+      },
     }, 
     "bsonType": "object"
   }
 - description: key ordering from docs in collections is not guaranteed to be preserved
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -85,22 +79,33 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      f:
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, a]
-        additionalProperties: false
-    required: [_id, f]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["f"], 
+    "properties": {
+, 
+      "f": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: subdocument key ordering is not guaranteed to be preserved
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "b": "$$ROOT", 
@@ -108,22 +113,40 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      b:
-        bsonType: object
-        properties:
-          sub:
-            bsonType: object
-            properties:
-              b: {bsonType: int}
-              a: {bsonType: int}
-            required: [a, b]
-            additionalProperties: false
-          _id: {bsonType: int}
-        required: [_id, sub]
-        additionalProperties: false
-    required: [_id, b]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["b"], 
+    "properties": {
+, 
+      "b": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "sub"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "sub": {
+            "additionalProperties": false, 
+            "required": [
+              "a", 
+              "b"
+            ], 
+            "properties": {
+              "a": {
+                "bsonType": "int"
+              }, 
+              "b": {
+                "bsonType": "int"
+              }
+            }, 
+            "bsonType": "object"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }

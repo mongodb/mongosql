@@ -27,7 +27,7 @@ tests:
 - description: Simple CASE expression - No WHEN comparison evaluates to TRUE, return
     ELSE result
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -110,25 +110,41 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          r: {bsonType: string}
-          a: {bsonType: int}
-          c: {bsonType: int}
-          b: {bsonType: 'null'}
-        required: [a, b, c, r]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "c", 
+          "r"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "int"
+          }, 
+          "r": {
+            "bsonType": "string"
+          }, 
+          "b": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Simple CASE expression - One WHEN comparison evaluates to TRUE, return
     corresponding THEN result
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -209,22 +225,29 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          r: {bsonType: string}
-        required: [r]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "r"
+        ], 
+        "properties": {
+          "r": {
+            "bsonType": "string"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Simple CASE expression - Multiple WHEN comparison evaluates to TRUE,
     return first corresponding THEN result
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -305,22 +328,29 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          r: {bsonType: string}
-        required: [r]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "r"
+        ], 
+        "properties": {
+          "r": {
+            "bsonType": "string"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Searched CASE expression - No WHEN condition evaluates to TRUE, return
     ELSE result
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -422,25 +452,41 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          c: {bsonType: int}
-          r: {bsonType: string}
-          a: {bsonType: int}
-          b: {bsonType: 'null'}
-        required: [a, b, c, r]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "c", 
+          "r"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "int"
+          }, 
+          "r": {
+            "bsonType": "string"
+          }, 
+          "b": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Searched CASE expression - One WHEN condition evaluates to TRUE, return
     corresponding THEN result
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -516,22 +562,29 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          r: {bsonType: string}
-        required: [r]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "r"
+        ], 
+        "properties": {
+          "r": {
+            "bsonType": "string"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Searched CASE expression - Multiple WHEN conditions evaluates to TRUE,
     return first corresponding THEN result
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -607,15 +660,22 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          r: {bsonType: string}
-        required: [r]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "r"
+        ], 
+        "properties": {
+          "r": {
+            "bsonType": "string"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

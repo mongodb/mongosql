@@ -46,7 +46,7 @@ catalog_schema:
 tests:
 - description: cross join correctness test
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -55,7 +55,7 @@ tests:
     }, 
     {
       "$lookup": {
-        "pipeline": [
+        pipeline: [
           {
             "$project": {
               "coll": "$$ROOT", 
@@ -87,30 +87,53 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      bar:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          foo: {bsonType: int}
-        required: [_id, foo]
-        additionalProperties: false
-      coll:
-        bsonType: object
-        properties:
-          bar: {bsonType: int}
-          car: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, bar, car]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, bar, coll]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "coll"], 
+    "properties": {
+      "coll": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "bar", 
+          "car"
+        ], 
+        "properties": {
+          "car": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "bar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: inner join correctness test
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -131,30 +154,53 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      bar:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          foo: {bsonType: int}
-        required: [_id, foo]
-        additionalProperties: false
-      coll:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          car: {bsonType: int}
-          bar: {bsonType: int}
-        required: [_id, bar, car]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, bar, coll]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "coll"], 
+    "properties": {
+      "coll": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "bar", 
+          "car"
+        ], 
+        "properties": {
+          "car": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "bar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: left join correctness test
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "bar2": "$$ROOT", 
@@ -176,30 +222,52 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      bar2:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          foo: {bsonType: int}
-          baz: {bsonType: int}
-        required: [_id, foo]
-        additionalProperties: false
-      bar:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          foo: {bsonType: int}
-        required: [_id, foo]
-        additionalProperties: false
-    required: [_id, bar2]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar2"], 
+    "properties": {
+, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "baz": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: right join correctness test
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -221,30 +289,52 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      bar2:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          foo: {bsonType: int}
-          baz: {bsonType: int}
-        required: [_id, baz, foo]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-      bar:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          foo: {bsonType: int}
-        required: [_id, foo]
-        additionalProperties: false
-    required: [_id, bar]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+      "bar2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "baz", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "baz": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: join predicates can contain complex expressions
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -254,7 +344,7 @@ tests:
     {
       "$lookup": {
         "from": "bar2", 
-        "pipeline": [
+        pipeline: [
           {
             "$match": {
               "$expr": {
@@ -317,30 +407,52 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      bar2:
-        bsonType: object
-        properties:
-          baz: {bsonType: int}
-          foo: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, baz, foo]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-      bar:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          foo: {bsonType: int}
-        required: [_id, foo]
-        additionalProperties: false
-    required: [_id, bar, bar2]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "bar2"], 
+    "properties": {
+      "bar2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "baz", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "baz": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: join predicates can reference columns by table-qualified names
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -361,30 +473,53 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      bar:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          foo: {bsonType: int}
-        required: [_id, foo]
-        additionalProperties: false
-      coll:
-        bsonType: object
-        properties:
-          car: {bsonType: int}
-          bar: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, bar, car]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, bar, coll]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "coll"], 
+    "properties": {
+      "coll": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "bar", 
+          "car"
+        ], 
+        "properties": {
+          "car": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "bar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: join predicates can reference columns by unambiguous unqualified names
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -405,30 +540,53 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      coll:
-        bsonType: object
-        properties:
-          bar: {bsonType: int}
-          car: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, bar, car]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-      bar:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          foo: {bsonType: int}
-        required: [_id, foo]
-        additionalProperties: false
-    required: [_id, bar, coll]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "coll"], 
+    "properties": {
+      "coll": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "bar", 
+          "car"
+        ], 
+        "properties": {
+          "car": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "bar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: joins are left-associative
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "a": "$$ROOT", 
@@ -437,7 +595,7 @@ tests:
     }, 
     {
       "$lookup": {
-        "pipeline": [
+        pipeline: [
           {
             "$project": {
               "b": "$$ROOT", 
@@ -483,36 +641,65 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      c:
-        bsonType: object
-        properties:
-          foo: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, foo]
-        additionalProperties: false
-      b:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          foo: {bsonType: int}
-        required: [_id, foo]
-        additionalProperties: false
-      a:
-        bsonType: object
-        properties:
-          foo: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, foo]
-        additionalProperties: false
-    required: [_id, a, b, c]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["a", "b", "c"], 
+    "properties": {
+      "a": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "c": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+, 
+      "b": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: join left and right datasources can be referenced by alias
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -521,7 +708,7 @@ tests:
     }, 
     {
       "$lookup": {
-        "pipeline": [
+        pipeline: [
           {
             "$project": {
               "_id": 0, 
@@ -560,31 +747,54 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      t2:
-        bsonType: object
-        properties:
-          bar: {bsonType: int}
-          _id: {bsonType: int}
-          car: {bsonType: int}
-        required: [_id, bar, car]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-      t1:
-        bsonType: object
-        properties:
-          foo: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, foo]
-        additionalProperties: false
-    required: [_id, t1, t2]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["t1", "t2"], 
+    "properties": {
+, 
+      "t2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "bar", 
+          "car"
+        ], 
+        "properties": {
+          "car": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "bar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "t1": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 
 - description: left join with static value comparison to rhs field in ON clause still results in left hand side doc when condition fails
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -594,7 +804,7 @@ tests:
     {
       "$lookup": {
         "from": "bar2", 
-        "pipeline": [
+        pipeline: [
           {
             "$match": {
               "$expr": {
@@ -767,30 +977,53 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      bar:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          foo: {bsonType: int}
-        required: [_id, foo]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-      bar2:
-        bsonType: object
-        properties:
-          foo: {bsonType: int}
-          _id: {bsonType: int}
-          baz: {bsonType: int}
-        required: [_id, baz, foo]
-        additionalProperties: false
-    required: [_id, bar]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "baz", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "baz": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: left join followed by WHERE with static comparison on rhs value filters out left hand side docs that do not match the WHERE
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$match": {
         "$expr": {
@@ -848,30 +1081,53 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      bar:
-        bsonType: object
-        properties:
-          foo: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, foo]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-      bar2:
-        bsonType: object
-        properties:
-          foo: {bsonType: int}
-          _id: {bsonType: int}
-          baz: {bsonType: int}
-        required: [_id, baz, foo]
-        additionalProperties: false
-    required: [_id, bar, bar2]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "bar2"], 
+    "properties": {
+, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "baz", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "baz": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: match filter in left join correctness test
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$match": {
         "$expr": {
@@ -912,30 +1168,52 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      bar2:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          baz: {bsonType: int}
-          foo: {bsonType: int}
-        required: [_id, baz, foo]
-        additionalProperties: false
-      bar:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          foo: {bsonType: int}
-        required: [_id, foo]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, bar, bar2]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "bar2"], 
+    "properties": {
+      "bar2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "baz", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "baz": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: filter in lateral join correctness test
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -945,7 +1223,7 @@ tests:
     {
       "$lookup": {
         "from": "bar2", 
-        "pipeline": [
+        pipeline: [
           {
             "$match": {
               "$expr": {
@@ -1138,30 +1416,52 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      bar2:
-        bsonType: object
-        properties:
-          baz: {bsonType: int}
-          foo: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, baz, foo]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-      bar:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          foo: {bsonType: int}
-        required: [_id, foo]
-        additionalProperties: false
-    required: [_id, bar, bar2]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "bar2"], 
+    "properties": {
+      "bar2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "baz", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "baz": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: match filter in lateral join correctness test
   current_db: mydb
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "_id": 0, 
@@ -1171,7 +1471,7 @@ tests:
     {
       "$lookup": {
         "from": "bar2", 
-        "pipeline": [
+        pipeline: [
           {
             "$match": {
               "$expr": {
@@ -1351,24 +1651,47 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      bar:
-        bsonType: object
-        properties:
-          foo: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, foo]
-        additionalProperties: false
-      bar2:
-        bsonType: object
-        properties:
-          baz: {bsonType: int}
-          foo: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, baz, foo]
-        additionalProperties: false
-    required: [_id, bar, bar2]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "bar2"], 
+    "properties": {
+, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "baz", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "baz": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }

@@ -51,19 +51,29 @@ tests:
     }
   ]
   current_db: test
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a1: {bsonType: int}
-          a2: {bsonType: int}
-        required: [a1, a2]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a1", 
+          "a2"
+        ], 
+        "properties": {
+          "a1": {
+            "bsonType": "int"
+          }, 
+          "a2": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: Can use different alias for same collection
   current_db: db
   pipeline: [
@@ -75,7 +85,7 @@ tests:
     }, 
     {
       "$lookup": {
-        "pipeline": [
+        pipeline: [
           {
             "$project": {
               "_id": 0, 
@@ -107,28 +117,57 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      foo1:
-        bsonType: object
-        properties:
-          b: {bsonType: int}
-          a: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, a, b]
-        additionalProperties: false
-      foo2:
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          b: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, a, b]
-        additionalProperties: false
-    required: [_id, foo1, foo2]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [
+      "foo1", 
+      "foo2"
+    ], 
+    "properties": {
+, 
+      "foo1": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "foo2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: Can use duplicate aliases on both sides of UNION
   current_db: db
   pipeline: [
@@ -150,7 +189,7 @@ tests:
     {
       "$unionWith": {
         "coll": "foo", 
-        "pipeline": [
+        pipeline: [
           {
             "$project": {
               "alias": "$$ROOT", 
@@ -184,19 +223,29 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          c: {bsonType: int}
-          a: {bsonType: int}
-        required: [a, c]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: _id is a valid alias for datasources
   current_db: test
   pipeline: [
@@ -215,14 +264,22 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '_id':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-        required: [a]
-        additionalProperties: false
-    required: [_id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [], 
+    "properties": {
+      "_id": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }

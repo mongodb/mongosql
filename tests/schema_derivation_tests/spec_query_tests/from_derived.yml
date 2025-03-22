@@ -15,7 +15,7 @@ catalog_schema:
 tests:
 - description: both unqualified and qualified references to derived table datasource fields are allowed
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -73,22 +73,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          asub: {bsonType: int}
-          bsub: {bsonType: int}
-        required: [asub, bsub]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "asub", 
+          "bsub"
+        ], 
+        "properties": {
+          "bsub": {
+            "bsonType": "int"
+          }, 
+          "asub": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: there is no ambiguity with one schema-less datasource in a derived table
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -102,23 +112,40 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      derived:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          x: {bsonType: int}
-          y: {bsonType: int}
-        required: [_id, x, y]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, derived]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [
+      "_id", 
+      "derived"
+    ], 
+    "properties": {
+, 
+      "derived": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "x", 
+          "y"
+        ], 
+        "properties": {
+          "y": {
+            "bsonType": "int"
+          }, 
+          "x": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: derived table merges namespaces under alias namespace
   current_db: test
-  "pipeline": [
+  pipeline: [
     {
       "$documents": [
         {
@@ -136,7 +163,7 @@ tests:
     }, 
     {
       "$lookup": {
-        "pipeline": [
+        pipeline: [
           {
             "$documents": [
               {
@@ -194,16 +221,30 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      derived:
-        bsonType: object
-        properties:
-          b: {bsonType: int}
-          a: {bsonType: int}
-        required: [a, b]
-        additionalProperties: false
-    required: [_id, derived]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [
+      "_id", 
+      "derived"
+    ], 
+    "properties": {
+, 
+      "derived": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }

@@ -88,25 +88,45 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      foo:
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          b: {bsonType: int}
-          d: {bsonType: string}
-          e: {bsonType: 'null'}
-          _id: {bsonType: int}
-          c: {bsonType: bool}
-        required: [_id, a, b]
-        additionalProperties: false
-    required: [_id, foo]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+, 
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "bool"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "e": {
+            "bsonType": "null"
+          }, 
+          "d": {
+            "bsonType": "string"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: SELECT DISTINCT in nested subquery omitting _id selects unique rows
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -157,13 +177,39 @@ tests:
       }
     }
   ]
-  result:
-  - {t2: {a: 1, b: 2}}
-  - {t2: {a: 2, b: 2}}
-  - {t2: {a: 2, b: 2, c: true}}
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+,
+      "t2": {
+        "bsonType": "object",
+        "properties": {
+          "c": {
+            "bsonType": "bool"
+          },
+          "b": {
+            "bsonType": "int"
+          },
+          "a": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "_id",
+      "t2"
+    ],
+    "additionalProperties": false
+  }
 
 - description: SELECT DISTINCT * on joined tables unique rows for entire document
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -208,34 +254,68 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      bar:
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          b: {bsonType: int}
-          c: {bsonType: int}
-          _id: {bsonType: int}
-        required: [_id, a, b]
-        additionalProperties: false
-      foo:
-        bsonType: object
-        properties:
-          b: {bsonType: int}
-          c: {bsonType: bool}
-          _id: {bsonType: int}
-          a: {bsonType: int}
-          d: {bsonType: string}
-          e: {bsonType: 'null'}
-        required: [_id, a, b]
-        additionalProperties: false
-    required: [_id, bar, foo]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "foo"], 
+    "properties": {
+, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "bool"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "e": {
+            "bsonType": "null"
+          }, 
+          "d": {
+            "bsonType": "string"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
 - description: SELECT DISTINCT specific columns from joined tables
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -300,21 +380,31 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          b: {bsonType: int}
-          a: {bsonType: int}
-        required: [a, b]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: SELECT DISTINCT columns ensures we see unique values
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -366,21 +456,31 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          b: {bsonType: int}
-          a: {bsonType: int}
-        required: [a, b]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: SELECT DISTINCT columns with alias
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -432,21 +532,31 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          col2: {bsonType: int}
-          col1: {bsonType: int}
-        required: [col1, col2]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "col1", 
+          "col2"
+        ], 
+        "properties": {
+          "col2": {
+            "bsonType": "int"
+          }, 
+          "col1": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: SELECT DISTINCT document column of repeated documents
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -497,27 +607,43 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          doc:
-            bsonType: object
-            properties:
-              b: {bsonType: int}
-              c: {bsonType: int}
-              a: {bsonType: int}
-            required: [a, b]
-            additionalProperties: false
-        required: [doc]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "doc"
+        ], 
+        "properties": {
+          "doc": {
+            "additionalProperties": false, 
+            "required": [
+              "a", 
+              "b"
+            ], 
+            "properties": {
+              "a": {
+                "bsonType": "int"
+              }, 
+              "c": {
+                "bsonType": "int"
+              }, 
+              "b": {
+                "bsonType": "int"
+              }
+            }, 
+            "bsonType": "object"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: SELECT DISTINCT arr checking deduplication of repeated arrays
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -568,22 +694,30 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          arr:
-            bsonType: array
-            items: {bsonType: int}
-        required: [arr]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "arr"
+        ], 
+        "properties": {
+          "arr": {
+            "items": {
+              "bsonType": "int"
+            }, 
+            "bsonType": "array"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: SELECT DISTINCT with ORDER BY
-  "pipeline": [
+  pipeline: [
     {
       "$group": {
         "_id": {
@@ -640,21 +774,28 @@ tests:
     }
   ]
   ordered: true
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-        required: [a]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: basic UNION distinct correctness test
   current_db: db
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -672,7 +813,7 @@ tests:
     {
       "$unionWith": {
         "coll": "foo", 
-        "pipeline": [
+        pipeline: [
           {
             "$project": {
               "foo": "$$ROOT", 
@@ -726,22 +867,29 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-        required: [a]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: duplicates are still removed when collections with different schema
     are unioned
   current_db: db
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -759,7 +907,7 @@ tests:
     {
       "$unionWith": {
         "coll": "bar", 
-        "pipeline": [
+        pipeline: [
           {
             "$project": {
               "_id": 0, 
@@ -814,22 +962,31 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          b: {bsonType: int}
-          c: {bsonType: int}
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: UNION is left associative
   current_db: db
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -847,7 +1004,7 @@ tests:
     {
       "$unionWith": {
         "coll": "foo", 
-        "pipeline": [
+        pipeline: [
           {
             "$project": {
               "foo": "$$ROOT", 
@@ -868,7 +1025,7 @@ tests:
     {
       "$unionWith": {
         "coll": "foo", 
-        "pipeline": [
+        pipeline: [
           {
             "$project": {
               "foo": "$$ROOT", 
@@ -922,21 +1079,28 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-        required: [a]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: UNION distinct with select * in both queries
   current_db: db
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -962,7 +1126,7 @@ tests:
     {
       "$unionWith": {
         "coll": "bar", 
-        "pipeline": [
+        pipeline: [
           {
             "$project": {
               "_id": 0, 
@@ -1013,31 +1177,54 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      foo:
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          c: {bsonType: bool}
-          b: {bsonType: int}
-        required: [a, b]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-      bar:
-        bsonType: object
-        properties:
-          c: {bsonType: int}
-          b: {bsonType: int}
-          a: {bsonType: int}
-        required: [a, b]
-        additionalProperties: false
-    required: [_id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [], 
+    "properties": {
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "bool"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: UNION distinct with same value order
   current_db: db
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -1056,7 +1243,7 @@ tests:
     {
       "$unionWith": {
         "coll": "bar", 
-        "pipeline": [
+        pipeline: [
           {
             "$project": {
               "_id": 0, 
@@ -1111,75 +1298,131 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          b: {bsonType: int}
-        required: [a, b]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: UNION distinct with mixed value order
   current_db: db
-  pipeline:
-- $project:
-    foo: $$ROOT
-    _id: 0
-- $project:
-    __bot:
-      a: $foo.a
-      b: $foo.b
-    _id: 0
-- $unionWith:
-    coll: bar
-    pipeline:
-    - $project:
-        bar: $$ROOT
-        _id: 0
-    - $project:
-        __bot:
-          b: $bar.b
-          a: $bar.a
-        _id: 0
-- $group:
-    _id:
-      __groupKey0: $__bot
-- $project:
-    __bot:
-      __groupKey0: $_id.__groupKey0
-    _id: 0
-- $project:
-    __bot: $__bot.__groupKey0
-    _id: 0
-- $replaceWith:
-    $unsetField:
-      field: __bot
-      input:
-        $setField:
-          field: ''
-          input: $$ROOT
-          value: $__bot
-  result_set_schema:
-    bsonType: object
-    properties:
-      '':
-        bsonType: object
-        properties:
-          b: {bsonType: int}
-          a: {bsonType: int}
-        required: [a, b]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
-    additionalProperties: false
+  pipeline: [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$foo.a", 
+          "b": "$foo.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unionWith": {
+        "coll": "bar", 
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "bar": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$bar.a", 
+                "b": "$bar.b"
+              }, 
+              "_id": 0
+            }
+          }
+        ]
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "__groupKey0": "$__bot"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "__groupKey0": "$_id.__groupKey0"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot.__groupKey0", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: UNION distinct with mixed star and values select list
   current_db: db
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -1189,7 +1432,7 @@ tests:
     {
       "$unionWith": {
         "coll": "bar", 
-        "pipeline": [
+        pipeline: [
           {
             "$project": {
               "_id": 0, 
@@ -1247,33 +1490,61 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      foo:
-        bsonType: object
-        properties:
-          e: {bsonType: 'null'}
-          b: {bsonType: int}
-          d: {bsonType: string}
-          c: {bsonType: bool}
-          _id: {bsonType: int}
-          a: {bsonType: int}
-        required: [_id, a, b]
-        additionalProperties: false
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          b: {bsonType: int}
-        required: [a, b]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "bool"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "e": {
+            "bsonType": "null"
+          }, 
+          "d": {
+            "bsonType": "string"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: UNION distinct with join
   current_db: db
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "foo": "$$ROOT", 
@@ -1297,7 +1568,7 @@ tests:
     }, 
     {
       "$lookup": {
-        "pipeline": [
+        pipeline: [
           {
             "$project": {
               "_id": 0, 
@@ -1346,7 +1617,7 @@ tests:
     {
       "$unionWith": {
         "coll": "bar", 
-        "pipeline": [
+        pipeline: [
           {
             "$project": {
               "_id": 0, 
@@ -1407,30 +1678,58 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      foo:
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          b: {bsonType: int}
-        required: [a, b]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          a: {bsonType: int}
-          b: {bsonType: int}
-        required: [a, b]
-        additionalProperties: false
-      bar:
-        bsonType: object
-        properties:
-          b: {bsonType: int}
-          a: {bsonType: int}
-        required: [a, b]
-        additionalProperties: false
-    required: [_id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

@@ -19,7 +19,7 @@ catalog_schema:
 tests:
 - description: IS NULL covers missing fields
   current_db: db
-  "pipeline": [
+  pipeline: [
     {
       "$match": {
         "x": {
@@ -34,22 +34,31 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      null_and_missing:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          x: {bsonType: 'null'}
-        required: [_id]
-        additionalProperties: false
-    required: [_id, null_and_missing]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["null_and_missing"], 
+    "properties": {
+      "null_and_missing": {
+        "additionalProperties": false, 
+        "required": [
+          "_id"
+        ], 
+        "properties": {
+          "x": {
+            "bsonType": "null"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: IS NOT NULL covers missing fields
   current_db: db
-  "pipeline": [
+  pipeline: [
     {
       "$match": {
         "$expr": {
@@ -93,22 +102,32 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      null_and_missing:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-          x: {bsonType: bool}
-        required: [_id, x]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, null_and_missing]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["null_and_missing"], 
+    "properties": {
+      "null_and_missing": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "x"
+        ], 
+        "properties": {
+          "x": {
+            "bsonType": "bool"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
 - description: IS NULL covers missing fields without null schema
   current_db: db
-  "pipeline": [
+  pipeline: [
     {
       "$match": {
         "x": {
@@ -123,15 +142,23 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      missing:
-        bsonType: object
-        properties:
-          _id: {bsonType: int}
-        required: [_id]
-        additionalProperties: false
-      _id: {bsonType: objectId}
-    required: [_id, missing]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["missing"], 
+    "properties": {
+, 
+      "missing": {
+        "additionalProperties": false, 
+        "required": [
+          "_id"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }

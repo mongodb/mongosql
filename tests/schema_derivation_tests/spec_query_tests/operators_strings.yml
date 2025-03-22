@@ -92,7 +92,7 @@ catalog_schema:
 tests:
 - description: correctness test for string concatentation
   current_db: foo
-  "pipeline": [
+  pipeline: [
     {
       "$project": {
         "c": "$$ROOT", 
@@ -129,23 +129,43 @@ tests:
       }
     }
   ]
-  result_set_schema:
-    bsonType: object
-    properties:
-      _id: {bsonType: objectId}
-      '':
-        bsonType: object
-        properties:
-          s1: {bsonType: string}
-          s2:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-          s:
-            anyOf:
-            - {bsonType: 'null'}
-            - {bsonType: string}
-        required: [s, s1]
-        additionalProperties: false
-    required: ['', _id]
-    additionalProperties: false
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "s", 
+          "s1"
+        ], 
+        "properties": {
+          "s2": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "s1": {
+            "bsonType": "string"
+          }, 
+          "s": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
