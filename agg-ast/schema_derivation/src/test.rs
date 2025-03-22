@@ -78,6 +78,28 @@ mod get_schema_for_path {
     );
 
     test_schema_for_path!(
+        nested_in_array,
+        expected = Some(&mut Schema::Atomic(Atomic::Integer)),
+        input = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Array(Box::new(Schema::Array(Box::new(Schema::Document(Document {
+                            keys: map! {
+                                "c".to_string() => Schema::Atomic(Atomic::Integer),
+                            },
+                            ..Default::default()
+                        }))))),
+                    },
+                    ..Default::default()
+                })
+            },
+            ..Default::default()
+        }),
+        path = vec!["a".to_string(), "b".to_string(), "c".to_string()]
+    );
+
+    test_schema_for_path!(
         missing,
         expected = None,
         input = Schema::Document(Document {
@@ -133,6 +155,34 @@ mod get_schema_for_path {
         input = Schema::Document(Document {
             keys: map! {
                 "a".to_string() => Schema::Any,
+            },
+            required: BTreeSet::new(),
+            additional_properties: false,
+            ..Default::default()
+        }),
+        path = vec!["a".to_string(), "b".to_string()]
+    );
+
+    test_get_or_create_schema_for_path!(
+        get_or_create_create_two_levels_with_array,
+        expected = Some(&mut Schema::Any),
+        output = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Array(Box::new(Schema::Array(Box::new(Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Any,
+                    },
+                    additional_properties: true,
+                    ..Default::default()
+                }))))),
+            },
+            required: BTreeSet::new(),
+            additional_properties: false,
+            ..Default::default()
+        }),
+        input = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Array(Box::new(Schema::Array(Box::new(Schema::Any)))),
             },
             required: BTreeSet::new(),
             additional_properties: false,
@@ -265,6 +315,43 @@ mod get_schema_for_path {
                             additional_properties: true,
                             ..Default::default()
                         }),
+                        Schema::Atomic(Atomic::Integer)
+                    )),
+            },
+            required: BTreeSet::new(),
+            additional_properties: false,
+            ..Default::default()
+        }),
+        path = vec!["a".to_string(), "b".to_string()]
+    );
+
+    test_get_or_create_schema_for_path!(
+        get_or_create_create_and_refine_two_levels_any_of_array,
+        expected = Some(&mut Schema::Any),
+        output = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Array(Box::new(Schema::Array(Box::new(Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Any,
+                    },
+                    additional_properties: true,
+                    ..Default::default()
+                })))))
+            },
+            required: BTreeSet::new(),
+            additional_properties: false,
+            ..Default::default()
+        }),
+        input = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::AnyOf(set!(
+                        Schema::Array(Box::new(Schema::Array(Box::new(Schema::Document(Document {
+                            keys: map! {
+                                "b".to_string() => Schema::Any,
+                            },
+                            additional_properties: true,
+                            ..Default::default()
+                        }))))),
                         Schema::Atomic(Atomic::Integer)
                     )),
             },

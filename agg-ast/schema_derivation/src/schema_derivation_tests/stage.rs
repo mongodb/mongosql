@@ -602,6 +602,31 @@ mod unwind {
     );
 
     test_derive_stage_schema!(
+        field_ref_nested_array,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Array(Box::new(Schema::Document(Document {
+                    keys: map! {
+                        "bar".to_string() => Schema::Atomic(Atomic::Double)
+                    },
+                    required: set!("bar".to_string()),
+                    ..Default::default()
+                })))
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{ "$unwind": "$foo.bar" }"#,
+        ref_schema = Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
+                "bar".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Double)))
+            },
+            required: set!("bar".to_string()),
+            ..Default::default()
+        })))
+    );
+
+    test_derive_stage_schema!(
         field_ref_multiple_different_array_types,
         expected = Ok(Schema::Document(Document {
             keys: map! {
