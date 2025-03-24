@@ -628,7 +628,7 @@ impl DeriveSchema for Stage {
                     // if no pipeline is specified, we are unioning the documents of the collection directly, so just union the from_schema,
                     // which should represent the collection schema
                     } else {
-                        state.result_set_schema = state.result_set_schema.union(&from_schema);
+                        state.result_set_schema = state.result_set_schema.union(from_schema);
                     }
                     Ok(state.result_set_schema.to_owned())
                 }
