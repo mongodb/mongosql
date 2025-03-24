@@ -1,0 +1,13 @@
+current_db: test
+pipeline: [ { "$unset" : [ "obj.bool" ] }, { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : { "$substrBytes" : [ "Wooden archive", 6, 3 ] }, "num" : { "$sum" : "$obj.num" } } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "num": { "bsonType": "decimal" },
+
+      "_id": { "bsonType": "string" }
+    },
+    "required": ["_id", "num"],
+    "additionalProperties": false
+  }

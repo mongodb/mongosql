@@ -1,0 +1,14 @@
+current_db: test
+pipeline: [ { "$match" : { "$or" : [ { "$and" : [ { "$expr" : { "$week" : "$date" } }, { "obj.obj.obj.obj.str" : { "$lte" : "Representative quantify" } }, { "obj.obj.str" : { "$regex" : /^Credit Card Account/ } } ] }, { "obj.date" : { "$gte" : {"$date": {"$numberLong": "1564352712418"}} } } ] } }, { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : null } } ]    
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "_id": { "bsonType": "null" },
+      "_id": {
+        "bsonType": "objectId"
+      }
+    },
+    "required": ["_id"],
+    "additionalProperties": false
+  }

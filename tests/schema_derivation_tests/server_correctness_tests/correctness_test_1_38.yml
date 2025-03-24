@@ -1,0 +1,15 @@
+current_db: test
+pipeline: [ { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$split" : [ "$obj.obj.obj.obj.obj.str", "$obj.obj.obj.obj.obj.str" ] } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "count": { "bsonType": "int" },
+      "_id": { "bsonType": "null" },
+      "_id": {
+        "bsonType": "objectId"
+      }
+    },
+    "required": ["_id", "count"],
+    "additionalProperties": false
+  }

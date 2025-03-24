@@ -1,0 +1,14 @@
+current_db: test
+pipeline: [ { "$sort" : { "_id" : 1 } }, { "$bucket" : { "groupBy" : { "$dayOfWeek" : { "$min" : [ ISODate("2019-08-30T23:48:31.650Z"), { "$dateFromString" : { "dateString" : "2019-09-09T00:10:47.292Z", "onError" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$dateFromParts" : { "year" : {"$numberLong": 16} } } ] }, "onNull" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$toDate" : { "$toLong" : { "$lte" : [ { "$min" : [ { "$mergeObjects" : [ {  } ] }, {  }, { "date" : ISODate("2019-04-18T06:11:50.520Z"), "num" : 55572 }, { "k" : "Steel Lebanese Pound", "v" : { "$ifNull" : [ "$obj.str", null ] } }, { "num" : {"$numberDecimal": "0E-6176"}, "obj" : { "array" : [ "Direct Fantastic Plastic Bacon Computer", /Thailand|Indiana|deploy|Sleek|Car/ ] }, "date" : ISODate("2020-01-02T07:55:26.855Z") } ] }, { "$getField" : { "field" : "obj.array", "input" : { "k" : "mindshare Dominica", "v" : { "$ifNull" : [ "$obj.obj.str", null ] } } } } ] } } } ] } } }, "$obj.obj.date", "$obj.obj.obj.date", ISODate("2019-06-12T03:25:31.086Z") ] } }, "boundaries" : [ 20368, 35721, 53507, 67456, 89400 ], "default" : "Philippine Peso Generic", "output" : { "obj" : { "$accumulator" : { "init" : "function() { return { num: 0, str: \"\" }; }", "accumulate" : "function(state, input) {return { num: state.num + 1, str: state.str + \"a\" };}", "accumulateArgs" : [ { "$arrayToObject" : [ [ [ "withdrawal array", { "$ifNull" : [ true, null ] } ] ] ] } ], "merge" : "function(state1, state2) {return { num: state1.num + state2.num, str: state1.str + state2.str };}", "lang" : "js" } }, "num" : { "$stdDevSamp" : { "$strLenBytes" : { "$ifNull" : [ { "$max" : [ "deposit", "$str", "Oklahoma action-items" ] }, "" ] } } } } } }, { "$redact" : { "$cond" : { "if" : { "$anyElementTrue" : [ { "$ifNull" : [ "$obj.obj.obj.obj.obj.array", [ ] ] } ] }, "then" : "$$DESCEND", "else" : "$$KEEP" } } }, { "$count" : "num" } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "num": { "bsonType": "int" },
+      "_id": {
+        "bsonType": "objectId"
+      }
+    },
+    "required": ["_id", "num"],
+    "additionalProperties": false
+  }

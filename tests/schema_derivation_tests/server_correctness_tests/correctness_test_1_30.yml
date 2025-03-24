@@ -1,0 +1,52 @@
+current_db: test
+pipeline: [ { "$count" : "num" }, { "$set" : { "date" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$dateFromParts" : { "isoWeekYear" : 17, "isoWeek" : {"$numberLong": "16"}, "hour" : {"$numberLong": "8"}, "minute" : {"$numberLong": "4"}, "timezone" : "Asia/Chungking" } } ] }, "obj.obj.obj.obj.obj" : { "$setField" : { "field" : "obj.obj.obj.obj.obj.str", "input" : { "$arrayToObject" : [ [ [ "dedicated", { "$ifNull" : [ false, null ] } ], [ "Turnpike", { "$ifNull" : [ "Assimilated", null ] } ], [ "FTP Gloves", { "$ifNull" : [ true, null ] } ] ] ] }, "value" : { "$substrCP" : [ "$obj.obj.obj.obj.obj.str", 19, {"$numberLong": "14"} ] } } }, "bool" : { "$and" : "$obj.obj.obj.array" } } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "date": { "bsonType": "date" },
+      "bool": { "bsonType": "bool" },
+      "num": { "bsonType": "int" },
+      "obj": {
+        "bsonType": "object",
+        "properties": {
+          "obj": {
+            "bsonType": "object",
+            "properties": {
+              "obj": {
+                "bsonType": "object",
+                "properties": {
+                  "obj": {
+                    "bsonType": "object",
+                    "properties": {
+                      "obj": {
+                        "bsonType": "object",
+                        "properties": {
+                          "Turnpike": { "bsonType": "string" },
+                          "dedicated": { "bsonType": "bool" },
+                          "obj.obj.obj.obj.obj.str": { "bsonType": "string" },
+                          "FTP Gloves": { "bsonType": "bool" }
+                        },
+                        "required": ["FTP Gloves", "Turnpike", "dedicated", "obj.obj.obj.obj.obj.str"],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": ["obj"],
+                    "additionalProperties": false
+                  }
+                },
+                "required": ["obj"],
+                "additionalProperties": false
+              }
+            },
+            "required": ["obj"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["obj"],
+        "additionalProperties": false
+      }
+    },
+    "required": ["_id", "bool", "date", "num", "obj"],
+    "additionalProperties": false
+  }

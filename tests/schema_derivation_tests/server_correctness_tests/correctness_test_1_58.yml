@@ -1,0 +1,15 @@
+current_db: test
+pipeline: [ { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$dateFromParts" : { "year" : {"$numberLong": "17"}, "month" : 20, "hour" : {"$numberLong": "8"}, "millisecond" : { "$toInt" : { "$toDouble" : { "$exp" : {"$numberLong": "14"} } } } } } ] } } ]
+result_set_schema:
+  {
+      "bsonType": "object",
+      "properties": {
+        "_id": { "bsonType": "date" },
+        "count": { "bsonType": "int" },
+        "_id": {
+          "bsonType": "objectId"
+        }
+      },
+      "required": ["_id", "count"],
+      "additionalProperties": false
+    }
