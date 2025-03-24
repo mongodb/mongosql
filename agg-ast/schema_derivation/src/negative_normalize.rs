@@ -325,14 +325,12 @@ impl NegativeNormalize<Expression> for Expression {
                     }
                     // the following can only evaluate to true or false
                     | UntaggedOperatorName::MQLBetween => {
-                        let false_check = wrap_in_false_check!(self.clone());
-                        return false_check;
+                        return wrap_in_false_check!(self.clone());
                     }
                     // the following can evaluate only to strings or null
                     | UntaggedOperatorName::SQLSubstrCP | UntaggedOperatorName::SQLToLower
                     | UntaggedOperatorName::SQLToUpper => {
-                        let null_check = wrap_in_null_or_missing_check!(self.clone());
-                        return null_check;
+                        return wrap_in_null_or_missing_check!(self.clone());
                     }
                     // the following can evalute to null, true, or false
                     | UntaggedOperatorName::SQLAnd | UntaggedOperatorName::SQLOr
