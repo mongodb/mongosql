@@ -1,0 +1,13 @@
+{
+  "foo": {
+    "bar":{
+      "bsonType": "object",
+      "properties": {
+        "_id": { "bsonType": "objectId" },
+        "a": { "bsonType": "int" },
+        "b": { "bsonType": "string" },
+        "c": { "bsonType": "bool" }
+      }
+    }
+  }
+}

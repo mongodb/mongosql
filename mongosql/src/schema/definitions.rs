@@ -1629,7 +1629,7 @@ impl Schema {
                             Schema::Unsat => {}
                             intersection => {
                                 doc_intersection.keys.insert(key.clone(), intersection);
-                                if a.required.contains(&key) && b.required.contains(&key) {
+                                if a.required.contains(&key) || b.required.contains(&key) {
                                     doc_intersection.required.insert(key);
                                 }
                             }

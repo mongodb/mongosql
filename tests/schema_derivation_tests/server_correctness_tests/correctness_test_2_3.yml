@@ -1,0 +1,15 @@
+current_db: test
+pipeline: [ { "$documents" : [ { "date" : ISODate("2019-10-10T10:21:42.543Z"), "str" : "software monitor program" }, { "k" : "invoice Locks invoice", "v" : { "$ifNull" : [ 38150, null ] } }, { "k" : "Azerbaijanian Manat", "v" : { "$ifNull" : [ "$obj.num", null ] } } ] }, { "$addFields" : { "_id" : "$$ROOT" } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$lookup" : { "from" : "fuzzer_coll_lookup", "let" : { "ernest" : { "$regexFind" : { "input" : "$obj.obj.obj.obj.str", "regex" : /intranet|Awesome|red/ } } }, "pipeline" : [ { "$match" : { "obj.obj.obj.obj.obj.array" : { "$size" : {"$numberLong": "12"} } } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 10 } ], "as" : "array" } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "_id": { "bsonType": "date" },
+      "array": { "bsonType": "null" },
+      "_id": {
+        "bsonType": "objectId"
+      }
+    },
+    "required": ["_id", "array"],
+    "additionalProperties": false
+  }

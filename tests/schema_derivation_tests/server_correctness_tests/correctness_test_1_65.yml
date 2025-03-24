@@ -1,0 +1,13 @@
+current_db: test
+pipeline: [ { "$sort" : { "_id" : 1 } }, { "$bucket" : { "groupBy" : { "$indexOfArray" : [ { "$max" : [ "$obj.obj.obj.array", [ { "$min" : [ "$obj.obj.obj.str" ] }, { "$toLower" : "Glen wireless" }, "$str", "Intelligent Soft Keyboard", "$obj.obj.str" ], [ "$num" ], [ "$count" ], [ "orange Consultant", "$obj.obj.obj.str", "Rubber Mississippi" ], [ "$obj.num", "$obj.obj.obj.num" ] ] }, { "$zip" : { "inputs" : [ { "$ifNull" : [ "$obj.obj.obj.obj.array", [ ] ] }, { "$ifNull" : [ [ { "obj" : { "str" : "Kiribati pixel", "num" : 2 } }, ISODate("2019-08-30T22:33:21.807Z"), [ ], false ], [ ] ] }, { "$ifNull" : [ [ "$obj.obj.num", "$obj.obj.obj.num", "$obj.obj.obj.obj.num" ], [ ] ] }, { "$ifNull" : [ [ "$obj.str", {"$numberLong": "314159265358979303"} ], [ ] ] }, { "$ifNull" : [ [ ], [ ] ] }, { "$ifNull" : [ [ "Circle sensor transmit", "RSS Soft", "$obj.str" ], [ ] ] }, { "$ifNull" : [ [ {"$numberDecimal": "459.4927440680565"}, "$str", "$obj.str", "$obj.num" ], [ ] ] }, { "$ifNull" : [ [ {"$numberDecimal": "0E-6176"}, true, true, "Money Market Account|supply-chains" ], [ ] ] } ], "useLongestLength" : true } }, {"$numberLong": "20"}, 14 ] }, "boundaries" : [ 39503, 50363, 78061, 89521 ], "default" : 4263, "output" : { "str" : { "$last" : "$obj.obj.obj.obj.str" } } } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 1 }, { "$replaceRoot" : { "newRoot" : { "$ifNull" : [ "$obj", {  } ] } } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "_id": {
+        "bsonType": "objectId"
+      }
+    },
+    "required": ["_id"],
+    "additionalProperties": false
+  }

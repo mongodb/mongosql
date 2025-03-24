@@ -1880,7 +1880,7 @@ mod stage_test {
                 pipeline: Some(vec![]),
             })),
             input = r#"stage: {"$unionWith": {
-                "collection": "empty",
+                "coll": "empty",
                 "pipeline": []
             }}"#
         );
@@ -1892,7 +1892,7 @@ mod stage_test {
                 pipeline: Some(vec![Stage::Limit(10)]),
             })),
             input = r#"stage: {"$unionWith": {
-                "collection": "single",
+                "coll": "single",
                 "pipeline": [{"$limit": 10}]
             }}"#
         );
@@ -1904,7 +1904,7 @@ mod stage_test {
                 pipeline: Some(vec![Stage::Skip(5), Stage::Limit(10)]),
             })),
             input = r#"stage: {"$unionWith": {
-                "collection": "multiple",
+                "coll": "multiple",
                 "pipeline": [{"$skip": 5}, {"$limit": 10}]
             }}"#
         );
