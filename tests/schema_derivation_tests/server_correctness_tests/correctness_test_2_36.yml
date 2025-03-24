@@ -1,0 +1,34 @@
+current_db: test
+pipeline: [ { "$project" : { "obj.obj.obj.obj.array" : 0, "obj.obj.obj.date" : 0 } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$graphLookup" : { "from" : "fuzzer_coll", "startWith" : { "$let" : { "vars" : { "zaria" : { "$literal" : [ ] }, "alberto" : { "$unsetField" : { "field" : "bool", "input" : { "$ifNull" : [ "$obj.obj.obj", {  } ] } } } }, "in" : { "$rtrim" : { "input" : { "$max" : [ "$obj.str", { "$substrBytes" : [ "$obj.obj.str", 11, 20 ] }, "Sports artificial intelligence SMTP", "clicks-and-mortar channels Incredible Rubber Chicken", "$str", "$obj.obj.obj.obj.obj.str" ] }, "chars" : "Gorgeous silver Granite" } } } }, "connectFromField" : "obj.obj.obj.obj.any", "connectToField" : "obj.obj.obj.obj.obj.any", "as" : "array", "maxDepth" : 0, "depthField" : "obj.obj.obj.obj.obj.num" } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "day": { "bsonType": "int" },
+      "year": { "bsonType": "int" },
+      "_id": {
+        "bsonType": "object",
+        "properties": {
+          "k": { "bsonType": "string" },
+          "second": { "bsonType": "int" },
+          "month": { "bsonType": "int" },
+          "v": { "bsonType": "bool" },
+          "day": { "bsonType": "int" },
+          "millisecond": { "bsonType": "int" },
+          "hour": { "bsonType": "int" },
+          "minute": { "bsonType": "int" },
+          "year": { "bsonType": "int" }
+        },
+        "additionalProperties": false
+      },
+      "hour": { "bsonType": "int" },
+      "millisecond": { "bsonType": "int" },
+      "month": { "bsonType": "int" },
+      "second": { "bsonType": "int" },
+      "v": { "bsonType": "bool" },
+      "minute": { "bsonType": "int" },
+      "k": { "bsonType": "string" }
+    },
+    "required": ["_id"],
+    "additionalProperties": false
+  }

@@ -1,0 +1,35 @@
+current_db: test
+pipeline: [ { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : "$obj.geoJson", "str" : { "$first" : "$obj.obj.obj.str" }, "date" : { "$max" : { "$min" : [ ISODate("2019-12-20T14:49:36.500Z"), "$obj.obj.date", ISODate("2019-01-14T21:54:45.011Z"), "$obj.obj.obj.obj.obj.date" ] } } } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "_id": {
+        "any_of": [
+          { "bsonType": "null" },
+          {
+            "bsonType": "object",
+            "properties": {
+              "type": { "bsonType": "string" },
+              "coordinates": {
+                "bsonType": "array",
+                "items": { "bsonType": "double" }
+              }
+            },
+            "required": ["coordinates", "type"],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "str": {
+        "any_of": [
+          { "bsonType": "null" },
+          { "bsonType": "string" }
+        ]
+      },
+
+      "date": { "bsonType": "date" }
+    },
+    "required": ["_id", "date", "str"],
+    "additionalProperties": false
+  }

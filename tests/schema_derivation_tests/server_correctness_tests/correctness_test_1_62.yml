@@ -1,0 +1,68 @@
+current_db: test
+pipeline: [ { "$sort" : { "geoLegacy" : 1, "obj.obj.date" : -1, "_id" : 1 } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$facet" : { "array" : [ { "$sort" : { "_id" : 1 } }, { "$bucket" : { "groupBy" : { "$dateFromString" : { "dateString" : "2019-04-10T04:07:34.564Z", "format" : "%Y-%m-%dT%H:%M:%S.%LZ", "onNull" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$toDate" : { "$toDouble" : { "$regexMatch" : { "input" : "Computer Chips", "regex" : /Fantastic|View|EXE/ } } } } ] } } }, "boundaries" : [ ISODate("2019-01-16T13:31:29.726Z"), ISODate("2019-01-31T09:04:00.439Z"), ISODate("2019-02-05T18:42:01.980Z"), ISODate("2019-03-19T22:30:50.359Z"), ISODate("2019-04-02T19:06:26.478Z"), ISODate("2019-07-05T06:20:33.951Z"), ISODate("2019-07-26T05:38:46.961Z"), ISODate("2019-09-10T20:52:01.262Z"), ISODate("2019-10-18T00:05:51.282Z") ], "default" : ISODate("2018-07-01T04:24:01.249Z"), "output" : { "array" : { "$push" : { "$mergeObjects" : [ { "date" : ISODate("2019-06-25T23:56:02.908Z"), "str" : "Checking Account Intelligent Cotton Chicken", "num" : {"$numberLong": "0"} }, { "array" : [ true, { "obj" : { "num" : 23671, "date" : ISODate("2019-07-26T04:52:39.136Z"), "str" : "Frozen River" }, "str" : "withdrawal Coordinator Concrete" } ], "str" : "Checking Account Beauty Massachusetts" }, { "$unsetField" : { "field" : "obj.obj", "input" : { "obj" : { "date" : ISODate("2019-07-12T00:29:58.321Z") } } } }, { "date" : ISODate("2019-11-29T23:56:17.120Z"), "num" : -3.14159265 } ] } } } } } ] } } ]
+result_set_schema:
+  {
+    "bsonType": "object",
+    "properties": {
+      "array": {
+        "bsonType": "array",
+        "items": {
+          "bsonType": "object",
+          "properties": {
+            "array": {
+              "bsonType": "array",
+              "items": {
+                "bsonType": "object",
+                "properties": {
+                  "array": {
+                    "bsonType": "array",
+                    "items": {
+                      "any_of": [
+                        { "bsonType": "bool" },
+                        {
+                          "bsonType": "object",
+                          "properties": {
+                            "obj": {
+                              "bsonType": "object",
+                              "properties": {
+                                "num": { "bsonType": "int" },
+                                "str": { "bsonType": "string" },
+                                "date": { "bsonType": "date" }
+                              },
+                              "required": ["date", "num", "str"],
+                              "additionalProperties": false
+                            },
+                            "str": { "bsonType": "string" }
+                          },
+                          "required": ["obj", "str"],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  },
+                  "date": { "bsonType": "date" },
+                  "num": { "bsonType": "double" },
+                  "str": { "bsonType": "string" },
+                  "obj": {
+                    "bsonType": "object",
+                    "properties": {
+                      "date": { "bsonType": "date" }
+                    },
+                    "required": ["date"],
+                    "additionalProperties": false
+                  }
+                },
+                "required": ["array", "date", "num", "obj", "str"],
+                "additionalProperties": false
+              }
+            },
+            "_id": { "bsonType": "date" }
+          },
+          "required": ["_id", "array"],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": ["_id", "array"],
+    "additionalProperties": false
+  }

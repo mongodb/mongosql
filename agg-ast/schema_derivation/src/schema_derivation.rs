@@ -599,7 +599,7 @@ impl DeriveSchema for Stage {
                     Ok(state.result_set_schema.to_owned())
                 }
                 UnionWith::Pipeline(p) => {
-                    let from_ns = Namespace(state.current_db.clone(), p.collection.clone());
+                    let from_ns = Namespace(state.current_db.clone(), p.coll.clone());
                     let from_schema = state
                         .catalog
                         .get(&from_ns)
