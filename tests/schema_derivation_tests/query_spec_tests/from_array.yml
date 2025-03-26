@@ -1,0 +1,229 @@
+catalog_schema:
+  {
+    'test': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
+tests:
+- description: basic array datasource correctness test
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }, 
+          "b": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["arr"], 
+    "properties": {
+      "arr": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: unqualified reference to field from array datasource
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }, 
+          "b": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$arr.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: qualified reference to field from array datasource
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }, 
+          "b": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$arr.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: empty array datasource is allowed
+  current_db: test
+  pipeline: [
+    {
+      "$documents": []
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    'bsonType': 'object',
+    'additionalProperties': true,
+  }
+
+- description: array datasource with single empty document is allowed
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "$literal": {}
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "_dual": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["_dual"], 
+    "properties": {
+      "_dual": {
+        "additionalProperties": false, 
+        "properties": {}, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

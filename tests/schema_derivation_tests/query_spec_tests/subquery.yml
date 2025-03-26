@@ -1,0 +1,981 @@
+catalog_schema:
+  {
+    'foo': {
+      'employees': {
+        'bsonType': "object",
+        'required': [ '_id', 'name', 'salary', 'department_id' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'name': {
+            'bsonType': "string"
+          },
+          'salary': {
+            'bsonType': "int"
+          },
+          'department_id': {
+            'bsonType': "int"
+          }
+        }
+      },
+      'department': {
+        'bsonType': "object",
+        'required': [ '_id', 'name' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'name': {
+            'bsonType': "string"
+          }
+        }
+      },
+      'employees_w_schema': {
+        'bsonType': "object",
+        'required': [ '_id', 'name', 'salary', 'department_id' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'name': {
+            'bsonType': "string"
+          },
+          'salary': {
+            'bsonType': "int"
+          },
+          'department_id': {
+            'bsonType': "int"
+          }
+        }
+      },
+      'department_w_schema': {
+        'bsonType': "object",
+        'required': [ '_id', 'name' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'name': {
+            'bsonType': "string"
+          }
+        }
+      },
+      'baz': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      }
+    }
+  }
+
+tests:
+- description: uncorrelated scalar subquery expression correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "emp": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        pipeline: [
+          {
+            "$documents": [
+              {
+                "a": {
+                  "$literal": 4
+                }
+              }
+            ]
+          }, 
+          {
+            "$project": {
+              "arr": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$arr.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vemp_0": "$emp"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "avg_salary": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0", 
+                    {
+                      "$literal": 0
+                    }
+                  ]
+                }
+              }, 
+              "in": "$$docExpr.__bot.a"
+            }
+          }, 
+          "name": "$emp.name"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "avg_salary", 
+          "name"
+        ], 
+        "properties": {
+          "avg_salary": {
+            "bsonType": "int"
+          }, 
+          "name": {
+            "bsonType": "string"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correlated scalar subquery correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "emp": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "department_w_schema", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$eq": [
+                  "$_id", 
+                  "$$vemp_0.department_id"
+                ]
+              }
+            }
+          }, 
+          {
+            "$limit": 1
+          }, 
+          {
+            "$project": {
+              "dep": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "name": "$dep.name"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vemp_0": "$emp"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "name": "$emp.name", 
+          "department_name": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0", 
+                    {
+                      "$literal": 0
+                    }
+                  ]
+                }
+              }, 
+              "in": "$$docExpr.__bot.name"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "department_name", 
+          "name"
+        ], 
+        "properties": {
+          "name": {
+            "bsonType": "string"
+          }, 
+          "department_name": {
+            "bsonType": "string"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: cardinality of 1 should be inferrable from array datasource
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "dep": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        pipeline: [
+          {
+            "$documents": [
+              {
+                "a": {
+                  "$literal": 1
+                }
+              }
+            ]
+          }, 
+          {
+            "$project": {
+              "arr": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$arr.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vdep_0": "$dep"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "name": "$dep.name", 
+          "sub": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0", 
+                    {
+                      "$literal": 0
+                    }
+                  ]
+                }
+              }, 
+              "in": "$$docExpr.__bot.a"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "name", 
+          "sub"
+        ], 
+        "properties": {
+          "name": {
+            "bsonType": "string"
+          }, 
+          "sub": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: cardinality of 1 should be inferrable from group by constant
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "emp": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "employees", 
+        pipeline: [
+          {
+            "$group": {
+              "avg_salary": {
+                "$avg": "$salary"
+              }, 
+              "_id": {
+                "_": {
+                  "$literal": null
+                }
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "avg_salary": "$avg_salary", 
+                "_": "$_id._"
+              }, 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": "$__bot", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "avg_salary": "$__bot.avg_salary"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vemp_0": "$emp"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "avg_salary": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0", 
+                    {
+                      "$literal": 0
+                    }
+                  ]
+                }
+              }, 
+              "in": "$$docExpr.__bot.avg_salary"
+            }
+          }, 
+          "name": "$emp.name"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "avg_salary", 
+          "name"
+        ], 
+        "properties": {
+          "avg_salary": {
+            "bsonType": "double"
+          }, 
+          "name": {
+            "bsonType": "string"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: nested subquery should be able to access field from its grandparent
+    query correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "emp1": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "department_w_schema", 
+        pipeline: [
+          {
+            "$project": {
+              "dep": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$lookup": {
+              "from": "employees_w_schema", 
+              pipeline: [
+                {
+                  "$match": {
+                    "$expr": {
+                      "$eq": [
+                        "$_id", 
+                        "$$vemp1_0._id"
+                      ]
+                    }
+                  }
+                }, 
+                {
+                  "$limit": 1
+                }, 
+                {
+                  "$project": {
+                    "_id": 0, 
+                    "emp2": "$$ROOT"
+                  }
+                }, 
+                {
+                  "$project": {
+                    "__bot": {
+                      "department_id": "$emp2.department_id"
+                    }, 
+                    "_id": 0
+                  }
+                }
+              ], 
+              "let": {
+                "vemp1_0": "$$vemp1_0", 
+                "vdep_1": "$dep"
+              }, 
+              "as": "__subquery_result_0"
+            }
+          }, 
+          {
+            "$match": {
+              "$expr": {
+                "$eq": [
+                  "$dep._id", 
+                  {
+                    "$let": {
+                      "vars": {
+                        "docExpr": {
+                          "$arrayElemAt": [
+                            "$__subquery_result_0", 
+                            {
+                              "$literal": 0
+                            }
+                          ]
+                        }
+                      }, 
+                      "in": "$$docExpr.__bot.department_id"
+                    }
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "__subquery_result_0": 0, 
+              "_id": 0
+            }
+          }, 
+          {
+            "$limit": 1
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "name": "$dep.name"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vemp1_0": "$emp1"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "name": "$emp1.name", 
+          "department_name": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0", 
+                    {
+                      "$literal": 0
+                    }
+                  ]
+                }
+              }, 
+              "in": "$$docExpr.__bot.name"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "department_name", 
+          "name"
+        ], 
+        "properties": {
+          "name": {
+            "bsonType": "string"
+          }, 
+          "department_name": {
+            "bsonType": "string"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: allow select star if we can statically prove the degree is equal to
+    one
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "emp": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        pipeline: [
+          {
+            "$documents": [
+              {
+                "a": {
+                  "$literal": 4
+                }
+              }
+            ]
+          }, 
+          {
+            "$project": {
+              "arr": "$$ROOT", 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vemp_0": "$emp"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "sub": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0", 
+                    {
+                      "$literal": 0
+                    }
+                  ]
+                }
+              }, 
+              "in": "$$docExpr.arr.a"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "sub"
+        ], 
+        "properties": {
+          "sub": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: allow select substar if we can statically prove the degree is equal
+    to one
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "emp": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        pipeline: [
+          {
+            "$documents": [
+              {
+                "a": {
+                  "$literal": 4
+                }
+              }
+            ]
+          }, 
+          {
+            "$project": {
+              "arr": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "arr": "$arr", 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vemp_0": "$emp"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "sub": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0", 
+                    {
+                      "$literal": 0
+                    }
+                  ]
+                }
+              }, 
+              "in": "$$docExpr.arr.a"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "sub"
+        ], 
+        "properties": {
+          "sub": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: subquery selecting potentially missing field from collection
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "q": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "baz", 
+        pipeline: [
+          {
+            "$limit": 1
+          }, 
+          {
+            "$project": {
+              "q": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "bar": "$q.bar"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vq_0": "$q"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "bar": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0", 
+                    {
+                      "$literal": 0
+                    }
+                  ]
+                }
+              }, 
+              "in": "$$docExpr.__bot.bar"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "properties": {}, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

@@ -1,0 +1,202 @@
+catalog_schema:
+  {
+    'foo': {
+      'bar': {
+        'bsonType': "object",
+        'required': [ 'd', 'i' ],
+        'additionalProperties': false,
+        'properties': {
+          'd': {
+            'bsonType': "double"
+          },
+          'i': {
+            'bsonType': "int"
+          },
+        }
+      }
+    }
+  }
+
+tests:
+  - description: SELECT empty array literal
+    current_db: test
+    pipeline: [
+      {
+        "$documents": [
+          {
+            "$literal": {}
+          }
+        ]
+      }, 
+      {
+        "$project": {
+          "_dual": "$$ROOT", 
+          "_id": 0
+        }
+      }, 
+      {
+        "$project": {
+          "__bot": {
+            "_1": []
+          }, 
+          "_id": 0
+        }
+      }, 
+      {
+        "$replaceWith": {
+          "$unsetField": {
+            "field": "__bot", 
+            "input": {
+              "$setField": {
+                "field": "", 
+                "value": "$__bot", 
+                "input": "$$ROOT"
+              }
+            }
+          }
+        }
+      }
+    ]
+    result_set_schema: {
+      "additionalProperties": false, 
+      "required": [
+        ""
+      ], 
+      "properties": {
+        "": {
+          "additionalProperties": false, 
+          "required": [
+            "_1"
+          ], 
+          "properties": {
+            "_1": {
+              "bsonType": "array"
+            }
+          }, 
+          "bsonType": "object"
+        }
+      }, 
+      "bsonType": "object"
+    }
+  
+  - description: SELECT non-empty array literal
+    current_db: test
+    pipeline: [
+      {
+        "$documents": [
+          {
+            "$literal": {}
+          }
+        ]
+      }, 
+      {
+        "$project": {
+          "_dual": "$$ROOT", 
+          "_id": 0
+        }
+      }, 
+      {
+        "$project": {
+          "__bot": {
+            "_1": [
+              {
+                "$literal": 1
+              }, 
+              {
+                "$literal": true
+              }, 
+              {
+                "$literal": true
+              }, 
+              {
+                "a": {
+                  "$literal": "b"
+                }
+              }, 
+              [
+                {
+                  "$literal": 1.0
+                }, 
+                {
+                  "$literal": false
+                }
+              ]
+            ]
+          }, 
+          "_id": 0
+        }
+      }, 
+      {
+        "$replaceWith": {
+          "$unsetField": {
+            "field": "__bot", 
+            "input": {
+              "$setField": {
+                "field": "", 
+                "value": "$__bot", 
+                "input": "$$ROOT"
+              }
+            }
+          }
+        }
+      }
+    ]
+    result_set_schema: {
+        "additionalProperties": false, 
+        "required": [
+          ""
+        ], 
+        "properties": {
+          "": {
+            "additionalProperties": false, 
+            "required": [
+              "_1"
+            ], 
+            "properties": {
+              "_1": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "bsonType": "int"
+                    }, 
+                    {
+                      "bsonType": "string"
+                    }, 
+                    {
+                      "bsonType": "bool"
+                    }, 
+                    {
+                      "items": {
+                        "anyOf": [
+                          {
+                            "bsonType": "double"
+                          }, 
+                          {
+                            "bsonType": "bool"
+                          }
+                        ]
+                      }, 
+                      "bsonType": "array"
+                    }, 
+                    {
+                      "additionalProperties": false, 
+                      "required": [
+                        "a"
+                      ], 
+                      "properties": {
+                        "a": {
+                          "bsonType": "string"
+                        }
+                      }, 
+                      "bsonType": "object"
+                    }
+                  ]
+                }, 
+                "bsonType": "array"
+              }
+            }, 
+            "bsonType": "object"
+          },
+        }, 
+        "bsonType": "object"
+      }

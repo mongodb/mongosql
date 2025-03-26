@@ -1,0 +1,447 @@
+catalog_schema:
+    {
+        "foo": {
+            "bar": {
+              "bsonType": "object",
+              "required": [ "_id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": { "bsonType": "bool" }
+              }
+            },
+            "baz": {
+              "bsonType": "object",
+              "required": [ "_id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": { "bsonType": "bool" }
+              }
+            },
+            "biz": {
+              "bsonType": "object",
+              "required": [ "_id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": { "bsonType": "array", "items": { "bsonType": "int" } }
+              }
+            },
+            "nested": {
+              "bsonType": "object",
+              "required": [ "_id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": {
+                  "bsonType": "object",
+                  "required": [ "bar" ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "bar": { "bsonType": "array", "items": { "bsonType": "int" } }
+                  }
+                }
+              }
+            },
+            "items": {
+              "bsonType": "object",
+              "required": [ "_id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": {
+                  "bsonType": "array",
+                  "items": {
+                    "bsonType": "object",
+                    "required": [ "bar" ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "bar": { "bsonType": "int" }
+                    }
+                  }
+                }
+              }
+            }
+        }
+    }
+
+
+tests:
+- description: WHERE with BOOLEAN returning expression
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }
+        }, 
+        {
+          "a": {
+            "$literal": 2
+          }
+        }, 
+        {
+          "a": {
+            "$literal": 3
+          }
+        }
+      ]
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$gte": [
+            "$a", 
+            {
+              "$literal": 2
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false,
+    "required": ["arr"],
+    "properties": {
+      "arr": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: WHERE with CAST to BOOLEAN
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 0
+          }
+        }, 
+        {
+          "a": {
+            "$literal": 1
+          }
+        }, 
+        {
+          "a": {
+            "$literal": 2
+          }
+        }, 
+        {
+          "a": {
+            "$literal": 3
+          }
+        }
+      ]
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$convert": {
+            "onError": {
+              "$literal": null
+            }, 
+            "input": "$a", 
+            "onNull": {
+              "$literal": null
+            }, 
+            "to": "bool"
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false,
+    "required": ["arr"],
+    "properties": {
+      "arr": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: WHERE with CASE that must return BOOLEAN
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": false
+          }
+        }, 
+        {
+          "a": {
+            "$literal": true
+          }
+        }
+      ]
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$switch": {
+            "default": {
+              "$literal": false
+            }, 
+            "branches": [
+              {
+                "case": {
+                  "$eq": [
+                    {
+                      "$type": [
+                        "$a"
+                      ]
+                    }, 
+                    {
+                      "$literal": "bool"
+                    }
+                  ]
+                }, 
+                "then": "$a"
+              }
+            ]
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false,
+    "required": ["arr"], 
+    "properties": {
+      "arr": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: WHERE after unwind returns expected results
+  current_db: test
+  pipeline: [
+    {
+      "$match": {
+        "foo": {
+          "$elemMatch": {
+            "$eq": 2
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "biz": "$$ROOT"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$biz.foo"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$eq": [
+            "$biz.foo", 
+            {
+              "$literal": 2
+            }
+          ]
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["biz"], 
+    "properties": {
+      "biz": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: WHERE after FLATTEN UNWIND returns expected results
+  current_db: test
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "nested": "$$ROOT"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$nested.foo.bar"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$eq": [
+            "$nested.foo.bar", 
+            {
+              "$literal": 2
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "nested": {
+          "foo_bar": "$nested.foo.bar", 
+          "_id": "$nested._id"
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["nested"], 
+    "properties": {
+      "nested": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo_bar"
+        ], 
+        "properties": {
+          "foo_bar": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: WHERE after FLATTEN UNWIND an array of objects returns expected results
+  current_db: test
+  pipeline: [
+    {
+      "$project": {
+        "items": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$items.foo"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$eq": [
+            "$items.foo.bar", 
+            {
+              "$literal": 2
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "items": {
+          "foo_bar": "$items.foo.bar", 
+          "_id": "$items._id"
+        }, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["items"], 
+    "properties": {
+      "items": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo_bar"
+        ], 
+        "properties": {
+          "foo_bar": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

@@ -1,0 +1,506 @@
+catalog_schema:
+  {
+    'mydb': {
+      'foo': {
+        'bsonType': "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a': {
+            'bsonType': "object",
+            'required': [ 'b' ],
+            'additionalProperties': false,
+            'properties': {
+              'b': {
+                'bsonType': "object",
+                'required': [ 'c' ],
+                'additionalProperties': false,
+                'properties': {
+                  'c': { 'bsonType': "int" },
+                }
+              },
+            }
+          },
+        }
+      },
+      'docOrInt': {
+        'bsonType': "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a': {
+            'anyOf':
+              [
+                { 'bsonType': 'int' },
+                {
+                  'bsonType': "object",
+                  'required': [ 'b' ],
+                  'additionalProperties': false,
+                  'properties': {
+                    'b': { 'bsonType': "int" }
+                  }
+                }
+              ]
+          },
+        }
+      },
+      'nullableDoc': {
+        'bsonType': "object",
+        'required': [ '_id'],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a': {
+            'anyOf':
+              [
+                { 'bsonType': 'null' },
+                {
+                  'bsonType': "object",
+                  'required': [ 'b' ],
+                  'additionalProperties': false,
+                  'properties': {
+                    'b': { 'bsonType': "int" }
+                  }
+                }
+              ]
+          },
+        }
+      },
+      'mustCollide': {
+        'bsonType': "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a': {
+            'bsonType': "object",
+            'required': [ 'b' ],
+            'additionalProperties': false,
+            'properties': {
+              'b': { 'bsonType': "int" },
+            }
+          },
+          'a_b': { 'bsonType': "int" }
+        }
+      },
+      'mayCollide': {
+        'bsonType': "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': true,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a': {
+            'bsonType': "object",
+            'required': [ 'b' ],
+            'additionalProperties': false,
+            'properties': {
+              'b': { 'bsonType': "int" },
+            }
+          }
+        }
+      },
+      'noSchemaInfo': {
+        'bsonType': "object",
+        'additionalProperties': true
+      }
+    },
+  }
+
+tests:
+- description: basic correctness test
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "foo": {
+          "a_b_c": "$foo.a.b.c", 
+          "_id": "$foo._id"
+        }, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a_b_c"
+        ], 
+        "properties": {
+          "a_b_c": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: datasource argument can optionally include an alias
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "f": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "f": {
+          "a_b_c": "$f.a.b.c", 
+          "_id": "$f._id"
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["f"], 
+    "properties": {
+      "f": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a_b_c"
+        ], 
+        "properties": {
+          "a_b_c": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: basic correctness test for user-specified separator
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "foo": {
+          "_id": "$foo._id", 
+          "a:b:c": "$foo.a.b.c"
+        }, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a:b:c"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "a:b:c": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: user-specified separator with length less than one is allowed
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "foo": {
+          "_id": "$foo._id", 
+          "abc": "$foo.a.b.c"
+        }, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "abc"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "abc": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: user-specified separator with length greater than one is allowed
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "foo": {
+          "a_DOT_b_DOT_c": "$foo.a.b.c", 
+          "_id": "$foo._id"
+        }, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a_DOT_b_DOT_c"
+        ], 
+        "properties": {
+          "a_DOT_b_DOT_c": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: a user-specified depth greater than max nesting depth causes all documents to be flattened
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "foo": {
+          "a_b_c": "$foo.a.b.c", 
+          "_id": "$foo._id"
+        }, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a_b_c"
+        ], 
+        "properties": {
+          "a_b_c": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: a user-specified depth less than max nesting depth causes more deeply nested documents to remain unflattened
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "foo": {
+          "_id": "$foo._id", 
+          "a_b": "$foo.a.b"
+        }, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a_b"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "a_b": {
+            "additionalProperties": false, 
+            "required": [
+              "c"
+            ], 
+            "properties": {
+              "c": {
+                "bsonType": "int"
+              }
+            }, 
+            "bsonType": "object"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: flatten polymorphic objects with just null or missing polymorphism
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "nullableDoc": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "nullableDoc": {
+          "_id": "$nullableDoc._id", 
+          "a_b": "$nullableDoc.a.b"
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["nullableDoc"], 
+    "properties": {
+      "nullableDoc": {
+        "additionalProperties": false, 
+        "required": [
+          "_id"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "a_b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: FLATTENing a FLATTENed datasource is allowed
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "foo": {
+          "a_b_c": "$foo.a.b.c", 
+          "_id": "$foo._id"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "foo": {
+          "a_b_c": "$foo.a_b_c", 
+          "_id": "$foo._id"
+        }, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a_b_c"
+        ], 
+        "properties": {
+          "a_b_c": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

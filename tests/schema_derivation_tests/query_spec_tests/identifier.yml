@@ -1,0 +1,1137 @@
+catalog_schema:
+  {
+    "foo":
+      {
+        "bar":
+          {
+            "bsonType": "object",
+            "additionalProperties": true,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a":
+                  {
+                    "bsonType": "object",
+                    "additionalProperties": true,
+                    "properties":
+                      {
+                        "b": { "bsonType": "int" },
+                        "b.c": { "bsonType": "int" },
+                      },
+                  },
+                "a.b": { "bsonType": "int" },
+                "$a.b": { "bsonType": "int" },
+                "$a.$b":
+                  {
+                    "bsonType": "object",
+                    "additionalProperties": true,
+                    "properties":
+                      {
+                        "$c":
+                          {
+                            "bsonType": "object",
+                            "additionalProperties": true,
+                            "properties": { "d": { "bsonType": "int" } },
+                          },
+                        "$c.d": { "bsonType": "int" },
+                      },
+                  },
+              },
+          },
+      },
+  }
+
+tests:
+- description: Undelimited identifier containing a . character is a compound identifier
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a": {
+            "c": {
+              "$literal": 1
+            }
+          }
+        }, 
+        {
+          "a": {
+            "$literal": 3
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "c": "$arr.a.c"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "properties": {
+          "c": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Delimited identifier containing a .
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "ab": {
+            "$getField": {
+              "field": "a.b", 
+              "input": "$bar"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "ab": {
+            "bsonType": "int"
+          }
+        },
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
+
+- description: Nested delimited identifier containing a .
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "abc": {
+            "$getField": {
+              "field": "b.c", 
+              "input": "$bar.a"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "abc": {
+            "bsonType": "int"
+          }
+        },
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
+
+- description: Delimited identifier with a $
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "ab": {
+            "$getField": {
+              "field": {
+                "$literal": "$a.b"
+              }, 
+              "input": "$bar"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "ab": {
+            "bsonType": "int"
+          }
+        },
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
+
+- description: Nested delimited identifiers containing $ and .
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "abcd": {
+            "$getField": {
+              "field": {
+                "$literal": "$c.d"
+              }, 
+              "input": {
+                "$getField": {
+                  "field": {
+                    "$literal": "$a.$b"
+                  }, 
+                  "input": "$bar"
+                }
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "abcd": {
+            "bsonType": "int"
+          }
+        },
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
+
+- description: Mixed identifiers containing $ and .
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "abcd": {
+            "$getField": {
+              "field": "d", 
+              "input": {
+                "$getField": {
+                  "field": {
+                    "$literal": "$c"
+                  }, 
+                  "input": {
+                    "$getField": {
+                      "field": {
+                        "$literal": "$a.$b"
+                      }, 
+                      "input": "$bar"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "abcd": {
+            "bsonType": "int"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
+
+- description: Delimited identifier containing an empty string
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "empty": {
+            "$getField": {
+              "field": "", 
+              "input": "$bar"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "properties": {
+          "empty": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Unaliased use of field reference expression with $ and .
+  current_db: foo
+  pipeline: [
+    {
+      "$match": {
+        "$expr": {
+          "$and": [
+            {
+              "$gt": [
+                {
+                  "$getField": {
+                    "field": {
+                      "$literal": "$a.b"
+                    }, 
+                    "input": "$$ROOT"
+                  }
+                }, 
+                {
+                  "$literal": null
+                }
+              ]
+            }, 
+            {
+              "$eq": [
+                {
+                  "$getField": {
+                    "field": {
+                      "$literal": "$a.b"
+                    }, 
+                    "input": "$$ROOT"
+                  }
+                }, 
+                {
+                  "$literal": 4
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "bar": {
+        "bsonType": "object",
+        "properties": {
+          "$a.b": {
+            "bsonType": "int"
+          },
+          "_id": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "$a.b",
+          "_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "_id",
+      "bar"
+    ],
+    "additionalProperties": false
+  }
+
+- description: Unaliased use of nested field reference expressions with $ and .
+  current_db: foo
+  pipeline: [
+    {
+      "$match": {
+        "$expr": {
+          "$and": [
+            {
+              "$gt": [
+                {
+                  "$getField": {
+                    "field": "d", 
+                    "input": {
+                      "$getField": {
+                        "field": {
+                          "$literal": "$c"
+                        }, 
+                        "input": {
+                          "$getField": {
+                            "field": {
+                              "$literal": "$a.$b"
+                            }, 
+                            "input": "$$ROOT"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }, 
+                {
+                  "$literal": null
+                }
+              ]
+            }, 
+            {
+              "$eq": [
+                {
+                  "$getField": {
+                    "field": "d", 
+                    "input": {
+                      "$getField": {
+                        "field": {
+                          "$literal": "$c"
+                        }, 
+                        "input": {
+                          "$getField": {
+                            "field": {
+                              "$literal": "$a.$b"
+                            }, 
+                            "input": "$$ROOT"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }, 
+                {
+                  "$literal": 6
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "bar": {
+        "bsonType": "object",
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "$a.$b": {
+            "bsonType": "object",
+            "properties": {
+              "$c": {
+                "bsonType": "object",
+                "properties": {
+                  "d": {
+                    "bsonType": "int"
+                  }
+                },
+                "required": [
+                  "d"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "$c"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "$a.$b",
+          "_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": ["bar"],
+    "additionalProperties": false
+  }
+
+- description: Delimited identifier starting with digit is an identifier
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "1a": {
+            "$literal": 2
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "1a": "$arr.1a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "1a"
+        ], 
+        "properties": {
+          "1a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Backtick delimited identifiers containing delimiter characters
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a`b": {
+            "$literal": 1
+          }, 
+          "a\"b": {
+            "$literal": 2
+          }, 
+          "a`\"b": {
+            "$literal": 3
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a`b": "$arr.a`b", 
+          "a\"b": "$arr.a\"b", 
+          "a`\"b": "$arr.a`\"b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a\"b", 
+          "a`\"b", 
+          "a`b"
+        ], 
+        "properties": {
+          "a`b": {
+            "bsonType": "int"
+          }, 
+          "a\"b": {
+            "bsonType": "int"
+          }, 
+          "a`\"b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Double quote delimited identifiers containing delimiter characters
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a`b": {
+            "$literal": 1
+          }, 
+          "a\"b": {
+            "$literal": 2
+          }, 
+          "a`\"b": {
+            "$literal": 3
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a`b": "$arr.a`b", 
+          "a\"b": "$arr.a\"b", 
+          "a`\"b": "$arr.a`\"b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a\"b", 
+          "a`\"b", 
+          "a`b"
+        ], 
+        "properties": {
+          "a`b": {
+            "bsonType": "int"
+          }, 
+          "a\"b": {
+            "bsonType": "int"
+          }, 
+          "a`\"b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Regular and delimited identifiers
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }, 
+          "b": {
+            "$literal": 2
+          }
+        }, 
+        {
+          "a": {
+            "$literal": 3
+          }, 
+          "b": {
+            "$literal": 4
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$arr.a", 
+          "b": "$arr.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Delimited identifier with non-ASCII characters
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "\u03b1\u03b2\u03b3": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "\u03b1\u03b2\u03b3": "$arr.\u03b1\u03b2\u03b3"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "\u03b1\u03b2\u03b3"
+        ], 
+        "properties": {
+          "\u03b1\u03b2\u03b3": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Compound identifier with more than 3 parts
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a": {
+            "b": {
+              "c": {
+                "d": {
+                  "$literal": 1
+                }
+              }
+            }
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "d": "$arr.a.b.c.d"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "d"
+        ], 
+        "properties": {
+          "d": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Case-sensitive identifiers
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }, 
+          "A": {
+            "$literal": 2
+          }
+        }, 
+        {
+          "a": {
+            "$literal": 3
+          }
+        }, 
+        {
+          "A": {
+            "$literal": 4
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$arr.a", 
+          "A": "$arr.A"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "properties": {
+          "A": {
+            "bsonType": "int"
+          }, 
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

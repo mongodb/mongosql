@@ -1876,8 +1876,8 @@ mod stage_test {
         test_serde_stage!(
             empty_pipeline,
             expected = Stage::UnionWith(UnionWith::Pipeline(UnionWithPipeline {
-                coll: "empty".to_string(),
-                pipeline: vec![],
+                coll: Some("empty".to_string()),
+                pipeline: Some(vec![]),
             })),
             input = r#"stage: {"$unionWith": {
                 "coll": "empty",
@@ -1888,8 +1888,8 @@ mod stage_test {
         test_serde_stage!(
             singleton_pipeline,
             expected = Stage::UnionWith(UnionWith::Pipeline(UnionWithPipeline {
-                coll: "single".to_string(),
-                pipeline: vec![Stage::Limit(10)],
+                coll: Some("single".to_string()),
+                pipeline: Some(vec![Stage::Limit(10)]),
             })),
             input = r#"stage: {"$unionWith": {
                 "coll": "single",
@@ -1900,8 +1900,8 @@ mod stage_test {
         test_serde_stage!(
             multiple_element_pipeline,
             expected = Stage::UnionWith(UnionWith::Pipeline(UnionWithPipeline {
-                coll: "multiple".to_string(),
-                pipeline: vec![Stage::Skip(5), Stage::Limit(10)],
+                coll: Some("multiple".to_string()),
+                pipeline: Some(vec![Stage::Skip(5), Stage::Limit(10)]),
             })),
             input = r#"stage: {"$unionWith": {
                 "coll": "multiple",

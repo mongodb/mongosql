@@ -1,0 +1,3485 @@
+catalog_schema:
+  {
+    "foo":
+      {
+        "bar":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a", "b", "c"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a": { "bsonType": "int" },
+                "b": { "bsonType": "int" },
+                "c": { "bsonType": "int" },
+              },
+          },
+        "multi":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a", "b", "c"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a":
+                  {
+                    "anyOf":
+                      [
+                        { "bsonType": "int" },
+                        { "bsonType": !!str "null" },
+                      ]
+                  },
+                "b":
+                  {
+                    "anyOf":
+                      [
+                        { "bsonType": "int" },
+                        { "bsonType": !!str "null" },
+                      ]
+                  },
+                "c":
+                  {
+                    "anyOf":
+                      [
+                        { "bsonType": "int" },
+                        { "bsonType": !!str "null" },
+                      ]
+                  },
+              },
+          },
+        "nullAndMissing":
+          {
+            "bsonType": "object",
+            "required": ["_id"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "n":
+                  {
+                    "anyOf":
+                      [{ "bsonType": "int" }, { "bsonType": !!str "null" }],
+                  },
+              },
+          },
+        "baz":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a":
+                  {
+                    "bsonType": "object",
+                    "required": ["a", "b"],
+                    "additionalProperties": false,
+                    "properties":
+                      {
+                        "a":
+                          {
+                            "anyOf":
+                              [
+                                { "bsonType": "int" },
+                                { "bsonType": !!str "null" },
+                              ],
+                          },
+                        "b":
+                          {
+                            "anyOf":
+                              [
+                                { "bsonType": "int" },
+                                { "bsonType": !!str "null" },
+                              ],
+                          },
+                      },
+                  },
+              },
+          },
+        "baz2":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a", "doc"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a": { "bsonType": "int" },
+                "doc":
+                  {
+                    "bsonType": "object",
+                    "required": [],
+                    "properties":
+                      {
+                        "a": { "bsonType": "string" },
+                        "b": { "bsonType": "string" },
+                      },
+                  },
+              },
+          },
+        "numerics":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a":
+                  {
+                    "anyOf":
+                      [
+                        { "bsonType": "int" },
+                        { "bsonType": "double" },
+                        { "bsonType": "decimal" },
+                      ],
+                  },
+              },
+          },
+        "dupes":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a"],
+            "additionalProperties": false,
+            "properties":
+              { "_id": { "bsonType": "int" }, "a": { "bsonType": "int" } },
+          },
+        "arr":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a"],
+            "additionalProperties": false,
+            "properties": { "a": { "bsonType": "array" } },
+          },
+        "docs":
+          {
+            "bsonType": "object",
+            "required": ["_id"],
+            "additionalProperties": false,
+            "properties": {
+              "_id": { "bsonType": "int" },
+              "d":
+                {
+                  "anyOf":
+                    [
+                      { "bsonType": !!str "null" },
+                      {
+                        "bsonType": "object",
+                        required: [ ],
+                        additionalProperties: false,
+                        properties:
+                          {
+                            "a":
+                              {
+                                "anyOf":
+                                  [
+                                    { "bsonType": "int" },
+                                    { "bsonType": !!str "null" }
+                                  ]
+                              }
+                          }
+                      }
+                    ]
+                }
+            },
+          },
+        "poly":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a"],
+            "additionalProperties": false,
+            "properties": {
+              "a": {
+                "anyOf": [
+                  { "bsonType": "bool" },
+                  { "bsonType": "string" },
+                ]
+              }
+            },
+          },
+      },
+  }
+
+tests:
+- description: GROUP BY with empty input outputs empty
+  current_db: test
+  pipeline: [
+    {
+      "$documents": []
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "n": {
+            "$literal": null
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "n": "$_id.n"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    'bsonType': 'object',
+    'additionalProperties': true,
+  }
+
+- description: GROUP BY NULL creates only one group
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "n": {
+            "$literal": null
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "n": "$_id.n"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "n": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: GROUP BY 1 creates only one group
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "n": {
+            "$literal": 1
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "n": "$_id.n"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "n": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: GROUP BY hello creates only one group
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "n": {
+            "$literal": "hello"
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "n": "$_id.n"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "n": {
+            "bsonType": "string"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: GROUP BY MISSING converts MISSING to NULL; NULL is not DISTINCT from NULL, but is distinct from non-null values
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "n": "$n"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "n": "$_id.n"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "n": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: GROUP BY keys may be table-qualified
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "a": "$a.a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: qualified top-level field reference keys can be referenced by qualified name
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "__unaliasedKey1": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": {
+          "a": "$_id.__unaliasedKey1"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$bar"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: qualified top-level field reference keys can be referenced by unqualified name
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "__unaliasedKey1": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": {
+          "a": "$_id.__unaliasedKey1"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$bar"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: unqualified top-level field reference keys can be referenced by qualified name
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "__unaliasedKey1": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": {
+          "a": "$_id.__unaliasedKey1"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$bar"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: unqualified top-level field reference keys can be referenced by unqualified name
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "__unaliasedKey1": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": {
+          "a": "$_id.__unaliasedKey1"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$bar"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: GROUP BY arbitrary expression
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "ap2": {
+            "$add": [
+              {
+                "$literal": 2
+              }, 
+              "$a"
+            ]
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "ap2": "$_id.ap2"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "ap2"
+        ], 
+        "properties": {
+          "ap2": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: single DISTINCT aggregation function correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "n": {
+            "$literal": null
+          }
+        }, 
+        "suma": {
+          "$addToSet": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 1, 
+        "suma": {
+          "$sum": [
+            "$suma"
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "suma": "$suma", 
+          "n": "$_id.n"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n", 
+          "suma"
+        ], 
+        "properties": {
+          "suma": {
+            "bsonType": "int"
+          }, 
+          "n": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for DISTINCT and non-DISTINCT aggregation over same field
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "n": {
+            "$literal": null
+          }
+        }, 
+        "dsuma": {
+          "$addToSet": "$a"
+        }, 
+        "suma": {
+          "$sum": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 1, 
+        "dsuma": {
+          "$sum": [
+            "$dsuma"
+          ]
+        }, 
+        "suma": 1
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "dsuma": "$dsuma", 
+          "suma": "$suma", 
+          "n": "$_id.n"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "dsuma", 
+          "n", 
+          "suma"
+        ], 
+        "properties": {
+          "dsuma": {
+            "bsonType": "int"
+          }, 
+          "suma": {
+            "bsonType": "int"
+          }, 
+          "n": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: multi-DISTINCT aggregation function correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "countc": {
+          "$addToSet": {
+            "$cond": [
+              {
+                "$in": [
+                  {
+                    "$type": [
+                      "$c"
+                    ]
+                  }, 
+                  [
+                    {
+                      "$literal": "missing"
+                    }, 
+                    {
+                      "$literal": "null"
+                    }
+                  ]
+                ]
+              }, 
+              "$$REMOVE", 
+              "$c"
+            ]
+          }
+        }, 
+        "_id": {
+          "n": {
+            "$literal": null
+          }
+        }, 
+        "suma": {
+          "$addToSet": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "countc": {
+          "$size": [
+            "$countc"
+          ]
+        }, 
+        "_id": 1, 
+        "suma": {
+          "$sum": [
+            "$suma"
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "countc": "$countc", 
+          "suma": "$suma", 
+          "n": "$_id.n"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "countc": "$__bot.countc", 
+          "suma": "$__bot.suma"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "countc", 
+          "suma"
+        ], 
+        "properties": {
+          "countc": {
+            "bsonType": "int"
+          }, 
+          "suma": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: multi-item group key correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "a": "$a", 
+          "b": "$b"
+        }, 
+        "sumc": {
+          "$sum": "$c"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "b": "$_id.b", 
+          "sumc": "$sumc"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "sumc"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "sumc": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: multi-item group key with HAVING correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$match": {
+        "$expr": {
+          "$and": [
+            {
+              "$ne": [
+                "$a", 
+                {
+                  "$literal": 1
+                }
+              ]
+            }, 
+            {
+              "$gt": [
+                "$a", 
+                {
+                  "$literal": null
+                }
+              ]
+            }, 
+            {
+              "$not": [
+                {
+                  "$or": [
+                    {
+                      "$eq": [
+                        {
+                          "$type": [
+                            "$a"
+                          ]
+                        }, 
+                        {
+                          "$literal": "null"
+                        }
+                      ]
+                    }, 
+                    {
+                      "$eq": [
+                        {
+                          "$type": [
+                            "$a"
+                          ]
+                        }, 
+                        {
+                          "$literal": "missing"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "a": "$a", 
+          "b": "$b"
+        }, 
+        "sumc": {
+          "$sum": "$c"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "b": "$_id.b", 
+          "sumc": "$sumc"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$and": [
+            {
+              "$gt": [
+                "$__bot.sumc", 
+                {
+                  "$literal": null
+                }
+              ]
+            }, 
+            {
+              "$ne": [
+                "$__bot.sumc", 
+                {
+                  "$literal": 4
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "sumc"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "sumc": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: HAVING without GROUP BY works as a WHERE clause but happens after the WHERE clause
+  current_db: foo
+  pipeline: [
+    {
+      "$match": {
+        "$expr": {
+          "$and": [
+            {
+              "$lt": [
+                "$a", 
+                {
+                  "$literal": 15
+                }
+              ]
+            }, 
+            {
+              "$gt": [
+                "$a", 
+                {
+                  "$literal": 5
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: ADD_TO_ARRAY correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$sort": {
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a", 
+          "_id": "$bar._id", 
+          "b": "$bar.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "a": "$arr.a"
+        }, 
+        "garr": {
+          "$push": "$arr.b"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "garr": "$garr"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
+
+- description: ADD_TO_ARRAY DISTINCT correctness test (equivalent to ADD_TO_SET)
+  current_db: foo
+  pipeline: [
+    {
+      "$sort": {
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a", 
+          "_id": "$bar._id"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "a": "$arr.a"
+        }, 
+        "garr": {
+          "$addToSet": "$arr.a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "garr": "$garr"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
+
+- description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in DECIMAL)
+  current_db: foo
+  pipeline: [
+    {
+      "$sort": {
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "numerics": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "_numeric": "$numerics", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "_": {
+            "$literal": null
+          }
+        }, 
+        "gset": {
+          "$addToSet": "$_numeric.a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "gset": "$gset", 
+          "_": "$_id._"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "gset": "$__bot.gset"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "gset": {
+            "bsonType": "array",
+            "items": { "bsonType": "decimal" }
+          }
+        }
+      }
+    },
+    "required": [
+      "",
+    ],
+    "additionalProperties": false
+  }
+
+- description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in INT)
+  current_db: foo
+  pipeline: [
+    {
+      "$sort": {
+        "_id": -1
+      }
+    }, 
+    {
+      "$project": {
+        "numerics": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "numeric": "$numerics"
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "_": {
+            "$literal": null
+          }
+        }, 
+        "gset": {
+          "$addToSet": "$numeric.a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "gset": "$gset", 
+          "_": "$_id._"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "gset": "$__bot.gset"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "gset": {
+            "bsonType": "array",
+            "items": { "bsonType": "int" }
+          }
+        }
+      }
+    },
+    "required": [
+      "",
+    ],
+    "additionalProperties": false
+  }
+
+- description: ADD_TO_SET correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$sort": {
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "baz": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$baz.a", 
+          "_id": "$baz._id"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "a": "$arr.a.a"
+        }, 
+        "gset": {
+          "$addToSet": "$arr.a.a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gset": "$gset"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "gset": {
+            "bsonType": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "bsonType": "null"
+                },
+                {
+                  "bsonType": "int"
+                }
+              ]
+            }
+          },
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              },
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        },
+        "required": [
+          "a",
+          "gset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
+
+- description: AVG correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "a": "$a.a"
+        }, 
+        "gavg": {
+          "$avg": "$a.b"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gavg": "$gavg"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gavg"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "gavg": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "double"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: COUNT single column correctness test -- ignores nullish values
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "gcount": {
+          "$sum": {
+            "$cond": [
+              {
+                "$in": [
+                  {
+                    "$type": [
+                      "$b"
+                    ]
+                  }, 
+                  [
+                    {
+                      "$literal": "missing"
+                    }, 
+                    {
+                      "$literal": "null"
+                    }
+                  ]
+                ]
+              }, 
+              {
+                "$literal": 0
+              }, 
+              {
+                "$literal": 1
+              }
+            ]
+          }
+        }, 
+        "_id": {
+          "a": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gcount": "$gcount"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gcount"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "gcount": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: COUNT distinct single column correctness test -- ignores nullish values
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "gcount": {
+          "$addToSet": {
+            "$cond": [
+              {
+                "$in": [
+                  {
+                    "$type": [
+                      "$b"
+                    ]
+                  }, 
+                  [
+                    {
+                      "$literal": "missing"
+                    }, 
+                    {
+                      "$literal": "null"
+                    }
+                  ]
+                ]
+              }, 
+              "$$REMOVE", 
+              "$b"
+            ]
+          }
+        }, 
+        "_id": {
+          "a": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "gcount": {
+          "$size": [
+            "$gcount"
+          ]
+        }, 
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gcount": "$gcount"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gcount"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "gcount": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: COUNT single document column -- only counts values with at least one non-nullish field
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "gcount": {
+          "$sum": {
+            "$cond": [
+              {
+                "$or": [
+                  {
+                    "$in": [
+                      {
+                        "$type": [
+                          "$d"
+                        ]
+                      }, 
+                      [
+                        {
+                          "$literal": "missing"
+                        }, 
+                        {
+                          "$literal": "null"
+                        }
+                      ]
+                    ]
+                  }, 
+                  {
+                    "$eq": [
+                      "$d", 
+                      {
+                        "$literal": {}
+                      }
+                    ]
+                  }, 
+                  {
+                    "$allElementsTrue": [
+                      {
+                        "$ifNull": [
+                          {
+                            "$map": {
+                              "input": {
+                                "$objectToArray": [
+                                  "$d"
+                                ]
+                              }, 
+                              "in": {
+                                "$eq": [
+                                  "$$this.v", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            }
+                          }, 
+                          []
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }, 
+              {
+                "$literal": 0
+              }, 
+              {
+                "$literal": 1
+              }
+            ]
+          }
+        }, 
+        "_id": {
+          "n": {
+            "$literal": null
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "gcount": "$gcount", 
+          "n": "$_id.n"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "gcount", 
+          "n"
+        ], 
+        "properties": {
+          "gcount": {
+            "bsonType": "int"
+          }, 
+          "n": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: COUNT multi column correctness test -- only counts rows with at least one non-nullish value
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "gcount": {
+          "$sum": {
+            "$cond": [
+              {
+                "$or": [
+                  {
+                    "$eq": [
+                      {
+                        "_arg0": "$b", 
+                        "_arg1": "$c"
+                      }, 
+                      {
+                        "$literal": {}
+                      }
+                    ]
+                  }, 
+                  {
+                    "$allElementsTrue": [
+                      {
+                        "$ifNull": [
+                          {
+                            "$map": {
+                              "input": {
+                                "$objectToArray": [
+                                  {
+                                    "_arg0": "$b", 
+                                    "_arg1": "$c"
+                                  }
+                                ]
+                              }, 
+                              "in": {
+                                "$eq": [
+                                  "$$this.v", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            }
+                          }, 
+                          []
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }, 
+              {
+                "$literal": 0
+              }, 
+              {
+                "$literal": 1
+              }
+            ]
+          }
+        }, 
+        "_id": {
+          "a": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gcount": "$gcount"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gcount"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "gcount": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: COUNT distinct multi column correctness test -- only counts rows with at least one non-nullish value
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "gcount": {
+          "$addToSet": {
+            "$cond": [
+              {
+                "$or": [
+                  {
+                    "$eq": [
+                      {
+                        "_arg0": "$b", 
+                        "_arg1": "$c"
+                      }, 
+                      {
+                        "$literal": {}
+                      }
+                    ]
+                  }, 
+                  {
+                    "$allElementsTrue": [
+                      {
+                        "$ifNull": [
+                          {
+                            "$map": {
+                              "input": {
+                                "$objectToArray": [
+                                  {
+                                    "_arg0": "$b", 
+                                    "_arg1": "$c"
+                                  }
+                                ]
+                              }, 
+                              "in": {
+                                "$eq": [
+                                  "$$this.v", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            }
+                          }, 
+                          []
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }, 
+              "$$REMOVE", 
+              {
+                "_arg0": "$b", 
+                "_arg1": "$c"
+              }
+            ]
+          }
+        }, 
+        "_id": {
+          "a": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "gcount": {
+          "$size": [
+            "$gcount"
+          ]
+        }, 
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gcount": "$gcount"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gcount"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "gcount": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: COUNT(*) correctness test unconditionally count rows
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "m": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$m.a", 
+          "b": "$m.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$group": {
+        "gcount": {
+          "$sum": {
+            "$literal": 1
+          }
+        }, 
+        "_id": {
+          "a": "$arr.a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gcount": "$gcount"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gcount"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "gcount": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: COUNT(DISTINCT *) correctness test unconditionally count distinct rows
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "m": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$m.a", 
+          "b": "$m.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$group": {
+        "gcount": {
+          "$addToSet": "$$ROOT"
+        }, 
+        "_id": {
+          "a": "$arr.a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "gcount": {
+          "$size": [
+            "$gcount"
+          ]
+        }, 
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gcount": "$gcount"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gcount"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "gcount": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: COUNT(MISSING) and COUNT(NULL) skip MISSING and NULL values
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "gcounta": {
+          "$sum": {
+            "$cond": [
+              {
+                "$in": [
+                  {
+                    "$type": [
+                      "$a.a"
+                    ]
+                  }, 
+                  [
+                    {
+                      "$literal": "missing"
+                    }, 
+                    {
+                      "$literal": "null"
+                    }
+                  ]
+                ]
+              }, 
+              {
+                "$literal": 0
+              }, 
+              {
+                "$literal": 1
+              }
+            ]
+          }
+        }, 
+        "_id": {
+          "a": "$a.a"
+        }, 
+        "gcountn": {
+          "$sum": {
+            "$literal": 0
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gcounta": "$gcounta", 
+          "gcountn": "$gcountn"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gcounta", 
+          "gcountn"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "gcounta": {
+            "bsonType": "int"
+          }, 
+          "gcountn": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: FIRST correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$sort": {
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a", 
+          "_id": "$bar._id", 
+          "b": "$bar.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "a": "$arr.a"
+        }, 
+        "gfirst": {
+          "$first": "$arr.b"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gfirst": "$gfirst"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gfirst"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "gfirst": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: LAST correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$sort": {
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a", 
+          "_id": "$bar._id", 
+          "b": "$bar.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "a": "$arr.a"
+        }, 
+        "glast": {
+          "$last": "$arr.b"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "glast": "$glast"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "glast"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "glast": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+
+- description: MAX correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "a": "$a"
+        }, 
+        "gmax": {
+          "$max": "$b"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gmax": "$gmax"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gmax"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "gmax": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: MERGE_DOCUMENTS correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$sort": {
+        "_id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "baz2": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$baz2.a", 
+          "doc": "$baz2.doc", 
+          "_id": "$baz2._id"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "arr": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$group": {
+        "_id": {
+          "a": "$arr.a"
+        }, 
+        "gmerge": {
+          "$mergeObjects": "$arr.doc"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gmerge": "$gmerge"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "gmerge": {
+            "bsonType": "object",
+            "properties": {
+              "a": {
+                "bsonType": "string"
+              },
+              "b": {
+                "bsonType": "string"
+              }
+            },
+            "required": [
+              "a"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "a",
+          "gmerge"
+        ],
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
+
+- description: MIN correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "gmin": {
+          "$min": "$b"
+        }, 
+        "_id": {
+          "a": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gmin": "$gmin"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gmin"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "gmin": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: STDDEV_POP correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "a": "$a"
+        }, 
+        "gstdp": {
+          "$stdDevPop": "$b"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gstdp": "$gstdp"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "gstdp": {
+            "bsonType": "double"
+          },
+          "a": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "gstdp"
+        ],
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
+
+- description: STDDEV_SAMP correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "a": "$a"
+        }, 
+        "gstds": {
+          "$stdDevSamp": "$b"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gstds": "$gstds"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "bsonType": "object",
+    "properties": {
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "gstds": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              },
+              {
+                "bsonType": "double"
+              }
+            ]
+          },
+          "a": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "gstds"
+        ],
+        "additionalProperties": false
+      },
+
+    },
+    "required": [""],
+    "additionalProperties": false
+  }
+- description: SUM correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "a": "$a"
+        }, 
+        "gsum": {
+          "$sum": "$b"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$_id.a", 
+          "gsum": "$gsum"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "gsum"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "gsum": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

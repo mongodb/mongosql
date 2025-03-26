@@ -1,0 +1,151 @@
+catalog_schema:
+  {
+    "foo": {
+      "bar": {
+        "bsonType": "object",
+        "additionalProperties": true
+      },
+      "bar_schema": {
+        "bsonType": "object",
+        "required": [ '_id', 'v1' ],
+        "additionalProperties": false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v1": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": "int" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+        }
+      }
+    }
+  }
+
+tests:
+- description: correctness test for type assertion in schema mode
+  current_db: foo
+  pipeline: [
+        {
+          "$project": {
+            "bar_schema": "$$ROOT", 
+            "_id": 0
+          }
+        }, 
+        {
+          "$project": {
+            "__bot": {
+              "v1": "$bar_schema.v1"
+            }, 
+            "_id": 0
+          }
+        }, 
+        {
+          "$replaceWith": {
+            "$unsetField": {
+              "field": "__bot", 
+              "input": {
+                "$setField": {
+                  "field": "", 
+                  "value": "$__bot", 
+                  "input": "$$ROOT"
+                }
+              }
+            }
+          }
+        }
+      ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "v1"
+        ], 
+        "properties": {
+          "v1": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for type assertion in schema-less mode, target type
+    can be any
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "v1": "$bar.v1"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "v1"
+        ], 
+        "properties": {
+          "v1": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }

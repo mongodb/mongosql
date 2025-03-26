@@ -1,0 +1,438 @@
+catalog_schema:
+  {
+    "foo":
+      {
+        "bar":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a"],
+            "additionalProperties": false,
+            "properties":
+              { "_id": { "bsonType": "int" }, "a": { "bsonType": "int" } },
+          },
+        "baz":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a"],
+            "additionalProperties": false,
+            "properties":
+              { "_id": { "bsonType": "int" }, "a": { "bsonType": "int" } },
+          },
+      },
+  }
+
+tests:
+- description: Simple select with limit clause
+  current_db: foo
+  pipeline: [
+    {
+      "$sort": {
+        "a": 1
+      }
+    }, 
+    {
+      "$limit": 1
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: Simple select with offset clause
+  current_db: foo
+  pipeline: [
+    {
+      "$sort": {
+        "a": 1
+      }
+    }, 
+    {
+      "$skip": 1
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: Select with limit and offset
+  current_db: foo
+  pipeline: [
+    {
+      "$sort": {
+        "a": 1
+      }
+    }, 
+    {
+      "$skip": 1
+    }, 
+    {
+      "$limit": 1
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: Limit in subquery
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "baz", 
+        pipeline: [
+          {
+            "$sort": {
+              "a": 1
+            }
+          }, 
+          {
+            "$limit": 1
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "baz": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$baz.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$or": [
+                "$$value", 
+                {
+                  "$eq": [
+                    "$bar.a", 
+                    "$$this.__bot.a"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: Offset in subquery
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "baz", 
+        pipeline: [
+          {
+            "$sort": {
+              "a": 1
+            }
+          }, 
+          {
+            "$skip": 1
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "baz": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$baz.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$or": [
+                "$$value", 
+                {
+                  "$eq": [
+                    "$bar.a", 
+                    "$$this.__bot.a"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: Limit and offset in subquery
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "baz", 
+        pipeline: [
+          {
+            "$sort": {
+              "a": 1
+            }
+          }, 
+          {
+            "$skip": 1
+          }, 
+          {
+            "$limit": 1
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "baz": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$baz.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$or": [
+                "$$value", 
+                {
+                  "$eq": [
+                    "$bar.a", 
+                    "$$this.__bot.a"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }

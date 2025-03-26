@@ -1,0 +1,7278 @@
+catalog_schema:
+  {
+    "foo": {
+      "numbers": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "long" },
+              { "bsonType": "double" },
+              { "bsonType": "decimal" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "long" },
+              { "bsonType": "double" },
+              { "bsonType": "decimal" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "nan": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+           "a": {
+              "bsonType": "decimal" ,
+          },
+          "b": {
+               "bsonType": "decimal" ,
+          }
+        }
+      },
+      "strings": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "bools": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "bool" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "bool" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "dates": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "date" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "date" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "nullAndMissing": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "bsonType": !!str "null"
+          },
+          "b": {
+            "bsonType": !!str "null"
+          }
+        }
+      },
+      "documents": {
+        "bsonType": "object",
+        "required": [ "_id", "comment" ],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "comment": { "bsonType": "string" },
+          "a": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              }
+            ]
+          }
+        }
+      },
+      "arrays": {
+        "bsonType": "object",
+        "required": [ "_id", "comment" ],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "comment": { "bsonType": "string" },
+          "a": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "array",
+                "items": { "bsonType": "int" },
+              }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "array",
+                "items": { "bsonType": "int" },
+              }
+            ]
+          }
+        }
+      },
+      "betweenNumeric": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b', 'c' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "long" },
+              { "bsonType": "double" },
+              { "bsonType": "decimal" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "long" },
+              { "bsonType": "double" },
+              { "bsonType": "decimal" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "c": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "long" },
+              { "bsonType": "double" },
+              { "bsonType": "decimal" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "betweenStrings": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b', 'c' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "c": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "betweenDates": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b', 'c' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "date" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "date" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "c": {
+            "anyOf": [
+              { "bsonType": "date" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "betweenDocuments": {
+        "bsonType": "object",
+        "required": [ "_id", "comment" ],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "comment": { "bsonType": "string" },
+          "a": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              }
+            ]
+          },
+          "c": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              }
+            ]
+          }
+        }
+      },
+      "betweenArrays": {
+        "bsonType": "object",
+        "required": [ "_id", "comment" ],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "comment": { "bsonType": "string" },
+          "a": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "array",
+                "items": { "bsonType": "int" },
+              }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "array",
+                "items": { "bsonType": "int" },
+              }
+            ]
+          },
+          "c": {
+            "anyOf": [
+              { "bsonType": !!str "null" },
+              {
+                "bsonType": "array",
+                "items": { "bsonType": "int" },
+              }
+            ]
+          }
+        }
+      },
+    }
+  }
+
+tests:
+- description: correctness test for lt for numeric types
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "numbers": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$numbers.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlLt_input0": "$numbers.a", 
+                "desugared_sqlLt_input1": "$numbers.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLt_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLt_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$lt": [
+                      "$$desugared_sqlLt_input0", 
+                      "$$desugared_sqlLt_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$numbers.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lte for numeric types
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "numbers": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$numbers.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlLte_input0": "$numbers.a", 
+                "desugared_sqlLte_input1": "$numbers.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLte_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLte_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$lte": [
+                      "$$desugared_sqlLte_input0", 
+                      "$$desugared_sqlLte_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$numbers.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for neq for numeric types
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "numbers": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$numbers.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlNe_input1": "$numbers.b", 
+                "desugared_sqlNe_input0": "$numbers.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlNe_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlNe_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$ne": [
+                      "$$desugared_sqlNe_input0", 
+                      "$$desugared_sqlNe_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$numbers.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for eq for numeric types
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "numbers": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$numbers.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlEq_input0": "$numbers.a", 
+                "desugared_sqlEq_input1": "$numbers.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlEq_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlEq_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$eq": [
+                      "$$desugared_sqlEq_input0", 
+                      "$$desugared_sqlEq_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$numbers.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gt for numeric types
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "numbers": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$numbers.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlGt_input1": "$numbers.b", 
+                "desugared_sqlGt_input0": "$numbers.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGt_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGt_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$gt": [
+                      "$$desugared_sqlGt_input0", 
+                      "$$desugared_sqlGt_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$numbers.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gte for numeric types
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "numbers": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$numbers.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlGte_input1": "$numbers.b", 
+                "desugared_sqlGte_input0": "$numbers.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGte_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGte_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$gte": [
+                      "$$desugared_sqlGte_input0", 
+                      "$$desugared_sqlGte_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$numbers.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lt for NaN
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "nan": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$nan.a", 
+          "c": {
+            "$lt": [
+              "$nan.a", 
+              "$nan.b"
+            ]
+          }, 
+          "b": "$nan.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "decimal"
+          }, 
+          "c": {
+            "bsonType": "bool"
+          }, 
+          "b": {
+            "bsonType": "decimal"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lte for NaN
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "nan": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$nan.a", 
+          "c": {
+            "$lte": [
+              "$nan.a", 
+              "$nan.b"
+            ]
+          }, 
+          "b": "$nan.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "decimal"
+          }, 
+          "c": {
+            "bsonType": "bool"
+          }, 
+          "b": {
+            "bsonType": "decimal"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for eq for NaN
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "nan": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$nan.a", 
+          "c": {
+            "$eq": [
+              "$nan.a", 
+              "$nan.b"
+            ]
+          }, 
+          "b": "$nan.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "decimal"
+          }, 
+          "c": {
+            "bsonType": "bool"
+          }, 
+          "b": {
+            "bsonType": "decimal"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gt for NaN
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "nan": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$nan.a", 
+          "c": {
+            "$gt": [
+              "$nan.a", 
+              "$nan.b"
+            ]
+          }, 
+          "b": "$nan.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "decimal"
+          }, 
+          "c": {
+            "bsonType": "bool"
+          }, 
+          "b": {
+            "bsonType": "decimal"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gte for NaN
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "nan": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$nan.a", 
+          "c": {
+            "$gte": [
+              "$nan.a", 
+              "$nan.b"
+            ]
+          }, 
+          "b": "$nan.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "decimal"
+          }, 
+          "c": {
+            "bsonType": "bool"
+          }, 
+          "b": {
+            "bsonType": "decimal"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lt for strings
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "strings": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$strings.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlLt_input0": "$strings.a", 
+                "desugared_sqlLt_input1": "$strings.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLt_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLt_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$lt": [
+                      "$$desugared_sqlLt_input0", 
+                      "$$desugared_sqlLt_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$strings.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lte for strings
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "strings": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$strings.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlLte_input0": "$strings.a", 
+                "desugared_sqlLte_input1": "$strings.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLte_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLte_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$lte": [
+                      "$$desugared_sqlLte_input0", 
+                      "$$desugared_sqlLte_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$strings.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for neq for strings
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "strings": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$strings.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlNe_input1": "$strings.b", 
+                "desugared_sqlNe_input0": "$strings.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlNe_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlNe_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$ne": [
+                      "$$desugared_sqlNe_input0", 
+                      "$$desugared_sqlNe_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$strings.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for eq for strings
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "strings": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$strings.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlEq_input0": "$strings.a", 
+                "desugared_sqlEq_input1": "$strings.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlEq_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlEq_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$eq": [
+                      "$$desugared_sqlEq_input0", 
+                      "$$desugared_sqlEq_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$strings.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gt for strings
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "strings": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$strings.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlGt_input1": "$strings.b", 
+                "desugared_sqlGt_input0": "$strings.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGt_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGt_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$gt": [
+                      "$$desugared_sqlGt_input0", 
+                      "$$desugared_sqlGt_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$strings.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gte for strings
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "strings": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$strings.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlGte_input1": "$strings.b", 
+                "desugared_sqlGte_input0": "$strings.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGte_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGte_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$gte": [
+                      "$$desugared_sqlGte_input0", 
+                      "$$desugared_sqlGte_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$strings.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lt for bools
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bools": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bools.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlLt_input0": "$bools.a", 
+                "desugared_sqlLt_input1": "$bools.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLt_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLt_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$lt": [
+                      "$$desugared_sqlLt_input0", 
+                      "$$desugared_sqlLt_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$bools.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lte for bools
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bools": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bools.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlLte_input0": "$bools.a", 
+                "desugared_sqlLte_input1": "$bools.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLte_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLte_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$lte": [
+                      "$$desugared_sqlLte_input0", 
+                      "$$desugared_sqlLte_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$bools.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for neq for bools
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bools": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bools.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlNe_input1": "$bools.b", 
+                "desugared_sqlNe_input0": "$bools.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlNe_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlNe_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$ne": [
+                      "$$desugared_sqlNe_input0", 
+                      "$$desugared_sqlNe_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$bools.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for eq for bools
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bools": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bools.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlEq_input0": "$bools.a", 
+                "desugared_sqlEq_input1": "$bools.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlEq_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlEq_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$eq": [
+                      "$$desugared_sqlEq_input0", 
+                      "$$desugared_sqlEq_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$bools.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gt for bools
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bools": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bools.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlGt_input1": "$bools.b", 
+                "desugared_sqlGt_input0": "$bools.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGt_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGt_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$gt": [
+                      "$$desugared_sqlGt_input0", 
+                      "$$desugared_sqlGt_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$bools.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gte for bools
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bools": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bools.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlGte_input1": "$bools.b", 
+                "desugared_sqlGte_input0": "$bools.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGte_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGte_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$gte": [
+                      "$$desugared_sqlGte_input0", 
+                      "$$desugared_sqlGte_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$bools.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lt for dates
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "dates": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$dates.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlLt_input0": "$dates.a", 
+                "desugared_sqlLt_input1": "$dates.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLt_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLt_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$lt": [
+                      "$$desugared_sqlLt_input0", 
+                      "$$desugared_sqlLt_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$dates.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lte for dates
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "dates": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$dates.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlLte_input0": "$dates.a", 
+                "desugared_sqlLte_input1": "$dates.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLte_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLte_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$lte": [
+                      "$$desugared_sqlLte_input0", 
+                      "$$desugared_sqlLte_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$dates.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for neq for dates
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "dates": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$dates.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlNe_input1": "$dates.b", 
+                "desugared_sqlNe_input0": "$dates.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlNe_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlNe_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$ne": [
+                      "$$desugared_sqlNe_input0", 
+                      "$$desugared_sqlNe_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$dates.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for eq for dates
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "dates": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$dates.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlEq_input0": "$dates.a", 
+                "desugared_sqlEq_input1": "$dates.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlEq_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlEq_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$eq": [
+                      "$$desugared_sqlEq_input0", 
+                      "$$desugared_sqlEq_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$dates.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gt for dates
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "dates": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$dates.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlGt_input1": "$dates.b", 
+                "desugared_sqlGt_input0": "$dates.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGt_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGt_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$gt": [
+                      "$$desugared_sqlGt_input0", 
+                      "$$desugared_sqlGt_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$dates.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gte for dates
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "dates": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$dates.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlGte_input1": "$dates.b", 
+                "desugared_sqlGte_input0": "$dates.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGte_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGte_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$gte": [
+                      "$$desugared_sqlGte_input0", 
+                      "$$desugared_sqlGte_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$dates.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lt for null and missing
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "nullAndMissing": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$nullAndMissing.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlLt_input0": "$nullAndMissing.a", 
+                "desugared_sqlLt_input1": "$nullAndMissing.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLt_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLt_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$lt": [
+                      "$$desugared_sqlLt_input0", 
+                      "$$desugared_sqlLt_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$nullAndMissing.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "null"
+          }, 
+          "c": {
+            "bsonType": "null"
+          }, 
+          "b": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lte for null and missing
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "nullAndMissing": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$nullAndMissing.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlLte_input0": "$nullAndMissing.a", 
+                "desugared_sqlLte_input1": "$nullAndMissing.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLte_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLte_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$lte": [
+                      "$$desugared_sqlLte_input0", 
+                      "$$desugared_sqlLte_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$nullAndMissing.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "null"
+          }, 
+          "c": {
+            "bsonType": "null"
+          }, 
+          "b": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for neq for null and missing
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "nullAndMissing": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$nullAndMissing.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlNe_input1": "$nullAndMissing.b", 
+                "desugared_sqlNe_input0": "$nullAndMissing.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlNe_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlNe_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$ne": [
+                      "$$desugared_sqlNe_input0", 
+                      "$$desugared_sqlNe_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$nullAndMissing.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "null"
+          }, 
+          "c": {
+            "bsonType": "null"
+          }, 
+          "b": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for eq for null and missing
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "nullAndMissing": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$nullAndMissing.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlEq_input0": "$nullAndMissing.a", 
+                "desugared_sqlEq_input1": "$nullAndMissing.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlEq_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlEq_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$eq": [
+                      "$$desugared_sqlEq_input0", 
+                      "$$desugared_sqlEq_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$nullAndMissing.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "null"
+          }, 
+          "c": {
+            "bsonType": "null"
+          }, 
+          "b": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gt for null and missing
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "nullAndMissing": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$nullAndMissing.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlGt_input1": "$nullAndMissing.b", 
+                "desugared_sqlGt_input0": "$nullAndMissing.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGt_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGt_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$gt": [
+                      "$$desugared_sqlGt_input0", 
+                      "$$desugared_sqlGt_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$nullAndMissing.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "null"
+          }, 
+          "c": {
+            "bsonType": "null"
+          }, 
+          "b": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gte for null and missing
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "nullAndMissing": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$nullAndMissing.a", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlGte_input1": "$nullAndMissing.b", 
+                "desugared_sqlGte_input0": "$nullAndMissing.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGte_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGte_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$gte": [
+                      "$$desugared_sqlGte_input0", 
+                      "$$desugared_sqlGte_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$nullAndMissing.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "null"
+          }, 
+          "c": {
+            "bsonType": "null"
+          }, 
+          "b": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lt for documents
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "documents": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$documents.a", 
+          "comment": "$documents.comment", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlLt_input0": "$documents.a", 
+                "desugared_sqlLt_input1": "$documents.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLt_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLt_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$lt": [
+                      "$$desugared_sqlLt_input0", 
+                      "$$desugared_sqlLt_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$documents.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "z": {
+                    "bsonType": "bool"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "m": {
+                    "bsonType": "string"
+                  }, 
+                  "n": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lte for documents
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "documents": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$documents.a", 
+          "comment": "$documents.comment", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlLte_input0": "$documents.a", 
+                "desugared_sqlLte_input1": "$documents.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLte_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLte_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$lte": [
+                      "$$desugared_sqlLte_input0", 
+                      "$$desugared_sqlLte_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$documents.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "z": {
+                    "bsonType": "bool"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "m": {
+                    "bsonType": "string"
+                  }, 
+                  "n": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for neq for documents
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "documents": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$documents.a", 
+          "comment": "$documents.comment", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlNe_input1": "$documents.b", 
+                "desugared_sqlNe_input0": "$documents.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlNe_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlNe_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$ne": [
+                      "$$desugared_sqlNe_input0", 
+                      "$$desugared_sqlNe_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$documents.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "z": {
+                    "bsonType": "bool"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "m": {
+                    "bsonType": "string"
+                  }, 
+                  "n": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for eq for documents
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "documents": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$documents.a", 
+          "comment": "$documents.comment", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlEq_input0": "$documents.a", 
+                "desugared_sqlEq_input1": "$documents.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlEq_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlEq_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$eq": [
+                      "$$desugared_sqlEq_input0", 
+                      "$$desugared_sqlEq_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$documents.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "z": {
+                    "bsonType": "bool"
+                  }
+                }, 
+                "bsonType": "object"
+              }, 
+              {
+                "additionalProperties": false, 
+                "required": [
+                  "x", 
+                  "y"
+                ], 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "z": {
+                    "bsonType": "bool"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "m": {
+                    "bsonType": "string"
+                  }, 
+                  "n": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gt for documents
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "documents": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$documents.a", 
+          "comment": "$documents.comment", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlGt_input1": "$documents.b", 
+                "desugared_sqlGt_input0": "$documents.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGt_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGt_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$gt": [
+                      "$$desugared_sqlGt_input0", 
+                      "$$desugared_sqlGt_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$documents.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "z": {
+                    "bsonType": "bool"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "m": {
+                    "bsonType": "string"
+                  }, 
+                  "n": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gte for documents
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "documents": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$documents.a", 
+          "comment": "$documents.comment", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlGte_input1": "$documents.b", 
+                "desugared_sqlGte_input0": "$documents.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGte_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGte_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$gte": [
+                      "$$desugared_sqlGte_input0", 
+                      "$$desugared_sqlGte_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$documents.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "z": {
+                    "bsonType": "bool"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "string"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "m": {
+                    "bsonType": "string"
+                  }, 
+                  "n": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lt for arrays
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "arrays": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$arrays.a", 
+          "comment": "$arrays.comment", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlLt_input0": "$arrays.a", 
+                "desugared_sqlLt_input1": "$arrays.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLt_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLt_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$lt": [
+                      "$$desugared_sqlLt_input0", 
+                      "$$desugared_sqlLt_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$arrays.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lte for arrays
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "arrays": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$arrays.a", 
+          "comment": "$arrays.comment", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlLte_input0": "$arrays.a", 
+                "desugared_sqlLte_input1": "$arrays.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLte_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLte_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$lte": [
+                      "$$desugared_sqlLte_input0", 
+                      "$$desugared_sqlLte_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$arrays.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "array"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "array"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for neq for arrays
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "arrays": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$arrays.a", 
+          "comment": "$arrays.comment", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlNe_input1": "$arrays.b", 
+                "desugared_sqlNe_input0": "$arrays.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlNe_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlNe_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$ne": [
+                      "$$desugared_sqlNe_input0", 
+                      "$$desugared_sqlNe_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$arrays.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for eq for arrays
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "arrays": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$arrays.a", 
+          "comment": "$arrays.comment", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlEq_input0": "$arrays.a", 
+                "desugared_sqlEq_input1": "$arrays.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlEq_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlEq_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$eq": [
+                      "$$desugared_sqlEq_input0", 
+                      "$$desugared_sqlEq_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$arrays.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "array"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "array"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gt for arrays
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "arrays": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$arrays.a", 
+          "comment": "$arrays.comment", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlGt_input1": "$arrays.b", 
+                "desugared_sqlGt_input0": "$arrays.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGt_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGt_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$gt": [
+                      "$$desugared_sqlGt_input0", 
+                      "$$desugared_sqlGt_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$arrays.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gte for arrays
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "arrays": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$arrays.a", 
+          "comment": "$arrays.comment", 
+          "c": {
+            "$let": {
+              "vars": {
+                "desugared_sqlGte_input1": "$arrays.b", 
+                "desugared_sqlGte_input0": "$arrays.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGte_input0", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }, 
+                      {
+                        "$lte": [
+                          "$$desugared_sqlGte_input1", 
+                          {
+                            "$literal": null
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$gte": [
+                      "$$desugared_sqlGte_input0", 
+                      "$$desugared_sqlGte_input1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$arrays.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "c", 
+          "comment"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for BETWEEN for numeric types
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "betweenNumeric": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$betweenNumeric.a", 
+          "c": "$betweenNumeric.c", 
+          "b": "$betweenNumeric.b", 
+          "r": {
+            "$let": {
+              "vars": {
+                "desugared_sqlBetween_input": "$betweenNumeric.a"
+              }, 
+              "in": {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlAnd_input0": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlGte_input1": "$betweenNumeric.b", 
+                          "desugared_sqlGte_input0": "$$desugared_sqlBetween_input"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlGte_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlGte_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$gte": [
+                                "$$desugared_sqlGte_input0", 
+                                "$$desugared_sqlGte_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }, 
+                    "desugared_sqlAnd_input1": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlLte_input0": "$$desugared_sqlBetween_input", 
+                          "desugared_sqlLte_input1": "$betweenNumeric.c"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlLte_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlLte_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlLte_input0", 
+                                "$$desugared_sqlLte_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }, 
+                  "in": {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input0", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input1", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }
+                        ]
+                      }, 
+                      {
+                        "$literal": false
+                      }, 
+                      {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$literal": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "r"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "double"
+              }, 
+              {
+                "bsonType": "decimal"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "r": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for BETWEEN for strings
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "betweenStrings": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$betweenStrings.a", 
+          "c": "$betweenStrings.c", 
+          "b": "$betweenStrings.b", 
+          "r": {
+            "$let": {
+              "vars": {
+                "desugared_sqlBetween_input": "$betweenStrings.a"
+              }, 
+              "in": {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlAnd_input0": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlGte_input1": "$betweenStrings.b", 
+                          "desugared_sqlGte_input0": "$$desugared_sqlBetween_input"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlGte_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlGte_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$gte": [
+                                "$$desugared_sqlGte_input0", 
+                                "$$desugared_sqlGte_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }, 
+                    "desugared_sqlAnd_input1": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlLte_input0": "$$desugared_sqlBetween_input", 
+                          "desugared_sqlLte_input1": "$betweenStrings.c"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlLte_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlLte_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlLte_input0", 
+                                "$$desugared_sqlLte_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }, 
+                  "in": {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input0", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input1", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }
+                        ]
+                      }, 
+                      {
+                        "$literal": false
+                      }, 
+                      {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$literal": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "r"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }, 
+          "r": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "string"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for BETWEEN for dates
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "betweenDates": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$betweenDates.a", 
+          "c": "$betweenDates.c", 
+          "b": "$betweenDates.b", 
+          "r": {
+            "$let": {
+              "vars": {
+                "desugared_sqlBetween_input": "$betweenDates.a"
+              }, 
+              "in": {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlAnd_input0": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlGte_input1": "$betweenDates.b", 
+                          "desugared_sqlGte_input0": "$$desugared_sqlBetween_input"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlGte_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlGte_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$gte": [
+                                "$$desugared_sqlGte_input0", 
+                                "$$desugared_sqlGte_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }, 
+                    "desugared_sqlAnd_input1": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlLte_input0": "$$desugared_sqlBetween_input", 
+                          "desugared_sqlLte_input1": "$betweenDates.c"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlLte_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlLte_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlLte_input0", 
+                                "$$desugared_sqlLte_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }, 
+                  "in": {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input0", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input1", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }
+                        ]
+                      }, 
+                      {
+                        "$literal": false
+                      }, 
+                      {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$literal": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "r"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "date"
+              }
+            ]
+          }, 
+          "r": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for BETWEEN for documents
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "betweenDocuments": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$betweenDocuments.a", 
+          "comment": "$betweenDocuments.comment", 
+          "c": "$betweenDocuments.c", 
+          "b": "$betweenDocuments.b", 
+          "r": {
+            "$let": {
+              "vars": {
+                "desugared_sqlBetween_input": "$betweenDocuments.a"
+              }, 
+              "in": {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlAnd_input0": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlGte_input1": "$betweenDocuments.b", 
+                          "desugared_sqlGte_input0": "$$desugared_sqlBetween_input"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlGte_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlGte_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$gte": [
+                                "$$desugared_sqlGte_input0", 
+                                "$$desugared_sqlGte_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }, 
+                    "desugared_sqlAnd_input1": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlLte_input0": "$$desugared_sqlBetween_input", 
+                          "desugared_sqlLte_input1": "$betweenDocuments.c"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlLte_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlLte_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlLte_input0", 
+                                "$$desugared_sqlLte_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }, 
+                  "in": {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input0", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input1", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }
+                        ]
+                      }, 
+                      {
+                        "$literal": false
+                      }, 
+                      {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$literal": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "comment", 
+          "r"
+        ], 
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": true, 
+                "properties": {}, 
+                "bsonType": "object"
+              }, 
+              {
+                "additionalProperties": false, 
+                "properties": {
+                  "y": {
+                    "bsonType": "int"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "z": {
+                    "bsonType": "int"
+                  }, 
+                  "n": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "required": [
+                  "z"
+                ], 
+                "properties": {
+                  "z": {
+                    "bsonType": "int"
+                  }, 
+                  "n": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "additionalProperties": false, 
+                "required": [
+                  "x"
+                ], 
+                "properties": {
+                  "y": {
+                    "bsonType": "int"
+                  }, 
+                  "x": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "r": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for BETWEEN for arrays
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "betweenArrays": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$betweenArrays.a", 
+          "comment": "$betweenArrays.comment", 
+          "c": "$betweenArrays.c", 
+          "b": "$betweenArrays.b", 
+          "r": {
+            "$let": {
+              "vars": {
+                "desugared_sqlBetween_input": "$betweenArrays.a"
+              }, 
+              "in": {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlAnd_input0": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlGte_input1": "$betweenArrays.b", 
+                          "desugared_sqlGte_input0": "$$desugared_sqlBetween_input"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlGte_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlGte_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$gte": [
+                                "$$desugared_sqlGte_input0", 
+                                "$$desugared_sqlGte_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }, 
+                    "desugared_sqlAnd_input1": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlLte_input0": "$$desugared_sqlBetween_input", 
+                          "desugared_sqlLte_input1": "$betweenArrays.c"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlLte_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlLte_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlLte_input0", 
+                                "$$desugared_sqlLte_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }, 
+                  "in": {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input0", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input1", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }
+                        ]
+                      }, 
+                      {
+                        "$literal": false
+                      }, 
+                      {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$literal": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "comment", 
+          "r"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "c": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            ]
+          }, 
+          "r": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

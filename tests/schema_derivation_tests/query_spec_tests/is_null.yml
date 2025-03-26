@@ -1,0 +1,163 @@
+catalog_schema:
+  db:
+      null_and_missing:
+          bsonType: 'object'
+          additionalProperties: false
+          required: ['_id']
+          properties:
+              '_id': {'bsonType': 'int'}
+              x: {'anyOf': [{'bsonType': 'bool'}, {'bsonType': 'null'}]}
+
+      missing:
+          bsonType: 'object'
+          additionalProperties: false
+          required: ['_id']
+          properties:
+              '_id': {'bsonType': 'int'}
+              x: {'bsonType': 'bool'}
+
+tests:
+- description: IS NULL covers missing fields
+  current_db: db
+  pipeline: [
+    {
+      "$match": {
+        "x": {
+          "$eq": null
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "null_and_missing": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["null_and_missing"], 
+    "properties": {
+      "null_and_missing": {
+        "additionalProperties": false, 
+        "required": [
+          "_id"
+        ], 
+        "properties": {
+          "x": {
+            "bsonType": "null"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: IS NOT NULL covers missing fields
+  current_db: db
+  pipeline: [
+    {
+      "$match": {
+        "$expr": {
+          "$not": [
+            {
+              "$or": [
+                {
+                  "$eq": [
+                    {
+                      "$type": [
+                        "$x"
+                      ]
+                    }, 
+                    {
+                      "$literal": "null"
+                    }
+                  ]
+                }, 
+                {
+                  "$eq": [
+                    {
+                      "$type": [
+                        "$x"
+                      ]
+                    }, 
+                    {
+                      "$literal": "missing"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "null_and_missing": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["null_and_missing"], 
+    "properties": {
+      "null_and_missing": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "x"
+        ], 
+        "properties": {
+          "x": {
+            "bsonType": "bool"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: IS NULL covers missing fields without null schema
+  current_db: db
+  pipeline: [
+    {
+      "$match": {
+        "x": {
+          "$eq": null
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "missing": "$$ROOT"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["missing"], 
+    "properties": {
+      "missing": {
+        "additionalProperties": false, 
+        "required": [
+          "_id"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }

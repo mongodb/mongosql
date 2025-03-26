@@ -1,0 +1,109 @@
+catalog_schema:
+  {
+    'foo': {
+      'ternary': {
+        'bsonType': "object",
+        'required': [ '_id', 'a', 'b', 'c' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a': { 'bsonType': "int" },
+          'b': { 'bsonType': "int" },
+          'c': { 'bsonType': "int" },
+        }
+      },
+    }
+  }
+
+tests:
+- description: parentheses correctness tests
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "ternary": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$ternary.a", 
+          "(a+b)*c": {
+            "$multiply": [
+              {
+                "$add": [
+                  "$ternary.a", 
+                  "$ternary.b"
+                ]
+              }, 
+              "$ternary.c"
+            ]
+          }, 
+          "c": "$ternary.c", 
+          "b": "$ternary.b", 
+          "a+b*c": {
+            "$add": [
+              "$ternary.a", 
+              {
+                "$multiply": [
+                  "$ternary.b", 
+                  "$ternary.c"
+                ]
+              }
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "(a+b)*c", 
+          "a", 
+          "a+b*c", 
+          "b", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "(a+b)*c": {
+            "bsonType": "int"
+          }, 
+          "a+b*c": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

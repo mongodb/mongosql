@@ -1,0 +1,284 @@
+catalog_schema:
+  {
+    'db': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
+tests:
+- description: Can use different aliases for same field
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a1": "$arr.a", 
+          "a2": "$arr.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  current_db: test
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a1", 
+          "a2"
+        ], 
+        "properties": {
+          "a1": {
+            "bsonType": "int"
+          }, 
+          "a2": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Can use different alias for same collection
+  current_db: db
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "foo1": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "foo2": "$$ROOT"
+            }
+          }
+        ], 
+        "from": "foo", 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [
+      "foo1", 
+      "foo2"
+    ], 
+    "properties": {
+      "foo1": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "foo2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: Can use duplicate aliases on both sides of UNION
+  current_db: db
+  pipeline: [
+    {
+      "$project": {
+        "alias": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$alias.a", 
+          "c": "$alias.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unionWith": {
+        "coll": "foo", 
+        pipeline: [
+          {
+            "$project": {
+              "alias": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$alias.a", 
+                "c": "$alias.b"
+              }, 
+              "_id": 0
+            }
+          }
+        ]
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: _id is a valid alias for datasources
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "_id": "$$ROOT"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [], 
+    "properties": {
+      "_id": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }

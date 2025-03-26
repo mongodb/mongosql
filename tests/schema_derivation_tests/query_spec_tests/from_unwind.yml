@@ -1,0 +1,1129 @@
+catalog_schema:
+  {
+    'test': {
+      'foo': {
+        'bsonType': "object",
+        'required': ["_id", "arr"],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'arr': { 'bsonType': "array" }
+        }
+      },
+      'bar': {
+        'bsonType': "object",
+        'additionalProperties': true
+      },
+      'nested': {
+        'bsonType': "object",
+        'required': ["_id", "a", "z"],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a': {
+            'bsonType': "object",
+            'required': ["b", "y"],
+            'additionalProperties': false,
+            'properties': {
+              'b': {
+                'bsonType': "object",
+                'required': ["c", "x"],
+                'additionalProperties': false,
+                'properties': {
+                  'c': { 'bsonType': "array" },
+                  'x': { 'bsonType': "int" }
+                }
+              },
+              'y': { 'bsonType': "int" }
+            }
+          },
+          'z': { 'bsonType': "int" }
+        }
+      },
+      'two_d': {
+        'bsonType': "object",
+        'additionalProperties': true
+      },
+      'non_arrays': {
+        'bsonType': "object",
+        'required': ["_id", "arr", "comment"],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'arr': {
+            "anyOf": [
+              { "bsonType": "array" },
+              { "bsonType": "string" },
+              { "bsonType": "object" }
+            ]
+          },
+          'comment': { 'bsonType': "string" }
+        }
+      },
+      'empty_null_and_missing': {
+        'bsonType': "object",
+        'required': ["_id", "comment"],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'arr': {
+            "anyOf": [
+              { "bsonType": "array" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          'comment': { 'bsonType': "string" }
+        }
+      },
+      'index_conflict': {
+        'bsonType': "object",
+        'additionalProperties': true
+      },
+     'compound': {
+       "bsonType": "object",
+       "properties": {
+         "g": {
+           "bsonType": "array",
+           "items": {
+             "anyOf": [
+               {
+                 "bsonType":"array",
+                 "items": {
+                   "bsonType":"object",
+                   "properties": {
+                     "h": { "bsonType":"int" },
+                     "i": {"bsonType":"int" },
+                     "g": {"bsonType": "array", "items": { "bsonType":"int" } }
+                   },
+                   "additionalProperties":false }
+               },
+               {
+                 "bsonType":"object",
+                 "properties": {
+                   "g":{ "bsonType":"array","items":{"bsonType":"int"}}},
+                 "required":["g"],
+                 "additionalProperties":false
+               }
+           ]
+         }
+       },
+       "a": {
+         "bsonType": "array",
+         "items": { "bsonType": "int" }
+       },
+       "b": {
+         "bsonType": "array",
+         "items": { "bsonType": "int" }
+       },
+       "_id":{"bsonType":"objectId"}},
+       "required":["_id","g"],
+       "additionalProperties":false
+     }
+   }
+  }
+
+tests:
+- description: basic correctness test
+  current_db: test
+  pipeline: [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$foo.arr"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr"
+        ], 
+        "properties": {
+          "arr": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: basic correctness test for explicitly aliased datasource
+  current_db: test
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "f": "$$ROOT"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$f.arr"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["f"], 
+    "properties": {
+      "f": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr"
+        ], 
+        "properties": {
+          "arr": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: basic correctness test for index option
+  current_db: test
+  pipeline: [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$foo.arr", 
+        "includeArrayIndex": "foo.i"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["foo"], 
+    "properties": {
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr", 
+          "i"
+        ], 
+        "properties": {
+          "i": {
+            "bsonType": "long"
+          }, 
+          "arr": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: there are no type constraints on the field referenced by PATH, and non-array fields are not unwound
+  current_db: test
+  pipeline: [
+    {
+      "$project": {
+        "non_arrays": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$non_arrays.arr", 
+        "includeArrayIndex": "non_arrays.i"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["non_arrays"], 
+    "properties": {
+      "non_arrays": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr", 
+          "comment", 
+          "i"
+        ], 
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "i": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "arr": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              }, 
+              {
+                "bsonType": "string"
+              }, 
+              {
+                "additionalProperties": false, 
+                "required": [
+                  "a"
+                ], 
+                "properties": {
+                  "a": {
+                    "items": {
+                      "bsonType": "int"
+                    }, 
+                    "bsonType": "array"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            ]
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: unwinding a nested array puts the unwound value at the same nested path
+  current_db: test
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "nested": "$$ROOT"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$nested.a.b.c", 
+        "includeArrayIndex": "nested.i"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["nested"], 
+    "properties": {
+      "nested": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "i", 
+          "z"
+        ], 
+        "properties": {
+          "a": {
+            "additionalProperties": false, 
+            "required": [
+              "b", 
+              "y"
+            ], 
+            "properties": {
+              "y": {
+                "bsonType": "int"
+              }, 
+              "b": {
+                "additionalProperties": false, 
+                "required": [
+                  "c", 
+                  "x"
+                ], 
+                "properties": {
+                  "x": {
+                    "bsonType": "int"
+                  }, 
+                  "c": {
+                    "bsonType": "int"
+                  }
+                }, 
+                "bsonType": "object"
+              }
+            }, 
+            "bsonType": "object"
+          }, 
+          "i": {
+            "bsonType": "long"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "z": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: unwind datasources can be unwound
+  current_db: test
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "two_d": "$$ROOT"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$two_d.arr"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$two_d.arr"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["two_d"], 
+    "properties": {
+      "two_d": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr"
+        ], 
+        "properties": {
+          "arr": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: join datasources can be unwound, unwound field is nested under correct namespace (left)
+  current_db: test
+  pipeline: [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "bar": "$$ROOT"
+            }
+          }
+        ], 
+        "from": "bar", 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$foo.arr"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "foo"], 
+    "properties": {
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr"
+        ], 
+        "properties": {
+          "arr": {
+            "items": {
+              "bsonType": "int"
+            }, 
+            "bsonType": "array"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr"
+        ], 
+        "properties": {
+          "arr": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: join datasources can be unwound, unwound field is nested under correct namespace (right)
+  current_db: test
+  pipeline: [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "bar": "$$ROOT"
+            }
+          }
+        ], 
+        "from": "bar", 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$bar.arr"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "foo"], 
+    "properties": {
+      "foo": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr"
+        ], 
+        "properties": {
+          "arr": {
+            "items": {
+              "bsonType": "int"
+            }, 
+            "bsonType": "array"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr"
+        ], 
+        "properties": {
+          "arr": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: documents containing empty array, null, or missing values are omitted if OUTER => false (default)
+  current_db: test
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$c.arr", 
+        "includeArrayIndex": "c.i"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["c"], 
+    "properties": {
+      "c": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "arr", 
+          "comment", 
+          "i"
+        ], 
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "i": {
+            "bsonType": "long"
+          }, 
+          "arr": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: documents containing empty array, null, or missing values are retained if OUTER => true
+  current_db: test
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$c.arr", 
+        "includeArrayIndex": "c.i", 
+        "preserveNullAndEmptyArrays": true
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["c"], 
+    "properties": {
+      "c": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "comment", 
+          "i"
+        ], 
+        "properties": {
+          "comment": {
+            "bsonType": "string"
+          }, 
+          "i": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "long"
+              }
+            ]
+          }, 
+          "arr": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: compound paths allow simple unwinds
+  current_db: test
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "compound": "$$ROOT"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$compound.a"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$compound.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: compound paths allow sibling unwinds
+  current_db: test
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "compound": "$$ROOT"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$compound.a"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$compound.b"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$compound.a", 
+          "b": "$compound.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: compound path resolves nested paths
+  current_db: test
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "compound": "$$ROOT"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$compound.g"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$compound.g"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "g": "$compound.g"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema:
+    bsonType: object
+    properties:
+      '':
+        bsonType: object
+        properties:
+          g:
+            bsonType: object
+            properties: {}
+            additionalProperties: true
+        required: [g]
+        additionalProperties: false
+      _id: {bsonType: objectId}
+    required: ['', _id]
+    additionalProperties: false
+- description: compound path resolves nested and sibling paths
+  current_db: test
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "compound": "$$ROOT"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$compound.g"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$compound.g"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$compound.a"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$compound.b"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["compound"], 
+    "properties": {
+      "compound": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b", 
+          "g"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "g": {
+            "additionalProperties": false, 
+            "properties": {
+              "i": {
+                "bsonType": "int"
+              }, 
+              "h": {
+                "bsonType": "int"
+              }, 
+              "g": {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            }, 
+            "bsonType": "object"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: compound path can handle multiple compound paths
+  current_db: test
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "compound": "$$ROOT"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$compound.g"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$compound.g"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$compound.g.g"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "g": "$compound.g"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "g"
+        ], 
+        "properties": {
+          "g": {
+            "additionalProperties": false, 
+            "required": [
+              "g"
+            ], 
+            "properties": {
+              "g": {
+                "bsonType": "int"
+              }
+            }, 
+            "bsonType": "object"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: compound path works with existing unwind
+  current_db: test
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "compound": "$$ROOT"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$compound.g"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$compound.g"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$compound.g.g"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "g": "$compound.g"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "g"
+        ], 
+        "properties": {
+          "g": {
+            "additionalProperties": false, 
+            "required": [
+              "g"
+            ], 
+            "properties": {
+              "g": {
+                "bsonType": "int"
+              }
+            }, 
+            "bsonType": "object"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

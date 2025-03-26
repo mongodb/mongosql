@@ -1307,6 +1307,44 @@ mod union {
             ..Default::default()
         })
     );
+    test_derive_stage_schema!(
+        union_pipeline_no_collection,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::Integer),
+                "a".to_string() => Schema::Atomic(Atomic::String),
+                "food".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Integer)
+                )),
+                "out".to_string() => Schema::Atomic(Atomic::Decimal),
+            },
+            required: set!("food".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$unionWith": {"pipeline": [{"$documents": [{"_id": 1, "a": "hello world", "food": 1}]}]}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "food".to_string() => Schema::Atomic(Atomic::String),
+                "out".to_string() => Schema::Atomic(Atomic::Decimal),
+            },
+            required: set!("food".to_string(), "out".to_string()),
+            ..Default::default()
+        })
+    );
+    test_derive_stage_schema!(
+        union_not_enough_args,
+        expected = Err(crate::Error::NotEnoughArguments("$unionWith".to_string())),
+        input = r#"{"$unionWith": {}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "food".to_string() => Schema::Atomic(Atomic::String),
+                "out".to_string() => Schema::Atomic(Atomic::Decimal),
+            },
+            required: set!("food".to_string(), "out".to_string()),
+            ..Default::default()
+        })
+    );
 }
 
 mod replace {

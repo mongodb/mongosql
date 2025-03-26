@@ -1,0 +1,505 @@
+tests:
+- description: Null literal
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "$literal": {}
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "_dual": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "_3": {
+            "$literal": null
+          }, 
+          "_2": {
+            "$literal": null
+          }, 
+          "_1": {
+            "$literal": null
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_1", 
+          "_2", 
+          "_3"
+        ], 
+        "properties": {
+          "_3": {
+            "bsonType": "null"
+          }, 
+          "_2": {
+            "bsonType": "null"
+          }, 
+          "_1": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Boolean literals
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "$literal": {}
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "_dual": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "_6": {
+            "$literal": false
+          }, 
+          "_5": {
+            "$literal": false
+          }, 
+          "_4": {
+            "$literal": false
+          }, 
+          "_3": {
+            "$literal": true
+          }, 
+          "_2": {
+            "$literal": true
+          }, 
+          "_1": {
+            "$literal": true
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_1", 
+          "_2", 
+          "_3", 
+          "_4", 
+          "_5", 
+          "_6"
+        ], 
+        "properties": {
+          "_6": {
+            "bsonType": "bool"
+          }, 
+          "_5": {
+            "bsonType": "bool"
+          }, 
+          "_4": {
+            "bsonType": "bool"
+          }, 
+          "_3": {
+            "bsonType": "bool"
+          }, 
+          "_2": {
+            "bsonType": "bool"
+          }, 
+          "_1": {
+            "bsonType": "bool"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: String literals
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "$literal": {}
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "_dual": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "_3": {
+            "$literal": "\u03b1\u03b2\u03b3"
+          }, 
+          "_2": {
+            "$literal": "abc"
+          }, 
+          "_1": {
+            "$literal": ""
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_1", 
+          "_2", 
+          "_3"
+        ], 
+        "properties": {
+          "_3": {
+            "bsonType": "string"
+          }, 
+          "_2": {
+            "bsonType": "string"
+          }, 
+          "_1": {
+            "bsonType": "string"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Unsigned integer literals
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "$literal": {}
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "_dual": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "_5": {
+            "$literal": 567
+          }, 
+          "_4": {
+            "$literal": 11
+          }, 
+          "_3": {
+            "$literal": 10
+          }, 
+          "_2": {
+            "$literal": 1
+          }, 
+          "_1": {
+            "$literal": 0
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_1", 
+          "_2", 
+          "_3", 
+          "_4", 
+          "_5"
+        ], 
+        "properties": {
+          "_5": {
+            "bsonType": "int"
+          }, 
+          "_4": {
+            "bsonType": "int"
+          }, 
+          "_3": {
+            "bsonType": "int"
+          }, 
+          "_2": {
+            "bsonType": "int"
+          }, 
+          "_1": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Signed integer literals
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "$literal": {}
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "_dual": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "_8": {
+            "$literal": 789
+          }, 
+          "_7": {
+            "$literal": -789
+          }, 
+          "_6": {
+            "$literal": 10
+          }, 
+          "_5": {
+            "$literal": -10
+          }, 
+          "_4": {
+            "$literal": 1
+          }, 
+          "_3": {
+            "$literal": -1
+          }, 
+          "_2": {
+            "$literal": 0
+          }, 
+          "_1": {
+            "$literal": 0
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_1", 
+          "_2", 
+          "_3", 
+          "_4", 
+          "_5", 
+          "_6", 
+          "_7", 
+          "_8"
+        ], 
+        "properties": {
+          "_8": {
+            "bsonType": "int"
+          }, 
+          "_7": {
+            "bsonType": "int"
+          }, 
+          "_6": {
+            "bsonType": "int"
+          }, 
+          "_5": {
+            "bsonType": "int"
+          }, 
+          "_4": {
+            "bsonType": "int"
+          }, 
+          "_3": {
+            "bsonType": "int"
+          }, 
+          "_2": {
+            "bsonType": "int"
+          }, 
+          "_1": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Date escape literal
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "$literal": {}
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "_dual": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "_1": {
+            "$literal": {
+              "$date": {
+                "$numberLong": "1325412610000"
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_1"
+        ], 
+        "properties": {
+          "_1": {
+            "bsonType": "date"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

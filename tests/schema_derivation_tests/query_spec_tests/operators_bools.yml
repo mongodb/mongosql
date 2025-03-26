@@ -1,0 +1,428 @@
+catalog_schema:
+  {
+    "foo": {
+      "unary": {
+        "bsonType": "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "bool" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "binary": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "bool" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "bool" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      }
+    }
+  }
+
+tests:
+- description: NOT correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "unary": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$unary.a", 
+          "not_a": {
+            "$let": {
+              "vars": {
+                "desugared_sqlNot_input0": "$unary.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$lte": [
+                      "$$desugared_sqlNot_input0", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": null
+                  }, 
+                  {
+                    "$not": [
+                      "$$desugared_sqlNot_input0"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "not_a"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "not_a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: AND correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "binary": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$binary.a", 
+          "a_and_b": {
+            "$let": {
+              "vars": {
+                "desugared_sqlAnd_input0": "$binary.a", 
+                "desugared_sqlAnd_input1": "$binary.b"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$eq": [
+                          "$$desugared_sqlAnd_input0", 
+                          {
+                            "$literal": false
+                          }
+                        ]
+                      }, 
+                      {
+                        "$eq": [
+                          "$$desugared_sqlAnd_input1", 
+                          {
+                            "$literal": false
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": false
+                  }, 
+                  {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$lte": [
+                              "$$desugared_sqlAnd_input0", 
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          }, 
+                          {
+                            "$lte": [
+                              "$$desugared_sqlAnd_input1", 
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          }
+                        ]
+                      }, 
+                      {
+                        "$literal": null
+                      }, 
+                      {
+                        "$literal": true
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          "b": "$binary.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a_and_b"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "a_and_b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: OR correctness test
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "binary": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$binary.a", 
+          "b": "$binary.b", 
+          "a_or_b": {
+            "$let": {
+              "vars": {
+                "desugared_sqlOr_input1": "$binary.b", 
+                "desugared_sqlOr_input0": "$binary.a"
+              }, 
+              "in": {
+                "$cond": [
+                  {
+                    "$or": [
+                      {
+                        "$eq": [
+                          "$$desugared_sqlOr_input0", 
+                          {
+                            "$literal": true
+                          }
+                        ]
+                      }, 
+                      {
+                        "$eq": [
+                          "$$desugared_sqlOr_input1", 
+                          {
+                            "$literal": true
+                          }
+                        ]
+                      }
+                    ]
+                  }, 
+                  {
+                    "$literal": true
+                  }, 
+                  {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$lte": [
+                              "$$desugared_sqlOr_input0", 
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          }, 
+                          {
+                            "$lte": [
+                              "$$desugared_sqlOr_input1", 
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          }
+                        ]
+                      }, 
+                      {
+                        "$literal": null
+                      }, 
+                      {
+                        "$literal": false
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a_or_b"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "a_or_b": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

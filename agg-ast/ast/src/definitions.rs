@@ -681,8 +681,8 @@ pub enum UnionWith {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UnionWithPipeline {
-    pub coll: String,
-    pub pipeline: Vec<Stage>,
+    pub coll: Option<String>,
+    pub pipeline: Option<Vec<Stage>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

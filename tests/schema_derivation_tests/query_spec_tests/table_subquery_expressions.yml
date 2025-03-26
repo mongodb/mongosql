@@ -1,0 +1,6046 @@
+catalog_schema:
+  {
+    'foo': {
+      'bar': {
+        'bsonType': "object",
+        'required': [ '_id', 'v' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'v': {
+            'anyOf': [
+              { 'bsonType': "int" },
+              { 'bsonType': !!str "null" }
+            ]
+          }
+        },
+      },
+      'target': {
+        'bsonType': "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'a': {
+            'anyOf': [
+              { 'bsonType': "int" },
+              { 'bsonType': !!str "null" }
+            ]
+          }
+        },
+      }
+    }
+  }
+
+tests:
+- description: correctness test for eq ANY Operator without NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$not": [
+                  {
+                    "$or": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "null"
+                          }
+                        ]
+                      }, 
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "missing"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlOr_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlEq_input0": "$bar.v", 
+                        "desugared_sqlEq_input1": "$$this.__bot.a"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlEq_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlEq_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlEq_input0", 
+                              "$$desugared_sqlEq_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }, 
+                  "desugared_sqlOr_input0": "$$value"
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input0", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input1", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": true
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for eq ANY Operator with NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlOr_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlEq_input0": "$bar.v", 
+                        "desugared_sqlEq_input1": "$$this.__bot.a"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlEq_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlEq_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlEq_input0", 
+                              "$$desugared_sqlEq_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }, 
+                  "desugared_sqlOr_input0": "$$value"
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input0", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input1", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": true
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for neq ANY Operator without NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$not": [
+                  {
+                    "$or": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "null"
+                          }
+                        ]
+                      }, 
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "missing"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlOr_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlNe_input1": "$$this.__bot.a", 
+                        "desugared_sqlNe_input0": "$bar.v"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlNe_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlNe_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$ne": [
+                              "$$desugared_sqlNe_input0", 
+                              "$$desugared_sqlNe_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }, 
+                  "desugared_sqlOr_input0": "$$value"
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input0", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input1", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": true
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for neq ANY Operator with NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlOr_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlNe_input1": "$$this.__bot.a", 
+                        "desugared_sqlNe_input0": "$bar.v"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlNe_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlNe_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$ne": [
+                              "$$desugared_sqlNe_input0", 
+                              "$$desugared_sqlNe_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }, 
+                  "desugared_sqlOr_input0": "$$value"
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input0", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input1", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": true
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lt ANY Operator without NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$not": [
+                  {
+                    "$or": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "null"
+                          }
+                        ]
+                      }, 
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "missing"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlOr_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlLt_input0": "$bar.v", 
+                        "desugared_sqlLt_input1": "$$this.__bot.a"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlLt_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlLt_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$lt": [
+                              "$$desugared_sqlLt_input0", 
+                              "$$desugared_sqlLt_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }, 
+                  "desugared_sqlOr_input0": "$$value"
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input0", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input1", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": true
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lt ANY Operator with NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlOr_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlLt_input0": "$bar.v", 
+                        "desugared_sqlLt_input1": "$$this.__bot.a"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlLt_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlLt_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$lt": [
+                              "$$desugared_sqlLt_input0", 
+                              "$$desugared_sqlLt_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }, 
+                  "desugared_sqlOr_input0": "$$value"
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input0", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input1", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": true
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lte ANY Operator without NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$not": [
+                  {
+                    "$or": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "null"
+                          }
+                        ]
+                      }, 
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "missing"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlOr_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlLte_input0": "$bar.v", 
+                        "desugared_sqlLte_input1": "$$this.__bot.a"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlLte_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlLte_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$lte": [
+                              "$$desugared_sqlLte_input0", 
+                              "$$desugared_sqlLte_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }, 
+                  "desugared_sqlOr_input0": "$$value"
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input0", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input1", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": true
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lte ANY Operator with NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlOr_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlLte_input0": "$bar.v", 
+                        "desugared_sqlLte_input1": "$$this.__bot.a"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlLte_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlLte_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$lte": [
+                              "$$desugared_sqlLte_input0", 
+                              "$$desugared_sqlLte_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }, 
+                  "desugared_sqlOr_input0": "$$value"
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input0", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input1", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": true
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gt ANY Operator without NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$not": [
+                  {
+                    "$or": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "null"
+                          }
+                        ]
+                      }, 
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "missing"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlOr_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlGt_input1": "$$this.__bot.a", 
+                        "desugared_sqlGt_input0": "$bar.v"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlGt_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlGt_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$gt": [
+                              "$$desugared_sqlGt_input0", 
+                              "$$desugared_sqlGt_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }, 
+                  "desugared_sqlOr_input0": "$$value"
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input0", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input1", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": true
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gt ANY Operator with NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlOr_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlGt_input1": "$$this.__bot.a", 
+                        "desugared_sqlGt_input0": "$bar.v"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlGt_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlGt_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$gt": [
+                              "$$desugared_sqlGt_input0", 
+                              "$$desugared_sqlGt_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }, 
+                  "desugared_sqlOr_input0": "$$value"
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input0", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input1", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": true
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gte ANY Operator without NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$not": [
+                  {
+                    "$or": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "null"
+                          }
+                        ]
+                      }, 
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "missing"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlOr_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlGte_input1": "$$this.__bot.a", 
+                        "desugared_sqlGte_input0": "$bar.v"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlGte_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlGte_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$gte": [
+                              "$$desugared_sqlGte_input0", 
+                              "$$desugared_sqlGte_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }, 
+                  "desugared_sqlOr_input0": "$$value"
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input0", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input1", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": true
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+
+- description: correctness test for gte ANY Operator with NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlOr_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlGte_input1": "$$this.__bot.a", 
+                        "desugared_sqlGte_input0": "$bar.v"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlGte_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlGte_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$gte": [
+                              "$$desugared_sqlGte_input0", 
+                              "$$desugared_sqlGte_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }, 
+                  "desugared_sqlOr_input0": "$$value"
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input0", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input1", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": true
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for eq ALL Operator without NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$not": [
+                  {
+                    "$or": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "null"
+                          }
+                        ]
+                      }, 
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "missing"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": true
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlAnd_input0": "$$value", 
+                  "desugared_sqlAnd_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlEq_input0": "$bar.v", 
+                        "desugared_sqlEq_input1": "$$this.__bot.a"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlEq_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlEq_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlEq_input0", 
+                              "$$desugared_sqlEq_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input0", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input1", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": false
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    'bsonType': 'object',
+    'additionalProperties': true,
+  }
+
+- description: correctness test for eq ALL Operator with NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": true
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlAnd_input0": "$$value", 
+                  "desugared_sqlAnd_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlEq_input0": "$bar.v", 
+                        "desugared_sqlEq_input1": "$$this.__bot.a"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlEq_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlEq_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlEq_input0", 
+                              "$$desugared_sqlEq_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input0", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input1", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": false
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    'bsonType': 'object',
+    'additionalProperties': true,
+  }
+
+- description: correctness test for eq ALL Operator with matching result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$and": [
+                  {
+                    "$gt": [
+                      "$a", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  {
+                    "$eq": [
+                      "$a", 
+                      {
+                        "$literal": 2
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": true
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlAnd_input0": "$$value", 
+                  "desugared_sqlAnd_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlEq_input0": "$bar.v", 
+                        "desugared_sqlEq_input1": "$$this.__bot.a"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlEq_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlEq_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlEq_input0", 
+                              "$$desugared_sqlEq_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input0", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input1", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": false
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: ALL comparisons are vacuously true when subquery returns no results
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "_id": {
+                "$minKey": 1
+              }, 
+              "$expr": false
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": true
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlAnd_input0": "$$value", 
+                  "desugared_sqlAnd_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlEq_input0": "$bar.v", 
+                        "desugared_sqlEq_input1": "$$this.__bot.a"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlEq_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlEq_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlEq_input0", 
+                              "$$desugared_sqlEq_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input0", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input1", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": false
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: ANY comparisons are vacuously false when subquery returns no results
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "_id": {
+                "$minKey": 1
+              }, 
+              "$expr": false
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlOr_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlEq_input0": "$bar.v", 
+                        "desugared_sqlEq_input1": "$$this.__bot.a"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlEq_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlEq_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlEq_input0", 
+                              "$$desugared_sqlEq_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }, 
+                  "desugared_sqlOr_input0": "$$value"
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input0", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input1", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": true
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    'bsonType': 'object',
+    'additionalProperties': true,
+  }
+
+- description: correctness test for neq ALL Operator without NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$not": [
+                  {
+                    "$or": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "null"
+                          }
+                        ]
+                      }, 
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "missing"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": true
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlAnd_input0": "$$value", 
+                  "desugared_sqlAnd_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlNe_input1": "$$this.__bot.a", 
+                        "desugared_sqlNe_input0": "$bar.v"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlNe_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlNe_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$ne": [
+                              "$$desugared_sqlNe_input0", 
+                              "$$desugared_sqlNe_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input0", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input1", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": false
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for neq ALL Operator with NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": true
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlAnd_input0": "$$value", 
+                  "desugared_sqlAnd_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlNe_input1": "$$this.__bot.a", 
+                        "desugared_sqlNe_input0": "$bar.v"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlNe_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlNe_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$ne": [
+                              "$$desugared_sqlNe_input0", 
+                              "$$desugared_sqlNe_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input0", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input1", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": false
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    'bsonType': 'object',
+    'additionalProperties': true,
+  }
+
+- description: correctness test for lt ALL Operator without NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$not": [
+                  {
+                    "$or": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "null"
+                          }
+                        ]
+                      }, 
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "missing"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": true
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlAnd_input0": "$$value", 
+                  "desugared_sqlAnd_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlLt_input0": "$bar.v", 
+                        "desugared_sqlLt_input1": "$$this.__bot.a"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlLt_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlLt_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$lt": [
+                              "$$desugared_sqlLt_input0", 
+                              "$$desugared_sqlLt_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input0", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input1", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": false
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lt ALL Operator with NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": true
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlAnd_input0": "$$value", 
+                  "desugared_sqlAnd_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlLt_input0": "$bar.v", 
+                        "desugared_sqlLt_input1": "$$this.__bot.a"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlLt_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlLt_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$lt": [
+                              "$$desugared_sqlLt_input0", 
+                              "$$desugared_sqlLt_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input0", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input1", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": false
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    'bsonType': 'object',
+    'additionalProperties': true,
+  }
+
+- description: correctness test for lte ALL Operator without NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$not": [
+                  {
+                    "$or": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "null"
+                          }
+                        ]
+                      }, 
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "missing"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": true
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlAnd_input0": "$$value", 
+                  "desugared_sqlAnd_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlLte_input0": "$bar.v", 
+                        "desugared_sqlLte_input1": "$$this.__bot.a"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlLte_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlLte_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$lte": [
+                              "$$desugared_sqlLte_input0", 
+                              "$$desugared_sqlLte_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input0", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input1", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": false
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for lte ALL Operator with NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": true
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlAnd_input0": "$$value", 
+                  "desugared_sqlAnd_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlLte_input0": "$bar.v", 
+                        "desugared_sqlLte_input1": "$$this.__bot.a"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlLte_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlLte_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$lte": [
+                              "$$desugared_sqlLte_input0", 
+                              "$$desugared_sqlLte_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input0", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input1", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": false
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    'bsonType': 'object',
+    'additionalProperties': true,
+  }
+
+- description: correctness test for gt ALL Operator without NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$not": [
+                  {
+                    "$or": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "null"
+                          }
+                        ]
+                      }, 
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "missing"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": true
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlAnd_input0": "$$value", 
+                  "desugared_sqlAnd_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlGt_input1": "$$this.__bot.a", 
+                        "desugared_sqlGt_input0": "$bar.v"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlGt_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlGt_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$gt": [
+                              "$$desugared_sqlGt_input0", 
+                              "$$desugared_sqlGt_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input0", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input1", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": false
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gt ALL Operator with NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": true
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlAnd_input0": "$$value", 
+                  "desugared_sqlAnd_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlGt_input1": "$$this.__bot.a", 
+                        "desugared_sqlGt_input0": "$bar.v"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlGt_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlGt_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$gt": [
+                              "$$desugared_sqlGt_input0", 
+                              "$$desugared_sqlGt_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input0", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input1", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": false
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    'bsonType': 'object',
+    'additionalProperties': true,
+  }
+
+- description: correctness test for gte ALL Operator without NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$not": [
+                  {
+                    "$or": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "null"
+                          }
+                        ]
+                      }, 
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "missing"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": true
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlAnd_input0": "$$value", 
+                  "desugared_sqlAnd_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlGte_input1": "$$this.__bot.a", 
+                        "desugared_sqlGte_input0": "$bar.v"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlGte_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlGte_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$gte": [
+                              "$$desugared_sqlGte_input0", 
+                              "$$desugared_sqlGte_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input0", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input1", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": false
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for gte ALL Operator with NULL in subquery result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": true
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlAnd_input0": "$$value", 
+                  "desugared_sqlAnd_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlGte_input1": "$$this.__bot.a", 
+                        "desugared_sqlGte_input0": "$bar.v"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlGte_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlGte_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$gte": [
+                              "$$desugared_sqlGte_input0", 
+                              "$$desugared_sqlGte_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input0", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlAnd_input1", 
+                            {
+                              "$literal": false
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": false
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlAnd_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    'bsonType': 'object',
+    'additionalProperties': true,
+  }
+
+- description: ANY subquery comparison in SELECT clause
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "x": {
+            "$reduce": {
+              "input": "$__subquery_result_0", 
+              "initialValue": {
+                "$literal": false
+              }, 
+              "in": {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlOr_input1": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$bar.v", 
+                          "desugared_sqlEq_input1": "$$this.__bot.a"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0", 
+                                "$$desugared_sqlEq_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }, 
+                    "desugared_sqlOr_input0": "$$value"
+                  }, 
+                  "in": {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$eq": [
+                              "$$desugared_sqlOr_input0", 
+                              {
+                                "$literal": true
+                              }
+                            ]
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlOr_input1", 
+                              {
+                                "$literal": true
+                              }
+                            ]
+                          }
+                        ]
+                      }, 
+                      {
+                        "$literal": true
+                      }, 
+                      {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlOr_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlOr_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$literal": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }, 
+          "v": "$bar.v"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "x"
+        ], 
+        "properties": {
+          "x": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: ALL subquery comparison in SELECT clause
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$not": [
+                  {
+                    "$or": [
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "null"
+                          }
+                        ]
+                      }, 
+                      {
+                        "$eq": [
+                          {
+                            "$type": [
+                              "$a"
+                            ]
+                          }, 
+                          {
+                            "$literal": "missing"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$target.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "x": {
+            "$reduce": {
+              "input": "$__subquery_result_0", 
+              "initialValue": {
+                "$literal": true
+              }, 
+              "in": {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlAnd_input0": "$$value", 
+                    "desugared_sqlAnd_input1": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$bar.v", 
+                          "desugared_sqlEq_input1": "$$this.__bot.a"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0", 
+                                "$$desugared_sqlEq_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }, 
+                  "in": {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input0", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input1", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }
+                        ]
+                      }, 
+                      {
+                        "$literal": false
+                      }, 
+                      {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$literal": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }, 
+          "v": "$bar.v"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "x"
+        ], 
+        "properties": {
+          "x": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "bool"
+              }
+            ]
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for EXISTS Operator
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$and": [
+                  {
+                    "$gt": [
+                      "$a", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  {
+                    "$eq": [
+                      "$$vbar_0.v", 
+                      "$a"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$limit": 1
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$gt": [
+            {
+              "$size": [
+                "$__subquery_result_0"
+              ]
+            }, 
+            {
+              "$literal": 0
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "v"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: correctness test for NOT EXISTS Operator
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$and": [
+                  {
+                    "$gt": [
+                      "$a", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  {
+                    "$eq": [
+                      "$$vbar_0.v", 
+                      "$a"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$limit": 1
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$not": [
+            {
+              "$gt": [
+                {
+                  "$size": [
+                    "$__subquery_result_0"
+                  ]
+                }, 
+                {
+                  "$literal": 0
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: EXISTS expression in SELECT clause
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "target", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$and": [
+                  {
+                    "$gt": [
+                      "$a", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  {
+                    "$eq": [
+                      "$a", 
+                      "$$vbar_0.v"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "target": "$$ROOT"
+            }
+          }, 
+          {
+            "$limit": 1
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "x": {
+            "$gt": [
+              {
+                "$size": [
+                  "$__subquery_result_0"
+                ]
+              }, 
+              {
+                "$literal": 0
+              }
+            ]
+          }, 
+          "v": "$bar.v"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "x"
+        ], 
+        "properties": {
+          "x": {
+            "bsonType": "bool"
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

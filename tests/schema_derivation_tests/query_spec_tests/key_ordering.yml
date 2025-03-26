@@ -1,0 +1,150 @@
+catalog_schema:
+  {
+    'mydb': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'bar': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
+tests:
+- description: document literal key ordering is not guaranteed to be preserved
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "f": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "c": "$f.a", 
+          "b": "$f._id"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "b", 
+          "c"
+        ], 
+        "properties": {
+          "c": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: key ordering from docs in collections is not guaranteed to be preserved
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "f": "$$ROOT"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["f"], 
+    "properties": {
+      "f": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: subdocument key ordering is not guaranteed to be preserved
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "b": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["b"], 
+    "properties": {
+      "b": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "sub"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "sub": {
+            "additionalProperties": false, 
+            "required": [
+              "a", 
+              "b"
+            ], 
+            "properties": {
+              "a": {
+                "bsonType": "int"
+              }, 
+              "b": {
+                "bsonType": "int"
+              }
+            }, 
+            "bsonType": "object"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }

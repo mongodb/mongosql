@@ -1,0 +1,681 @@
+catalog_schema:
+  {
+    "foo": {
+      "bar": {
+        "bsonType": "object",
+        'required': [ 'a', 'b', 'c' ],
+        'additionalProperties': false,
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "c": {
+            "bsonType": "int"
+          },
+        }
+      }
+    }
+  }
+
+tests:
+- description: Simple CASE expression - No WHEN comparison evaluates to TRUE, return
+    ELSE result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a", 
+          "c": "$bar.c", 
+          "b": "$bar.b", 
+          "r": {
+            "$let": {
+              "vars": {
+                "target": {
+                  "$literal": 1
+                }
+              }, 
+              "in": {
+                "$switch": {
+                  "default": {
+                    "$literal": "none"
+                  }, 
+                  "branches": [
+                    {
+                      "case": {
+                        "$eq": [
+                          "$$target", 
+                          "$bar.a"
+                        ]
+                      }, 
+                      "then": {
+                        "$literal": "a"
+                      }
+                    }, 
+                    {
+                      "case": {
+                        "$eq": [
+                          "$$target", 
+                          "$bar.b"
+                        ]
+                      }, 
+                      "then": {
+                        "$literal": "b"
+                      }
+                    }, 
+                    {
+                      "case": {
+                        "$eq": [
+                          "$$target", 
+                          "$bar.c"
+                        ]
+                      }, 
+                      "then": {
+                        "$literal": "c"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "c", 
+          "r"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "int"
+          }, 
+          "r": {
+            "bsonType": "string"
+          }, 
+          "b": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Simple CASE expression - One WHEN comparison evaluates to TRUE, return
+    corresponding THEN result
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 2
+          }, 
+          "b": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "r": {
+            "$let": {
+              "vars": {
+                "target": {
+                  "$literal": 1
+                }
+              }, 
+              "in": {
+                "$switch": {
+                  "default": {
+                    "$literal": "none"
+                  }, 
+                  "branches": [
+                    {
+                      "case": {
+                        "$eq": [
+                          "$$target", 
+                          "$arr.a"
+                        ]
+                      }, 
+                      "then": {
+                        "$literal": "a"
+                      }
+                    }, 
+                    {
+                      "case": {
+                        "$eq": [
+                          "$$target", 
+                          "$arr.b"
+                        ]
+                      }, 
+                      "then": {
+                        "$literal": "b"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "r"
+        ], 
+        "properties": {
+          "r": {
+            "bsonType": "string"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Simple CASE expression - Multiple WHEN comparison evaluates to TRUE,
+    return first corresponding THEN result
+  current_db: test
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }, 
+          "b": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "r": {
+            "$let": {
+              "vars": {
+                "target": {
+                  "$literal": 1
+                }
+              }, 
+              "in": {
+                "$switch": {
+                  "default": {
+                    "$literal": "none"
+                  }, 
+                  "branches": [
+                    {
+                      "case": {
+                        "$eq": [
+                          "$$target", 
+                          "$arr.a"
+                        ]
+                      }, 
+                      "then": {
+                        "$literal": "a"
+                      }
+                    }, 
+                    {
+                      "case": {
+                        "$eq": [
+                          "$$target", 
+                          "$arr.b"
+                        ]
+                      }, 
+                      "then": {
+                        "$literal": "b"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "r"
+        ], 
+        "properties": {
+          "r": {
+            "bsonType": "string"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Searched CASE expression - No WHEN condition evaluates to TRUE, return
+    ELSE result
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a", 
+          "c": "$bar.c", 
+          "b": "$bar.b", 
+          "r": {
+            "$switch": {
+              "default": {
+                "$literal": "none"
+              }, 
+              "branches": [
+                {
+                  "case": {
+                    "$eq": [
+                      "$bar.a", 
+                      {
+                        "$literal": 1
+                      }
+                    ]
+                  }, 
+                  "then": {
+                    "$literal": "a"
+                  }
+                }, 
+                {
+                  "case": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlEq_input0": "$bar.b"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$lte": [
+                              "$$desugared_sqlEq_input0", 
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlEq_input0", 
+                              {
+                                "$literal": 1
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }, 
+                  "then": {
+                    "$literal": "b"
+                  }
+                }, 
+                {
+                  "case": {
+                    "$eq": [
+                      "$bar.c", 
+                      {
+                        "$literal": 1
+                      }
+                    ]
+                  }, 
+                  "then": {
+                    "$literal": "c"
+                  }
+                }
+              ]
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b", 
+          "c", 
+          "r"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "int"
+          }, 
+          "r": {
+            "bsonType": "string"
+          }, 
+          "b": {
+            "bsonType": "null"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Searched CASE expression - One WHEN condition evaluates to TRUE, return
+    corresponding THEN result
+  current_db: foo
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 2
+          }, 
+          "b": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "r": {
+            "$switch": {
+              "default": {
+                "$literal": "none"
+              }, 
+              "branches": [
+                {
+                  "case": {
+                    "$eq": [
+                      "$arr.a", 
+                      {
+                        "$literal": 1
+                      }
+                    ]
+                  }, 
+                  "then": {
+                    "$literal": "a"
+                  }
+                }, 
+                {
+                  "case": {
+                    "$eq": [
+                      "$arr.b", 
+                      {
+                        "$literal": 1
+                      }
+                    ]
+                  }, 
+                  "then": {
+                    "$literal": "b"
+                  }
+                }
+              ]
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "r"
+        ], 
+        "properties": {
+          "r": {
+            "bsonType": "string"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Searched CASE expression - Multiple WHEN conditions evaluates to TRUE,
+    return first corresponding THEN result
+  current_db: foo
+  pipeline: [
+    {
+      "$documents": [
+        {
+          "a": {
+            "$literal": 1
+          }, 
+          "b": {
+            "$literal": 1
+          }
+        }
+      ]
+    }, 
+    {
+      "$project": {
+        "arr": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "r": {
+            "$switch": {
+              "default": {
+                "$literal": "none"
+              }, 
+              "branches": [
+                {
+                  "case": {
+                    "$eq": [
+                      "$arr.a", 
+                      {
+                        "$literal": 1
+                      }
+                    ]
+                  }, 
+                  "then": {
+                    "$literal": "a"
+                  }
+                }, 
+                {
+                  "case": {
+                    "$eq": [
+                      "$arr.b", 
+                      {
+                        "$literal": 1
+                      }
+                    ]
+                  }, 
+                  "then": {
+                    "$literal": "b"
+                  }
+                }
+              ]
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "r"
+        ], 
+        "properties": {
+          "r": {
+            "bsonType": "string"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

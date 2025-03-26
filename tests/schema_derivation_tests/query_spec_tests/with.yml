@@ -1,0 +1,485 @@
+catalog_schema:
+  {
+    "mydb":
+      {
+        "biz":
+          {
+            "bsonType": "object",
+            "required": ["_id", "foo"],
+            "additionalProperties": false,
+            "properties":
+              { "_id": { "bsonType": "int" }, "foo": { "bsonType": "int" } },
+          },
+        "bar":
+          {
+            "bsonType": "object",
+            "required": ["_id", "foo"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "foo": { "bsonType": "int" },
+                "baz": { "bsonType": "int" },
+              },
+          },
+        "baz":
+          {
+            "bsonType": "object",
+            "required": ["bar", "car"],
+            "additionalProperties": false,
+            "properties":
+              { "_id": { "bsonType": "int" }, "bar": { "bsonType": "int" }, "car": { "bsonType": "int" } },
+          },
+      },
+  }
+
+tests:
+- description: WITH clause simple query
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "biz": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "foo": "$biz.foo"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "t": "$__bot"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["t"], 
+    "properties": {
+      "t": {
+        "additionalProperties": false, 
+        "required": [
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: WITH clause join query
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "biz": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "baz", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$and": [
+                  {
+                    "$gt": [
+                      "$_id", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  {
+                    "$eq": [
+                      "$$vbiz_1._id", 
+                      "$_id"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "baz": "$$ROOT"
+            }
+          }
+        ], 
+        "let": {
+          "vbiz_1": "$biz"
+        }, 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "car": "$baz.car", 
+          "foo": "$biz.foo", 
+          "bar": "$baz.bar"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "t": "$__bot"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["t"], 
+    "properties": {
+      "t": {
+        "additionalProperties": false, 
+        "required": [
+          "bar", 
+          "car", 
+          "foo"
+        ], 
+        "properties": {
+          "car": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "bar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: WITH clause multiple derived with a join
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "biz": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "_id": "$biz._id", 
+          "foo": "$biz.foo"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "t": "$__bot"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "baz", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$gt": [
+                  "$_id", 
+                  {
+                    "$literal": null
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "baz": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "car": "$baz.car", 
+                "_id": "$baz._id", 
+                "bar": "$baz.bar"
+              }, 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "u": "$__bot"
+            }
+          }, 
+          {
+            "$match": {
+              "$expr": {
+                "$eq": [
+                  "$$vt_0._id", 
+                  "$u._id"
+                ]
+              }
+            }
+          }
+        ], 
+        "let": {
+          "vt_0": "$t"
+        }, 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["t", "u"], 
+    "properties": {
+      "u": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "bar", 
+          "car"
+        ], 
+        "properties": {
+          "car": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "bar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "t": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: WITH clause filters
+  current_db: mydb
+  pipeline: [
+    {
+      "$match": {
+        "$expr": {
+          "$gt": [
+            "$foo", 
+            {
+              "$literal": 1
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "biz": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "foo": "$biz.foo"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "t": "$__bot"
+      }
+    }, 
+    {
+      "$lookup": {
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$and": [
+                  {
+                    "$gt": [
+                      "$baz", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  {
+                    "$gt": [
+                      "$baz", 
+                      {
+                        "$literal": 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "bar": "$$ROOT"
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "baz": "$bar.baz"
+              }, 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "_id": 0, 
+              "u": "$__bot"
+            }
+          }
+        ], 
+        "from": "bar", 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "foo": "$t.foo", 
+          "baz": "$u.baz"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "baz", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "baz": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }

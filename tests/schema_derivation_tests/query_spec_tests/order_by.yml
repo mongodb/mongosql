@@ -1,0 +1,1390 @@
+catalog_schema:
+  {
+    'mydb': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
+      'bar': {
+        'bsonType': 'object',
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': 'int'
+          },
+          'a': {
+            'bsonType': 'int'
+          },
+          'b': {
+            'bsonType': 'object',
+            'properties': {
+              'c': {
+                'bsonType': 'int'
+              }
+            }
+          },
+        }
+      },
+      'nullAndMissing': {
+        'bsonType': "object",
+        'required': [ 'a' ],
+        'additionalProperties': false,
+        'properties': {
+          'a': {
+            'bsonType': !!str "null"
+          },
+        }
+      },
+      'nullAndNonNull': {
+        'bsonType': 'object',
+        'additionalProperies': true
+      },
+      "baz":
+        {
+          "bsonType": "object",
+          "required": [ "_id", "a", "b", "coll" ],
+          "additionalProperties": false,
+          "properties":
+            {
+              "_id": { "bsonType": "int" },
+              "a": { "bsonType": "int" },
+              "b": { "bsonType": "int" },
+              "coll": { "bsonType": "string" },
+            },
+        },
+      "local":
+        {
+          "bsonType": "object",
+          "required": [ "_id" ],
+          "additionalProperties": false,
+          "properties":
+            {
+              "_id": { "bsonType": "int" },
+            },
+        },
+      "foreign":
+        {
+          "bsonType": "object",
+          "required": [ "_id", "l_id", "x" ],
+          "additionalProperties": false,
+          "properties":
+            {
+              "_id": { "bsonType": "int" },
+              "l_id": { "bsonType": "int" },
+              "x": { "bsonType": "int" },
+            },
+        },
+      "car":
+        {
+          "bsonType": "object",
+          "required": [ "_id", "s" ],
+          "additionalProperties": false,
+          "properties":
+            {
+              "_id": { "bsonType": "int" },
+              "s": { "bsonType": "string" },
+            },
+        },
+    }
+  }
+
+tests:
+- description: ascending-sort correctness test
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$foo.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$sort": {
+        "__bot.a": 1
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  ordered: true
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: descending-sort correctness test
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$foo.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$sort": {
+        "__bot.a": -1
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  ordered: true
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: multiple-sort-key correctness test
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "foo": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$foo.a", 
+          "b": "$foo.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$sort": {
+        "__bot.a": 1, 
+        "__bot.b": 1
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  ordered: true
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "string"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: missing sorts before null
+  current_db: mydb
+  pipeline: [
+    {
+      "$sort": {
+        "a": 1
+      }
+    }, 
+    {
+      "$project": {
+        "nullAndMissing": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
+  ordered: true
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["nullAndMissing"], 
+    "properties": {
+      "nullAndMissing": {
+        "additionalProperties": false, 
+        "required": [
+          "_id"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "null"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: null sorts before non-null values
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "nullAndNonNull": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$nullAndNonNull.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$sort": {
+        "__bot.a": 1
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  ordered: true
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: column references in sort keys can be qualified with table name after
+    select star
+  current_db: mydb
+  pipeline: [
+    {
+      "$sort": {
+        "a": 1
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }
+  ]
+  ordered: true
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "additionalProperties": false, 
+            "required": [
+              "c"
+            ], 
+            "properties": {
+              "c": {
+                "bsonType": "int"
+              }
+            }, 
+            "bsonType": "object"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: column references in sort keys can be qualified with table name after
+    select substar
+  current_db: mydb
+  pipeline: [
+    {
+      "$sort": {
+        "a": 1
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$bar"
+      }
+    }
+  ]
+  ordered: true
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "additionalProperties": false, 
+            "required": [
+              "c"
+            ], 
+            "properties": {
+              "c": {
+                "bsonType": "int"
+              }
+            }, 
+            "bsonType": "object"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: column references in sort keys can be compound identifiers referencing
+    document subfields
+  current_db: mydb
+  pipeline: [
+    {
+      "$sort": {
+        "b.c": 1
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "b": "$bar.b"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  ordered: true
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "b"
+        ], 
+        "properties": {
+          "b": {
+            "additionalProperties": false, 
+            "required": [
+              "c"
+            ], 
+            "properties": {
+              "c": {
+                "bsonType": "int"
+              }
+            }, 
+            "bsonType": "object"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: column references in sort keys can be compound identifiers referencing
+    document subfields and be qualified with table name
+  current_db: mydb
+  pipeline: [
+    {
+      "$sort": {
+        "b.c": 1
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }
+  ]
+  ordered: true
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "additionalProperties": false, 
+            "required": [
+              "c"
+            ], 
+            "properties": {
+              "c": {
+                "bsonType": "int"
+              }
+            }, 
+            "bsonType": "object"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: allow qualified order by fields in ORDER BY because some BI tools require
+    this even though it is not correct SQL92
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$addFields": {
+        "__bot": {
+          "a": "$bar.a", 
+          "_id": "$bar._id"
+        }
+      }
+    }, 
+    {
+      "$sort": {
+        "__bot._id": 1, 
+        "bar.a": 1
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$bar.a", 
+          "_id": "$bar._id"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  ordered: true
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+
+- description: allowing ordering by column not in Select still supports ordering by
+    computed column
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "baz": "$$ROOT"
+      }
+    }, 
+    {
+      "$addFields": {
+        "__bot": {
+          "a": "$baz.a", 
+          "c": {
+            "$add": [
+              {
+                "$literal": 42
+              }, 
+              "$baz.b"
+            ]
+          }, 
+          "_id": "$baz._id"
+        }
+      }
+    }, 
+    {
+      "$sort": {
+        "baz.b": 1, 
+        "__bot.c": 1
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$baz.a", 
+          "c": {
+            "$add": [
+              {
+                "$literal": 42
+              }, 
+              "$baz.b"
+            ]
+          }, 
+          "_id": "$baz._id"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: allow ordering by column not in Select
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "baz": "$$ROOT"
+      }
+    }, 
+    {
+      "$addFields": {
+        "__bot": {
+          "a": "$baz.a", 
+          "_id": "$baz._id"
+        }
+      }
+    }, 
+    {
+      "$sort": {
+        "baz.b": 1
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$baz.a", 
+          "_id": "$baz._id"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: ordering by column in select list that shadows column from data sources
+    still works
+  current_db: mydb
+  pipeline: [
+    {
+      "$sort": {
+        "a": 1
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "baz": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$baz.a", 
+          "_id": "$baz._id"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: ordering by column not in Select in join works when qualified
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "a": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        pipeline: [
+          {
+            "$project": {
+              "b": "$$ROOT", 
+              "_id": 0
+            }
+          }
+        ], 
+        "from": "baz", 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$addFields": {
+        "__bot": {
+          "a": "$a.a", 
+          "c": {
+            "$add": [
+              {
+                "$literal": 42
+              }, 
+              "$b.b"
+            ]
+          }, 
+          "_id": "$b._id"
+        }
+      }
+    }, 
+    {
+      "$sort": {
+        "a.b": 1, 
+        "__bot.c": 1
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$a.a", 
+          "c": {
+            "$add": [
+              {
+                "$literal": 42
+              }, 
+              "$b.b"
+            ]
+          }, 
+          "_id": "$b._id"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: allow ordering by column not in Select even with group by
+  current_db: mydb
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "__unaliasedKey2": "$b", 
+          "__unaliasedKey1": "$a"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "baz": {
+          "a": "$_id.__unaliasedKey1", 
+          "b": "$_id.__unaliasedKey2"
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "baz": "$baz"
+      }
+    }, 
+    {
+      "$addFields": {
+        "__bot": {
+          "a": "$baz.a", 
+          "c": {
+            "$add": [
+              {
+                "$literal": 42
+              }, 
+              "$baz.b"
+            ]
+          }
+        }
+      }
+    }, 
+    {
+      "$sort": {
+        "baz.b": 1, 
+        "__bot.c": 1
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$baz.a", 
+          "c": {
+            "$add": [
+              {
+                "$literal": 42
+              }, 
+              "$baz.b"
+            ]
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a", 
+          "c"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "c": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Sorting by column from RHS of LEFT JOIN orders the entire result set
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "l": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "l_id", 
+        "as": "f", 
+        "from": "foreign", 
+        "localField": "l._id"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$f", 
+        "preserveNullAndEmptyArrays": true
+      }
+    }, 
+    {
+      "$addFields": {
+        "__bot": {
+          "x": "$f.x", 
+          "_id": "$l._id"
+        }
+      }
+    }, 
+    {
+      "$sort": {
+        "__bot.x": 1, 
+        "l._id": 1
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "x": "$f.x", 
+          "_id": "$l._id"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  ordered: true
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_id"
+        ], 
+        "properties": {
+          "x": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: Sorting by column from RHS of INNER JOIN orders the entire result set
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "l": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "l_id", 
+        "as": "f", 
+        "from": "foreign", 
+        "localField": "l._id"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$f"
+      }
+    }, 
+    {
+      "$sort": {
+        "f.x": 1
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "x": "$f.x", 
+          "_id": "$l._id"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  ordered: true
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "x"
+        ], 
+        "properties": {
+          "x": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: ensure ORDER BY does not introduce extraneous columns
+  current_db: mydb
+  pipeline: [
+    {
+      "$group": {
+        "_id": {
+          "__unaliasedKey1": "$s"
+        }, 
+        "_agg1": {
+          "$sum": {
+            "$cond": [
+              {
+                "$in": [
+                  {
+                    "$type": [
+                      "$s"
+                    ]
+                  }, 
+                  [
+                    {
+                      "$literal": "missing"
+                    }, 
+                    {
+                      "$literal": "null"
+                    }
+                  ]
+                ]
+              }, 
+              {
+                "$literal": 0
+              }, 
+              {
+                "$literal": 1
+              }
+            ]
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "_agg1": "$_agg1"
+        }, 
+        "car": {
+          "s": "$_id.__unaliasedKey1"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$sort": {
+        "car.s": 1
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": "$__bot", 
+        "car": "$car", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "alias2": "$car.s", 
+          "alias1": "$__bot._agg1"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "alias1", 
+          "alias2"
+        ], 
+        "properties": {
+          "alias2": {
+            "bsonType": "string"
+          }, 
+          "alias1": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

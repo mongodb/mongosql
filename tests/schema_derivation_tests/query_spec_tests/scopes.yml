@@ -1,0 +1,1267 @@
+catalog_schema:
+  {
+    'foo': {
+      'coll': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
+      'nested': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
+      'bar': {
+        'bsonType': 'object',
+        'properties': {a: {bsonType: 'int'}},
+        'additionalProperties': true
+      },
+      'baz': {
+        'bsonType': 'object',
+        'properties': {a: {bsonType: 'int'}},
+        'additionalProperties': true
+      },
+      'schema_coll': {
+        'bsonType': "object",
+        'required': [ 'bar', 'car' ],
+        'additionalProperties': false,
+        'properties': {
+          'bar': {
+            'bsonType': "int"
+          },
+          'car': {
+            'bsonType': "int"
+          }
+        }
+      },
+      'schema_foo': {
+        'bsonType': "object",
+        'required': [ 'baz' ],
+        'additionalProperties': false,
+        'properties': {
+          'baz': {
+            'bsonType': "int"
+          }
+        }
+      }
+    },
+    'foo2': {
+      'coll': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
+    }
+  }
+
+tests:
+- description: compound collection references are fully qualified
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "coll": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["coll"], 
+    "properties": {
+      "coll": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "bar", 
+          "car"
+        ], 
+        "properties": {
+          "car": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "bar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: equivalent qualified and unqualified references to the same field
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "coll": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "qbar": "$coll.bar", 
+          "ubar": "$coll.bar"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "qbar", 
+          "ubar"
+        ], 
+        "properties": {
+          "qbar": {
+            "bsonType": "int"
+          }, 
+          "ubar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: compound field references prefer qualified names to field references
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "n": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$n.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "properties": {}, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: compound field reference is treated as unqualified if no datasource
+    name matches first identifier
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "nested": "$$ROOT"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$nested.n.a"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: field references never resolve to the catalog environment
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "coll": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$coll.foo.coll"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "properties": {}, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: qualified reference is not ambiguous with multiple datasources
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "coll": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "nested": "$$ROOT"
+            }
+          }
+        ], 
+        "from": "nested", 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$coll.bar"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: unqualified references are not ambiguous when there are multiple datasources
+    with schema that disambiguates
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "coll": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "coll2": "$$ROOT"
+            }
+          }
+        ], 
+        "from": "schema_foo", 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "a": "$coll.bar"
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: unqualified collection reference refers to current database
+  current_db: foo2
+  pipeline: [
+    {
+      "$project": {
+        "coll": "$$ROOT", 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["coll"], 
+    "properties": {
+      "coll": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a", 
+          "b"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "b": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: c.a refers to a in baz.a in the subquery and bar.a in the outer query
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "c": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "baz", 
+        pipeline: [
+          {
+            "$project": {
+              "c": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "a": "$c.a"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vc_0": "$c"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$reduce": {
+            "input": "$__subquery_result_0", 
+            "initialValue": {
+              "$literal": false
+            }, 
+            "in": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlOr_input1": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlEq_input0": "$c.a", 
+                        "desugared_sqlEq_input1": "$$this.__bot.a"
+                      }, 
+                      "in": {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlEq_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlEq_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlEq_input0", 
+                              "$$desugared_sqlEq_input1"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }, 
+                  "desugared_sqlOr_input0": "$$value"
+                }, 
+                "in": {
+                  "$cond": [
+                    {
+                      "$or": [
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input0", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }, 
+                        {
+                          "$eq": [
+                            "$$desugared_sqlOr_input1", 
+                            {
+                              "$literal": true
+                            }
+                          ]
+                        }
+                      ]
+                    }, 
+                    {
+                      "$literal": true
+                    }, 
+                    {
+                      "$cond": [
+                        {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$lte": [
+                                "$$desugared_sqlOr_input1", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }
+                          ]
+                        }, 
+                        {
+                          "$literal": null
+                        }, 
+                        {
+                          "$literal": false
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["c"], 
+    "properties": {
+      "c": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "a"
+        ], 
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: if an unqualified reference CANNOT be from subquery's datasource and
+    MUST be from outer query's datasource, use outer query's datasource
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "q": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "schema_foo", 
+        pipeline: [
+          {
+            "$limit": 1
+          }, 
+          {
+            "$project": {
+              "q": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "bar": "$$vq_0.bar"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vq_0": "$q"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "bar": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0", 
+                    {
+                      "$literal": 0
+                    }
+                  ]
+                }
+              }, 
+              "in": "$$docExpr.__bot.bar"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "bar"
+        ], 
+        "properties": {
+          "bar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: if an unqualified reference CANNOT be from subquery's datasource and
+    MAY be from outer query's datasource, use outer query's datasource
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "q": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "schema_foo", 
+        pipeline: [
+          {
+            "$limit": 1
+          }, 
+          {
+            "$project": {
+              "q": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "bar": "$$vq_0.bar"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vq_0": "$q"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "bar": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0", 
+                    {
+                      "$literal": 0
+                    }
+                  ]
+                }
+              }, 
+              "in": "$$docExpr.__bot.bar"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "bar"
+        ], 
+        "properties": {
+          "bar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: if an unqualified reference MAY be from subquery's datasource and CANNOT
+    be from outer query's datasource, use subquery's datasource
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "q": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "baz", 
+        pipeline: [
+          {
+            "$limit": 1
+          }, 
+          {
+            "$project": {
+              "q": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "bar": "$q.bar"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vq_0": "$q"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "bar": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0", 
+                    {
+                      "$literal": 0
+                    }
+                  ]
+                }
+              }, 
+              "in": "$$docExpr.__bot.bar"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "properties": {}, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: if an unqualified reference MUST be from subquery's datasource and
+    MUST be from outer query's datasource, the highest scope number is chosen
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "q": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "schema_coll", 
+        pipeline: [
+          {
+            "$limit": 1
+          }, 
+          {
+            "$project": {
+              "q": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "bar": "$q.bar"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vq_0": "$q"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "bar": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0", 
+                    {
+                      "$literal": 0
+                    }
+                  ]
+                }
+              }, 
+              "in": "$$docExpr.__bot.bar"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "bar"
+        ], 
+        "properties": {
+          "bar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: if an unqualified reference MUST be from subquery's datasource and
+    MAY be from outer query's datasource, use subquery's datasource
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "q": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "schema_coll", 
+        pipeline: [
+          {
+            "$limit": 1
+          }, 
+          {
+            "$project": {
+              "q": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "bar": "$q.bar"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vq_0": "$q"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "bar": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0", 
+                    {
+                      "$literal": 0
+                    }
+                  ]
+                }
+              }, 
+              "in": "$$docExpr.__bot.bar"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "bar"
+        ], 
+        "properties": {
+          "bar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: if an unqualified reference MUST be from subquery's datasource and
+    CANNOT be from outer query's datasource, use subquery's datasource
+  current_db: foo
+  pipeline: [
+    {
+      "$project": {
+        "q": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "schema_coll", 
+        pipeline: [
+          {
+            "$limit": 1
+          }, 
+          {
+            "$project": {
+              "q": "$$ROOT", 
+              "_id": 0
+            }
+          }, 
+          {
+            "$project": {
+              "__bot": {
+                "bar": "$q.bar"
+              }, 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vq_0": "$q"
+        }, 
+        "as": "__subquery_result_0"
+      }
+    }, 
+    {
+      "$project": {
+        "__bot": {
+          "bar": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0", 
+                    {
+                      "$literal": 0
+                    }
+                  ]
+                }
+              }, 
+              "in": "$$docExpr.__bot.bar"
+            }
+          }
+        }, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "__subquery_result_0": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "bar"
+        ], 
+        "properties": {
+          "bar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }

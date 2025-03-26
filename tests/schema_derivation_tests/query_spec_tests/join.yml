@@ -1,0 +1,1687 @@
+catalog_schema:
+  {
+    "mydb":
+      {
+        "bar":
+          {
+            "bsonType": "object",
+            "required": ["foo"],
+            "additionalProperties": false,
+            "properties":
+              { "_id": { "bsonType": "int" }, "foo": { "bsonType": "int" } },
+          },
+        "bar2":
+          {
+            "bsonType": "object",
+            "required": ["foo"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "foo": { "bsonType": "int" },
+                "baz": { "bsonType": "int" },
+              },
+          },
+        "coll":
+          {
+            "bsonType": "object",
+            "required": ["bar", "car"],
+            "additionalProperties": false,
+            "properties":
+              { "bar": { "bsonType": "int" }, "car": { "bsonType": "int" } },
+          },
+      },
+    "db2":
+      {
+        "foo":
+          {
+            "bsonType": "object",
+            "required": ["x"],
+            "additionalProperties": false,
+            "properties": { "x": { "bsonType": "int" } },
+          },
+      },
+  }
+
+tests:
+- description: cross join correctness test
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        pipeline: [
+          {
+            "$project": {
+              "coll": "$$ROOT", 
+              "_id": 0
+            }
+          }
+        ], 
+        "from": "coll", 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "coll"], 
+    "properties": {
+      "coll": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "bar", 
+          "car"
+        ], 
+        "properties": {
+          "car": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "bar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: inner join correctness test
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "car", 
+        "as": "coll", 
+        "from": "coll", 
+        "localField": "bar.foo"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$coll"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "coll"], 
+    "properties": {
+      "coll": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "bar", 
+          "car"
+        ], 
+        "properties": {
+          "car": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "bar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: left join correctness test
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "bar2": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "foo", 
+        "as": "bar", 
+        "from": "bar", 
+        "localField": "bar2.foo"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$bar", 
+        "preserveNullAndEmptyArrays": true
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar2"], 
+    "properties": {
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "baz": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: right join correctness test
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "foo", 
+        "as": "bar2", 
+        "from": "bar2", 
+        "localField": "bar.foo"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$bar2", 
+        "preserveNullAndEmptyArrays": true
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+      "bar2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "baz", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "baz": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: join predicates can contain complex expressions
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "bar2", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$and": [
+                  {
+                    "$gt": [
+                      "$baz", 
+                      {
+                        "$literal": null
+                      }
+                    ]
+                  }, 
+                  {
+                    "$gt": [
+                      {
+                        "$add": [
+                          {
+                            "$literal": 50
+                          }, 
+                          "$$vbar_0.foo"
+                        ]
+                      }, 
+                      "$baz"
+                    ]
+                  }
+                ]
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "bar2": "$$ROOT", 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "bar2"], 
+    "properties": {
+      "bar2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "baz", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "baz": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: join predicates can reference columns by table-qualified names
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "car", 
+        "as": "coll", 
+        "from": "coll", 
+        "localField": "bar.foo"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$coll"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "coll"], 
+    "properties": {
+      "coll": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "bar", 
+          "car"
+        ], 
+        "properties": {
+          "car": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "bar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: join predicates can reference columns by unambiguous unqualified names
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "car", 
+        "as": "coll", 
+        "from": "coll", 
+        "localField": "bar.foo"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$coll"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "coll"], 
+    "properties": {
+      "coll": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "bar", 
+          "car"
+        ], 
+        "properties": {
+          "car": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "bar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: joins are left-associative
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "a": "$$ROOT", 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        pipeline: [
+          {
+            "$project": {
+              "b": "$$ROOT", 
+              "_id": 0
+            }
+          }
+        ], 
+        "from": "bar", 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "foo", 
+        "as": "c", 
+        "from": "bar", 
+        "localField": "a.foo"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$c", 
+        "preserveNullAndEmptyArrays": true
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["a", "b", "c"], 
+    "properties": {
+      "a": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "c": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "b": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: join left and right datasources can be referenced by alias
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "t1": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        pipeline: [
+          {
+            "$project": {
+              "_id": 0, 
+              "t2": "$$ROOT"
+            }
+          }
+        ], 
+        "from": "coll", 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "t2": "$t2", 
+        "t1": "$t1"
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["t1", "t2"], 
+    "properties": {
+      "t2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "bar", 
+          "car"
+        ], 
+        "properties": {
+          "car": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "bar": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "t1": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+
+- description: left join with static value comparison to rhs field in ON clause still results in left hand side doc when condition fails
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "bar2", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlAnd_input0": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$$vbar_0._id", 
+                          "desugared_sqlEq_input1": "$_id"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0", 
+                                "$$desugared_sqlEq_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }, 
+                    "desugared_sqlAnd_input1": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$baz"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlEq_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0", 
+                                {
+                                  "$literal": 63
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }, 
+                  "in": {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input0", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input1", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }
+                        ]
+                      }, 
+                      {
+                        "$literal": false
+                      }, 
+                      {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$literal": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "bar2": "$$ROOT", 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404", 
+        "preserveNullAndEmptyArrays": true
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": {
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "baz", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "baz": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: left join followed by WHERE with static comparison on rhs value filters out left hand side docs that do not match the WHERE
+  current_db: mydb
+  pipeline: [
+    {
+      "$match": {
+        "$expr": {
+          "$gt": [
+            "$_id", 
+            {
+              "$literal": null
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "_id", 
+        "as": "bar2", 
+        "from": "bar2", 
+        "localField": "bar._id"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$bar2", 
+        "preserveNullAndEmptyArrays": true
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$and": [
+            {
+              "$eq": [
+                "$bar2.baz", 
+                {
+                  "$literal": 63
+                }
+              ]
+            }, 
+            {
+              "$gt": [
+                "$bar2.baz", 
+                {
+                  "$literal": null
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "bar2"], 
+    "properties": {
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "baz", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "baz": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }
+- description: match filter in left join correctness test
+  current_db: mydb
+  pipeline: [
+    {
+      "$match": {
+        "$expr": {
+          "$gt": [
+            "$_id", 
+            {
+              "$literal": null
+            }
+          ]
+        }
+      }
+    }, 
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "foreignField": "_id", 
+        "as": "bar2", 
+        "from": "bar2", 
+        "localField": "bar._id"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$bar2", 
+        "preserveNullAndEmptyArrays": true
+      }
+    }, 
+    {
+      "$match": {
+        "bar2.baz": {
+          "$type": "int"
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "bar2"], 
+    "properties": {
+      "bar2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "baz", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "baz": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: filter in lateral join correctness test
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "bar2", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlAnd_input0": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$$vbar_0._id", 
+                          "desugared_sqlEq_input1": "$_id"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0", 
+                                "$$desugared_sqlEq_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }, 
+                    "desugared_sqlAnd_input1": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$baz"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlEq_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0", 
+                                {
+                                  "$literal": 63
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }, 
+                  "in": {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input0", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input1", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }
+                        ]
+                      }, 
+                      {
+                        "$literal": false
+                      }, 
+                      {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$literal": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "bar2": "$$ROOT", 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404", 
+        "preserveNullAndEmptyArrays": true
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$match": {
+        "$expr": {
+          "$not": [
+            {
+              "$eq": [
+                {
+                  "$type": [
+                    "$bar2.baz"
+                  ]
+                }, 
+                {
+                  "$literal": "missing"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "bar2"], 
+    "properties": {
+      "bar2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "baz", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "baz": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "foo": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
+  }
+- description: match filter in lateral join correctness test
+  current_db: mydb
+  pipeline: [
+    {
+      "$project": {
+        "_id": 0, 
+        "bar": "$$ROOT"
+      }
+    }, 
+    {
+      "$lookup": {
+        "from": "bar2", 
+        pipeline: [
+          {
+            "$match": {
+              "$expr": {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlAnd_input0": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$$vbar_0._id", 
+                          "desugared_sqlEq_input1": "$_id"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input0", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }, 
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input1", 
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0", 
+                                "$$desugared_sqlEq_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }, 
+                    "desugared_sqlAnd_input1": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$baz"
+                        }, 
+                        "in": {
+                          "$cond": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlEq_input0", 
+                                {
+                                  "$literal": null
+                                }
+                              ]
+                            }, 
+                            {
+                              "$literal": null
+                            }, 
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0", 
+                                {
+                                  "$literal": 63
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }, 
+                  "in": {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input0", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }, 
+                          {
+                            "$eq": [
+                              "$$desugared_sqlAnd_input1", 
+                              {
+                                "$literal": false
+                              }
+                            ]
+                          }
+                        ]
+                      }, 
+                      {
+                        "$literal": false
+                      }, 
+                      {
+                        "$cond": [
+                          {
+                            "$or": [
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input0", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }, 
+                              {
+                                "$lte": [
+                                  "$$desugared_sqlAnd_input1", 
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }, 
+                          {
+                            "$literal": null
+                          }, 
+                          {
+                            "$literal": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }, 
+          {
+            "$project": {
+              "bar2": "$$ROOT", 
+              "_id": 0
+            }
+          }
+        ], 
+        "let": {
+          "vbar_0": "$bar"
+        }, 
+        "as": "eca58228-b657-498a-b76e-f48a9161a404"
+      }
+    }, 
+    {
+      "$unwind": {
+        "path": "$eca58228-b657-498a-b76e-f48a9161a404", 
+        "preserveNullAndEmptyArrays": true
+      }
+    }, 
+    {
+      "$replaceWith": {
+        "$mergeObjects": [
+          "$$ROOT", 
+          "$eca58228-b657-498a-b76e-f48a9161a404"
+        ]
+      }
+    }, 
+    {
+      "$project": {
+        "eca58228-b657-498a-b76e-f48a9161a404": 0, 
+        "_id": 0
+      }
+    }, 
+    {
+      "$match": {
+        "bar2.baz": {
+          "$type": "int"
+        }
+      }
+    }
+  ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": ["bar", "bar2"], 
+    "properties": {
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }, 
+      "bar2": {
+        "additionalProperties": false, 
+        "required": [
+          "_id", 
+          "baz", 
+          "foo"
+        ], 
+        "properties": {
+          "foo": {
+            "bsonType": "int"
+          }, 
+          "baz": {
+            "bsonType": "int"
+          }, 
+          "_id": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
+  }

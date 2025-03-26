@@ -599,21 +599,37 @@ impl DeriveSchema for Stage {
                     Ok(state.result_set_schema.to_owned())
                 }
                 UnionWith::Pipeline(p) => {
-                    let from_ns = Namespace(state.current_db.clone(), p.coll.clone());
-                    let from_schema = state
-                        .catalog
-                        .get(&from_ns)
-                        .ok_or_else(|| Error::UnknownReference(from_ns.into()))?;
-                    let pipeline_state = &mut ResultSetState {
-                        catalog: state.catalog,
-                        variables: state.variables.clone(),
-                        result_set_schema: from_schema.clone(),
-                        current_db: state.current_db.clone(),
-                        null_behavior: state.null_behavior,
+                    if p.coll.is_none() && p.pipeline.is_none() {
+                        return Err(Error::NotEnoughArguments("$unionWith".to_string()));
+                    }
+                    let from_schema = match p.coll.clone() {
+                        Some(collection) => {
+                            let from_ns = Namespace(state.current_db.clone(), collection);
+                            state
+                                .catalog
+                                .get(&from_ns)
+                                .ok_or_else(|| Error::UnknownReference(from_ns.into()))?
+                        }
+                        // if we don't have a from collection, the unioned schema will be determined just by the pipeline
+                        None => &Schema::default(),
                     };
-                    let pipeline_schema =
-                        derive_schema_for_pipeline(p.pipeline.clone(), pipeline_state)?;
-                    state.result_set_schema = state.result_set_schema.union(&pipeline_schema);
+                    // if we have a pipeline, union the schema it generates. This will use the schema from the previous
+                    // step, which is the collection schema if one is specified, or empty if not.
+                    if let Some(pipeline) = p.pipeline.clone() {
+                        let pipeline_state = &mut ResultSetState {
+                            catalog: state.catalog,
+                            variables: state.variables.clone(),
+                            result_set_schema: from_schema.clone(),
+                            current_db: state.current_db.clone(),
+                            null_behavior: state.null_behavior,
+                        };
+                        let pipeline_schema = derive_schema_for_pipeline(pipeline, pipeline_state)?;
+                        state.result_set_schema = state.result_set_schema.union(&pipeline_schema);
+                    // if no pipeline is specified, we are unioning the documents of the collection directly, so just union the from_schema,
+                    // which should represent the collection schema
+                    } else {
+                        state.result_set_schema = state.result_set_schema.union(from_schema);
+                    }
                     Ok(state.result_set_schema.to_owned())
                 }
             }
