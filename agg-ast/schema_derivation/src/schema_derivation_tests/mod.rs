@@ -29,6 +29,7 @@ macro_rules! test_derive_stage_schema {
                 variables,
                 result_set_schema,
                 current_db: "test".to_string(),
+                current_collection: None,
                 null_behavior: Satisfaction::Not
             };
             let result = input.derive_schema(&mut state);
@@ -57,6 +58,7 @@ macro_rules! test_derive_expression_schema {
                 variables,
                 result_set_schema,
                 current_db: "test".to_string(),
+                current_collection: None,
                 null_behavior: Satisfaction::Not
             };
             let result = input.derive_schema(&mut state);
@@ -90,6 +92,7 @@ macro_rules! test_derive_schema_for_match_stage {
                 variables,
                 result_set_schema,
                 current_db: "test".to_string(),
+                current_collection: None,
                 null_behavior: Satisfaction::Not
             };
             let result = input.derive_schema(&mut state);

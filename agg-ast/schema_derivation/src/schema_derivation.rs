@@ -71,6 +71,7 @@ pub(crate) struct ResultSetState<'a> {
     pub variables: BTreeMap<String, Schema>,
     pub result_set_schema: Schema,
     pub current_db: String,
+    pub current_collection: Option<String>,
     // the null_behavior field allows us to keep track of what behavior we are expecting to be exhibited
     // by the rows returned by this query. This comes up in both normal schema derivation, where something like
     // $eq: [null, {$op: ...}] can influence the values returned by the operator), as well as in match schema derivation
@@ -558,6 +559,7 @@ impl DeriveSchema for Stage {
                 variables,
                 result_set_schema: from_schema.clone(),
                 current_db: state.current_db.clone(),
+                current_collection: state.current_collection.clone(),
                 null_behavior: state.null_behavior,
             };
             let lookup_schema = derive_schema_for_pipeline(pipeline.to_owned(), &mut lookup_state)?;
@@ -621,6 +623,7 @@ impl DeriveSchema for Stage {
                             variables: state.variables.clone(),
                             result_set_schema: from_schema.clone(),
                             current_db: state.current_db.clone(),
+                            current_collection: state.current_collection.clone(),
                             null_behavior: state.null_behavior,
                         };
                         let pipeline_schema = derive_schema_for_pipeline(pipeline, pipeline_state)?;
@@ -1284,6 +1287,7 @@ impl DeriveSchema for TaggedOperator {
                     catalog: state.catalog,
                     variables,
                     current_db: state.current_db.clone(),
+                    current_collection: state.current_collection.clone(),
                     null_behavior: state.null_behavior,
                 };
                 l.inside.derive_schema(&mut let_state)
