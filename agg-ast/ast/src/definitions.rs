@@ -85,6 +85,7 @@ pub enum Stage {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum Documents {
     Literals(Vec<LinkedHashMap<String, Expression>>),
     Expr(Expression),

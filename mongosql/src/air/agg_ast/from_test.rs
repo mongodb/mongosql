@@ -65,7 +65,7 @@ mod stage {
         test_from_stage!(
             empty,
             expected = air::Stage::Documents(air::Documents { array: vec![] }),
-            input = agg_ast::Stage::Documents(vec![])
+            input = agg_ast::Stage::Documents(agg_ast::Documents::Literals(vec![]))
         );
 
         test_from_stage!(
@@ -77,9 +77,9 @@ mod stage {
                     }
                 )],
             }),
-            input = agg_ast::Stage::Documents(vec![map! {
+            input = agg_ast::Stage::Documents(agg_ast::Documents::Literals(vec![map! {
                 "a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(1))
-            }])
+            }]))
         );
 
         test_from_stage!(
@@ -97,7 +97,7 @@ mod stage {
                     }),
                 ],
             }),
-            input = agg_ast::Stage::Documents(vec![
+            input = agg_ast::Stage::Documents(agg_ast::Documents::Literals(vec![
                 map! {
                     "a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(1))
                 },
@@ -107,7 +107,7 @@ mod stage {
                 map! {
                     "a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(3))
                 },
-            ])
+            ]))
         );
     }
 
@@ -427,11 +427,13 @@ mod stage {
                 collection: None,
                 let_body: None,
                 join_type: agg_ast::JoinType::Inner,
-                pipeline: vec![agg_ast::Stage::Documents(vec![
-                    map! {"a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(1)) },
-                    map! {"a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(2)) },
-                    map! {"a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(3)) },
-                ])],
+                pipeline: vec![agg_ast::Stage::Documents(agg_ast::Documents::Literals(
+                    vec![
+                        map! {"a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(1)) },
+                        map! {"a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(2)) },
+                        map! {"a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(3)) },
+                    ]
+                ))],
                 condition: None
             }))
         );
@@ -1316,7 +1318,7 @@ mod expression {
                     }),
                     output_path: Some(vec!["x".to_string()]),
                     pipeline: vec![
-                        agg_ast::Stage::Documents(vec![]),
+                        agg_ast::Stage::Documents(agg_ast::Documents::Literals(vec![])),
                         agg_ast::Stage::Project(agg_ast::ProjectStage {
                             items: map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
                         })
@@ -1394,7 +1396,7 @@ mod expression {
                            }),
                            output_path: Some(vec!["x".to_string()]),
                            pipeline: vec![
-                               agg_ast::Stage::Documents(vec![]),
+                                agg_ast::Stage::Documents(agg_ast::Documents::Literals(vec![])),
                                agg_ast::Stage::Project(
                                    agg_ast::ProjectStage {
                                         items: map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
@@ -1441,7 +1443,7 @@ mod expression {
                            }),
                            output_path: Some(vec!["x".to_string()]),
                            pipeline: vec![
-                               agg_ast::Stage::Documents(vec![]),
+                                agg_ast::Stage::Documents(agg_ast::Documents::Literals(vec![])),
                                agg_ast::Stage::Project(
                                    agg_ast::ProjectStage {
                                         items: map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
@@ -1522,7 +1524,7 @@ mod expression {
                         "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(42))
                     }),
                     pipeline: vec![
-                        agg_ast::Stage::Documents(vec![]),
+                        agg_ast::Stage::Documents(agg_ast::Documents::Literals(vec![])),
                         agg_ast::Stage::Project(agg_ast::ProjectStage {
                             items: map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
                         })

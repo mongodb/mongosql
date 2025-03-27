@@ -172,7 +172,14 @@ mod stage_test {
             expected = Stage::Documents(Documents::Expr(Expression::TaggedOperator(
                 TaggedOperator::Filter(Filter {
                     _as: Some("bar".to_string()),
-                    input: Box::new(Expression::Array(vec![])),
+                    input: Box::new(Expression::Array(vec![
+                        Expression::Document(
+                            map! { "a".to_string() => Expression::Literal(LiteralValue::Int32(1)) }
+                        ),
+                        Expression::Document(
+                            map! { "a".to_string() => Expression::Literal(LiteralValue::String("hello".to_string())) }
+                        ),
+                    ])),
                     cond: Box::new(Expression::UntaggedOperator(UntaggedOperator {
                         op: UntaggedOperatorName::IsNumber,
                         args: vec![Expression::Ref(Ref::VariableRef("bar.a".to_string()))]
@@ -180,7 +187,7 @@ mod stage_test {
                     limit: None
                 })
             ))),
-            input = r#" {"$documents": {"$filter": {"input": [{"a": 1}, {"a": "hello"}], "as": "bar", "cond": {"$isNumber": "$$bar.a"}}}}"#
+            input = r#"stage: {"$documents": {"$filter": {"input": [{"a": 1}, {"a": "hello"}], "as": "bar", "cond": {"$isNumber": "$$bar.a"}}}}"#
         );
     }
 
