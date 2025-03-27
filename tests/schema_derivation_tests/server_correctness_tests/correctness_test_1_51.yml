@@ -1,4 +1,5 @@
 current_db: test
+current_collection: fuzzer_coll
 pipeline: [ { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$map" : { "input" : [ "$num", "$obj.obj.obj.obj.obj.num", -1, {"$numberDecimal": "300.68933707402016"} ], "as" : "lizzie", "in" : { "$ceil" : "$$lizzie" } } } } ]
 result_set_schema:
   {

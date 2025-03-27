@@ -28,6 +28,7 @@ catalog_schema:
 tests:
 - description: correctness test for type assertion in schema mode
   current_db: foo
+  current_collection: bar_schema
   pipeline: [
         {
           "$project": {
@@ -90,6 +91,7 @@ tests:
 - description: correctness test for type assertion in schema-less mode, target type
     can be any
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {

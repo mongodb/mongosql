@@ -355,6 +355,7 @@ catalog_schema:
 tests:
 - description: NULLIF correctness test
   current_db: foo
+  current_collection: nullif
   pipeline: [
     {
       "$project": {
@@ -462,6 +463,7 @@ tests:
   }
 - description: COALESCE(v1, v2) correctness tests
   current_db: foo
+  current_collection: twoArgCoalesce
   pipeline: [
     {
       "$project": {
@@ -559,6 +561,7 @@ tests:
   }
 - description: COALESCE(v1, ..., vn) correctness tests
   current_db: foo
+  current_collection: multiArgCoalsce
   pipeline: [
     {
       "$project": {
@@ -723,6 +726,7 @@ tests:
 
 - description: SIZE correctness tests
   current_db: foo
+  current_collection: size
   pipeline: [
     {
       "$project": {
@@ -821,6 +825,7 @@ tests:
   }
 - description: POSITION correctness tests
   current_db: foo
+  current_collection: position
   pipeline: [
     {
       "$project": {
@@ -941,6 +946,7 @@ tests:
   }
 - description: CHAR_LENGTH correctness tests
   current_db: foo
+  current_collection: length
   pipeline: [
     {
       "$project": {
@@ -1042,6 +1048,7 @@ tests:
 
 - description: OCTET_LENGTH correctness tests
   current_db: foo
+  current_collection: length
   pipeline: [
     {
       "$project": {
@@ -1142,6 +1149,7 @@ tests:
 
 - description: BIT_LENGTH correctness tests
   current_db: foo
+  current_collection: length
   pipeline: [
     {
       "$project": {
@@ -1249,6 +1257,7 @@ tests:
 
 - description: EXTRACT FROM NULL and MISSING correctness test
   current_db: foo
+  current_collection: nullAndMissing
   pipeline: [
     {
       "$project": {
@@ -1308,6 +1317,7 @@ tests:
   }
 - description: REPLACE correctness test
   current_db: foo
+  current_collection: fold
   pipeline: [
     {
       "$project": {
@@ -1387,6 +1397,7 @@ tests:
   }
 - description: UPPER correctness test
   current_db: foo
+  current_collection: fold
   pipeline: [
     {
       "$project": {
@@ -1482,6 +1493,7 @@ tests:
   }
 - description: LOWER correctness test
   current_db: foo
+  current_collection: fold
   pipeline: [
     {
       "$project": {
@@ -1577,6 +1589,7 @@ tests:
   }
 - description: TRIM(BOTH substr FROM str) correctness test
   current_db: foo
+  current_collection: trim
   pipeline: [
     {
       "$project": {
@@ -1662,6 +1675,7 @@ tests:
   }
 - description: TRIM(LEADING substr FROM str) correctness test
   current_db: foo
+  current_collection: trim
   pipeline: [
     {
       "$project": {
@@ -1747,6 +1761,7 @@ tests:
   }
 - description: TRIM(TRAILING substr FROM str) correctness test
   current_db: foo
+  current_collection: trim
   pipeline: [
     {
       "$project": {
@@ -2002,6 +2017,7 @@ tests:
 
 - description: ABS correctness tests
   current_db: foo
+  current_collection: abs
   pipeline: [
     {
       "$project": {
@@ -2093,6 +2109,7 @@ tests:
   }
 - description: CEIL correctness tests
   current_db: foo
+  current_collection: ceilAndFloor
   pipeline: [
     {
       "$project": {
@@ -2184,6 +2201,7 @@ tests:
   }
 - description: COS correctness tests
   current_db: foo
+  current_collection: trigonometry
   pipeline: [
     {
       "$project": {
@@ -2296,6 +2314,7 @@ tests:
   }
 - description: DEGREES correctness tests
   current_db: foo
+  current_collection: trigonometry
   pipeline: [
     {
       "$project": {
@@ -2381,6 +2400,7 @@ tests:
   }
 - description: FLOOR correctness tests
   current_db: foo
+  current_collection: ceilAndFloor
   pipeline: [
     {
       "$project": {
@@ -2472,6 +2492,7 @@ tests:
   }
 - description: LOG correctness tests
   current_db: foo
+  current_collection: log
   pipeline: [
     {
       "$project": {
@@ -2640,6 +2661,7 @@ tests:
   }
 - description: MOD correctness tests
   current_db: foo
+  current_collection: mod
   pipeline: [
     {
       "$project": {
@@ -2775,6 +2797,7 @@ tests:
   }
 - description: POW correctness tests
   current_db: foo
+  current_collection: pow
   pipeline: [
     {
       "$project": {
@@ -2887,6 +2910,7 @@ tests:
   }
 - description: RADIANS correctness tests
   current_db: foo
+  current_collection: radians
   pipeline: [
     {
       "$project": {
@@ -2972,6 +2996,7 @@ tests:
   }
 - description: ROUND correctness tests
   current_db: foo
+  current_collection: round
   pipeline: [
     {
       "$project": {
@@ -3128,6 +3153,7 @@ tests:
   }
 - description: SIN correctness tests
   current_db: foo
+  current_collection: trigonometry
   pipeline: [
       {
         "$project": {
@@ -3240,6 +3266,7 @@ tests:
   }
 - description: SQRT correctness tests
   current_db: foo
+  current_collection: sqrt
   pipeline: [
     {
       "$project": {
@@ -3362,6 +3389,7 @@ tests:
   }
 - description: TAN correctness tests
   current_db: foo
+  current_collection: trigonometry
   pipeline: [
     {
       "$project": {
@@ -3474,6 +3502,7 @@ tests:
   }
 - description: SPLIT correctness tests
   current_db: foo
+  current_collection: split
   pipeline: [
     {
       "$project": {
@@ -3676,6 +3705,7 @@ tests:
   }
 - description: YEAR correctness tests
   current_db: foo
+  current_collection: dates
   pipeline: [
     {
       "$project": {
@@ -3787,6 +3817,7 @@ tests:
   }
 - description: MONTH correctness tests
   current_db: foo
+  current_collection: dates
   pipeline: [
     {
       "$project": {
@@ -3898,6 +3929,7 @@ tests:
   }
 - description: DAY correctness tests
   current_db: foo
+  current_collection: dates
   pipeline: [
     {
       "$project": {
@@ -4009,6 +4041,7 @@ tests:
   }
 - description: HOUR correctness tests
   current_db: foo
+  current_collection: dates
   pipeline: [
     {
       "$project": {
@@ -4120,6 +4153,7 @@ tests:
   }
 - description: MINUTE correctness tests
   current_db: foo
+  current_collection: dates
   pipeline: [
     {
       "$project": {
@@ -4231,6 +4265,7 @@ tests:
   }
 - description: SECOND correctness tests
   current_db: foo
+  current_collection: dates
   pipeline: [
     {
       "$project": {
@@ -4342,6 +4377,7 @@ tests:
   }
 - description: MILLISECOND correctness tests
   current_db: foo
+  current_collection: dates
   pipeline: [
     {
       "$project": {
@@ -4453,6 +4489,7 @@ tests:
   }
 - description: QUARTER correctness tests
   current_db: foo
+  current_collection: dates
   pipeline: [
     {
       "$project": {
@@ -4555,6 +4592,7 @@ tests:
   }
 - description: WEEK correctness tests
   current_db: foo
+  current_collection: dates
   pipeline: [
     {
       "$project": {
@@ -4666,6 +4704,7 @@ tests:
   }
 - description: DAY_OF_YEAR correctness tests
   current_db: foo
+  current_collection: datepart
   pipeline: [
     {
       "$project": {
@@ -4722,6 +4761,7 @@ tests:
 
 - description: ISO_WEEK correctness tests
   current_db: foo
+  current_collection: datepart
   pipeline: [
     {
       "$project": {
@@ -4779,6 +4819,7 @@ tests:
 
 - description: ISO_WEEKDAY correctness tests
   current_db: foo
+  current_collection: datepart
   pipeline: [
     {
       "$project": {
@@ -4836,6 +4877,7 @@ tests:
 
 - description: DAYOFWEEK correctness tests
   current_db: foo
+  current_collection: datepart
   pipeline: [
     {
       "$project": {
@@ -4891,6 +4933,7 @@ tests:
   }
 - description: DATEDIFF startOfWeek correctness tests
   current_db: foo
+  current_collection: dates
   pipeline: [
     {
       "$project": {
@@ -4969,6 +5012,7 @@ tests:
   }
 - description: TIMESTAMPDIFF startOfWeek correctness tests
   current_db: foo
+  current_collection: dates
   pipeline: [
     {
       "$project": {
@@ -5047,6 +5091,7 @@ tests:
   }
 - description: DATETRUNC startOfWeek correctness tests
   current_db: foo
+  current_collection: datepart
   pipeline: [
     {
       "$project": {
@@ -5123,6 +5168,7 @@ tests:
   }
 - description: TIMESTAMPTRUNC startOfWeek correctness tests
   current_db: foo
+  current_collection: datepart
   pipeline: [
     {
       "$project": {

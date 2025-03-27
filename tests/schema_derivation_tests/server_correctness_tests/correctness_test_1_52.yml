@@ -1,4 +1,5 @@
 current_db: test
+current_collection: fuzzer_coll
 pipeline: [ { "$count" : "num" }, { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : { "$arrayElemAt" : [ [ "$obj.obj.obj.obj.obj.date", { "$pow" : [ -17, -15 ] }, true, "$obj.obj.str", "$obj.str" ], 10 ] }, "str" : { "$last" : "$obj.obj.str" }, "obj" : { "$first" : "$obj.obj" } } } ]
 result_set_schema:
   {

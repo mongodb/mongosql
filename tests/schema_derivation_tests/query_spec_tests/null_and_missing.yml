@@ -36,6 +36,7 @@ catalog_schema:
 tests:
 - description: Normal non-missing reference
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -87,6 +88,7 @@ tests:
   }
 - description: NULL vs MISSING in direct field ref
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -135,6 +137,7 @@ tests:
   }
 - description: Normal field access
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -186,6 +189,7 @@ tests:
   }
 - description: Scalar vs missing field ref
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -232,9 +236,9 @@ tests:
     }, 
     "bsonType": "object"
   }
-- description: Scalar vs missing field ref- the field ref is upgraded to NULL because
-    of plus sign
+- description: Scalar vs missing field ref- the field ref is upgraded to NULL because of plus sign
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -307,6 +311,7 @@ tests:
   }
 - description: MISSING upgraded to NULL due to plus sign
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -371,6 +376,7 @@ tests:
   }
 - description: MISSING fields in arrays are upgrade to NULLS
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {

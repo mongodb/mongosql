@@ -24,9 +24,9 @@ catalog_schema:
   }
 
 tests:
-- description: Simple CASE expression - No WHEN comparison evaluates to TRUE, return
-    ELSE result
+- description: Simple CASE expression - No WHEN comparison evaluates to TRUE, return ELSE result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -141,8 +141,7 @@ tests:
     }, 
     "bsonType": "object"
   }
-- description: Simple CASE expression - One WHEN comparison evaluates to TRUE, return
-    corresponding THEN result
+- description: Simple CASE expression - One WHEN comparison evaluates to TRUE, return corresponding THEN result
   current_db: test
   pipeline: [
     {
@@ -244,8 +243,7 @@ tests:
     }, 
     "bsonType": "object"
   }
-- description: Simple CASE expression - Multiple WHEN comparison evaluates to TRUE,
-    return first corresponding THEN result
+- description: Simple CASE expression - Multiple WHEN comparison evaluates to TRUE, return first corresponding THEN result
   current_db: test
   pipeline: [
     {
@@ -347,9 +345,9 @@ tests:
     }, 
     "bsonType": "object"
   }
-- description: Searched CASE expression - No WHEN condition evaluates to TRUE, return
-    ELSE result
+- description: Searched CASE expression - No WHEN condition evaluates to TRUE, return ELSE result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -483,8 +481,7 @@ tests:
     }, 
     "bsonType": "object"
   }
-- description: Searched CASE expression - One WHEN condition evaluates to TRUE, return
-    corresponding THEN result
+- description: Searched CASE expression - One WHEN condition evaluates to TRUE, return corresponding THEN result
   current_db: foo
   pipeline: [
     {
@@ -581,8 +578,7 @@ tests:
     }, 
     "bsonType": "object"
   }
-- description: Searched CASE expression - Multiple WHEN conditions evaluates to TRUE,
-    return first corresponding THEN result
+- description: Searched CASE expression - Multiple WHEN conditions evaluates to TRUE, return first corresponding THEN result
   current_db: foo
   pipeline: [
     {

@@ -39,6 +39,7 @@ catalog_schema:
 tests:
 - description: correctness test for eq ANY Operator without NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -256,6 +257,7 @@ tests:
   }
 - description: correctness test for eq ANY Operator with NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -437,6 +439,7 @@ tests:
   }
 - description: correctness test for neq ANY Operator without NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -654,6 +657,7 @@ tests:
   }
 - description: correctness test for neq ANY Operator with NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -835,6 +839,7 @@ tests:
   }
 - description: correctness test for lt ANY Operator without NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -1052,6 +1057,7 @@ tests:
   }
 - description: correctness test for lt ANY Operator with NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -1233,6 +1239,7 @@ tests:
   }
 - description: correctness test for lte ANY Operator without NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -1450,6 +1457,7 @@ tests:
   }
 - description: correctness test for lte ANY Operator with NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -1631,6 +1639,7 @@ tests:
   }
 - description: correctness test for gt ANY Operator without NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -1848,6 +1857,7 @@ tests:
   }
 - description: correctness test for gt ANY Operator with NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -2029,6 +2039,7 @@ tests:
   }
 - description: correctness test for gte ANY Operator without NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -2247,6 +2258,7 @@ tests:
 
 - description: correctness test for gte ANY Operator with NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -2428,6 +2440,7 @@ tests:
   }
 - description: correctness test for eq ALL Operator without NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -2627,6 +2640,7 @@ tests:
 
 - description: correctness test for eq ALL Operator with NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -2790,6 +2804,7 @@ tests:
 
 - description: correctness test for eq ALL Operator with matching result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -2995,6 +3010,7 @@ tests:
   }
 - description: ALL comparisons are vacuously true when subquery returns no results
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -3190,6 +3206,7 @@ tests:
   }
 - description: ANY comparisons are vacuously false when subquery returns no results
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -3361,6 +3378,7 @@ tests:
 
 - description: correctness test for neq ALL Operator without NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -3578,6 +3596,7 @@ tests:
   }
 - description: correctness test for neq ALL Operator with NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -3741,6 +3760,7 @@ tests:
 
 - description: correctness test for lt ALL Operator without NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -3958,6 +3978,7 @@ tests:
   }
 - description: correctness test for lt ALL Operator with NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -4121,6 +4142,7 @@ tests:
 
 - description: correctness test for lte ALL Operator without NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -4338,6 +4360,7 @@ tests:
   }
 - description: correctness test for lte ALL Operator with NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -4501,6 +4524,7 @@ tests:
 
 - description: correctness test for gt ALL Operator without NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -4718,6 +4742,7 @@ tests:
   }
 - description: correctness test for gt ALL Operator with NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -4881,6 +4906,7 @@ tests:
 
 - description: correctness test for gte ALL Operator without NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -5098,6 +5124,7 @@ tests:
   }
 - description: correctness test for gte ALL Operator with NULL in subquery result
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -5261,6 +5288,7 @@ tests:
 
 - description: ANY subquery comparison in SELECT clause
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -5473,6 +5501,7 @@ tests:
   }
 - description: ALL subquery comparison in SELECT clause
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -5721,6 +5750,7 @@ tests:
   }
 - description: correctness test for EXISTS Operator
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -5818,6 +5848,7 @@ tests:
   }
 - description: correctness test for NOT EXISTS Operator
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -5925,6 +5956,7 @@ tests:
   }
 - description: EXISTS expression in SELECT clause
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {

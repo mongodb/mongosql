@@ -1,4 +1,5 @@
 current_db: test
+current_collection: fuzzer_coll
 pipeline: [ { "$sort" : { "_id" : 1 } }, { "$bucket" : { "groupBy" : { "$min" : [ "Berkshire programming Bypass", "Dynamic Investment Account Unbranded" ] }, "boundaries" : [ "Djibouti Franc", "Liberia COM", "open-source", "website Generic Concrete Tuna Cheese" ], "default" : true, "output" : { "num" : { "$avg" : { "$floor" : 62656 } } } } } ]
 result_set_schema:
   {

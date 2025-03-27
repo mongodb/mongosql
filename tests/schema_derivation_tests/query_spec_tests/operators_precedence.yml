@@ -65,6 +65,7 @@ tests:
   #   a AND (b OR c)
 - description: AND binds tighter than OR
   current_db: db
+  current_collection: and_or_tier
   pipeline: [
     {
       "$project": {
@@ -156,6 +157,7 @@ tests:
   }
 - description: NOT binds tighter than AND
   current_db: db
+  current_collection: not_and_tier
   pipeline: [
     {
       "$project": {
@@ -789,6 +791,7 @@ tests:
   }
 - description: mul/div bind tighter than add/sub
   current_db: db
+  current_collection: mul_add_tier
   pipeline: [
     {
       "$project": {
@@ -982,6 +985,7 @@ tests:
   }
 - description: subpath op binds tighter than type ops
   current_db: db
+  current_collection: subpath_type_tier
   pipeline: [
     {
       "$project": {

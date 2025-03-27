@@ -19,6 +19,7 @@ catalog_schema:
 tests:
 - description: IS NULL covers missing fields
   current_db: db
+  current_collection: null_and_missing
   pipeline: [
     {
       "$match": {
@@ -58,6 +59,7 @@ tests:
   }
 - description: IS NOT NULL covers missing fields
   current_db: db
+  current_collection: null_and_missing
   pipeline: [
     {
       "$match": {
@@ -127,6 +129,7 @@ tests:
   }
 - description: IS NULL covers missing fields without null schema
   current_db: db
+  current_collection: missing
   pipeline: [
     {
       "$match": {

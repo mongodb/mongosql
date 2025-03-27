@@ -270,6 +270,7 @@ tests:
   }
 - description: WHERE after unwind returns expected results
   current_db: test
+  current_collection: foo
   pipeline: [
     {
       "$match": {
@@ -329,6 +330,7 @@ tests:
   }
 - description: WHERE after FLATTEN UNWIND returns expected results
   current_db: test
+  current_collection: nested
   pipeline: [
     {
       "$project": {
@@ -388,6 +390,7 @@ tests:
   }
 - description: WHERE after FLATTEN UNWIND an array of objects returns expected results
   current_db: test
+  current_collection: items
   pipeline: [
     {
       "$project": {

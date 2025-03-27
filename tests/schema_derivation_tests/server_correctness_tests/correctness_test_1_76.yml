@@ -1,5 +1,6 @@
 
 current_db: test
+current_collection: fuzzer_coll
 pipeline: [ { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$facet" : { "array" : [ { "$sort" : { "_id" : 1 } }, { "$limit" : 17 } ] } } ]
 result_set_schema:
   {

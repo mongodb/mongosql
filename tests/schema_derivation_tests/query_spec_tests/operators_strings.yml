@@ -92,6 +92,7 @@ catalog_schema:
 tests:
 - description: correctness test for string concatentation
   current_db: foo
+  current_collection: concat
   pipeline: [
     {
       "$project": {

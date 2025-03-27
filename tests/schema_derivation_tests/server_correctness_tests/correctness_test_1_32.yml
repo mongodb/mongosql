@@ -1,4 +1,5 @@
 current_db: test
+current_collection: fuzzer_coll
 pipeline: [ { "$sort" : { "obj.obj.obj.obj.obj" : 1, "count" : 1, "obj.obj.obj.obj.obj.array" : 1, "obj.obj.obj.obj" : 1, "obj.array" : 1, "obj.obj.obj.obj.obj.geoLegacy" : 1, "obj.obj.obj.obj.obj.num" : 1, "_id" : 1 } }, { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : "$obj.obj.obj.num", "str" : { "$min" : { "$replaceAll" : { "input" : "$obj.obj.obj.str", "find" : "$str", "replacement" : "$obj.obj.obj.obj.obj.str" } } }, "array" : { "$max" : { "$filter" : { "input" : "$array", "as" : "ewell", "cond" : { "$ne" : [ { "$min" : [ { "$ifNull" : [ "$$ewell", {  } ] }, { "$ifNull" : [ "$obj.obj.obj.obj.obj", {  } ] } ] }, { "$literal" : false } ] } } } } } } ]
 result_set_schema:
   {
