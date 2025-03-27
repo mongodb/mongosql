@@ -1304,7 +1304,6 @@ mod convert {
                         ..Default::default()
                     }),
                     current_db: "test".to_string(),
-                    current_collection: None,
                     null_behavior: Satisfaction::Not,
                 };
                 let to_values = vec![

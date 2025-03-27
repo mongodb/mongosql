@@ -71,7 +71,6 @@ pub(crate) struct ResultSetState<'a> {
     pub variables: BTreeMap<String, Schema>,
     pub result_set_schema: Schema,
     pub current_db: String,
-    pub current_collection: Option<String>,
     // the null_behavior field allows us to keep track of what behavior we are expecting to be exhibited
     // by the rows returned by this query. This comes up in both normal schema derivation, where something like
     // $eq: [null, {$op: ...}] can influence the values returned by the operator), as well as in match schema derivation
@@ -80,12 +79,16 @@ pub(crate) struct ResultSetState<'a> {
     pub null_behavior: Satisfaction,
 }
 
-fn derive_schema_for_pipeline(pipeline: Vec<Stage>, state: &mut ResultSetState) -> Result<Schema> {
+fn derive_schema_for_pipeline(
+    pipeline: Vec<Stage>,
+    current_collection: Option<String>,
+    state: &mut ResultSetState,
+) -> Result<Schema> {
     // when this function is first called, we'd like to seed the result set schema with the collection
     // we are starting with, if specified. Any subsquent calls will not have a current_collection, so this
     // can only happen during the entrypoint to schema derivation
     if state.result_set_schema == Schema::Any {
-        if let Some(collection) = &state.current_collection {
+        if let Some(collection) = current_collection {
             if let Some(schema) = state
                 .catalog
                 .get(&Namespace(state.current_db.clone(), collection.clone()))
@@ -196,6 +199,7 @@ impl DeriveSchema for Stage {
                     let mut field_state = state.clone();
                     let field_schema = Schema::Array(Box::new(derive_schema_for_pipeline(
                         pipeline.clone(),
+                        None,
                         &mut field_state,
                     )?));
                     Ok((field.clone(), field_schema))
@@ -572,10 +576,10 @@ impl DeriveSchema for Stage {
                 variables,
                 result_set_schema: from_schema.clone(),
                 current_db: state.current_db.clone(),
-                current_collection: None,
                 null_behavior: state.null_behavior,
             };
-            let lookup_schema = derive_schema_for_pipeline(pipeline.to_owned(), &mut lookup_state)?;
+            let lookup_schema =
+                derive_schema_for_pipeline(pipeline.to_owned(), None, &mut lookup_state)?;
             insert_required_key_into_document(
                 &mut state.result_set_schema,
                 Schema::Array(Box::new(lookup_schema.clone())),
@@ -636,10 +640,10 @@ impl DeriveSchema for Stage {
                             variables: state.variables.clone(),
                             result_set_schema: from_schema.clone(),
                             current_db: state.current_db.clone(),
-                            current_collection: None,
                             null_behavior: state.null_behavior,
                         };
-                        let pipeline_schema = derive_schema_for_pipeline(pipeline, pipeline_state)?;
+                        let pipeline_schema =
+                            derive_schema_for_pipeline(pipeline, None, pipeline_state)?;
                         state.result_set_schema = state.result_set_schema.union(&pipeline_schema);
                     // if no pipeline is specified, we are unioning the documents of the collection directly, so just union the from_schema,
                     // which should represent the collection schema
@@ -1300,7 +1304,6 @@ impl DeriveSchema for TaggedOperator {
                     catalog: state.catalog,
                     variables,
                     current_db: state.current_db.clone(),
-                    current_collection: None,
                     null_behavior: state.null_behavior,
                 };
                 l.inside.derive_schema(&mut let_state)
