@@ -81,6 +81,19 @@ pub(crate) struct ResultSetState<'a> {
 }
 
 fn derive_schema_for_pipeline(pipeline: Vec<Stage>, state: &mut ResultSetState) -> Result<Schema> {
+    // when this function is first called, we'd like to seed the result set schema with the collection
+    // we are starting with, if specified. Any subsquent calls will not have a current_collection, so this
+    // can only happen during the entrypoint to schema derivation
+    if state.result_set_schema == Schema::Any {
+        if let Some(collection) = &state.current_collection {
+            if let Some(schema) = state
+                .catalog
+                .get(&Namespace(state.current_db.clone(), collection.clone()))
+            {
+                state.result_set_schema = schema.clone()
+            }
+        }
+    }
     pipeline.iter().try_for_each(|stage| {
         state.result_set_schema = stage.derive_schema(state)?;
         Ok(())
@@ -559,7 +572,7 @@ impl DeriveSchema for Stage {
                 variables,
                 result_set_schema: from_schema.clone(),
                 current_db: state.current_db.clone(),
-                current_collection: state.current_collection.clone(),
+                current_collection: None,
                 null_behavior: state.null_behavior,
             };
             let lookup_schema = derive_schema_for_pipeline(pipeline.to_owned(), &mut lookup_state)?;
@@ -623,7 +636,7 @@ impl DeriveSchema for Stage {
                             variables: state.variables.clone(),
                             result_set_schema: from_schema.clone(),
                             current_db: state.current_db.clone(),
-                            current_collection: state.current_collection.clone(),
+                            current_collection: None,
                             null_behavior: state.null_behavior,
                         };
                         let pipeline_schema = derive_schema_for_pipeline(pipeline, pipeline_state)?;
@@ -1287,7 +1300,7 @@ impl DeriveSchema for TaggedOperator {
                     catalog: state.catalog,
                     variables,
                     current_db: state.current_db.clone(),
-                    current_collection: state.current_collection.clone(),
+                    current_collection: None,
                     null_behavior: state.null_behavior,
                 };
                 l.inside.derive_schema(&mut let_state)
