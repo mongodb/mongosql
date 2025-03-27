@@ -271,7 +271,7 @@ fn get_schema_catalog(
             .filter(|collection| !collections_schema_doc.contains_key(collection.as_str()))
             .collect();
 
-        println!("[WARNING] No schema was found for the following collections: {:?}. These collections will be assigned empty schemas.\
+        println!("[WARNING] No schema was found for the following collections: {:?}. These collections will be assigned empty schemas. \
                     Hint: Generate schemas for your collections.", missing_collections);
 
         for collection in missing_collections {
