@@ -164,23 +164,11 @@ fn get_schema_catalog(
     current_db: &str,
     namespaces: BTreeSet<Namespace>,
 ) -> Result<Catalog, CliError> {
-    let client = Client::with_uri_str(uri)?;
-    let db = client.database(current_db);
-    let collection_names = db.list_collection_names().run()?;
-
-    let sql_schemas_collection_exists =
-        collection_names.contains(&SQL_SCHEMAS_COLLECTION.to_string());
-
-    if !sql_schemas_collection_exists {
-        return Err(CliError(format!("There is no schema information in database `{0}`, so all the collections will be assigned empty schemas. \
-                Therefore, SQL capabilities will be very limited. Hint: Please make sure to generate schemas before using the driver", current_db)));
-    }
-
-    // If there are no namespaces (most importantly for the `SELECT 1` query) or no schema information,
-    // assign an empty schema to `current_db`.
-    if namespaces.is_empty() || !sql_schemas_collection_exists {
+    // If there are no namespaces (e.g. queries with only array datasources), assign
+    // an empty schema to `current_db`
+    if namespaces.is_empty() {
         let schema_catalog_doc = doc! {
-                current_db: doc! {},
+            current_db: doc! {},
         };
 
         return Ok(mongosql::build_catalog_from_catalog_schema(
@@ -191,6 +179,8 @@ fn get_schema_catalog(
     }
 
     // Otherwise, fetch the schema information for the specified collections.
+    let client = Client::with_uri_str(uri)?;
+    let db = client.database(current_db);
     let schema_collection = db.collection::<Document>(SQL_SCHEMAS_COLLECTION);
 
     let collection_names = namespaces
@@ -252,7 +242,7 @@ fn get_schema_catalog(
     }
 
     if schema_catalog_doc_vec.is_empty() {
-        println!("No schema information was found for the requested collections `{:?}` in database `{1}`. Either the collections don't exists \
+        println!("[WARNING] No schema information was found for the requested collections `{:?}` in database `{1}`. Either the collections don't exist \
                     in `{1}` or they don't have a schema. For now, they will be assigned empty schemas. Hint: You either need to generate schemas for your collections \
                     or correct your query.", collection_names, current_db);
 
@@ -281,7 +271,7 @@ fn get_schema_catalog(
             .filter(|collection| !collections_schema_doc.contains_key(collection.as_str()))
             .collect();
 
-        println!("No schema was found for the following collections: {:?}. These collections will be assigned empty schemas.\
+        println!("[WARNING] No schema was found for the following collections: {:?}. These collections will be assigned empty schemas. \
                     Hint: Generate schemas for your collections.", missing_collections);
 
         for collection in missing_collections {
