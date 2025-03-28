@@ -4,10 +4,10 @@ use crate::{
     MatchConstrainSchema, Result,
 };
 use agg_ast::definitions::{
-    AtlasSearchStage, Bucket, BucketAuto, ConciseSubqueryLookup, Densify, EqualityLookup,
-    Expression, Fill, FillOutput, GraphLookup, Group, LiteralValue, Lookup, LookupFrom,
-    ProjectItem, ProjectStage, Ref, SetWindowFields, Stage, SubqueryLookup, TaggedOperator,
-    UnionWith, Unset, UntaggedOperator, UntaggedOperatorName, Unwind,
+    AtlasSearchStage, Bucket, BucketAuto, ConciseSubqueryLookup, Densify, Documents,
+    EqualityLookup, Expression, Fill, FillOutput, GraphLookup, Group, LiteralValue, Lookup,
+    LookupFrom, ProjectItem, ProjectStage, Ref, SetWindowFields, Stage, SubqueryLookup,
+    TaggedOperator, UnionWith, Unset, UntaggedOperator, UntaggedOperatorName, Unwind,
 };
 use linked_hash_map::LinkedHashMap;
 use mongosql::{
@@ -156,34 +156,39 @@ impl DeriveSchema for Stage {
         }
 
         fn documents_derive_schema(
-            documents: &[LinkedHashMap<String, Expression>],
+            documents: &Documents,
             state: &mut ResultSetState,
         ) -> Result<Schema> {
-            // we use folding to get the schema for each document, and union them together, to get the resulting schema
-            let schema = documents.iter().try_fold(
-                None,
-                |schema: Option<Schema>, document: &LinkedHashMap<String, Expression>| {
-                    // here we convert the map of field namespace - expression to a resulting map of
-                    // field namespace - field schema. We collect in such a way that we can get the error from any derivation.
-                    let doc_fields = document
-                        .into_iter()
-                        .map(|(field, expr)| {
-                            let field_schema = expr.derive_schema(state)?;
-                            Ok((field.clone(), field_schema))
-                        })
-                        .collect::<Result<BTreeMap<String, Schema>>>()?;
-                    let doc_schema = Schema::Document(Document {
-                        required: doc_fields.keys().cloned().collect(),
-                        keys: doc_fields,
-                        ..Default::default()
-                    });
-                    Ok(match schema {
-                        None => Some(doc_schema),
-                        Some(schema) => Some(schema.union(&doc_schema)),
-                    })
-                },
-            );
-            Ok(schema?.unwrap_or(Schema::Document(Document::default())))
+            match documents {
+                Documents::Literals(docs) => {
+                    // we use folding to get the schema for each document, and union them together, to get the resulting schema
+                    let schema = docs.iter().try_fold(
+                        None,
+                        |schema: Option<Schema>, document: &LinkedHashMap<String, Expression>| {
+                            // here we convert the map of field namespace - expression to a resulting map of
+                            // field namespace - field schema. We collect in such a way that we can get the error from any derivation.
+                            let doc_fields = document
+                                .into_iter()
+                                .map(|(field, expr)| {
+                                    let field_schema = expr.derive_schema(state)?;
+                                    Ok((field.clone(), field_schema))
+                                })
+                                .collect::<Result<BTreeMap<String, Schema>>>()?;
+                            let doc_schema = Schema::Document(Document {
+                                required: doc_fields.keys().cloned().collect(),
+                                keys: doc_fields,
+                                ..Default::default()
+                            });
+                            Ok(match schema {
+                                None => Some(doc_schema),
+                                Some(schema) => Some(schema.union(&doc_schema)),
+                            })
+                        },
+                    );
+                    Ok(schema?.unwrap_or(Schema::Document(Document::default())))
+                }
+                Documents::Expr(expr) => expr.derive_schema(state),
+            }
         }
 
         fn facet_derive_schema(

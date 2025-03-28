@@ -2,7 +2,7 @@ use crate::air;
 use crate::air::{MQLOperator, MQLSemanticOperator};
 use crate::schema::Satisfaction;
 use agg_ast::definitions::{
-    Expression, JoinType, LiteralValue, Lookup, LookupFrom, MatchExpr, MatchExpression,
+    Documents, Expression, JoinType, LiteralValue, Lookup, LookupFrom, MatchExpr, MatchExpression,
     ProjectItem, Ref, Stage, Subquery, SubqueryExists, TaggedOperator, UntaggedOperator,
     UntaggedOperatorName, Unwind,
 };
@@ -25,7 +25,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                 db: c.db,
                 collection: c.collection,
             }),
-            Stage::Documents(d) => {
+            Stage::Documents(Documents::Literals(d)) => {
                 let array: Vec<air::Expression> = d
                     .into_iter()
                     .map(|m| Expression::Document(m).into())
@@ -294,6 +294,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                 })
             }
             Stage::AddFields(_)
+            | Stage::Documents(Documents::Expr(_))
             | Stage::Redact(_)
             | Stage::Unset(_)
             | Stage::SetWindowFields(_)
