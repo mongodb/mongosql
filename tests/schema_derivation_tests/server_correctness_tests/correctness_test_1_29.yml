@@ -1,4 +1,5 @@
 current_db: test
+current_collection: fuzzer_coll
 pipeline: [ { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$facet" : { "array" : [ { "$sort" : { "_id" : 1 } }, { "$bucket" : { "groupBy" : { "$min" : [ "$date", "$date", "$obj.obj.date" ] }, "boundaries" : [ ISODate("2019-01-25T12:01:06.693Z"), ISODate("2019-02-15T02:10:53.947Z"), ISODate("2019-02-18T02:07:05.710Z"), ISODate("2019-05-02T03:58:01.821Z"), ISODate("2019-09-19T06:09:25.260Z"), ISODate("2019-10-05T03:07:36.872Z"), ISODate("2019-12-05T21:25:31.834Z") ], "default" : 61837 } } ] } } ]
 result_set_schema:
   {

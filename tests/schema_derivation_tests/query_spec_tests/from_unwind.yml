@@ -125,6 +125,7 @@ catalog_schema:
 tests:
 - description: basic correctness test
   current_db: test
+  current_collection: foo
   pipeline: [
     {
       "$project": {
@@ -163,6 +164,7 @@ tests:
   }
 - description: basic correctness test for explicitly aliased datasource
   current_db: test
+  current_collection: foo
   pipeline: [
     {
       "$project": {
@@ -201,6 +203,7 @@ tests:
   }
 - description: basic correctness test for index option
   current_db: test
+  current_collection: foo
   pipeline: [
     {
       "$project": {
@@ -244,6 +247,7 @@ tests:
   }
 - description: there are no type constraints on the field referenced by PATH, and non-array fields are not unwound
   current_db: test
+  current_collection: non_arrays
   pipeline: [
     {
       "$project": {
@@ -320,6 +324,7 @@ tests:
   }
 - description: unwinding a nested array puts the unwound value at the same nested path
   current_db: test
+  current_collection: nested
   pipeline: [
     {
       "$project": {
@@ -393,6 +398,7 @@ tests:
   }
 - description: unwind datasources can be unwound
   current_db: test
+  current_collection: two_d
   pipeline: [
     {
       "$project": {
@@ -436,6 +442,7 @@ tests:
   }
 - description: join datasources can be unwound, unwound field is nested under correct namespace (left)
   current_db: test
+  current_collection: foo
   pipeline: [
     {
       "$project": {
@@ -526,6 +533,7 @@ tests:
   }
 - description: join datasources can be unwound, unwound field is nested under correct namespace (right)
   current_db: test
+  current_collection: foo
   pipeline: [
     {
       "$project": {
@@ -616,6 +624,7 @@ tests:
   }
 - description: documents containing empty array, null, or missing values are omitted if OUTER => false (default)
   current_db: test
+  current_collection: empty_null_and_missing
   pipeline: [
     {
       "$project": {
@@ -663,6 +672,7 @@ tests:
   }
 - description: documents containing empty array, null, or missing values are retained if OUTER => true
   current_db: test
+  current_collection: empty_null_and_missing
   pipeline: [
     {
       "$project": {
@@ -724,6 +734,7 @@ tests:
   }
 - description: compound paths allow simple unwinds
   current_db: test
+  current_collection: compound
   pipeline: [
     {
       "$project": {
@@ -780,6 +791,7 @@ tests:
   }
 - description: compound paths allow sibling unwinds
   current_db: test
+  current_collection: compound
   pipeline: [
     {
       "$project": {
@@ -846,6 +858,7 @@ tests:
   }
 - description: compound path resolves nested paths
   current_db: test
+  current_collection: compound
   pipeline: [
     {
       "$project": {
@@ -903,6 +916,7 @@ tests:
     additionalProperties: false
 - description: compound path resolves nested and sibling paths
   current_db: test
+  current_collection: compound
   pipeline: [
     {
       "$project": {
@@ -979,6 +993,7 @@ tests:
   }
 - description: compound path can handle multiple compound paths
   current_db: test
+  current_collection: compound
   pipeline: [
     {
       "$project": {
@@ -1054,6 +1069,7 @@ tests:
   }
 - description: compound path works with existing unwind
   current_db: test
+  current_collection: compound
   pipeline: [
     {
       "$project": {

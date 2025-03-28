@@ -1,4 +1,5 @@
 current_db: test
+current_collection: fuzzer_coll
 pipeline:  [ { "$redact" : { "$cond" : { "if" : { "$or" : [ { "date" : ISODate("2019-01-20T04:14:02.991Z"), "num" : {"$numberDecimal": "-58.02226200446944"}, "array" : [ false, false, false, [ /C(?:redit Card Account|OM|SS)|invoice|Frozen/, 19391, true, {"$numberLong": "69447"} ] ] }, /P(?:ersonal Loan Account|roactive)/ ] }, "then" : "$$DESCEND", "else" : "$$DESCEND" } } }, { "$project" : { "obj.obj.obj.obj.obj.array" : 1, "obj.obj.obj.num" : { "$indexOfCP" : [ { "$ifNull" : [ "$obj.obj.obj.obj.str", "" ] }, { "$ifNull" : [ "$obj.str", "" ] }, 2 ] }, "str" : 1, "obj.obj.obj.obj.obj.any" : { "$setIsSubset" : [ { "$ifNull" : [ [ 10061, 15319, ISODate("2019-12-14T09:54:14.928Z"), ISODate("2019-07-10T17:34:57.065Z") ], [ ] ] }, { "$ifNull" : [ [ "$obj.obj.num" ], [ ] ] } ] }, "obj.geoLegacy" : 1 } }, { "$count" : "num" }, { "$match" : { "num" : { "$not" : { "$bitsAllSet" : 110 } } } }, { "$set" : { "obj.obj.str" : { "$max" : [ { "$rtrim" : { "input" : "Kazakhstan" } }, "$obj.str", "Planner Codes specifically reserved for testing purposes", "Outdoors generating", "$obj.str" ] } } } ]
 result_set_schema:
   {

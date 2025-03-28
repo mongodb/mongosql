@@ -1,4 +1,5 @@
 current_db: test
+current_collection: fuzzer_coll
 pipeline:  [ { "$setWindowFields" : { "partitionBy" : { "$setEquals" : [ { "$ifNull" : [ [ "$obj.obj.obj.obj.obj.str", "$obj.str", { "$substrCP" : [ "Ville", 8, 16 ] }, "open system" ], [ ] ] }, { "$ifNull" : [ "$obj.obj.array", [ ] ] }, { "$ifNull" : [ [ "$obj.obj.obj.obj.obj.num" ], [ ] ] }, { "$ifNull" : [ [ "$obj.obj.num", "$obj.obj.num", "$obj.obj.num" ], [ ] ] }, { "$ifNull" : [ [ "$num", "$obj.num" ], [ ] ] } ] }, "sortBy" : { "obj.obj.str" : -1, "obj.obj.obj.obj.obj.any" : 1, "obj.obj.obj.obj.obj" : -1 }, "output" : { "count" : { "$locf" : { "$getField" : { "field" : "obj.obj.obj.obj.obj.num", "input" : { "k" : "array backing up", "v" : { "$ifNull" : [ true, null ] } } } } }, "obj.obj.str" : { "$bottom" : { "output" : "$obj.obj.obj.str", "sortBy" : { "obj.obj.obj" : -1, "obj.obj.obj.obj.str" : -1, "obj.obj.obj.obj.obj.any" : -1, "_id" : 1 } }, "window" : { "documents" : [ "unbounded", "unbounded" ] } } } } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 50 } ]
 result_set_schema:
   {

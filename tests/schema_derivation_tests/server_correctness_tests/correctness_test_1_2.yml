@@ -1,4 +1,5 @@
 current_db: test
+current_collection: fuzzer_coll
 pipeline: [ { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$arrayElemAt" : [ [ -314159295, { "num" : 63125, "array" : [ ISODate("2019-05-12T14:41:29.361Z"), /Intelligent Soft Chicken/, [ 515 ] ] }, { "obj" : { "date" : ISODate("2019-09-09T20:28:45.826Z") } } ], {"$numberLong": "3"} ] } } ]
 result_set_schema:
   {

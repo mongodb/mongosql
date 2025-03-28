@@ -15,6 +15,7 @@ catalog_schema:
 tests:
 - description: SLICE without start argument correctness test
   current_db: foo
+  current_collection: no_start
   pipeline: [
     {
       "$project": {
@@ -106,6 +107,7 @@ tests:
   }
 - description: SLICE with start argument correctness test
   current_db: foo
+  current_collection: start
   pipeline: [
     {
       "$project": {

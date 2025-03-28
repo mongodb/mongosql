@@ -1,4 +1,5 @@
 current_db: test
+current_collection: fuzzer_coll
 pipeline: [ { "$unset" : [ "obj.bool" ] }, { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : { "$substrBytes" : [ "Wooden archive", 6, 3 ] }, "num" : { "$sum" : "$obj.num" } } } ]
 result_set_schema:
   {

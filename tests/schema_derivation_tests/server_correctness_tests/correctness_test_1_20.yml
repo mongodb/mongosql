@@ -1,4 +1,5 @@
 current_db: test
+current_collection: fuzzer_coll
 pipeline: [ { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$reduce" : { "input" : [ "$obj.obj.str", "Sleek Rubber Fish Functionality Louisiana", "Accounts Identity", { "$rtrim" : { "input" : "bus SAS", "chars" : "$obj.obj.obj.obj.obj.str" } } ], "initialValue" : "$obj.str", "in" : { "$substrBytes" : [ { "$max" : [ "Berkshire Customer Malagasy Ariary", "payment deposit Sleek" ] }, 1, {"$numberLong": "8"} ] } } } } ]
 result_set_schema:
   {

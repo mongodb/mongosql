@@ -1,4 +1,5 @@
 current_db: test
+current_collection: fuzzer_coll
 pipeline: [ { "$match" : { "$or" : [ { "any" : { "$type" : "decimal" } }, { "obj.num" : { "$lte" : 314.15 } } ] } }, { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : "$geoJson" } } ]
 result_set_schema:
   {

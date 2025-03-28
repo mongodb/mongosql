@@ -1,4 +1,5 @@
 current_db: test
+current_collection: fuzzer_coll
 pipeline: [ { "$match" : { "$or" : [ { "$or" : [ { "obj.obj.obj.date" : { "$not" : { "$gte" : {"$date": {"$numberLong": "1564352712418"}} } } }, { "$and" : [ { "obj.str" : { "$not" : { "$gte" : "Berkshire" } } }, { "obj.obj.obj.date" : { "$not" : { "$lt" : {"$date": {"$numberLong": "1564352712418"}} } } } ] }, { "obj.obj.obj.bool" : { "$not" : { "$gte" : false } } }, { "$and" : [ { "obj.obj.obj.num" : { "$lt" : 2 } } ] }, { "$and" : [ { "$or" : [ { "obj.obj.array" : { "$ne" : [ /C(?:roatian Kuna|onnecticut)|aggregate|deposit/ ] } }, { "obj.obj.array" : { "$lte" : [ 16302, "Configuration", {"$numberLong": "314159265358979303"} ] } } ] }, { "obj.obj.obj.obj.bool" : { "$lte" : true } }, { "obj.str" : { "$gte" : "Pennsylvania" } }, { "any" : { "$not" : { "$type" : -1 } } }, { "str" : { "$regex" : /Investment Account|Dong|copy/, "$options" : "" } } ] } ] } ] } }, { "$setWindowFields" : { "sortBy" : { "obj" : -1 }, "output" : { "obj.obj.num" : { "$last" : { "$millisecond" : "$obj.obj.obj.date" }, "window" : { "documents" : [ -6, -4 ] } } } } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 50 } ]
 result_set_schema:
   {

@@ -24,6 +24,7 @@ catalog_schema:
 tests:
 - description: Simple select with limit clause
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$sort": {
@@ -65,6 +66,7 @@ tests:
   }
 - description: Simple select with offset clause
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$sort": {
@@ -106,6 +108,7 @@ tests:
   }
 - description: Select with limit and offset
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$sort": {
@@ -150,6 +153,7 @@ tests:
   }
 - description: Limit in subquery
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -245,6 +249,7 @@ tests:
   }
 - description: Offset in subquery
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -340,6 +345,7 @@ tests:
   }
 - description: Limit and offset in subquery
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {

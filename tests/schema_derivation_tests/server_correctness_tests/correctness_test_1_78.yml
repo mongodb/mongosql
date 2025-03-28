@@ -1,4 +1,5 @@
 current_db: test
+current_collection: fuzzer_coll
 pipeline: [ { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : "$obj.geoJson", "str" : { "$first" : "$obj.obj.obj.str" }, "date" : { "$max" : { "$min" : [ ISODate("2019-12-20T14:49:36.500Z"), "$obj.obj.date", ISODate("2019-01-14T21:54:45.011Z"), "$obj.obj.obj.obj.obj.date" ] } } } } ]
 result_set_schema:
   {

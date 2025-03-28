@@ -11,6 +11,7 @@ catalog_schema:
 tests:
 - description: simple star correctness test
   current_db: mydb
+  current_collection: foo
   pipeline: [
     {
       "$project": {
@@ -48,6 +49,7 @@ tests:
   }
 - description: simple document correctness test
   current_db: mydb
+  current_collection: foo
   pipeline: [
     {
       "$project": {
@@ -104,6 +106,7 @@ tests:
   }
 - description: simple sub-star correctness test
   current_db: mydb
+  current_collection: foo
   pipeline: [
     {
       "$project": {
@@ -147,6 +150,7 @@ tests:
   }
 - description: correctness test for mixed sub-star and document
   current_db: mydb
+  current_collection: foo
   pipeline: [
     {
       "$project": {
@@ -219,6 +223,7 @@ tests:
   }
 - description: SELECT VALUES may create unmaterializable binding tuples
   current_db: mydb
+  current_collection: foo
   pipeline: [
     {
       "$project": {

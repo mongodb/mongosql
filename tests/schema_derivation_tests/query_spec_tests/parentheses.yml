@@ -18,6 +18,7 @@ catalog_schema:
 tests:
 - description: parentheses correctness tests
   current_db: foo
+  current_collection: ternary
   pipeline: [
     {
       "$project": {

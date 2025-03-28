@@ -1,4 +1,5 @@
 current_db: test
+current_collection: fuzzer_coll
 pipeline: [ { "$setWindowFields" : { "sortBy" : { "num" : 1 }, "output" : { "obj.obj.obj.obj.obj.num" : { "$expMovingAvg" : { "input" : { "$sqrt" : { "$abs" : {"$numberDecimal": "-828.0987983519944"} } }, "N" : {"$numberLong": "5"} } } } } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 50 } ]
 result_set_schema:
   {

@@ -98,6 +98,7 @@ tests:
   }
 - description: there is no ambiguity with one schema-less datasource in a derived table
   current_db: test
+  current_collection: foo
   pipeline: [
     {
       "$project": {

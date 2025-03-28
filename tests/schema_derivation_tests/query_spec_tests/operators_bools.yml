@@ -45,6 +45,7 @@ catalog_schema:
 tests:
 - description: NOT correctness test
   current_db: foo
+  current_collection: unary
   pipeline: [
     {
       "$project": {
@@ -140,6 +141,7 @@ tests:
   }
 - description: AND correctness test
   current_db: foo
+  current_collection: binary
   pipeline: [
     {
       "$project": {
@@ -284,6 +286,7 @@ tests:
   }
 - description: OR correctness test
   current_db: foo
+  current_collection: binary
   pipeline: [
     {
       "$project": {

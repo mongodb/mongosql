@@ -46,6 +46,7 @@ catalog_schema:
 tests:
 - description: cross join correctness test
   current_db: mydb
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -132,6 +133,7 @@ tests:
   }
 - description: inner join correctness test
   current_db: mydb
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -198,6 +200,7 @@ tests:
   }
 - description: left join correctness test
   current_db: mydb
+  current_collection: bar2
   pipeline: [
     {
       "$project": {
@@ -264,6 +267,7 @@ tests:
   }
 - description: right join correctness test
   current_db: mydb
+  current_collection: bar2
   pipeline: [
     {
       "$project": {
@@ -331,6 +335,7 @@ tests:
   }
 - description: join predicates can contain complex expressions
   current_db: mydb
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -449,6 +454,7 @@ tests:
   }
 - description: join predicates can reference columns by table-qualified names
   current_db: mydb
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -515,6 +521,7 @@ tests:
   }
 - description: join predicates can reference columns by unambiguous unqualified names
   current_db: mydb
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -581,6 +588,7 @@ tests:
   }
 - description: joins are left-associative
   current_db: mydb
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -693,6 +701,7 @@ tests:
   }
 - description: join left and right datasources can be referenced by alias
   current_db: mydb
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -787,6 +796,7 @@ tests:
 
 - description: left join with static value comparison to rhs field in ON clause still results in left hand side doc when condition fails
   current_db: mydb
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -1015,6 +1025,7 @@ tests:
   }
 - description: left join followed by WHERE with static comparison on rhs value filters out left hand side docs that do not match the WHERE
   current_db: mydb
+  current_collection: bar
   pipeline: [
     {
       "$match": {
@@ -1118,6 +1129,7 @@ tests:
   }
 - description: match filter in left join correctness test
   current_db: mydb
+  current_collection: bar
   pipeline: [
     {
       "$match": {
@@ -1204,6 +1216,7 @@ tests:
   }
 - description: filter in lateral join correctness test
   current_db: mydb
+  current_collection: bar
   pipeline: [
     {
       "$project": {
@@ -1452,6 +1465,7 @@ tests:
   }
 - description: match filter in lateral join correctness test
   current_db: mydb
+  current_collection: bar
   pipeline: [
     {
       "$project": {

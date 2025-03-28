@@ -75,6 +75,7 @@ catalog_schema:
 tests:
 - description: uncorrelated scalar subquery expression correctness test
   current_db: foo
+  current_collection: employees
   pipeline: [
     {
       "$project": {
@@ -184,6 +185,7 @@ tests:
   }
 - description: correlated scalar subquery correctness test
   current_db: foo
+  current_collection: employees_w_schema
   pipeline: [
     {
       "$project": {
@@ -298,6 +300,7 @@ tests:
   }
 - description: cardinality of 1 should be inferrable from array datasource
   current_db: foo
+  current_collection: department
   pipeline: [
     {
       "$project": {
@@ -407,6 +410,7 @@ tests:
   }
 - description: cardinality of 1 should be inferrable from group by constant
   current_db: foo
+  current_collection: employees
   pipeline: [
     {
       "$project": {
@@ -530,6 +534,7 @@ tests:
 - description: nested subquery should be able to access field from its grandparent
     query correctness test
   current_db: foo
+  current_collection: department_w_schema
   pipeline: [
     {
       "$project": {
@@ -704,6 +709,7 @@ tests:
 - description: allow select star if we can statically prove the degree is equal to
     one
   current_db: foo
+  current_collection: employees
   pipeline: [
     {
       "$project": {
@@ -787,6 +793,7 @@ tests:
 - description: allow select substar if we can statically prove the degree is equal
     to one
   current_db: foo
+  current_collection: employees
   pipeline: [
     {
       "$project": {
@@ -889,6 +896,7 @@ tests:
   }
 - description: subquery selecting potentially missing field from collection
   current_db: foo
+  current_collection: department_w_schema
   pipeline: [
     {
       "$project": {

@@ -59,6 +59,8 @@ catalog_schema:
 
 tests:
 - description: SELECT DISTINCT * ensures unique rows for entire document
+  current_db: "db"
+  current_collection: "foo"
   pipeline: [
     {
       "$group": {
@@ -125,6 +127,8 @@ tests:
     "bsonType": "object"
   }
 - description: SELECT DISTINCT in nested subquery omitting _id selects unique rows
+  current_db: "db"
+  current_collection: "foo"
   pipeline: [
     {
       "$project": {
@@ -207,6 +211,8 @@ tests:
   }
 
 - description: SELECT DISTINCT * on joined tables unique rows for entire document
+  current_db: "db"
+  current_collection: "foo"
   pipeline: [
     {
       "$project": {
@@ -312,6 +318,8 @@ tests:
     "bsonType": "object"
   }
 - description: SELECT DISTINCT specific columns from joined tables
+  current_db: "db"
+  current_collection: "foo"
   pipeline: [
     {
       "$project": {
@@ -401,6 +409,8 @@ tests:
     "bsonType": "object"
   }
 - description: SELECT DISTINCT columns ensures we see unique values
+  current_db: "db"
+  current_collection: "foo"
   pipeline: [
     {
       "$group": {
@@ -477,6 +487,8 @@ tests:
     "bsonType": "object"
   }
 - description: SELECT DISTINCT columns with alias
+  current_db: "db"
+  current_collection: "foo"
   pipeline: [
     {
       "$group": {
@@ -553,6 +565,8 @@ tests:
     "bsonType": "object"
   }
 - description: SELECT DISTINCT document column of repeated documents
+  current_db: "db"
+  current_collection: "documents"
   pipeline: [
     {
       "$group": {
@@ -640,6 +654,8 @@ tests:
     "bsonType": "object"
   }
 - description: SELECT DISTINCT arr checking deduplication of repeated arrays
+  current_db: "db"
+  current_collection: "arrays"
   pipeline: [
     {
       "$group": {
@@ -714,6 +730,8 @@ tests:
     "bsonType": "object"
   }
 - description: SELECT DISTINCT with ORDER BY
+  current_db: "db"
+  current_collection: "foo"
   pipeline: [
     {
       "$group": {
@@ -791,7 +809,8 @@ tests:
     "bsonType": "object"
   }
 - description: basic UNION distinct correctness test
-  current_db: db
+  current_db: "db"
+  current_collection: "foo"
   pipeline: [
     {
       "$project": {
@@ -885,7 +904,8 @@ tests:
   }
 - description: duplicates are still removed when collections with different schema
     are unioned
-  current_db: db
+  current_db: "db"
+  current_collection: "foo"
   pipeline: [
     {
       "$project": {
@@ -982,7 +1002,8 @@ tests:
     "bsonType": "object"
   }
 - description: UNION is left associative
-  current_db: db
+  current_db: "db"
+  current_collection: "foo"
   pipeline: [
     {
       "$project": {
@@ -1096,7 +1117,8 @@ tests:
     "bsonType": "object"
   }
 - description: UNION distinct with select * in both queries
-  current_db: db
+  current_db: "db"
+  current_collection: "foo"
   pipeline: [
     {
       "$project": {
@@ -1220,7 +1242,8 @@ tests:
     "bsonType": "object"
   }
 - description: UNION distinct with same value order
-  current_db: db
+  current_db: "db"
+  current_collection: "foo"
   pipeline: [
     {
       "$project": {
@@ -1319,7 +1342,8 @@ tests:
     "bsonType": "object"
   }
 - description: UNION distinct with mixed value order
-  current_db: db
+  current_db: "db"
+  current_collection: "foo"
   pipeline: [
     {
       "$project": {
@@ -1418,7 +1442,8 @@ tests:
     "bsonType": "object"
   }
 - description: UNION distinct with mixed star and values select list
-  current_db: db
+  current_db: "db"
+  current_collection: "foo"
   pipeline: [
     {
       "$project": {
@@ -1540,7 +1565,8 @@ tests:
     "bsonType": "object"
   }
 - description: UNION distinct with join
-  current_db: db
+  current_db: "db"
+  current_collection: "foo"
   pipeline: [
     {
       "$project": {

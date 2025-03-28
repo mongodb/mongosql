@@ -17,6 +17,7 @@ catalog_schema:
 tests:
 - description: reference collection in current db by fully qualified name
   current_db: mydb
+  current_collection: foo
   pipeline: [
     {
       "$project": {
@@ -50,6 +51,7 @@ tests:
   }
 - description: reference collection in current db by unqualified name
   current_db: mydb
+  current_collection: foo
   pipeline: [
     {
       "$project": {
@@ -82,7 +84,8 @@ tests:
     "bsonType": "object"
   }
 - description: reference collection in other db by fully qualified name
-  current_db: mydb
+  current_db: otherdb
+  current_collection: foo
   pipeline: [
     {
       "$project": {

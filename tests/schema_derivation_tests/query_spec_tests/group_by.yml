@@ -255,6 +255,7 @@ tests:
 
 - description: GROUP BY NULL creates only one group
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$group": {
@@ -315,6 +316,7 @@ tests:
   }
 - description: GROUP BY 1 creates only one group
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$group": {
@@ -375,6 +377,7 @@ tests:
   }
 - description: GROUP BY hello creates only one group
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$group": {
@@ -435,6 +438,7 @@ tests:
   }
 - description: GROUP BY MISSING converts MISSING to NULL; NULL is not DISTINCT from NULL, but is distinct from non-null values
   current_db: foo
+  current_collection: nullAndMissing
   pipeline: [
     {
       "$group": {
@@ -500,6 +504,7 @@ tests:
   }
 - description: GROUP BY keys may be table-qualified
   current_db: foo
+  current_collection: baz
   pipeline: [
     {
       "$group": {
@@ -565,6 +570,7 @@ tests:
   }
 - description: qualified top-level field reference keys can be referenced by qualified name
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$group": {
@@ -631,6 +637,7 @@ tests:
   }
 - description: qualified top-level field reference keys can be referenced by unqualified name
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$group": {
@@ -697,6 +704,7 @@ tests:
   }
 - description: unqualified top-level field reference keys can be referenced by qualified name
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$group": {
@@ -763,6 +771,7 @@ tests:
   }
 - description: unqualified top-level field reference keys can be referenced by unqualified name
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$group": {
@@ -829,6 +838,7 @@ tests:
   }
 - description: GROUP BY arbitrary expression
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$group": {
@@ -894,6 +904,7 @@ tests:
   }
 - description: single DISTINCT aggregation function correctness test
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$group": {
@@ -972,6 +983,7 @@ tests:
   }
 - description: correctness test for DISTINCT and non-DISTINCT aggregation over same field
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$group": {
@@ -1059,6 +1071,7 @@ tests:
   }
 - description: multi-DISTINCT aggregation function correctness test
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$group": {
@@ -1177,6 +1190,7 @@ tests:
   }
 - description: multi-item group key correctness test
   current_db: foo
+  current_collection: multi
   pipeline: [
     {
       "$group": {
@@ -1263,6 +1277,7 @@ tests:
   }
 - description: multi-item group key with HAVING correctness test
   current_db: foo
+  current_collection: multi
   pipeline: [
     {
       "$match": {
@@ -1415,6 +1430,7 @@ tests:
   }
 - description: HAVING without GROUP BY works as a WHERE clause but happens after the WHERE clause
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$match": {
@@ -1480,6 +1496,7 @@ tests:
   }
 - description: ADD_TO_ARRAY correctness test
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$sort": {
@@ -1553,6 +1570,7 @@ tests:
 
 - description: ADD_TO_ARRAY DISTINCT correctness test (equivalent to ADD_TO_SET)
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$sort": {
@@ -1625,6 +1643,7 @@ tests:
 
 - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in DECIMAL)
   current_db: foo
+  current_collection: numerics
   pipeline: [
     {
       "$sort": {
@@ -1708,6 +1727,7 @@ tests:
 
 - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in INT)
   current_db: foo
+  current_collection: numerics
   pipeline: [
     {
       "$sort": {
@@ -1791,6 +1811,7 @@ tests:
 
 - description: ADD_TO_SET correctness test
   current_db: foo
+  current_collection: baz
   pipeline: [
     {
       "$sort": {
@@ -1895,6 +1916,7 @@ tests:
 
 - description: AVG correctness test
   current_db: foo
+  current_collection: baz
   pipeline: [
     {
       "$group": {
@@ -1975,6 +1997,7 @@ tests:
   }
 - description: COUNT single column correctness test -- ignores nullish values
   current_db: foo
+  current_collection: multi
   pipeline: [
     {
       "$group": {
@@ -2074,6 +2097,7 @@ tests:
   }
 - description: COUNT distinct single column correctness test -- ignores nullish values
   current_db: foo
+  current_collection: multi
   pipeline: [
     {
       "$group": {
@@ -2179,6 +2203,7 @@ tests:
   }
 - description: COUNT single document column -- only counts values with at least one non-nullish field
   current_db: foo
+  current_collection: dpcs
   pipeline: [
     {
       "$group": {
@@ -2311,6 +2336,7 @@ tests:
   }
 - description: COUNT multi column correctness test -- only counts rows with at least one non-nullish value
   current_db: foo
+  current_collection: multi
   pipeline: [
     {
       "$group": {
@@ -2437,6 +2463,7 @@ tests:
   }
 - description: COUNT distinct multi column correctness test -- only counts rows with at least one non-nullish value
   current_db: foo
+  current_collection: multi
   pipeline: [
     {
       "$group": {
@@ -2572,6 +2599,7 @@ tests:
   }
 - description: COUNT(*) correctness test unconditionally count rows
   current_db: foo
+  current_collection: multi
   pipeline: [
     {
       "$project": {
@@ -2662,6 +2690,7 @@ tests:
   }
 - description: COUNT(DISTINCT *) correctness test unconditionally count distinct rows
   current_db: foo
+  current_collection: multi
   pipeline: [
     {
       "$project": {
@@ -2760,6 +2789,7 @@ tests:
   }
 - description: COUNT(MISSING) and COUNT(NULL) skip MISSING and NULL values
   current_db: foo
+  current_collection: baz
   pipeline: [
     {
       "$group": {
@@ -2869,6 +2899,7 @@ tests:
   }
 - description: FIRST correctness test
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$sort": {
@@ -2956,6 +2987,7 @@ tests:
   }
 - description: LAST correctness test
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$sort": {
@@ -3044,6 +3076,7 @@ tests:
 
 - description: MAX correctness test
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$group": {
@@ -3110,6 +3143,7 @@ tests:
   }
 - description: MERGE_DOCUMENTS correctness test
   current_db: foo
+  current_collection: baz2
   pipeline: [
     {
       "$sort": {
@@ -3211,6 +3245,7 @@ tests:
 
 - description: MIN correctness test
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$group": {
@@ -3277,6 +3312,7 @@ tests:
   }
 - description: STDDEV_POP correctness test
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$group": {
@@ -3345,6 +3381,7 @@ tests:
 
 - description: STDDEV_SAMP correctness test
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$group": {
@@ -3419,6 +3456,7 @@ tests:
   }
 - description: SUM correctness test
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$group": {

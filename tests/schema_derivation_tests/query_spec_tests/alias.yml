@@ -76,6 +76,7 @@ tests:
   }
 - description: Can use different alias for same collection
   current_db: db
+  current_collection: "foo"
   pipeline: [
     {
       "$project": {
@@ -168,6 +169,7 @@ tests:
     "bsonType": "object"
   }
 - description: Can use duplicate aliases on both sides of UNION
+  current_collection: "foo"
   current_db: db
   pipeline: [
     {

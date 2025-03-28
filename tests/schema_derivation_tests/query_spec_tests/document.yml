@@ -480,6 +480,7 @@ tests:
   }
 - description: Dot notation field access from expression that evaluates to non-document at runtime
   current_db: foo
+  current_collection: bar
   pipeline: [
     {
       "$project": {

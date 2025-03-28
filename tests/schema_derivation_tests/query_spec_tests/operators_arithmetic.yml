@@ -82,6 +82,7 @@ catalog_schema:
 tests:
 - description: Unary plus correctness tests
   current_db: foo
+  current_collection: unary
   pipeline: [
     {
       "$project": {
@@ -166,6 +167,7 @@ tests:
   }
 - description: Unary minus correctness tests
   current_db: foo
+  current_collection: unary
   pipeline: [
     {
       "$project": {
@@ -260,6 +262,7 @@ tests:
   }
 - description: Addition correctness tests
   current_db: foo
+  current_collection: binary
   pipeline: [
     {
       "$project": {
@@ -372,6 +375,7 @@ tests:
   }
 - description: Subtraction correctness tests
   current_db: foo
+  current_collection: binary
   pipeline: [
     {
       "$project": {
@@ -484,6 +488,7 @@ tests:
   }
 - description: Multiplication correctness tests
   current_db: foo
+  current_collection: binary
   pipeline: [
     {
       "$project": {
@@ -596,6 +601,7 @@ tests:
   }
 - description: Division correctness tests
   current_db: foo
+  current_collection: binary
   pipeline: [
     {
       "$project": {
@@ -717,6 +723,7 @@ tests:
   }
 - description: Division by zero results in NULL
   current_db: foo
+  current_collection: unary
   pipeline: [
     {
       "$project": {
@@ -790,6 +797,7 @@ tests:
   }
 - description: Long and integer division with non-integer results truncated
   current_db: foo
+  current_collection: integer_division
   pipeline: [
     {
       "$project": {

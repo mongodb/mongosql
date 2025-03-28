@@ -14,6 +14,7 @@ catalog_schema:
 tests:
 - description: collections with different schema can be unioned
   current_db: mydb
+  current_collection: foo
   pipeline: [
     {
       "$project": {
@@ -81,6 +82,7 @@ tests:
   }
 - description: basic union all correctness test
   current_db: mydb
+  current_collection: foo
   pipeline: [
     {
       "$project": {
@@ -154,6 +156,7 @@ tests:
   }
 - description: union works with array datasources
   current_db: mydb
+  current_collection: foo
   pipeline: [
     {
       "$project": {

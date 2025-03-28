@@ -36,6 +36,7 @@ catalog_schema:
 tests:
 - description: WITH clause simple query
   current_db: mydb
+  current_collection: biz
   pipeline: [
     {
       "$project": {
@@ -79,6 +80,7 @@ tests:
   }
 - description: WITH clause join query
   current_db: mydb
+  current_collection: biz
   pipeline: [
     {
       "$project": {
@@ -190,6 +192,7 @@ tests:
   }
 - description: WITH clause multiple derived with a join
   current_db: mydb
+  current_collection: biz
   pipeline: [
     {
       "$project": {
@@ -332,6 +335,7 @@ tests:
   }
 - description: WITH clause filters
   current_db: mydb
+  current_collection: biz
   pipeline: [
     {
       "$match": {

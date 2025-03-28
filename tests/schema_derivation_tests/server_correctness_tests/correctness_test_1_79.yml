@@ -1,5 +1,6 @@
 
 current_db: test
+current_collection: fuzzer_coll
 pipeline: [ { "$sort" : { "_id" : 1 } }, { "$bucket" : { "groupBy" : { "$hour" : { "date" : ISODate("2019-10-07T18:35:00.322Z"), "timezone" : "Asia/Ust-Nera" } }, "boundaries" : [ 68164, 87278 ], "default" : "Credit Card Account" } }, { "$replaceWith" : { "str" : "Plastic policy" } } ]
 result_set_schema:
   {
