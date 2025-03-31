@@ -25,7 +25,7 @@ pub enum Stage {
     #[serde(rename = "$collection")]
     Collection(Collection),
     #[serde(rename = "$documents")]
-    Documents(Vec<LinkedHashMap<String, Expression>>),
+    Documents(Documents),
     #[serde(rename = "$project")]
     Project(ProjectStage),
     #[serde(rename = "$replaceWith", alias = "$replaceRoot")]
@@ -82,6 +82,13 @@ pub enum Stage {
     GraphLookup(GraphLookup),
     #[serde(untagged)]
     AtlasSearchStage(AtlasSearchStage),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Documents {
+    Literals(Vec<LinkedHashMap<String, Expression>>),
+    Expr(Expression),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

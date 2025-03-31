@@ -120,27 +120,30 @@ mod stage_test {
 
     mod documents {
         use crate::{
-            definitions::{Expression, LiteralValue, Stage},
+            definitions::{
+                Documents, Expression, Filter, LiteralValue, Ref, Stage, TaggedOperator,
+                UntaggedOperator, UntaggedOperatorName,
+            },
             map,
         };
 
         test_serde_stage!(
             empty,
-            expected = Stage::Documents(vec![]),
+            expected = Stage::Documents(Documents::Literals(vec![])),
             input = r#"stage: {"$documents": []}"#
         );
 
         test_serde_stage!(
             singleton,
-            expected = Stage::Documents(vec![
+            expected = Stage::Documents(Documents::Literals(vec![
                 map! {"a".to_string() => Expression::Literal(LiteralValue::Int32(1)) }
-            ]),
+            ])),
             input = r#"stage: {"$documents": [{"a": 1}]}"#
         );
 
         test_serde_stage!(
             multiple_elements,
-            expected = Stage::Documents(vec![
+            expected = Stage::Documents(Documents::Literals(vec![
                 map! {
                     "a".to_string() => Expression::Literal(LiteralValue::Int32(1)),
                     "b".to_string() => Expression::Literal(LiteralValue::Int32(2)),
@@ -156,12 +159,35 @@ mod stage_test {
                         }),
                     }),
                 },
-            ]),
+            ])),
             input = r#"stage: {"$documents": [
                                 {"a": 1, "b": 2},
                                 {"a": "yes", "b": null},
                                 {"a": {"b": {"c": true}}}
             ]}"#
+        );
+
+        test_serde_stage!(
+            expression_input,
+            expected = Stage::Documents(Documents::Expr(Expression::TaggedOperator(
+                TaggedOperator::Filter(Filter {
+                    _as: Some("bar".to_string()),
+                    input: Box::new(Expression::Array(vec![
+                        Expression::Document(
+                            map! { "a".to_string() => Expression::Literal(LiteralValue::Int32(1)) }
+                        ),
+                        Expression::Document(
+                            map! { "a".to_string() => Expression::Literal(LiteralValue::String("hello".to_string())) }
+                        ),
+                    ])),
+                    cond: Box::new(Expression::UntaggedOperator(UntaggedOperator {
+                        op: UntaggedOperatorName::IsNumber,
+                        args: vec![Expression::Ref(Ref::VariableRef("bar.a".to_string()))]
+                    })),
+                    limit: None
+                })
+            ))),
+            input = r#"stage: {"$documents": {"$filter": {"input": [{"a": 1}, {"a": "hello"}], "as": "bar", "cond": {"$isNumber": "$$bar.a"}}}}"#
         );
     }
 
@@ -724,8 +750,8 @@ mod stage_test {
     mod join {
         use crate::{
             definitions::{
-                Expression, Join, JoinType, LiteralValue, ProjectItem, ProjectStage, Ref, Stage,
-                UntaggedOperator, UntaggedOperatorName,
+                Documents, Expression, Join, JoinType, LiteralValue, ProjectItem, ProjectStage,
+                Ref, Stage, UntaggedOperator, UntaggedOperatorName,
             },
             map,
         };
@@ -771,11 +797,11 @@ mod stage_test {
                 collection: None,
                 let_body: None,
                 join_type: JoinType::Inner,
-                pipeline: vec![Stage::Documents(vec![
+                pipeline: vec![Stage::Documents(Documents::Literals(vec![
                     map! {"a".to_string() => Expression::Literal(LiteralValue::Int32(1)) },
                     map! {"a".to_string() => Expression::Literal(LiteralValue::Int32(2)) },
                     map! {"a".to_string() => Expression::Literal(LiteralValue::Int32(3)) },
-                ])],
+                ]))],
                 condition: None
             })),
             input = r#"stage: {
@@ -2182,11 +2208,12 @@ mod expression_test {
             definitions::{
                 Accumulator, Bottom, BottomN, Convert, DateAdd, DateDiff, DateExpression,
                 DateFromParts, DateFromString, DateSubtract, DateToParts, DateToString, DateTrunc,
-                Expression, Filter, Function, GetField, Let, Like, LiteralValue, Map, Median,
-                NArrayOp, Percentile, ProjectItem, ProjectStage, Reduce, Ref, RegexAggExpression,
-                Replace, SQLConvert, SQLDivide, SetField, SortArray, SortArraySpec, Stage,
-                Subquery, SubqueryComparison, SubqueryExists, Switch, SwitchCase, TaggedOperator,
-                Top, TopN, Trim, UnsetField, UntaggedOperator, UntaggedOperatorName, Zip,
+                Documents, Expression, Filter, Function, GetField, Let, Like, LiteralValue, Map,
+                Median, NArrayOp, Percentile, ProjectItem, ProjectStage, Reduce, Ref,
+                RegexAggExpression, Replace, SQLConvert, SQLDivide, SetField, SortArray,
+                SortArraySpec, Stage, Subquery, SubqueryComparison, SubqueryExists, Switch,
+                SwitchCase, TaggedOperator, Top, TopN, Trim, UnsetField, UntaggedOperator,
+                UntaggedOperatorName, Zip,
             },
             map,
         };
@@ -2615,7 +2642,7 @@ mod expression_test {
                         let_bindings: None,
                         output_path: Some(vec!["x".to_string()]),
                         pipeline: vec![
-                            Stage::Documents(vec![]),
+                            Stage::Documents(Documents::Literals(vec![])),
                             Stage::Project(ProjectStage {
                                 items: map! {"x".to_string() => ProjectItem::Inclusion}
                             })

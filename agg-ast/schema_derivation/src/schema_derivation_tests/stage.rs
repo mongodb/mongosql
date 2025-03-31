@@ -432,6 +432,18 @@ mod documents {
                      {"a": {"b": {"c": true}}}
         ]}"#
     );
+
+    test_derive_stage_schema!(
+        expression_input,
+        expected = Ok(Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer)
+            },
+            required: set!("a".to_string()),
+            ..Default::default()
+        })))),
+        input = r#" {"$documents": {"$filter": {"input": [{"a": 1}, {"a": "hello"}, {"a": false}], "as": "bar", "cond": {"$isNumber": "$$bar.a"}}}}"#
+    );
 }
 
 mod facet {
