@@ -960,6 +960,40 @@ mod lookup {
             ..Default::default()
         })
     );
+    test_derive_stage_schema!(
+        subquery_lookup_documents_instead_of_from,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Integer),
+                "bar".to_string() => Schema::Array(
+                    Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "out".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("out".to_string()),
+                        ..Default::default()
+                    }))
+                ),
+            },
+            required: set!("bar".to_string(), "foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$lookup": {
+            "let": {"x": "foo"},
+            "pipeline": [
+                {"$documents": [{"baz": "string"}]},
+                {"$project": {"out": {"$concat": ["$$x", "$baz"]}}}
+            ],
+            "as": "bar"
+        }}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::Integer)
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })
+    );
 }
 
 mod graphlookup {

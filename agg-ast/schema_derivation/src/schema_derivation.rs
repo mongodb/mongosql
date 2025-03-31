@@ -570,11 +570,16 @@ impl DeriveSchema for Stage {
                 .flatten()
                 .map(|(k, v)| Ok((k.clone(), v.derive_schema(state)?)))
                 .collect::<Result<BTreeMap<String, Schema>>>()?;
-            let from_ns = from_to_ns(from.as_ref().ok_or(Error::MissingFromField)?, state);
-            let from_schema = state
-                .catalog
-                .get(&from_ns)
-                .ok_or_else(|| Error::UnknownReference(from_ns.into()))?;
+            let from_schema = match from {
+                None => &Schema::Document(Document::empty()),
+                Some(ns) => {
+                    let from_ns = from_to_ns(ns, state);
+                    state
+                        .catalog
+                        .get(&from_ns)
+                        .ok_or_else(|| Error::UnknownReference(from_ns.into()))?
+                }
+            };
             variables.extend(state.variables.clone());
             let mut lookup_state = ResultSetState {
                 catalog: state.catalog,
