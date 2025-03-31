@@ -244,6 +244,18 @@ mod variable_ref {
     );
 
     test_derive_expression_schema!(
+        ref_nested_top_level_present,
+        expected = Ok(Schema::Document(Document::empty())),
+        input = r#""$$foo.bar""#,
+        ref_schema = Schema::Any,
+        variables = map! {
+            // foo can be anything -- if the top level key is present in the
+            // var map, and the nested path is not, we will get an exmpty document.
+            "foo".to_string() => Schema::Atomic(Atomic::Integer)
+        }
+    );
+
+    test_derive_expression_schema!(
         ref_missing,
         expected = Err(Error::UnknownReference("foo".to_string())),
         input = r#""$$foo""#,

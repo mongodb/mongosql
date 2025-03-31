@@ -923,6 +923,10 @@ impl DeriveSchema for Expression {
                                     )
                                     .unwrap()
                                     .clone())
+                                // if the top level key is present but the full path is not, agg
+                                // treats it as an empty document
+                                } else if state.variables.contains_key(&path[0]) {
+                                    Ok(Schema::Document(Document::empty()))
                                 } else {
                                     Err(Error::UnknownReference(v.into()))
                                 }
