@@ -1,7 +1,7 @@
 use crate::{
-    get_schema_for_path_mut, insert_required_key_into_document, promote_missing, remove_field,
-    schema_difference, schema_for_bson, schema_for_type_numeric, schema_for_type_str, Error,
-    MatchConstrainSchema, Result,
+    array_element_schema_or_error, get_schema_for_path_mut, insert_required_key_into_document,
+    promote_missing, remove_field, schema_difference, schema_for_bson, schema_for_type_numeric,
+    schema_for_type_str, Error, MatchConstrainSchema, Result,
 };
 use agg_ast::definitions::{
     AtlasSearchStage, Bucket, BucketAuto, ConciseSubqueryLookup, Densify, Documents,
