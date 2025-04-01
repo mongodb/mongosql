@@ -1028,37 +1028,6 @@ impl DeriveSchema for TaggedOperator {
                     })
             }};
         }
-        macro_rules! array_element_schema_or_error {
-            ($input_schema:expr,$input:expr) => {{
-                match $input_schema {
-                    Schema::Array(a) => *a,
-                    Schema::AnyOf(ao) => {
-                        let mut array_type = None;
-                        for schema in ao.iter() {
-                            if let Schema::Array(a) = schema {
-                                array_type = Some(*a.clone());
-                                break;
-                            }
-                        }
-                        match array_type {
-                            Some(t) => t,
-                            None => {
-                                return Err(Error::InvalidExpressionForField(
-                                    format!("{:?}", $input),
-                                    "input",
-                                ))
-                            }
-                        }
-                    }
-                    _ => {
-                        return Err(Error::InvalidExpressionForField(
-                            format!("{:?}", $input),
-                            "input",
-                        ))
-                    }
-                }
-            }};
-        }
         match self {
             TaggedOperator::Convert(c) => {
                 let mut convert_type = match c.to.as_ref() {
