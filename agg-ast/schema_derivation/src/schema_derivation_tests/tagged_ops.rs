@@ -1476,6 +1476,70 @@ mod convert {
         numeric_rep = 127,
         string_rep = "maxKey"
     );
+
+    test_derive_expression_schema!(
+        convert_non_literal_to_type,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Boolean),
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Timestamp),
+            Schema::Atomic(Atomic::BinData),
+            Schema::Atomic(Atomic::String),
+        ))),
+        input = r#"{ "$convert": {"input": "$foo", "to": "$bar"} }"#,
+        ref_schema = Schema::Any
+    );
+
+    test_derive_expression_schema!(
+        convert_with_on_null,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+        ))),
+        input = r#"{ "$convert": {"input": "$foo", "to": "int", "onNull": "hi"} }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing,
+        ))
+    );
+
+    test_derive_expression_schema!(
+        convert_with_on_error,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+        ))),
+        input = r#"{ "$convert": {"input": "$foo", "to": "int", "onError": "hi"} }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Javascript),
+        ))
+    );
+
+    test_derive_expression_schema!(
+        convert_fully_specified,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Boolean),
+        ))),
+        input =
+            r#"{ "$convert": {"input": "$foo", "to": "int", "onError": "hi", "onNull": false} }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Javascript),
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing,
+        ))
+    );
 }
 
 mod filter {

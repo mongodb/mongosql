@@ -66,7 +66,7 @@ impl From<Namespace> for String {
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct ResultSetState<'a> {
+pub struct ResultSetState<'a> {
     pub catalog: &'a BTreeMap<Namespace, Schema>,
     pub variables: BTreeMap<String, Schema>,
     pub result_set_schema: Schema,
@@ -79,7 +79,7 @@ pub(crate) struct ResultSetState<'a> {
     pub null_behavior: Satisfaction,
 }
 
-fn derive_schema_for_pipeline(
+pub fn derive_schema_for_pipeline(
     pipeline: Vec<Stage>,
     current_collection: Option<String>,
     state: &mut ResultSetState,
@@ -570,11 +570,16 @@ impl DeriveSchema for Stage {
                 .flatten()
                 .map(|(k, v)| Ok((k.clone(), v.derive_schema(state)?)))
                 .collect::<Result<BTreeMap<String, Schema>>>()?;
-            let from_ns = from_to_ns(from.as_ref().ok_or(Error::MissingFromField)?, state);
-            let from_schema = state
-                .catalog
-                .get(&from_ns)
-                .ok_or_else(|| Error::UnknownReference(from_ns.into()))?;
+            let from_schema = match from {
+                None => &Schema::Document(Document::empty()),
+                Some(ns) => {
+                    let from_ns = from_to_ns(ns, state);
+                    state
+                        .catalog
+                        .get(&from_ns)
+                        .ok_or_else(|| Error::UnknownReference(from_ns.into()))?
+                }
+            };
             variables.extend(state.variables.clone());
             let mut lookup_state = ResultSetState {
                 catalog: state.catalog,
@@ -1028,24 +1033,46 @@ impl DeriveSchema for TaggedOperator {
             }};
         }
         match self {
-            TaggedOperator::Convert(c) => match c.to.as_ref() {
-                Expression::Literal(LiteralValue::String(s)) => Ok(schema_for_type_str(s.as_str())),
-                Expression::Literal(LiteralValue::Double(d)) => {
-                    Ok(schema_for_type_numeric(*d as i32))
+            TaggedOperator::Convert(c) => {
+                let mut convert_type = match c.to.as_ref() {
+                    Expression::Literal(LiteralValue::String(s)) => schema_for_type_str(s.as_str()),
+                    Expression::Literal(LiteralValue::Double(d)) => {
+                        schema_for_type_numeric(*d as i32)
+                    }
+                    Expression::Literal(LiteralValue::Int32(i)) => schema_for_type_numeric(*i),
+                    Expression::Literal(LiteralValue::Int64(i)) => {
+                        schema_for_type_numeric(*i as i32)
+                    }
+                    Expression::Literal(LiteralValue::Decimal128(d)) => {
+                        let decimal_string = d.to_string();
+                        let decimal_as_double = decimal_string
+                            .parse::<f64>()
+                            .map_err(|_| Error::InvalidConvertTypeValue(decimal_string))?;
+                        schema_for_type_numeric(decimal_as_double as i32)
+                    }
+                    // unfortunately, convert can take any expression as a to type. We use
+                    // the full set of to types when we cant statically determine the output
+                    _ => Schema::AnyOf(set!(
+                        Schema::Atomic(Atomic::Integer),
+                        Schema::Atomic(Atomic::Double),
+                        Schema::Atomic(Atomic::Long),
+                        Schema::Atomic(Atomic::Decimal),
+                        Schema::Atomic(Atomic::Boolean),
+                        Schema::Atomic(Atomic::Date),
+                        Schema::Atomic(Atomic::Timestamp),
+                        Schema::Atomic(Atomic::BinData),
+                        Schema::Atomic(Atomic::String),
+                    )),
+                };
+                if let Some(on_null) = c.on_null.as_ref() {
+                    convert_type = convert_type.subtract_nullish();
+                    convert_type = convert_type.union(&on_null.derive_schema(state)?);
                 }
-                Expression::Literal(LiteralValue::Int32(i)) => Ok(schema_for_type_numeric(*i)),
-                Expression::Literal(LiteralValue::Int64(i)) => {
-                    Ok(schema_for_type_numeric(*i as i32))
+                if let Some(on_error) = c.on_error.as_ref() {
+                    convert_type = convert_type.union(&on_error.derive_schema(state)?);
                 }
-                Expression::Literal(LiteralValue::Decimal128(d)) => {
-                    let decimal_string = d.to_string();
-                    let decimal_as_double = decimal_string
-                        .parse::<f64>()
-                        .map_err(|_| Error::InvalidConvertTypeValue(decimal_string))?;
-                    Ok(schema_for_type_numeric(decimal_as_double as i32))
-                }
-                _ => unreachable!(),
-            },
+                Ok(convert_type)
+            }
             TaggedOperator::DenseRank(_)
             | TaggedOperator::DocumentNumber(_)
             | TaggedOperator::Rank(_) => Ok(Schema::AnyOf(set!(
@@ -2255,6 +2282,7 @@ impl DeriveSchema for UntaggedOperator {
                     schema => schema
                 })
             }
+            UntaggedOperatorName::Literal => self.args[0].derive_schema(state),
             _ => Err(Error::InvalidUntaggedOperator(self.op.into())),
         }
     }
