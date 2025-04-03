@@ -3829,6 +3829,18 @@ mod array_ops {
         ref_schema = NULLISH.clone()
     );
     test_derive_schema_for_match_stage!(
+        reduce_references_this_and_value,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Array(Box::new(Schema::Any)),
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$reduce": {"input": "$foo", "initialValue": 1, "in": [{"$eq": ["$$this", "$$value"]}]}}}}"#,
+        ref_schema = Schema::Any
+    );
+    test_derive_schema_for_match_stage!(
         slice_not_null,
         expected = Ok(Schema::Document(Document {
             keys: map! {

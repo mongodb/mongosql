@@ -1,7 +1,7 @@
 use crate::{
-    get_schema_for_path_mut, insert_required_key_into_document, promote_missing, remove_field,
-    schema_difference, schema_for_bson, schema_for_type_numeric, schema_for_type_str, Error,
-    MatchConstrainSchema, Result,
+    array_element_schema_or_error, get_schema_for_path_mut, insert_required_key_into_document,
+    promote_missing, remove_field, schema_difference, schema_for_bson, schema_for_type_numeric,
+    schema_for_type_str, Error, MatchConstrainSchema, Result,
 };
 use agg_ast::definitions::{
     AtlasSearchStage, Bucket, BucketAuto, ConciseSubqueryLookup, Densify, Documents,
@@ -923,6 +923,10 @@ impl DeriveSchema for Expression {
                                     )
                                     .unwrap()
                                     .clone())
+                                // if the top level key is present but the full path is not, agg
+                                // treats it as an empty document
+                                } else if state.variables.contains_key(&path[0]) {
+                                    Ok(Schema::Document(Document::empty()))
                                 } else {
                                     Err(Error::UnknownReference(v.into()))
                                 }
@@ -1021,37 +1025,6 @@ impl DeriveSchema for TaggedOperator {
                     .map_or(&Expression::Literal(LiteralValue::Boolean(true)), |x| {
                         x.as_ref()
                     })
-            }};
-        }
-        macro_rules! array_element_schema_or_error {
-            ($input_schema:expr,$input:expr) => {{
-                match $input_schema {
-                    Schema::Array(a) => *a,
-                    Schema::AnyOf(ao) => {
-                        let mut array_type = None;
-                        for schema in ao.iter() {
-                            if let Schema::Array(a) = schema {
-                                array_type = Some(*a.clone());
-                                break;
-                            }
-                        }
-                        match array_type {
-                            Some(t) => t,
-                            None => {
-                                return Err(Error::InvalidExpressionForField(
-                                    format!("{:?}", $input),
-                                    "input",
-                                ))
-                            }
-                        }
-                    }
-                    _ => {
-                        return Err(Error::InvalidExpressionForField(
-                            format!("{:?}", $input),
-                            "input",
-                        ))
-                    }
-                }
             }};
         }
         match self {

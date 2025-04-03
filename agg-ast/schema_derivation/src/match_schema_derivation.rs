@@ -1,5 +1,5 @@
 use crate::{
-    get_or_create_schema_for_path_mut, maybe_any_of,
+    array_element_schema_or_error, get_or_create_schema_for_path_mut, maybe_any_of,
     negative_normalize::{NegativeNormalize, DECIMAL_ZERO},
     promote_missing, schema_difference, schema_for_bson, schema_for_type_str, DeriveSchema, Error,
     Result, ResultSetState,
@@ -2067,8 +2067,21 @@ impl MatchConstrainSchema for Expression {
             } else {
                 r.input.match_derive_schema(state)?;
             }
+            // if the input is null, there is no array to iterate over, so we can safely return
+            let input_schema = r.input.derive_schema(state)?;
+            if input_schema.satisfies(&NULLISH.clone()) == Satisfaction::Must {
+                return Ok(());
+            }
+            let array_element_schema = array_element_schema_or_error!(input_schema, r.input);
+            let initial_schema = r.initial_value.derive_schema(state)?;
+            let initial_variables = state.variables.clone();
+            state
+                .variables
+                .insert("this".to_string(), array_element_schema);
+            state.variables.insert("value".to_string(), initial_schema);
             r.initial_value.match_derive_schema(state)?;
             r.inside.match_derive_schema(state)?;
+            state.variables = initial_variables;
             Ok(())
         }
 
