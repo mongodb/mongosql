@@ -7,7 +7,7 @@
 /// an equijoin-style $lookup stage in the final pipeline. This style $lookup
 /// provides favorable runtime over expressive $lookup.
 ///
-/// The equijoin syntax does not provide the SQL-style null semantics MongoSQL
+/// The equijoin syntax does not provide the Sql-style null semantics MongoSql
 /// requires, so we must ensure those semantics are preserved as part of this
 /// optimization. This is why the optimization checks the schema of the local
 /// and foreign fields and adjusts the conditions appropriately. In order:
@@ -28,7 +28,7 @@ use crate::{
         optimizer::Optimizer,
         schema::{CachedSchema, SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        EquiJoin, Expression, FieldAccess, FieldPath, Filter, MQLStage, ScalarFunction,
+        EquiJoin, Expression, FieldAccess, FieldPath, Filter, MqlStage, ScalarFunction,
         ScalarFunctionApplication, Stage,
     },
     schema::ResultSet,
@@ -175,11 +175,11 @@ impl Visitor for JoinSemanticsOptimizerVisitor<'_> {
                         Some((local_field, foreign_field)) => {
                             self.changed = true;
                             if local_field.is_nullable && foreign_field.is_nullable {
-                                Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+                                Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
                                     join_type: j.join_type,
                                     source: Box::new(Stage::Filter(Filter {
                                         source: j.left.clone(),
-                                        condition: Expression::MQLIntrinsicFieldExistence(
+                                        condition: Expression::MqlIntrinsicFieldExistence(
                                             local_field.clone().into(),
                                         ),
                                         cache: SchemaCache::new(),
@@ -190,7 +190,7 @@ impl Visitor for JoinSemanticsOptimizerVisitor<'_> {
                                     cache: SchemaCache::new(),
                                 }))
                             } else {
-                                Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+                                Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
                                     join_type: j.join_type,
                                     source: j.left.clone(),
                                     from: j.right.clone(),

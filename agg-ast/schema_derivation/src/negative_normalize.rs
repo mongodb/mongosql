@@ -116,7 +116,7 @@ impl NegativeNormalize<Expression> for Expression {
                 // The following operators may evaluate to null, so the negation simply asserts
                 // that they are less than or equal to null. Although they should never evaluate to
                 // missing, we still use the $lte operator for the negation since there are some
-                // MQL operators that can evaluate to missing under certain circumstances. At time
+                // Mql operators that can evaluate to missing under certain circumstances. At time
                 // of writing, none of these operators behave that way but that doesn't preclude
                 // them from ever behaving that way so $lte is defensive against such updates in
                 // future MongoDB versions.
@@ -202,20 +202,20 @@ impl NegativeNormalize<Expression> for Expression {
                 | TaggedOperator::Shift(_)
                 | TaggedOperator::Switch(_)
                 | TaggedOperator::SetField(_)
-                // SQL operators should be rewritten before we get here, but it's easy enough to
+                // Sql operators should be rewritten before we get here, but it's easy enough to
                 // support them here as well.
-                | TaggedOperator::SQLConvert(_)
-                | TaggedOperator::SQLAvg(_)
-                | TaggedOperator::SQLCount(_)
-                | TaggedOperator::SQLDivide(_)
-                | TaggedOperator::SQLFirst(_)
-                | TaggedOperator::SQLLast(_)
-                | TaggedOperator::SQLMax(_)
-                | TaggedOperator::SQLMergeObjects(_)
-                | TaggedOperator::SQLMin(_)
-                | TaggedOperator::SQLStdDevPop(_)
-                | TaggedOperator::SQLStdDevSamp(_)
-                | TaggedOperator::SQLSum(_)
+                | TaggedOperator::SqlConvert(_)
+                | TaggedOperator::SqlAvg(_)
+                | TaggedOperator::SqlCount(_)
+                | TaggedOperator::SqlDivide(_)
+                | TaggedOperator::SqlFirst(_)
+                | TaggedOperator::SqlLast(_)
+                | TaggedOperator::SqlMax(_)
+                | TaggedOperator::SqlMergeObjects(_)
+                | TaggedOperator::SqlMin(_)
+                | TaggedOperator::SqlStdDevPop(_)
+                | TaggedOperator::SqlStdDevSamp(_)
+                | TaggedOperator::SqlSum(_)
                 | TaggedOperator::Subquery(_)
                 | TaggedOperator::SubqueryExists(_)
                 | TaggedOperator::SubqueryComparison(_)
@@ -274,13 +274,13 @@ impl NegativeNormalize<Expression> for Expression {
                     | UntaggedOperatorName::Atan2 | UntaggedOperatorName::Atanh
                     | UntaggedOperatorName::Avg | UntaggedOperatorName::Count
                     | UntaggedOperatorName::Cos | UntaggedOperatorName::Cosh
-                    | UntaggedOperatorName::SQLCos | UntaggedOperatorName::DegreesToRadians
+                    | UntaggedOperatorName::SqlCos | UntaggedOperatorName::DegreesToRadians
                     | UntaggedOperatorName::Divide | UntaggedOperatorName::Exp
                     | UntaggedOperatorName::Ln | UntaggedOperatorName::Log
                     | UntaggedOperatorName::Log10 | UntaggedOperatorName::Mod
                     | UntaggedOperatorName::Multiply | UntaggedOperatorName::Pow
                     | UntaggedOperatorName::RadiansToDegrees | UntaggedOperatorName::Sin
-                    | UntaggedOperatorName::Sinh | UntaggedOperatorName::SQLSin
+                    | UntaggedOperatorName::Sinh | UntaggedOperatorName::SqlSin
                     | UntaggedOperatorName::Sqrt | UntaggedOperatorName::Tan
                     | UntaggedOperatorName::Tanh | UntaggedOperatorName::Trunc
                     | UntaggedOperatorName::Ceil | UntaggedOperatorName::Floor
@@ -288,20 +288,20 @@ impl NegativeNormalize<Expression> for Expression {
                     | UntaggedOperatorName::IndexOfCP | UntaggedOperatorName::ToInt
                     | UntaggedOperatorName::Add | UntaggedOperatorName::Subtract
                     | UntaggedOperatorName::ArrayElemAt | UntaggedOperatorName::BinarySize
-                    | UntaggedOperatorName::SQLBitLength | UntaggedOperatorName::SQLIndexOfCP
-                    | UntaggedOperatorName::SQLStrLenBytes | UntaggedOperatorName::SQLStrLenCP
-                    | UntaggedOperatorName::SQLLog | UntaggedOperatorName::SQLMod
-                    | UntaggedOperatorName::SQLNeg | UntaggedOperatorName::SQLPos
-                    | UntaggedOperatorName::SQLRound | UntaggedOperatorName::SQLSize
-                    | UntaggedOperatorName::SQLSqrt | UntaggedOperatorName::BitAnd
+                    | UntaggedOperatorName::SqlBitLength | UntaggedOperatorName::SqlIndexOfCP
+                    | UntaggedOperatorName::SqlStrLenBytes | UntaggedOperatorName::SqlStrLenCP
+                    | UntaggedOperatorName::SqlLog | UntaggedOperatorName::SqlMod
+                    | UntaggedOperatorName::SqlNeg | UntaggedOperatorName::SqlPos
+                    | UntaggedOperatorName::SqlRound | UntaggedOperatorName::SqlSize
+                    | UntaggedOperatorName::SqlSqrt | UntaggedOperatorName::BitAnd
                     | UntaggedOperatorName::BitNot | UntaggedOperatorName::BitOr
                     | UntaggedOperatorName::BitXor | UntaggedOperatorName::BsonSize
                     | UntaggedOperatorName::CovariancePop | UntaggedOperatorName::CovarianceSamp
                     | UntaggedOperatorName::StdDevPop| UntaggedOperatorName::StdDevSamp
                     | UntaggedOperatorName::Round | UntaggedOperatorName::ToDecimal
                     | UntaggedOperatorName::ToDouble | UntaggedOperatorName::ToLong
-                    | UntaggedOperatorName::NumberDouble | UntaggedOperatorName::SQLSum
-                    | UntaggedOperatorName::SQLTan => {
+                    | UntaggedOperatorName::NumberDouble | UntaggedOperatorName::SqlSum
+                    | UntaggedOperatorName::SqlTan => {
                         let null_check = wrap_in_null_or_missing_check!(self.clone());
                         let zero_check = wrap_in_zero_check!(self.clone());
                         (UntaggedOperatorName::Or, vec![null_check, zero_check])
@@ -324,21 +324,21 @@ impl NegativeNormalize<Expression> for Expression {
                         (UntaggedOperatorName::Or, vec![null_check, zero_check, false_check])
                     }
                     // the following can only evaluate to true or false
-                    | UntaggedOperatorName::MQLBetween => {
+                    | UntaggedOperatorName::MqlBetween => {
                         return wrap_in_false_check!(self.clone());
                     }
                     // the following can evaluate only to strings or null
-                    | UntaggedOperatorName::SQLSubstrCP | UntaggedOperatorName::SQLToLower
-                    | UntaggedOperatorName::SQLToUpper => {
+                    | UntaggedOperatorName::SqlSubstrCP | UntaggedOperatorName::SqlToLower
+                    | UntaggedOperatorName::SqlToUpper => {
                         return wrap_in_null_or_missing_check!(self.clone());
                     }
                     // the following can evalute to null, true, or false
-                    | UntaggedOperatorName::SQLAnd | UntaggedOperatorName::SQLOr
-                    | UntaggedOperatorName::SQLBetween | UntaggedOperatorName::SQLEq
-                    | UntaggedOperatorName::SQLGt | UntaggedOperatorName::SQLGte
-                    | UntaggedOperatorName::SQLIs | UntaggedOperatorName::SQLLt
-                    | UntaggedOperatorName::SQLLte | UntaggedOperatorName::SQLNe
-                    | UntaggedOperatorName::SQLNot => {
+                    | UntaggedOperatorName::SqlAnd | UntaggedOperatorName::SqlOr
+                    | UntaggedOperatorName::SqlBetween | UntaggedOperatorName::SqlEq
+                    | UntaggedOperatorName::SqlGt | UntaggedOperatorName::SqlGte
+                    | UntaggedOperatorName::SqlIs | UntaggedOperatorName::SqlLt
+                    | UntaggedOperatorName::SqlLte | UntaggedOperatorName::SqlNe
+                    | UntaggedOperatorName::SqlNot => {
                         let null_check = wrap_in_null_or_missing_check!(self.clone());
                         let false_check = wrap_in_false_check!(self.clone());
                         (UntaggedOperatorName::Or, vec![null_check, false_check])
@@ -384,7 +384,7 @@ impl NegativeNormalize<Expression> for Expression {
                     UntaggedOperatorName::Not => return u.args[0].clone(),
                     // arrays are always truthy
                     UntaggedOperatorName::AddToSet | UntaggedOperatorName::Push
-                    | UntaggedOperatorName::SQLSlice | UntaggedOperatorName::SQLSplit => return Expression::Literal(LiteralValue::Boolean(false)),
+                    | UntaggedOperatorName::SqlSlice | UntaggedOperatorName::SqlSplit => return Expression::Literal(LiteralValue::Boolean(false)),
                     // sampleRate is always truthy
                     UntaggedOperatorName::SampleRate => return Expression::Literal(LiteralValue::Boolean(false)),
                 };

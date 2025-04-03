@@ -63,7 +63,7 @@ fn parse_addr(
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     init_logger();
-    info!("Starting the SQL translation server");
+    info!("Starting the Sql translation server");
 
     let tracer_provider = init_tracer_provider().expect("Failed to initialize tracer provider");
     global::set_tracer_provider(tracer_provider.clone());
@@ -73,7 +73,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         opentelemetry::trace::SpanKind::Internal,
         &opentelemetry::Context::current(),
     );
-    server_start_span.add_event("Starting SQL Translation Service".to_string(), vec![]);
+    server_start_span.add_event("Starting Sql Translation Service".to_string(), vec![]);
 
     let grpc_addr = parse_addr(
         "SQL_TRANSLATION_SERVER_HOST",
@@ -94,7 +94,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .build()
         .map_err(|e| Box::new(MainError::ReflectionServiceBuild(e)) as Box<dyn Error>)?;
 
-    info!("SQL translation server listening on {}", grpc_addr);
+    info!("Sql translation server listening on {}", grpc_addr);
     info!("Metrics server listening on {}", metrics_addr);
 
     let error_interceptor = ErrorInterceptor::new();
@@ -151,7 +151,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             }
         }
     });
-    server_start_span.add_event("SQL Translation Service Started".to_string(), vec![]);
+    server_start_span.add_event("Sql Translation Service Started".to_string(), vec![]);
     server_start_span.end();
 
     let grpc_handle: JoinHandle<Result<(), MainError>> = tokio::spawn(async move {

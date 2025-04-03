@@ -54,7 +54,7 @@ async fn test_start_span_and_events() {
         "Events should match what was added"
     );
 
-    // Confirm Name is "SQLTranslationService"
+    // Confirm Name is "SqlTranslationService"
     assert_eq!(
         test_span.instrumentation_lib.name.as_ref(),
         SQL_SERVICE_NAME.to_string()

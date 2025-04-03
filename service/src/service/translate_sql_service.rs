@@ -34,7 +34,7 @@ pub enum Error {
     InvalidExcludeNamespacesOption,
     #[error("invalid schema_checking_mode")]
     InvalidSchemaCheckingMode,
-    #[error("failed to translate SQL: {0}")]
+    #[error("failed to translate Sql: {0}")]
     SqlTranslationError(String),
     #[error("failed to get namespaces: {0}")]
     GetNamespacesError(String),
@@ -71,7 +71,7 @@ impl TranslatorService for PanicHandlingTranslateSqlService {
                 SERVER_PANICS_TOTAL.inc();
                 let panic_message = extract_panic_message(&panic_info);
                 error!(
-                    "Panic occurred while translating SQL query: {}",
+                    "Panic occurred while translating Sql query: {}",
                     panic_message
                 );
                 Err(Status::internal(format!(
@@ -217,7 +217,7 @@ impl TranslatorService for TranslateSqlService {
             Ok(opts) => opts,
             Err(e) => {
                 interceptor.record_error(&e);
-                add_event(&mut span, &format!("Error building SQL options: {}", e));
+                add_event(&mut span, &format!("Error building Sql options: {}", e));
                 return Err(e);
             }
         };
@@ -225,7 +225,7 @@ impl TranslatorService for TranslateSqlService {
         let response = match mongosql::translate_sql(&req.db, &req.query, &catalog, options) {
             Ok(translation) => Self::create_translate_sql_response(translation),
             Err(e) => {
-                let error_message = format!("Error translating SQL: {}", e);
+                let error_message = format!("Error translating Sql: {}", e);
                 add_event(&mut span, &error_message);
                 let status = Status::invalid_argument(error_message);
                 interceptor.record_error(&status);
@@ -241,7 +241,7 @@ impl TranslatorService for TranslateSqlService {
         SERVER_HANDLED_COUNTER
             .with_label_values(&["TranslatorService", "TranslateSql", "OK"])
             .inc();
-        add_event(&mut span, "SQL translation completed");
+        add_event(&mut span, "Sql translation completed");
         Ok(Response::new(response))
     }
 

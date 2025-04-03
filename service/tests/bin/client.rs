@@ -40,7 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 async fn run_translate_sql(
     client: &mut TranslatorServiceClient<tonic::transport::Channel>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    println!("Running Translate SQL operation:");
+    println!("Running Translate Sql operation:");
     let file_name = "tpch.json";
     // Test translate_sql
     let catalog_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -65,7 +65,7 @@ async fn run_translate_sql(
     };
     let translate_response = client.translate_sql(translate_request).await?;
 
-    info!("Translate SQL Response:");
+    info!("Translate Sql Response:");
     info!("{:#?}", translate_response);
 
     Ok(())

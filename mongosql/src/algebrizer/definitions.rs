@@ -965,7 +965,7 @@ impl<'a> Algebrizer<'a> {
 
     /// Ensure an unwind PATH is exactly a compound identifier.
     ///
-    /// A compound identifier is defined in the MongoSQL grammar as
+    /// A compound identifier is defined in the MongoSql grammar as
     ///
     ///   <compound identifer> ::= <identifier> ("." <compound identifier>)?
     ///
@@ -2379,7 +2379,7 @@ impl<'a> Algebrizer<'a> {
             if musts + mays == 2 {
                 // It's actually impossible for bot to be the may here, since the SELECT
                 // or GROUP BY always define the value. This could change if we ever allow
-                // something like $$REMOVE in our SQL dialect.
+                // something like $$REMOVE in our Sql dialect.
                 if found_bot {
                     return self.construct_field_access_expr(
                         mir::Expression::Reference(current_bot.into()),

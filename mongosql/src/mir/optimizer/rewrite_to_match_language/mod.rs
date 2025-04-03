@@ -29,10 +29,10 @@ use crate::{
         optimizer::Optimizer,
         schema::{SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        Expression, FieldPath, IsExpr, LikeExpr, LiteralValue, MQLStage, MatchFalse, MatchFilter,
+        Expression, FieldPath, IsExpr, LikeExpr, LiteralValue, MatchFalse, MatchFilter,
         MatchLanguageComparison, MatchLanguageComparisonOp, MatchLanguageLogical,
-        MatchLanguageLogicalOp, MatchLanguageRegex, MatchLanguageType, MatchQuery, ScalarFunction,
-        Stage, Type, TypeOrMissing,
+        MatchLanguageLogicalOp, MatchLanguageRegex, MatchLanguageType, MatchQuery, MqlStage,
+        ScalarFunction, Stage, Type, TypeOrMissing,
     },
     util::{convert_sql_pattern, LIKE_OPTIONS},
     SchemaCheckingMode,
@@ -148,11 +148,11 @@ impl Visitor for MatchLanguageRewriterVisitor {
         match node.clone() {
             Stage::Filter(f) => {
                 // If a Filter's condition can be rewritten to match language,
-                // replace the Filter with an MQLIntrinsic MatchFilter with the
+                // replace the Filter with an MqlIntrinsic MatchFilter with the
                 // rewritten condition.
                 Self::rewrite_condition(f.condition.clone()).map_or(node, |condition| {
                     self.changed = true;
-                    Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+                    Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
                         source: f.source,
                         condition,
                         cache: SchemaCache::new(),

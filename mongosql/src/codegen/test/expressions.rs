@@ -15,7 +15,7 @@ macro_rules! test_codegen_expression {
 mod date_function {
     use crate::air::{
         DateFunction::*, DateFunctionApplication, DatePart::*, Expression::*, LiteralValue::*,
-        SQLOperator::*, SQLSemanticOperator,
+        SqlOperator::*, SqlSemanticOperator,
     };
     use bson::bson;
 
@@ -29,7 +29,7 @@ mod date_function {
             unit: Year,
             args: vec![
                 Literal(Integer(5)),
-                SQLSemanticOperator(SQLSemanticOperator {
+                SqlSemanticOperator(SqlSemanticOperator {
                     op: CurrentTimestamp,
                     args: vec![],
                 }),
@@ -46,11 +46,11 @@ mod date_function {
             function: Diff,
             unit: Year,
             args: vec![
-                SQLSemanticOperator(SQLSemanticOperator {
+                SqlSemanticOperator(SqlSemanticOperator {
                     op: CurrentTimestamp,
                     args: vec![],
                 }),
-                SQLSemanticOperator(SQLSemanticOperator {
+                SqlSemanticOperator(SqlSemanticOperator {
                     op: CurrentTimestamp,
                     args: vec![],
                 }),
@@ -68,7 +68,7 @@ mod date_function {
             function: Trunc,
             unit: Year,
             args: vec![
-                SQLSemanticOperator(SQLSemanticOperator {
+                SqlSemanticOperator(SqlSemanticOperator {
                     op: CurrentTimestamp,
                     args: vec![],
                 }),
@@ -80,7 +80,7 @@ mod date_function {
 
 mod switch {
     use crate::air::{
-        Expression::*, LiteralValue::*, MQLOperator::*, MQLSemanticOperator, Switch, SwitchCase,
+        Expression::*, LiteralValue::*, MqlOperator::*, MqlSemanticOperator, Switch, SwitchCase,
     };
     use bson::{bson, doc};
 
@@ -97,7 +97,7 @@ mod switch {
         })),
         input = Switch(Switch {
             branches: vec![SwitchCase {
-                case: Box::new(MQLSemanticOperator(MQLSemanticOperator {
+                case: Box::new(MqlSemanticOperator(MqlSemanticOperator {
                     op: Lt,
                     args: vec![Literal(Integer(10)), Literal(Integer(20))],
                 })),
@@ -129,21 +129,21 @@ mod switch {
         input = Switch(Switch {
             branches: vec![
                 SwitchCase {
-                    case: Box::new(MQLSemanticOperator(MQLSemanticOperator {
+                    case: Box::new(MqlSemanticOperator(MqlSemanticOperator {
                         op: Lt,
                         args: vec![Literal(Integer(10)), Literal(Integer(20))],
                     })),
                     then: Box::new(Literal(String("first".to_string())))
                 },
                 SwitchCase {
-                    case: Box::new(MQLSemanticOperator(MQLSemanticOperator {
+                    case: Box::new(MqlSemanticOperator(MqlSemanticOperator {
                         op: Gt,
                         args: vec![Literal(Integer(1)), Literal(Integer(2))],
                     })),
                     then: Box::new(Literal(String("second".to_string())))
                 },
                 SwitchCase {
-                    case: Box::new(MQLSemanticOperator(MQLSemanticOperator {
+                    case: Box::new(MqlSemanticOperator(MqlSemanticOperator {
                         op: Eq,
                         args: vec![Literal(Integer(1)), Literal(Integer(2))],
                     })),
@@ -342,13 +342,13 @@ mod trim {
 }
 
 mod mql_semantic_operator {
-    use crate::air::{self, Expression::*, LiteralValue::*, MQLOperator::*, MQLSemanticOperator};
+    use crate::air::{self, Expression::*, LiteralValue::*, MqlOperator::*, MqlSemanticOperator};
     use bson::bson;
 
     test_codegen_expression!(
         concat,
         expected = Ok(bson!({ "$concat": [{ "$literal": "foo"}, { "$literal": "bar"}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Concat,
             args: vec![
                 Literal(String("foo".to_string())),
@@ -360,7 +360,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         add,
         expected = Ok(bson!({ "$add": [{ "$literal": 1}, { "$literal": 2}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Add,
             args: vec![Literal(Integer(1)), Literal(Integer(2))],
         })
@@ -369,7 +369,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         subtract,
         expected = Ok(bson!({ "$subtract": [{ "$literal": 1}, { "$literal": 2}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Subtract,
             args: vec![Literal(Integer(1)), Literal(Integer(2))],
         })
@@ -378,7 +378,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         multiply,
         expected = Ok(bson!({ "$multiply": [{ "$literal": 1}, { "$literal": 2}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Multiply,
             args: vec![Literal(Integer(1)), Literal(Integer(2))],
         })
@@ -387,7 +387,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         divide,
         expected = Ok(bson!({ "$divide": [{ "$literal": 1}, { "$literal": 2}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Divide,
             args: vec![Literal(Integer(1)), Literal(Integer(2))],
         })
@@ -396,7 +396,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         lt,
         expected = Ok(bson!({ "$lt": [{ "$literal": 1}, { "$literal": 2}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Lt,
             args: vec![Literal(Integer(1)), Literal(Integer(2))],
         })
@@ -405,7 +405,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         lte,
         expected = Ok(bson!({ "$lte": [{ "$literal": 1}, { "$literal": 2}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Lte,
             args: vec![Literal(Integer(1)), Literal(Integer(2))],
         })
@@ -414,7 +414,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         ne,
         expected = Ok(bson!({ "$ne": [{ "$literal": 1}, { "$literal": 2}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Ne,
             args: vec![Literal(Integer(1)), Literal(Integer(2))],
         })
@@ -423,7 +423,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         eq,
         expected = Ok(bson!({ "$eq": [{ "$literal": 1}, { "$literal": 2}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Eq,
             args: vec![Literal(Integer(1)), Literal(Integer(2))],
         })
@@ -432,7 +432,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         gt,
         expected = Ok(bson!({ "$gt": [{ "$literal": 1}, { "$literal": 2}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Gt,
             args: vec![Literal(Integer(1)), Literal(Integer(2))],
         })
@@ -441,7 +441,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         gte,
         expected = Ok(bson!({ "$gte": [{ "$literal": 1}, { "$literal": 2}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Gte,
             args: vec![Literal(Integer(1)), Literal(Integer(2))],
         })
@@ -451,7 +451,7 @@ mod mql_semantic_operator {
         between,
         expected =
             Ok(bson!({ "$mqlBetween": [{ "$literal": 1}, { "$literal": 2}, { "$literal": 3}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Between,
             args: vec![
                 Literal(Integer(1)),
@@ -464,7 +464,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         not,
         expected = Ok(bson!({ "$not": [{ "$literal": false}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Not,
             args: vec![Literal(Boolean(false))],
         })
@@ -473,7 +473,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         and,
         expected = Ok(bson!({ "$and": [{ "$literal": true}, { "$literal": false}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: And,
             args: vec![Literal(Boolean(true)), Literal(Boolean(false))],
         })
@@ -482,7 +482,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         or,
         expected = Ok(bson!({ "$or": [{ "$literal": true}, { "$literal": false}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Or,
             args: vec![Literal(Boolean(true)), Literal(Boolean(false))],
         })
@@ -493,7 +493,7 @@ mod mql_semantic_operator {
         expected = Ok(
             bson!({ "$slice": [[{"$literal": 1}, {"$literal": 2}, {"$literal": 3}], {"$literal": 1}, { "$literal": 2}]})
         ),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Slice,
             args: vec![
                 air::Expression::Array(vec![
@@ -510,7 +510,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         size,
         expected = Ok(bson!({ "$size": [[{"$literal": 1}, {"$literal": 2}, {"$literal": 3}]]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Size,
             args: vec![air::Expression::Array(vec![
                 Literal(Integer(1)),
@@ -525,7 +525,7 @@ mod mql_semantic_operator {
         expected = Ok(
             bson!({ "$indexOfCP": [{ "$literal": "foo"}, { "$literal": "bar"}, { "$literal": 1}, { "$literal": 2}]})
         ),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: IndexOfCP,
             args: vec![
                 Literal(String("foo".to_string())),
@@ -541,7 +541,7 @@ mod mql_semantic_operator {
         expected = Ok(
             bson!({ "$indexOfBytes": [{ "$literal": "foo"}, { "$literal": "bar"}, { "$literal": 1}, { "$literal": 2}]})
         ),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: IndexOfBytes,
             args: vec![
                 Literal(String("foo".to_string())),
@@ -555,7 +555,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         str_len_cp,
         expected = Ok(bson!({ "$strLenCP": [{ "$literal": "foo"}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: StrLenCP,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -564,7 +564,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         str_len_bytes,
         expected = Ok(bson!({ "$strLenBytes": [{ "$literal": "foo"}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: StrLenBytes,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -573,7 +573,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         abs,
         expected = Ok(bson!({ "$abs": [{"$literal": -1}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Abs,
             args: vec![Literal(Integer(-1)),],
         })
@@ -582,7 +582,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         ceil,
         expected = Ok(bson!({ "$ceil": [{"$literal": 3.5}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Ceil,
             args: vec![Literal(Double(3.5)),],
         })
@@ -591,7 +591,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         cos,
         expected = Ok(bson!({ "$cos": [{"$literal": 3.5}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Cos,
             args: vec![Literal(Double(3.5)),],
         })
@@ -600,7 +600,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         sin,
         expected = Ok(bson!({ "$sin": [{"$literal": 3.5}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Sin,
             args: vec![Literal(Double(3.5)),],
         })
@@ -609,7 +609,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         tan,
         expected = Ok(bson!({ "$tan": [{"$literal": 3.5}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Tan,
             args: vec![Literal(Double(3.5)),],
         })
@@ -618,7 +618,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         degrees_to_radians,
         expected = Ok(bson!({ "$degreesToRadians": [{"$literal": 180.0}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: DegreesToRadians,
             args: vec![Literal(Double(180.0)),],
         })
@@ -627,7 +627,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         radians_to_degrees,
         expected = Ok(bson!({ "$radiansToDegrees": [{"$literal": 3.5}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: RadiansToDegrees,
             args: vec![Literal(Double(3.5)),],
         })
@@ -636,7 +636,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         floor,
         expected = Ok(bson!({ "$floor": [{"$literal": 3.5}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Floor,
             args: vec![Literal(Double(3.5)),],
         })
@@ -645,7 +645,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         log,
         expected = Ok(bson!({ "$log": [{"$literal": 3.5}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Log,
             args: vec![Literal(Double(3.5)),],
         })
@@ -654,7 +654,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         mod_op,
         expected = Ok(bson!({ "$mod": [{"$literal": 3.5}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Mod,
             args: vec![Literal(Double(3.5)),],
         })
@@ -663,7 +663,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         pow,
         expected = Ok(bson!({ "$pow": [{"$literal": 3.5}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Pow,
             args: vec![Literal(Double(3.5)),],
         })
@@ -672,7 +672,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         round,
         expected = Ok(bson!({ "$round": [{"$literal": 3.5}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Round,
             args: vec![Literal(Double(3.5)),],
         })
@@ -681,7 +681,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         sqrt,
         expected = Ok(bson!({ "$sqrt": [{"$literal": 3.5}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Sqrt,
             args: vec![Literal(Double(3.5)),],
         })
@@ -690,7 +690,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         avg,
         expected = Ok(bson!({ "$avg": ["$foo"]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Avg,
             args: vec![FieldRef("foo".to_string().into()),],
         })
@@ -699,7 +699,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         max,
         expected = Ok(bson!({ "$max": ["$foo"]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Max,
             args: vec![FieldRef("foo".to_string().into()),],
         })
@@ -708,7 +708,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         min,
         expected = Ok(bson!({ "$min": ["$foo"]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Min,
             args: vec![FieldRef("foo".to_string().into()),],
         })
@@ -717,7 +717,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         sum,
         expected = Ok(bson!({ "$sum": ["$foo"]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Sum,
             args: vec![FieldRef("foo".to_string().into()),],
         })
@@ -726,7 +726,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         stddev_pop,
         expected = Ok(bson!({ "$stdDevPop": ["$foo"]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: StddevPop,
             args: vec![FieldRef("foo".to_string().into()),],
         })
@@ -735,7 +735,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         stddev_samp,
         expected = Ok(bson!({ "$stdDevSamp": ["$foo"]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: StddevSamp,
             args: vec![FieldRef("foo".to_string().into()),],
         })
@@ -745,7 +745,7 @@ mod mql_semantic_operator {
         substr_cp,
         expected =
             Ok(bson!({ "$substrCP": [{ "$literal": "foo"}, { "$literal": 1 }, { "$literal": 2 }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: SubstrCP,
             args: vec![
                 Literal(String("foo".to_string())),
@@ -762,7 +762,7 @@ mod mql_semantic_operator {
             "find": { "$literal": "o" },
             "replacement": { "$literal": "f" }
         }})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: ReplaceAll,
             args: vec![
                 Literal(String("foo".to_string())),
@@ -777,7 +777,7 @@ mod mql_semantic_operator {
         expected = Ok(
             bson!({ "$substrBytes": [{ "$literal": "foo"}, { "$literal": 1 }, { "$literal": 2 }]})
         ),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: SubstrBytes,
             args: vec![
                 Literal(String("foo".to_string())),
@@ -790,7 +790,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         to_upper,
         expected = Ok(bson!({ "$toUpper": [{ "$literal": "foo"}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: ToUpper,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -799,7 +799,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         to_lower,
         expected = Ok(bson!({ "$toLower": [{ "$literal": "foo"}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: ToLower,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -808,7 +808,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         split,
         expected = Ok(bson!({ "$split": [{ "$literal": "foo" }, { "$literal": "o" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Split,
             args: vec![
                 Literal(String("foo".to_string())),
@@ -820,7 +820,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         year,
         expected = Ok(bson!({ "$year": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Year,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -829,7 +829,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         month,
         expected = Ok(bson!({ "$month": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Month,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -838,7 +838,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         day_of_month,
         expected = Ok(bson!({ "$dayOfMonth": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: DayOfMonth,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -847,7 +847,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         hour,
         expected = Ok(bson!({ "$hour": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Hour,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -856,7 +856,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         minute,
         expected = Ok(bson!({ "$minute": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Minute,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -865,7 +865,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         second,
         expected = Ok(bson!({ "$second": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Second,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -874,7 +874,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         week,
         expected = Ok(bson!({ "$week": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Week,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -883,7 +883,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         day_of_year,
         expected = Ok(bson!({ "$dayOfYear": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: DayOfYear,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -892,7 +892,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         iso_week,
         expected = Ok(bson!({ "$isoWeek": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: IsoWeek,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -901,7 +901,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         iso_day_of_week,
         expected = Ok(bson!({ "$isoDayOfWeek": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: IsoDayOfWeek,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -910,7 +910,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         date_add,
         expected = Ok(bson!({ "$dateAdd": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: DateAdd,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -919,7 +919,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         date_diff,
         expected = Ok(bson!({ "$dateDiff": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: DateDiff,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -928,7 +928,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         date_trunc,
         expected = Ok(bson!({ "$dateTrunc": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: DateTrunc,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -937,7 +937,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         merge_object,
         expected = Ok(bson!({ "$mergeObjects": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: MergeObjects,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -946,7 +946,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         object_to_array,
         expected = Ok(bson!({ "$objectToArray": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: ObjectToArray,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -955,7 +955,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         is_number,
         expected = Ok(bson!({ "$isNumber": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: IsNumber,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -964,7 +964,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         is_array,
         expected = Ok(bson!({ "$isArray": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: IsArray,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -973,7 +973,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         if_null,
         expected = Ok(bson!({ "$ifNull": [{ "$literal": "foo" }, { "$literal": "bar" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: IfNull,
             args: vec![
                 Literal(String("foo".to_string())),
@@ -985,7 +985,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         type_op,
         expected = Ok(bson!({ "$type": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Type,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -996,7 +996,7 @@ mod mql_semantic_operator {
         expected = Ok(
             bson!({ "$arrayElemAt": [[{ "$literal": "foo" }, { "$literal": "bar" }], { "$literal": 1} ]})
         ),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: ElemAt,
             args: vec![
                 air::Expression::Array(vec![
@@ -1011,7 +1011,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         in_op,
         expected = Ok(bson!({ "$in": [{ "$literal": 1}, [{ "$literal": 1 }, { "$literal": 2 }]]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: In,
             args: vec![
                 Literal(Integer(1)),
@@ -1023,7 +1023,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         first,
         expected = Ok(bson!({ "$first": ["$foo"]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: First,
             args: vec![FieldRef("foo".to_string().into())],
         })
@@ -1032,7 +1032,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         last,
         expected = Ok(bson!({ "$last": ["$foo"]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Last,
             args: vec![FieldRef("foo".to_string().into())],
         })
@@ -1041,7 +1041,7 @@ mod mql_semantic_operator {
     test_codegen_expression!(
         all_elements_true,
         expected = Ok(bson!({ "$allElementsTrue": ["$foo"]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: AllElementsTrue,
             args: vec![FieldRef("foo".to_string().into())],
         })
@@ -1052,7 +1052,7 @@ mod mql_semantic_operator {
         expected = Ok(
             bson!({ "$cond": [{ "$literal": false }, { "$literal": "foo" }, { "$literal": "bar"} ]})
         ),
-        input = MQLSemanticOperator(MQLSemanticOperator {
+        input = MqlSemanticOperator(MqlSemanticOperator {
             op: Cond,
             args: vec![
                 Literal(Boolean(false)),
@@ -1065,7 +1065,7 @@ mod mql_semantic_operator {
 
 mod sql_semantic_operator {
     use crate::{
-        air::{self, Expression::*, LiteralValue::*, SQLOperator::*, SQLSemanticOperator},
+        air::{self, Expression::*, LiteralValue::*, SqlOperator::*, SqlSemanticOperator},
         codegen::Error,
     };
     use bson::bson;
@@ -1073,7 +1073,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         pos,
         expected = Ok(bson! ({ "$sqlPos": [{ "$literal": 2}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Pos,
             args: vec![Literal(Integer(2))],
         })
@@ -1082,7 +1082,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         neg,
         expected = Ok(bson! ({ "$sqlNeg": [{ "$literal": 1}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Neg,
             args: vec![Literal(Integer(1))],
         })
@@ -1091,7 +1091,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         lt,
         expected = Ok(bson!({ "$sqlLt": [{ "$literal": 1}, { "$literal": 2}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Lt,
             args: vec![Literal(Integer(1)), Literal(Integer(2))],
         })
@@ -1100,7 +1100,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         lte,
         expected = Ok(bson!({ "$sqlLte": [{ "$literal": 1}, { "$literal": 2}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Lte,
             args: vec![Literal(Integer(1)), Literal(Integer(2))],
         })
@@ -1109,7 +1109,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         ne,
         expected = Ok(bson!({ "$sqlNe": [{ "$literal": 1}, { "$literal": 2}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Ne,
             args: vec![Literal(Integer(1)), Literal(Integer(2))],
         })
@@ -1118,7 +1118,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         eq,
         expected = Ok(bson!({ "$sqlEq": [{ "$literal": 1}, { "$literal": 2}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Eq,
             args: vec![Literal(Integer(1)), Literal(Integer(2))],
         })
@@ -1127,7 +1127,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         gt,
         expected = Ok(bson!({ "$sqlGt": [{ "$literal": 1}, { "$literal": 2}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Gt,
             args: vec![Literal(Integer(1)), Literal(Integer(2))],
         })
@@ -1135,7 +1135,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         gte,
         expected = Ok(bson!({ "$sqlGte": [{ "$literal": 1}, { "$literal": 2}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Gte,
             args: vec![Literal(Integer(1)), Literal(Integer(2))],
         })
@@ -1145,7 +1145,7 @@ mod sql_semantic_operator {
         between,
         expected =
             Ok(bson!({ "$sqlBetween": [[{"$literal": 1}, {"$literal": 2}, {"$literal": 3}]]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Between,
             args: vec![air::Expression::Array(vec![
                 Literal(Integer(1)),
@@ -1158,7 +1158,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         nullif_expr,
         expected = Ok(bson!({ "$nullIf": [{ "$literal": true}, { "$literal": false}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: NullIf,
             args: vec![Literal(Boolean(true)), Literal(Boolean(false))],
         })
@@ -1167,7 +1167,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         coalesce_expr,
         expected = Ok(bson!({ "$coalesce": [{ "$literal": 1}, { "$literal": 2}, {"$literal": 3}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Coalesce,
             args: vec![
                 Literal(Integer(1)),
@@ -1180,7 +1180,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         not,
         expected = Ok(bson!({ "$sqlNot": [{ "$literal": false}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Not,
             args: vec![Literal(Boolean(false))],
         })
@@ -1189,7 +1189,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         and,
         expected = Ok(bson!({ "$sqlAnd": [{ "$literal": true}, { "$literal": false}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: And,
             args: vec![Literal(Boolean(true)), Literal(Boolean(false))],
         })
@@ -1197,7 +1197,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         or,
         expected = Ok(bson!({ "$sqlOr": [{ "$literal": true}, { "$literal": false}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Or,
             args: vec![Literal(Boolean(true)), Literal(Boolean(false))],
         })
@@ -1207,7 +1207,7 @@ mod sql_semantic_operator {
         expected = Ok(
             bson!({ "$sqlSlice": [[{"$literal": 1}, {"$literal": 2}, {"$literal": 3}], {"$literal": 1}, { "$literal": 2}]})
         ),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Slice,
             args: vec![
                 air::Expression::Array(vec![
@@ -1223,7 +1223,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         size,
         expected = Ok(bson!({ "$sqlSize": [{"$literal": 1}, {"$literal": 2}, {"$literal": 3}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Size,
             args: vec![air::Expression::Array(vec![
                 Literal(Integer(1)),
@@ -1237,7 +1237,7 @@ mod sql_semantic_operator {
         expected = Ok(
             bson!({ "$sqlIndexOfCP": [{ "$literal": "foo"}, { "$literal": "bar"}, { "$literal": 1}, { "$literal": 2}]})
         ),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: IndexOfCP,
             args: vec![
                 Literal(String("foo".to_string())),
@@ -1251,7 +1251,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         str_len_cp,
         expected = Ok(bson!({ "$sqlStrLenCP": { "$literal": "foo"}})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: StrLenCP,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -1259,7 +1259,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         str_len_bytes,
         expected = Ok(bson!({ "$sqlStrLenBytes": { "$literal": "foo"}})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: StrLenBytes,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -1268,7 +1268,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         bit_length,
         expected = Ok(bson!({ "$sqlBitLength": [{ "$literal": "foo"}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: BitLength,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -1276,7 +1276,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         cos,
         expected = Ok(bson!({ "$sqlCos": [{"$literal": 3.5}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Cos,
             args: vec![Literal(Double(3.5)),],
         })
@@ -1284,7 +1284,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         log,
         expected = Ok(bson!({ "$sqlLog": [{"$literal": 3.5}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Log,
             args: vec![Literal(Double(3.5)),],
         })
@@ -1292,7 +1292,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         mod_op,
         expected = Ok(bson!({ "$sqlMod": [{"$literal": 3.5}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Mod,
             args: vec![Literal(Double(3.5)),],
         })
@@ -1300,7 +1300,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         round,
         expected = Ok(bson!({ "$sqlRound": [{"$literal": 3.5}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Round,
             args: vec![Literal(Double(3.5)),],
         })
@@ -1308,7 +1308,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         sin,
         expected = Ok(bson!({ "$sqlSin": [{"$literal": 3.5}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Sin,
             args: vec![Literal(Double(3.5)),],
         })
@@ -1316,7 +1316,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         sqrt,
         expected = Ok(bson!({ "$sqlSqrt": [{"$literal": 3.5}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Sqrt,
             args: vec![Literal(Double(3.5)),],
         })
@@ -1324,7 +1324,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         tan,
         expected = Ok(bson!({ "$sqlTan": [{"$literal": 3.5}]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Tan,
             args: vec![Literal(Double(3.5)),],
         })
@@ -1334,7 +1334,7 @@ mod sql_semantic_operator {
         expected = Ok(
             bson!({ "$sqlSubstrCP": [{ "$literal": "foo"}, { "$literal": 1 }, { "$literal": 2 }]})
         ),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: SubstrCP,
             args: vec![
                 Literal(String("foo".to_string())),
@@ -1346,7 +1346,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         to_upper,
         expected = Ok(bson!({ "$sqlToUpper": { "$literal": "foo"}})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: ToUpper,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -1355,7 +1355,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         to_lower,
         expected = Ok(bson!({ "$sqlToLower": { "$literal": "foo"}})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: ToLower,
             args: vec![Literal(String("foo".to_string())),],
         })
@@ -1363,7 +1363,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         split,
         expected = Ok(bson!({ "$sqlSplit": [{ "$literal": "foo" }, { "$literal": "o" }]})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: Split,
             args: vec![
                 Literal(String("foo".to_string())),
@@ -1374,7 +1374,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         current_timestamp,
         expected = Ok(bson!("$$NOW")),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: CurrentTimestamp,
             args: vec![],
         })
@@ -1382,7 +1382,7 @@ mod sql_semantic_operator {
     test_codegen_expression!(
         computed_field_access,
         expected = Err(Error::UnsupportedOperator(ComputedFieldAccess)),
-        input = SQLSemanticOperator(SQLSemanticOperator {
+        input = SqlSemanticOperator(SqlSemanticOperator {
             op: ComputedFieldAccess,
             args: vec![]
         })
@@ -1831,7 +1831,7 @@ mod convert {
 }
 
 mod let_expr {
-    use crate::air::{Expression::*, Let, LetVariable, MQLOperator, MQLSemanticOperator};
+    use crate::air::{Expression::*, Let, LetVariable, MqlOperator, MqlSemanticOperator};
     use bson::bson;
 
     test_codegen_expression!(
@@ -1846,8 +1846,8 @@ mod let_expr {
         })),
         input = Let(Let {
             vars: vec![],
-            inside: Box::new(MQLSemanticOperator(MQLSemanticOperator {
-                op: MQLOperator::Add,
+            inside: Box::new(MqlSemanticOperator(MqlSemanticOperator {
+                op: MqlOperator::Add,
                 args: vec![
                     FieldRef("x".to_string().into()),
                     FieldRef("y".to_string().into()),
@@ -1873,8 +1873,8 @@ mod let_expr {
                 name: "v_x".to_string(),
                 expr: Box::new(FieldRef("x".to_string().into())),
             }],
-            inside: Box::new(MQLSemanticOperator(MQLSemanticOperator {
-                op: MQLOperator::Add,
+            inside: Box::new(MqlSemanticOperator(MqlSemanticOperator {
+                op: MqlOperator::Add,
                 args: vec![
                     Variable("v_x".to_string().into()),
                     FieldRef("y".to_string().into()),
@@ -1912,8 +1912,8 @@ mod let_expr {
                     expr: Box::new(FieldRef("z".to_string().into())),
                 },
             ],
-            inside: Box::new(MQLSemanticOperator(MQLSemanticOperator {
-                op: MQLOperator::Add,
+            inside: Box::new(MqlSemanticOperator(MqlSemanticOperator {
+                op: MqlOperator::Add,
                 args: vec![
                     Variable("v_x".to_string().into()),
                     Variable("v_y".to_string().into()),

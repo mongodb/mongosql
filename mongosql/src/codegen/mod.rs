@@ -15,8 +15,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum Error {
-    #[error("cannot generate MQL for {0:?} operator")]
-    UnsupportedOperator(air::SQLOperator),
+    #[error("cannot generate Mql for {0:?} operator")]
+    UnsupportedOperator(air::SqlOperator),
     #[error("cannot $convert to document")]
     ConvertToDocument,
     #[error("cannot $convert to array")]

@@ -153,7 +153,7 @@ impl Command {
     }
 
     /// This is the handler function for the GetNamespaces Command. It returns a Result<bson::Document>
-    /// containing the namespaces referenced by the the provided SQL query when executed in the provided database.
+    /// containing the namespaces referenced by the the provided Sql query when executed in the provided database.
     /// The necessary CommandOptions includes `sql` and `db`. Extra CommandOptions will be ignored.
     fn get_namespaces(&self) -> Result<Document> {
         let current_db = self

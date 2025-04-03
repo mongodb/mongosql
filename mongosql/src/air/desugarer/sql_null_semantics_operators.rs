@@ -5,35 +5,35 @@ use crate::air::{
     visitor::Visitor,
     Expression,
     Expression::*,
-    LetVariable, LiteralValue, MQLOperator, MQLSemanticOperator,
-    SQLOperator::*,
+    LetVariable, LiteralValue, MqlOperator, MqlSemanticOperator,
+    SqlOperator::*,
 };
 use crate::make_cond_expr;
 
-/// Desugars any SQL operators that require SQL null semantics into their
-/// corresponding MQL operators wrapped in operations to null-check the
+/// Desugars any Sql operators that require Sql null semantics into their
+/// corresponding Mql operators wrapped in operations to null-check the
 /// arguments.
-pub struct SQLNullSemanticsOperatorsDesugarerPass;
+pub struct SqlNullSemanticsOperatorsDesugarerPass;
 
-impl Pass for SQLNullSemanticsOperatorsDesugarerPass {
+impl Pass for SqlNullSemanticsOperatorsDesugarerPass {
     fn apply(&self, pipeline: air::Stage) -> Result<air::Stage> {
-        Ok(pipeline.walk(&mut SQLNullSemanticsOperatorsDesugarerVisitor))
+        Ok(pipeline.walk(&mut SqlNullSemanticsOperatorsDesugarerVisitor))
     }
 }
 
 #[derive(Default)]
-struct SQLNullSemanticsOperatorsDesugarerVisitor;
+struct SqlNullSemanticsOperatorsDesugarerVisitor;
 
-impl SQLNullSemanticsOperatorsDesugarerVisitor {
+impl SqlNullSemanticsOperatorsDesugarerVisitor {
     fn literal_check_args(
         let_vars: Vec<LetVariable>,
-        op: MQLOperator,
+        op: MqlOperator,
         lit_val: LiteralValue,
     ) -> Expression {
         let args = let_vars
             .into_iter()
             .map(|let_var| {
-                MQLSemanticOperator(air::MQLSemanticOperator {
+                MqlSemanticOperator(air::MqlSemanticOperator {
                     op,
                     args: vec![Variable(let_var.name.into()), Literal(lit_val.clone())],
                 })
@@ -41,14 +41,14 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
             .collect::<Vec<Expression>>();
         match args.len() {
             1 => args[0].clone(),
-            _ => MQLSemanticOperator(air::MQLSemanticOperator {
-                op: MQLOperator::Or,
+            _ => MqlSemanticOperator(air::MqlSemanticOperator {
+                op: MqlOperator::Or,
                 args,
             }),
         }
     }
 
-    fn desugar_sql_and(&mut self, sql_operator: air::SQLSemanticOperator) -> Expression {
+    fn desugar_sql_and(&mut self, sql_operator: air::SqlSemanticOperator) -> Expression {
         let mut let_vars: Vec<LetVariable> = Vec::new();
 
         let mut literal_null_found: Option<Expression> = None;
@@ -67,7 +67,7 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
 
         let false_check_cond_else_statement = literal_null_found.map_or(
             make_cond_expr!(
-                Self::literal_check_args(let_vars.clone(), MQLOperator::Lte, LiteralValue::Null),
+                Self::literal_check_args(let_vars.clone(), MqlOperator::Lte, LiteralValue::Null),
                 Literal(LiteralValue::Null),
                 Literal(LiteralValue::Boolean(true))
             ),
@@ -79,7 +79,7 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
         let cond = make_cond_expr!(
             Self::literal_check_args(
                 let_vars.clone(),
-                MQLOperator::Eq,
+                MqlOperator::Eq,
                 LiteralValue::Boolean(false)
             ),
             Literal(LiteralValue::Boolean(false)),
@@ -92,7 +92,7 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
         })
     }
 
-    fn desugar_sql_or(&mut self, sql_operator: air::SQLSemanticOperator) -> Expression {
+    fn desugar_sql_or(&mut self, sql_operator: air::SqlSemanticOperator) -> Expression {
         let mut let_vars: Vec<LetVariable> = Vec::new();
 
         let mut literal_null_found: Option<Expression> = None;
@@ -111,7 +111,7 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
 
         let true_check_cond_else_statement = literal_null_found.map_or(
             make_cond_expr!(
-                Self::literal_check_args(let_vars.clone(), MQLOperator::Lte, LiteralValue::Null),
+                Self::literal_check_args(let_vars.clone(), MqlOperator::Lte, LiteralValue::Null),
                 Literal(LiteralValue::Null),
                 Literal(LiteralValue::Boolean(false))
             ),
@@ -123,7 +123,7 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
         let cond = make_cond_expr!(
             Self::literal_check_args(
                 let_vars.clone(),
-                MQLOperator::Eq,
+                MqlOperator::Eq,
                 LiteralValue::Boolean(true)
             ),
             Literal(LiteralValue::Boolean(true)),
@@ -136,7 +136,7 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
         })
     }
 
-    fn desugar_sql_op(&mut self, sql_operator: air::SQLSemanticOperator) -> Expression {
+    fn desugar_sql_op(&mut self, sql_operator: air::SqlSemanticOperator) -> Expression {
         let op_name = "sql".to_string() + &format!("{:?}", sql_operator.op);
 
         let mut mql_operator_args: Vec<Expression> = Vec::new();
@@ -159,7 +159,7 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
             mql_operator_args.push(mql_operator_arg);
         }
 
-        let mql_op = MQLSemanticOperator(air::MQLSemanticOperator {
+        let mql_op = MqlSemanticOperator(air::MqlSemanticOperator {
             op: sql_op_to_mql_op(sql_operator.op).unwrap(),
             args: mql_operator_args,
         });
@@ -169,7 +169,7 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
             Let(air::Let {
                 vars: let_vars.clone(),
                 inside: Box::new(make_cond_expr!(
-                    Self::literal_check_args(let_vars, MQLOperator::Lte, LiteralValue::Null),
+                    Self::literal_check_args(let_vars, MqlOperator::Lte, LiteralValue::Null),
                     Literal(LiteralValue::Null),
                     mql_op
                 )),
@@ -178,15 +178,15 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
     }
 }
 
-impl Visitor for SQLNullSemanticsOperatorsDesugarerVisitor {
+impl Visitor for SqlNullSemanticsOperatorsDesugarerVisitor {
     fn visit_expression(&mut self, node: Expression) -> Expression {
         let node = match node {
-            SQLSemanticOperator(sql_operator) => match sql_operator.op {
+            SqlSemanticOperator(sql_operator) => match sql_operator.op {
                 And => self.desugar_sql_and(sql_operator),
                 Or => self.desugar_sql_or(sql_operator),
                 Eq | IndexOfCP | Lt | Lte | Gt | Gte | Ne | Not | Size | StrLenBytes | StrLenCP
                 | SubstrCP | ToLower | ToUpper => self.desugar_sql_op(sql_operator),
-                _ => SQLSemanticOperator(sql_operator),
+                _ => SqlSemanticOperator(sql_operator),
             },
             _ => node,
         };

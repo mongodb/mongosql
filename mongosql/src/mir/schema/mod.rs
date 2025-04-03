@@ -231,9 +231,9 @@ impl CachedSchema for Stage {
             Stage::Set(s) => &s.cache,
             Stage::Derived(s) => &s.cache,
             Stage::Unwind(s) => &s.cache,
-            Stage::MQLIntrinsic(MQLStage::EquiJoin(s)) => &s.cache,
-            Stage::MQLIntrinsic(MQLStage::LateralJoin(s)) => &s.cache,
-            Stage::MQLIntrinsic(MQLStage::MatchFilter(s)) => &s.cache,
+            Stage::MqlIntrinsic(MqlStage::EquiJoin(s)) => &s.cache,
+            Stage::MqlIntrinsic(MqlStage::LateralJoin(s)) => &s.cache,
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(s)) => &s.cache,
             Stage::Sentinel => unreachable!(),
         }
     }
@@ -729,7 +729,7 @@ impl CachedSchema for Stage {
                     max_size: source_result_set.max_size,
                 })
             }
-            Stage::MQLIntrinsic(MQLStage::EquiJoin(j)) => {
+            Stage::MqlIntrinsic(MqlStage::EquiJoin(j)) => {
                 let source_result_set = j.source.schema(state)?;
                 let from_result_set = j.from.schema(state)?;
 
@@ -783,7 +783,7 @@ impl CachedSchema for Stage {
                     }
                 }
             }
-            Stage::MQLIntrinsic(MQLStage::LateralJoin(j)) => {
+            Stage::MqlIntrinsic(MqlStage::LateralJoin(j)) => {
                 let source_result_set = j.source.schema(state)?;
                 let state = state.with_merged_schema_env(source_result_set.schema_env.clone());
                 let subquery_result_set = j.subquery.schema(&state)?;
@@ -824,7 +824,7 @@ impl CachedSchema for Stage {
                     }
                 }
             }
-            Stage::MQLIntrinsic(MQLStage::MatchFilter(f)) => {
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(f)) => {
                 let source_result_set = f.source.schema(state)?;
                 let state = state.with_merged_schema_env(source_result_set.schema_env.clone());
                 let cond_schema = f.condition.schema(&state)?;
@@ -979,10 +979,10 @@ impl SubqueryExpr {
     }
 }
 
-/// While a `SubqueryComparison` isn't strictly a `SQLFunction`, the actual comparison operation re-uses
+/// While a `SubqueryComparison` isn't strictly a `SqlFunction`, the actual comparison operation re-uses
 /// the same schema-checking that any binary comparison operator (Lt, Gt, Eq, etc.) uses. Those comparisons
 /// are represented as `ScalarFunction`s, and so that's where the schema checking lives.
-impl SQLFunction for SubqueryComparison {
+impl SqlFunction for SubqueryComparison {
     fn as_str(&self) -> &'static str {
         "subquery comparison"
     }
@@ -998,7 +998,7 @@ impl SubqueryComparison {
 
 impl Expression {
     // get_field_schema returns the Schema for a known field name retrieved
-    // from the argument Schema. It follows the MongoSQL semantics for
+    // from the argument Schema. It follows the MongoSql semantics for
     // path access.
     //
     // If it is possible for the argument Schema
@@ -1154,7 +1154,7 @@ impl Expression {
                     Satisfaction::Must => Ok(Schema::Atomic(Atomic::Null)),
                 }
             }
-            Expression::MQLIntrinsicFieldExistence(_) => Ok(Schema::Atomic(Atomic::Boolean)),
+            Expression::MqlIntrinsicFieldExistence(_) => Ok(Schema::Atomic(Atomic::Boolean)),
         }
     }
 }
@@ -1333,7 +1333,7 @@ pub(crate) fn max_numeric(a1: &Schema, a2: &Schema) -> Result<Schema, Error> {
     })
 }
 
-trait SQLFunction {
+trait SqlFunction {
     /// Returns the schema for an arithmetic function, maximizing the Numeric type
     /// based on the total order: Integer < Long < Double < Decimal.
     ///
@@ -1513,23 +1513,23 @@ trait SQLFunction {
         }
     }
 
-    /// as_str returns a static str representation for the SQLFunction.
+    /// as_str returns a static str representation for the SqlFunction.
     fn as_str(&self) -> &'static str;
 }
 
-impl SQLFunction for ScalarFunction {
+impl SqlFunction for ScalarFunction {
     fn as_str(&self) -> &'static str {
         self.as_str()
     }
 }
 
-impl SQLFunction for AggregationFunction {
+impl SqlFunction for AggregationFunction {
     fn as_str(&self) -> &'static str {
         self.as_str()
     }
 }
 
-impl SQLFunction for DateFunction {
+impl SqlFunction for DateFunction {
     fn as_str(&self) -> &'static str {
         self.as_str()
     }

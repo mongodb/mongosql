@@ -12,7 +12,7 @@ use crate::{
         optimizer::Optimizer,
         schema::{SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        Filter, Join, LateralJoin, MQLStage, Stage,
+        Filter, Join, LateralJoin, MqlStage, Stage,
     },
     SchemaCheckingMode,
 };
@@ -50,7 +50,7 @@ impl Visitor for LowerJoinsVisitor {
                 cache,
             }) => {
                 if let Stage::Derived(_) = right.as_ref() {
-                    // Until [SQL-1989] is addressed. Do not lower when the rhs is a Derived Query. This is causing mapping
+                    // Until [Sql-1989] is addressed. Do not lower when the rhs is a Derived Query. This is causing mapping
                     // registry issues.
                     return Stage::Join(Join {
                         join_type,
@@ -61,7 +61,7 @@ impl Visitor for LowerJoinsVisitor {
                     });
                 }
                 self.changed = true;
-                Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+                Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
                     join_type,
                     source: left,
                     subquery: Box::new(Stage::Filter(Filter {

@@ -41,7 +41,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
-/// Contains all the information needed to execute the MQL translation of a SQL query.
+/// Contains all the information needed to execute the Mql translation of a Sql query.
 #[derive(Debug)]
 pub struct Translation {
     pub target_db: String,
@@ -51,7 +51,7 @@ pub struct Translation {
     pub select_order: Vec<Vec<String>>,
 }
 
-/// Returns the MQL translation for the provided SQL query in the
+/// Returns the Mql translation for the provided Sql query in the
 /// specified db.
 pub fn translate_sql(
     current_db: &str,
@@ -99,7 +99,7 @@ pub fn translate_sql(
     // desugar the air plan
     let agg_plan = air::desugarer::desugar_pipeline(agg_plan)?;
 
-    // codegen the plan into MQL
+    // codegen the plan into Mql
     let mql_translation = codegen::generate_mql(agg_plan)?;
 
     // A non-empty database value is needed for ADF

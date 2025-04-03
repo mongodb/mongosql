@@ -8,7 +8,7 @@ use crate::air::desugarer::join::JoinDesugarerPass;
 mod root_references;
 use crate::air::desugarer::root_references::RootReferenceDesugarerPass;
 mod sql_null_semantics_operators;
-use crate::air::desugarer::sql_null_semantics_operators::SQLNullSemanticsOperatorsDesugarerPass;
+use crate::air::desugarer::sql_null_semantics_operators::SqlNullSemanticsOperatorsDesugarerPass;
 mod fold_converts;
 use crate::air::desugarer::fold_converts::FoldConvertsDesugarerPass;
 mod subquery;
@@ -40,8 +40,8 @@ pub trait Pass {
 
 /// Desugar the provided pipeline by applying desugarer passes.
 pub fn desugar_pipeline(pipeline: air::Stage) -> Result<air::Stage> {
-    // The order of these passes matters. Specifically, SQL null semantic
-    // operators must be desugared after any passes that create SQL null
+    // The order of these passes matters. Specifically, Sql null semantic
+    // operators must be desugared after any passes that create Sql null
     // semantic operators.
     let passes: Vec<&dyn Pass> = vec![
         &RootReferenceDesugarerPass,
@@ -49,7 +49,7 @@ pub fn desugar_pipeline(pipeline: air::Stage) -> Result<air::Stage> {
         &AccumulatorsDesugarerPass,
         &SubqueryExprDesugarerPass,
         &UnsupportedOperatorsDesugarerPass,
-        &SQLNullSemanticsOperatorsDesugarerPass,
+        &SqlNullSemanticsOperatorsDesugarerPass,
         &FoldConvertsDesugarerPass,
         &RemoveIdDesugarerPass,
     ];

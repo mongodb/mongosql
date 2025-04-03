@@ -10,7 +10,7 @@ use tonic::metadata::MetadataMap;
 use std::env;
 use std::sync::LazyLock;
 
-pub static SQL_SERVICE_NAME: &str = "SQLTranslationService";
+pub static SQL_SERVICE_NAME: &str = "SqlTranslationService";
 pub static COLLECTOR_ENDPOINT: &str = "COLLECTOR_ENDPOINT";
 
 static RESOURCE: LazyLock<Resource> =

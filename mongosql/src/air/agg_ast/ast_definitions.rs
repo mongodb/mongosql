@@ -1,5 +1,5 @@
 use crate::air;
-use crate::air::{MQLOperator, MQLSemanticOperator};
+use crate::air::{MqlOperator, MqlSemanticOperator};
 use crate::schema::Satisfaction;
 use agg_ast::definitions::{
     Documents, Expression, JoinType, LiteralValue, Lookup, LookupFrom, MatchExpr, MatchExpression,
@@ -116,18 +116,18 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                     _ => Satisfaction::Not,
                 };
                 let extract_and_convert_tagged_op = |tagged_op: TaggedOperator| match tagged_op {
-                    TaggedOperator::SQLAvg(e) => (air::AggregationFunction::Avg, e),
-                    TaggedOperator::SQLCount(e) => (air::AggregationFunction::Count, e),
-                    TaggedOperator::SQLFirst(e) => (air::AggregationFunction::First, e),
-                    TaggedOperator::SQLLast(e) => (air::AggregationFunction::Last, e),
-                    TaggedOperator::SQLMax(e) => (air::AggregationFunction::Max, e),
-                    TaggedOperator::SQLMergeObjects(e) => {
+                    TaggedOperator::SqlAvg(e) => (air::AggregationFunction::Avg, e),
+                    TaggedOperator::SqlCount(e) => (air::AggregationFunction::Count, e),
+                    TaggedOperator::SqlFirst(e) => (air::AggregationFunction::First, e),
+                    TaggedOperator::SqlLast(e) => (air::AggregationFunction::Last, e),
+                    TaggedOperator::SqlMax(e) => (air::AggregationFunction::Max, e),
+                    TaggedOperator::SqlMergeObjects(e) => {
                         (air::AggregationFunction::MergeDocuments, e)
                     }
-                    TaggedOperator::SQLMin(e) => (air::AggregationFunction::Min, e),
-                    TaggedOperator::SQLStdDevPop(e) => (air::AggregationFunction::StddevPop, e),
-                    TaggedOperator::SQLStdDevSamp(e) => (air::AggregationFunction::StddevSamp, e),
-                    TaggedOperator::SQLSum(e) => (air::AggregationFunction::Sum, e),
+                    TaggedOperator::SqlMin(e) => (air::AggregationFunction::Min, e),
+                    TaggedOperator::SqlStdDevPop(e) => (air::AggregationFunction::StddevPop, e),
+                    TaggedOperator::SqlStdDevSamp(e) => (air::AggregationFunction::StddevSamp, e),
+                    TaggedOperator::SqlSum(e) => (air::AggregationFunction::Sum, e),
                     _ => panic!("invalid accumulator expression"),
                 };
                 let convert_untagged_op = |u: &UntaggedOperator| match u.op {
@@ -483,7 +483,7 @@ impl From<TaggedOperator> for air::Expression {
                 regex: r.regex.into(),
                 options: r.options.map(|o| o.into()),
             }),
-            TaggedOperator::SQLConvert(c) => {
+            TaggedOperator::SqlConvert(c) => {
                 let target_type = match c.to.as_str() {
                     "array" => air::SqlConvertTargetType::Array,
                     "object" => air::SqlConvertTargetType::Document,
@@ -513,7 +513,7 @@ impl From<TaggedOperator> for air::Expression {
                 pattern: l.pattern.into(),
                 escape: l.escape,
             }),
-            TaggedOperator::SQLDivide(d) => air::Expression::SqlDivide(air::SqlDivide {
+            TaggedOperator::SqlDivide(d) => air::Expression::SqlDivide(air::SqlDivide {
                 dividend: d.dividend.into(),
                 divisor: d.divisor.into(),
                 on_error: d.on_error.into(),
@@ -573,8 +573,8 @@ impl From<TaggedOperator> for air::Expression {
                 init_value: r.initial_value.into(),
                 inside: r.inside.into(),
             }),
-            TaggedOperator::Cond(c) => air::Expression::MQLSemanticOperator(MQLSemanticOperator {
-                op: MQLOperator::Cond,
+            TaggedOperator::Cond(c) => air::Expression::MqlSemanticOperator(MqlSemanticOperator {
+                op: MqlOperator::Cond,
                 args: vec![(*c.r#if).into(), (*c.then).into(), (*c.r#else).into()],
             }),
             x => panic!(
@@ -649,7 +649,7 @@ impl From<UntaggedOperator> for air::Expression {
         // Special cases:
         //   - $literal becomes a Literal or Document
         //   - $is/$sqlIs become an Is
-        //   - $nullIf and $coalesce are SQL operators but don't start with $sql
+        //   - $nullIf and $coalesce are Sql operators but don't start with $sql
         use agg_ast::definitions::UntaggedOperatorName;
         match ast_op.op {
             UntaggedOperatorName::Literal => {
@@ -660,7 +660,7 @@ impl From<UntaggedOperator> for air::Expression {
                     _ => panic!("invalid $literal"),
                 }
             }
-            UntaggedOperatorName::Is | UntaggedOperatorName::SQLIs => {
+            UntaggedOperatorName::Is | UntaggedOperatorName::SqlIs => {
                 let expr = Box::new(args.first().unwrap().clone());
 
                 let arg2 = match args.get(1).unwrap() {
@@ -672,14 +672,14 @@ impl From<UntaggedOperator> for air::Expression {
                 return air::Expression::Is(air::Is { expr, target_type });
             }
             UntaggedOperatorName::NullIf => {
-                return air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
-                    op: air::SQLOperator::NullIf,
+                return air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
+                    op: air::SqlOperator::NullIf,
                     args,
                 })
             }
             UntaggedOperatorName::Coalesce => {
-                return air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
-                    op: air::SQLOperator::Coalesce,
+                return air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
+                    op: air::SqlOperator::Coalesce,
                     args,
                 })
             }
@@ -701,102 +701,102 @@ impl From<UntaggedOperator> for air::Expression {
 
         macro_rules! sql_op {
             ($op:expr) => {
-                air::Expression::SQLSemanticOperator(air::SQLSemanticOperator { op: $op, args })
+                air::Expression::SqlSemanticOperator(air::SqlSemanticOperator { op: $op, args })
             };
         }
         macro_rules! mql_op {
             ($op:expr) => {
-                air::Expression::MQLSemanticOperator(air::MQLSemanticOperator { op: $op, args })
+                air::Expression::MqlSemanticOperator(air::MqlSemanticOperator { op: $op, args })
             };
         }
 
         match ast_op.op {
-            UntaggedOperatorName::SQLPos => sql_op!(air::SQLOperator::Pos),
-            UntaggedOperatorName::SQLNeg => sql_op!(air::SQLOperator::Neg),
-            UntaggedOperatorName::SQLLt => sql_op!(air::SQLOperator::Lt),
-            UntaggedOperatorName::SQLLte => sql_op!(air::SQLOperator::Lte),
-            UntaggedOperatorName::SQLNe => sql_op!(air::SQLOperator::Ne),
-            UntaggedOperatorName::SQLEq => sql_op!(air::SQLOperator::Eq),
-            UntaggedOperatorName::SQLGt => sql_op!(air::SQLOperator::Gt),
-            UntaggedOperatorName::SQLGte => sql_op!(air::SQLOperator::Gte),
-            UntaggedOperatorName::SQLBetween => sql_op!(air::SQLOperator::Between),
-            UntaggedOperatorName::SQLNot => sql_op!(air::SQLOperator::Not),
-            UntaggedOperatorName::SQLAnd => sql_op!(air::SQLOperator::And),
-            UntaggedOperatorName::SQLOr => sql_op!(air::SQLOperator::Or),
-            UntaggedOperatorName::SQLSlice => sql_op!(air::SQLOperator::Slice),
-            UntaggedOperatorName::SQLSize => sql_op!(air::SQLOperator::Size),
-            UntaggedOperatorName::SQLIndexOfCP => sql_op!(air::SQLOperator::IndexOfCP),
-            UntaggedOperatorName::SQLStrLenCP => sql_op!(air::SQLOperator::StrLenCP),
-            UntaggedOperatorName::SQLStrLenBytes => sql_op!(air::SQLOperator::StrLenBytes),
-            UntaggedOperatorName::SQLBitLength => sql_op!(air::SQLOperator::BitLength),
-            UntaggedOperatorName::SQLCos => sql_op!(air::SQLOperator::Cos),
-            UntaggedOperatorName::SQLLog => sql_op!(air::SQLOperator::Log),
-            UntaggedOperatorName::SQLMod => sql_op!(air::SQLOperator::Mod),
-            UntaggedOperatorName::SQLRound => sql_op!(air::SQLOperator::Round),
-            UntaggedOperatorName::SQLSin => sql_op!(air::SQLOperator::Sin),
-            UntaggedOperatorName::SQLSqrt => sql_op!(air::SQLOperator::Sqrt),
-            UntaggedOperatorName::SQLTan => sql_op!(air::SQLOperator::Tan),
-            UntaggedOperatorName::SQLSubstrCP => sql_op!(air::SQLOperator::SubstrCP),
-            UntaggedOperatorName::SQLToUpper => sql_op!(air::SQLOperator::ToUpper),
-            UntaggedOperatorName::SQLToLower => sql_op!(air::SQLOperator::ToLower),
-            UntaggedOperatorName::SQLSplit => sql_op!(air::SQLOperator::Split),
-            UntaggedOperatorName::Concat => mql_op!(air::MQLOperator::Concat),
-            UntaggedOperatorName::Cond => mql_op!(air::MQLOperator::Cond),
-            UntaggedOperatorName::IfNull => mql_op!(air::MQLOperator::IfNull),
-            UntaggedOperatorName::Add => mql_op!(air::MQLOperator::Add),
-            UntaggedOperatorName::Subtract => mql_op!(air::MQLOperator::Subtract),
-            UntaggedOperatorName::Multiply => mql_op!(air::MQLOperator::Multiply),
-            UntaggedOperatorName::Divide => mql_op!(air::MQLOperator::Divide),
-            UntaggedOperatorName::Lt => mql_op!(air::MQLOperator::Lt),
-            UntaggedOperatorName::Lte => mql_op!(air::MQLOperator::Lte),
-            UntaggedOperatorName::Ne => mql_op!(air::MQLOperator::Ne),
-            UntaggedOperatorName::Eq => mql_op!(air::MQLOperator::Eq),
-            UntaggedOperatorName::Gt => mql_op!(air::MQLOperator::Gt),
-            UntaggedOperatorName::Gte => mql_op!(air::MQLOperator::Gte),
-            UntaggedOperatorName::MQLBetween => mql_op!(air::MQLOperator::Between),
-            UntaggedOperatorName::Not => mql_op!(air::MQLOperator::Not),
-            UntaggedOperatorName::And => mql_op!(air::MQLOperator::And),
-            UntaggedOperatorName::Or => mql_op!(air::MQLOperator::Or),
-            UntaggedOperatorName::Slice => mql_op!(air::MQLOperator::Slice),
-            UntaggedOperatorName::Size => mql_op!(air::MQLOperator::Size),
-            UntaggedOperatorName::ArrayElemAt => mql_op!(air::MQLOperator::ElemAt),
-            UntaggedOperatorName::In => mql_op!(air::MQLOperator::In),
-            UntaggedOperatorName::First => mql_op!(air::MQLOperator::First),
-            UntaggedOperatorName::Last => mql_op!(air::MQLOperator::Last),
-            UntaggedOperatorName::AllElementsTrue => mql_op!(air::MQLOperator::AllElementsTrue),
-            UntaggedOperatorName::IndexOfCP => mql_op!(air::MQLOperator::IndexOfCP),
-            UntaggedOperatorName::IndexOfBytes => mql_op!(air::MQLOperator::IndexOfBytes),
-            UntaggedOperatorName::StrLenCP => mql_op!(air::MQLOperator::StrLenCP),
-            UntaggedOperatorName::StrLenBytes => mql_op!(air::MQLOperator::StrLenBytes),
-            UntaggedOperatorName::Abs => mql_op!(air::MQLOperator::Abs),
-            UntaggedOperatorName::Ceil => mql_op!(air::MQLOperator::Ceil),
-            UntaggedOperatorName::Cos => mql_op!(air::MQLOperator::Cos),
-            UntaggedOperatorName::DegreesToRadians => mql_op!(air::MQLOperator::DegreesToRadians),
-            UntaggedOperatorName::Floor => mql_op!(air::MQLOperator::Floor),
-            UntaggedOperatorName::Log => mql_op!(air::MQLOperator::Log),
-            UntaggedOperatorName::Mod => mql_op!(air::MQLOperator::Mod),
-            UntaggedOperatorName::Pow => mql_op!(air::MQLOperator::Pow),
-            UntaggedOperatorName::RadiansToDegrees => mql_op!(air::MQLOperator::RadiansToDegrees),
-            UntaggedOperatorName::Round => mql_op!(air::MQLOperator::Round),
-            UntaggedOperatorName::Sin => mql_op!(air::MQLOperator::Sin),
-            UntaggedOperatorName::Tan => mql_op!(air::MQLOperator::Tan),
-            UntaggedOperatorName::Sqrt => mql_op!(air::MQLOperator::Sqrt),
-            UntaggedOperatorName::Avg => mql_op!(air::MQLOperator::Avg),
-            UntaggedOperatorName::Max => mql_op!(air::MQLOperator::Max),
-            UntaggedOperatorName::Min => mql_op!(air::MQLOperator::Min),
-            UntaggedOperatorName::Sum => mql_op!(air::MQLOperator::Sum),
-            UntaggedOperatorName::StdDevPop => mql_op!(air::MQLOperator::StddevPop),
-            UntaggedOperatorName::StdDevSamp => mql_op!(air::MQLOperator::StddevSamp),
-            UntaggedOperatorName::SubstrCP => mql_op!(air::MQLOperator::SubstrCP),
-            UntaggedOperatorName::SubstrBytes => mql_op!(air::MQLOperator::SubstrBytes),
-            UntaggedOperatorName::ToUpper => mql_op!(air::MQLOperator::ToUpper),
-            UntaggedOperatorName::ToLower => mql_op!(air::MQLOperator::ToLower),
-            UntaggedOperatorName::Split => mql_op!(air::MQLOperator::Split),
-            UntaggedOperatorName::MergeObjects => mql_op!(air::MQLOperator::MergeObjects),
-            UntaggedOperatorName::ObjectToArray => mql_op!(air::MQLOperator::ObjectToArray),
-            UntaggedOperatorName::Type => mql_op!(air::MQLOperator::Type),
-            UntaggedOperatorName::IsArray => mql_op!(air::MQLOperator::IsArray),
-            UntaggedOperatorName::IsNumber => mql_op!(air::MQLOperator::IsNumber),
+            UntaggedOperatorName::SqlPos => sql_op!(air::SqlOperator::Pos),
+            UntaggedOperatorName::SqlNeg => sql_op!(air::SqlOperator::Neg),
+            UntaggedOperatorName::SqlLt => sql_op!(air::SqlOperator::Lt),
+            UntaggedOperatorName::SqlLte => sql_op!(air::SqlOperator::Lte),
+            UntaggedOperatorName::SqlNe => sql_op!(air::SqlOperator::Ne),
+            UntaggedOperatorName::SqlEq => sql_op!(air::SqlOperator::Eq),
+            UntaggedOperatorName::SqlGt => sql_op!(air::SqlOperator::Gt),
+            UntaggedOperatorName::SqlGte => sql_op!(air::SqlOperator::Gte),
+            UntaggedOperatorName::SqlBetween => sql_op!(air::SqlOperator::Between),
+            UntaggedOperatorName::SqlNot => sql_op!(air::SqlOperator::Not),
+            UntaggedOperatorName::SqlAnd => sql_op!(air::SqlOperator::And),
+            UntaggedOperatorName::SqlOr => sql_op!(air::SqlOperator::Or),
+            UntaggedOperatorName::SqlSlice => sql_op!(air::SqlOperator::Slice),
+            UntaggedOperatorName::SqlSize => sql_op!(air::SqlOperator::Size),
+            UntaggedOperatorName::SqlIndexOfCP => sql_op!(air::SqlOperator::IndexOfCP),
+            UntaggedOperatorName::SqlStrLenCP => sql_op!(air::SqlOperator::StrLenCP),
+            UntaggedOperatorName::SqlStrLenBytes => sql_op!(air::SqlOperator::StrLenBytes),
+            UntaggedOperatorName::SqlBitLength => sql_op!(air::SqlOperator::BitLength),
+            UntaggedOperatorName::SqlCos => sql_op!(air::SqlOperator::Cos),
+            UntaggedOperatorName::SqlLog => sql_op!(air::SqlOperator::Log),
+            UntaggedOperatorName::SqlMod => sql_op!(air::SqlOperator::Mod),
+            UntaggedOperatorName::SqlRound => sql_op!(air::SqlOperator::Round),
+            UntaggedOperatorName::SqlSin => sql_op!(air::SqlOperator::Sin),
+            UntaggedOperatorName::SqlSqrt => sql_op!(air::SqlOperator::Sqrt),
+            UntaggedOperatorName::SqlTan => sql_op!(air::SqlOperator::Tan),
+            UntaggedOperatorName::SqlSubstrCP => sql_op!(air::SqlOperator::SubstrCP),
+            UntaggedOperatorName::SqlToUpper => sql_op!(air::SqlOperator::ToUpper),
+            UntaggedOperatorName::SqlToLower => sql_op!(air::SqlOperator::ToLower),
+            UntaggedOperatorName::SqlSplit => sql_op!(air::SqlOperator::Split),
+            UntaggedOperatorName::Concat => mql_op!(air::MqlOperator::Concat),
+            UntaggedOperatorName::Cond => mql_op!(air::MqlOperator::Cond),
+            UntaggedOperatorName::IfNull => mql_op!(air::MqlOperator::IfNull),
+            UntaggedOperatorName::Add => mql_op!(air::MqlOperator::Add),
+            UntaggedOperatorName::Subtract => mql_op!(air::MqlOperator::Subtract),
+            UntaggedOperatorName::Multiply => mql_op!(air::MqlOperator::Multiply),
+            UntaggedOperatorName::Divide => mql_op!(air::MqlOperator::Divide),
+            UntaggedOperatorName::Lt => mql_op!(air::MqlOperator::Lt),
+            UntaggedOperatorName::Lte => mql_op!(air::MqlOperator::Lte),
+            UntaggedOperatorName::Ne => mql_op!(air::MqlOperator::Ne),
+            UntaggedOperatorName::Eq => mql_op!(air::MqlOperator::Eq),
+            UntaggedOperatorName::Gt => mql_op!(air::MqlOperator::Gt),
+            UntaggedOperatorName::Gte => mql_op!(air::MqlOperator::Gte),
+            UntaggedOperatorName::MqlBetween => mql_op!(air::MqlOperator::Between),
+            UntaggedOperatorName::Not => mql_op!(air::MqlOperator::Not),
+            UntaggedOperatorName::And => mql_op!(air::MqlOperator::And),
+            UntaggedOperatorName::Or => mql_op!(air::MqlOperator::Or),
+            UntaggedOperatorName::Slice => mql_op!(air::MqlOperator::Slice),
+            UntaggedOperatorName::Size => mql_op!(air::MqlOperator::Size),
+            UntaggedOperatorName::ArrayElemAt => mql_op!(air::MqlOperator::ElemAt),
+            UntaggedOperatorName::In => mql_op!(air::MqlOperator::In),
+            UntaggedOperatorName::First => mql_op!(air::MqlOperator::First),
+            UntaggedOperatorName::Last => mql_op!(air::MqlOperator::Last),
+            UntaggedOperatorName::AllElementsTrue => mql_op!(air::MqlOperator::AllElementsTrue),
+            UntaggedOperatorName::IndexOfCP => mql_op!(air::MqlOperator::IndexOfCP),
+            UntaggedOperatorName::IndexOfBytes => mql_op!(air::MqlOperator::IndexOfBytes),
+            UntaggedOperatorName::StrLenCP => mql_op!(air::MqlOperator::StrLenCP),
+            UntaggedOperatorName::StrLenBytes => mql_op!(air::MqlOperator::StrLenBytes),
+            UntaggedOperatorName::Abs => mql_op!(air::MqlOperator::Abs),
+            UntaggedOperatorName::Ceil => mql_op!(air::MqlOperator::Ceil),
+            UntaggedOperatorName::Cos => mql_op!(air::MqlOperator::Cos),
+            UntaggedOperatorName::DegreesToRadians => mql_op!(air::MqlOperator::DegreesToRadians),
+            UntaggedOperatorName::Floor => mql_op!(air::MqlOperator::Floor),
+            UntaggedOperatorName::Log => mql_op!(air::MqlOperator::Log),
+            UntaggedOperatorName::Mod => mql_op!(air::MqlOperator::Mod),
+            UntaggedOperatorName::Pow => mql_op!(air::MqlOperator::Pow),
+            UntaggedOperatorName::RadiansToDegrees => mql_op!(air::MqlOperator::RadiansToDegrees),
+            UntaggedOperatorName::Round => mql_op!(air::MqlOperator::Round),
+            UntaggedOperatorName::Sin => mql_op!(air::MqlOperator::Sin),
+            UntaggedOperatorName::Tan => mql_op!(air::MqlOperator::Tan),
+            UntaggedOperatorName::Sqrt => mql_op!(air::MqlOperator::Sqrt),
+            UntaggedOperatorName::Avg => mql_op!(air::MqlOperator::Avg),
+            UntaggedOperatorName::Max => mql_op!(air::MqlOperator::Max),
+            UntaggedOperatorName::Min => mql_op!(air::MqlOperator::Min),
+            UntaggedOperatorName::Sum => mql_op!(air::MqlOperator::Sum),
+            UntaggedOperatorName::StdDevPop => mql_op!(air::MqlOperator::StddevPop),
+            UntaggedOperatorName::StdDevSamp => mql_op!(air::MqlOperator::StddevSamp),
+            UntaggedOperatorName::SubstrCP => mql_op!(air::MqlOperator::SubstrCP),
+            UntaggedOperatorName::SubstrBytes => mql_op!(air::MqlOperator::SubstrBytes),
+            UntaggedOperatorName::ToUpper => mql_op!(air::MqlOperator::ToUpper),
+            UntaggedOperatorName::ToLower => mql_op!(air::MqlOperator::ToLower),
+            UntaggedOperatorName::Split => mql_op!(air::MqlOperator::Split),
+            UntaggedOperatorName::MergeObjects => mql_op!(air::MqlOperator::MergeObjects),
+            UntaggedOperatorName::ObjectToArray => mql_op!(air::MqlOperator::ObjectToArray),
+            UntaggedOperatorName::Type => mql_op!(air::MqlOperator::Type),
+            UntaggedOperatorName::IsArray => mql_op!(air::MqlOperator::IsArray),
+            UntaggedOperatorName::IsNumber => mql_op!(air::MqlOperator::IsNumber),
             _ => panic!("unused agg-ast operator: {:?}", ast_op.op),
         }
     }

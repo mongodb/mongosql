@@ -13,7 +13,7 @@ pub enum Error {
     CannotDeserializeJson((String, serde_json::Error)),
     #[error("unable to deserialize YAML file: {0:?}")]
     CannotDeserializeYaml((String, serde_yaml::Error)),
-    #[error("failed to convert schema to MongoSQL model: {0:?}")]
+    #[error("failed to convert schema to MongoSql model: {0:?}")]
     InvalidSchema(mongosql::result::Error),
 }
 

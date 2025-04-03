@@ -1024,7 +1024,7 @@ mod expression {
                 field: "a".into(),
                 is_nullable: true
             })),
-            // test MongoSQL: SELECT (SELECT foo.a FROM bar) FROM foo => (foo.a)
+            // test MongoSql: SELECT (SELECT foo.a FROM bar) FROM foo => (foo.a)
             input = ast::Expression::Subpath(ast::SubpathExpr {
                 expr: Box::new(ast::Expression::Identifier("foo".into())),
                 subpath: "a".into(),
@@ -1067,7 +1067,7 @@ mod expression {
                 field: "a".into(),
                 is_nullable: true
             })),
-            //test MongoSQL: SELECT (SELECT bar.foo.a FROM bar) FROM foo => (bar.foo.a)
+            //test MongoSql: SELECT (SELECT bar.foo.a FROM bar) FROM foo => (bar.foo.a)
             input = ast::Expression::Subpath(ast::SubpathExpr {
                 expr: Box::new(ast::Expression::Subpath(ast::SubpathExpr {
                     expr: Box::new(ast::Expression::Identifier("bar".into())),

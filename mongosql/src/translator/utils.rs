@@ -1,5 +1,5 @@
 use crate::{
-    air::{self, LetVariable, MQLOperator, SQLOperator, TrimOperator},
+    air::{self, LetVariable, MqlOperator, SqlOperator, TrimOperator},
     mapping_registry::{MqlMappingRegistry, MqlMappingRegistryValue, MqlReferenceType},
     mir::{self, ScalarFunction},
     translator::{Error, MqlTranslator, Result},
@@ -10,8 +10,8 @@ use std::collections::BTreeMap;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ScalarFunctionType {
     Divide,
-    Mql(MQLOperator),
-    Sql(SQLOperator),
+    Mql(MqlOperator),
+    Sql(SqlOperator),
     Trim(TrimOperator),
 }
 
@@ -68,12 +68,12 @@ impl MqlTranslator {
         }
     }
 
-    /// Map a DatasourceName to a valid MQL project key name. Use the provided
+    /// Map a DatasourceName to a valid Mql project key name. Use the provided
     /// unique_bot_name for Bottom datasource. For datasources that contain '.'
     /// or start with '$', replace those characters with '_' and ensure the
-    /// result is unique. This allows MongoSQL to support datasource aliases
+    /// result is unique. This allows MongoSql to support datasource aliases
     /// that contain '.'s or start with '$'s. Project keys with those attributes
-    /// have different semantics or are invalid in MQL, so we must replace them
+    /// have different semantics or are invalid in Mql, so we must replace them
     /// with valid characters.
     pub(crate) fn get_mapped_project_name(
         &mut self,
@@ -261,23 +261,23 @@ pub(crate) fn scalar_function_to_scalar_function_type(
         ScalarFunctionType::from(function)
     } else {
         match function {
-            ScalarFunction::Or => ScalarFunctionType::Mql(MQLOperator::Or),
-            ScalarFunction::And => ScalarFunctionType::Mql(MQLOperator::And),
-            ScalarFunction::Between => ScalarFunctionType::Mql(MQLOperator::Between),
-            ScalarFunction::Eq => ScalarFunctionType::Mql(MQLOperator::Eq),
-            ScalarFunction::Position => ScalarFunctionType::Mql(MQLOperator::IndexOfCP),
-            ScalarFunction::Lt => ScalarFunctionType::Mql(MQLOperator::Lt),
-            ScalarFunction::Lte => ScalarFunctionType::Mql(MQLOperator::Lte),
-            ScalarFunction::Gt => ScalarFunctionType::Mql(MQLOperator::Gt),
-            ScalarFunction::Gte => ScalarFunctionType::Mql(MQLOperator::Gte),
-            ScalarFunction::Neq => ScalarFunctionType::Mql(MQLOperator::Ne),
-            ScalarFunction::Not => ScalarFunctionType::Mql(MQLOperator::Not),
-            ScalarFunction::Size => ScalarFunctionType::Mql(MQLOperator::Size),
-            ScalarFunction::OctetLength => ScalarFunctionType::Mql(MQLOperator::StrLenBytes),
-            ScalarFunction::CharLength => ScalarFunctionType::Mql(MQLOperator::StrLenCP),
-            ScalarFunction::Substring => ScalarFunctionType::Mql(MQLOperator::SubstrCP),
-            ScalarFunction::Lower => ScalarFunctionType::Mql(MQLOperator::ToLower),
-            ScalarFunction::Upper => ScalarFunctionType::Mql(MQLOperator::ToUpper),
+            ScalarFunction::Or => ScalarFunctionType::Mql(MqlOperator::Or),
+            ScalarFunction::And => ScalarFunctionType::Mql(MqlOperator::And),
+            ScalarFunction::Between => ScalarFunctionType::Mql(MqlOperator::Between),
+            ScalarFunction::Eq => ScalarFunctionType::Mql(MqlOperator::Eq),
+            ScalarFunction::Position => ScalarFunctionType::Mql(MqlOperator::IndexOfCP),
+            ScalarFunction::Lt => ScalarFunctionType::Mql(MqlOperator::Lt),
+            ScalarFunction::Lte => ScalarFunctionType::Mql(MqlOperator::Lte),
+            ScalarFunction::Gt => ScalarFunctionType::Mql(MqlOperator::Gt),
+            ScalarFunction::Gte => ScalarFunctionType::Mql(MqlOperator::Gte),
+            ScalarFunction::Neq => ScalarFunctionType::Mql(MqlOperator::Ne),
+            ScalarFunction::Not => ScalarFunctionType::Mql(MqlOperator::Not),
+            ScalarFunction::Size => ScalarFunctionType::Mql(MqlOperator::Size),
+            ScalarFunction::OctetLength => ScalarFunctionType::Mql(MqlOperator::StrLenBytes),
+            ScalarFunction::CharLength => ScalarFunctionType::Mql(MqlOperator::StrLenCP),
+            ScalarFunction::Substring => ScalarFunctionType::Mql(MqlOperator::SubstrCP),
+            ScalarFunction::Lower => ScalarFunctionType::Mql(MqlOperator::ToLower),
+            ScalarFunction::Upper => ScalarFunctionType::Mql(MqlOperator::ToUpper),
             _ => ScalarFunctionType::from(function),
         }
     }
@@ -288,90 +288,90 @@ impl From<mir::ScalarFunction> for ScalarFunctionType {
         use mir::ScalarFunction::*;
         match func {
             // String operators
-            Concat => ScalarFunctionType::Mql(MQLOperator::Concat),
+            Concat => ScalarFunctionType::Mql(MqlOperator::Concat),
 
             // Unary arithmetic operators
-            Pos => ScalarFunctionType::Sql(SQLOperator::Pos),
-            Neg => ScalarFunctionType::Sql(SQLOperator::Neg),
+            Pos => ScalarFunctionType::Sql(SqlOperator::Pos),
+            Neg => ScalarFunctionType::Sql(SqlOperator::Neg),
 
             // Arithmetic operators
-            Add => ScalarFunctionType::Mql(MQLOperator::Add),
-            Sub => ScalarFunctionType::Mql(MQLOperator::Subtract),
-            Mul => ScalarFunctionType::Mql(MQLOperator::Multiply),
+            Add => ScalarFunctionType::Mql(MqlOperator::Add),
+            Sub => ScalarFunctionType::Mql(MqlOperator::Subtract),
+            Mul => ScalarFunctionType::Mql(MqlOperator::Multiply),
             Div => ScalarFunctionType::Divide,
 
             // Comparison operators
-            Lt => ScalarFunctionType::Sql(SQLOperator::Lt),
-            Lte => ScalarFunctionType::Sql(SQLOperator::Lte),
-            Neq => ScalarFunctionType::Sql(SQLOperator::Ne),
-            Eq => ScalarFunctionType::Sql(SQLOperator::Eq),
-            Gt => ScalarFunctionType::Sql(SQLOperator::Gt),
-            Gte => ScalarFunctionType::Sql(SQLOperator::Gte),
-            Between => ScalarFunctionType::Sql(SQLOperator::Between),
+            Lt => ScalarFunctionType::Sql(SqlOperator::Lt),
+            Lte => ScalarFunctionType::Sql(SqlOperator::Lte),
+            Neq => ScalarFunctionType::Sql(SqlOperator::Ne),
+            Eq => ScalarFunctionType::Sql(SqlOperator::Eq),
+            Gt => ScalarFunctionType::Sql(SqlOperator::Gt),
+            Gte => ScalarFunctionType::Sql(SqlOperator::Gte),
+            Between => ScalarFunctionType::Sql(SqlOperator::Between),
 
             // Boolean operators
-            Not => ScalarFunctionType::Sql(SQLOperator::Not),
-            And => ScalarFunctionType::Sql(SQLOperator::And),
-            Or => ScalarFunctionType::Sql(SQLOperator::Or),
+            Not => ScalarFunctionType::Sql(SqlOperator::Not),
+            And => ScalarFunctionType::Sql(SqlOperator::And),
+            Or => ScalarFunctionType::Sql(SqlOperator::Or),
 
             // Computed Field Access operator
             // when the field is not known until runtime.
-            ComputedFieldAccess => ScalarFunctionType::Sql(SQLOperator::ComputedFieldAccess),
+            ComputedFieldAccess => ScalarFunctionType::Sql(SqlOperator::ComputedFieldAccess),
 
             // Conditional scalar functions
-            NullIf => ScalarFunctionType::Sql(SQLOperator::NullIf),
-            Coalesce => ScalarFunctionType::Sql(SQLOperator::Coalesce),
+            NullIf => ScalarFunctionType::Sql(SqlOperator::NullIf),
+            Coalesce => ScalarFunctionType::Sql(SqlOperator::Coalesce),
 
             // Array scalar functions
-            Slice => ScalarFunctionType::Sql(SQLOperator::Slice),
-            Size => ScalarFunctionType::Sql(SQLOperator::Size),
+            Slice => ScalarFunctionType::Sql(SqlOperator::Slice),
+            Size => ScalarFunctionType::Sql(SqlOperator::Size),
 
             // Numeric value scalar functions
-            Position => ScalarFunctionType::Sql(SQLOperator::IndexOfCP),
-            CharLength => ScalarFunctionType::Sql(SQLOperator::StrLenCP),
-            OctetLength => ScalarFunctionType::Sql(SQLOperator::StrLenBytes),
-            BitLength => ScalarFunctionType::Sql(SQLOperator::BitLength),
-            Abs => ScalarFunctionType::Mql(MQLOperator::Abs),
-            Ceil => ScalarFunctionType::Mql(MQLOperator::Ceil),
-            Cos => ScalarFunctionType::Sql(SQLOperator::Cos),
-            Degrees => ScalarFunctionType::Mql(MQLOperator::RadiansToDegrees),
-            Floor => ScalarFunctionType::Mql(MQLOperator::Floor),
-            Log => ScalarFunctionType::Sql(SQLOperator::Log),
-            Mod => ScalarFunctionType::Sql(SQLOperator::Mod),
-            Pow => ScalarFunctionType::Mql(MQLOperator::Pow),
-            Radians => ScalarFunctionType::Mql(MQLOperator::DegreesToRadians),
-            Round => ScalarFunctionType::Sql(SQLOperator::Round),
-            Sin => ScalarFunctionType::Sql(SQLOperator::Sin),
-            Sqrt => ScalarFunctionType::Sql(SQLOperator::Sqrt),
-            Tan => ScalarFunctionType::Sql(SQLOperator::Tan),
+            Position => ScalarFunctionType::Sql(SqlOperator::IndexOfCP),
+            CharLength => ScalarFunctionType::Sql(SqlOperator::StrLenCP),
+            OctetLength => ScalarFunctionType::Sql(SqlOperator::StrLenBytes),
+            BitLength => ScalarFunctionType::Sql(SqlOperator::BitLength),
+            Abs => ScalarFunctionType::Mql(MqlOperator::Abs),
+            Ceil => ScalarFunctionType::Mql(MqlOperator::Ceil),
+            Cos => ScalarFunctionType::Sql(SqlOperator::Cos),
+            Degrees => ScalarFunctionType::Mql(MqlOperator::RadiansToDegrees),
+            Floor => ScalarFunctionType::Mql(MqlOperator::Floor),
+            Log => ScalarFunctionType::Sql(SqlOperator::Log),
+            Mod => ScalarFunctionType::Sql(SqlOperator::Mod),
+            Pow => ScalarFunctionType::Mql(MqlOperator::Pow),
+            Radians => ScalarFunctionType::Mql(MqlOperator::DegreesToRadians),
+            Round => ScalarFunctionType::Sql(SqlOperator::Round),
+            Sin => ScalarFunctionType::Sql(SqlOperator::Sin),
+            Sqrt => ScalarFunctionType::Sql(SqlOperator::Sqrt),
+            Tan => ScalarFunctionType::Sql(SqlOperator::Tan),
 
             // String value scalar functions
-            Replace => ScalarFunctionType::Mql(MQLOperator::ReplaceAll),
-            Substring => ScalarFunctionType::Sql(SQLOperator::SubstrCP),
-            Upper => ScalarFunctionType::Sql(SQLOperator::ToUpper),
-            Lower => ScalarFunctionType::Sql(SQLOperator::ToLower),
+            Replace => ScalarFunctionType::Mql(MqlOperator::ReplaceAll),
+            Substring => ScalarFunctionType::Sql(SqlOperator::SubstrCP),
+            Upper => ScalarFunctionType::Sql(SqlOperator::ToUpper),
+            Lower => ScalarFunctionType::Sql(SqlOperator::ToLower),
             BTrim => ScalarFunctionType::Trim(TrimOperator::Trim),
             LTrim => ScalarFunctionType::Trim(TrimOperator::LTrim),
             RTrim => ScalarFunctionType::Trim(TrimOperator::RTrim),
-            Split => ScalarFunctionType::Sql(SQLOperator::Split),
+            Split => ScalarFunctionType::Sql(SqlOperator::Split),
 
             // Datetime value scalar function
-            CurrentTimestamp => ScalarFunctionType::Sql(SQLOperator::CurrentTimestamp),
-            Year => ScalarFunctionType::Mql(MQLOperator::Year),
-            Month => ScalarFunctionType::Mql(MQLOperator::Month),
-            Day => ScalarFunctionType::Mql(MQLOperator::DayOfMonth),
-            Hour => ScalarFunctionType::Mql(MQLOperator::Hour),
-            Minute => ScalarFunctionType::Mql(MQLOperator::Minute),
-            Second => ScalarFunctionType::Mql(MQLOperator::Second),
-            Millisecond => ScalarFunctionType::Mql(MQLOperator::Millisecond),
-            Week => ScalarFunctionType::Mql(MQLOperator::Week),
-            DayOfWeek => ScalarFunctionType::Mql(MQLOperator::DayOfWeek),
-            DayOfYear => ScalarFunctionType::Mql(MQLOperator::DayOfYear),
-            IsoWeek => ScalarFunctionType::Mql(MQLOperator::IsoWeek),
-            IsoWeekday => ScalarFunctionType::Mql(MQLOperator::IsoDayOfWeek),
+            CurrentTimestamp => ScalarFunctionType::Sql(SqlOperator::CurrentTimestamp),
+            Year => ScalarFunctionType::Mql(MqlOperator::Year),
+            Month => ScalarFunctionType::Mql(MqlOperator::Month),
+            Day => ScalarFunctionType::Mql(MqlOperator::DayOfMonth),
+            Hour => ScalarFunctionType::Mql(MqlOperator::Hour),
+            Minute => ScalarFunctionType::Mql(MqlOperator::Minute),
+            Second => ScalarFunctionType::Mql(MqlOperator::Second),
+            Millisecond => ScalarFunctionType::Mql(MqlOperator::Millisecond),
+            Week => ScalarFunctionType::Mql(MqlOperator::Week),
+            DayOfWeek => ScalarFunctionType::Mql(MqlOperator::DayOfWeek),
+            DayOfYear => ScalarFunctionType::Mql(MqlOperator::DayOfYear),
+            IsoWeek => ScalarFunctionType::Mql(MqlOperator::IsoWeek),
+            IsoWeekday => ScalarFunctionType::Mql(MqlOperator::IsoDayOfWeek),
 
             // MergeObjects merges an array of objects
-            MergeObjects => ScalarFunctionType::Mql(MQLOperator::MergeObjects),
+            MergeObjects => ScalarFunctionType::Mql(MqlOperator::MergeObjects),
         }
     }
 }

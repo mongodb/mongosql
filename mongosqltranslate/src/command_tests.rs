@@ -434,12 +434,12 @@ mod get_namespaces_tests {
 
 mod get_mongosqltranslateversion_tests {
     use super::*;
-    use crate::MONGOSQLTRANSLATE_VERSION;
+    use crate::MONGOSqlTRANSLATE_VERSION;
 
     test_command_handler!(
         valid_get_mongosqltranslateversion_command_should_succeed,
         expected = doc! {
-            "version": &*MONGOSQLTRANSLATE_VERSION,
+            "version": &*MONGOSqlTRANSLATE_VERSION,
         },
         input = Command {
             command: GetMongosqlTranslateVersion,
@@ -452,7 +452,7 @@ mod get_mongosqltranslateversion_tests {
     test_command_handler!(
         valid_get_mongosqltranslateversion_command_with_extra_parameter_should_succeed,
         expected = doc! {
-            "version": &*MONGOSQLTRANSLATE_VERSION,
+            "version": &*MONGOSqlTRANSLATE_VERSION,
         },
         input = Command {
             command: GetMongosqlTranslateVersion,

@@ -408,25 +408,25 @@ pub enum GroupAccumulatorName {
     #[serde(rename = "$push")]
     Push,
     #[serde(rename = "$sqlAvg")]
-    SQLAvg,
+    SqlAvg,
     #[serde(rename = "$sqlCount")]
-    SQLCount,
+    SqlCount,
     #[serde(rename = "$sqlFirst")]
-    SQLFirst,
+    SqlFirst,
     #[serde(rename = "$sqlLast")]
-    SQLLast,
+    SqlLast,
     #[serde(rename = "$sqlMax")]
-    SQLMax,
+    SqlMax,
     #[serde(rename = "$sqlMergeObjects")]
-    SQLMergeObjects,
+    SqlMergeObjects,
     #[serde(rename = "$sqlMin")]
-    SQLMin,
+    SqlMin,
     #[serde(rename = "$sqlStdDevPop")]
-    SQLStdDevPop,
+    SqlStdDevPop,
     #[serde(rename = "$sqlStdDevSamp")]
-    SQLStdDevSamp,
+    SqlStdDevSamp,
     #[serde(rename = "$sqlSum")]
-    SQLSum,
+    SqlSum,
     #[serde(rename = "$stdDevPop")]
     StdDevPop,
     #[serde(rename = "$stdDevSamp")]
@@ -936,7 +936,7 @@ pub enum UntaggedOperatorName {
     #[serde(rename = "$mod")]
     Mod,
     #[serde(rename = "$mqlBetween")]
-    MQLBetween,
+    MqlBetween,
     #[serde(rename = "$multiply")]
     Multiply,
     #[serde(rename = "$ne")]
@@ -988,67 +988,67 @@ pub enum UntaggedOperatorName {
     #[serde(rename = "$split")]
     Split,
     #[serde(rename = "$sqlAnd")]
-    SQLAnd,
+    SqlAnd,
     #[serde(rename = "$sqlBetween")]
-    SQLBetween,
+    SqlBetween,
     #[serde(rename = "$sqlBitLength")]
-    SQLBitLength,
+    SqlBitLength,
     #[serde(rename = "$sqlCos")]
-    SQLCos,
+    SqlCos,
     #[serde(rename = "$sqlEq")]
-    SQLEq,
+    SqlEq,
     #[serde(rename = "$sqlGt")]
-    SQLGt,
+    SqlGt,
     #[serde(rename = "$sqlGte")]
-    SQLGte,
+    SqlGte,
     #[serde(rename = "$sqlIndexOfCP")]
-    SQLIndexOfCP,
+    SqlIndexOfCP,
     #[serde(rename = "$sqlIs")]
-    SQLIs,
+    SqlIs,
     #[serde(rename = "$sqlLog")]
-    SQLLog,
+    SqlLog,
     #[serde(rename = "$sqlLt")]
-    SQLLt,
+    SqlLt,
     #[serde(rename = "$sqlLte")]
-    SQLLte,
+    SqlLte,
     #[serde(rename = "$sqlMod")]
-    SQLMod,
+    SqlMod,
     #[serde(rename = "$sqlNe")]
-    SQLNe,
+    SqlNe,
     #[serde(rename = "$sqlNeg")]
-    SQLNeg,
+    SqlNeg,
     #[serde(rename = "$sqlNot")]
-    SQLNot,
+    SqlNot,
     #[serde(rename = "$sqlOr")]
-    SQLOr,
+    SqlOr,
     #[serde(rename = "$sqlPos")]
-    SQLPos,
+    SqlPos,
     #[serde(rename = "$sqlRound")]
-    SQLRound,
+    SqlRound,
     #[serde(rename = "$sqlSin")]
-    SQLSin,
+    SqlSin,
     #[serde(rename = "$sqlSlice")]
-    SQLSlice,
+    SqlSlice,
     #[serde(rename = "$sqlSize")]
-    SQLSize,
+    SqlSize,
     #[serde(rename = "$sqlSplit")]
-    SQLSplit,
+    SqlSplit,
     #[serde(rename = "$sqlSqrt")]
-    SQLSqrt,
+    SqlSqrt,
     #[serde(rename = "$sqlStrLenCP")]
-    SQLStrLenCP,
+    SqlStrLenCP,
     #[serde(rename = "$sqlStrLenBytes")]
-    SQLStrLenBytes,
+    SqlStrLenBytes,
     #[serde(rename = "$sqlSubstrCP")]
-    SQLSubstrCP,
+    SqlSubstrCP,
     #[serde(rename = "$sqlSum")]
-    SQLSum,
+    SqlSum,
     #[serde(rename = "$sqlTan")]
-    SQLTan,
+    SqlTan,
     #[serde(rename = "$sqlToLower")]
-    SQLToLower,
+    SqlToLower,
     #[serde(rename = "$sqlToUpper")]
-    SQLToUpper,
+    SqlToUpper,
     #[serde(rename = "$sqrt")]
     Sqrt,
     #[serde(rename = "$stdDevPop")]
@@ -1141,7 +1141,7 @@ pub enum TaggedOperator {
     #[serde(rename = "$let")]
     Let(Let),
     #[serde(rename = "$sqlConvert")]
-    SQLConvert(SQLConvert),
+    SqlConvert(SqlConvert),
     #[serde(rename = "$convert")]
     Convert(Convert),
     #[serde(rename = "$like")]
@@ -1153,7 +1153,7 @@ pub enum TaggedOperator {
     #[serde(rename = "$regexFindAll")]
     RegexFindAll(RegexAggExpression),
     #[serde(rename = "$sqlDivide")]
-    SQLDivide(SQLDivide),
+    SqlDivide(SqlDivide),
     #[serde(rename = "$trim")]
     Trim(Trim),
     #[serde(rename = "$ltrim")]
@@ -1165,7 +1165,7 @@ pub enum TaggedOperator {
     #[serde(rename = "$replaceOne")]
     ReplaceOne(Replace),
 
-    // Subquery Operators (extended from MQL)
+    // Subquery Operators (extended from Mql)
     #[serde(rename = "$subquery")]
     Subquery(Subquery),
     #[serde(rename = "$subqueryComparison")]
@@ -1269,27 +1269,27 @@ pub enum TaggedOperator {
     #[serde(rename = "$cond")]
     Cond(Cond),
 
-    // SQL Group Accumulators
+    // Sql Group Accumulators
     #[serde(rename = "$sqlAvg")]
-    SQLAvg(SQLAccumulator),
+    SqlAvg(SqlAccumulator),
     #[serde(rename = "$sqlCount")]
-    SQLCount(SQLAccumulator),
+    SqlCount(SqlAccumulator),
     #[serde(rename = "$sqlFirst")]
-    SQLFirst(SQLAccumulator),
+    SqlFirst(SqlAccumulator),
     #[serde(rename = "$sqlLast")]
-    SQLLast(SQLAccumulator),
+    SqlLast(SqlAccumulator),
     #[serde(rename = "$sqlMax")]
-    SQLMax(SQLAccumulator),
+    SqlMax(SqlAccumulator),
     #[serde(rename = "$sqlMergeObjects")]
-    SQLMergeObjects(SQLAccumulator),
+    SqlMergeObjects(SqlAccumulator),
     #[serde(rename = "$sqlMin")]
-    SQLMin(SQLAccumulator),
+    SqlMin(SqlAccumulator),
     #[serde(rename = "$sqlStdDevPop")]
-    SQLStdDevPop(SQLAccumulator),
+    SqlStdDevPop(SqlAccumulator),
     #[serde(rename = "$sqlStdDevSamp")]
-    SQLStdDevSamp(SQLAccumulator),
+    SqlStdDevSamp(SqlAccumulator),
     #[serde(rename = "$sqlSum")]
-    SQLSum(SQLAccumulator),
+    SqlSum(SqlAccumulator),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -1351,7 +1351,7 @@ pub struct Let {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SQLConvert {
+pub struct SqlConvert {
     pub input: Box<Expression>,
     pub to: String,
     pub on_null: Box<Expression>,
@@ -1422,7 +1422,7 @@ pub struct Replace {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SQLDivide {
+pub struct SqlDivide {
     pub dividend: Box<Expression>,
     pub divisor: Box<Expression>,
     pub on_error: Box<Expression>,
@@ -1691,7 +1691,7 @@ pub struct Cond {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct SQLAccumulator {
+pub struct SqlAccumulator {
     pub distinct: bool,
     pub var: Box<Expression>,
     pub arg_is_possibly_doc: Option<String>,
@@ -1699,7 +1699,7 @@ pub struct SQLAccumulator {
 
 /// VecOrSingleExpr represents the argument to UntaggedOperators.
 ///
-/// Either of the following is valid MQL:
+/// Either of the following is valid Mql:
 ///   { "$sqrt": "$a" }, or
 ///   { "$sqrt": ["$a"] }
 /// So we need to be able to parse either while deserializing an

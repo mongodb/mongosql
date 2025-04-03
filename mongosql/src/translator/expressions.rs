@@ -1,5 +1,5 @@
 use crate::{
-    air::{self, LetVariable, MQLOperator, SQLOperator, SubqueryComparisonOpType},
+    air::{self, LetVariable, MqlOperator, SqlOperator, SubqueryComparisonOpType},
     mapping_registry::MqlReferenceType,
     mir,
     translator::{
@@ -40,7 +40,7 @@ impl MqlTranslator {
                 self.translate_subquery_comparison(subquery_comparison)
             }
             mir::Expression::TypeAssertion(ta) => self.translate_expression(*ta.expr),
-            mir::Expression::MQLIntrinsicFieldExistence(fa) => self.translate_field_existence(fa),
+            mir::Expression::MqlIntrinsicFieldExistence(fa) => self.translate_field_existence(fa),
         }
     }
 
@@ -352,25 +352,25 @@ impl MqlTranslator {
                 input: Box::new(args[1].clone()),
                 chars: Box::new(args[0].clone()),
             })),
-            // SQLOperator::IndexOfCP has reversed arguments
-            ScalarFunctionType::Sql(SQLOperator::IndexOfCP) => Ok(
-                air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
-                    op: SQLOperator::IndexOfCP,
+            // SqlOperator::IndexOfCP has reversed arguments
+            ScalarFunctionType::Sql(SqlOperator::IndexOfCP) => Ok(
+                air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
+                    op: SqlOperator::IndexOfCP,
                     args: args.into_iter().rev().collect(),
                 }),
             ),
-            ScalarFunctionType::Sql(op) => Ok(air::Expression::SQLSemanticOperator(
-                air::SQLSemanticOperator { op, args },
+            ScalarFunctionType::Sql(op) => Ok(air::Expression::SqlSemanticOperator(
+                air::SqlSemanticOperator { op, args },
             )),
-            // MQLOperator::IndexOfCP has reversed arguments
-            ScalarFunctionType::Mql(MQLOperator::IndexOfCP) => Ok(
-                air::Expression::MQLSemanticOperator(air::MQLSemanticOperator {
-                    op: MQLOperator::IndexOfCP,
+            // MqlOperator::IndexOfCP has reversed arguments
+            ScalarFunctionType::Mql(MqlOperator::IndexOfCP) => Ok(
+                air::Expression::MqlSemanticOperator(air::MqlSemanticOperator {
+                    op: MqlOperator::IndexOfCP,
                     args: args.into_iter().rev().collect(),
                 }),
             ),
-            ScalarFunctionType::Mql(op) => Ok(air::Expression::MQLSemanticOperator(
-                air::MQLSemanticOperator { op, args },
+            ScalarFunctionType::Mql(op) => Ok(air::Expression::MqlSemanticOperator(
+                air::MqlSemanticOperator { op, args },
             )),
         }
     }
@@ -404,16 +404,16 @@ impl MqlTranslator {
             .iter()
             .map(|branch| {
                 let case = if branch.is_nullable {
-                    air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
-                        op: SQLOperator::Eq,
+                    air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
+                        op: SqlOperator::Eq,
                         args: vec![
                             air::Expression::Variable("target".to_string().into()),
                             self.translate_expression(*branch.when.clone())?,
                         ],
                     })
                 } else {
-                    air::Expression::MQLSemanticOperator(air::MQLSemanticOperator {
-                        op: MQLOperator::Eq,
+                    air::Expression::MqlSemanticOperator(air::MqlSemanticOperator {
+                        op: MqlOperator::Eq,
                         args: vec![
                             air::Expression::Variable("target".to_string().into()),
                             self.translate_expression(*branch.when.clone())?,
@@ -501,11 +501,11 @@ impl MqlTranslator {
 
     /// A FieldExistence is a special node that represents an existence assertion in a Match
     /// condition. The goal of this expression is to ensure its argument exists and is not
-    /// null. We achieve this in MQL via { $gt: [ <expr>, null ] }.
+    /// null. We achieve this in Mql via { $gt: [ <expr>, null ] }.
     fn translate_field_existence(&self, ome: mir::FieldAccess) -> Result<air::Expression> {
-        Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: MQLOperator::Gt,
+        Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: MqlOperator::Gt,
                 args: vec![
                     self.translate_field_access(ome)?,
                     air::Expression::Literal(air::LiteralValue::Null),
