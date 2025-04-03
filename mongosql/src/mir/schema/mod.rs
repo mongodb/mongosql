@@ -1434,8 +1434,7 @@ trait SQLFunction {
         self.schema_check_fixed_args(
             state,
             arg_schemas,
-            &std::iter::repeat_n(required_schema, arg_schemas.len())
-                .collect::<Vec<Schema>>(),
+            &std::iter::repeat_n(required_schema, arg_schemas.len()).collect::<Vec<Schema>>(),
         )
     }
 
