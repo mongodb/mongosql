@@ -1,4 +1,4 @@
-use crate::air::{FieldRef, LiteralValue, MQLOperator, Match, SQLOperator, Stage, Variable};
+use crate::air::{FieldRef, LiteralValue, Match, MqlOperator, SqlOperator, Stage, Variable};
 use std::fmt;
 
 impl Stage {
@@ -90,41 +90,41 @@ impl fmt::Display for Variable {
     }
 }
 
-pub fn sql_op_to_mql_op(sql_op: SQLOperator) -> Option<MQLOperator> {
+pub fn sql_op_to_mql_op(sql_op: SqlOperator) -> Option<MqlOperator> {
     let mql_op = match sql_op {
-        SQLOperator::Eq => MQLOperator::Eq,
-        SQLOperator::IndexOfCP => MQLOperator::IndexOfCP,
-        SQLOperator::Lt => MQLOperator::Lt,
-        SQLOperator::Lte => MQLOperator::Lte,
-        SQLOperator::Gt => MQLOperator::Gt,
-        SQLOperator::Gte => MQLOperator::Gte,
-        SQLOperator::Ne => MQLOperator::Ne,
-        SQLOperator::Not => MQLOperator::Not,
-        SQLOperator::Size => MQLOperator::Size,
-        SQLOperator::StrLenBytes => MQLOperator::StrLenBytes,
-        SQLOperator::StrLenCP => MQLOperator::StrLenCP,
-        SQLOperator::SubstrCP => MQLOperator::SubstrCP,
-        SQLOperator::ToLower => MQLOperator::ToLower,
-        SQLOperator::ToUpper => MQLOperator::ToUpper,
-        SQLOperator::NullIf => MQLOperator::IfNull,
-        SQLOperator::And => MQLOperator::And,
-        SQLOperator::Or => MQLOperator::Or,
-        SQLOperator::Slice => MQLOperator::Slice,
-        SQLOperator::Cos => MQLOperator::Cos,
-        SQLOperator::Sin => MQLOperator::Sin,
-        SQLOperator::Tan => MQLOperator::Tan,
-        SQLOperator::Log => MQLOperator::Log,
-        SQLOperator::Mod => MQLOperator::Mod,
-        SQLOperator::Round => MQLOperator::Round,
-        SQLOperator::Sqrt => MQLOperator::Sqrt,
-        SQLOperator::Split => MQLOperator::Split,
-        SQLOperator::Between
-        | SQLOperator::BitLength
-        | SQLOperator::Coalesce
-        | SQLOperator::ComputedFieldAccess
-        | SQLOperator::CurrentTimestamp
-        | SQLOperator::Neg
-        | SQLOperator::Pos => return None,
+        SqlOperator::Eq => MqlOperator::Eq,
+        SqlOperator::IndexOfCP => MqlOperator::IndexOfCP,
+        SqlOperator::Lt => MqlOperator::Lt,
+        SqlOperator::Lte => MqlOperator::Lte,
+        SqlOperator::Gt => MqlOperator::Gt,
+        SqlOperator::Gte => MqlOperator::Gte,
+        SqlOperator::Ne => MqlOperator::Ne,
+        SqlOperator::Not => MqlOperator::Not,
+        SqlOperator::Size => MqlOperator::Size,
+        SqlOperator::StrLenBytes => MqlOperator::StrLenBytes,
+        SqlOperator::StrLenCP => MqlOperator::StrLenCP,
+        SqlOperator::SubstrCP => MqlOperator::SubstrCP,
+        SqlOperator::ToLower => MqlOperator::ToLower,
+        SqlOperator::ToUpper => MqlOperator::ToUpper,
+        SqlOperator::NullIf => MqlOperator::IfNull,
+        SqlOperator::And => MqlOperator::And,
+        SqlOperator::Or => MqlOperator::Or,
+        SqlOperator::Slice => MqlOperator::Slice,
+        SqlOperator::Cos => MqlOperator::Cos,
+        SqlOperator::Sin => MqlOperator::Sin,
+        SqlOperator::Tan => MqlOperator::Tan,
+        SqlOperator::Log => MqlOperator::Log,
+        SqlOperator::Mod => MqlOperator::Mod,
+        SqlOperator::Round => MqlOperator::Round,
+        SqlOperator::Sqrt => MqlOperator::Sqrt,
+        SqlOperator::Split => MqlOperator::Split,
+        SqlOperator::Between
+        | SqlOperator::BitLength
+        | SqlOperator::Coalesce
+        | SqlOperator::ComputedFieldAccess
+        | SqlOperator::CurrentTimestamp
+        | SqlOperator::Neg
+        | SqlOperator::Pos => return None,
     };
     Some(mql_op)
 }

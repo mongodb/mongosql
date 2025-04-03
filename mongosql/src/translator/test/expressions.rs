@@ -397,8 +397,8 @@ mod date_function {
                 unit: air::DatePart::Year,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(5)),
-                    air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
-                        op: air::SQLOperator::CurrentTimestamp,
+                    air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
+                        op: air::SqlOperator::CurrentTimestamp,
                         args: vec![],
                     }),
                 ],
@@ -424,12 +424,12 @@ mod date_function {
                 function: air::DateFunction::Diff,
                 unit: air::DatePart::Year,
                 args: vec![
-                    air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
-                        op: air::SQLOperator::CurrentTimestamp,
+                    air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
+                        op: air::SqlOperator::CurrentTimestamp,
                         args: vec![],
                     }),
-                    air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
-                        op: air::SQLOperator::CurrentTimestamp,
+                    air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
+                        op: air::SqlOperator::CurrentTimestamp,
                         args: vec![],
                     }),
                     air::Expression::Literal(air::LiteralValue::String("sunday".to_string())),
@@ -460,8 +460,8 @@ mod date_function {
                 function: air::DateFunction::Trunc,
                 unit: air::DatePart::Year,
                 args: vec![
-                    air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
-                        op: air::SQLOperator::CurrentTimestamp,
+                    air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
+                        op: air::SqlOperator::CurrentTimestamp,
                         args: vec![],
                     }),
                     air::Expression::Literal(air::LiteralValue::String("sunday".to_string())),
@@ -488,9 +488,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         concat_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Concat,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Concat,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::String("hello".into())),
                     air::Expression::Literal(air::LiteralValue::String("world".into())),
@@ -508,9 +508,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         concat_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Concat,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Concat,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::String("hello".into())),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -528,9 +528,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         pos_no_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Pos,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Pos,
                 args: vec![air::Expression::Literal(air::LiteralValue::Integer(19)),],
             }
         )),
@@ -542,9 +542,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         pos_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Pos,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Pos,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -556,9 +556,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         neg_no_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Neg,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Neg,
                 args: vec![air::Expression::Literal(air::LiteralValue::Integer(32)),],
             }
         )),
@@ -570,9 +570,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         neg_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Neg,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Neg,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -584,9 +584,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         add_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Add,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Add,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
                     air::Expression::Literal(air::LiteralValue::Integer(19)),
@@ -604,9 +604,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         add_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Add,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Add,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -624,9 +624,9 @@ mod scalar_function {
 
     test_translate_expression!(
         addition_with_more_than_two_operands,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Add,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Add,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(1)),
                     air::Expression::Literal(air::LiteralValue::Integer(2)),
@@ -646,9 +646,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         sub_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Subtract,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Subtract,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
                     air::Expression::Literal(air::LiteralValue::Integer(19)),
@@ -666,9 +666,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         sub_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Subtract,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Subtract,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -686,9 +686,9 @@ mod scalar_function {
 
     test_translate_expression!(
         subtraction_with_more_than_2_operands,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Subtract,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Subtract,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(1)),
                     air::Expression::Literal(air::LiteralValue::Integer(2)),
@@ -708,9 +708,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         mul_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Multiply,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Multiply,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
                     air::Expression::Literal(air::LiteralValue::Integer(19)),
@@ -728,9 +728,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         mul_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Multiply,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Multiply,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -748,9 +748,9 @@ mod scalar_function {
 
     test_translate_expression!(
         multiplication_with_more_than_2_operands,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Multiply,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Multiply,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(1)),
                     air::Expression::Literal(air::LiteralValue::Integer(2)),
@@ -802,9 +802,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         lt_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Lt,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Lt,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
                     air::Expression::Literal(air::LiteralValue::Integer(19)),
@@ -823,9 +823,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         lt_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Lt,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Lt,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -843,9 +843,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         lte_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Lte,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Lte,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
                     air::Expression::Literal(air::LiteralValue::Integer(19)),
@@ -864,9 +864,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         lte_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Lte,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Lte,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -884,9 +884,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         neq_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Ne,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Ne,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
                     air::Expression::Literal(air::LiteralValue::Integer(19)),
@@ -905,9 +905,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         neq_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Ne,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Ne,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -925,9 +925,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         eq_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Eq,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Eq,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
                     air::Expression::Literal(air::LiteralValue::Integer(19)),
@@ -946,9 +946,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         eq_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Eq,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Eq,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -966,9 +966,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         gt_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Gt,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Gt,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
                     air::Expression::Literal(air::LiteralValue::Integer(19)),
@@ -987,9 +987,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         gt_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Gt,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Gt,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -1007,9 +1007,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         gte_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Gte,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Gte,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
                     air::Expression::Literal(air::LiteralValue::Integer(19)),
@@ -1028,9 +1028,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         gte_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Gte,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Gte,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -1048,9 +1048,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         between_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Between,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Between,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(19)),
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
@@ -1071,9 +1071,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         between_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Between,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Between,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Null),
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
@@ -1093,9 +1093,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         not_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Not,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Not,
                 args: vec![air::Expression::Literal(air::LiteralValue::Boolean(false)),],
             }
         )),
@@ -1108,9 +1108,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         not_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Not,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Not,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -1122,9 +1122,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         and_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::And,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::And,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Boolean(true)),
                     air::Expression::Literal(air::LiteralValue::Boolean(false)),
@@ -1143,9 +1143,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         and_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::And,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::And,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Boolean(true)),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -1163,9 +1163,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         or_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Or,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Or,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Boolean(true)),
                     air::Expression::Literal(air::LiteralValue::Boolean(false)),
@@ -1184,9 +1184,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         or_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Or,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Or,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Boolean(true)),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -1204,9 +1204,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
          computed_field_access,
-         expected = Ok(air::Expression::SQLSemanticOperator(
-             air::SQLSemanticOperator {
-                 op: air::SQLOperator::ComputedFieldAccess,
+         expected = Ok(air::Expression::SqlSemanticOperator(
+             air::SqlSemanticOperator {
+                 op: air::SqlOperator::ComputedFieldAccess,
                  args: vec![
                      air::Expression::Document(
                          unchecked_unique_linked_hash_map! {"foo".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))}
@@ -1230,9 +1230,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         null_if_no_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::NullIf,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::NullIf,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Boolean(true)),
                     air::Expression::Literal(air::LiteralValue::Boolean(false)),
@@ -1250,9 +1250,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         null_if_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::NullIf,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::NullIf,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Boolean(true)),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -1270,9 +1270,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         coalesce_no_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Coalesce,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Coalesce,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Boolean(true)),
                     air::Expression::Literal(air::LiteralValue::Boolean(false)),
@@ -1290,9 +1290,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         coalesce_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Coalesce,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Coalesce,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Boolean(true)),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -1310,9 +1310,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         slice_no_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Slice,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Slice,
                 args: vec![
                     air::Expression::Array(vec![air::Expression::Literal(
                         air::LiteralValue::String("abc".to_string())
@@ -1339,9 +1339,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         slice_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Slice,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Slice,
                 args: vec![
                     air::Expression::Array(vec![air::Expression::Literal(
                         air::LiteralValue::String("abc".to_string())
@@ -1368,9 +1368,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         size_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Size,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Size,
                 args: vec![air::Expression::Array(vec![air::Expression::Literal(
                     air::LiteralValue::String("abc".to_string())
                 )]),],
@@ -1391,9 +1391,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         size_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Size,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Size,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null)],
             }
         )),
@@ -1405,9 +1405,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         position_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::IndexOfCP,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::IndexOfCP,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::String("world".into())),
                     air::Expression::Literal(air::LiteralValue::String("hello".into())),
@@ -1426,9 +1426,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         position_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::IndexOfCP,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::IndexOfCP,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Null),
                     air::Expression::Literal(air::LiteralValue::String("hello".into())),
@@ -1446,9 +1446,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         char_length_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::StrLenCP,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::StrLenCP,
                 args: vec![air::Expression::Literal(air::LiteralValue::String(
                     "hello".into()
                 )),],
@@ -1465,9 +1465,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         char_length_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::StrLenCP,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::StrLenCP,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -1479,9 +1479,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         octet_length_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::StrLenBytes,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::StrLenBytes,
                 args: vec![air::Expression::Literal(air::LiteralValue::String(
                     "hello".into()
                 )),],
@@ -1498,9 +1498,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         octet_length_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::StrLenBytes,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::StrLenBytes,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -1512,9 +1512,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         bit_length_no_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::BitLength,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::BitLength,
                 args: vec![air::Expression::Literal(air::LiteralValue::String(
                     "hello".into()
                 )),],
@@ -1530,9 +1530,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         bit_length_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::BitLength,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::BitLength,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -1544,9 +1544,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         abs_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Abs,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Abs,
                 args: vec![air::Expression::Literal(air::LiteralValue::Double(3.5)),],
             }
         )),
@@ -1558,9 +1558,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         abs_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Abs,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Abs,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -1572,9 +1572,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         ceil_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Ceil,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Ceil,
                 args: vec![air::Expression::Literal(air::LiteralValue::Double(3.5)),],
             }
         )),
@@ -1586,9 +1586,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         ceil_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Ceil,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Ceil,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -1600,9 +1600,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         floor_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Floor,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Floor,
                 args: vec![air::Expression::Literal(air::LiteralValue::Double(3.5)),],
             }
         )),
@@ -1614,9 +1614,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         floor_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Floor,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Floor,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -1628,9 +1628,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         log_no_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Log,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Log,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Double(3.5)),
                     air::Expression::Literal(air::LiteralValue::Double(3.5)),
@@ -1648,9 +1648,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         log_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Log,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Log,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Null),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -1668,9 +1668,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         mod_no_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Mod,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Mod,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Double(3.5)),
                     air::Expression::Literal(air::LiteralValue::Double(3.5)),
@@ -1688,9 +1688,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         mod_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Mod,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Mod,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Null),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -1708,9 +1708,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         pow_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Pow,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Pow,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Double(3.5)),
                     air::Expression::Literal(air::LiteralValue::Double(3.5)),
@@ -1728,9 +1728,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         pow_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Pow,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Pow,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Null),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -1748,9 +1748,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         radians_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::DegreesToRadians,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::DegreesToRadians,
                 args: vec![air::Expression::Literal(air::LiteralValue::Double(3.5)),],
             }
         )),
@@ -1762,9 +1762,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         radians_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::DegreesToRadians,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::DegreesToRadians,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -1776,9 +1776,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         round_no_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Round,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Round,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Double(3.5)),
                     air::Expression::Literal(air::LiteralValue::Integer(3)),
@@ -1796,9 +1796,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         round_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Round,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Round,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Null),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -1816,9 +1816,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         cos_no_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Cos,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Cos,
                 args: vec![air::Expression::Literal(air::LiteralValue::Double(3.5)),],
             }
         )),
@@ -1830,9 +1830,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         cos_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Cos,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Cos,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -1844,9 +1844,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         sin_no_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Sin,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Sin,
                 args: vec![air::Expression::Literal(air::LiteralValue::Double(3.5)),],
             }
         )),
@@ -1858,9 +1858,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         sin_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Sin,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Sin,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -1872,9 +1872,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         tan_no_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Tan,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Tan,
                 args: vec![air::Expression::Literal(air::LiteralValue::Double(3.5)),],
             }
         )),
@@ -1886,9 +1886,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         tan_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Tan,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Tan,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -1900,9 +1900,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         replace_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::ReplaceAll,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::ReplaceAll,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::String("hello".into())),
                     air::Expression::Literal(air::LiteralValue::String("el".into())),
@@ -1923,9 +1923,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         replace_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::ReplaceAll,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::ReplaceAll,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::String("hello".into())),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -1946,9 +1946,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         substring_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::SubstrCP,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::SubstrCP,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::String("hello".into())),
                     air::Expression::Literal(air::LiteralValue::Integer(1)),
@@ -1967,9 +1967,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         substring_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::SubstrCP,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::SubstrCP,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::String("hello".into())),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -1987,9 +1987,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         upper_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::ToUpper,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::ToUpper,
                 args: vec![air::Expression::Literal(air::LiteralValue::String(
                     "hello".into()
                 )),],
@@ -2006,9 +2006,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         upper_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::ToUpper,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::ToUpper,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -2020,9 +2020,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         lower_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::ToLower,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::ToLower,
                 args: vec![air::Expression::Literal(air::LiteralValue::String(
                     "hello".into()
                 )),],
@@ -2039,9 +2039,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         lower_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::ToLower,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::ToLower,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -2167,9 +2167,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         split_no_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Split,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Split,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::String("hello".into())),
                     air::Expression::Literal(air::LiteralValue::String("l".into())),
@@ -2189,9 +2189,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         split_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Split,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Split,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::String("hello".into())),
                     air::Expression::Literal(air::LiteralValue::Null),
@@ -2211,9 +2211,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         current_time_stamp,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::CurrentTimestamp,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::CurrentTimestamp,
                 args: vec![],
             }
         )),
@@ -2225,9 +2225,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         year_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Year,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Year,
                 args: vec![air::Expression::Convert(air::Convert {
                     input: air::Expression::Literal(air::LiteralValue::String(
                         "2012-12-20T12:12:12Z".to_string()
@@ -2258,9 +2258,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         year_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Year,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Year,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -2272,9 +2272,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         month_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Month,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Month,
                 args: vec![air::Expression::Convert(air::Convert {
                     input: air::Expression::Literal(air::LiteralValue::String(
                         "2012-12-20T12:12:12Z".to_string()
@@ -2305,9 +2305,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         month_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Month,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Month,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -2319,9 +2319,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         day_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::DayOfMonth,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::DayOfMonth,
                 args: vec![air::Expression::Convert(air::Convert {
                     input: air::Expression::Literal(air::LiteralValue::String(
                         "2012-12-20T12:12:12Z".to_string()
@@ -2352,9 +2352,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         day_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::DayOfMonth,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::DayOfMonth,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -2366,9 +2366,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         day_of_week_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::DayOfWeek,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::DayOfWeek,
                 args: vec![air::Expression::Convert(air::Convert {
                     input: air::Expression::Literal(air::LiteralValue::String(
                         "2012-12-20T12:12:12Z".to_string()
@@ -2398,9 +2398,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         day_of_week_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::DayOfWeek,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::DayOfWeek,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -2413,9 +2413,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         hour_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Hour,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Hour,
                 args: vec![air::Expression::Convert(air::Convert {
                     input: air::Expression::Literal(air::LiteralValue::String(
                         "2012-12-20T12:12:12Z".to_string()
@@ -2446,9 +2446,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         hour_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Hour,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Hour,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -2460,9 +2460,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         minute_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Minute,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Minute,
                 args: vec![air::Expression::Convert(air::Convert {
                     input: air::Expression::Literal(air::LiteralValue::String(
                         "2012-12-20T12:12:12Z".to_string()
@@ -2493,9 +2493,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         minute_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Minute,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Minute,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -2507,9 +2507,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         second_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Second,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Second,
                 args: vec![air::Expression::Convert(air::Convert {
                     input: air::Expression::Literal(air::LiteralValue::String(
                         "2012-12-20T12:12:12Z".to_string()
@@ -2540,9 +2540,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         second_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Second,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Second,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -2554,9 +2554,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         millisecond_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Millisecond,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Millisecond,
                 args: vec![air::Expression::Convert(air::Convert {
                     input: air::Expression::Literal(air::LiteralValue::String(
                         "2012-12-20T12:12:12Z".to_string()
@@ -2586,9 +2586,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         millisecond_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Second,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Second,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -2601,9 +2601,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         week_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Week,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Week,
                 args: vec![air::Expression::Convert(air::Convert {
                     input: air::Expression::Literal(air::LiteralValue::String(
                         "2012-12-20T12:12:12Z".to_string()
@@ -2634,9 +2634,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         week_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Week,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Week,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -2648,9 +2648,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         day_of_year_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::DayOfYear,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::DayOfYear,
                 args: vec![air::Expression::Convert(air::Convert {
                     input: air::Expression::Literal(air::LiteralValue::String(
                         "2012-12-20T12:12:12Z".to_string()
@@ -2681,9 +2681,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         day_of_year_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::DayOfYear,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::DayOfYear,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -2695,9 +2695,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         iso_week_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::IsoWeek,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::IsoWeek,
                 args: vec![air::Expression::Convert(air::Convert {
                     input: air::Expression::Literal(air::LiteralValue::String(
                         "2012-12-20T12:12:12Z".to_string()
@@ -2728,9 +2728,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         iso_week_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::IsoWeek,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::IsoWeek,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -2742,9 +2742,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         iso_week_day_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::IsoDayOfWeek,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::IsoDayOfWeek,
                 args: vec![air::Expression::Convert(air::Convert {
                     input: air::Expression::Literal(air::LiteralValue::String(
                         "2012-12-20T12:12:12Z".to_string()
@@ -2775,9 +2775,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         iso_week_day_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::IsoDayOfWeek,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::IsoDayOfWeek,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -2789,9 +2789,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
          merge_objects,
-         expected = Ok(air::Expression::MQLSemanticOperator(
-             air::MQLSemanticOperator {
-                op: air::MQLOperator::MergeObjects,
+         expected = Ok(air::Expression::MqlSemanticOperator(
+             air::MqlSemanticOperator {
+                op: air::MqlOperator::MergeObjects,
                 args: vec![
                     air::Expression::Document(
                         unchecked_unique_linked_hash_map! {"foo".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))}
@@ -2813,9 +2813,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         sqrt_no_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Sqrt,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Sqrt,
                 args: vec![air::Expression::Literal(air::LiteralValue::Integer(4)),],
             }
         )),
@@ -2827,9 +2827,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         sqrt_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Sqrt,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::Sqrt,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -2841,9 +2841,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         degrees_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::RadiansToDegrees,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::RadiansToDegrees,
                 args: vec![air::Expression::Literal(air::LiteralValue::Integer(30)),],
             }
         )),
@@ -2855,9 +2855,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         degrees_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::RadiansToDegrees,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::RadiansToDegrees,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -2949,9 +2949,9 @@ mod searched_case {
         expected = Ok(air::Expression::Switch(air::Switch {
             branches: vec![
                 air::SwitchCase {
-                    case: Box::new(air::Expression::SQLSemanticOperator(
-                        air::SQLSemanticOperator {
-                            op: air::SQLOperator::Eq,
+                    case: Box::new(air::Expression::SqlSemanticOperator(
+                        air::SqlSemanticOperator {
+                            op: air::SqlOperator::Eq,
                             args: vec![
                                 air::Expression::Literal(air::LiteralValue::Integer(4)),
                                 air::Expression::Literal(air::LiteralValue::Integer(4))
@@ -2961,9 +2961,9 @@ mod searched_case {
                     then: Box::new(air::Expression::Literal(air::LiteralValue::Integer(5))),
                 },
                 air::SwitchCase {
-                    case: Box::new(air::Expression::SQLSemanticOperator(
-                        air::SQLSemanticOperator {
-                            op: air::SQLOperator::Eq,
+                    case: Box::new(air::Expression::SqlSemanticOperator(
+                        air::SqlSemanticOperator {
+                            op: air::SqlOperator::Eq,
                             args: vec![
                                 air::Expression::Literal(air::LiteralValue::Integer(5)),
                                 air::Expression::Literal(air::LiteralValue::Integer(5))
@@ -3024,9 +3024,9 @@ mod simple_case {
             inside: Box::new(air::Expression::Switch(air::Switch {
                 branches: vec![
                     air::SwitchCase {
-                        case: Box::new(air::Expression::MQLSemanticOperator(
-                            air::MQLSemanticOperator {
-                                op: air::MQLOperator::Eq,
+                        case: Box::new(air::Expression::MqlSemanticOperator(
+                            air::MqlSemanticOperator {
+                                op: air::MqlOperator::Eq,
                                 args: vec![
                                     air::Expression::Variable("target".to_string().into()),
                                     air::Expression::Literal(air::LiteralValue::Integer(4))
@@ -3036,9 +3036,9 @@ mod simple_case {
                         then: Box::new(air::Expression::Literal(air::LiteralValue::Integer(5))),
                     },
                     air::SwitchCase {
-                        case: Box::new(air::Expression::MQLSemanticOperator(
-                            air::MQLSemanticOperator {
-                                op: air::MQLOperator::Eq,
+                        case: Box::new(air::Expression::MqlSemanticOperator(
+                            air::MqlSemanticOperator {
+                                op: air::MqlOperator::Eq,
                                 args: vec![
                                     air::Expression::Variable("target".to_string().into()),
                                     air::Expression::Literal(air::LiteralValue::Integer(5))
@@ -3081,9 +3081,9 @@ mod simple_case {
             inside: Box::new(air::Expression::Switch(air::Switch {
                 branches: vec![
                     air::SwitchCase {
-                        case: Box::new(air::Expression::SQLSemanticOperator(
-                            air::SQLSemanticOperator {
-                                op: air::SQLOperator::Eq,
+                        case: Box::new(air::Expression::SqlSemanticOperator(
+                            air::SqlSemanticOperator {
+                                op: air::SqlOperator::Eq,
                                 args: vec![
                                     air::Expression::Variable("target".to_string().into()),
                                     air::Expression::Literal(air::LiteralValue::Integer(4))
@@ -3093,9 +3093,9 @@ mod simple_case {
                         then: Box::new(air::Expression::Literal(air::LiteralValue::Integer(5))),
                     },
                     air::SwitchCase {
-                        case: Box::new(air::Expression::SQLSemanticOperator(
-                            air::SQLSemanticOperator {
-                                op: air::SQLOperator::Eq,
+                        case: Box::new(air::Expression::SqlSemanticOperator(
+                            air::SqlSemanticOperator {
+                                op: air::SqlOperator::Eq,
                                 args: vec![
                                     air::Expression::Variable("target".to_string().into()),
                                     air::Expression::Literal(air::LiteralValue::Integer(5))
@@ -3138,9 +3138,9 @@ mod simple_case {
             inside: Box::new(air::Expression::Switch(air::Switch {
                 branches: vec![
                     air::SwitchCase {
-                        case: Box::new(air::Expression::SQLSemanticOperator(
-                            air::SQLSemanticOperator {
-                                op: air::SQLOperator::Eq,
+                        case: Box::new(air::Expression::SqlSemanticOperator(
+                            air::SqlSemanticOperator {
+                                op: air::SqlOperator::Eq,
                                 args: vec![
                                     air::Expression::Variable("target".to_string().into()),
                                     air::Expression::Literal(air::LiteralValue::Null)
@@ -3150,9 +3150,9 @@ mod simple_case {
                         then: Box::new(air::Expression::Literal(air::LiteralValue::Integer(5))),
                     },
                     air::SwitchCase {
-                        case: Box::new(air::Expression::MQLSemanticOperator(
-                            air::MQLSemanticOperator {
-                                op: air::MQLOperator::Eq,
+                        case: Box::new(air::Expression::MqlSemanticOperator(
+                            air::MqlSemanticOperator {
+                                op: air::MqlOperator::Eq,
                                 args: vec![
                                     air::Expression::Variable("target".to_string().into()),
                                     air::Expression::Literal(air::LiteralValue::Integer(5))
@@ -3194,9 +3194,9 @@ mod simple_case {
             },],
             inside: Box::new(air::Expression::Switch(air::Switch {
                 branches: vec![air::SwitchCase {
-                    case: Box::new(air::Expression::MQLSemanticOperator(
-                        air::MQLSemanticOperator {
-                            op: air::MQLOperator::Eq,
+                    case: Box::new(air::Expression::MqlSemanticOperator(
+                        air::MqlSemanticOperator {
+                            op: air::MqlOperator::Eq,
                             args: vec![
                                 air::Expression::Variable(air::Variable {
                                     parent: None,
@@ -3211,9 +3211,9 @@ mod simple_case {
                                     },],
                                     inside: Box::new(air::Expression::Switch(air::Switch {
                                         branches: vec![air::SwitchCase {
-                                            case: Box::new(air::Expression::MQLSemanticOperator(
-                                                air::MQLSemanticOperator {
-                                                    op: air::MQLOperator::Eq,
+                                            case: Box::new(air::Expression::MqlSemanticOperator(
+                                                air::MqlSemanticOperator {
+                                                    op: air::MqlOperator::Eq,
                                                     args: vec![
                                                         air::Expression::Variable(air::Variable {
                                                             parent: None,
@@ -3839,8 +3839,8 @@ mod subquery {
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
                     "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::Document(unchecked_unique_linked_hash_map! {
-                        "a".to_string() => air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
-                            op: air::SQLOperator::Eq,
+                        "a".to_string() => air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
+                            op: air::SqlOperator::Eq,
                             args: vec![
                                 air::Expression::Variable("vfoo_coll_ß_0.a".to_string().into()),
                                 air::Expression::Variable("vfoo_coll_ß_0_.a".to_string().into()),
@@ -3898,8 +3898,8 @@ mod subquery {
         },
     );
 
-    // This test verifies that we are using the datasource's MQL field name
-    // in the output path. We create an MQL field name that doesn't match the
+    // This test verifies that we are using the datasource's Mql field name
+    // in the output path. We create an Mql field name that doesn't match the
     // corresponding datasource by forcing a naming conflict in the project
     // stage. The translation engine could never actually produce a query like
     // this one, though, since a subquery expression's degree must be exactly 1.
@@ -4322,16 +4322,16 @@ mod mql_intrinsic {
 
     test_translate_expression!(
         basic,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Gt,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Gt,
                 args: vec![
                     air::Expression::FieldRef("foo.x".to_string().into()),
                     air::Expression::Literal(air::LiteralValue::Null),
                 ],
             }
         )),
-        input = mir::Expression::MQLIntrinsicFieldExistence(mir::FieldAccess {
+        input = mir::Expression::MqlIntrinsicFieldExistence(mir::FieldAccess {
             expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
             field: "x".to_string(),
             is_nullable: true,

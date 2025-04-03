@@ -25,10 +25,10 @@ use crate::{
     mir::{
         schema::{SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        ElemMatch, Expression, FieldPath, Filter, LiteralValue, MQLStage, MatchFilter,
+        ElemMatch, Expression, FieldPath, Filter, LiteralValue, MatchFilter,
         MatchLanguageComparison, MatchLanguageComparisonOp, MatchLanguageLogical,
-        MatchLanguageLogicalOp, MatchQuery, ScalarFunction, ScalarFunctionApplication, Stage,
-        Unwind,
+        MatchLanguageLogicalOp, MatchQuery, MqlStage, ScalarFunction, ScalarFunctionApplication,
+        Stage, Unwind,
     },
     SchemaCheckingMode,
 };
@@ -142,7 +142,7 @@ fn generate_prefilter(
                     return (source, false);
                 };
             return (
-                Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+                Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
                     source,
                     condition: generate_between_elem_match_query(field, lower_bound, upper_bound),
                     cache: SchemaCache::new(),
@@ -162,7 +162,7 @@ fn generate_prefilter(
             return (source, false);
         };
         return (
-            Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
                 source,
                 condition: generate_comparison_elem_match_query(function, field, lit),
                 cache: SchemaCache::new(),

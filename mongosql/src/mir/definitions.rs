@@ -27,7 +27,7 @@ pub enum Stage {
     Set(Set),
     Derived(Derived),
     Unwind(Unwind),
-    MQLIntrinsic(MQLStage),
+    MqlIntrinsic(MqlStage),
     // We need this to handle source swapping. It is not a real stage.
     // We could change source to be Option<Box<Stage>> for all nodes,
     // but that would be more difficult a refactor.
@@ -36,7 +36,7 @@ pub enum Stage {
 
 impl Stage {
     pub fn is_filter(&self) -> bool {
-        matches!(self, Stage::Filter(_) | Stage::MQLIntrinsic(MQLStage::MatchFilter(_)))
+        matches!(self, Stage::Filter(_) | Stage::MqlIntrinsic(MqlStage::MatchFilter(_)))
     }
 
     pub fn is_sort(&self) -> bool {
@@ -144,7 +144,7 @@ pub struct Unwind {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub enum MQLStage {
+pub enum MqlStage {
     EquiJoin(EquiJoin),
     LateralJoin(LateralJoin),
     MatchFilter(MatchFilter),
@@ -264,8 +264,8 @@ pub enum Expression {
     TypeAssertion(TypeAssertionExpr),
 
     // Special variants that only exists for optimization purposes;
-    // these do not represent actual MongoSQL constructs.
-    MQLIntrinsicFieldExistence(FieldAccess),
+    // these do not represent actual MongoSql constructs.
+    MqlIntrinsicFieldExistence(FieldAccess),
 }
 
 impl Expression {
@@ -281,7 +281,7 @@ impl Expression {
             Expression::Like(_) => false,
             Expression::Literal(LiteralValue::Null) => true,
             Expression::Literal(_) => false,
-            Expression::MQLIntrinsicFieldExistence(_) => false,
+            Expression::MqlIntrinsicFieldExistence(_) => false,
             Expression::Reference(_) => false,
             Expression::ScalarFunction(x) => x.is_nullable,
             Expression::SearchedCase(x) => x.is_nullable,
@@ -307,7 +307,7 @@ impl Expression {
             Expression::Is(_) => (),
             Expression::Like(_) => (),
             Expression::Literal(_) => (),
-            Expression::MQLIntrinsicFieldExistence(_) => (),
+            Expression::MqlIntrinsicFieldExistence(_) => (),
             Expression::Reference(_) => (),
             Expression::Subquery(_) => (),
             Expression::TypeAssertion(_) => (),

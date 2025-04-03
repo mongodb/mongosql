@@ -3,8 +3,8 @@ use crate::air::{
     visitor::Visitor,
     Expression,
     Expression::*,
-    Let, LetVariable, Limit, LiteralValue, Lookup, MQLOperator, MQLSemanticOperator, Project,
-    ProjectItem, Reduce, SQLOperator, SQLSemanticOperator, Stage,
+    Let, LetVariable, Limit, LiteralValue, Lookup, MqlOperator, MqlSemanticOperator, Project,
+    ProjectItem, Reduce, SqlOperator, SqlSemanticOperator, Stage,
     Stage::*,
     Subquery, SubqueryComparison, SubqueryComparisonOp, SubqueryComparisonOpType, SubqueryExists,
     SubqueryModifier,
@@ -42,10 +42,10 @@ impl Pass for SubqueryExprDesugarerPass {
     }
 }
 
-/// A SubqueryComparison expr can desugar using SQL or MQL semantic operators, depending on
+/// A SubqueryComparison expr can desugar using Sql or Mql semantic operators, depending on
 /// the value of its op_type field. This macro allows us to parametrize the actual desugarer
-/// code by air types: SQLOperator vs MQLOperator, Expression::SQLSemanticOperator vs
-/// Expression::MQLSemanticOperator, and SQLSemanticOperator vs MQLSemanticOperator.
+/// code by air types: SqlOperator vs MqlOperator, Expression::SqlSemanticOperator vs
+/// Expression::MqlSemanticOperator, and SqlSemanticOperator vs MqlSemanticOperator.
 macro_rules! subquery_comparison_semantic_desugarer {
     ($subquery_comp:ident, $as_name:ident, op_enum = $op_enum:ident, expr_variant = $expr_variant:ident, expr_struct = $expr_struct:ident) => {{
         let (initial_value, combinator_op) = match $subquery_comp.modifier {
@@ -121,7 +121,7 @@ struct SubqueryExprDesugarerPassVisitor {
 impl SubqueryExprDesugarerPassVisitor {
     /// desugar_subquery desugars a Subquery expression into a Lookup and
     /// a replacement expression that accesses the data specified by the
-    /// output_path. Specifically, in MQL, it turns
+    /// output_path. Specifically, in Mql, it turns
     ///
     ///    { $subquery: {
     ///        db: <db name>,
@@ -168,8 +168,8 @@ impl SubqueryExprDesugarerPassVisitor {
         Let(Let {
             vars: vec![LetVariable {
                 name: var_name,
-                expr: Box::new(MQLSemanticOperator(MQLSemanticOperator {
-                    op: MQLOperator::ElemAt,
+                expr: Box::new(MqlSemanticOperator(MqlSemanticOperator {
+                    op: MqlOperator::ElemAt,
                     args: vec![FieldRef(as_name.into()), Literal(LiteralValue::Integer(0))],
                 })),
             }],
@@ -179,7 +179,7 @@ impl SubqueryExprDesugarerPassVisitor {
 
     /// desugar_subquery_comparison desugars a SubqueryComparison expression
     /// into a Lookup and a replacement expression that performs the comparison
-    /// on the subquery output. Specifically, in MQL, it turns
+    /// on the subquery output. Specifically, in Mql, it turns
     ///
     ///    { $subqueryComparison: {
     ///        op: <comp op>,
@@ -222,23 +222,23 @@ impl SubqueryExprDesugarerPassVisitor {
             SubqueryComparisonOpType::Sql => subquery_comparison_semantic_desugarer!(
                 subquery_comp,
                 as_name,
-                op_enum = SQLOperator,
-                expr_variant = SQLSemanticOperator,
-                expr_struct = SQLSemanticOperator
+                op_enum = SqlOperator,
+                expr_variant = SqlSemanticOperator,
+                expr_struct = SqlSemanticOperator
             ),
             SubqueryComparisonOpType::Mql => subquery_comparison_semantic_desugarer!(
                 subquery_comp,
                 as_name,
-                op_enum = MQLOperator,
-                expr_variant = MQLSemanticOperator,
-                expr_struct = MQLSemanticOperator
+                op_enum = MqlOperator,
+                expr_variant = MqlSemanticOperator,
+                expr_struct = MqlSemanticOperator
             ),
         }
     }
 
     /// desugar_subquery_exists desugars a SubqueryExists expression into a
     /// Lookup and a replacement expression that checks if the output is
-    /// non-empty. Specifically, in MQL, it turns
+    /// non-empty. Specifically, in Mql, it turns
     ///
     ///    { $subqueryExists: {
     ///        db: <db name>,
@@ -257,11 +257,11 @@ impl SubqueryExprDesugarerPassVisitor {
             self.process_subquery_expr(subquery_exists.let_bindings, subquery_exists.pipeline);
 
         // Return the replacement expression.
-        MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Gt,
+        MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Gt,
             args: vec![
-                MQLSemanticOperator(MQLSemanticOperator {
-                    op: MQLOperator::Size,
+                MqlSemanticOperator(MqlSemanticOperator {
+                    op: MqlOperator::Size,
                     args: vec![FieldRef(as_name.into())],
                 }),
                 Literal(LiteralValue::Integer(0)),

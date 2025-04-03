@@ -4,7 +4,7 @@ use crate::{
         visitor::Visitor,
         EquiJoin, EquiLookup, ExprLanguage,
         Expression::*,
-        Join, JoinType, Lookup, MQLOperator, MQLSemanticOperator, Match, Project, ProjectItem,
+        Join, JoinType, Lookup, Match, MqlOperator, MqlSemanticOperator, Project, ProjectItem,
         ReplaceWith, Stage,
         Stage::*,
         Unwind,
@@ -15,7 +15,7 @@ use crate::{
 use linked_hash_map::LinkedHashMap;
 
 /// Desugars any Join stages in the pipeline into sequences of equivalent,
-/// existing MQL stages. Specifically, a Join is desugared into a sequence
+/// existing Mql stages. Specifically, a Join is desugared into a sequence
 /// of Lookup, Unwind, ReplaceWith, and Project.
 pub struct JoinDesugarerPass;
 
@@ -31,7 +31,7 @@ struct JoinDesugarerPassVisitor;
 
 impl JoinDesugarerPassVisitor {
     /// desugar_join_stage desugars a Join stage into a sequence of expressive Lookup,
-    /// Unwind, ReplaceWith, and Project stages. Specifically, in MQL, it
+    /// Unwind, ReplaceWith, and Project stages. Specifically, in Mql, it
     /// turns:
     ///
     ///    { $join: {
@@ -97,8 +97,8 @@ impl JoinDesugarerPassVisitor {
 
         let replace_with = ReplaceWith(ReplaceWith {
             source: Box::new(unwind),
-            new_root: Box::new(MQLSemanticOperator(MQLSemanticOperator {
-                op: MQLOperator::MergeObjects,
+            new_root: Box::new(MqlSemanticOperator(MqlSemanticOperator {
+                op: MqlOperator::MergeObjects,
                 args: vec![ROOT.clone(), FieldRef(as_var_name.clone().into())],
             })),
         });
@@ -115,7 +115,7 @@ impl JoinDesugarerPassVisitor {
     }
 
     /// desugar_equijoin_stage desugars a join stage into a sequence of concise Lookup and Unwind.
-    /// Specifically, in MQL, it turns:
+    /// Specifically, in Mql, it turns:
     ///    { $equijoin: {
     ///        joinType: <join type>,
     ///        from_database: <db name>,

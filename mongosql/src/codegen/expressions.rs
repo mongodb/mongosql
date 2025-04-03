@@ -1,5 +1,5 @@
 use crate::{
-    air::{self, SQLOperator, TrimOperator},
+    air::{self, SqlOperator, TrimOperator},
     codegen::{Error, MqlCodeGenerator, Result},
 };
 use bson::{bson, doc, Bson};
@@ -9,12 +9,12 @@ impl MqlCodeGenerator {
     pub fn codegen_expression(&self, expr: air::Expression) -> Result<Bson> {
         use air::Expression::*;
         match expr {
-            MQLSemanticOperator(air::MQLSemanticOperator {
-                op: air::MQLOperator::ReplaceAll,
+            MqlSemanticOperator(air::MqlSemanticOperator {
+                op: air::MqlOperator::ReplaceAll,
                 args,
             }) => self.codegen_replace_all(args),
-            MQLSemanticOperator(mql_op) => self.codegen_mql_semantic_operator(mql_op),
-            SQLSemanticOperator(sql_op) => self.codegen_sql_semantic_operator(sql_op),
+            MqlSemanticOperator(mql_op) => self.codegen_mql_semantic_operator(mql_op),
+            SqlSemanticOperator(sql_op) => self.codegen_sql_semantic_operator(sql_op),
             Literal(lit) => self.codegen_literal(lit),
             FieldRef(fr) => Ok(Bson::String(self.codegen_field_ref(fr))),
             Variable(var) => Ok(Bson::String(self.codegen_variable(var))),
@@ -46,7 +46,7 @@ impl MqlCodeGenerator {
     // fn code_gen_mql_semantic_operator_with_document_args(
     //     &self,
     //     arg_names: &[&str],
-    //     mql_op: air::MQLSemanticOperator) -> Result<Bson>
+    //     mql_op: air::MqlSemanticOperator) -> Result<Bson>
     // At this point, it is overkill.
     fn codegen_replace_all(&self, args: Vec<air::Expression>) -> Result<Bson> {
         // $replaceAll uses a document format for args that goes against
@@ -56,12 +56,12 @@ impl MqlCodeGenerator {
             .zip(args)
             .map(|(arg_name, arg)| Ok((arg_name.to_string(), self.codegen_expression(arg)?)))
             .collect::<Result<bson::Document>>()?;
-        // We still use to_mql_op so that all MQL operator names can be found in one place.
-        let operator = Self::to_mql_op(air::MQLOperator::ReplaceAll);
+        // We still use to_mql_op so that all Mql operator names can be found in one place.
+        let operator = Self::to_mql_op(air::MqlOperator::ReplaceAll);
         Ok(bson::bson!({ operator: Bson::Document(ops)}))
     }
 
-    fn codegen_mql_semantic_operator(&self, mql_op: air::MQLSemanticOperator) -> Result<Bson> {
+    fn codegen_mql_semantic_operator(&self, mql_op: air::MqlSemanticOperator) -> Result<Bson> {
         let ops = mql_op
             .args
             .into_iter()
@@ -71,41 +71,41 @@ impl MqlCodeGenerator {
         Ok(bson::bson!({ operator: Bson::Array(ops) }))
     }
 
-    fn codegen_sql_semantic_operator(&self, sql_op: air::SQLSemanticOperator) -> Result<Bson> {
+    fn codegen_sql_semantic_operator(&self, sql_op: air::SqlSemanticOperator) -> Result<Bson> {
         Ok(match sql_op.op {
-            SQLOperator::Size
-            | SQLOperator::StrLenCP
-            | SQLOperator::StrLenBytes
-            | SQLOperator::ToUpper
-            | SQLOperator::ToLower => {
+            SqlOperator::Size
+            | SqlOperator::StrLenCP
+            | SqlOperator::StrLenBytes
+            | SqlOperator::ToUpper
+            | SqlOperator::ToLower => {
                 bson::bson!({ Self::to_sql_op(sql_op.op).unwrap(): self.codegen_expression(sql_op.args[0].clone())?})
             }
-            SQLOperator::And
-            | SQLOperator::Between
-            | SQLOperator::BitLength
-            | SQLOperator::Coalesce
-            | SQLOperator::Cos
-            | SQLOperator::Eq
-            | SQLOperator::Gt
-            | SQLOperator::Gte
-            | SQLOperator::IndexOfCP
-            | SQLOperator::Log
-            | SQLOperator::Lt
-            | SQLOperator::Lte
-            | SQLOperator::Mod
-            | SQLOperator::Ne
-            | SQLOperator::Neg
-            | SQLOperator::Not
-            | SQLOperator::NullIf
-            | SQLOperator::Or
-            | SQLOperator::Pos
-            | SQLOperator::Round
-            | SQLOperator::Sin
-            | SQLOperator::Slice
-            | SQLOperator::Split
-            | SQLOperator::Sqrt
-            | SQLOperator::SubstrCP
-            | SQLOperator::Tan => {
+            SqlOperator::And
+            | SqlOperator::Between
+            | SqlOperator::BitLength
+            | SqlOperator::Coalesce
+            | SqlOperator::Cos
+            | SqlOperator::Eq
+            | SqlOperator::Gt
+            | SqlOperator::Gte
+            | SqlOperator::IndexOfCP
+            | SqlOperator::Log
+            | SqlOperator::Lt
+            | SqlOperator::Lte
+            | SqlOperator::Mod
+            | SqlOperator::Ne
+            | SqlOperator::Neg
+            | SqlOperator::Not
+            | SqlOperator::NullIf
+            | SqlOperator::Or
+            | SqlOperator::Pos
+            | SqlOperator::Round
+            | SqlOperator::Sin
+            | SqlOperator::Slice
+            | SqlOperator::Split
+            | SqlOperator::Sqrt
+            | SqlOperator::SubstrCP
+            | SqlOperator::Tan => {
                 let ops = sql_op
                     .args
                     .into_iter()
@@ -113,11 +113,11 @@ impl MqlCodeGenerator {
                     .collect::<Result<Vec<_>>>()?;
                 bson::bson!({ Self::to_sql_op(sql_op.op).unwrap(): Bson::Array(ops) })
             }
-            SQLOperator::ComputedFieldAccess => {
+            SqlOperator::ComputedFieldAccess => {
                 // Adding this feature is tracked in SQL-673
-                return Err(Error::UnsupportedOperator(SQLOperator::ComputedFieldAccess));
+                return Err(Error::UnsupportedOperator(SqlOperator::ComputedFieldAccess));
             }
-            SQLOperator::CurrentTimestamp => Bson::String("$$NOW".to_string()),
+            SqlOperator::CurrentTimestamp => Bson::String("$$NOW".to_string()),
         })
     }
 

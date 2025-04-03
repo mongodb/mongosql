@@ -139,7 +139,7 @@ mod subquery_expr {
         }),
     );
 
-    // Analogous SQL query: SELECT (SELECT foo.a FROM []) FROM foo
+    // Analogous Sql query: SELECT (SELECT foo.a FROM []) FROM foo
     test_schema!(
         correlated_subquery,
         expected = Ok(Schema::AnyOf(set![
@@ -229,7 +229,7 @@ mod subquery_expr {
         }),
     );
 
-    // Analogous SQL query: "SELECT (SELECT * FROM [] AS foo)"
+    // Analogous Sql query: "SELECT (SELECT * FROM [] AS foo)"
     test_schema!(
         uncorrelated_subquery_cardinality_is_zero,
         expected = Ok(Schema::AnyOf(set![Schema::AnyOf(set![]), Schema::Missing])),
@@ -244,7 +244,7 @@ mod subquery_expr {
         }),
     );
 
-    // Analogous SQL query: "SELECT (SELECT * FROM [{'a': 5}] AS foo)"
+    // Analogous Sql query: "SELECT (SELECT * FROM [{'a': 5}] AS foo)"
     test_schema!(
         subquery_expression_cardinality_must_be_one,
         expected = Ok(Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)])),
@@ -267,7 +267,7 @@ mod subquery_expr {
         }),
     );
 
-    // Analogous SQL query: "SELECT (SELECT * FROM foo)"
+    // Analogous Sql query: "SELECT (SELECT * FROM foo)"
     test_schema!(
         subquery_cardinality_may_be_1,
         expected_error_code = 1008,
@@ -286,7 +286,7 @@ mod subquery_expr {
         }),
     );
 
-    // Analogous SQL query: "SELECT (SELECT * FROM [{'a': 5}, {'a': 6}] AS foo)"
+    // Analogous Sql query: "SELECT (SELECT * FROM [{'a': 5}, {'a': 6}] AS foo)"
     test_schema!(
         subquery_expression_cardinality_gt_one,
         expected_error_code = 1008,

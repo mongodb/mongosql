@@ -1757,7 +1757,7 @@ impl From<TypeOrMissing> for Schema {
 impl TryFrom<json_schema::Schema> for Schema {
     type Error = Error;
 
-    /// from converts a json schema into a MongoSQL schema by following these rules:
+    /// from converts a json schema into a MongoSql schema by following these rules:
     ///      - BsonType::Single => Schema::Atomic
     ///      - BsonType::Multiple => Schema::AnyOf
     ///      - properties, required, and additional_properties => Schema::Document

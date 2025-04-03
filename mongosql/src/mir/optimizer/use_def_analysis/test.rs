@@ -51,8 +51,8 @@ macro_rules! test_method_uses {
                     Expression::{self, *},
                     Filter, Group,
                     LiteralValue::*,
-                    MQLStage, MatchFilter, MatchLanguageComparison, MatchLanguageComparisonOp,
-                    MatchLanguageLogical, MatchLanguageLogicalOp, MatchQuery,
+                    MatchFilter, MatchLanguageComparison, MatchLanguageComparisonOp,
+                    MatchLanguageLogical, MatchLanguageLogicalOp, MatchQuery, MqlStage,
                     OptionallyAliasedExpr, Project, ReferenceExpr, ScalarFunction,
                     ScalarFunctionApplication, Sort, SortSpecification, Stage, SubqueryComparison,
                     SubqueryComparisonOp, SubqueryExpr, SubqueryModifier,
@@ -97,8 +97,8 @@ macro_rules! test_substitute {
                     Expression::{self, *},
                     Filter, Group,
                     LiteralValue::*,
-                    MQLStage, MatchFilter, MatchLanguageComparison, MatchLanguageComparisonOp,
-                    MatchQuery, OptionallyAliasedExpr, ReferenceExpr, ScalarFunction,
+                    MatchFilter, MatchLanguageComparison, MatchLanguageComparisonOp, MatchQuery,
+                    MqlStage, OptionallyAliasedExpr, ReferenceExpr, ScalarFunction,
                     ScalarFunctionApplication, Sort, SortSpecification, Stage,
                 },
                 set,
@@ -316,7 +316,7 @@ mod field_uses {
             };
             expected
         }),
-        input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+        input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
             source: mir_collection("foo", "bar"),
             condition: MatchQuery::Logical(MatchLanguageLogical {
                 op: MatchLanguageLogicalOp::Or,
@@ -352,7 +352,7 @@ mod field_uses {
             };
             expected
         }),
-        input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+        input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
             source: mir_collection("foo", "bar"),
             condition: MatchQuery::Logical(MatchLanguageLogical {
                 op: MatchLanguageLogicalOp::Or,
@@ -810,7 +810,7 @@ mod substitute {
 
     test_substitute!(
         match_filter_succeeds_two_levels,
-        expected = Some(Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+        expected = Some(Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
             source: mir_collection("foo", "bar"),
             condition: MatchQuery::Comparison(MatchLanguageComparison {
                 function: MatchLanguageComparisonOp::Eq,
@@ -820,7 +820,7 @@ mod substitute {
             }),
             cache: SchemaCache::new(),
         }))),
-        stage = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+        stage = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
             source: mir_collection("foo", "bar"),
             condition: MatchQuery::Comparison(MatchLanguageComparison {
                 function: MatchLanguageComparisonOp::Eq,

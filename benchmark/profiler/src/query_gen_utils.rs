@@ -11,7 +11,7 @@ use std::{collections::BTreeMap, fs::File, io::BufWriter, path::PathBuf};
 /// on what they are doing.
 ///
 /// NameGenerator is an Iterator that generates 2-char-length names for use
-/// in test SQL queries. The names are produced in ascending order following
+/// in test Sql queries. The names are produced in ascending order following
 /// the pattern: aa, ab, ac, ..., ay, az, ba, bb, ..., zy, zz.
 ///
 /// After producing 'zz', the Iterator will be considered exhausted and will

@@ -37,7 +37,7 @@ mod equijoin {
             min_size: 1,
             max_size: None,
         }),
-        input = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+        input = Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Left,
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![test_document_a()],
@@ -65,7 +65,7 @@ mod equijoin {
             min_size: 0,
             max_size: None,
         }),
-        input = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+        input = Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![test_document_a()],
@@ -91,7 +91,7 @@ mod equijoin {
             Schema::AnyOf(set![Schema::Atomic(Atomic::Integer),]),
             Schema::Atomic(Atomic::String),
         )),
-        input = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+        input = Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![test_document_a()],
@@ -130,7 +130,7 @@ mod lateral {
             min_size: 1,
             max_size: None,
         }),
-        input = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+        input = Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Left,
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![test_document_a()],
@@ -156,7 +156,7 @@ mod lateral {
             min_size: 0,
             max_size: None,
         }),
-        input = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+        input = Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Inner,
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![test_document_a()],

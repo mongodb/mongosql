@@ -204,7 +204,7 @@ mod change {
 
     test_determine_join_semantics!(
         when_local_must_not_be_nullable_change_without_special_filter,
-        expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+        expected = Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: mir_project_collection(None, "local", None, None),
             from: mir_project_collection(None, "foreign", None, None),
@@ -221,7 +221,7 @@ mod change {
 
     test_determine_join_semantics!(
         when_foreign_must_not_be_nullable_change_without_special_filter,
-        expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+        expected = Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: mir_project_collection(None, "local", None, None),
             from: mir_project_collection(None, "foreign", None, None),
@@ -238,7 +238,7 @@ mod change {
 
     test_determine_join_semantics!(
         local_and_foreign_can_appear_on_either_side_of_condition,
-        expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+        expected = Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: mir_project_collection(None, "local", None, None),
             from: mir_project_collection(None, "foreign", None, None),
@@ -255,11 +255,11 @@ mod change {
 
     test_determine_join_semantics!(
         when_both_may_be_nullable_change_with_special_filter,
-        expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+        expected = Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: Box::new(Stage::Filter(Filter {
                 source: mir_project_collection(None, "local", None, None),
-                condition: Expression::MQLIntrinsicFieldExistence(FieldAccess::new(
+                condition: Expression::MqlIntrinsicFieldExistence(FieldAccess::new(
                     Box::new(Expression::Reference(("local", 0u16).into())),
                     "may_be_null".to_string(),
                 )),

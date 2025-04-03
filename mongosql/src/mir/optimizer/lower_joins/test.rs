@@ -3,7 +3,7 @@ use crate::{
     mir::{
         optimizer::{lower_joins::LowerJoinsOptimizer, Optimizer},
         schema::{SchemaCache, SchemaCheckingMode, SchemaInferenceState},
-        Expression, Filter, Join, JoinType, LateralJoin, MQLStage, ScalarFunction,
+        Expression, Filter, Join, JoinType, LateralJoin, MqlStage, ScalarFunction,
         ScalarFunctionApplication, Stage,
     },
     schema::SchemaEnvironment,
@@ -53,7 +53,7 @@ test_lower_joins_no_op!(
 
 test_lower_joins!(
     rewrite_if_condition,
-    expected = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+    expected = Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
         join_type: JoinType::Inner,
         source: mir_project_collection(None, "foo", None, None),
         subquery: Box::new(Stage::Filter(Filter {

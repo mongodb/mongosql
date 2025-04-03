@@ -37,8 +37,8 @@ impl Visitor for ContainsSubqueryVisitor {
             Expression::SearchedCase(e) => Expression::SearchedCase(e.walk(self)),
             Expression::SimpleCase(e) => Expression::SimpleCase(e.walk(self)),
             Expression::TypeAssertion(e) => Expression::TypeAssertion(e.walk(self)),
-            Expression::MQLIntrinsicFieldExistence(e) => {
-                Expression::MQLIntrinsicFieldExistence(e.walk(self))
+            Expression::MqlIntrinsicFieldExistence(e) => {
+                Expression::MqlIntrinsicFieldExistence(e.walk(self))
             }
         }
     }

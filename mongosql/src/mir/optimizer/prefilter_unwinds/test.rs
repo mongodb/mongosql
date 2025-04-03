@@ -32,8 +32,8 @@ macro_rules! test_prefilter {
                 Expression::{self, *},
                 Filter, Group, Join, JoinType, Limit,
                 LiteralValue::*,
-                MQLStage, MatchFilter, MatchLanguageComparison, MatchLanguageComparisonOp,
-                MatchLanguageLogical, MatchLanguageLogicalOp, MatchQuery, ScalarFunction,
+                MatchFilter, MatchLanguageComparison, MatchLanguageComparisonOp,
+                MatchLanguageLogical, MatchLanguageLogicalOp, MatchQuery, MqlStage, ScalarFunction,
                 ScalarFunctionApplication, Stage, Unwind,
             };
             #[allow(unused)]
@@ -84,7 +84,7 @@ test_prefilter! {
     eq_path,
     expected = Stage::Filter(Filter {
                 source: Stage::Unwind(Unwind {
-                    source: Stage::MQLIntrinsic(MQLStage::MatchFilter( MatchFilter {
+                    source: Stage::MqlIntrinsic(MqlStage::MatchFilter( MatchFilter {
                         source: Stage::Sentinel.into(),
                         condition: MatchQuery::ElemMatch(
                             ElemMatch {
@@ -162,7 +162,7 @@ test_prefilter! {
     between_path,
     expected = Stage::Filter(Filter {
                 source: Stage::Unwind(Unwind {
-                    source: Stage::MQLIntrinsic(MQLStage::MatchFilter( MatchFilter {
+                    source: Stage::MqlIntrinsic(MqlStage::MatchFilter( MatchFilter {
                         source: Stage::Sentinel.into(),
                         condition: MatchQuery::ElemMatch(
                             ElemMatch {

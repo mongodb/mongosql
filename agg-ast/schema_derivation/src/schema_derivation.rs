@@ -1506,52 +1506,52 @@ impl DeriveSchema for TaggedOperator {
                 }
                 Ok(Schema::Array(Box::new(array_schema)))
             }
-            TaggedOperator::SQLAvg(s) => UntaggedOperator {
+            TaggedOperator::SqlAvg(s) => UntaggedOperator {
                 op: UntaggedOperatorName::Avg,
                 args: vec![(*s.var).clone()],
             }
             .derive_schema(state),
-            TaggedOperator::SQLCount(s) => UntaggedOperator {
+            TaggedOperator::SqlCount(s) => UntaggedOperator {
                 op: UntaggedOperatorName::Count,
                 args: vec![(*s.var).clone()],
             }
             .derive_schema(state),
-            TaggedOperator::SQLFirst(s) => UntaggedOperator {
+            TaggedOperator::SqlFirst(s) => UntaggedOperator {
                 op: UntaggedOperatorName::First,
                 args: vec![(*s.var).clone()],
             }
             .derive_schema(state),
-            TaggedOperator::SQLLast(s) => UntaggedOperator {
+            TaggedOperator::SqlLast(s) => UntaggedOperator {
                 op: UntaggedOperatorName::Last,
                 args: vec![(*s.var).clone()],
             }
             .derive_schema(state),
-            TaggedOperator::SQLMax(s) => UntaggedOperator {
+            TaggedOperator::SqlMax(s) => UntaggedOperator {
                 op: UntaggedOperatorName::Max,
                 args: vec![(*s.var).clone()],
             }
             .derive_schema(state),
-            TaggedOperator::SQLMergeObjects(s) => UntaggedOperator {
+            TaggedOperator::SqlMergeObjects(s) => UntaggedOperator {
                 op: UntaggedOperatorName::MergeObjects,
                 args: vec![(*s.var).clone()],
             }
             .derive_schema(state),
-            TaggedOperator::SQLMin(s) => UntaggedOperator {
+            TaggedOperator::SqlMin(s) => UntaggedOperator {
                 op: UntaggedOperatorName::Min,
                 args: vec![(*s.var).clone()],
             }
             .derive_schema(state),
-            TaggedOperator::SQLStdDevPop(s) => UntaggedOperator {
+            TaggedOperator::SqlStdDevPop(s) => UntaggedOperator {
                 op: UntaggedOperatorName::StdDevPop,
                 args: vec![(*s.var).clone()],
             }
             .derive_schema(state),
-            TaggedOperator::SQLStdDevSamp(s) => UntaggedOperator {
+            TaggedOperator::SqlStdDevSamp(s) => UntaggedOperator {
                 op: UntaggedOperatorName::StdDevSamp,
                 args: vec![(*s.var).clone()],
             }
             .derive_schema(state),
-            TaggedOperator::SQLSum(s) => UntaggedOperator {
+            TaggedOperator::SqlSum(s) => UntaggedOperator {
                 op: UntaggedOperatorName::Sum,
                 args: vec![(*s.var).clone()],
             }
@@ -1559,8 +1559,8 @@ impl DeriveSchema for TaggedOperator {
             TaggedOperator::Accumulator(_)
             | TaggedOperator::Function(_)
             | TaggedOperator::Like(_)
-            | TaggedOperator::SQLConvert(_)
-            | TaggedOperator::SQLDivide(_)
+            | TaggedOperator::SqlConvert(_)
+            | TaggedOperator::SqlDivide(_)
             | TaggedOperator::Subquery(_)
             | TaggedOperator::SubqueryComparison(_)
             | TaggedOperator::SubqueryExists(_) => Err(Error::InvalidTaggedOperator(self.clone())),

@@ -3046,7 +3046,7 @@ mod constant_folding {
         field_access_mqlintrinstic_field_exists,
         expected = Stage::Array(ArraySource {
             alias: "".into(),
-            array: vec![Expression::MQLIntrinsicFieldExistence(FieldAccess {
+            array: vec![Expression::MqlIntrinsicFieldExistence(FieldAccess {
                 expr: Expression::Reference(("ITBL", 1u16).into()).into(),
                 field: "baz".into(),
                 is_nullable: true,
@@ -3056,7 +3056,7 @@ mod constant_folding {
         expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
-            array: vec![Expression::MQLIntrinsicFieldExistence(FieldAccess {
+            array: vec![Expression::MqlIntrinsicFieldExistence(FieldAccess {
                 expr: Expression::Document(
                     unchecked_unique_linked_hash_map! {
                         "ofoo".into() => Expression::FieldAccess(FieldAccess {
