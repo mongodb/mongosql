@@ -1046,7 +1046,8 @@ impl DeriveSchema for TaggedOperator {
                             .map_err(|_| Error::InvalidConvertTypeValue(decimal_string))?;
                         schema_for_type_numeric(decimal_as_double as i32)
                     }
-                    // unfortunately, convert can take any expression as a to type. So
+                    // unfortunately, convert can take any expression as a to type. We use
+                    // the full set of to types when we cant statically determine the output
                     _ => Schema::AnyOf(set!(
                         Schema::Atomic(Atomic::Integer),
                         Schema::Atomic(Atomic::Double),
