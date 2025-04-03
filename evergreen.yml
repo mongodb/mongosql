@@ -40,6 +40,7 @@ pre:
 
 post:
   - func: "stop mongo orchestration"
+  - func: "upload static analysis information"
 
 functions:
   "fetch source":
@@ -916,13 +917,26 @@ functions:
                     
           # Exit with a failure if the scan found an issue
           exit $SCAN_RESULT
+
+  "upload static analysis information":
     - command: s3.put
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
+        optional: true
         local_file: mongosql-rs/mongosql.sast.sarif
         remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/mongosql.sast.sarif
-        content_type: text/plain
+        content_type: text/json
+        bucket: mciuploads
+        permissions: public-read
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        optional: true
+        local_file: mongosql-rs/mongosql.sast.cmd.verbose.out
+        remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/mongosql.sast.cmd.verbose.out
+        content_type: text/plain; charset=utf-8
         bucket: mciuploads
         permissions: public-read
 
