@@ -1,5 +1,5 @@
 use crate::{
-    air::{AggregationFunction, DatePart, MQLOperator, SQLOperator},
+    air::{AggregationFunction, DatePart, MqlOperator, SqlOperator},
     codegen::MqlCodeGenerator,
 };
 
@@ -55,8 +55,8 @@ impl MqlCodeGenerator {
         }}}
     }
 
-    pub(crate) fn to_mql_op(mqlo: MQLOperator) -> &'static str {
-        use MQLOperator::*;
+    pub(crate) fn to_mql_op(mqlo: MqlOperator) -> &'static str {
+        use MqlOperator::*;
         match mqlo {
             // String operators
             Concat => "$concat",
@@ -157,8 +157,8 @@ impl MqlCodeGenerator {
         }
     }
 
-    pub(crate) fn to_sql_op(sqlo: SQLOperator) -> Option<&'static str> {
-        use SQLOperator::*;
+    pub(crate) fn to_sql_op(sqlo: SqlOperator) -> Option<&'static str> {
+        use SqlOperator::*;
         Some(match sqlo {
             // Arithmetic operators
             Pos => "$sqlPos",

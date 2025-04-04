@@ -16,8 +16,8 @@ mod substring {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Substring",
-            required: STRING_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::Integer),
+            required: STRING_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::Integer).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Substring,
@@ -34,8 +34,8 @@ mod substring {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Substring",
-            required: INTEGER_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::String),
+            required: INTEGER_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Substring,
@@ -52,8 +52,8 @@ mod substring {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Substring",
-            required: INTEGER_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::String),
+            required: INTEGER_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Substring,
@@ -129,8 +129,8 @@ mod and {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "And",
-            required: BOOLEAN_OR_NULLISH.clone(),
-            found: NUMERIC_OR_NULLISH.clone(),
+            required: BOOLEAN_OR_NULLISH.clone().into(),
+            found: NUMERIC_OR_NULLISH.clone().into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::And,
@@ -147,8 +147,8 @@ mod and {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "And",
-            required: BOOLEAN_OR_NULLISH.clone(),
-            found: NUMERIC_OR_NULLISH.clone(),
+            required: BOOLEAN_OR_NULLISH.clone().into(),
+            found: NUMERIC_OR_NULLISH.clone().into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::And,
@@ -227,8 +227,8 @@ mod or {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Or",
-            required: BOOLEAN_OR_NULLISH.clone(),
-            found: NUMERIC_OR_NULLISH.clone(),
+            required: BOOLEAN_OR_NULLISH.clone().into(),
+            found: NUMERIC_OR_NULLISH.clone().into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Or,
@@ -245,8 +245,8 @@ mod or {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Or",
-            required: BOOLEAN_OR_NULLISH.clone(),
-            found: NUMERIC_OR_NULLISH.clone(),
+            required: BOOLEAN_OR_NULLISH.clone().into(),
+            found: NUMERIC_OR_NULLISH.clone().into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Or,
@@ -325,8 +325,8 @@ mod not {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Not",
-            required: BOOLEAN_OR_NULLISH.clone(),
-            found: NUMERIC_OR_NULLISH.clone(),
+            required: BOOLEAN_OR_NULLISH.clone().into(),
+            found: NUMERIC_OR_NULLISH.clone().into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Not,
@@ -1389,8 +1389,9 @@ mod arithmetic {
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Add,
@@ -1453,8 +1454,9 @@ mod arithmetic {
                     Schema::Atomic(Atomic::Decimal),
                     Schema::Atomic(Atomic::Null),
                     Schema::Missing
-                ]),
-                found: Schema::Atomic(Atomic::String),
+                ])
+                .into(),
+                found: Schema::Atomic(Atomic::String).into(),
             }),
             input = Expression::ScalarFunction(ScalarFunctionApplication::new(
                 ScalarFunction::Sub,
@@ -1477,8 +1479,9 @@ mod arithmetic {
                     Schema::Atomic(Atomic::Decimal),
                     Schema::Atomic(Atomic::Null),
                     Schema::Missing
-                ]),
-                found: Schema::Atomic(Atomic::Boolean),
+                ])
+                .into(),
+                found: Schema::Atomic(Atomic::Boolean).into(),
             }),
             input = Expression::ScalarFunction(ScalarFunctionApplication::new(
                 ScalarFunction::Div,
@@ -1501,8 +1504,9 @@ mod arithmetic {
                     Schema::Atomic(Atomic::Decimal),
                     Schema::Atomic(Atomic::Null),
                     Schema::Missing
-                ]),
-                found: Schema::Atomic(Atomic::Boolean),
+                ])
+                .into(),
+                found: Schema::Atomic(Atomic::Boolean).into(),
             }),
             input = Expression::ScalarFunction(ScalarFunctionApplication::new(
                 ScalarFunction::Add,
@@ -1550,8 +1554,9 @@ mod abs {
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Abs,
@@ -1592,8 +1597,9 @@ mod ceil {
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Ceil,
@@ -1634,8 +1640,9 @@ mod degrees {
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Degrees,
@@ -1694,8 +1701,9 @@ mod floor {
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Floor,
@@ -1737,8 +1745,9 @@ mod log {
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Log,
@@ -1761,8 +1770,9 @@ mod log {
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Log,
@@ -1807,8 +1817,9 @@ mod mod_func {
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Mod,
@@ -1831,8 +1842,9 @@ mod mod_func {
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Mod,
@@ -1877,8 +1889,9 @@ mod pow {
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Pow,
@@ -1901,8 +1914,9 @@ mod pow {
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Pow,
@@ -1947,8 +1961,9 @@ mod round {
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Round,
@@ -1969,8 +1984,9 @@ mod round {
                 Schema::Atomic(Atomic::Long),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Round,
@@ -2014,8 +2030,9 @@ mod cos {
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Cos,
@@ -2065,8 +2082,9 @@ mod sin {
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Sin,
@@ -2116,8 +2134,9 @@ mod tan {
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Tan,
@@ -2167,8 +2186,9 @@ mod radians {
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Radians,
@@ -2209,8 +2229,9 @@ mod sqrt {
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Sqrt,
@@ -2241,8 +2262,8 @@ mod comparison {
         expected_error_code = 1005,
         expected = Err(mir_error::InvalidComparison(
             "Lte",
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Integer).into(),
+            Schema::Atomic(Atomic::String).into(),
         )),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Lte,
@@ -2316,8 +2337,8 @@ mod between {
         expected_error_code = 1005,
         expected = Err(mir_error::InvalidComparison(
             "Between",
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Integer).into(),
+            Schema::Atomic(Atomic::String).into(),
         )),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Between,
@@ -2334,8 +2355,8 @@ mod between {
         expected_error_code = 1005,
         expected = Err(mir_error::InvalidComparison(
             "Between",
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Integer).into(),
+            Schema::Atomic(Atomic::String).into(),
         )),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Between,
@@ -2414,8 +2435,8 @@ mod merge_objects {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "MergeObjects",
-            required: ANY_DOCUMENT.clone(),
-            found: Schema::Atomic(Atomic::String),
+            required: ANY_DOCUMENT.clone().into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::MergeObjects,
@@ -2437,8 +2458,8 @@ mod merge_objects {
         merge_objects_not_ok_to_be_multiple_any_document,
         expected_error_code = 1006,
         expected = Err(mir_error::CannotMergeObjects(
-            ANY_DOCUMENT.clone(),
-            ANY_DOCUMENT.clone(),
+            ANY_DOCUMENT.clone().into(),
+            ANY_DOCUMENT.clone().into(),
             Satisfaction::May,
         )),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -2460,13 +2481,15 @@ mod merge_objects {
                 required: set! {"a".into()},
                 additional_properties: false,
                 ..Default::default()
-            }),
+            })
+            .into(),
             Schema::Document(Document {
                 keys: map! {"a".into() => Schema::Atomic(Atomic::Double) },
                 required: set! {"a".into()},
                 additional_properties: false,
                 ..Default::default()
-            }),
+            })
+            .into(),
             Satisfaction::Must,
         )),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -2480,14 +2503,14 @@ mod merge_objects {
             ("bar", 0u16).into() => Schema::Document(
             Document {
                 keys: map! {"a".into() => Schema::Atomic(Atomic::Integer)},
-                required: set! {"a".into()},
+                required:  set! {"a".into()},
                 additional_properties: false,
                 ..Default::default()
                 }),
             ("car", 0u16).into() => Schema::Document(
             Document {
                 keys: map! {"a".into() => Schema::Atomic(Atomic::Double)},
-                required: set! {"a".into()},
+                required:  set! {"a".into()},
                 additional_properties: false,
                 ..Default::default()
                 }),
@@ -2526,7 +2549,7 @@ mod merge_objects {
                     "a".into() => Schema::Atomic(Atomic::Integer),
                     "b".into() => Schema::Atomic(Atomic::Integer),
                 },
-                required: set! {"a".into()},
+                required:  set! {"a".into()},
                 additional_properties: false,
                 ..Default::default()
                 }),
@@ -2536,7 +2559,7 @@ mod merge_objects {
                     "c".into() => Schema::Atomic(Atomic::Integer),
                     "d".into() => Schema::Atomic(Atomic::Integer),
                 },
-                required: set! {"d".into()},
+                required:  set! {"d".into()},
                 additional_properties: false,
                 ..Default::default()
                 }),
@@ -2546,7 +2569,7 @@ mod merge_objects {
                     "e".into() => Schema::Atomic(Atomic::Integer),
                     "f".into() => Schema::Atomic(Atomic::Integer),
                 },
-                required: set! {"e".into()},
+                required:  set! {"e".into()},
                 additional_properties: false,
                 ..Default::default()
                 }),
@@ -2588,7 +2611,7 @@ mod merge_objects {
                            "a".into() => Schema::Atomic(Atomic::Integer),
                            "b".into() => Schema::Atomic(Atomic::Integer),
                         },
-                    required: set! {"a".into()},
+                    required:  set! {"a".into()},
                     additional_properties: false,
                     ..Default::default()
                     }),
@@ -2598,7 +2621,7 @@ mod merge_objects {
                            "a".into() => Schema::Atomic(Atomic::Integer),
                            "b".into() => Schema::Atomic(Atomic::Double),
                         },
-                    required: set! {"a".into(), "b".into()},
+                    required:  set! {"a".into(), "b".into()},
                     additional_properties: false,
                     ..Default::default()
                     }),
@@ -2607,7 +2630,7 @@ mod merge_objects {
                         keys: map! {
                            "a".into() => Schema::Atomic(Atomic::Integer),
                         },
-                    required: set! {"a".into()},
+                    required:  set! {"a".into()},
                     additional_properties: false,
                     ..Default::default()
                     }),
@@ -2620,7 +2643,7 @@ mod merge_objects {
                            "d".into() => Schema::Atomic(Atomic::Integer),
                            "e".into() => Schema::Atomic(Atomic::Integer),
                         },
-                    required: set! {"e".into(), "d".into()},
+                    required:  set! {"e".into(), "d".into()},
                     additional_properties: false,
                     ..Default::default()
                     }),
@@ -2630,7 +2653,7 @@ mod merge_objects {
                            "e".into() => Schema::Atomic(Atomic::Integer),
                            "f".into() => Schema::Atomic(Atomic::Integer),
                         },
-                    required: set! {"e".into()},
+                    required:  set! {"e".into()},
                     additional_properties: false,
                     ..Default::default()
                     }),
@@ -2665,8 +2688,8 @@ mod computed_field_access {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "ComputedFieldAccess",
-            required: ANY_DOCUMENT.clone(),
-            found: Schema::Atomic(Atomic::Long),
+            required: ANY_DOCUMENT.clone().into(),
+            found: Schema::Atomic(Atomic::Long).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::ComputedFieldAccess,
@@ -2682,8 +2705,8 @@ mod computed_field_access {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "ComputedFieldAccess",
-            required: ANY_DOCUMENT.clone(),
-            found: Schema::AnyOf(set![ANY_DOCUMENT.clone(), Schema::Missing]),
+            required: ANY_DOCUMENT.clone().into(),
+            found: Schema::AnyOf(set![ANY_DOCUMENT.clone(), Schema::Missing]).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::ComputedFieldAccess,
@@ -2700,8 +2723,8 @@ mod computed_field_access {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "ComputedFieldAccess",
-            required: Schema::Atomic(Atomic::String),
-            found: Schema::Atomic(Atomic::Long),
+            required: Schema::Atomic(Atomic::String).into(),
+            found: Schema::Atomic(Atomic::Long).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::ComputedFieldAccess,
@@ -2718,8 +2741,8 @@ mod computed_field_access {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "ComputedFieldAccess",
-            required: Schema::Atomic(Atomic::String),
-            found: Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing]),
+            required: Schema::Atomic(Atomic::String).into(),
+            found: Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing]).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::ComputedFieldAccess,
@@ -2795,8 +2818,8 @@ mod nullif {
         expected_error_code = 1005,
         expected = Err(mir_error::InvalidComparison(
             "NullIf",
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::String)
+            Schema::Atomic(Atomic::Integer).into(),
+            Schema::Atomic(Atomic::String).into(),
         )),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::NullIf,
@@ -2812,8 +2835,8 @@ mod nullif {
         expected_error_code = 1005,
         expected = Err(mir_error::InvalidComparison(
             "NullIf",
-            Schema::Atomic(Atomic::Boolean),
-            Schema::Atomic(Atomic::String)
+            Schema::Atomic(Atomic::Boolean).into(),
+            Schema::Atomic(Atomic::String).into(),
         )),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::NullIf,
@@ -2832,11 +2855,13 @@ mod nullif {
             Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String)
-            ]),
+            ])
+            .into(),
             Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String)
             ])
+            .into(),
         )),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::NullIf,
@@ -3088,8 +3113,8 @@ mod slice {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Slice",
-            required: ANY_ARRAY.clone(),
-            found: Schema::Atomic(Atomic::String),
+            required: ANY_ARRAY.clone().into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Slice,
@@ -3109,8 +3134,9 @@ mod slice {
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::Long),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::Long).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Slice,
@@ -3127,8 +3153,8 @@ mod slice {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Slice",
-            required: ANY_ARRAY.clone(),
-            found: Schema::Atomic(Atomic::String),
+            required: ANY_ARRAY.clone().into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Slice,
@@ -3149,8 +3175,9 @@ mod slice {
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Slice,
@@ -3172,8 +3199,9 @@ mod slice {
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
-            ]),
-            found: Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Slice,
@@ -3239,8 +3267,8 @@ mod split {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Split",
-            required: STRING_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::Integer),
+            required: STRING_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::Integer).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Split,
@@ -3258,8 +3286,8 @@ mod split {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Split",
-            required: STRING_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::Integer),
+            required: STRING_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::Integer).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Split,
@@ -3277,8 +3305,8 @@ mod split {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Split",
-            required: INTEGER_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::String),
+            required: INTEGER_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Split,
@@ -3335,8 +3363,9 @@ mod size {
                 ANY_ARRAY.clone(),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing,
-            ]),
-            found: Schema::Atomic(Atomic::Integer),
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::Integer).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Size,
@@ -3400,11 +3429,12 @@ mod pos {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Pos",
-            required: NUMERIC_OR_NULLISH.clone(),
+            required: NUMERIC_OR_NULLISH.clone().into(),
             found: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String),
-            ]),
+            ])
+            .into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Pos,

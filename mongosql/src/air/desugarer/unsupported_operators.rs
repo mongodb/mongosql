@@ -4,17 +4,17 @@ use crate::{
         desugarer::{Error, Pass, Result},
         util::sql_op_to_mql_op,
         visitor::Visitor,
-        Expression, Is, Let, LetVariable, Like, LiteralValue, MQLOperator, MQLSemanticOperator,
-        RegexMatch, SQLOperator, SQLSemanticOperator, SqlConvert, SqlDivide, Stage, Switch,
+        Expression, Is, Let, LetVariable, Like, LiteralValue, MqlOperator, MqlSemanticOperator,
+        RegexMatch, SqlConvert, SqlDivide, SqlOperator, SqlSemanticOperator, Stage, Switch,
         SwitchCase, Type,
     },
     make_cond_expr,
     util::{convert_sql_pattern, LIKE_OPTIONS},
 };
 
-/// Desugars any SQL operators that do not exist in MQL (e.g. Between, Like,
-/// etc.) or that do not have the same semantics in MQL (e.g. Cos, Sin, Tan,
-/// etc.) into appropriate, equivalent MQL operators.
+/// Desugars any Sql operators that do not exist in Mql (e.g. Between, Like,
+/// etc.) or that do not have the same semantics in Mql (e.g. Cos, Sin, Tan,
+/// etc.) into appropriate, equivalent Mql operators.
 pub struct UnsupportedOperatorsDesugarerPass;
 
 impl Pass for UnsupportedOperatorsDesugarerPass {
@@ -46,24 +46,24 @@ const ONE_HUNDRED_LITERAL: Expression = Expression::Literal(LiteralValue::Intege
 
 impl UnsupportedOperatorsDesugarerVisitor {
     fn wrap_in_infinity_check(&self, arg: Expression) -> Expression {
-        let pos_inf_check = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Eq,
+        let pos_inf_check = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Eq,
             args: vec![arg.clone(), INFINITY_LITERAL],
         });
-        let neg_inf_check = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Eq,
+        let neg_inf_check = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Eq,
             args: vec![arg, NEG_INFINITY_LITERAL],
         });
-        Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Or,
+        Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Or,
             args: vec![pos_inf_check, neg_inf_check],
         })
     }
 
-    fn desugar_trig_function(&mut self, trig_function: SQLSemanticOperator) -> Expression {
+    fn desugar_trig_function(&mut self, trig_function: SqlSemanticOperator) -> Expression {
         let is_trig_arg_inf = self.wrap_in_infinity_check(trig_function.args[0].clone());
         let mql_op = sql_op_to_mql_op(trig_function.op).unwrap();
-        let trig_expr = Expression::MQLSemanticOperator(MQLSemanticOperator {
+        let trig_expr = Expression::MqlSemanticOperator(MqlSemanticOperator {
             op: mql_op,
             args: trig_function.args,
         });
@@ -90,29 +90,29 @@ impl UnsupportedOperatorsDesugarerVisitor {
 
     fn desugar_is(&self, is: Is) -> Expression {
         match is.target_type {
-            air::TypeOrMissing::Number => Expression::MQLSemanticOperator(MQLSemanticOperator {
-                op: MQLOperator::IsNumber,
+            air::TypeOrMissing::Number => Expression::MqlSemanticOperator(MqlSemanticOperator {
+                op: MqlOperator::IsNumber,
                 args: vec![*is.expr],
             }),
             air::TypeOrMissing::Type(Type::Null) => {
-                Expression::MQLSemanticOperator(MQLSemanticOperator {
-                    op: MQLOperator::Or,
+                Expression::MqlSemanticOperator(MqlSemanticOperator {
+                    op: MqlOperator::Or,
                     args: vec![
-                        Expression::MQLSemanticOperator(MQLSemanticOperator {
-                            op: MQLOperator::Eq,
+                        Expression::MqlSemanticOperator(MqlSemanticOperator {
+                            op: MqlOperator::Eq,
                             args: vec![
-                                Expression::MQLSemanticOperator(MQLSemanticOperator {
-                                    op: MQLOperator::Type,
+                                Expression::MqlSemanticOperator(MqlSemanticOperator {
+                                    op: MqlOperator::Type,
                                     args: vec![*is.expr.clone()],
                                 }),
                                 Expression::Literal(LiteralValue::String("null".to_string())),
                             ],
                         }),
-                        Expression::MQLSemanticOperator(MQLSemanticOperator {
-                            op: MQLOperator::Eq,
+                        Expression::MqlSemanticOperator(MqlSemanticOperator {
+                            op: MqlOperator::Eq,
                             args: vec![
-                                Expression::MQLSemanticOperator(MQLSemanticOperator {
-                                    op: MQLOperator::Type,
+                                Expression::MqlSemanticOperator(MqlSemanticOperator {
+                                    op: MqlOperator::Type,
                                     args: vec![*is.expr.clone()],
                                 }),
                                 Expression::Literal(LiteralValue::String("missing".to_string())),
@@ -122,16 +122,16 @@ impl UnsupportedOperatorsDesugarerVisitor {
                 })
             }
             air::TypeOrMissing::Type(Type::Array) => {
-                Expression::MQLSemanticOperator(MQLSemanticOperator {
-                    op: MQLOperator::IsArray,
+                Expression::MqlSemanticOperator(MqlSemanticOperator {
+                    op: MqlOperator::IsArray,
                     args: vec![*is.expr],
                 })
             }
-            t => Expression::MQLSemanticOperator(MQLSemanticOperator {
-                op: MQLOperator::Eq,
+            t => Expression::MqlSemanticOperator(MqlSemanticOperator {
+                op: MqlOperator::Eq,
                 args: vec![
-                    Expression::MQLSemanticOperator(MQLSemanticOperator {
-                        op: MQLOperator::Type,
+                    Expression::MqlSemanticOperator(MqlSemanticOperator {
+                        op: MqlOperator::Type,
                         args: vec![*is.expr.clone()],
                     }),
                     Expression::Literal(LiteralValue::String(String::from(t.to_str()))),
@@ -140,7 +140,7 @@ impl UnsupportedOperatorsDesugarerVisitor {
         }
     }
 
-    fn desugar_sql_between(&self, between: SQLSemanticOperator) -> Expression {
+    fn desugar_sql_between(&self, between: SqlSemanticOperator) -> Expression {
         let input_var_name = "desugared_sqlBetween_input".to_string();
         let input_var_ref = Expression::Variable(input_var_name.clone().into());
         let let_vars = vec![LetVariable {
@@ -149,15 +149,15 @@ impl UnsupportedOperatorsDesugarerVisitor {
         }];
         Expression::Let(Let {
             vars: let_vars,
-            inside: Box::new(Expression::SQLSemanticOperator(SQLSemanticOperator {
-                op: SQLOperator::And,
+            inside: Box::new(Expression::SqlSemanticOperator(SqlSemanticOperator {
+                op: SqlOperator::And,
                 args: vec![
-                    Expression::SQLSemanticOperator(SQLSemanticOperator {
-                        op: SQLOperator::Gte,
+                    Expression::SqlSemanticOperator(SqlSemanticOperator {
+                        op: SqlOperator::Gte,
                         args: vec![input_var_ref.clone(), between.args[1].clone()],
                     }),
-                    Expression::SQLSemanticOperator(SQLSemanticOperator {
-                        op: SQLOperator::Lte,
+                    Expression::SqlSemanticOperator(SqlSemanticOperator {
+                        op: SqlOperator::Lte,
                         args: vec![input_var_ref, between.args[2].clone()],
                     }),
                 ],
@@ -165,7 +165,7 @@ impl UnsupportedOperatorsDesugarerVisitor {
         })
     }
 
-    fn desugar_mql_between(&self, between: MQLSemanticOperator) -> Expression {
+    fn desugar_mql_between(&self, between: MqlSemanticOperator) -> Expression {
         let input_var_name = "desugared_mqlBetween_input".to_string();
 
         // If the first argument is a reference, there is no need to bind it
@@ -177,15 +177,15 @@ impl UnsupportedOperatorsDesugarerVisitor {
             _ => (true, Expression::Variable(input_var_name.clone().into())),
         };
 
-        let and_op = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::And,
+        let and_op = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::And,
             args: vec![
-                Expression::MQLSemanticOperator(MQLSemanticOperator {
-                    op: MQLOperator::Gte,
+                Expression::MqlSemanticOperator(MqlSemanticOperator {
+                    op: MqlOperator::Gte,
                     args: vec![arg_ref.clone(), between.args[1].clone()],
                 }),
-                Expression::MQLSemanticOperator(MQLSemanticOperator {
-                    op: MQLOperator::Lte,
+                Expression::MqlSemanticOperator(MqlSemanticOperator {
+                    op: MqlOperator::Lte,
                     args: vec![arg_ref, between.args[2].clone()],
                 }),
             ],
@@ -204,12 +204,12 @@ impl UnsupportedOperatorsDesugarerVisitor {
         }
     }
 
-    fn desugar_sql_bit_length(&self, bit_length: SQLSemanticOperator) -> Expression {
-        Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Multiply,
+    fn desugar_sql_bit_length(&self, bit_length: SqlSemanticOperator) -> Expression {
+        Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Multiply,
             args: vec![
-                Expression::SQLSemanticOperator(SQLSemanticOperator {
-                    op: SQLOperator::StrLenBytes,
+                Expression::SqlSemanticOperator(SqlSemanticOperator {
+                    op: SqlOperator::StrLenBytes,
                     args: bit_length.args,
                 }),
                 EIGHT_LITERAL,
@@ -217,13 +217,13 @@ impl UnsupportedOperatorsDesugarerVisitor {
         })
     }
 
-    fn desugar_sql_coalesce(&self, coalesce: SQLSemanticOperator) -> Expression {
+    fn desugar_sql_coalesce(&self, coalesce: SqlSemanticOperator) -> Expression {
         let cases = coalesce
             .args
             .iter()
             .map(|branch| SwitchCase {
-                case: Box::new(Expression::MQLSemanticOperator(MQLSemanticOperator {
-                    op: MQLOperator::Gt,
+                case: Box::new(Expression::MqlSemanticOperator(MqlSemanticOperator {
+                    op: MqlOperator::Gt,
                     args: vec![branch.clone(), NULL_LITERAL],
                 })),
                 then: Box::new(branch.clone()),
@@ -240,11 +240,11 @@ impl UnsupportedOperatorsDesugarerVisitor {
         let input_var_ref = Expression::Variable(input_var_name.to_string().into());
 
         let case_input_is_of_type = SwitchCase {
-            case: Box::new(Expression::MQLSemanticOperator(MQLSemanticOperator {
-                op: MQLOperator::Eq,
+            case: Box::new(Expression::MqlSemanticOperator(MqlSemanticOperator {
+                op: MqlOperator::Eq,
                 args: vec![
-                    Expression::MQLSemanticOperator(MQLSemanticOperator {
-                        op: MQLOperator::Type,
+                    Expression::MqlSemanticOperator(MqlSemanticOperator {
+                        op: MqlOperator::Type,
                         args: vec![input_var_ref.clone()],
                     }),
                     Expression::Literal(LiteralValue::String(convert.to.to_str().to_string())),
@@ -253,8 +253,8 @@ impl UnsupportedOperatorsDesugarerVisitor {
             then: Box::new(input_var_ref.clone()),
         };
         let case_input_is_null = SwitchCase {
-            case: Box::new(Expression::MQLSemanticOperator(MQLSemanticOperator {
-                op: MQLOperator::Lte,
+            case: Box::new(Expression::MqlSemanticOperator(MqlSemanticOperator {
+                op: MqlOperator::Lte,
                 args: vec![input_var_ref, NULL_LITERAL],
             })),
             then: convert.on_null,
@@ -274,50 +274,50 @@ impl UnsupportedOperatorsDesugarerVisitor {
     }
 
     fn desugar_sql_divide(&self, divide: SqlDivide) -> Expression {
-        let divisor_not_zero_expr = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Eq,
+        let divisor_not_zero_expr = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Eq,
             args: vec![*divide.divisor.clone(), ZERO_LITERAL],
         });
-        let division_expr = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Divide,
+        let division_expr = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Divide,
             args: vec![*divide.dividend, *divide.divisor],
         });
 
         make_cond_expr!(divisor_not_zero_expr, *divide.on_error, division_expr)
     }
 
-    fn desugar_sql_log(&self, log: SQLSemanticOperator) -> Expression {
-        let first_arg_nan = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Eq,
+    fn desugar_sql_log(&self, log: SqlSemanticOperator) -> Expression {
+        let first_arg_nan = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Eq,
             args: vec![log.args[0].clone(), NAN_LITERAL],
         });
-        let second_arg_nan = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Eq,
+        let second_arg_nan = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Eq,
             args: vec![log.args[1].clone(), NAN_LITERAL],
         });
-        let first_arg_negative = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Lte,
+        let first_arg_negative = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Lte,
             args: vec![log.args[0].clone(), ZERO_LITERAL],
         });
-        let second_arg_one = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Eq,
+        let second_arg_one = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Eq,
             args: vec![log.args[1].clone(), ONE_LITERAL],
         });
-        let second_arg_negative = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Lte,
+        let second_arg_negative = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Lte,
             args: vec![log.args[1].clone(), ZERO_LITERAL],
         });
 
-        let nan_check_condition = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Or,
+        let nan_check_condition = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Or,
             args: vec![first_arg_nan, second_arg_nan],
         });
-        let invalid_arg_condition = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Or,
+        let invalid_arg_condition = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Or,
             args: vec![first_arg_negative, second_arg_one, second_arg_negative],
         });
-        let log_expr = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Log,
+        let log_expr = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Log,
             args: log.args,
         });
 
@@ -331,17 +331,17 @@ impl UnsupportedOperatorsDesugarerVisitor {
         )
     }
 
-    fn desugar_sql_mod(&self, mod_operator: SQLSemanticOperator) -> Expression {
+    fn desugar_sql_mod(&self, mod_operator: SqlSemanticOperator) -> Expression {
         let dividend_var_name = "desugared_sqlMod_input0".to_string();
         let dividend_var_ref = Expression::Variable(dividend_var_name.clone().into());
         let divisor_var_name = "desugared_sqlMod_input1".to_string();
         let divisor_var_ref = Expression::Variable(divisor_var_name.clone().into());
-        let divisor_is_zero_expr = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Eq,
+        let divisor_is_zero_expr = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Eq,
             args: vec![divisor_var_ref.clone(), ZERO_LITERAL],
         });
-        let mod_expr = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Mod,
+        let mod_expr = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Mod,
             args: vec![dividend_var_ref, divisor_var_ref],
         });
         let mod_expr_conditional = make_cond_expr!(divisor_is_zero_expr, NULL_LITERAL, mod_expr);
@@ -362,24 +362,24 @@ impl UnsupportedOperatorsDesugarerVisitor {
         })
     }
 
-    fn desugar_sql_neg(&self, neg: SQLSemanticOperator) -> Expression {
-        Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Multiply,
+    fn desugar_sql_neg(&self, neg: SqlSemanticOperator) -> Expression {
+        Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Multiply,
             args: vec![neg.args[0].clone(), NEG_ONE_LITERAL],
         })
     }
 
-    fn desugar_sql_nullif(&self, nullif: SQLSemanticOperator) -> Expression {
+    fn desugar_sql_nullif(&self, nullif: SqlSemanticOperator) -> Expression {
         let expr_var_name = "expr1".to_string();
         let expr_var_ref = Expression::Variable(expr_var_name.clone().into());
-        let nullif_expr = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Eq,
+        let nullif_expr = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Eq,
             args: vec![expr_var_ref.clone(), nullif.args[1].clone()],
         });
         let let_vars = vec![LetVariable {
             name: expr_var_name,
-            expr: Box::new(Expression::MQLSemanticOperator(MQLSemanticOperator {
-                op: MQLOperator::IfNull,
+            expr: Box::new(Expression::MqlSemanticOperator(MqlSemanticOperator {
+                op: MqlOperator::IfNull,
                 args: vec![nullif.args[0].clone(), NULL_LITERAL],
             })),
         }];
@@ -391,34 +391,34 @@ impl UnsupportedOperatorsDesugarerVisitor {
         })
     }
 
-    fn desugar_sql_pos(&self, pos: SQLSemanticOperator) -> Expression {
+    fn desugar_sql_pos(&self, pos: SqlSemanticOperator) -> Expression {
         pos.args[0].clone()
     }
 
-    fn desugar_sql_round(&self, round: SQLSemanticOperator) -> Expression {
+    fn desugar_sql_round(&self, round: SqlSemanticOperator) -> Expression {
         let input_number_var_name = "desugared_sqlRound_input0".to_string();
         let input_place_var_name = "desugared_sqlRound_input1".to_string();
         let input_number_var_ref = Expression::Variable(input_number_var_name.clone().into());
         let input_place_var_ref = Expression::Variable(input_place_var_name.clone().into());
-        let arg_is_nan = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Eq,
+        let arg_is_nan = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Eq,
             args: vec![input_place_var_ref.clone(), NAN_LITERAL],
         });
-        let input_place_within_range_check = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::And,
+        let input_place_within_range_check = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::And,
             args: vec![
-                Expression::MQLSemanticOperator(MQLSemanticOperator {
-                    op: MQLOperator::Gte,
+                Expression::MqlSemanticOperator(MqlSemanticOperator {
+                    op: MqlOperator::Gte,
                     args: vec![input_place_var_ref.clone(), NEG_TWENTY_LITERAL],
                 }),
-                Expression::MQLSemanticOperator(MQLSemanticOperator {
-                    op: MQLOperator::Lte,
+                Expression::MqlSemanticOperator(MqlSemanticOperator {
+                    op: MqlOperator::Lte,
                     args: vec![input_place_var_ref.clone(), ONE_HUNDRED_LITERAL],
                 }),
             ],
         });
-        let round_expr = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Round,
+        let round_expr = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Round,
             args: vec![input_number_var_ref, input_place_var_ref],
         });
         let round_with_range_check_conditional =
@@ -442,17 +442,17 @@ impl UnsupportedOperatorsDesugarerVisitor {
         })
     }
 
-    fn desugar_sql_slice(&self, slice: SQLSemanticOperator) -> Expression {
-        let slice_expr = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Slice,
+    fn desugar_sql_slice(&self, slice: SqlSemanticOperator) -> Expression {
+        let slice_expr = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Slice,
             args: slice.args.clone(),
         });
 
         // when there are three elements, they represent $slice: <number to skip, number to return>
         if slice.args.len() == 3 {
             let number_to_return_lte_zero_check =
-                Expression::MQLSemanticOperator(MQLSemanticOperator {
-                    op: MQLOperator::Lte,
+                Expression::MqlSemanticOperator(MqlSemanticOperator {
+                    op: MqlOperator::Lte,
                     args: vec![slice.args[2].clone(), ZERO_LITERAL],
                 });
             make_cond_expr!(number_to_return_lte_zero_check, NULL_LITERAL, slice_expr)
@@ -462,7 +462,7 @@ impl UnsupportedOperatorsDesugarerVisitor {
         }
     }
 
-    fn desugar_sql_split(&self, split: SQLSemanticOperator) -> Expression {
+    fn desugar_sql_split(&self, split: SqlSemanticOperator) -> Expression {
         let input_str_var_name = "desugared_sqlSplit_input0";
         let input_str_var_ref = Expression::Variable(input_str_var_name.to_string().into());
         let input_delim_var_name = "desugared_sqlSplit_input1";
@@ -475,8 +475,8 @@ impl UnsupportedOperatorsDesugarerVisitor {
         let slice_expr_var_name = "desugared_sqlSplit_slice_expr";
         let slice_expr_var_ref = Expression::Variable(slice_expr_var_name.to_string().into());
 
-        let split_expr = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Split,
+        let split_expr = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Split,
             args: vec![input_str_var_ref, input_delim_var_ref.clone()],
         });
 
@@ -485,16 +485,16 @@ impl UnsupportedOperatorsDesugarerVisitor {
         // circumvent MongoDB's default behavior of setting the starting position of
         // $slice to the beginning of the array even when the absolute value of the
         // given position is larger than the array itself.
-        let abs_token_num_expr = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Abs,
+        let abs_token_num_expr = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Abs,
             args: vec![input_token_num_var_ref.clone()],
         });
-        let size_expr = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Size,
+        let size_expr = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Size,
             args: vec![split_expr_var_ref.clone()],
         });
-        let abs_token_num_gt_size_check = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Gt,
+        let abs_token_num_gt_size_check = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Gt,
             args: vec![abs_token_num_expr.clone(), size_expr],
         });
         let token_num_cond_expr = make_cond_expr!(
@@ -502,8 +502,8 @@ impl UnsupportedOperatorsDesugarerVisitor {
             abs_token_num_expr,
             input_token_num_var_ref
         );
-        let slice_expr = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Slice,
+        let slice_expr = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Slice,
             args: vec![split_expr_var_ref.clone(), token_num_cond_expr, ONE_LITERAL],
         });
 
@@ -511,8 +511,8 @@ impl UnsupportedOperatorsDesugarerVisitor {
         // This is done to circumvent MongoDB's default behavior of $arrayElemAt[
         // [], 0] returning MISSING instead of the empty string.
         let slice_with_default_conditional = make_cond_expr!(
-            Expression::MQLSemanticOperator(MQLSemanticOperator {
-                op: MQLOperator::Eq,
+            Expression::MqlSemanticOperator(MqlSemanticOperator {
+                op: MqlOperator::Eq,
                 args: vec![slice_expr_var_ref.clone(), Expression::Array(vec![])],
             }),
             Expression::Array(vec![Expression::Literal(LiteralValue::String(
@@ -520,8 +520,8 @@ impl UnsupportedOperatorsDesugarerVisitor {
             ))]),
             slice_expr_var_ref
         );
-        let array_elem_at_expr = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::ElemAt,
+        let array_elem_at_expr = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::ElemAt,
             args: vec![slice_with_default_conditional, ZERO_LITERAL],
         });
 
@@ -533,8 +533,8 @@ impl UnsupportedOperatorsDesugarerVisitor {
             }],
             inside: Box::new(array_elem_at_expr),
         });
-        let split_expr_null_check = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Lte,
+        let split_expr_null_check = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Lte,
             args: vec![split_expr_var_ref, NULL_LITERAL],
         });
         let split_expr_null_check_with_elem_at = Expression::Let(Let {
@@ -548,8 +548,8 @@ impl UnsupportedOperatorsDesugarerVisitor {
                 array_elem_at_with_let_vars
             )),
         });
-        let input_delim_empty_check = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Eq,
+        let input_delim_empty_check = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Eq,
             args: vec![
                 input_delim_var_ref,
                 Expression::Literal(LiteralValue::String("".to_string())),
@@ -581,24 +581,24 @@ impl UnsupportedOperatorsDesugarerVisitor {
         })
     }
 
-    fn desugar_sql_sqrt(&self, sqrt: SQLSemanticOperator) -> Expression {
+    fn desugar_sql_sqrt(&self, sqrt: SqlSemanticOperator) -> Expression {
         let input_var_name = "desugared_sqlSqrt_input".to_string();
         let input_var_ref = Expression::Variable(input_var_name.clone().into());
-        let arg_is_nan = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Eq,
+        let arg_is_nan = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Eq,
             args: vec![input_var_ref.clone(), NAN_LITERAL],
         });
-        let arg_negative_check = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Lt,
+        let arg_negative_check = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Lt,
             args: vec![input_var_ref.clone(), ZERO_LITERAL],
         });
-        let arg_negative_check_with_sqrt = Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Cond,
+        let arg_negative_check_with_sqrt = Expression::MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Cond,
             args: vec![
                 arg_negative_check,
                 NULL_LITERAL,
-                Expression::MQLSemanticOperator(MQLSemanticOperator {
-                    op: MQLOperator::Sqrt,
+                Expression::MqlSemanticOperator(MqlSemanticOperator {
+                    op: MqlOperator::Sqrt,
                     args: vec![input_var_ref],
                 }),
             ],
@@ -627,25 +627,25 @@ impl Visitor for UnsupportedOperatorsDesugarerVisitor {
             Is(i) => self.desugar_is(i),
             SqlConvert(s) => self.desugar_sql_convert(s),
             SqlDivide(s) => self.desugar_sql_divide(s),
-            SQLSemanticOperator(s) => match s.op {
-                SQLOperator::Between => self.desugar_sql_between(s),
-                SQLOperator::BitLength => self.desugar_sql_bit_length(s),
-                SQLOperator::Coalesce => self.desugar_sql_coalesce(s),
-                SQLOperator::Cos | SQLOperator::Sin | SQLOperator::Tan => {
+            SqlSemanticOperator(s) => match s.op {
+                SqlOperator::Between => self.desugar_sql_between(s),
+                SqlOperator::BitLength => self.desugar_sql_bit_length(s),
+                SqlOperator::Coalesce => self.desugar_sql_coalesce(s),
+                SqlOperator::Cos | SqlOperator::Sin | SqlOperator::Tan => {
                     self.desugar_trig_function(s)
                 }
-                SQLOperator::Log => self.desugar_sql_log(s),
-                SQLOperator::Mod => self.desugar_sql_mod(s),
-                SQLOperator::Neg => self.desugar_sql_neg(s),
-                SQLOperator::NullIf => self.desugar_sql_nullif(s),
-                SQLOperator::Pos => self.desugar_sql_pos(s),
-                SQLOperator::Round => self.desugar_sql_round(s),
-                SQLOperator::Slice => self.desugar_sql_slice(s),
-                SQLOperator::Split => self.desugar_sql_split(s),
-                SQLOperator::Sqrt => self.desugar_sql_sqrt(s),
-                _ => SQLSemanticOperator(s),
+                SqlOperator::Log => self.desugar_sql_log(s),
+                SqlOperator::Mod => self.desugar_sql_mod(s),
+                SqlOperator::Neg => self.desugar_sql_neg(s),
+                SqlOperator::NullIf => self.desugar_sql_nullif(s),
+                SqlOperator::Pos => self.desugar_sql_pos(s),
+                SqlOperator::Round => self.desugar_sql_round(s),
+                SqlOperator::Slice => self.desugar_sql_slice(s),
+                SqlOperator::Split => self.desugar_sql_split(s),
+                SqlOperator::Sqrt => self.desugar_sql_sqrt(s),
+                _ => SqlSemanticOperator(s),
             },
-            MQLSemanticOperator(m) if m.op == MQLOperator::Between => self.desugar_mql_between(m),
+            MqlSemanticOperator(m) if m.op == MqlOperator::Between => self.desugar_mql_between(m),
             _ => node,
         };
         node.walk(self)

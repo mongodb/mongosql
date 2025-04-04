@@ -457,9 +457,9 @@ mod stage {
                     name: "x".to_string(),
                     expr: Box::new(air::Expression::FieldRef("x".to_string().into()))
                 }]),
-                condition: Some(air::Expression::SQLSemanticOperator(
-                    air::SQLSemanticOperator {
-                        op: air::SQLOperator::Eq,
+                condition: Some(air::Expression::SqlSemanticOperator(
+                    air::SqlSemanticOperator {
+                        op: air::SqlOperator::Eq,
                         args: vec![
                             air::Expression::Variable("x".to_string().into()),
                             air::Expression::FieldRef("x".to_string().into())
@@ -482,7 +482,7 @@ mod stage {
                 })],
                 condition: Some(agg_ast::Expression::UntaggedOperator(
                     agg_ast::UntaggedOperator {
-                        op: agg_ast::UntaggedOperatorName::SQLEq,
+                        op: agg_ast::UntaggedOperatorName::SqlEq,
                         args: vec![
                             agg_ast::Expression::Ref(agg_ast::Ref::VariableRef("x".to_string())),
                             agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("x".to_string())),
@@ -766,8 +766,8 @@ mod stage {
             input = agg_ast::Stage::Group(agg_ast::Group {
                 keys: agg_ast::Expression::Literal(agg_ast::LiteralValue::Null),
                 aggregations: map! {
-                "acc".to_string() => agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SQLSum(
-                    agg_ast::SQLAccumulator {
+                "acc".to_string() => agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SqlSum(
+                    agg_ast::SqlAccumulator {
                         distinct: true,
                         var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string()))),
                         arg_is_possibly_doc: Some("must".to_string()),
@@ -792,8 +792,8 @@ mod stage {
             input = agg_ast::Stage::Group(agg_ast::Group {
                 keys: agg_ast::Expression::Literal(agg_ast::LiteralValue::Null),
                 aggregations: map! {
-                    "acc".to_string() => agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SQLSum(
-                        agg_ast::SQLAccumulator {
+                    "acc".to_string() => agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SqlSum(
+                        agg_ast::SqlAccumulator {
                             distinct: true,
                             var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string()))),
                             arg_is_possibly_doc: Some("may".to_string()),
@@ -819,8 +819,8 @@ mod stage {
             input = agg_ast::Stage::Group(agg_ast::Group {
                 keys: agg_ast::Expression::Literal(agg_ast::LiteralValue::Null),
                 aggregations: map! {
-                "acc".to_string() => agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SQLSum(
-                    agg_ast::SQLAccumulator {
+                "acc".to_string() => agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SqlSum(
+                    agg_ast::SqlAccumulator {
                         distinct: true,
                         var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string()))),
                         arg_is_possibly_doc: Some("not".to_string()),
@@ -859,15 +859,15 @@ mod stage {
                     "a".to_string() => agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string()))
                 },),
                 aggregations: map! {
-                    "acc_one".to_string() => agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SQLSum(
-                        agg_ast::SQLAccumulator {
+                    "acc_one".to_string() => agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SqlSum(
+                        agg_ast::SqlAccumulator {
                             distinct: true,
                             var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string()))),
                             arg_is_possibly_doc: None,
                         },
                     )),
-                    "acc_two".to_string() => agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SQLAvg(
-                        agg_ast::SQLAccumulator {
+                    "acc_two".to_string() => agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SqlAvg(
+                        agg_ast::SqlAccumulator {
                             distinct: true,
                             var: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("b".to_string()))),
                             arg_is_possibly_doc: None,
@@ -1199,8 +1199,8 @@ mod expression {
                 on_null: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
                 on_error: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
             }),
-            input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SQLConvert(
-                agg_ast::SQLConvert {
+            input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SqlConvert(
+                agg_ast::SqlConvert {
                     input: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
                         "a".to_string()
                     ))),
@@ -1260,8 +1260,8 @@ mod expression {
                 divisor: Box::new(air::Expression::FieldRef("b".to_string().into())),
                 on_error: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
             }),
-            input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SQLDivide(
-                agg_ast::SQLDivide {
+            input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SqlDivide(
+                agg_ast::SqlDivide {
                     dividend: Box::new(agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
                         "a".to_string()
                     ))),
@@ -1574,12 +1574,12 @@ mod expression {
 
         test_from_expr!(
             sql_op_one_arg,
-            expected = air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
-                op: air::SQLOperator::Pos,
+            expected = air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
+                op: air::SqlOperator::Pos,
                 args: vec![air::Expression::FieldRef("a".to_string().into())]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: agg_ast::UntaggedOperatorName::SQLPos,
+                op: agg_ast::UntaggedOperatorName::SqlPos,
                 args: vec![agg_ast::Expression::Ref(agg_ast::Ref::FieldRef(
                     "a".to_string()
                 ))],
@@ -1588,15 +1588,15 @@ mod expression {
 
         test_from_expr!(
             sql_op_multiple_args,
-            expected = air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
-                op: air::SQLOperator::Eq,
+            expected = air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
+                op: air::SqlOperator::Eq,
                 args: vec![
                     air::Expression::FieldRef("a".to_string().into()),
                     air::Expression::FieldRef("b".to_string().into()),
                 ]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: agg_ast::UntaggedOperatorName::SQLEq,
+                op: agg_ast::UntaggedOperatorName::SqlEq,
                 args: vec![
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("b".to_string())),
@@ -1606,8 +1606,8 @@ mod expression {
 
         test_from_expr!(
             mql_op_one_arg,
-            expected = air::Expression::MQLSemanticOperator(air::MQLSemanticOperator {
-                op: air::MQLOperator::Size,
+            expected = air::Expression::MqlSemanticOperator(air::MqlSemanticOperator {
+                op: air::MqlOperator::Size,
                 args: vec![air::Expression::FieldRef("a".to_string().into())]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
@@ -1620,8 +1620,8 @@ mod expression {
 
         test_from_expr!(
             mql_op_multiple_args,
-            expected = air::Expression::MQLSemanticOperator(air::MQLSemanticOperator {
-                op: air::MQLOperator::Lte,
+            expected = air::Expression::MqlSemanticOperator(air::MqlSemanticOperator {
+                op: air::MqlOperator::Lte,
                 args: vec![
                     air::Expression::FieldRef("a".to_string().into()),
                     air::Expression::FieldRef("b".to_string().into()),
@@ -1674,7 +1674,7 @@ mod expression {
                 target_type: air::TypeOrMissing::Type(air::Type::Int32),
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: agg_ast::UntaggedOperatorName::SQLIs,
+                op: agg_ast::UntaggedOperatorName::SqlIs,
                 args: vec![
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
                     agg_ast::Expression::Literal(agg_ast::LiteralValue::String("int".to_string())),
@@ -1689,7 +1689,7 @@ mod expression {
                 target_type: air::TypeOrMissing::Missing,
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: agg_ast::UntaggedOperatorName::SQLIs,
+                op: agg_ast::UntaggedOperatorName::SqlIs,
                 args: vec![
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
                     agg_ast::Expression::Literal(agg_ast::LiteralValue::String(
@@ -1701,8 +1701,8 @@ mod expression {
 
         test_from_expr!(
             null_if,
-            expected = air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
-                op: air::SQLOperator::NullIf,
+            expected = air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
+                op: air::SqlOperator::NullIf,
                 args: vec![air::Expression::Literal(air::LiteralValue::Integer(1))]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
@@ -1715,8 +1715,8 @@ mod expression {
 
         test_from_expr!(
             coalesce,
-            expected = air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
-                op: air::SQLOperator::Coalesce,
+            expected = air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
+                op: air::SqlOperator::Coalesce,
                 args: vec![air::Expression::Literal(air::LiteralValue::Integer(1))]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
@@ -1729,8 +1729,8 @@ mod expression {
 
         test_from_expr!(
             sql_between,
-            expected = air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
-                op: air::SQLOperator::Between,
+            expected = air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
+                op: air::SqlOperator::Between,
                 args: vec![
                     air::Expression::FieldRef("a".to_string().into()),
                     air::Expression::FieldRef("b".to_string().into()),
@@ -1738,7 +1738,7 @@ mod expression {
                 ]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: agg_ast::UntaggedOperatorName::SQLBetween,
+                op: agg_ast::UntaggedOperatorName::SqlBetween,
                 args: vec![
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("b".to_string())),
@@ -1749,8 +1749,8 @@ mod expression {
 
         test_from_expr!(
             mql_between,
-            expected = air::Expression::MQLSemanticOperator(air::MQLSemanticOperator {
-                op: air::MQLOperator::Between,
+            expected = air::Expression::MqlSemanticOperator(air::MqlSemanticOperator {
+                op: air::MqlOperator::Between,
                 args: vec![
                     air::Expression::FieldRef("a".to_string().into()),
                     air::Expression::FieldRef("b".to_string().into()),
@@ -1758,7 +1758,7 @@ mod expression {
                 ]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: agg_ast::UntaggedOperatorName::MQLBetween,
+                op: agg_ast::UntaggedOperatorName::MqlBetween,
                 args: vec![
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("a".to_string())),
                     agg_ast::Expression::Ref(agg_ast::Ref::FieldRef("b".to_string())),

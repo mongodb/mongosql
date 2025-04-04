@@ -10,8 +10,8 @@ test_schema!(
     expected_error_code = 1002,
     expected = Err(mir_error::SchemaChecking {
         name: "FieldAccess",
-        required: crate::schema::ANY_DOCUMENT.clone(),
-        found: Schema::Atomic(Atomic::Long),
+        required: crate::schema::ANY_DOCUMENT.clone().into(),
+        found: Schema::Atomic(Atomic::Long).into(),
     }),
     input = Expression::FieldAccess(FieldAccess::new(
         Box::new(Expression::Literal(LiteralValue::Long(1))),

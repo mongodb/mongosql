@@ -10,8 +10,8 @@ test_schema!(
     expected_error_code = 1002,
     expected = Err(mir_error::SchemaChecking {
         name: "Like",
-        required: STRING_OR_NULLISH.clone(),
-        found: NUMERIC_OR_NULLISH.clone(),
+        required: STRING_OR_NULLISH.clone().into(),
+        found: NUMERIC_OR_NULLISH.clone().into(),
     }),
     input = Expression::Like(LikeExpr {
         expr: Expression::Reference(("bar", 0u16).into()).into(),
@@ -26,8 +26,8 @@ test_schema!(
     expected_error_code = 1002,
     expected = Err(mir_error::SchemaChecking {
         name: "Like",
-        required: STRING_OR_NULLISH.clone(),
-        found: NUMERIC_OR_NULLISH.clone(),
+        required: STRING_OR_NULLISH.clone().into(),
+        found: NUMERIC_OR_NULLISH.clone().into(),
     }),
     input = Expression::Like(LikeExpr {
         expr: Expression::Literal(LiteralValue::String("hello".into())).into(),

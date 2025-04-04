@@ -200,8 +200,8 @@ impl MqlTranslator {
             new_root: Box::new(if namespaces.len() == 1 {
                 namespaces.first().unwrap().clone()
             } else {
-                air::Expression::MQLSemanticOperator(air::MQLSemanticOperator {
-                    op: air::MQLOperator::MergeObjects,
+                air::Expression::MqlSemanticOperator(air::MqlSemanticOperator {
+                    op: air::MqlOperator::MergeObjects,
                     args: namespaces,
                 })
             }),

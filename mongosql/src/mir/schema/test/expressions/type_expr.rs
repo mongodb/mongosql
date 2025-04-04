@@ -173,8 +173,8 @@ mod type_assert {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "::!",
-            required: Schema::Atomic(Atomic::String),
-            found: Schema::Atomic(Atomic::Integer),
+            required: Schema::Atomic(Atomic::String).into(),
+            found: Schema::Atomic(Atomic::Integer).into(),
         }),
         input = Expression::TypeAssertion(TypeAssertionExpr {
             expr: Box::new(Expression::Literal(LiteralValue::Integer(1))),

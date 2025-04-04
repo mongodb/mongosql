@@ -83,7 +83,7 @@ fn filter_stage(condition: Expression) -> Stage {
 }
 
 fn match_filter_stage(condition: MatchQuery) -> Stage {
-    Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+    Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
         source: mir_collection("db", "foo"),
         condition,
         cache: SchemaCache::new(),

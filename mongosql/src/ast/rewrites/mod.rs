@@ -72,7 +72,7 @@ pub trait Pass {
     fn apply(&self, query: ast::Query) -> Result<ast::Query>;
 }
 
-/// Rewrite the provided query by applying rewrites as specified in the MongoSQL spec.
+/// Rewrite the provided query by applying rewrites as specified in the MongoSql spec.
 pub fn rewrite_query(query: ast::Query) -> Result<ast::Query> {
     let passes: Vec<&dyn Pass> = vec![
         &ExtendedUnwindRewritePass,

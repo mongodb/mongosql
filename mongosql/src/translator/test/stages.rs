@@ -689,9 +689,9 @@ mod join {
                 name: "vfoo_0".to_string(),
                 expr: Box::new(ROOT.clone()),
             }]),
-            condition: Some(air::Expression::SQLSemanticOperator(
-                air::SQLSemanticOperator {
-                    op: air::SQLOperator::Eq,
+            condition: Some(air::Expression::SqlSemanticOperator(
+                air::SqlSemanticOperator {
+                    op: air::SqlOperator::Eq,
                     args: vec![
                         air::Expression::Variable("vfoo_0".to_string().into()),
                         ROOT.clone(),
@@ -796,9 +796,9 @@ mod join {
                     name: "vt1_0".to_string(),
                     expr: Box::new(air::Expression::FieldRef("t1".to_string().into())),
                 }]),
-                condition: Some(air::Expression::SQLSemanticOperator(
-                    air::SQLSemanticOperator {
-                        op: air::SQLOperator::Eq,
+                condition: Some(air::Expression::SqlSemanticOperator(
+                    air::SqlSemanticOperator {
+                        op: air::SqlOperator::Eq,
                         args: vec![
                             air::Expression::Variable("vt1_0.a".to_string().into()),
                             air::Expression::FieldRef("t2.b".to_string().into())
@@ -891,7 +891,7 @@ mod equijoin {
             foreign_field: "a".into(),
             as_name: "bar".to_string(),
         })),
-        input = mir::Stage::MQLIntrinsic(mir::MQLStage::EquiJoin(mir::EquiJoin {
+        input = mir::Stage::MqlIntrinsic(mir::MqlStage::EquiJoin(mir::EquiJoin {
             join_type: mir::JoinType::Inner,
             source: util::mir_project_collection(None, "foo", None, None),
             from: util::mir_project_collection(None, "bar", None, None),
@@ -911,7 +911,7 @@ mod equijoin {
             foreign_field: "a".into(),
             as_name: "x".to_string(),
         })),
-        input = mir::Stage::MQLIntrinsic(mir::MQLStage::EquiJoin(mir::EquiJoin {
+        input = mir::Stage::MqlIntrinsic(mir::MqlStage::EquiJoin(mir::EquiJoin {
             join_type: mir::JoinType::Left,
             source: util::mir_project_collection(None, "foo", None, None),
             from: util::mir_project_collection(None, "bar", Some("x"), None),
@@ -924,7 +924,7 @@ mod equijoin {
     test_translate_stage!(
         from_must_be_collection,
         expected = Err(Error::ExpectedCollection),
-        input = mir::Stage::MQLIntrinsic(mir::MQLStage::EquiJoin(mir::EquiJoin {
+        input = mir::Stage::MqlIntrinsic(mir::MqlStage::EquiJoin(mir::EquiJoin {
             join_type: mir::JoinType::Left,
             source: util::mir_project_collection(None, "foo", None, None),
             from: mir::Stage::Array(mir::ArraySource {
@@ -959,7 +959,7 @@ mod lateral_join {
             }]),
             condition: None
         })),
-        input = mir::Stage::MQLIntrinsic(mir::MQLStage::LateralJoin(mir::LateralJoin {
+        input = mir::Stage::MqlIntrinsic(mir::MqlStage::LateralJoin(mir::LateralJoin {
             join_type: mir::JoinType::Inner,
             source: util::mir_project_collection(None, "foo", None, None),
             subquery: util::mir_project_collection(None, "bar", None, None),
@@ -990,7 +990,7 @@ mod lateral_join {
         })),
         input = mir::Stage::Project(mir::Project {
             is_add_fields: false,
-            source: Box::new(mir::Stage::MQLIntrinsic(mir::MQLStage::LateralJoin(
+            source: Box::new(mir::Stage::MqlIntrinsic(mir::MqlStage::LateralJoin(
                 mir::LateralJoin {
                     join_type: mir::JoinType::Left,
                     source: util::mir_project_collection(None, "foo", Some("t1"), None),
@@ -1166,8 +1166,8 @@ mod unwind {
                     index: Some("idx".to_string()),
                     outer: false,
                 })),
-                expr: Box::new(air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
-                    op: air::SQLOperator::Gt,
+                expr: Box::new(air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
+                    op: air::SqlOperator::Gt,
                     args: vec![
                         util::air_variable_from_root("arr"),
                         air::Expression::Literal(air::LiteralValue::Integer(0)),
@@ -1229,7 +1229,7 @@ mod mql_intrinsic {
                     })),
                 }
             ))),
-            input = mir::Stage::MQLIntrinsic(mir::MQLStage::MatchFilter(mir::MatchFilter {
+            input = mir::Stage::MqlIntrinsic(mir::MqlStage::MatchFilter(mir::MatchFilter {
                 source: util::mir_project_collection(None, "foo", Some("f"), None),
                 condition: mir::MatchQuery::Comparison(mir::MatchLanguageComparison {
                     function: mir::MatchLanguageComparisonOp::Lt,
@@ -1249,7 +1249,7 @@ mod mql_intrinsic {
                     expr: Box::new(air::MatchQuery::False),
                 }
             ))),
-            input = mir::Stage::MQLIntrinsic(mir::MQLStage::MatchFilter(mir::MatchFilter {
+            input = mir::Stage::MqlIntrinsic(mir::MqlStage::MatchFilter(mir::MatchFilter {
                 source: util::mir_project_collection(None, "foo", Some("f"), None),
                 condition: mir::MatchQuery::False(mir::MatchFalse {
                     cache: mir::schema::SchemaCache::new(),
@@ -1418,9 +1418,9 @@ mod translate_plan {
                 let_vars: None,
                 condition: None,
             })),
-            new_root: Box::new(air::Expression::MQLSemanticOperator(
-                air::MQLSemanticOperator {
-                    op: air::MQLOperator::MergeObjects,
+            new_root: Box::new(air::Expression::MqlSemanticOperator(
+                air::MqlSemanticOperator {
+                    op: air::MqlOperator::MergeObjects,
                     args: vec![
                         air::Expression::FieldRef("bar".into()),
                         air::Expression::FieldRef("baz".into()),

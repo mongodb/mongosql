@@ -60,7 +60,7 @@ fn field_existence_expr(collection: &str, field: Vec<&str>, ref_scope: u16) -> E
         Expression::FieldAccess(fa) => fa,
         _ => unreachable!(),
     };
-    Expression::MQLIntrinsicFieldExistence(field_access)
+    Expression::MqlIntrinsicFieldExistence(field_access)
 }
 
 mod all_fields_always_nullable {

@@ -96,10 +96,10 @@ macro_rules! test_move_stage {
                     FieldAccess, FieldPath, Filter, Group, Join, JoinType, LateralJoin, Limit,
                     LiteralValue,
                     LiteralValue::*,
-                    MQLStage, MatchFilter, MatchLanguageComparison, MatchLanguageComparisonOp,
-                    MatchLanguageLogical, MatchLanguageLogicalOp, MatchQuery, Offset, Project,
-                    ReferenceExpr, ScalarFunction, ScalarFunctionApplication, Set, SetOperation,
-                    Sort, SortSpecification, Stage, SubqueryComparison, SubqueryExpr,
+                    MatchFilter, MatchLanguageComparison, MatchLanguageComparisonOp,
+                    MatchLanguageLogical, MatchLanguageLogicalOp, MatchQuery, MqlStage, Offset,
+                    Project, ReferenceExpr, ScalarFunction, ScalarFunctionApplication, Set,
+                    SetOperation, Sort, SortSpecification, Stage, SubqueryComparison, SubqueryExpr,
                     TypeAssertionExpr, Unwind,
                 },
                 schema::SchemaEnvironment,
@@ -524,7 +524,7 @@ test_move_stage!(
     move_match_filter_above_project_when_substitutable_complex_expression_is_used,
     expected = Stage::Project(Project {
         is_add_fields: false,
-        source: Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+        source: Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
             source: mir_collection("foo", "bar"),
             condition: MatchQuery::Comparison(MatchLanguageComparison {
                 function: MatchLanguageComparisonOp::Eq,
@@ -545,7 +545,7 @@ test_move_stage!(
         cache: SchemaCache::new(),
     }),
     expected_changed = true,
-    input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
         source: Stage::Project(Project {
             is_add_fields: false,
             source: mir_collection("foo", "bar"),
@@ -1473,7 +1473,7 @@ test_move_stage!(
 
 test_move_stage!(
     move_filter_above_equijoin,
-    expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+    expected = Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
         join_type: JoinType::Inner,
         source: Box::new(Stage::Filter(Filter {
             source: mir_collection("foo", "bar"),
@@ -1493,7 +1493,7 @@ test_move_stage!(
     })),
     expected_changed = true,
     input = Stage::Filter(Filter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: mir_collection("foo", "bar"),
             from: mir_collection("foo", "bar2"),
@@ -1515,7 +1515,7 @@ test_move_stage!(
 test_move_stage_no_op!(
     cannot_move_filter_above_right_side_of_equijoin,
     Stage::Filter(Filter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: mir_collection("foo", "bar"),
             from: mir_collection("foo", "bar2"),
@@ -1537,9 +1537,9 @@ test_move_stage_no_op!(
 
 test_move_stage!(
     move_match_filter_above_equijoin,
-    expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+    expected = Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
         join_type: JoinType::Inner,
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
             source: mir_collection("foo", "bar"),
             condition: MatchQuery::Comparison(MatchLanguageComparison {
                 function: MatchLanguageComparisonOp::Eq,
@@ -1555,8 +1555,8 @@ test_move_stage!(
         cache: SchemaCache::new(),
     })),
     expected_changed = true,
-    input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: mir_collection("foo", "bar"),
             from: mir_collection("foo", "bar2"),
@@ -1576,8 +1576,8 @@ test_move_stage!(
 
 test_move_stage_no_op!(
     cannot_move_match_filter_above_right_side_of_equijoin,
-    Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+    Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: mir_collection("foo", "bar"),
             from: mir_collection("foo", "bar2"),
@@ -1597,7 +1597,7 @@ test_move_stage_no_op!(
 
 test_move_stage!(
     move_sort_above_equijoin,
-    expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+    expected = Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
         join_type: JoinType::Inner,
         source: Box::new(Stage::Sort(Sort {
             source: mir_collection("foo", "bar"),
@@ -1611,7 +1611,7 @@ test_move_stage!(
     })),
     expected_changed = true,
     input = Stage::Sort(Sort {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: mir_collection("foo", "bar"),
             from: mir_collection("foo", "bar2"),
@@ -1627,7 +1627,7 @@ test_move_stage!(
 test_move_stage_no_op!(
     cannot_move_sort_above_right_side_of_equijoin,
     Stage::Sort(Sort {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: mir_collection("foo", "bar"),
             from: mir_collection("foo", "bar2"),
@@ -1687,7 +1687,7 @@ test_move_stage_no_op!(
 
 test_move_stage!(
     move_filter_above_lateral_inner_join_if_only_left_datasource_is_used,
-    expected = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+    expected = Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
         join_type: JoinType::Inner,
         source: Box::new(Stage::Filter(Filter {
             source: mir_collection("foo", "bar"),
@@ -1705,7 +1705,7 @@ test_move_stage!(
     })),
     expected_changed = true,
     input = Stage::Filter(Filter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Inner,
             source: mir_collection("foo", "bar"),
             subquery: mir_collection("foo", "bar2"),
@@ -1724,7 +1724,7 @@ test_move_stage!(
 
 test_move_stage!(
     move_filter_into_lateral_join_subquery_if_only_right_datasource_is_used,
-    expected = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+    expected = Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
         join_type: JoinType::Inner,
         source: mir_collection("foo", "bar"),
         subquery: Box::new(Stage::Filter(Filter {
@@ -1742,7 +1742,7 @@ test_move_stage!(
     })),
     expected_changed = true,
     input = Stage::Filter(Filter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Inner,
             source: mir_collection("foo", "bar"),
             subquery: mir_collection("foo", "bar2"),
@@ -1761,7 +1761,7 @@ test_move_stage!(
 
 test_move_stage!(
     move_filter_into_lateral_inner_join_subquery_if_both_datasources_are_used,
-    expected = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+    expected = Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
         join_type: JoinType::Inner,
         source: mir_collection("foo", "bar"),
         subquery: Box::new(Stage::Filter(Filter {
@@ -1779,7 +1779,7 @@ test_move_stage!(
     })),
     expected_changed = true,
     input = Stage::Filter(Filter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Inner,
             source: mir_collection("foo", "bar"),
             subquery: mir_collection("foo", "bar2"),
@@ -1798,9 +1798,9 @@ test_move_stage!(
 
 test_move_stage!(
     move_match_filter_above_lateral_inner_join_if_only_left_datasource_is_used,
-    expected = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+    expected = Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
         join_type: JoinType::Inner,
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
             source: mir_collection("foo", "bar"),
             condition: MatchQuery::Comparison(MatchLanguageComparison {
                 function: MatchLanguageComparisonOp::Eq,
@@ -1814,8 +1814,8 @@ test_move_stage!(
         cache: SchemaCache::new(),
     })),
     expected_changed = true,
-    input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Inner,
             source: mir_collection("foo", "bar"),
             subquery: mir_collection("foo", "bar2"),
@@ -1833,10 +1833,10 @@ test_move_stage!(
 
 test_move_stage!(
     move_match_filter_into_lateral_inner_join_if_right_datasource_is_used,
-    expected = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+    expected = Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
         join_type: JoinType::Inner,
         source: mir_collection("foo", "bar"),
-        subquery: Box::new(Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+        subquery: Box::new(Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
             source: mir_collection("foo", "bar2"),
             condition: MatchQuery::Comparison(MatchLanguageComparison {
                 function: MatchLanguageComparisonOp::Eq,
@@ -1849,8 +1849,8 @@ test_move_stage!(
         cache: SchemaCache::new(),
     })),
     expected_changed = true,
-    input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Inner,
             source: mir_collection("foo", "bar"),
             subquery: mir_collection("foo", "bar2"),
@@ -1868,10 +1868,10 @@ test_move_stage!(
 
 test_move_stage!(
     move_match_filter_into_lateral_inner_join_subquery_if_both_datasources_are_used,
-    expected = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+    expected = Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
         join_type: JoinType::Inner,
         source: mir_collection("foo", "bar"),
-        subquery: Box::new(Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+        subquery: Box::new(Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
             source: mir_collection("foo", "bar2"),
             condition: MatchQuery::Logical(MatchLanguageLogical {
                 op: MatchLanguageLogicalOp::And,
@@ -1896,8 +1896,8 @@ test_move_stage!(
         cache: SchemaCache::new(),
     })),
     expected_changed = true,
-    input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Inner,
             source: mir_collection("foo", "bar"),
             subquery: mir_collection("foo", "bar2"),
@@ -1927,7 +1927,7 @@ test_move_stage!(
 
 test_move_stage!(
     cannot_move_filter_above_lateral_left_join_if_only_left_datasource_is_used,
-    expected = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+    expected = Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
         join_type: JoinType::Left,
         source: Box::new(Stage::Filter(Filter {
             source: mir_collection("foo", "bar"),
@@ -1945,7 +1945,7 @@ test_move_stage!(
     })),
     expected_changed = true,
     input = Stage::Filter(Filter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Left,
             source: mir_collection("foo", "bar"),
             subquery: mir_collection("foo", "bar2"),
@@ -1965,7 +1965,7 @@ test_move_stage!(
 test_move_stage!(
     cannot_move_filter_into_lateral_left_join_subquery_if_only_right_datasource_is_used,
     expected = Stage::Filter(Filter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Left,
             source: mir_collection("foo", "bar"),
             subquery: mir_collection("foo", "bar2"),
@@ -1982,7 +1982,7 @@ test_move_stage!(
     }),
     expected_changed = false,
     input = Stage::Filter(Filter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Left,
             source: mir_collection("foo", "bar"),
             subquery: mir_collection("foo", "bar2"),
@@ -2002,7 +2002,7 @@ test_move_stage!(
 test_move_stage!(
     cannot_move_filter_into_lateral_left_join_subquery_if_both_datasources_are_used,
     expected = Stage::Filter(Filter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Left,
             source: mir_collection("foo", "bar"),
             subquery: mir_collection("foo", "bar2"),
@@ -2019,7 +2019,7 @@ test_move_stage!(
     }),
     expected_changed = false,
     input = Stage::Filter(Filter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Left,
             source: mir_collection("foo", "bar"),
             subquery: mir_collection("foo", "bar2"),
@@ -2038,9 +2038,9 @@ test_move_stage!(
 
 test_move_stage!(
     move_match_filter_above_lateral_left_join_if_only_left_datasource_is_used,
-    expected = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+    expected = Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
         join_type: JoinType::Left,
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
             source: mir_collection("foo", "bar"),
             condition: MatchQuery::Comparison(MatchLanguageComparison {
                 function: MatchLanguageComparisonOp::Eq,
@@ -2054,8 +2054,8 @@ test_move_stage!(
         cache: SchemaCache::new(),
     })),
     expected_changed = true,
-    input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Left,
             source: mir_collection("foo", "bar"),
             subquery: mir_collection("foo", "bar2"),
@@ -2073,8 +2073,8 @@ test_move_stage!(
 
 test_move_stage!(
     cannot_move_match_filter_into_lateral_left_join_if_right_datasource_is_used,
-    expected = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+    expected = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Left,
             source: mir_collection("foo", "bar"),
             subquery: mir_collection("foo", "bar2"),
@@ -2089,8 +2089,8 @@ test_move_stage!(
         cache: SchemaCache::new(),
     })),
     expected_changed = false,
-    input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Left,
             source: mir_collection("foo", "bar"),
             subquery: mir_collection("foo", "bar2"),
@@ -2108,8 +2108,8 @@ test_move_stage!(
 
 test_move_stage!(
     cannot_move_match_filter_into_lateral_left_join_subquery_if_both_datasources_are_used,
-    expected = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+    expected = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Left,
             source: mir_collection("foo", "bar"),
             subquery: mir_collection("foo", "bar2"),
@@ -2136,8 +2136,8 @@ test_move_stage!(
         cache: SchemaCache::new(),
     })),
     expected_changed = false,
-    input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
-        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Left,
             source: mir_collection("foo", "bar"),
             subquery: mir_collection("foo", "bar2"),
@@ -2403,7 +2403,7 @@ test_move_stage!(
                     },
                     is_nullable: true,
                 }),
-                Expression::MQLIntrinsicFieldExistence(FieldAccess {
+                Expression::MqlIntrinsicFieldExistence(FieldAccess {
                     expr: Box::new(Expression::Reference(ReferenceExpr {
                         key: Key::named("nullable_fields", 0),
                     })),
@@ -2462,7 +2462,7 @@ test_move_stage!(
                     },
                     is_nullable: true,
                 }),
-                Expression::MQLIntrinsicFieldExistence(FieldAccess {
+                Expression::MqlIntrinsicFieldExistence(FieldAccess {
                     expr: Box::new(Expression::Reference(ReferenceExpr {
                         key: Key::named("nullable_fields", 0),
                     })),

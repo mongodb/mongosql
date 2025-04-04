@@ -37,7 +37,7 @@ mod equijoin {
             min_size: 1,
             max_size: None,
         }),
-        input = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+        input = Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Left,
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![test_document_a()],
@@ -65,7 +65,7 @@ mod equijoin {
             min_size: 0,
             max_size: None,
         }),
-        input = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+        input = Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![test_document_a()],
@@ -88,10 +88,10 @@ mod equijoin {
         expected_error_code = 1005,
         expected = Err(schema::Error::InvalidComparison(
             "equijoin comparison",
-            Schema::AnyOf(set![Schema::Atomic(Atomic::Integer),]),
-            Schema::Atomic(Atomic::String),
+            Schema::AnyOf(set![Schema::Atomic(Atomic::Integer),]).into(),
+            Schema::Atomic(Atomic::String).into(),
         )),
-        input = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+        input = Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![test_document_a()],
@@ -130,7 +130,7 @@ mod lateral {
             min_size: 1,
             max_size: None,
         }),
-        input = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+        input = Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Left,
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![test_document_a()],
@@ -156,7 +156,7 @@ mod lateral {
             min_size: 0,
             max_size: None,
         }),
-        input = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+        input = Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Inner,
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![test_document_a()],
@@ -378,8 +378,8 @@ mod standard {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "join condition",
-            required: BOOLEAN_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::Integer),
+            required: BOOLEAN_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::Integer).into(),
         }),
         input = Stage::Join(Join {
             join_type: JoinType::Left,
