@@ -62,7 +62,8 @@ test_schema!(
         Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String)
-        ]),
+        ])
+        .into(),
     )),
     input = Stage::Sort(Sort {
         source: Box::new(Stage::Collection(Collection {
@@ -109,7 +110,8 @@ test_schema!(
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
-        ]),
+        ])
+        .into(),
     )),
     input = Stage::Sort(Sort {
         source: Box::new(Stage::Collection(Collection {

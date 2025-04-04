@@ -254,8 +254,8 @@ impl CachedSchema for Stage {
                 if !state.check_satisfies(&cond_schema, &BOOLEAN_OR_NULLISH) {
                     return Err(Error::SchemaChecking {
                         name: "filter condition",
-                        required: BOOLEAN_OR_NULLISH.clone(),
-                        found: cond_schema,
+                        required: BOOLEAN_OR_NULLISH.clone().into(),
+                        found: cond_schema.into(),
                     });
                 }
 
@@ -277,8 +277,8 @@ impl CachedSchema for Stage {
                             if !state.check_satisfies(&s, &ANY_DOCUMENT) {
                                 Err(Error::SchemaChecking {
                                     name: "project datasource",
-                                    required: ANY_DOCUMENT.clone(),
-                                    found: s,
+                                    required: ANY_DOCUMENT.clone().into(),
+                                    found: s.into(),
                                 })
                             } else {
                                 Ok((k.clone(), s))
@@ -498,8 +498,8 @@ impl CachedSchema for Stage {
                 } else {
                     Err(Error::SchemaChecking {
                         name: "array datasource items",
-                        required: ANY_DOCUMENT.clone(),
-                        found: array_items_schema,
+                        required: ANY_DOCUMENT.clone().into(),
+                        found: array_items_schema.into(),
                     })
                 }
             }
@@ -514,8 +514,8 @@ impl CachedSchema for Stage {
                     if !state.check_satisfies(&cond_schema, &BOOLEAN_OR_NULLISH) {
                         return Err(Error::SchemaChecking {
                             name: "join condition",
-                            required: BOOLEAN_OR_NULLISH.clone(),
-                            found: cond_schema,
+                            required: BOOLEAN_OR_NULLISH.clone().into(),
+                            found: cond_schema.into(),
                         });
                     }
                 };
@@ -831,8 +831,8 @@ impl CachedSchema for Stage {
                 if !state.check_satisfies(&cond_schema, &BOOLEAN_OR_NULLISH) {
                     return Err(Error::SchemaChecking {
                         name: "match filter condition",
-                        required: BOOLEAN_OR_NULLISH.clone(),
-                        found: cond_schema,
+                        required: BOOLEAN_OR_NULLISH.clone().into(),
+                        found: cond_schema.into(),
                     });
                 }
 
@@ -1130,16 +1130,16 @@ impl Expression {
                 if !state.check_satisfies(&expr_schema, &STRING_OR_NULLISH) {
                     return Err(Error::SchemaChecking {
                         name: "Like",
-                        required: STRING_OR_NULLISH.clone(),
-                        found: expr_schema,
+                        required: STRING_OR_NULLISH.clone().into(),
+                        found: expr_schema.into(),
                     });
                 }
                 let pattern_schema = l.pattern.schema(state)?;
                 if !state.check_satisfies(&pattern_schema, &STRING_OR_NULLISH) {
                     return Err(Error::SchemaChecking {
                         name: "Like",
-                        required: STRING_OR_NULLISH.clone(),
-                        found: pattern_schema,
+                        required: STRING_OR_NULLISH.clone().into(),
+                        found: pattern_schema.into(),
                     });
                 }
                 match expr_schema
@@ -1195,8 +1195,8 @@ impl FieldAccess {
         if accessee_schema.satisfies(&ANY_DOCUMENT) == Satisfaction::Not {
             return Err(Error::SchemaChecking {
                 name: "FieldAccess",
-                required: ANY_DOCUMENT.clone(),
-                found: accessee_schema,
+                required: ANY_DOCUMENT.clone().into(),
+                found: accessee_schema.into(),
             });
         }
         if accessee_schema.contains_field(&self.field) == Satisfaction::Not {
@@ -1231,8 +1231,8 @@ impl FieldPath {
             if cur_schema.satisfies(&ANY_DOCUMENT) == Satisfaction::Not {
                 return Err(Error::SchemaChecking {
                     name: "FieldPath",
-                    required: ANY_DOCUMENT.clone(),
-                    found: cur_schema,
+                    required: ANY_DOCUMENT.clone().into(),
+                    found: cur_schema.into(),
                 });
             }
             if cur_schema.contains_field(field) == Satisfaction::Not {
@@ -1408,8 +1408,8 @@ trait SqlFunction {
             if !state.check_satisfies(arg, &required_schemas[i]) {
                 return Err(Error::SchemaChecking {
                     name: self.as_str(),
-                    required: required_schemas[i].clone(),
-                    found: arg.clone(),
+                    required: required_schemas[i].clone().into(),
+                    found: arg.clone().into(),
                 });
             }
             let sat = arg.satisfies(&NULLISH);
@@ -1609,14 +1609,14 @@ impl ScalarFunction {
                 if arg_schemas[0].satisfies(&NUMERIC_OR_NULLISH) != Satisfaction::Must {
                     Err(Error::SchemaChecking {
                         name: Round.as_str(),
-                        required: NUMERIC_OR_NULLISH.clone(),
-                        found: arg_schemas[0].clone(),
+                        required: NUMERIC_OR_NULLISH.clone().into(),
+                        found: arg_schemas[0].clone().into(),
                     })
                 } else if arg_schemas[1].satisfies(&INTEGER_LONG_OR_NULLISH) != Satisfaction::Must {
                     Err(Error::SchemaChecking {
                         name: Round.as_str(),
-                        required: INTEGER_LONG_OR_NULLISH.clone(),
-                        found: arg_schemas[1].clone(),
+                        required: INTEGER_LONG_OR_NULLISH.clone().into(),
+                        found: arg_schemas[1].clone().into(),
                     })
                 } else {
                     Ok(arg_schemas[0].clone())
@@ -1981,8 +1981,8 @@ impl SchemaCheckCaseExpr for SearchedCaseExpr {
             if !state.check_satisfies(when_schema, &BOOLEAN_OR_NULLISH) {
                 return Err(Error::SchemaChecking {
                     name: "SearchedCase",
-                    required: BOOLEAN_OR_NULLISH.clone(),
-                    found: when_schema.clone(),
+                    required: BOOLEAN_OR_NULLISH.clone().into(),
+                    found: when_schema.clone().into(),
                 });
             }
             Ok(())
@@ -2032,8 +2032,8 @@ impl TypeAssertionExpr {
         if expr_schema.satisfies(&target_schema) == Satisfaction::Not {
             return Err(Error::SchemaChecking {
                 name: "::!",
-                required: target_schema,
-                found: expr_schema,
+                required: target_schema.into(),
+                found: expr_schema.into(),
             });
         }
 

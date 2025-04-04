@@ -107,11 +107,12 @@ mod array {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "array datasource items",
-            required: ANY_DOCUMENT.clone(),
+            required: ANY_DOCUMENT.clone().into(),
             found: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Double),
             ])
+            .into(),
         }),
         input = Stage::Array(ArraySource {
             array: vec![

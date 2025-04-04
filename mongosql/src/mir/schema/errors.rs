@@ -22,8 +22,8 @@ pub enum Error {
     },
     SchemaChecking {
         name: &'static str,
-        required: Schema,
-        found: Schema,
+        required: Box<Schema>,
+        found: Box<Schema>,
     },
     InvalidBinaryDataType,
     AggregationArgumentMustBeSelfComparable(String, Box<Schema>),

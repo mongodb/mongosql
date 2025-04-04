@@ -394,8 +394,8 @@ mod subquery_comparison {
         expected_error_code = 1005,
         expected = Err(mir_error::InvalidComparison(
             "subquery comparison",
-            Schema::Atomic(Atomic::String),
-            Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]),
+            Schema::Atomic(Atomic::String).into(),
+            Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]).into(),
         )),
         input = Expression::SubqueryComparison(SubqueryComparison {
             operator: SubqueryComparisonOp::Eq,

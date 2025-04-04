@@ -260,7 +260,7 @@ mod expression {
             method = algebrize_expression,
             in_implicit_type_conversion_context = false,
             expected = Ok(mir::Expression::Literal(mir::LiteralValue::String(
-                "hello!".into()
+                "hello!".into(),
             ))),
             input = ast::Expression::StringConstructor("hello!".into()),
         );
@@ -307,9 +307,9 @@ mod expression {
                         mir::Expression::Literal(mir::LiteralValue::Long(42)),
                         mir::Expression::Literal(mir::LiteralValue::Integer(42)),
                     ]
-                    .into()
+                    .into(),
                 )]
-                .into()
+                .into(),
             )),
             input = ast::Expression::Array(vec![ast::Expression::Array(vec![
                 ast::Expression::Literal(ast::Literal::Long(42)),
@@ -322,7 +322,7 @@ mod expression {
             method = algebrize_expression,
             in_implicit_type_conversion_context = false,
             expected = Ok(mir::Expression::Document(
-                unchecked_unique_linked_hash_map! {}.into()
+                unchecked_unique_linked_hash_map! {}.into(),
             )),
             input = ast::Expression::Document(multimap! {}),
         );
@@ -334,10 +334,10 @@ mod expression {
             expected = Ok(mir::Expression::Document(
                 unchecked_unique_linked_hash_map! {
                     "foo2".into() => mir::Expression::Document(
-                        unchecked_unique_linked_hash_map!{"nested".into() => mir::Expression::Literal(mir::LiteralValue::Integer(52))} .into()
+                        unchecked_unique_linked_hash_map!{"nested".into() => mir::Expression::Literal(mir::LiteralValue::Integer(52))} .into(),
                     ),
                     "bar2".into() => mir::Expression::Literal(mir::LiteralValue::Integer(42))
-                }.into()
+                }.into(),
             )),
             input = ast::Expression::Document(multimap! {
                 "foo2".into() => ast::Expression::Document(
@@ -356,7 +356,7 @@ mod expression {
                     "a.b".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
                     "$c".into() => mir::Expression::Literal(mir::LiteralValue::Integer(42)),
                 }
-                .into()
+                .into(),
             )),
             input = ast::Expression::Document(multimap! {
                 "a.b".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
@@ -376,7 +376,7 @@ mod expression {
                         mir::Expression::Literal(mir::LiteralValue::Integer(1)),
                         mir::Expression::Literal(mir::LiteralValue::String("hello".to_string()))
                     ]
-                    .into()
+                    .into(),
                 )),
                 input = ast::Expression::StringConstructor("[1, \"hello\"]".to_string()),
             );
@@ -412,7 +412,7 @@ mod expression {
                     "2019-08-11T17:54:14.692Z"
                         .parse::<chrono::DateTime<chrono::prelude::Utc>>()
                         .unwrap()
-                        .into()
+                        .into(),
                 ))),
                 input = ast::Expression::StringConstructor(
                     "{\"$date\":\"2019-08-11T17:54:14.692Z\"}".to_string()
@@ -947,7 +947,7 @@ mod expression {
                     unchecked_unique_linked_hash_map! {
                         "a".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
                     }
-                    .into()
+                    .into(),
                 )),
                 field: "a".into(),
                 is_nullable: false
@@ -1189,8 +1189,8 @@ mod expression {
             in_implicit_type_conversion_context = false,
             expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
                 name: "Add",
-                required: NUMERIC_OR_NULLISH.clone(),
-                found: Schema::Atomic(Atomic::String),
+                required: NUMERIC_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::String).into(),
             })),
             expected_error_code = 1002,
             input = ast::Expression::Binary(ast::BinaryExpr {
@@ -1227,8 +1227,8 @@ mod expression {
             in_implicit_type_conversion_context = false,
             expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
                 name: "Sub",
-                required: NUMERIC_OR_NULLISH.clone(),
-                found: Schema::Atomic(Atomic::String),
+                required: NUMERIC_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::String).into(),
             })),
             expected_error_code = 1002,
             input = ast::Expression::Binary(ast::BinaryExpr {
@@ -1347,8 +1347,8 @@ mod expression {
             in_implicit_type_conversion_context = false,
             expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
                 name: "Div",
-                required: NUMERIC_OR_NULLISH.clone(),
-                found: Schema::Atomic(Atomic::String),
+                required: NUMERIC_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::String).into(),
             })),
             expected_error_code = 1002,
             input = ast::Expression::Binary(ast::BinaryExpr {
@@ -1385,8 +1385,8 @@ mod expression {
             in_implicit_type_conversion_context = false,
             expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
                 name: "Mul",
-                required: NUMERIC_OR_NULLISH.clone(),
-                found: Schema::Atomic(Atomic::String),
+                required: NUMERIC_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::String).into(),
             })),
             expected_error_code = 1002,
             input = ast::Expression::Binary(ast::BinaryExpr {
@@ -1423,8 +1423,8 @@ mod expression {
             in_implicit_type_conversion_context = false,
             expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
                 name: "Concat",
-                required: STRING_OR_NULLISH.clone(),
-                found: Schema::Atomic(Atomic::Integer),
+                required: STRING_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::Integer).into(),
             })),
             expected_error_code = 1002,
             input = ast::Expression::Binary(ast::BinaryExpr {
@@ -1905,8 +1905,8 @@ mod expression {
             in_implicit_type_conversion_context = false,
             expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
                 name: "Neg",
-                required: NUMERIC_OR_NULLISH.clone(),
-                found: Schema::Atomic(Atomic::Boolean),
+                required: NUMERIC_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::Boolean).into(),
             })),
             expected_error_code = 1002,
             input = ast::Expression::Unary(ast::UnaryExpr {
@@ -1938,8 +1938,8 @@ mod expression {
             in_implicit_type_conversion_context = false,
             expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
                 name: "Pos",
-                required: NUMERIC_OR_NULLISH.clone(),
-                found: Schema::Atomic(Atomic::Boolean),
+                required: NUMERIC_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::Boolean).into(),
             })),
             expected_error_code = 1002,
             input = ast::Expression::Unary(ast::UnaryExpr {
@@ -2684,7 +2684,7 @@ mod expression {
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::Lower,
                     args: vec![mir::Expression::Literal(mir::LiteralValue::String(
-                        "hello".into()
+                        "hello".into(),
                     )),],
                     is_nullable: false,
                 }
@@ -2692,7 +2692,7 @@ mod expression {
             input = ast::Expression::Function(ast::FunctionExpr {
                 function: ast::FunctionName::Lower,
                 args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
-                    "hello".into()
+                    "hello".into(),
                 )]),
                 set_quantifier: Some(ast::SetQuantifier::All),
             }),
@@ -2706,7 +2706,7 @@ mod expression {
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::Lower,
                     args: vec![mir::Expression::Literal(mir::LiteralValue::String(
-                        "{\"$numberInt\": \"1\"}".into()
+                        "{\"$numberInt\": \"1\"}".into(),
                     )),],
                     is_nullable: false,
                 }
@@ -2714,7 +2714,7 @@ mod expression {
             input = ast::Expression::Function(ast::FunctionExpr {
                 function: ast::FunctionName::Lower,
                 args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
-                    "{\"$numberInt\": \"1\"}".into()
+                    "{\"$numberInt\": \"1\"}".into(),
                 )]),
                 set_quantifier: None,
             }),
@@ -2833,10 +2833,10 @@ mod expression {
                     function: mir::ScalarFunction::Replace,
                     args: vec![
                         mir::Expression::Literal(mir::LiteralValue::String(
-                            "{\"$numberInt\": \"100\"}".into()
+                            "{\"$numberInt\": \"100\"}".into(),
                         )),
                         mir::Expression::Literal(mir::LiteralValue::String(
-                            "{\"$numberInt\": \"100\"}".into()
+                            "{\"$numberInt\": \"100\"}".into(),
                         )),
                         mir::Expression::Literal(mir::LiteralValue::Null),
                     ],
@@ -2860,8 +2860,8 @@ mod expression {
             in_implicit_type_conversion_context = false,
             expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
                 name: "Replace",
-                required: STRING_OR_NULLISH.clone(),
-                found: Schema::Atomic(Atomic::Integer),
+                required: STRING_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::Integer).into(),
             })),
             expected_error_code = 1002,
             input = ast::Expression::Function(ast::FunctionExpr {
@@ -3615,7 +3615,7 @@ mod expression {
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::Size,
                     args: vec![mir::Expression::Array(
-                        vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))].into()
+                        vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))].into(),
                     ),],
                     is_nullable: false,
                 }
@@ -3637,7 +3637,7 @@ mod expression {
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::Size,
                     args: vec![mir::Expression::Array(
-                        vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))].into()
+                        vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))].into(),
                     ),],
                     is_nullable: false,
                 }
@@ -3660,7 +3660,7 @@ mod expression {
                     function: mir::ScalarFunction::Slice,
                     args: vec![
                         mir::Expression::Array(
-                            vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))].into()
+                            vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))].into(),
                         ),
                         mir::Expression::Literal(mir::LiteralValue::Integer(0)),
                     ],
@@ -3689,7 +3689,7 @@ mod expression {
                     function: mir::ScalarFunction::Slice,
                     args: vec![
                         mir::Expression::Array(
-                            vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))].into()
+                            vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))].into(),
                         ),
                         mir::Expression::Literal(mir::LiteralValue::Integer(0)),
                     ],
@@ -4042,8 +4042,8 @@ mod expression {
             in_implicit_type_conversion_context = false,
             expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
                 name: "BTrim",
-                required: STRING_OR_NULLISH.clone(),
-                found: Schema::Atomic(Atomic::Integer),
+                required: STRING_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::Integer).into(),
             })),
             expected_error_code = 1002,
             input = ast::Expression::Trim(ast::TrimExpr {
@@ -4059,8 +4059,8 @@ mod expression {
             in_implicit_type_conversion_context = false,
             expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
                 name: "BTrim",
-                required: STRING_OR_NULLISH.clone(),
-                found: Schema::Atomic(Atomic::Integer),
+                required: STRING_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::Integer).into(),
             })),
             expected_error_code = 1002,
             input = ast::Expression::Trim(ast::TrimExpr {
@@ -4377,8 +4377,8 @@ mod expression {
             in_implicit_type_conversion_context = false,
             expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
                 name: "Second",
-                required: DATE_OR_NULLISH.clone(),
-                found: Schema::Atomic(Atomic::Integer),
+                required: DATE_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::Integer).into(),
             })),
             expected_error_code = 1002,
             input = ast::Expression::Extract(ast::ExtractExpr {
@@ -4398,7 +4398,7 @@ mod expression {
                         "2019-08-11T17:54:14.692Z"
                             .parse::<chrono::DateTime<chrono::prelude::Utc>>()
                             .unwrap()
-                            .into()
+                            .into(),
                     ))],
                     is_nullable: false,
                 }
@@ -4539,7 +4539,7 @@ mod expression {
                             "2019-08-11T17:54:14.692Z"
                                 .parse::<chrono::DateTime<chrono::prelude::Utc>>()
                                 .unwrap()
-                                .into()
+                                .into(),
                         ))
                     ],
                 }
@@ -4568,12 +4568,12 @@ mod expression {
                 when_branch: vec![mir::WhenBranch {
                     when: Box::new(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
                     then: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                        "bar".into()
+                        "bar".into(),
                     ))),
                     is_nullable: false,
                 }],
                 else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                    "foo".into()
+                    "foo".into(),
                 ))),
                 is_nullable: false,
             })),
@@ -4595,7 +4595,7 @@ mod expression {
                 when_branch: vec![mir::WhenBranch {
                     when: Box::new(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
                     then: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                        "bar".into()
+                        "bar".into(),
                     ))),
                     is_nullable: false,
                 }],
@@ -4618,8 +4618,8 @@ mod expression {
             in_implicit_type_conversion_context = false,
             expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
                 name: "SearchedCase",
-                required: BOOLEAN_OR_NULLISH.clone(),
-                found: Schema::Atomic(Atomic::String),
+                required: BOOLEAN_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::String).into(),
             })),
             expected_error_code = 1002,
             input = ast::Expression::Case(ast::CaseExpr {
@@ -4643,7 +4643,7 @@ mod expression {
                     is_nullable: true,
                 }],
                 else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                    "foo".into()
+                    "foo".into(),
                 ))),
                 is_nullable: true,
             })),
@@ -4689,12 +4689,12 @@ mod expression {
                 when_branch: vec![mir::WhenBranch {
                     when: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(2))),
                     then: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                        "bar".into()
+                        "bar".into(),
                     ))),
                     is_nullable: false,
                 }],
                 else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                    "foo".into()
+                    "foo".into(),
                 ))),
                 is_nullable: false,
             })),
@@ -4717,7 +4717,7 @@ mod expression {
                 when_branch: vec![mir::WhenBranch {
                     when: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(2))),
                     then: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                        "bar".into()
+                        "bar".into(),
                     ))),
                     is_nullable: false,
                 }],
@@ -4741,8 +4741,8 @@ mod expression {
             expected = Err(Error::SchemaChecking(
                 mir::schema::Error::InvalidComparison(
                     "SimpleCase",
-                    Schema::Atomic(Atomic::Integer),
-                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Integer).into(),
+                    Schema::Atomic(Atomic::String).into(),
                 )
             )),
             expected_error_code = 1005,
@@ -4768,7 +4768,7 @@ mod expression {
                     is_nullable: true,
                 }],
                 else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                    "foo".into()
+                    "foo".into(),
                 ))),
                 is_nullable: true,
             })),
@@ -4791,7 +4791,7 @@ mod expression {
                 when_branch: vec![mir::WhenBranch {
                     when: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(2))),
                     then: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                        "bar".into()
+                        "bar".into(),
                     ))),
                     is_nullable: false,
                 }],
@@ -4947,10 +4947,10 @@ mod expression {
                 expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
                 to: mir::Type::String,
                 on_null: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                    "was_null".into()
+                    "was_null".into(),
                 ))),
                 on_error: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                    "was_error".into()
+                    "was_error".into(),
                 ))),
                 is_nullable: false,
             })),
@@ -4958,10 +4958,10 @@ mod expression {
                 expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
                 to: ast::Type::String,
                 on_null: Some(Box::new(ast::Expression::StringConstructor(
-                    "was_null".into()
+                    "was_null".into(),
                 ))),
                 on_error: Some(Box::new(ast::Expression::StringConstructor(
-                    "was_error".into()
+                    "was_error".into(),
                 ))),
             }),
         );
@@ -5005,8 +5005,8 @@ mod expression {
             in_implicit_type_conversion_context = false,
             expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
                 name: "::!",
-                required: Schema::Atomic(Atomic::String),
-                found: Schema::Atomic(Atomic::Integer)
+                required: Schema::Atomic(Atomic::String).into(),
+                found: Schema::Atomic(Atomic::Integer).into(),
             })),
             expected_error_code = 1002,
             input = ast::Expression::TypeAssertion(ast::TypeAssertionExpr {
@@ -5069,8 +5069,8 @@ mod expression {
             in_implicit_type_conversion_context = false,
             expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
                 name: "Add",
-                required: NUMERIC_OR_NULLISH.clone(),
-                found: Schema::Atomic(Atomic::String)
+                required: NUMERIC_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::String).into(),
             })),
             expected_error_code = 1002,
             input = ast::Expression::Is(ast::IsExpr {
@@ -5109,10 +5109,10 @@ mod expression {
             in_implicit_type_conversion_context = false,
             expected = Ok(mir::Expression::Like(mir::LikeExpr {
                 expr: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                    "42".into()
+                    "42".into(),
                 ))),
                 pattern: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                    "42".into()
+                    "42".into(),
                 ))),
                 escape: Some('f'),
             })),
@@ -5129,10 +5129,10 @@ mod expression {
             in_implicit_type_conversion_context = false,
             expected = Ok(mir::Expression::Like(mir::LikeExpr {
                 expr: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                    "42".into()
+                    "42".into(),
                 ))),
                 pattern: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                    "42".into()
+                    "42".into(),
                 ))),
                 escape: None,
             })),
@@ -5149,8 +5149,8 @@ mod expression {
             in_implicit_type_conversion_context = false,
             expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
                 name: "Like",
-                required: STRING_OR_NULLISH.clone(),
-                found: Schema::Atomic(Atomic::Integer)
+                required: STRING_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::Integer).into(),
             })),
             expected_error_code = 1002,
             input = ast::Expression::Like(ast::LikeExpr {
@@ -5166,8 +5166,8 @@ mod expression {
             in_implicit_type_conversion_context = false,
             expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
                 name: "Like",
-                required: STRING_OR_NULLISH.clone(),
-                found: Schema::Atomic(Atomic::Integer)
+                required: STRING_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::Integer).into(),
             })),
             expected_error_code = 1002,
             input = ast::Expression::Like(ast::LikeExpr {
@@ -5250,7 +5250,7 @@ mod aggregation {
         expected = Err(Error::SchemaChecking(
             mir::schema::Error::AggregationArgumentMustBeSelfComparable(
                 "Count DISTINCT".into(),
-                Schema::Any
+                Schema::Any.into(),
             )
         )),
         expected_error_code = 1003,
@@ -5317,14 +5317,14 @@ mod aggregation {
         method = algebrize_aggregation,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "Sum",
-            required: NUMERIC_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::String),
+            required: NUMERIC_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::String).into(),
         })),
         expected_error_code = 1002,
         input = ast::FunctionExpr {
             function: ast::FunctionName::Sum,
             args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
-                "42".into()
+                "42".into(),
             )]),
             set_quantifier: Some(ast::SetQuantifier::Distinct),
         },
@@ -5374,14 +5374,14 @@ mod aggregation {
         method = algebrize_aggregation,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "Avg",
-            required: NUMERIC_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::String),
+            required: NUMERIC_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::String).into(),
         })),
         expected_error_code = 1002,
         input = ast::FunctionExpr {
             function: ast::FunctionName::Avg,
             args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
-                "42".into()
+                "42".into(),
             )]),
             set_quantifier: Some(ast::SetQuantifier::Distinct),
         },
@@ -5430,14 +5430,14 @@ mod aggregation {
         method = algebrize_aggregation,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "StddevPop",
-            required: NUMERIC_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::String),
+            required: NUMERIC_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::String).into(),
         })),
         expected_error_code = 1002,
         input = ast::FunctionExpr {
             function: ast::FunctionName::StddevPop,
             args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
-                "42".into()
+                "42".into(),
             )]),
             set_quantifier: Some(ast::SetQuantifier::Distinct),
         },
@@ -5486,14 +5486,14 @@ mod aggregation {
         method = algebrize_aggregation,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "StddevSamp",
-            required: NUMERIC_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::String),
+            required: NUMERIC_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::String).into(),
         })),
         expected_error_code = 1002,
         input = ast::FunctionExpr {
             function: ast::FunctionName::StddevSamp,
             args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
-                "42".into()
+                "42".into(),
             )]),
             set_quantifier: Some(ast::SetQuantifier::Distinct),
         },
@@ -5667,7 +5667,7 @@ mod aggregation {
                         "a".into() => mir::Expression::Literal(mir::LiteralValue::Integer(42)),
                         "b".into() => mir::Expression::Literal(mir::LiteralValue::Integer(42)),
                     }
-                    .into()
+                    .into(),
                 )),
                 arg_is_possibly_doc: Satisfaction::Must,
             }
@@ -5686,14 +5686,14 @@ mod aggregation {
         method = algebrize_aggregation,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "MergeDocuments",
-            required: ANY_DOCUMENT.clone(),
-            found: Schema::Atomic(Atomic::String),
+            required: ANY_DOCUMENT.clone().into(),
+            found: Schema::Atomic(Atomic::String).into(),
         })),
         expected_error_code = 1002,
         input = ast::FunctionExpr {
             function: ast::FunctionName::MergeDocuments,
             args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
-                "42".into()
+                "42".into(),
             )]),
             set_quantifier: Some(ast::SetQuantifier::All),
         },
@@ -5892,8 +5892,8 @@ mod select_clause {
         expected = Err(Error::SchemaChecking(
             crate::mir::schema::Error::SchemaChecking {
                 name: "project datasource",
-                required: ANY_DOCUMENT.clone(),
-                found: crate::schema::Schema::Atomic(crate::schema::Atomic::String),
+                required: ANY_DOCUMENT.clone().into(),
+                found: crate::schema::Schema::Atomic(crate::schema::Atomic::String).into(),
             }
         )),
         expected_error_code = 1002,
@@ -6117,7 +6117,7 @@ mod from_clause {
             is_add_fields: false,
             source: Box::new(mir::Stage::Array(mir::ArraySource {
                 array: vec![mir::Expression::Document(
-                    unchecked_unique_linked_hash_map! {}.into()
+                    unchecked_unique_linked_hash_map! {}.into(),
                 )],
                 alias: "_dual".into(),
                 cache: SchemaCache::new(),
@@ -6137,8 +6137,8 @@ mod from_clause {
         method = algebrize_from_clause,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "array datasource items",
-            required: ANY_DOCUMENT.clone(),
-            found: Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]),
+            required: ANY_DOCUMENT.clone().into(),
+            found: Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]).into(),
         })),
         expected_error_code = 1002,
         input = Some(ast::Datasource::Array(ast::ArraySource {
@@ -6151,8 +6151,8 @@ mod from_clause {
         method = algebrize_from_clause,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "array datasource items",
-            required: ANY_DOCUMENT.clone(),
-            found: Schema::AnyOf(set![Schema::Atomic(Atomic::Null)]),
+            required: ANY_DOCUMENT.clone().into(),
+            found: Schema::AnyOf(set![Schema::Atomic(Atomic::Null)]).into(),
         })),
         expected_error_code = 1002,
         input = Some(ast::Datasource::Array(ast::ArraySource {
@@ -6184,7 +6184,7 @@ mod from_clause {
                         "foo".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
                         "bar".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1))
                     }
-                    .into()
+                    .into(),
                 )],
                 alias: "bar".into(),
                 cache: SchemaCache::new(),
@@ -6418,13 +6418,13 @@ mod from_clause {
                 array: vec![ast::Expression::Document(multimap! {
                     "foo".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
                 })],
-                alias: "foo".into()
+                alias: "foo".into(),
             })),
             right: Box::new(ast::Datasource::Array(ast::ArraySource {
                 array: vec![ast::Expression::Document(multimap! {
                     "bar".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
                 })],
-                alias: "bar".into()
+                alias: "bar".into(),
             })),
             condition: Some(ast::Expression::Identifier("x".into())),
         })),
@@ -6440,13 +6440,13 @@ mod from_clause {
                 array: vec![ast::Expression::Document(multimap! {
                     "foo".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
                 })],
-                alias: "foo".into()
+                alias: "foo".into(),
             })),
             right: Box::new(ast::Datasource::Array(ast::ArraySource {
                 array: vec![ast::Expression::Document(multimap! {
                     "bar".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
                 })],
-                alias: "bar".into()
+                alias: "bar".into(),
             })),
             condition: Some(ast::Expression::Literal(ast::Literal::Integer(42))),
         })),
@@ -6769,11 +6769,12 @@ mod from_clause {
                 },
                 required: set! {
                     "bar".into(),
-                    "foo1".into()
+                    "foo1".into(),
                 },
                 additional_properties: false,
                 ..Default::default()
-            }),
+            })
+            .into(),
             Schema::Document(Document {
                 keys: map! {
                     "bar".into() => Schema::Atomic(Atomic::Integer),
@@ -6781,11 +6782,12 @@ mod from_clause {
                 },
                 required: set! {
                     "bar".into(),
-                    "foo2".into()
+                    "foo2".into(),
                 },
                 additional_properties: false,
                 ..Default::default()
-            }),
+            })
+            .into(),
             "d".into(),
             crate::schema::Satisfaction::Must,
         )),
@@ -7244,7 +7246,7 @@ mod from_clause {
             input = Some(ast::Datasource::Unwind(ast::UnwindSource {
                 datasource: Box::new(AST_SOURCE_FOO.clone()),
                 options: vec![ast::UnwindOption::Path(ast::Expression::Identifier(
-                    "arr".into()
+                    "arr".into(),
                 ))]
             })),
             catalog = make_catalog(Schema::Document(Document {
@@ -7308,7 +7310,7 @@ mod from_clause {
                 options: vec![ast::UnwindOption::Path(ast::Expression::Subpath(
                     ast::SubpathExpr {
                         expr: Box::new(ast::Expression::Identifier("doc".into())),
-                        subpath: "arr".into()
+                        subpath: "arr".into(),
                     }
                 ))]
             })),
@@ -7372,7 +7374,7 @@ mod from_clause {
                                 ast::Expression::Literal(ast::Literal::Integer(3))
                             ])
                         }])),
-                        subpath: "arr".into()
+                        subpath: "arr".into(),
                     }
                 )),]
             })),
@@ -7393,7 +7395,7 @@ mod from_clause {
                 options: vec![ast::UnwindOption::Path(ast::Expression::Subpath(
                     ast::SubpathExpr {
                         expr: Box::new(ast::Expression::Identifier("bar".into())),
-                        subpath: "arr".into()
+                        subpath: "arr".into(),
                     }
                 )),]
             })),
@@ -7584,11 +7586,11 @@ mod set_query {
                         ast::Expression::Document(multimap! {
                             "a".into() => ast::Expression::Subpath(ast::SubpathExpr {
                                 expr: Box::new(ast::Expression::Identifier("foo".into())),
-                                subpath: "a".into()
+                                subpath: "a".into(),
                             }),
                             "b".into() => ast::Expression::Subpath(ast::SubpathExpr {
                                 expr: Box::new(ast::Expression::Identifier("foo".into())),
-                                subpath: "b".into()
+                                subpath: "b".into(),
                             })
                         })
                     )])
@@ -7609,11 +7611,11 @@ mod set_query {
                         ast::Expression::Document(multimap! {
                             "a".into() => ast::Expression::Subpath(ast::SubpathExpr {
                                 expr: Box::new(ast::Expression::Identifier("bar".into())),
-                                subpath: "a".into()
+                                subpath: "a".into(),
                             }),
                             "b".into() => ast::Expression::Subpath(ast::SubpathExpr {
                                 expr: Box::new(ast::Expression::Identifier("bar".into())),
-                                subpath: "b".into()
+                                subpath: "b".into(),
                             })
                         })
                     )])
@@ -7789,7 +7791,7 @@ mod order_by_clause {
                     unchecked_unique_linked_hash_map! {
                         "a".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1))
                     }
-                    .into()
+                    .into(),
                 )],
                 alias: "arr".into(),
                 cache: SchemaCache::new(),
@@ -7815,7 +7817,7 @@ mod order_by_clause {
                 unchecked_unique_linked_hash_map! {
                     "a".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1))
                 }
-                .into()
+                .into(),
             )],
             alias: "arr".into(),
             cache: SchemaCache::new(),
@@ -8137,7 +8139,7 @@ mod subquery {
             array: vec![ast::Expression::Document(multimap! {
                 "a".into() => ast::Expression::Literal(ast::Literal::Integer(1))
             },)],
-            alias: "arr".into()
+            alias: "arr".into(),
         });
     }
     test_algebrize!(
@@ -8255,7 +8257,7 @@ mod subquery {
                         "a".into() => ast::Expression::Literal(ast::Literal::Integer(2))
                     },)
                 ],
-                alias: "arr".into()
+                alias: "arr".into(),
             })),
             where_clause: None,
             group_by_clause: None,
@@ -8278,7 +8280,7 @@ mod subquery {
                             "a".to_string() => Expression::Literal(LiteralValue::Integer(1)),
                             "b".to_string() => Expression::Literal(LiteralValue::Integer(2))
                         }
-                        .into()
+                        .into(),
                     )],
                     alias: "arr".to_string(),
                     cache: SchemaCache::new(),
@@ -8288,7 +8290,7 @@ mod subquery {
                 },
                 cache: SchemaCache::new(),
             }))
-            .into()
+            .into(),
         )),
         input = ast::Expression::Exists(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {
@@ -8300,7 +8302,7 @@ mod subquery {
                     "a".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
                     "b".into() => ast::Expression::Literal(ast::Literal::Integer(2))
                 },),],
-                alias: "arr".into()
+                alias: "arr".into(),
             })),
             where_clause: None,
             group_by_clause: None,
@@ -8421,7 +8423,7 @@ mod subquery {
             },
             from_clause: Some(ast::Datasource::Array(ast::ArraySource {
                 array: vec![],
-                alias: "arr".into()
+                alias: "arr".into(),
             })),
             where_clause: None,
             group_by_clause: None,
@@ -8456,7 +8458,7 @@ mod subquery {
                 set_quantifier: ast::SetQuantifier::All,
                 body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Substar(
                     ast::SubstarExpr {
-                        datasource: "arr".into()
+                        datasource: "arr".into(),
                     }
                 )])
             },
@@ -8494,7 +8496,7 @@ mod subquery {
                         "b".into() => ast::Expression::Literal(ast::Literal::Integer(2))
                     },)
                 ],
-                alias: "arr".into()
+                alias: "arr".into(),
             })),
             where_clause: None,
             group_by_clause: None,
@@ -8547,7 +8549,7 @@ mod subquery {
                     "a".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
                     "b".into() => ast::Expression::Literal(ast::Literal::Integer(2))
                 })],
-                alias: "arr".into()
+                alias: "arr".into(),
             })),
             where_clause: None,
             group_by_clause: None,
@@ -8568,7 +8570,7 @@ mod subquery {
                 set_quantifier: ast::SetQuantifier::All,
                 body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Substar(
                     ast::SubstarExpr {
-                        datasource: "arr".into()
+                        datasource: "arr".into(),
                     }
                 )])
             },
@@ -8577,7 +8579,7 @@ mod subquery {
                     "a".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
                     "b".into() => ast::Expression::Literal(ast::Literal::Integer(2))
                 })],
-                alias: "arr".into()
+                alias: "arr".into(),
             })),
             where_clause: None,
             group_by_clause: None,
@@ -8613,7 +8615,7 @@ mod subquery {
                                     field:"a".into(),
                                     is_nullable:false,
                                 })
-                        }.into()
+                        }.into(),
                     )},
                     cache: SchemaCache::new(),
                 })),
@@ -8821,7 +8823,7 @@ mod subquery {
                     array: vec![ast::Expression::Document(multimap! {
                         "a".into() => ast::Expression::StringConstructor("abc".to_string()),
                     })],
-                    alias: "arr".into()
+                    alias: "arr".into(),
                 })),
                 where_clause: None,
                 group_by_clause: None,
@@ -9017,7 +9019,7 @@ mod schema_checking_mode {
         comparison_fails_in_strict_mode,
         method = algebrize_order_by_clause,
         expected = Err(Error::SchemaChecking(
-            schema::Error::SortKeyNotSelfComparable(0, Schema::Any)
+            schema::Error::SortKeyNotSelfComparable(0, Schema::Any.into())
         )),
         expected_error_code = 1010,
         input = Some(ast::OrderByClause {
@@ -9101,11 +9103,11 @@ mod user_error_messages {
                 required: set! {
                     "bar".into(),
                     "baz".into(),
-                    "foo1".into()
+                    "foo1".into(),
                 },
                 additional_properties: false,
                 ..Default::default()
-                }),
+                }).into(),
             Schema::Document(Document {
                 keys: map! {
                     "bar".into() => Schema::Atomic(Atomic::Integer),
@@ -9115,11 +9117,11 @@ mod user_error_messages {
                 required: set! {
                     "bar".into(),
                     "baz".into(),
-                    "foo2".into()
+                    "foo2".into(),
                 },
             additional_properties: false,
             ..Default::default()
-            }),
+            }).into(),
             "foo".into(),
             crate::schema::Satisfaction::Must,
         ),
@@ -9138,7 +9140,7 @@ mod user_error_messages {
     mod cannot_enumerate_all_field_paths {
         test_user_error_messages! {
             cannot_enumerate_all_field_paths,
-            input = Error::CannotEnumerateAllFieldPaths(crate::schema::Schema::Any),
+            input = Error::CannotEnumerateAllFieldPaths(crate::schema::Schema::Any.into()),
             expected = "Insufficient schema information."
         }
     }
