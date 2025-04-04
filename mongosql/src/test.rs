@@ -331,8 +331,8 @@ mod test_get_select_order {
     );
 
     test_get_select_order!(
-        select_distinct_is_none,
-        expected = None,
+        select_distinct_is_some,
+        expected = Some(ast::SelectBody::Standard(vec![])),
         input = &ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::Distinct,
