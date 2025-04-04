@@ -440,6 +440,36 @@ tasks:
         retry_on_failure: true
         variants: [mongosqltranslate-macos, mongosqltranslate-macos-arm]
 
+  - name: ssdlc-artifacts-release
+    run_on: ubuntu2204-small
+    git_tag_only: true
+    depends_on:
+      - name: "mongosqltranslate-release"
+        variant: "mongosqltranslate-release"
+      - name: "mongosqltranslate-sbom"
+        variant: "mongosqltranslate-code-quality-security"
+      - name: "mongosqltranslate-static-code-analysis"
+        variant: "mongosqltranslate-code-quality-security"
+    exec_timeout_secs: 300 # 5m
+    commands:
+      - func: "publish static code analysis"
+        vars:
+          project_folder: "mongosqltranslate"
+
+  - name: ssdlc-artifacts-snapshot
+    run_on: ubuntu2204-small
+    allow_for_git_tag: false
+    depends_on:
+      - name: "mongosqltranslate-sbom"
+        variant: "mongosqltranslate-code-quality-security"
+      - name: "mongosqltranslate-static-code-analysis"
+        variant: "mongosqltranslate-code-quality-security"
+    exec_timeout_secs: 300 # 5m
+    commands:
+      - func: "publish static code analysis"
+        vars:
+          project_folder: "mongosqltranslate"
+
 buildvariants:
   - name: mongosqltranslate-release
     display_name: "Mongosqltranslate Release"
@@ -447,6 +477,7 @@ buildvariants:
     tasks:
       - name: mongosqltranslate-release
       - name: trace-artifacts
+      - name: ssdlc-artifacts-release
 
   - name: mongosqltranslate-macos
     tags: ["mongosqltranslate-release-variant"]
@@ -502,3 +533,4 @@ buildvariants:
     tasks:
       - name: mongosqltranslate-sbom
       - name: mongosqltranslate-static-code-analysis
+      - name: ssdlc-artifacts-snapshot
