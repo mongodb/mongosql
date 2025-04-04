@@ -1,7 +1,8 @@
 use crate::{
-    array_element_schema_or_error, get_schema_for_path_mut, insert_required_key_into_document,
-    promote_missing, remove_field, schema_difference, schema_for_bson, schema_for_type_numeric,
-    schema_for_type_str, Error, MatchConstrainSchema, Result,
+    array_element_schema_or_error, get_schema_for_path, get_schema_for_path_mut,
+    insert_required_key_into_document, promote_missing, remove_field, schema_difference,
+    schema_for_bson, schema_for_type_numeric, schema_for_type_str, Error, MatchConstrainSchema,
+    Result,
 };
 use agg_ast::definitions::{
     AtlasSearchStage, Bucket, BucketAuto, ConciseSubqueryLookup, Densify, Documents,
@@ -435,6 +436,7 @@ impl DeriveSchema for Stage {
         ) -> Result<Schema> {
             // If this is an exclusion $project, we can remove the fields from the schema and
             // return
+            state.result_set_schema = promote_missing(&state.result_set_schema);
             if project
                 .items
                 .iter()
@@ -446,6 +448,8 @@ impl DeriveSchema for Stage {
                         k.split('.').map(|s| s.to_string()).collect(),
                     );
                 });
+                // undo the promotion of missing
+                state.result_set_schema = Schema::simplify(&state.result_set_schema);
                 return Ok(state.result_set_schema.to_owned());
             }
             // determine if the _id field should be included in the schema. This is the case, if the $project does not have _id: 0.
@@ -482,11 +486,13 @@ impl DeriveSchema for Stage {
                     keys.insert("_id".to_string(), id_value.clone());
                 }
             }
-            Ok(Schema::Document(Document {
+            // undo the promotion of missing
+            state.result_set_schema = Schema::simplify(&state.result_set_schema);
+            Ok(Schema::simplify(&Schema::Document(Document {
                 required: keys.keys().cloned().collect(),
                 keys,
                 ..Default::default()
-            }))
+            })))
         }
 
         fn lookup_derive_schema(lookup: &Lookup, state: &mut ResultSetState) -> Result<Schema> {
@@ -881,7 +887,7 @@ impl DeriveSchema for Expression {
                     .variables
                     .get_mut("CURRENT")
                     .unwrap_or(&mut state.result_set_schema);
-                let schema = get_schema_for_path_mut(current_schema, path);
+                let schema = get_schema_for_path(current_schema.clone(), path);
                 match schema {
                     Some(schema) => Ok(schema.clone()),
                     // Unknown fields actually have the Schema Missing, while unknown variables are
@@ -2125,6 +2131,7 @@ impl DeriveSchema for UntaggedOperator {
                 // appears multiple times. See the tests for examples.
                 let arg_schemas: Result<Vec<Document>> = args.iter().filter_map(|arg| {
                     let arg_schema = arg.derive_schema(state);
+                    println!("{:?}, {:?}", arg, arg_schema);
                     match arg_schema {
                         Err(e) => Some(Err(e)),
                         Ok(arg_schema) => {

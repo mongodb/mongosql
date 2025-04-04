@@ -188,9 +188,34 @@ mod field_ref {
     );
 
     test_derive_expression_schema!(
-        ref_missing,
+        nested_ref_missing,
         expected = Ok(Schema::Missing),
-        input = r#""$foo""#
+        input = r#""$foo.bar""#,
+        ref_schema = Schema::Document(Document::empty()),
+        variables = map!()
+    );
+
+    test_derive_expression_schema!(
+        nested_ref_not_required,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Missing,
+            Schema::Atomic(Atomic::Double)
+        ))),
+        input = r#""$foo.a.b""#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::AnyOf(set!(
+                    Schema::Missing,
+                    Schema::Document(Document {
+                        keys: map! {
+                            "b".to_string() => Schema::Atomic(Atomic::Double)
+                        },
+                        ..Default::default()
+                    })
+                ))
+            },
+            ..Default::default()
+        })
     );
 
     test_derive_expression_schema!(
@@ -212,6 +237,128 @@ mod field_ref {
                 ..Default::default()
             })
         }
+    );
+
+    test_derive_expression_schema!(
+        nested_ref_array,
+        expected = Ok(Schema::Array(Box::new(
+            Schema::Atomic(Atomic::Double)
+        ))),
+        input = r#""$foo.a""#,
+        ref_schema = Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Double)
+            },
+            required: set!["a".to_string()],
+            ..Default::default()
+        })))
+    );
+
+    test_derive_expression_schema!(
+        nested_ref_converts_null_to_missing,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Missing
+        ))),
+        input = r#""$foo.a""#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Document(Document {
+                keys: map! {
+                    "a".to_string() => Schema::Atomic(Atomic::Double),
+                },
+                required: set!["a".to_string()],
+                ..Default::default()
+            }),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    
+    test_derive_expression_schema!(
+        nested_array_of_array,
+        expected = Ok(Schema::Array(Box::new(Schema::Array(Box::new(Schema::Atomic(Atomic::Double)))))),
+        input = r#""$foo.a.b""#,
+        ref_schema = Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Array(Box::new(Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Atomic(Atomic::Double)
+                    },
+                    required: set!("b".to_string()),
+                    ..Default::default()
+                })))
+            },
+            required: set!("a".to_string()),
+            ..Default::default()
+        })))
+    );
+
+    // the input schema to this test is surely a bit hard to follow. The
+    // the below pipeline illustrates what type of cases we are covering:
+    // [
+    //  {$documents: [
+    //    {foo: [{a: {b: 1}}]},
+    //    {foo: [{a: [{b: 1}]}]},
+    //    {foo: {a: {b: 2}}},
+    //    {foo: {a: [{b: 2}]}},
+    //  ]},
+    //  {$project: {foo: \"$foo.a.b\"}}
+    // ]
+    test_derive_expression_schema!(
+        nested_ref_could_be_array_or_document,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Array(Box::new(Schema::AnyOf(set!(
+                Schema::Atomic(Atomic::Double),
+                Schema::Array(Box::new(Schema::Atomic(Atomic::Double)))
+            ))))
+        ))),
+        input = r#""$foo.a.b""#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Document(Document {
+                keys: map! {
+                    "a".to_string() => Schema::AnyOf(set!(
+                        Schema::Document(Document {
+                            keys: map! {
+                                "b".to_string() => Schema::Atomic(Atomic::Double)
+                            },
+                            required: set!("b".to_string()),
+                            ..Default::default()
+                        }),
+                        Schema::Array(Box::new(Schema::Document(Document {
+                            keys: map! {
+                                "b".to_string() => Schema::Atomic(Atomic::Double)
+                            },
+                            required: set!("b".to_string()),
+                            ..Default::default()
+                        })))
+                    ))
+                },
+                required: set!("a".to_string()),
+                ..Default::default()
+            }),
+            Schema::Array(Box::new(Schema::Document(Document {
+                keys: map! {
+                    "a".to_string() => Schema::AnyOf(set!(
+                        Schema::Document(Document {
+                            keys: map! {
+                                "b".to_string() => Schema::Atomic(Atomic::Double)
+                            },
+                            required: set!("b".to_string()),
+                            ..Default::default()
+                        }),
+                        Schema::Array(Box::new(Schema::Document(Document {
+                            keys: map! {
+                                "b".to_string() => Schema::Atomic(Atomic::Double)
+                            },
+                            required: set!("b".to_string()),
+                            ..Default::default()
+                        })))
+                    ))
+                },
+                required: set!("a".to_string()),
+                ..Default::default()
+            })))
+        ))
     );
 }
 

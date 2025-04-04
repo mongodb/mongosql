@@ -14,7 +14,10 @@ mod schema_derivation_tests;
 mod test;
 
 use bson::{Bson, Document};
-use mongosql::schema::{self, Atomic, JaccardIndex, Schema, UNFOLDED_ANY};
+use mongosql::{
+    schema::{self, Atomic, JaccardIndex, Satisfaction, Schema, NULLISH, UNFOLDED_ANY},
+    set,
+};
 use tailcall::tailcall;
 use thiserror::Error;
 
@@ -153,6 +156,53 @@ fn get_schema_for_path_mut_aux(
         Schema::Array(s) => get_schema_for_path_mut_aux(&mut **s, path, Some(field), field_index),
         _ => None,
     }
+}
+
+/// Gets a mutable reference to a specific field or document path in the schema.
+/// This allows us to insert, remove, or modify fields as we derive the schema for
+/// operators and stages.
+pub(crate) fn get_schema_for_path(schema: Schema, path: Vec<String>) -> Option<Schema> {
+    // get_schema_for_path_aux(schema, path, None, 0usize)
+    let mut schema = schema;
+    for (index, field) in path.clone().iter().enumerate() {
+        schema = match schema {
+            Schema::Document(d) => match d.keys.get(field) {
+                None => {
+                    return None;
+                }
+                Some(s) => s.clone(),
+            },
+            Schema::AnyOf(ao) => {
+                let types = ao
+                    .iter()
+                    .map(|ao_schema| get_schema_for_path(ao_schema.clone(), path[index..].to_vec()))
+                    .filter(|x| !x.is_none())
+                    .map(|x| x.unwrap())
+                    .collect::<BTreeSet<_>>();
+                if !types.is_empty() {
+                    return Some(Schema::AnyOf(types));
+                }
+                return None;
+            }
+            Schema::Array(a) => {
+                let array_schema = get_schema_for_path(*a.clone(), vec![field.clone()]);
+                if array_schema.is_none() {
+                    return None;
+                }
+                Schema::Array(Box::new(array_schema.unwrap()))
+            }
+            Schema::Missing => {
+                return Some(Schema::Missing);
+            }
+            Schema::Atomic(Atomic::Null) => {
+                return Some(Schema::Missing);
+            }
+            _ => {
+                return None;
+            }
+        };
+    }
+    Some(Schema::simplify(&schema))
 }
 
 /// Gets or creates a mutable reference to a specific field or document path in the schema. This
