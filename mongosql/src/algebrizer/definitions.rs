@@ -832,7 +832,7 @@ impl<'a> Algebrizer<'a> {
                     .enumerate_field_paths(depth.map(|d| d + 1))
                     .map_err(|e| match e {
                         schema::Error::CannotEnumerateAllFieldPaths(s) => {
-                            Error::CannotEnumerateAllFieldPaths(s)
+                            Error::CannotEnumerateAllFieldPaths(Box::new(s))
                         }
                         _ => unreachable!(),
                     })?;

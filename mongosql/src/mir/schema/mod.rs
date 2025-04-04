@@ -342,7 +342,7 @@ impl CachedSchema for Stage {
                         // If schema checking is in strict mode, the group key must have a
                         // schema that is self-comparable, otherwise it must or may have one.
                         if !state.check_self_comparable(&group_key_schema) {
-                            return Err(Error::GroupKeyNotSelfComparable(index, group_key_schema));
+                            return Err(Error::GroupKeyNotSelfComparable(index, group_key_schema.into()));
                         }
 
                         // Get the SchemaEnvironment BindingTuple key and its associated schema.
@@ -457,7 +457,7 @@ impl CachedSchema for Stage {
                         SortSpecification::Asc(a) | SortSpecification::Desc(a) => {
                             let schema = a.schema(&state)?;
                             if !state.check_self_comparable(&schema) {
-                                return Err(Error::SortKeyNotSelfComparable(index, schema));
+                                return Err(Error::SortKeyNotSelfComparable(index, schema.into()));
                             }
                             Ok(())
                         }
@@ -742,8 +742,8 @@ impl CachedSchema for Stage {
                 if !state.check_comparable_with(&local_field_schema, &foreign_field_schema) {
                     return Err(Error::InvalidComparison(
                         "equijoin comparison",
-                        local_field_schema,
-                        foreign_field_schema,
+                        local_field_schema.into(),
+                        foreign_field_schema.into(),
                     ));
                 }
 
@@ -865,7 +865,7 @@ impl AggregationFunctionApplication {
         if self.distinct && !state.check_self_comparable(&arg_schema) {
             return Err(Error::AggregationArgumentMustBeSelfComparable(
                 format!("{} DISTINCT", self.function.as_str()),
-                arg_schema,
+                arg_schema.into(),
             ));
         }
         self.function.schema(state, arg_schema)
@@ -924,7 +924,7 @@ impl AggregationFunction {
                 if !state.check_self_comparable(&arg_schema) {
                     return Err(Error::AggregationArgumentMustBeSelfComparable(
                         self.as_str().to_string(),
-                        arg_schema,
+                        arg_schema.into(),
                     ));
                 }
                 arg_schema
@@ -1505,8 +1505,8 @@ trait SqlFunction {
         } else {
             Err(Error::InvalidComparison(
                 self.as_str(),
-                arg_schemas[0].clone(),
-                arg_schemas[1].clone(),
+                arg_schemas[0].clone().into(),
+                arg_schemas[1].clone().into(),
             ))
         }
     }
@@ -1798,7 +1798,7 @@ impl ScalarFunction {
                 let acc = acc?;
                 let sat = acc.has_overlapping_keys_with(&curr);
                 if sat != Satisfaction::Not {
-                    return Err(Error::CannotMergeObjects(acc, curr, sat));
+                    return Err(Error::CannotMergeObjects(acc.into(), curr.into(), sat));
                 }
                 if let (Schema::Document(mut d1), Schema::Document(d2)) = (acc, curr) {
                     d1.keys.extend(d2.keys);
@@ -2005,8 +2005,8 @@ impl SchemaCheckCaseExpr for SimpleCaseExpr {
             if !state.check_comparable_with(&case_operand_schema, when_schema) {
                 return Err(Error::InvalidComparison(
                     "SimpleCase",
-                    case_operand_schema.clone(),
-                    when_schema.clone(),
+                    case_operand_schema.clone().into(),
+                    when_schema.clone().into(),
                 ));
             }
             Ok(())
