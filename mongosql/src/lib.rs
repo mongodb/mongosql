@@ -151,13 +151,13 @@ pub fn get_namespaces(current_db: &str, sql: &str) -> Result<BTreeSet<Namespace>
 }
 
 // get_select_order uses pattern matching to parse the select body from the rewritten AST.
-// Only parse if it is a non-distinct SelectQuery, otherwise return none (we won't attempt reordering).
+// Parses both distinct and non-distinct SelectQuery
 pub fn get_select_order(ast: &ast::Query) -> Option<ast::SelectBody> {
     match ast {
         ast::Query::Select(ast::SelectQuery {
             select_clause:
                 ast::SelectClause {
-                    set_quantifier: ast::SetQuantifier::All,
+                    set_quantifier: ast::SetQuantifier::All | ast::SetQuantifier::Distinct,
                     body: b,
                 },
             ..
