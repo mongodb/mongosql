@@ -157,7 +157,7 @@ pub fn get_select_order(ast: &ast::Query) -> Option<ast::SelectBody> {
         ast::Query::Select(ast::SelectQuery {
             select_clause:
                 ast::SelectClause {
-                    set_quantifier: ast::SetQuantifier::All | ast::SetQuantifier::Distinct,
+                    set_quantifier: _,
                     body: b,
                 },
             ..
