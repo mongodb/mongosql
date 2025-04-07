@@ -155,6 +155,49 @@ fn get_schema_for_path_mut_aux(
     }
 }
 
+/// Gets a mutable reference to a specific field or document path in the schema.
+/// This allows us to insert, remove, or modify fields as we derive the schema for
+/// operators and stages.
+pub(crate) fn get_schema_for_path(schema: Schema, path: Vec<String>) -> Option<Schema> {
+    let mut schema = schema;
+    for (index, field) in path.clone().iter().enumerate() {
+        schema = match schema {
+            Schema::Document(d) => match (d.keys.get(field), d.additional_properties) {
+                (None, false) => {
+                    return None;
+                }
+                (None, true) => Schema::Any,
+                (Some(s), _) => s.clone(),
+            },
+            Schema::AnyOf(ao) => {
+                let types = ao
+                    .iter()
+                    .map(|ao_schema| get_schema_for_path(ao_schema.clone(), path[index..].to_vec()))
+                    .map(|x| match x {
+                        None => Schema::Missing,
+                        Some(schema) => schema,
+                    })
+                    .collect::<BTreeSet<_>>();
+                if !types.is_empty() {
+                    return Some(Schema::simplify(&Schema::AnyOf(types)));
+                }
+                return None;
+            }
+            Schema::Array(a) => {
+                let array_schema = get_schema_for_path(*a.clone(), path[index..].to_vec());
+                return array_schema.map(|schema| Schema::Array(Box::new(schema)));
+            }
+            Schema::Missing | Schema::Atomic(Atomic::Null) => {
+                return Some(Schema::Missing);
+            }
+            _ => {
+                return None;
+            }
+        };
+    }
+    Some(schema)
+}
+
 /// Gets or creates a mutable reference to a specific field or document path in the schema. This
 /// should only be used in a $match context or in some other context where the MQL operator can
 /// actually create fields. Consider a $match: we could think a field has type Any, or

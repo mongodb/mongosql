@@ -1250,6 +1250,22 @@ mod project {
         })
     );
     test_derive_stage_schema!(
+        project_non_required_key,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+            },
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo": 1}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Atomic(Atomic::String),
+            },
+            ..Default::default()
+        })
+    );
+    test_derive_stage_schema!(
         project_remove_id,
         expected = Ok(Schema::Document(Document {
             keys: map! {
