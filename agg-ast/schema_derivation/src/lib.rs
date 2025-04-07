@@ -159,22 +159,26 @@ fn get_schema_for_path_mut_aux(
 /// This allows us to insert, remove, or modify fields as we derive the schema for
 /// operators and stages.
 pub(crate) fn get_schema_for_path(schema: Schema, path: Vec<String>) -> Option<Schema> {
-    // get_schema_for_path_aux(schema, path, None, 0usize)
     let mut schema = schema;
     for (index, field) in path.clone().iter().enumerate() {
         schema = match schema {
-            Schema::Document(d) => match d.keys.get(field) {
-                None => {
-                    return None;
+            Schema::Document(d) => {
+                match (d.keys.get(field), d.additional_properties) {
+                    (None, false) => {
+                        return None;
+                    }
+                    (None, true) => Schema::Any,
+                    (Some(s), _) => s.clone(),
                 }
-                Some(s) => s.clone(),
             },
             Schema::AnyOf(ao) => {
                 let types = ao
                     .iter()
                     .map(|ao_schema| get_schema_for_path(ao_schema.clone(), path[index..].to_vec()))
-                    .filter(|x| !x.is_none())
-                    .map(|x| x.unwrap())
+                    .map(|x| match x {
+                        None => Schema::Missing,
+                        Some(schema) => schema
+                    })
                     .collect::<BTreeSet<_>>();
                 if !types.is_empty() {
                     return Some(Schema::simplify(&Schema::AnyOf(types)));
