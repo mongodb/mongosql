@@ -1,7 +1,7 @@
 use crate::{
     ast, map, mir, multimap,
     schema::{Atomic, Satisfaction, Schema, ANY_DOCUMENT, NUMERIC_OR_NULLISH},
-    test_algebrize, unchecked_unique_linked_hash_map,
+    test_algebrize, test_algebrize_expr_and_schema_check, unchecked_unique_linked_hash_map,
     usererror::UserError,
 };
 test_algebrize!(
