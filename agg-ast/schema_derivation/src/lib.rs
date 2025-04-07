@@ -14,10 +14,7 @@ mod schema_derivation_tests;
 mod test;
 
 use bson::{Bson, Document};
-use mongosql::{
-    schema::{self, Atomic, JaccardIndex, Satisfaction, Schema, NULLISH, UNFOLDED_ANY},
-    set,
-};
+use mongosql::schema::{self, Atomic, JaccardIndex, Schema, UNFOLDED_ANY};
 use tailcall::tailcall;
 use thiserror::Error;
 
@@ -180,21 +177,18 @@ pub(crate) fn get_schema_for_path(schema: Schema, path: Vec<String>) -> Option<S
                     .map(|x| x.unwrap())
                     .collect::<BTreeSet<_>>();
                 if !types.is_empty() {
-                    return Some(Schema::AnyOf(types));
+                    return Some(Schema::simplify(&Schema::AnyOf(types)));
                 }
                 return None;
             }
             Schema::Array(a) => {
-                let array_schema = get_schema_for_path(*a.clone(), vec![field.clone()]);
+                let array_schema = get_schema_for_path(*a.clone(), path[index..].to_vec());
                 if array_schema.is_none() {
                     return None;
                 }
-                Schema::Array(Box::new(array_schema.unwrap()))
+                return Some(Schema::Array(Box::new(array_schema.unwrap())));
             }
-            Schema::Missing => {
-                return Some(Schema::Missing);
-            }
-            Schema::Atomic(Atomic::Null) => {
+            Schema::Missing | Schema::Atomic(Atomic::Null) => {
                 return Some(Schema::Missing);
             }
             _ => {
@@ -202,7 +196,7 @@ pub(crate) fn get_schema_for_path(schema: Schema, path: Vec<String>) -> Option<S
             }
         };
     }
-    Some(Schema::simplify(&schema))
+    Some(schema)
 }
 
 /// Gets or creates a mutable reference to a specific field or document path in the schema. This

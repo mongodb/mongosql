@@ -241,9 +241,7 @@ mod field_ref {
 
     test_derive_expression_schema!(
         nested_ref_array,
-        expected = Ok(Schema::Array(Box::new(
-            Schema::Atomic(Atomic::Double)
-        ))),
+        expected = Ok(Schema::Array(Box::new(Schema::Atomic(Atomic::Double)))),
         input = r#""$foo.a""#,
         ref_schema = Schema::Array(Box::new(Schema::Document(Document {
             keys: map! {
@@ -272,10 +270,12 @@ mod field_ref {
             Schema::Atomic(Atomic::Null),
         ))
     );
-    
+
     test_derive_expression_schema!(
         nested_array_of_array,
-        expected = Ok(Schema::Array(Box::new(Schema::Array(Box::new(Schema::Atomic(Atomic::Double)))))),
+        expected = Ok(Schema::Array(Box::new(Schema::Array(Box::new(
+            Schema::Atomic(Atomic::Double)
+        ))))),
         input = r#""$foo.a.b""#,
         ref_schema = Schema::Array(Box::new(Schema::Document(Document {
             keys: map! {
@@ -307,6 +307,7 @@ mod field_ref {
         nested_ref_could_be_array_or_document,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Double),
+            Schema::Array(Box::new(Schema::Atomic(Atomic::Double))),
             Schema::Array(Box::new(Schema::AnyOf(set!(
                 Schema::Atomic(Atomic::Double),
                 Schema::Array(Box::new(Schema::Atomic(Atomic::Double)))

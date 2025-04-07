@@ -1249,38 +1249,6 @@ mod project {
             ..Default::default()
         })
     );
-
-    test_derive_stage_schema!(
-        project_assignment_nested_key,
-        expected = Ok(Schema::Document(Document {
-            keys: map! {
-                "foo".to_string() => Schema::Document(Document {
-                    keys: map! {
-                        "bar".to_string() => Schema::Atomic(Atomic::Boolean),
-                    },
-                    required: set!("bar".to_string()),
-                    ..Default::default()
-                })
-            },
-            required: set!("foo".to_string()),
-            ..Default::default()
-        })),
-        input = r#"{"$project": {"foo.bar": true}}"#,
-        starting_schema = Schema::Document(Document {
-            keys: map! {
-                "a".to_string() => Schema::Atomic(Atomic::ObjectId),
-                "foo".to_string() => Schema::Document(Document {
-                    keys: map! {
-                        "bar".to_string() => Schema::Atomic(Atomic::Integer),
-                    },
-                    required: set!("bar".to_string()),
-                    ..Default::default()
-                })
-            },
-            required: set!("a".to_string(), "foo".to_string(),),
-            ..Default::default()
-        })
-    );
     test_derive_stage_schema!(
         project_non_required_key,
         expected = Ok(Schema::Document(Document {

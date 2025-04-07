@@ -2131,7 +2131,6 @@ impl DeriveSchema for UntaggedOperator {
                 // appears multiple times. See the tests for examples.
                 let arg_schemas: Result<Vec<Document>> = args.iter().filter_map(|arg| {
                     let arg_schema = arg.derive_schema(state);
-                    println!("{:?}, {:?}", arg, arg_schema);
                     match arg_schema {
                         Err(e) => Some(Err(e)),
                         Ok(arg_schema) => {
@@ -2179,7 +2178,7 @@ impl DeriveSchema for UntaggedOperator {
                         }
                     }
                 }).collect();
-
+                println!("{:?}", arg_schemas);
                 Ok(Schema::simplify(&Schema::Document(arg_schemas?
                     .into_iter()
                     .fold(Document::empty(), |acc, arg_schema| {
@@ -2189,6 +2188,7 @@ impl DeriveSchema for UntaggedOperator {
                         let mut keys = acc.keys;
                         for (arg_key, mut arg_key_schema) in arg_schema.keys {
                             let current_key_schema = keys.get(&arg_key);
+                            println!("{:?} {:?} {:?}", arg_key, arg_key_schema, current_key_schema);
                             let schema_to_insert = if let Some(current_key_schema) = current_key_schema {
                                 if arg_key_schema.satisfies(&Schema::Missing) == Satisfaction::May {
                                     // If this key already appears in the accumulated schema _and_
