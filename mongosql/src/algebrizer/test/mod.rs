@@ -17,7 +17,7 @@ macro_rules! test_algebrize {
         #[test]
         fn $func_name() {
             #[allow(unused_imports)]
-            use crate::{
+            use $crate::{
                 algebrizer::{Algebrizer, Error, ClauseType},
                 catalog::Catalog,
                 SchemaCheckingMode,
@@ -53,7 +53,7 @@ macro_rules! test_algebrize_expr_and_schema_check {
         #[test]
         fn $func_name() {
             #[allow(unused)]
-            use crate::{
+            use $crate::{
                 algebrizer::{Algebrizer, Error, ClauseType},
                 catalog::Catalog,
                 SchemaCheckingMode,
@@ -90,7 +90,7 @@ macro_rules! test_user_error_messages {
         #[test]
         fn $func_name() {
             #[allow(unused_imports)]
-            use crate::{algebrizer::ClauseType, algebrizer::Error, usererror::UserError};
+            use $crate::{algebrizer::ClauseType, algebrizer::Error, usererror::UserError};
 
             let user_message = $input.user_message();
 
