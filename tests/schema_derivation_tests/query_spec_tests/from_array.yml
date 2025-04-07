@@ -195,7 +195,13 @@ tests:
   ]
   result_set_schema: {
     'bsonType': 'object',
-    'additionalProperties': true,
+    'additionalProperties': false,
+    'properties': {
+      'arr': {
+        'bsonType': 'object',
+         additionalProperties': true,
+      },
+    },
   }
 
 - description: array datasource with single empty document is allowed

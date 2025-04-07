@@ -186,7 +186,7 @@ impl DeriveSchema for Stage {
                             })
                         },
                     );
-                    Ok(schema?.unwrap_or(Schema::Document(Document::default())))
+                    Ok(schema?.unwrap_or(Schema::Any))
                 }
                 Documents::Expr(expr) => expr.derive_schema(state),
             }
