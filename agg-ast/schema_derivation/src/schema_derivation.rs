@@ -434,14 +434,12 @@ impl DeriveSchema for Stage {
             project: &ProjectStage,
             state: &mut ResultSetState,
         ) -> Result<Schema> {
+            state.result_set_schema = promote_missing(&state.result_set_schema);
             // If this is an exclusion $project, we can remove the fields from the schema and
             // return
-            state.result_set_schema = promote_missing(&state.result_set_schema);
-            if project
-                .items
-                .iter()
-                .all(|(k, p)| matches!(p, ProjectItem::Exclusion) || k == "_id")
-            {
+            if project.items.iter().all(|(k, p)| {
+                matches!(p, ProjectItem::Exclusion) || (k == "_id" && project.items.len() > 1)
+            }) {
                 project.items.iter().for_each(|(k, _)| {
                     remove_field(
                         &mut state.result_set_schema,
