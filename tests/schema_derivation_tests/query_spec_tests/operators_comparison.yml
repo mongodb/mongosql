@@ -3,7 +3,7 @@ catalog_schema:
     "foo": {
       "numbers": {
         "bsonType": "object",
-        'required': [ '_id', 'a', 'b' ],
+        'required': [ '_id' ],
         'additionalProperties': false,
         "properties": {
           "_id": {
@@ -31,7 +31,7 @@ catalog_schema:
       },
       "nan": {
         "bsonType": "object",
-        'required': [ '_id', 'a', 'b' ],
+        'required': [ '_id' ],
         'additionalProperties': false,
         "properties": {
           "_id": {
@@ -47,7 +47,7 @@ catalog_schema:
       },
       "strings": {
         "bsonType": "object",
-        'required': [ '_id', 'a', 'b' ],
+        'required': [ '_id' ],
         'additionalProperties': false,
         "properties": {
           "_id": {
@@ -69,7 +69,7 @@ catalog_schema:
       },
       "bools": {
         "bsonType": "object",
-        'required': [ '_id', 'a', 'b' ],
+        'required': [ '_id' ],
         'additionalProperties': false,
         "properties": {
           "_id": {
@@ -91,7 +91,7 @@ catalog_schema:
       },
       "dates": {
         "bsonType": "object",
-        'required': [ '_id', 'a', 'b' ],
+        'required': [ '_id' ],
         'additionalProperties': false,
         "properties": {
           "_id": {
@@ -113,7 +113,7 @@ catalog_schema:
       },
       "nullAndMissing": {
         "bsonType": "object",
-        'required': [ '_id', 'a', 'b' ],
+        'required': [ '_id' ],
         'additionalProperties': false,
         "properties": {
           "_id": {
@@ -129,7 +129,7 @@ catalog_schema:
       },
       "documents": {
         "bsonType": "object",
-        "required": [ "_id", "comment" ],
+        "required": [ "_id" ],
         "additionalProperties": false,
         "properties": {
           "_id": { "bsonType": "int" },
@@ -156,7 +156,7 @@ catalog_schema:
       },
       "arrays": {
         "bsonType": "object",
-        "required": [ "_id", "comment" ],
+        "required": [ "_id" ],
         "additionalProperties": false,
         "properties": {
           "_id": { "bsonType": "int" },
@@ -183,7 +183,7 @@ catalog_schema:
       },
       "betweenNumeric": {
         "bsonType": "object",
-        'required': [ '_id', 'a', 'b', 'c' ],
+        'required': [ '_id' ],
         'additionalProperties': false,
         "properties": {
           "_id": {
@@ -220,7 +220,7 @@ catalog_schema:
       },
       "betweenStrings": {
         "bsonType": "object",
-        'required': [ '_id', 'a', 'b', 'c' ],
+        'required': [ '_id' ],
         'additionalProperties': false,
         "properties": {
           "_id": {
@@ -248,7 +248,7 @@ catalog_schema:
       },
       "betweenDates": {
         "bsonType": "object",
-        'required': [ '_id', 'a', 'b', 'c' ],
+        'required': [ '_id' ],
         'additionalProperties': false,
         "properties": {
           "_id": {
@@ -276,7 +276,7 @@ catalog_schema:
       },
       "betweenDocuments": {
         "bsonType": "object",
-        "required": [ "_id", "comment" ],
+        "required": [ "_id" ],
         "additionalProperties": false,
         "properties": {
           "_id": { "bsonType": "int" },
@@ -312,7 +312,7 @@ catalog_schema:
       },
       "betweenArrays": {
         "bsonType": "object",
-        "required": [ "_id", "comment" ],
+        "required": [ "_id" ],
         "additionalProperties": false,
         "properties": {
           "_id": { "bsonType": "int" },

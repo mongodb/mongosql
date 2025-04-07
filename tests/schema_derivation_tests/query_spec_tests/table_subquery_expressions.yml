@@ -3,7 +3,7 @@ catalog_schema:
     'foo': {
       'bar': {
         'bsonType': "object",
-        'required': [ '_id', 'v' ],
+        'required': [ '_id' ],
         'additionalProperties': false,
         'properties': {
           '_id': {
@@ -12,7 +12,7 @@ catalog_schema:
           'v': {
             'anyOf': [
               { 'bsonType': "int" },
-              { 'bsonType': !!str "null" }
+              { 'bsonType': "null" }
             ]
           }
         },
@@ -28,7 +28,7 @@ catalog_schema:
           'a': {
             'anyOf': [
               { 'bsonType': "int" },
-              { 'bsonType': !!str "null" }
+              { 'bsonType': "null" }
             ]
           }
         },
@@ -2634,8 +2634,26 @@ tests:
     }
   ]
   result_set_schema: {
-    'bsonType': 'object',
-    'additionalProperties': true,
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "bsonType": "int"
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
   }
 
 - description: correctness test for eq ALL Operator with NULL in subquery result
@@ -2798,8 +2816,33 @@ tests:
     }
   ]
   result_set_schema: {
-    'bsonType': 'object',
-    'additionalProperties': true,
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
   }
 
 - description: correctness test for eq ALL Operator with matching result
@@ -3372,8 +3415,33 @@ tests:
     }
   ]
   result_set_schema: {
-    'bsonType': 'object',
-    'additionalProperties': true,
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
   }
 
 - description: correctness test for neq ALL Operator without NULL in subquery result
@@ -3754,8 +3822,33 @@ tests:
     }
   ]
   result_set_schema: {
-    'bsonType': 'object',
-    'additionalProperties': true,
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
   }
 
 - description: correctness test for lt ALL Operator without NULL in subquery result
@@ -4136,8 +4229,33 @@ tests:
     }
   ]
   result_set_schema: {
-    'bsonType': 'object',
-    'additionalProperties': true,
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
   }
 
 - description: correctness test for lte ALL Operator without NULL in subquery result
@@ -4518,8 +4636,33 @@ tests:
     }
   ]
   result_set_schema: {
-    'bsonType': 'object',
-    'additionalProperties': true,
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
   }
 
 - description: correctness test for gt ALL Operator without NULL in subquery result
@@ -4900,8 +5043,33 @@ tests:
     }
   ]
   result_set_schema: {
-    'bsonType': 'object',
-    'additionalProperties': true,
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
   }
 
 - description: correctness test for gte ALL Operator without NULL in subquery result
@@ -5282,8 +5450,33 @@ tests:
     }
   ]
   result_set_schema: {
-    'bsonType': 'object',
-    'additionalProperties': true,
+    "additionalProperties": false, 
+    "required": ["bar"], 
+    "properties": { 
+      "bar": {
+        "additionalProperties": false, 
+        "required": [
+          "_id"
+        ], 
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          }, 
+          "v": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              }, 
+              {
+                "bsonType": "int"
+              }
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      }
+    }, 
+    "bsonType": "object"
   }
 
 - description: ANY subquery comparison in SELECT clause

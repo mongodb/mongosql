@@ -1,3 +1,4 @@
+catalog_schema_file: correctness_catalog_1.yml
 current_db: test
 current_collection: fuzzer_coll
 pipeline: [ { "$redact" : { "$cond" : { "if" : { "$allElementsTrue" : [ { "$ifNull" : [ [ { "$min" : [ "$obj.obj.obj.obj.obj.date", "$obj.obj.obj.date", "$obj.date", "$date", ISODate("2019-06-13T01:03:41.441Z") ] }, "$obj.obj.obj.str", ISODate("2019-06-23T02:04:49.788Z"), ISODate("2019-11-05T06:53:52.361Z"), ISODate("2019-06-18T00:40:22.882Z") ], [ ] ] } ] }, "then" : "$$KEEP", "else" : "$$PRUNE" } } }, { "$unset" : [ "obj.array", "bool" ] } ]

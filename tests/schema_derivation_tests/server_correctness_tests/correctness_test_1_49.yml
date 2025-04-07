@@ -1,3 +1,4 @@
+catalog_schema_file: correctness_catalog_1.yml
 current_db: test
 current_collection: fuzzer_coll
 pipeline: [ { "$sort" : { "_id" : 1 } }, { "$bucket" : { "groupBy" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$toDate" : { "$toDecimal" : { "$dayOfYear" : { "date" : ISODate("2019-01-15T05:06:47.300Z"), "timezone" : "America/Aruba" } } } } ] }, "boundaries" : [ ISODate("2019-02-15T10:46:30.828Z"), ISODate("2019-03-14T09:37:35.090Z"), ISODate("2019-03-18T17:57:24.921Z"), ISODate("2019-04-04T03:19:36.332Z"), ISODate("2019-04-06T22:33:45.412Z"), ISODate("2019-08-28T22:01:56.851Z"), ISODate("2019-10-05T18:28:37.453Z"), ISODate("2019-11-08T14:46:45.709Z"), ISODate("2019-12-24T11:00:48.879Z") ], "default" : 59193 } }, { "$unwind" : { "path" : "$obj.obj.array", "preserveNullAndEmptyArrays" : true } } ]

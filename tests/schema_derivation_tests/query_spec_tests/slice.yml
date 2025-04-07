@@ -45,8 +45,8 @@ tests:
           "input": {
             "$setField": {
               "field": "", 
-              "input": "$$ROOT",
-              "value": {"$__bot arr", 'len': 'len', 'slice': SLICE(arr::!ARRAY, len::!INT)}
+              "value": "$__bot", 
+              "input": "$$ROOT"
             }
           }
         }

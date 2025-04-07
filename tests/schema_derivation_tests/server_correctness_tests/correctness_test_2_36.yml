@@ -1,3 +1,4 @@
+catalog_schema_file: correctness_catalog_2.yml
 current_db: test
 current_collection: fuzzer_coll
 pipeline: [ { "$project" : { "obj.obj.obj.obj.array" : 0, "obj.obj.obj.date" : 0 } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$graphLookup" : { "from" : "fuzzer_coll", "startWith" : { "$let" : { "vars" : { "zaria" : { "$literal" : [ ] }, "alberto" : { "$unsetField" : { "field" : "bool", "input" : { "$ifNull" : [ "$obj.obj.obj", {  } ] } } } }, "in" : { "$rtrim" : { "input" : { "$max" : [ "$obj.str", { "$substrBytes" : [ "$obj.obj.str", 11, 20 ] }, "Sports artificial intelligence SMTP", "clicks-and-mortar channels Incredible Rubber Chicken", "$str", "$obj.obj.obj.obj.obj.str" ] }, "chars" : "Gorgeous silver Granite" } } } }, "connectFromField" : "obj.obj.obj.obj.any", "connectToField" : "obj.obj.obj.obj.obj.any", "as" : "array", "maxDepth" : 0, "depthField" : "obj.obj.obj.obj.obj.num" } } ]

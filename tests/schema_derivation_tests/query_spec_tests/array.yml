@@ -106,7 +106,7 @@ tests:
                 "$literal": true
               }, 
               {
-                "$literal": true
+                "$literal": "yes"
               }, 
               {
                 "a": {

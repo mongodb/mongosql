@@ -1,3 +1,4 @@
+catalog_schema_file: correctness_catalog_1.yml
 current_db: test
 current_collection: fuzzer_coll
 pipeline: [ { "$setWindowFields" : { "partitionBy" : { "$mergeObjects" : [ { "k" : "teal", "v" : { "$ifNull" : [ "port", null ] } } ] }, "sortBy" : { "geoJson" : 1, "obj.obj.obj.obj.geoJson" : -1, "obj.obj.obj.obj.obj.num" : -1, "obj.obj.obj.str" : 1, "num" : -1 }, "output" : { "obj.obj.obj.obj" : { "$shift" : { "output" : { "$max" : [ { "$ifNull" : [ "$obj.obj.obj.obj", {  } ] }, { "$max" : [ { "$ifNull" : [ "$obj.obj.obj", {  } ] } ] }, { "str" : "parse Fresh Ergonomic Frozen Sausages" }, { "date" : ISODate("2019-02-15T23:03:38.799Z") }, { "$regexFind" : { "input" : "solid state XML Indiana", "regex" : /^Bike/ } }, { "date" : ISODate("2019-09-08T12:54:42.900Z"), "str" : "Rubber Soft PCI" } ] }, "by" : 9, "default" : { "num" : 2147483647 } } } } } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 50 } ]   
