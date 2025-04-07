@@ -11,11 +11,6 @@ use lazy_static::lazy_static;
 use linked_hash_map::LinkedHashMap;
 use mongosql_datastructures::binding_tuple::Key;
 
-#[cfg(test)]
-pub mod aggregation;
-#[cfg(test)]
-pub mod expressions;
-
 #[macro_export]
 macro_rules! test_algebrize {
     ($func_name:ident, method = $method:ident, $(in_implicit_type_conversion_context = $in_implicit_type_conversion_context:expr,)? $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? $(expected_error_code = $expected_error_code:literal,)? input = $ast:expr, $(source = $source:expr,)? $(env = $env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)? $(is_add_fields = $is_add_fields:expr, )?) => {
@@ -105,6 +100,33 @@ macro_rules! test_user_error_messages {
         }
     };
 }
+
+#[cfg(test)]
+pub mod aggregation;
+#[cfg(test)]
+pub mod expressions;
+#[cfg(test)]
+pub mod filter_clause;
+#[cfg(test)]
+pub mod from_clause;
+#[cfg(test)]
+pub mod group_by_clause;
+#[cfg(test)]
+pub mod limit_or_offset_clause;
+#[cfg(test)]
+pub mod order_by_clause;
+#[cfg(test)]
+pub mod schema_checking_mode;
+#[cfg(test)]
+pub mod select_and_order_by;
+#[cfg(test)]
+pub mod select_clause;
+#[cfg(test)]
+pub mod set_query;
+#[cfg(test)]
+pub mod subquery;
+#[cfg(test)]
+pub mod user_error_messages;
 
 fn mir_source_collection_with_project(
     collection_name: &str,
@@ -221,314 +243,4 @@ lazy_static! {
         limit: None,
         offset: None,
     });
-}
-
-#[cfg(test)]
-pub mod select_clause;
-
-#[cfg(test)]
-pub mod from_clause;
-
-#[cfg(test)]
-pub mod limit_or_offset_clause;
-
-#[cfg(test)]
-pub mod set_query;
-
-#[cfg(test)]
-pub mod filter_clause;
-
-#[cfg(test)]
-pub mod order_by_clause;
-
-#[cfg(test)]
-pub mod group_by_clause;
-
-#[cfg(test)]
-pub mod subquery;
-
-#[cfg(test)]
-pub mod schema_checking_mode;
-
-mod user_error_messages {
-
-    mod field_not_found {
-        test_user_error_messages! {
-            no_found_fields,
-            input = Error::FieldNotFound("x".into(), None, ClauseType::Select, 1u16),
-            expected = "Field `x` of the `SELECT` clause at the 1 scope level not found.".to_string()
-        }
-
-        test_user_error_messages! {
-            suggestions,
-            input = Error::FieldNotFound("foo".into(), Some(vec!["feo".to_string(), "fooo".to_string(), "aaa".to_string(), "bbb".to_string()]), ClauseType::Where, 1u16),
-            expected =  "Field `foo` not found in the `WHERE` clause at the 1 scope level. Did you mean: feo, fooo".to_string()
-        }
-
-        test_user_error_messages! {
-            no_suggestions,
-            input = Error::FieldNotFound("foo".into(), Some(vec!["aaa".to_string(), "bbb".to_string(), "ccc".to_string()]), ClauseType::Having, 16u16),
-            expected = "Field `foo` in the `HAVING` clause at the 16 scope level not found.".to_string()
-        }
-
-        test_user_error_messages! {
-            exact_match_found,
-            input = Error::FieldNotFound("foo".into(), Some(vec!["foo".to_string()]), ClauseType::GroupBy, 0u16),
-            expected = "Unexpected edit distance of 0 found with input: foo and expected: [\"foo\"]"
-        }
-    }
-
-    mod derived_datasource_overlapping_keys {
-        use crate::{
-            map,
-            schema::{Atomic, Document, Schema},
-            set,
-        };
-
-        test_user_error_messages! {
-        derived_datasource_overlapping_keys,
-        input = Error::DerivedDatasourceOverlappingKeys(
-            Schema::Document(Document {
-                keys: map! {
-                    "bar".into() => Schema::Atomic(Atomic::Integer),
-                    "baz".into() => Schema::Atomic(Atomic::Integer),
-                    "foo1".into() => Schema::Atomic(Atomic::Integer),
-                },
-                required: set! {
-                    "bar".into(),
-                    "baz".into(),
-                    "foo1".into(),
-                },
-                additional_properties: false,
-                ..Default::default()
-                }).into(),
-            Schema::Document(Document {
-                keys: map! {
-                    "bar".into() => Schema::Atomic(Atomic::Integer),
-                    "baz".into() => Schema::Atomic(Atomic::Integer),
-                    "foo2".into() => Schema::Atomic(Atomic::Integer),
-                },
-                required: set! {
-                    "bar".into(),
-                    "baz".into(),
-                    "foo2".into(),
-                },
-            additional_properties: false,
-            ..Default::default()
-            }).into(),
-            "foo".into(),
-            crate::schema::Satisfaction::Must,
-        ),
-        expected = "Derived datasource `foo` has the following overlapping keys: bar, baz"
-        }
-    }
-
-    mod ambiguous_field {
-        test_user_error_messages! {
-            ambiguous_field,
-            input = Error::AmbiguousField("foo".into(), ClauseType::Select, 0u16),
-            expected = "Field `foo` in the `SELECT` clause at the 0 scope level exists in multiple datasources and is ambiguous. Please qualify."
-        }
-    }
-
-    mod cannot_enumerate_all_field_paths {
-        test_user_error_messages! {
-            cannot_enumerate_all_field_paths,
-            input = Error::CannotEnumerateAllFieldPaths(crate::schema::Schema::Any.into()),
-            expected = "Insufficient schema information."
-        }
-    }
-}
-
-mod select_and_order_by {
-    use crate::mir;
-
-    #[test]
-    fn select_and_order_by_column_not_in_select() {
-        use crate::{
-            algebrizer::{Algebrizer, ClauseType},
-            ast,
-            catalog::{Catalog, Namespace},
-            map,
-            mir::{
-                binding_tuple::Key, schema::SchemaCache, Collection, Expression, FieldAccess,
-                Project, Sort, Stage,
-            },
-            schema, set, unchecked_unique_linked_hash_map, SchemaCheckingMode,
-        };
-        let select = ast::SelectClause {
-            set_quantifier: ast::SetQuantifier::All,
-            body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
-                ast::Expression::Document(vec![
-                    ast::DocumentPair {
-                        key: "_id".into(),
-                        value: ast::Expression::Identifier("_id".into()),
-                    },
-                    ast::DocumentPair {
-                        key: "a".into(),
-                        value: ast::Expression::Identifier("a".into()),
-                    },
-                    ast::DocumentPair {
-                        key: "c".into(),
-                        value: ast::Expression::Binary(ast::BinaryExpr {
-                            left: ast::Expression::Identifier("b".into()).into(),
-                            op: ast::BinaryOp::Add,
-                            right: ast::Expression::Literal(ast::Literal::Integer(42)).into(),
-                        }),
-                    },
-                ]),
-            )]),
-        };
-
-        let order_by = Some(ast::OrderByClause {
-            sort_specs: vec![
-                ast::SortSpec {
-                    key: ast::SortKey::Simple(ast::Expression::Identifier("b".into())),
-                    direction: ast::SortDirection::Asc,
-                },
-                ast::SortSpec {
-                    key: ast::SortKey::Simple(ast::Expression::Identifier("c".into())),
-                    direction: ast::SortDirection::Asc,
-                },
-            ],
-        });
-
-        let source = Stage::Project(Project {
-            source: Stage::Collection(Collection {
-                db: "testquerydb".into(),
-                collection: "foo".into(),
-                cache: SchemaCache::new(),
-            })
-            .into(),
-            expression: map! {
-                ("foo", 0u16).into() => Expression::Reference(("foo", 0u16).into()),
-            },
-            is_add_fields: false,
-            cache: SchemaCache::new(),
-        });
-
-        let expected =
-            Ok(Stage::Project(Project {
-                source: Stage::Sort(Sort {
-                    source: Stage::Project(Project {
-                        source: Stage::Project(Project {
-                            source: Stage::Collection(Collection {
-                                db: "testquerydb".into(),
-                                collection: "foo".into(),
-                                cache: SchemaCache::new(),
-                            }).into(),
-                            expression: map! {
-                                ("foo", 0u16).into() => Expression::Reference(("foo", 0u16).into()),
-                            },
-                            is_add_fields: false,
-                            cache: SchemaCache::new(),
-                        }).into(),
-                        expression: map! {
-                            Key::bot(0) => Expression::Document(unchecked_unique_linked_hash_map! {
-                                "_id".into() => Expression::FieldAccess(FieldAccess {
-                                    expr: Expression::Reference(("foo", 0u16).into()).into(),
-                                    field: "_id".into(),
-                                    is_nullable: false,
-                                }),
-                                "a".into() => Expression::FieldAccess(FieldAccess {
-                                    expr: Expression::Reference(("foo", 0u16).into()).into(),
-                                    field: "a".into(),
-                                    is_nullable: false,
-                                }),
-                                "c".into() => Expression::ScalarFunction(mir::ScalarFunctionApplication {
-                                    function: mir::ScalarFunction::Add,
-                                    args: vec![
-                                        Expression::FieldAccess(FieldAccess {
-                                            expr: Expression::Reference(("foo", 0u16).into()).into(),
-                                            field: "b".into(),
-                                            is_nullable: false,
-                                        }),
-                                        Expression::Literal(mir::LiteralValue::Integer(42)),
-                                    ],
-                                    is_nullable: false,
-                                }),
-                            }.into())
-                        },
-                        is_add_fields: true,
-                        cache: SchemaCache::new(),
-                    }).into(),
-                    specs: vec![
-                        mir::SortSpecification::Asc(mir::FieldPath {
-                            key: ("foo", 0u16).into(),
-                            fields: vec!["b".into()],
-                            is_nullable: false,
-                        }),
-                        mir::SortSpecification::Asc(mir::FieldPath {
-                            key: Key::bot(0u16),
-                            fields: vec!["c".into()],
-                            is_nullable: false,
-                        }),
-                    ],
-                    cache: SchemaCache::new(),
-                }).into(),
-                expression: map! {
-                    Key::bot(0) => Expression::Document(unchecked_unique_linked_hash_map! {
-                        "_id".into() => Expression::FieldAccess(FieldAccess {
-                            expr: Expression::Reference(("foo", 0u16).into()).into(),
-                            field: "_id".into(),
-                            is_nullable: false,
-                        }),
-                        "a".into() => Expression::FieldAccess(FieldAccess {
-                            expr: Expression::Reference(("foo", 0u16).into()).into(),
-                            field: "a".into(),
-                            is_nullable: false,
-                        }),
-                        "c".into() => Expression::ScalarFunction(mir::ScalarFunctionApplication {
-                            function: mir::ScalarFunction::Add,
-                            args: vec![
-                                Expression::FieldAccess(FieldAccess {
-                                    expr: Expression::Reference(("foo", 0u16).into()).into(),
-                                    field: "b".into(),
-                                    is_nullable: false,
-                                }),
-                                Expression::Literal(mir::LiteralValue::Integer(42)),
-                            ],
-                            is_nullable: false,
-                        }),
-                    }.into())
-                },
-                is_add_fields: false,
-                cache: SchemaCache::new(),
-            }));
-
-        let catalog = vec![("testquerydb", "foo")]
-            .into_iter()
-            .map(|(db, c)| {
-                (
-                    Namespace {
-                        db: db.into(),
-                        collection: c.into(),
-                    },
-                    schema::Schema::Document(schema::Document {
-                        keys: map! {
-                            "_id".into() => schema::Schema::Atomic(schema::Atomic::ObjectId),
-                            "a".into() => schema::Schema::Atomic(schema::Atomic::Integer),
-                            "b".into() => schema::Schema::Atomic(schema::Atomic::Integer),
-                        },
-                        required: set! {"_id".into(), "a".into(), "b".into()},
-                        additional_properties: false,
-                        jaccard_index: None,
-                    }),
-                )
-            })
-            .collect::<Catalog>();
-
-        let algebrizer = Algebrizer::new(
-            "test",
-            &catalog,
-            0u16,
-            SchemaCheckingMode::Strict,
-            false,
-            ClauseType::Unintialized,
-        );
-        assert_eq!(
-            expected,
-            algebrizer.algebrize_select_and_order_by_clause(select, order_by, source,),
-        );
-    }
 }
