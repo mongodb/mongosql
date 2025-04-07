@@ -1,5 +1,6 @@
 catalog_schema_file: correctness_catalog_2.yml
-current_db: testcurrent_collection: fuzzer_coll
+current_db: test
+current_collection: fuzzer_coll
 pipeline: [ { "$match" : { "$or" : [ { "obj.obj.obj.date" : { "$gte" : {"$date": {"$numberLong": "1564352712418"}} } }, { "obj.obj.obj.obj.array" : { "$lte" : [ ISODate("2019-12-20T00:38:01.918Z"), { "obj" : { "num" : {"$numberLong": "82033"}, "array" : [ ISODate("2019-12-15T05:31:53.630Z"), ISODate("2019-05-14T08:18:30.750Z"), 66451 ] } }, 65632 ] } } ] } }, { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : { "$concatArrays" : [ "$obj.obj.array", "$array" ] }, "date" : { "$max" : "$date" }, "obj" : { "$first" : { "$arrayToObject" : [ [ { "k" : "violet Freeway eco-centric", "v" : { "$ifNull" : [ {"$numerDecimal": "Infinity"}, null ] } } ] ] } } } } ]
 result_set_schema:
   {
