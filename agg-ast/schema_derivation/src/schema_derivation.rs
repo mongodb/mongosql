@@ -2178,7 +2178,6 @@ impl DeriveSchema for UntaggedOperator {
                         }
                     }
                 }).collect();
-                println!("{:?}", arg_schemas);
                 Ok(Schema::simplify(&Schema::Document(arg_schemas?
                     .into_iter()
                     .fold(Document::empty(), |acc, arg_schema| {
@@ -2188,7 +2187,6 @@ impl DeriveSchema for UntaggedOperator {
                         let mut keys = acc.keys;
                         for (arg_key, mut arg_key_schema) in arg_schema.keys {
                             let current_key_schema = keys.get(&arg_key);
-                            println!("{:?} {:?} {:?}", arg_key, arg_key_schema, current_key_schema);
                             let schema_to_insert = if let Some(current_key_schema) = current_key_schema {
                                 if arg_key_schema.satisfies(&Schema::Missing) == Satisfaction::May {
                                     // If this key already appears in the accumulated schema _and_
