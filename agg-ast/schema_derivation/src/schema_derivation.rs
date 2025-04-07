@@ -849,7 +849,7 @@ impl DeriveSchema for Expression {
                     })
                     .collect::<Result<BTreeSet<_>>>()?;
                 let array_schema = match array_schema.len() {
-                    0 => Schema::Unsat,
+                    0 => Schema::Any,
                     1 => array_schema.into_iter().next().unwrap(),
                     _ => Schema::AnyOf(array_schema),
                 };
