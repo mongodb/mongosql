@@ -1,0 +1,27 @@
+#![cfg_attr(rustfmt, rustfmt_skip)]
+#![allow(clippy::all)]
+#![allow(non_snake_case, dead_code, unused_variables, unused_imports)]
+
+use schema_derivation::{{ResultSetState, derive_schema_for_pipeline, Namespace}};
+use mongosql::{{
+    json_schema,
+    schema::{{Document, Satisfaction, Schema}},
+}};
+use std::{{collections::BTreeMap, fs, path::PathBuf, sync::Once}};
+use test_utils::{{parse_schema_derivation_yaml_file, SchemaDerivationYamlTestFile}};
+
+static INIT: Once = Once::new();
+
+pub fn initialize_test() -> &'static SchemaDerivationYamlTestFile {{
+    static mut TEST_FILE: Option<SchemaDerivationYamlTestFile> = None;
+
+    INIT.call_once(|| {{
+        unsafe {{
+            TEST_FILE = Some(parse_schema_derivation_yaml_file(PathBuf::from({path})).unwrap());
+        }}
+    }});
+
+    unsafe {{
+        TEST_FILE.as_ref().unwrap()
+    }}
+}}

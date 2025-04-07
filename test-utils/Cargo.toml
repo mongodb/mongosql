@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+agg-ast = { path = "../agg-ast/ast" }
 itertools = { workspace = true }
 lazy_static = { workspace = true }
 mongosql = { path = "../mongosql" }

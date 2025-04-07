@@ -7,8 +7,10 @@ edition = "2021"
 
 [dependencies]
 mongosql = { path = "../mongosql" }
+schema_derivation = { path = "../agg-ast/schema_derivation" }
 test-utils = { path = "../test-utils" }
 mongodb = { workspace = true } 
+serde_yaml = { workspace = true } 
 
 [build-dependencies]
 test-utils = { path = "../test-utils" }
@@ -18,5 +20,6 @@ index = ["generated"]
 query = ["generated"]
 e2e = ["generated"]
 error = ["generated"]
-all = ["index", "query", "e2e", "error"]
+schema_derivation = ["generated"]
+all = ["index", "query", "e2e", "error", "schema_derivation"]
 generated = []
