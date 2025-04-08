@@ -513,6 +513,7 @@ mod numeric_ops {
     test_derive_expression_schema!(
         multiply_nullable_long,
         expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long),
             Schema::Atomic(Atomic::Null),
         ))),
@@ -532,19 +533,30 @@ mod numeric_ops {
     );
     test_derive_expression_schema!(
         multiply_long,
-        expected = Ok(Schema::Atomic(Atomic::Long)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ))),
         input = r#"{"$multiply": [1, {"$numberLong": "1"}]}"#
     );
     test_derive_expression_schema!(
         multiply_decimal,
-        expected = Ok(Schema::Atomic(Atomic::Decimal)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ))),
         input = r#"{"$multiply": [1, "$foo"]}"#,
         ref_schema = Schema::Atomic(Atomic::Decimal)
     );
     test_derive_expression_schema!(
         multiply_double_or_null,
         expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
             Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
             Schema::Atomic(Atomic::Null),
         ))),
         input = r#"{"$multiply": [1, "$foo"]}"#,
@@ -555,7 +567,11 @@ mod numeric_ops {
     );
     test_derive_expression_schema!(
         pow_decimal,
-        expected = Ok(Schema::Atomic(Atomic::Decimal)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Decimal)
+        ))),
         input = r#"{"$pow": [1, "$foo"]}"#,
         ref_schema = Schema::Atomic(Atomic::Decimal)
     );
@@ -566,12 +582,19 @@ mod numeric_ops {
     );
     test_derive_expression_schema!(
         pow_double,
-        expected = Ok(Schema::Atomic(Atomic::Double)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
+        ))),
         input = r#"{"$pow": [1, 2.0]}"#
     );
     test_derive_expression_schema!(
         pow_long,
-        expected = Ok(Schema::Atomic(Atomic::Long),),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ))),
         input = r#"{"$pow": [1, {"$numberLong": "1"}]}"#
     );
     test_derive_expression_schema!(
@@ -584,7 +607,10 @@ mod numeric_ops {
     );
     test_derive_expression_schema!(
         mod_decimal,
-        expected = Ok(Schema::Atomic(Atomic::Decimal)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Integer)
+        ))),
         input = r#"{"$mod": [1, "$foo"]}"#,
         ref_schema = Schema::Atomic(Atomic::Decimal)
     );
@@ -595,12 +621,18 @@ mod numeric_ops {
     );
     test_derive_expression_schema!(
         mod_double,
-        expected = Ok(Schema::Atomic(Atomic::Double)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Integer)
+        ))),
         input = r#"{"$mod": [1, 2.1]}"#
     );
     test_derive_expression_schema!(
         mod_long,
-        expected = Ok(Schema::Atomic(Atomic::Long)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ))),
         input = r#"{"$mod": [3, {"$numberLong": "2"}]}"#
     );
     test_derive_expression_schema!(
@@ -624,6 +656,7 @@ mod numeric_ops {
     test_derive_expression_schema!(
         add_nullable_long,
         expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long),
             Schema::Atomic(Atomic::Null),
         ))),
@@ -643,19 +676,30 @@ mod numeric_ops {
     );
     test_derive_expression_schema!(
         add_long,
-        expected = Ok(Schema::Atomic(Atomic::Long)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ))),
         input = r#"{"$add": [1, {"$numberLong": "1"}]}"#
     );
     test_derive_expression_schema!(
         add_decimal,
-        expected = Ok(Schema::Atomic(Atomic::Decimal)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Integer)
+        ))),
         input = r#"{"$add": [1, "$foo"]}"#,
         ref_schema = Schema::Atomic(Atomic::Decimal)
     );
     test_derive_expression_schema!(
         add_double_or_null,
         expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Decimal),
             Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null),
         ))),
         input = r#"{"$add": [1, "$foo"]}"#,
@@ -977,7 +1021,7 @@ mod misc_ops {
                 "b".to_string() => Schema::Atomic(Atomic::String),
             },
             required: set! {"a".to_string(), "b".to_string()},
-            additional_properties: false,
+            additional_properties: true,
             jaccard_index: None,
         })),
         input = r#"{"$mergeObjects": [{"a": 1}, null, {"b": "yes"}, "$missing"]}"#
@@ -987,7 +1031,7 @@ mod misc_ops {
         expected = Ok(Schema::Document(Document {
             keys: map! {},
             required: set! {},
-            additional_properties: false,
+            additional_properties: true,
             jaccard_index: None,
         })),
         input = r#"{"$mergeObjects": [null, null, "$missing"]}"#
