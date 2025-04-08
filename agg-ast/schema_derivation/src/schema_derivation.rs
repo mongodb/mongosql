@@ -1147,11 +1147,17 @@ impl DeriveSchema for TaggedOperator {
             | TaggedOperator::Hour(d)
             | TaggedOperator::Minute(d)
             | TaggedOperator::Second(d)
-            | TaggedOperator::Millisecond(d) => handle_null_satisfaction(
-                vec![d.date.as_ref(), optional_arg_or_truish!(d.timezone)],
-                state,
-                Schema::Atomic(Atomic::Integer),
-            ),
+            | TaggedOperator::Millisecond(d) => {
+                let date = match d.date.as_ref() {
+                    Expression::Array(a) => &a[0],
+                    expr => expr
+                };
+                handle_null_satisfaction(
+                    vec![date, optional_arg_or_truish!(d.timezone)],
+                    state,
+                    Schema::Atomic(Atomic::Integer),
+                )
+            }
             TaggedOperator::DateFromParts(d) => {
                 let args = vec![
                     optional_arg_or_truish!(d.year),
@@ -1300,7 +1306,7 @@ impl DeriveSchema for TaggedOperator {
                     optional_arg_or_truish!(d.bin_size),
                     optional_arg_or_truish!(d.start_of_week),
                 ];
-                handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Date))
+                handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
             }
             TaggedOperator::SortArray(s) => s.input.derive_schema(state),
             TaggedOperator::Let(l) => {
@@ -1947,43 +1953,56 @@ impl DeriveSchema for UntaggedOperator {
             // because an int ^ int can return a long
             UntaggedOperatorName::Pow => {
                 let input_schema = get_input_schema(&args, state)?;
-                let schema = if input_schema.satisfies(&Schema::Atomic(Atomic::Decimal)) != Satisfaction::Not {
-                    Schema::Atomic(Atomic::Decimal)
-                } else if input_schema.satisfies(&Schema::Atomic(Atomic::Double))
-                    != Satisfaction::Not
-                {
-                    Schema::Atomic(Atomic::Double)
-                } else if input_schema.satisfies(&Schema::Atomic(Atomic::Long)) != Satisfaction::Not {
-                    Schema::Atomic(Atomic::Long)
-                } else {
-                    Schema::AnyOf(set!(
-                        Schema::Atomic(Atomic::Integer),
-                        Schema::Atomic(Atomic::Long),
-                    ))
+                let mut types: BTreeSet<Schema> = set!();
+                if input_schema.satisfies(&Schema::Atomic(Atomic::Decimal)) != Satisfaction::Not {
+                    types.insert(Schema::Atomic(Atomic::Decimal));
+                }
+                if input_schema.satisfies(&Schema::Atomic(Atomic::Double)) != Satisfaction::Not{
+                    types.insert(Schema::Atomic(Atomic::Double));
+                } 
+                if input_schema.satisfies(&Schema::Atomic(Atomic::Long)) != Satisfaction::Not {
+                    types.insert(Schema::Atomic(Atomic::Long));
+                }
+                if input_schema.satisfies(&Schema::Atomic(Atomic::Integer)) != Satisfaction::Not {
+                    types.insert(Schema::Atomic(Atomic::Integer));
+                    types.insert(Schema::Atomic(Atomic::Long));
                 };
-                handle_null_satisfaction(args, state, schema)
+                handle_null_satisfaction(args, state, Schema::simplify(&Schema::AnyOf(types)))
             }
             // mod returns the maximal numeric type of its inputs
             UntaggedOperatorName::Mod => {
                 let input_schema = get_input_schema(&args, state)?;
-                let schema = if input_schema.satisfies(&Schema::Atomic(Atomic::Decimal)) != Satisfaction::Not {
-                    Schema::Atomic(Atomic::Decimal)
-                } else if input_schema.satisfies(&Schema::Atomic(Atomic::Double))
-                    != Satisfaction::Not
-                {
-                    Schema::Atomic(Atomic::Double)
-                } else if input_schema.satisfies(&Schema::Atomic(Atomic::Long)) != Satisfaction::Not
-                {
-                    Schema::Atomic(Atomic::Long)
-                } else {
-                    Schema::Atomic(Atomic::Integer)
+                let mut types: BTreeSet<Schema> = set!();
+                if input_schema.satisfies(&Schema::Atomic(Atomic::Decimal)) != Satisfaction::Not {
+                    types.insert(Schema::Atomic(Atomic::Decimal));
+                }
+                if input_schema.satisfies(&Schema::Atomic(Atomic::Double)) != Satisfaction::Not{
+                    types.insert(Schema::Atomic(Atomic::Double));
+                } 
+                if input_schema.satisfies(&Schema::Atomic(Atomic::Long)) != Satisfaction::Not {
+                    types.insert(Schema::Atomic(Atomic::Long));
+                }
+                if input_schema.satisfies(&Schema::Atomic(Atomic::Integer)) != Satisfaction::Not {
+                    types.insert(Schema::Atomic(Atomic::Integer));
                 };
-                handle_null_satisfaction(args, state, schema)
+                handle_null_satisfaction(args, state, Schema::simplify(&Schema::AnyOf(types)))
             }
             UntaggedOperatorName::ArrayElemAt => {
                 let input_schema = self.args[0].derive_schema(state)?;
-                match input_schema {
+                match input_schema.clone() {
                     Schema::Array(a) => Ok(a.as_ref().clone()),
+                    ao @ Schema::AnyOf(_) => {
+                        let array_schema = match ao.intersection(&Schema::Array(Box::new(Schema::Any))) {
+                            Schema::Array(a) => *a,
+                            _ => Schema::Unsat
+                        };
+                        let null_schema = ao.intersection(&NULLISH.clone());
+                        if array_schema == Schema::Unsat && null_schema == Schema::Unsat {
+                            Err(Error::InvalidType(input_schema, 0usize))
+                        } else {
+                            Ok(Schema::simplify(&null_schema.union(&array_schema)))
+                        }
+                    }
                     _ => {
                         if input_schema.satisfies(&NULLISH_OR_UNDEFINED) == Satisfaction::Must {
                             Ok(Schema::Atomic(Atomic::Null))
