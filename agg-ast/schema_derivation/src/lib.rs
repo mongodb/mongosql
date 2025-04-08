@@ -187,6 +187,7 @@ pub(crate) fn get_schema_for_path(schema: Schema, path: Vec<String>) -> Option<S
                 let array_schema = get_schema_for_path(*a.clone(), path[index..].to_vec());
                 return array_schema.map(|schema| Schema::Array(Box::new(schema)));
             }
+            Schema::Any => Schema::Any,
             Schema::Missing | Schema::Atomic(Atomic::Null) => {
                 return Some(Schema::Missing);
             }

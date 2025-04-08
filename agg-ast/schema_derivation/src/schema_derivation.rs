@@ -90,6 +90,7 @@ pub fn derive_schema_for_pipeline(
     // can only happen during the entrypoint to schema derivation
     if state.result_set_schema == Schema::Any {
         if let Some(collection) = current_collection {
+            // println!("Current Collection: {:?}", collection);
             if let Some(schema) = state
                 .catalog
                 .get(&Namespace(state.current_db.clone(), collection.clone()))
@@ -100,6 +101,8 @@ pub fn derive_schema_for_pipeline(
     }
     pipeline.iter().try_for_each(|stage| {
         state.result_set_schema = stage.derive_schema(state)?;
+        // println!("Stage: {:?}", stage);
+        // println!("Result Set Schema: {:?}", state.result_set_schema);
         Ok(())
     })?;
     Ok(Schema::simplify(&std::mem::take(
@@ -436,7 +439,6 @@ impl DeriveSchema for Stage {
             project: &ProjectStage,
             state: &mut ResultSetState,
         ) -> Result<Schema> {
-            // println!("{:?}", state.result_set_schema);
             state.result_set_schema = promote_missing(&state.result_set_schema);
             // If this is an exclusion $project, we can remove the fields from the schema and
             // return
@@ -895,6 +897,10 @@ impl DeriveSchema for Expression {
                     .variables
                     .get_mut("CURRENT")
                     .unwrap_or(&mut state.result_set_schema);
+                // if we have an Any schema, just short circuit and return any
+                if get_schema_for_path_mut(current_schema, vec![path[0].clone()]) == Some(&mut Schema::Any) {
+                    return Ok(Schema::Any);
+                }
                 let schema = get_schema_for_path(current_schema.clone(), path);
                 match schema {
                     Some(schema) => Ok(schema.clone()),
@@ -924,10 +930,10 @@ impl DeriveSchema for Expression {
                         let var_schema = if v.contains(".") {
                             state
                                 .variables
-                                .get_mut(&path[0])
-                                .and_then(|doc| get_schema_for_path_mut(doc, path[1..].to_vec()))
+                                .get(&path[0])
+                                .and_then(|doc| get_schema_for_path(doc.clone(), path[1..].to_vec()))
                         } else {
-                            state.variables.get_mut(v)
+                            state.variables.get(v).map(|schema| schema.clone())
                         };
                         match var_schema {
                             Some(schema) => Ok(schema.clone()),
