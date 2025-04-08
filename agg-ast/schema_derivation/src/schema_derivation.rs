@@ -1296,7 +1296,7 @@ impl DeriveSchema for TaggedOperator {
                     d.unit.as_ref(),
                     optional_arg_or_truish!(d.start_of_week),
                 ];
-                handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Date))
+                handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
             }
             TaggedOperator::DateTrunc(d) => {
                 let args = vec![
@@ -1306,7 +1306,7 @@ impl DeriveSchema for TaggedOperator {
                     optional_arg_or_truish!(d.bin_size),
                     optional_arg_or_truish!(d.start_of_week),
                 ];
-                handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
+                handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Date))
             }
             TaggedOperator::SortArray(s) => s.input.derive_schema(state),
             TaggedOperator::Let(l) => {
