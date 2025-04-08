@@ -102,31 +102,31 @@ macro_rules! test_user_error_messages {
 }
 
 #[cfg(test)]
-pub mod aggregation;
+mod aggregation;
 #[cfg(test)]
-pub mod expressions;
+mod expressions;
 #[cfg(test)]
-pub mod filter_clause;
+mod filter_clause;
 #[cfg(test)]
-pub mod from_clause;
+mod from_clause;
 #[cfg(test)]
-pub mod group_by_clause;
+mod group_by_clause;
 #[cfg(test)]
-pub mod limit_or_offset_clause;
+mod limit_or_offset_clause;
 #[cfg(test)]
-pub mod order_by_clause;
+mod order_by_clause;
 #[cfg(test)]
-pub mod schema_checking_mode;
+mod schema_checking_mode;
 #[cfg(test)]
-pub mod select_and_order_by;
+mod select_and_order_by;
 #[cfg(test)]
-pub mod select_clause;
+mod select_clause;
 #[cfg(test)]
-pub mod set_query;
+mod set_query;
 #[cfg(test)]
-pub mod subquery;
+mod subquery;
 #[cfg(test)]
-pub mod user_error_messages;
+mod user_error_messages;
 
 fn mir_source_collection_with_project(
     collection_name: &str,

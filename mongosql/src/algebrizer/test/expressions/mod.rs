@@ -10,14 +10,14 @@ use crate::{
     usererror::UserError,
 };
 
-pub mod between;
-pub mod binary;
-pub mod case;
-pub mod date_function;
-pub mod extract;
-pub mod identifier_and_subpath;
-pub mod literal;
-pub mod scalar_function;
-pub mod trim;
-pub mod type_operators;
-pub mod unary;
+mod between;
+mod binary;
+mod case;
+mod date_function;
+mod extract;
+mod identifier_and_subpath;
+mod literal;
+mod scalar_function;
+mod trim;
+mod type_operators;
+mod unary;
