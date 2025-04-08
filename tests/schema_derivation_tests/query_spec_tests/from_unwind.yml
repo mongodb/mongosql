@@ -911,8 +911,7 @@ tests:
             additionalProperties: true
         required: [g]
         additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
+    required: ['']
     additionalProperties: false
 - description: compound path resolves nested and sibling paths
   current_db: test

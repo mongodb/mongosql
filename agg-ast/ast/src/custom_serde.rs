@@ -1060,7 +1060,12 @@ impl<'de> de::Deserialize<'de> for LiteralValue {
             Bson::JavaScriptCode(c) => LiteralValue::JavaScriptCode(c),
             Bson::JavaScriptCodeWithScope(js) => LiteralValue::JavaScriptCodeWithScope(js),
             Bson::Int32(i) => LiteralValue::Int32(i),
-            Bson::Int64(i) => LiteralValue::Int64(i),
+            Bson::Int64(i) => {
+                match i32::try_from(i) {
+                    Ok(i32_val) => LiteralValue::Int32(i32_val),
+                    _ => LiteralValue::Int64(i)
+                }
+            },
             Bson::Timestamp(ts) => LiteralValue::Timestamp(ts),
             Bson::Binary(b) => LiteralValue::Binary(b),
             Bson::ObjectId(oid) => LiteralValue::ObjectId(oid),

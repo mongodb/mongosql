@@ -102,7 +102,9 @@ pub fn derive_schema_for_pipeline(
         state.result_set_schema = stage.derive_schema(state)?;
         Ok(())
     })?;
-    Ok(std::mem::take(&mut state.result_set_schema))
+    Ok(Schema::simplify(&std::mem::take(
+        &mut state.result_set_schema,
+    )))
 }
 
 impl DeriveSchema for Stage {
@@ -434,6 +436,7 @@ impl DeriveSchema for Stage {
             project: &ProjectStage,
             state: &mut ResultSetState,
         ) -> Result<Schema> {
+            // println!("{:?}", state.result_set_schema);
             state.result_set_schema = promote_missing(&state.result_set_schema);
             // If this is an exclusion $project, we can remove the fields from the schema and
             // return
@@ -670,41 +673,48 @@ impl DeriveSchema for Stage {
         }
 
         fn unwind_derive_schema(unwind: &Unwind, state: &mut ResultSetState) -> Result<Schema> {
-            let path = match unwind {
+            let (path, mut nullish) = match unwind {
                 Unwind::FieldPath(Expression::Ref(Ref::FieldRef(r))) => {
-                    Some(r.split(".").map(|s| s.to_string()).collect::<Vec<String>>())
+                    (Some(r.split(".").map(|s| s.to_string()).collect::<Vec<String>>()), false)
                 }
                 Unwind::Document(d) => {
                     if let Expression::Ref(Ref::FieldRef(r)) = d.path.as_ref() {
-                        Some(r.split(".").map(|s| s.to_string()).collect::<Vec<String>>())
+                        (Some(r.split(".").map(|s| s.to_string()).collect::<Vec<String>>()), d.preserve_null_and_empty_arrays == Some(true))
                     } else {
-                        None
+                        (None, false)
                     }
                 }
-                _ => None,
+                _ => (None, false)
             };
-            if let Some(path) = path {
-                if let Some(s) = get_schema_for_path_mut(&mut state.result_set_schema, path) {
+            if let Some(path) = path.clone() {
+                if let Some(s) = get_schema_for_path_mut(&mut state.result_set_schema, path.clone()) {
                     // the schema of the field being unwound goes from type Array[X] to type X
                     match s {
                         Schema::Array(a) => {
-                            *s = std::mem::take(a);
+                            *s = *std::mem::take(a);
+                            if nullish {
+                                *s = s.union(&Schema::Missing);
+                            }
                         }
                         Schema::AnyOf(ao) => {
                             *s = Schema::simplify(&Schema::AnyOf(
                                 ao.iter()
                                     .map(|x| match x {
                                         Schema::Array(a) => *a.clone(),
-                                        schema => schema.clone(),
+                                        schema => {
+                                            nullish = true;
+                                            schema.clone()
+                                        }
                                     })
                                     .collect(),
                             ));
+                            if nullish {
+                                *s = s.union(&Schema::Missing);
+                            }
                         }
                         _ => {}
-                    }
+                    };
                     if let Unwind::Document(d) = unwind {
-                        let nullish = d.preserve_null_and_empty_arrays == Some(true);
-
                         // include_array_index will specify an output field to put the index; it can be nullish if
                         // preserve_null_and_empty_arrays is included
                         if let Some(field) = d.include_array_index.clone() {
@@ -716,7 +726,7 @@ impl DeriveSchema for Stage {
                                 insert_required_key_into_document(
                                     &mut state.result_set_schema,
                                     Schema::AnyOf(set!(
-                                        Schema::Atomic(Atomic::Integer),
+                                        Schema::Atomic(Atomic::Long),
                                         Schema::Atomic(Atomic::Null)
                                     )),
                                     path,
@@ -725,7 +735,7 @@ impl DeriveSchema for Stage {
                             } else {
                                 insert_required_key_into_document(
                                     &mut state.result_set_schema,
-                                    Schema::Atomic(Atomic::Integer),
+                                    Schema::Atomic(Atomic::Long),
                                     path,
                                     true,
                                 );
@@ -734,7 +744,7 @@ impl DeriveSchema for Stage {
                     }
                 }
             }
-            Ok(state.result_set_schema.to_owned())
+            Ok(Schema::simplify(&state.result_set_schema.to_owned()))
         }
 
         fn unset_derive_schema(u: &Unset, state: &mut ResultSetState) -> Result<Schema> {
@@ -1333,18 +1343,29 @@ impl DeriveSchema for TaggedOperator {
                 let value_schema = s.value.derive_schema(state)?;
                 let field_schema =
                     get_schema_for_path_mut(&mut input_schema, vec![s.field.clone()]);
+
                 match field_schema {
                     // if we are setting a new field, add it in appropriately, unless its missing (no-op)
                     None => {
                         if value_schema != Schema::Missing {
-                            let new_field = Schema::Document(Document {
-                                keys: map! {
-                                    s.field.clone() => value_schema,
-                                },
-                                required: set!(s.field.clone()),
-                                ..Default::default()
-                            });
-                            Ok(input_schema.union(&new_field))
+                            if let Schema::Document(_) = input_schema {
+                                insert_required_key_into_document(
+                                    &mut input_schema,
+                                    value_schema.clone(),
+                                    vec![s.field.clone()],
+                                    true,
+                                );
+                                Ok(input_schema)
+                            } else {
+                                let new_field = Schema::Document(Document {
+                                    keys: map! {
+                                        s.field.clone() => value_schema,
+                                    },
+                                    required: set!(s.field.clone()),
+                                    ..Default::default()
+                                });
+                                Ok(input_schema.union(&new_field))
+                            }
                         } else {
                             Ok(input_schema)
                         }
