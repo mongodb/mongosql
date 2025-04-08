@@ -1867,15 +1867,10 @@ impl DeriveSchema for UntaggedOperator {
 
                 // Here, we (safely) assume (nullable) numeric types for all non-Date arguments.
                 let numeric_input_schema = Schema::simplify(&Schema::AnyOf(non_dates));
-                let numeric_schema = if numeric_input_schema.satisfies(&INTEGER_OR_NULLISH) == Satisfaction::Must {
-                    // If all args are (nullable) Ints, the result is (nullable) Int or Long
+                let numeric_schema = if numeric_input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
                     handle_null_satisfaction(args, state, INTEGRAL.clone())
-                } else if numeric_input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
-                    // If all args are (nullable) Ints or Longs, the result is (nullable) Long
-                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
                 } else {
-                    // Otherwise, the result is (nullable) Double or Decimal
-                    get_decimal_double_or_nullish(args, state)
+                    handle_null_satisfaction(args, state, NUMERIC.clone())
                 };
 
                 if may_be_date {
@@ -1920,14 +1915,10 @@ impl DeriveSchema for UntaggedOperator {
             // int + int -> int or long; int + long, long + long -> long,
             UntaggedOperatorName::Multiply => {
                 let input_schema = get_input_schema(&args, state)?;
-                if input_schema.satisfies(&INTEGER_OR_NULLISH) == Satisfaction::Must {
-                    // If both are (nullable) Ints, the result is (nullable) Int or Long
+                if input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
                     handle_null_satisfaction(args, state, INTEGRAL.clone())
-                } else if input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
-                    // If both are (nullable) Ints or Longs, the result is (nullable) Long
-                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
                 } else {
-                    get_decimal_double_or_nullish(args, state)
+                    handle_null_satisfaction(args, state, NUMERIC.clone())
                 }
             }
             // window function operators
