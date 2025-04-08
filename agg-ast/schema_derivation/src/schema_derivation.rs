@@ -15,8 +15,8 @@ use mongosql::{
     map,
     schema::{
         Atomic, Document, Satisfaction, Schema, ANY_DOCUMENT, DATE_OR_NULLISH, EMPTY_DOCUMENT,
-        INTEGER_LONG_OR_NULLISH, INTEGER_OR_NULLISH, INTEGRAL, NULLISH, NULLISH_OR_UNDEFINED,
-        NUMERIC, NUMERIC_OR_NULLISH,
+        INTEGER_LONG_OR_NULLISH, INTEGRAL, NULLISH, NULLISH_OR_UNDEFINED, NUMERIC,
+        NUMERIC_OR_NULLISH,
     },
     set,
 };
@@ -676,20 +676,25 @@ impl DeriveSchema for Stage {
 
         fn unwind_derive_schema(unwind: &Unwind, state: &mut ResultSetState) -> Result<Schema> {
             let (path, mut nullish) = match unwind {
-                Unwind::FieldPath(Expression::Ref(Ref::FieldRef(r))) => {
-                    (Some(r.split(".").map(|s| s.to_string()).collect::<Vec<String>>()), false)
-                }
+                Unwind::FieldPath(Expression::Ref(Ref::FieldRef(r))) => (
+                    Some(r.split(".").map(|s| s.to_string()).collect::<Vec<String>>()),
+                    false,
+                ),
                 Unwind::Document(d) => {
                     if let Expression::Ref(Ref::FieldRef(r)) = d.path.as_ref() {
-                        (Some(r.split(".").map(|s| s.to_string()).collect::<Vec<String>>()), d.preserve_null_and_empty_arrays == Some(true))
+                        (
+                            Some(r.split(".").map(|s| s.to_string()).collect::<Vec<String>>()),
+                            d.preserve_null_and_empty_arrays == Some(true),
+                        )
                     } else {
                         (None, false)
                     }
                 }
-                _ => (None, false)
+                _ => (None, false),
             };
             if let Some(path) = path.clone() {
-                if let Some(s) = get_schema_for_path_mut(&mut state.result_set_schema, path.clone()) {
+                if let Some(s) = get_schema_for_path_mut(&mut state.result_set_schema, path.clone())
+                {
                     // the schema of the field being unwound goes from type Array[X] to type X
                     match s {
                         Schema::Array(a) => {
@@ -898,7 +903,9 @@ impl DeriveSchema for Expression {
                     .get_mut("CURRENT")
                     .unwrap_or(&mut state.result_set_schema);
                 // if we have an Any schema, just short circuit and return any
-                if get_schema_for_path_mut(current_schema, vec![path[0].clone()]) == Some(&mut Schema::Any) {
+                if get_schema_for_path_mut(current_schema, vec![path[0].clone()])
+                    == Some(&mut Schema::Any)
+                {
                     return Ok(Schema::Any);
                 }
                 let schema = get_schema_for_path(current_schema.clone(), path);
@@ -928,10 +935,9 @@ impl DeriveSchema for Expression {
                     v => {
                         let path: Vec<String> = v.split('.').map(|s| s.to_string()).collect();
                         let var_schema = if v.contains(".") {
-                            state
-                                .variables
-                                .get(&path[0])
-                                .and_then(|doc| get_schema_for_path(doc.clone(), path[1..].to_vec()))
+                            state.variables.get(&path[0]).and_then(|doc| {
+                                get_schema_for_path(doc.clone(), path[1..].to_vec())
+                            })
                         } else {
                             state.variables.get(v).map(|schema| schema.clone())
                         };
@@ -1156,7 +1162,7 @@ impl DeriveSchema for TaggedOperator {
             | TaggedOperator::Millisecond(d) => {
                 let date = match d.date.as_ref() {
                     Expression::Array(a) => &a[0],
-                    expr => expr
+                    expr => expr,
                 };
                 handle_null_satisfaction(
                     vec![date, optional_arg_or_truish!(d.timezone)],
@@ -1340,9 +1346,22 @@ impl DeriveSchema for TaggedOperator {
                 l.inside.derive_schema(&mut let_state)
             }
             TaggedOperator::GetField(g) => {
-                let mut input_schema = g.input.derive_schema(state)?;
-                let field_schema =
-                    get_schema_for_path_mut(&mut input_schema, vec![g.field.clone()]);
+                let input_schema = g.input.derive_schema(state)?;
+                let field = match g.field.as_ref() {
+                    Expression::Literal(LiteralValue::String(s)) => s,
+                    Expression::UntaggedOperator(UntaggedOperator {
+                        op: UntaggedOperatorName::Literal,
+                        args,
+                    }) => {
+                        if let Some(Expression::Literal(LiteralValue::String(s))) = args.first() {
+                            s
+                        } else {
+                            panic!()
+                        }
+                    }
+                    _ => panic!(),
+                };
+                let field_schema = get_schema_for_path(input_schema, vec![field.clone()]);
                 match field_schema {
                     None => Ok(Schema::Missing),
                     Some(schema) => Ok(schema.clone()),
@@ -1956,7 +1975,7 @@ impl DeriveSchema for UntaggedOperator {
                 }
                 if input_schema.satisfies(&Schema::Atomic(Atomic::Double)) != Satisfaction::Not{
                     types.insert(Schema::Atomic(Atomic::Double));
-                } 
+                }
                 if input_schema.satisfies(&Schema::Atomic(Atomic::Long)) != Satisfaction::Not {
                     types.insert(Schema::Atomic(Atomic::Long));
                 }
@@ -1975,7 +1994,7 @@ impl DeriveSchema for UntaggedOperator {
                 }
                 if input_schema.satisfies(&Schema::Atomic(Atomic::Double)) != Satisfaction::Not{
                     types.insert(Schema::Atomic(Atomic::Double));
-                } 
+                }
                 if input_schema.satisfies(&Schema::Atomic(Atomic::Long)) != Satisfaction::Not {
                     types.insert(Schema::Atomic(Atomic::Long));
                 }
