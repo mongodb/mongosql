@@ -5462,9 +5462,6 @@ tests:
                 "bsonType": "null"
               }, 
               {
-                "bsonType": "array"
-              }, 
-              {
                 "items": {
                   "bsonType": "int"
                 }, 
@@ -5486,9 +5483,6 @@ tests:
             "anyOf": [
               {
                 "bsonType": "null"
-              }, 
-              {
-                "bsonType": "array"
               }, 
               {
                 "items": {
@@ -5729,9 +5723,6 @@ tests:
                 "bsonType": "null"
               }, 
               {
-                "bsonType": "array"
-              }, 
-              {
                 "items": {
                   "bsonType": "int"
                 }, 
@@ -5756,9 +5747,6 @@ tests:
             "anyOf": [
               {
                 "bsonType": "null"
-              }, 
-              {
-                "bsonType": "array"
               }, 
               {
                 "items": {
