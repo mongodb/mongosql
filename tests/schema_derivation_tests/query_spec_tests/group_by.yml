@@ -249,8 +249,27 @@ tests:
     }
   ]
   result_set_schema: {
-    'bsonType': 'object',
-    'additionalProperties': true,
+    "additionalProperties": false, 
+    "required": [""], 
+    "properties": {
+      "": {
+        "additionalProperties": false, 
+        "required": [
+          "n"
+        ], 
+        "properties": {
+          "n": {
+            "anyOf": [
+              {
+                "bsonType": "null"
+              },
+            ]
+          }
+        }, 
+        "bsonType": "object"
+      },
+    }, 
+    "bsonType": "object"
   }
 
 - description: GROUP BY NULL creates only one group
@@ -1562,9 +1581,24 @@ tests:
   result_set_schema: {
     "bsonType": "object",
     "properties": {
-
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "garr": {
+            "bsonType": "array",
+            "items": { "bsonType": "int" }
+          },
+          "a": {
+            "bsonType": "int"
+          }
+        },
+        "required": ["garr", "a"],
+        "additionalProperties": false
+      }
     },
-    "required": [""],
+    "required": [
+      "",
+    ],
     "additionalProperties": false
   }
 
@@ -1635,9 +1669,24 @@ tests:
   result_set_schema: {
     "bsonType": "object",
     "properties": {
-
+      "": {
+        "bsonType": "object",
+        "properties": {
+          "garr": {
+            "bsonType": "array",
+            "items": { "bsonType": "int" }
+          },
+          "a": {
+            "bsonType": "int"
+          }
+        },
+        "required": ["garr", "a"],
+        "additionalProperties": false
+      }
     },
-    "required": [""],
+    "required": [
+      "",
+    ],
     "additionalProperties": false
   }
 
@@ -1716,7 +1765,9 @@ tests:
             "bsonType": "array",
             "items": { "bsonType": "decimal" }
           }
-        }
+        },
+        "required": ["gset"],
+        "additionalProperties": false
       }
     },
     "required": [
@@ -1800,7 +1851,9 @@ tests:
             "bsonType": "array",
             "items": { "bsonType": "int" }
           }
-        }
+        },
+        "required": ["gset"],
+        "additionalProperties": false
       }
     },
     "required": [
