@@ -90,7 +90,6 @@ pub fn derive_schema_for_pipeline(
     // can only happen during the entrypoint to schema derivation
     if state.result_set_schema == Schema::Any {
         if let Some(collection) = current_collection {
-            // println!("Current Collection: {:?}", collection);
             if let Some(schema) = state
                 .catalog
                 .get(&Namespace(state.current_db.clone(), collection.clone()))
@@ -101,8 +100,6 @@ pub fn derive_schema_for_pipeline(
     }
     pipeline.iter().try_for_each(|stage| {
         state.result_set_schema = stage.derive_schema(state)?;
-        // println!("Stage: {:?}", stage);
-        // println!("Result Set Schema: {:?}", state.result_set_schema);
         Ok(())
     })?;
     Ok(Schema::simplify(&std::mem::take(
@@ -191,7 +188,10 @@ impl DeriveSchema for Stage {
                             })
                         },
                     );
-                    Ok(schema?.unwrap_or(Schema::Any))
+                    Ok(schema?.unwrap_or(Schema::AnyOf(set!(
+                        Schema::Missing,
+                        Schema::Document(Document::any())
+                    ))))
                 }
                 Documents::Expr(expr) => expr.derive_schema(state),
             }
@@ -706,19 +706,22 @@ impl DeriveSchema for Stage {
                             }
                         }
                         Schema::AnyOf(ao) => {
-                            *s = ao.iter().fold(None, |acc, x| {
-                                let schema = match x {
-                                    Schema::Array(a) => *a.clone(),
-                                    schema => {
-                                        nullish = true;
-                                        schema.clone()
+                            *s = ao
+                                .iter()
+                                .fold(None, |acc, x| {
+                                    let schema = match x {
+                                        Schema::Array(a) => *a.clone(),
+                                        schema => {
+                                            nullish = true;
+                                            schema.clone()
+                                        }
+                                    };
+                                    match acc {
+                                        None => Some(schema),
+                                        Some(acc) => Some(acc.union(&schema)),
                                     }
-                                };
-                                match acc {
-                                    None => Some(schema),
-                                    Some(acc) => Some(acc.union(&schema)),
-                                }
-                            }).unwrap_or(Schema::Missing);
+                                })
+                                .unwrap_or(Schema::Missing);
                         }
                         _ => {}
                     };
@@ -870,7 +873,7 @@ impl DeriveSchema for Expression {
                     })
                     .collect::<Result<BTreeSet<_>>>()?;
                 let array_schema = match array_schema.len() {
-                    0 => Schema::Any,
+                    0 => Schema::Missing,
                     1 => array_schema.into_iter().next().unwrap(),
                     _ => Schema::AnyOf(array_schema),
                 };
@@ -943,7 +946,7 @@ impl DeriveSchema for Expression {
                                 get_schema_for_path(doc.clone(), path[1..].to_vec())
                             })
                         } else {
-                            state.variables.get(v).map(|schema| schema.clone())
+                            state.variables.get(v).cloned()
                         };
                         match var_schema {
                             Some(schema) => Ok(schema.clone()),
@@ -1364,7 +1367,6 @@ impl DeriveSchema for TaggedOperator {
                 let value_schema = s.value.derive_schema(state)?;
                 let field_schema =
                     get_schema_for_path_mut(&mut input_schema, vec![s.field.clone()]);
-
                 match field_schema {
                     // if we are setting a new field, add it in appropriately, unless its missing (no-op)
                     None => {
@@ -1376,7 +1378,7 @@ impl DeriveSchema for TaggedOperator {
                                     vec![s.field.clone()],
                                     true,
                                 );
-                                Ok(input_schema)
+                                Ok(Schema::simplify(&input_schema))
                             } else {
                                 let new_field = Schema::Document(Document {
                                     keys: map! {
@@ -1385,10 +1387,10 @@ impl DeriveSchema for TaggedOperator {
                                     required: set!(s.field.clone()),
                                     ..Default::default()
                                 });
-                                Ok(input_schema.union(&new_field))
+                                Ok(Schema::simplify(&input_schema.union(&new_field)))
                             }
                         } else {
-                            Ok(input_schema)
+                            Ok(Schema::simplify(&input_schema))
                         }
                     }
                     // if we are handling a new field, check first if the schema is missing (could either be
@@ -1402,7 +1404,7 @@ impl DeriveSchema for TaggedOperator {
                                 *field_schema = value_schema;
                             }
                         }
-                        Ok(input_schema)
+                        Ok(Schema::simplify(&input_schema))
                     }
                 }
             }

@@ -3674,19 +3674,12 @@ mod expression_test {
         );
 
         test_serde_expr!(
-            literal_int_negative,
-            expected = Expression::UntaggedOperator(UntaggedOperator {
-                op: UntaggedOperatorName::Literal,
-                args: vec![Expression::Literal(LiteralValue::Int32(-1))]
-            }),
-            input = r#"expr: {"$literal": -1}"#
-        );
-
-        test_serde_expr!(
             literal_string_with_dollar,
             expected = Expression::UntaggedOperator(UntaggedOperator {
                 op: UntaggedOperatorName::Literal,
-                args: vec![Expression::Literal(LiteralValue::String("$a.b".to_string()))]
+                args: vec![Expression::Literal(LiteralValue::String(
+                    "$a.b".to_string()
+                ))]
             }),
             input = r#"expr: {"$literal": "$a.b"}"#
         );

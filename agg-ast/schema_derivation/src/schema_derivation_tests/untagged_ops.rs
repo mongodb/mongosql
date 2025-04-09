@@ -50,7 +50,8 @@ mod array_ops {
     test_derive_expression_schema!(
         array_elem_at_missing_field,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = r#"{"$arrayElemAt": ["$food", 0]}"#
+        input = r#"{"$arrayElemAt": ["$food", 0]}"#,
+        ref_schema = Schema::Document(Document::empty())
     );
     test_derive_expression_schema!(
         array_elem_at_null,
@@ -127,8 +128,9 @@ mod array_ops {
     );
     test_derive_expression_schema!(
         set_intersection_empty,
-        expected = Ok(Schema::Array(Box::new(Schema::Atomic(Atomic::Null),))),
-        input = r#"{"$setIntersection": ["$foo", []]}"#
+        expected = Ok(Schema::Array(Box::new(Schema::Unsat,))),
+        input = r#"{"$setIntersection": ["$foo", []]}"#,
+        ref_schema = Schema::Array(Box::new(Schema::Atomic(Atomic::Integer)))
     );
     test_derive_expression_schema!(
         set_intersection_empty_set,
