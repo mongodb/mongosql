@@ -1,3 +1,4 @@
+catalog_schema_file: correctness_catalog_1.yml
 current_db: test
 current_collection: fuzzer_coll
 pipeline: [ { "$match" : { "$or" : [ { "obj.obj.obj.obj.bool" : { "$lte" : false } }, { "$or" : [ { "$or" : [ { "date" : { "$not" : { "$ne" : {"$date": {"$numberLong": "1564352712418"}} } } } ] }, { "obj.obj.obj.obj.any" : { "$not" : { "$type" : 18 } } } ] }, { "obj.obj.obj.str" : { "$regex" : "Gorgeous Concrete Chicken|Nevada|Metal|Steel", "$options" : "" } } ] } }, { "$setWindowFields" : { "partitionBy" : { "$dateToParts" : { "date" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$dateFromParts" : { "isoWeekYear" : 13, "hour" : 4, "timezone" : "Africa/Lubumbashi" } } ] } } }, "sortBy" : { "obj.obj.obj.obj.obj.date" : 1 }, "output" : { "obj.obj.obj.obj.obj.str" : { "$shift" : { "output" : { "$substrBytes" : [ "protocol Saint Helena withdrawal", 2, 10 ] }, "by" : 7, "default" : "interface" } } } } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 50 } ]

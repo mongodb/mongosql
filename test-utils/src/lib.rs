@@ -23,6 +23,8 @@ pub mod index;
 pub use index::*;
 pub mod query;
 pub use query::*;
+pub mod schema_derivation;
+pub use schema_derivation::*;
 pub mod build_utils;
 pub mod e2e_db_manager;
 

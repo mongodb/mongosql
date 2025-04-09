@@ -1,5 +1,4 @@
-
-
+catalog_schema_file: correctness_catalog_1.yml
 current_db: test
 current_collection: fuzzer_coll
 pipeline: [ { "$match" : { "$or" : [ { "$or" : [ { "obj.obj.array" : { "$size" : 9 } }, { "obj.obj.obj.bool" : { "$gte" : false } } ] }, { "$or" : [ { "obj.date" : { "$lte" : {"$date": {"$numberLong": "1564352712418"}} } }, { "$nor" : [ { "$or" : [ { "$or" : [ { "$expr" : "$$ROOT" } ] }, { "obj.obj.obj.obj.obj.date" : { "$ne" : {"$date": {"$numberLong": "1564352712418"}} } } ] }, { "$and" : [ { "obj.array" : { "$not" : { "$elemMatch" : { "$ne" : "Specialist Incredible Wooden Table", "$lte" : [ ISODate("2019-07-03T03:33:26.742Z"), "SDD virtual", /holistic|bypass/ ], "$gte" : {"$date": {"$numberLong": "1564352712418"}} } } } } ] } ] }, { "str" : { "$not" : { "$gte" : "Croatia" } } } ] }, { "$or" : [ { "$and" : [ { "obj.obj.array" : { "$lt" : [ /virtual/, false, "Research Down-sized", true, { "num" : {"$numberLong": "314159265358979373"}, "date" : ISODate("2019-09-14T18:45:51.146Z") }, [ -314159265359 ] ] } }, { "obj.obj.obj.obj.array" : { "$size" : 8 } }, { "obj.obj.obj.bool" : { "$eq" : true } } ] }, { "obj.obj.obj.bool" : { "$lt" : true } } ] } ] } }, { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$arrayElemAt" : [ "$obj.obj.array", {"$numberLong": "5"} ] } } ]

@@ -5,17 +5,21 @@ use std::{
     path::Path,
 };
 
+use crate::SchemaDerivationYamlTestFile;
+
 // tests we handle
 const QUERY_TEST: &str = "query_tests";
 const E2E_TEST: &str = "e2e_tests";
 const INDEX_TEST: &str = "index_usage_tests";
 const ERROR_TEST: &str = "errors";
+const SCHEMA_DERIVATION_TESTS: &str = "schema_derivation_tests";
 
 // tests we don't handle
 const REWRITE_TEST: &str = "rewrite_tests";
 const TYPE_CONSTRAINT_TESTS: &str = "type_constraint_tests";
-// SQL-2677: implement schema derivation test runner
-const SCHEMA_DERIVATION_TESTS: &str = "schema_derivation_tests";
+
+// we also want to filter out the correctness catalogs
+const CORRECTNESS_CATALOG: &str = "correctness_catalog";
 
 /// sanitize_description sanitizes test names such that they may be used as function names in generated test cases
 fn sanitize_description(description: &str) -> String {
@@ -56,6 +60,8 @@ pub enum ProcessorType {
     Error,
     // index usage tests
     Index,
+    // schema derivation tests
+    SchemaDerivation,
     // unhandled test types
     Unhandled,
     // unknown test types
@@ -74,9 +80,11 @@ impl From<&Cow<'_, str>> for ProcessorType {
             Self::Error
         } else if s.contains(REWRITE_TEST)
             || s.contains(TYPE_CONSTRAINT_TESTS)
-            || s.contains(SCHEMA_DERIVATION_TESTS)
+            || s.contains(CORRECTNESS_CATALOG)
         {
             Self::Unhandled
+        } else if s.contains(SCHEMA_DERIVATION_TESTS) {
+            Self::SchemaDerivation
         } else {
             Self::None
         }
@@ -117,6 +125,9 @@ impl Processor {
             }
             ProcessorType::Index => {
                 self.process_index();
+            }
+            ProcessorType::SchemaDerivation => {
+                self.process_schema_derivation();
             }
             ProcessorType::Unhandled => {}
             ProcessorType::None => panic!("encountered an unknown test type"),
@@ -212,6 +223,64 @@ impl Processor {
         }
     }
 
+    fn process_schema_derivation(&mut self) {
+        self.write_mod_entry();
+        let mut write_file = write_test_file(&self.file_name, &self.out_dir);
+        self.write_schema_derivation_header(&write_file);
+        let test_file = crate::parse_schema_derivation_yaml_file(self.entry.path()).unwrap();
+        match test_file {
+            SchemaDerivationYamlTestFile::Single(test) => {
+                // this enum value represents files with only a single test (ie server correctness tests).
+                // we encode the test name in the file name, rather than using a description.
+                let name = &self.file_name.replace(".rs", "");
+                if test.skip_reason.is_some() {
+                    write!(
+                        write_file,
+                        include_str!("./templates/ignore_body_template"),
+                        name = name,
+                        ignore_reason = test.skip_reason.as_ref().unwrap(),
+                        feature = "schema_derivation"
+                    )
+                    .unwrap();
+                } else {
+                    write!(
+                        write_file,
+                        include_str!("./templates/schema_derivation_test_body_template"),
+                        name = name,
+                        index = 0,
+                    )
+                    .unwrap();
+                }
+            }
+            SchemaDerivationYamlTestFile::Multiple(spec_query_test) => {
+                for (index, test) in spec_query_test.tests.iter().enumerate() {
+                    let description = test
+                        .description
+                        .clone()
+                        .expect("missing description for spec query schema derivation test");
+                    if test.skip_reason.is_some() {
+                        write!(
+                            write_file,
+                            include_str!("./templates/ignore_body_template"),
+                            name = sanitize_description(description.as_str()),
+                            ignore_reason = test.skip_reason.as_ref().unwrap(),
+                            feature = "schema_derivation"
+                        )
+                        .unwrap();
+                        continue;
+                    }
+                    write!(
+                        write_file,
+                        include_str!("./templates/schema_derivation_test_body_template"),
+                        name = sanitize_description(description.as_str()),
+                        index = index
+                    )
+                    .unwrap();
+                }
+            }
+        }
+    }
+
     #[allow(clippy::format_in_format_args)]
     // we want the debug version of the canonicalized path to play nicely
     // with the template
@@ -219,6 +288,21 @@ impl Processor {
         write!(
             file,
             include_str!("./templates/query_test_header_template"),
+            path = format!(
+                "{:?}",
+                self.entry.path().canonicalize().unwrap().to_string_lossy()
+            ),
+        )
+        .unwrap();
+    }
+
+    #[allow(clippy::format_in_format_args)]
+    // we want the debug version of the canonicalized path to play nicely
+    // with the template
+    fn write_schema_derivation_header(&self, mut file: &File) {
+        write!(
+            file,
+            include_str!("./templates/schema_derivation_test_header_template"),
             path = format!(
                 "{:?}",
                 self.entry.path().canonicalize().unwrap().to_string_lossy()

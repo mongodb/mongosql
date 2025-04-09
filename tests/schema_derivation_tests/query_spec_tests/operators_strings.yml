@@ -3,7 +3,7 @@ catalog_schema:
     "foo": {
       "concat": {
         "bsonType": "object",
-        'required': [ '_id', 's1', 's2' ],
+        'required': [ '_id', 's1' ],
         'additionalProperties': false,
         "properties": {
           "_id": {

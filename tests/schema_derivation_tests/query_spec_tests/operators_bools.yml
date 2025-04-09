@@ -3,7 +3,7 @@ catalog_schema:
     "foo": {
       "unary": {
         "bsonType": "object",
-        'required': [ '_id', 'a' ],
+        'required': [ '_id' ],
         'additionalProperties': false,
         "properties": {
           "_id": {
@@ -19,7 +19,7 @@ catalog_schema:
       },
       "binary": {
         "bsonType": "object",
-        'required': [ '_id', 'a', 'b' ],
+        'required': [ '_id' ],
         'additionalProperties': false,
         "properties": {
           "_id": {

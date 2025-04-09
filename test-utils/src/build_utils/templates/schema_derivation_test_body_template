@@ -1,0 +1,53 @@
+#[cfg(feature = "schema_derivation")]
+#[test]
+// tests with an if statement and a return inside are intended to end early
+// before other cases are tested
+// for example, if a test should not compile, there's no point in checking
+// if the results are correct as there won't be any
+pub fn {name}() {{
+    use test_utils::*;
+    let test_file = initialize_test();
+    let (test, catalog_schema) = match test_file {{
+        SchemaDerivationYamlTestFile::Single(query_correctness_test) => {{
+            let test = query_correctness_test;
+            let catalog_filename = format!("../tests/schema_derivation_tests/server_correctness_tests/{{}}", test.catalog_schema_file.clone().unwrap());
+            let catalog_file = fs::File::open(catalog_filename).unwrap();
+            let catalog: BTreeMap<String, BTreeMap<String, json_schema::Schema>> = serde_yaml::from_reader(catalog_file).unwrap();
+            (test, catalog)
+        }},
+        SchemaDerivationYamlTestFile::Multiple(spec_query_test) => {{
+            let test = spec_query_test.tests.get({index}).unwrap();
+            (test, spec_query_test.catalog_schema.to_owned().unwrap_or(BTreeMap::new()))
+        }}
+    }};
+
+    let default_db = "test".to_string();
+    let db = test
+        .current_db
+        .as_ref()
+        .unwrap_or_else(|| &default_db)
+        .to_owned();
+
+    let catalog = &catalog_schema.iter()
+        .fold(BTreeMap::new(), |mut acc, (db, coll_map)| {{
+            for (coll, coll_schema) in coll_map {{
+                acc.insert(Namespace(db.clone(), coll.clone()), Schema::try_from(coll_schema.to_owned()).map_err(|e| e.to_string()).unwrap());
+            }}
+            acc
+    }});
+
+    let mut result_set_state = ResultSetState {{
+        catalog,
+        current_db: db,
+        result_set_schema: Schema::Any,
+        variables: BTreeMap::new(),
+        null_behavior: Satisfaction::Not
+    }};
+
+    let derived_schema = derive_schema_for_pipeline(test.pipeline.to_owned(), test.current_collection.clone(), &mut result_set_state);
+    assert!(derived_schema.is_ok(), "{{:?}}", derived_schema.err());
+    let result_set_schema = Schema::try_from(test.result_set_schema.to_owned()).map_err(|e| e.to_string()).unwrap();
+    println!("result_set_schema: {{:?}}", result_set_schema);
+    println!("derived_schema: {{:?}}", derived_schema.clone().unwrap());
+    assert!(result_set_schema.satisfies(&derived_schema.clone().unwrap()) == Satisfaction::Must, "{{:?}}, {{:?}}", result_set_schema, derived_schema);
+}}
