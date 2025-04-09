@@ -1314,7 +1314,7 @@ pub struct Function {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GetField {
-    pub field: Box<Expression>,
+    pub field: String,
     pub input: Box<Expression>,
 }
 

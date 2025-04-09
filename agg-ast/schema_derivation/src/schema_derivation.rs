@@ -1351,21 +1351,7 @@ impl DeriveSchema for TaggedOperator {
             }
             TaggedOperator::GetField(g) => {
                 let input_schema = g.input.derive_schema(state)?;
-                let field = match g.field.as_ref() {
-                    Expression::Literal(LiteralValue::String(s)) => s,
-                    Expression::UntaggedOperator(UntaggedOperator {
-                        op: UntaggedOperatorName::Literal,
-                        args,
-                    }) => {
-                        if let Some(Expression::Literal(LiteralValue::String(s))) = args.first() {
-                            s
-                        } else {
-                            panic!()
-                        }
-                    }
-                    _ => panic!(),
-                };
-                let field_schema = get_schema_for_path(input_schema, vec![field.clone()]);
+                let field_schema = get_schema_for_path(input_schema, vec![g.field.clone()]);
                 match field_schema {
                     None => Ok(Schema::Missing),
                     Some(schema) => Ok(schema.clone()),
