@@ -22,6 +22,7 @@ pub struct SpecQuerySchemaDerivationTestFile {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SchemaDerivationTest {
     pub description: Option<String>,
+    pub skip_reason: Option<String>,
     pub catalog_schema_file: Option<String>,
     pub current_db: Option<String>,
     pub current_collection: Option<String>,
