@@ -18,7 +18,7 @@ const SCHEMA_DERIVATION_TESTS: &str = "schema_derivation_tests";
 const REWRITE_TEST: &str = "rewrite_tests";
 const TYPE_CONSTRAINT_TESTS: &str = "type_constraint_tests";
 
-// we also want to filter out hte correctness catalogs
+// we also want to filter out the correctness catalogs
 const CORRECTNESS_CATALOG: &str = "correctness_catalog";
 
 /// sanitize_description sanitizes test names such that they may be used as function names in generated test cases
@@ -229,14 +229,28 @@ impl Processor {
         self.write_schema_derivation_header(&write_file);
         let test_file = crate::parse_schema_derivation_yaml_file(self.entry.path()).unwrap();
         match test_file {
-            SchemaDerivationYamlTestFile::Single(_) => {
-                write!(
-                    write_file,
-                    include_str!("./templates/schema_derivation_test_body_template"),
-                    name = &self.file_name.replace(".rs", ""),
-                    index = 0,
-                )
-                .unwrap();
+            SchemaDerivationYamlTestFile::Single(test) => {
+                // this enum value represents files with only a single test (ie server correctness tests).
+                // we encode the test name in the file name, rather than using a description.
+                let name = &self.file_name.replace(".rs", "");
+                if test.skip_reason.is_some() {
+                    write!(
+                        write_file,
+                        include_str!("./templates/ignore_body_template"),
+                        name = name,
+                        ignore_reason = test.skip_reason.as_ref().unwrap(),
+                        feature = "schema_derivation"
+                    )
+                    .unwrap();
+                } else {
+                    write!(
+                        write_file,
+                        include_str!("./templates/schema_derivation_test_body_template"),
+                        name = name,
+                        index = 0,
+                    )
+                    .unwrap();
+                }
             }
             SchemaDerivationYamlTestFile::Multiple(spec_query_test) => {
                 for (index, test) in spec_query_test.tests.iter().enumerate() {
@@ -244,6 +258,17 @@ impl Processor {
                         .description
                         .clone()
                         .expect("missing description for spec query schema derivation test");
+                    if test.skip_reason.is_some() {
+                        write!(
+                            write_file,
+                            include_str!("./templates/ignore_body_template"),
+                            name = sanitize_description(description.as_str()),
+                            ignore_reason = test.skip_reason.as_ref().unwrap(),
+                            feature = "schema_derivation"
+                        )
+                        .unwrap();
+                        continue;
+                    }
                     write!(
                         write_file,
                         include_str!("./templates/schema_derivation_test_body_template"),
