@@ -18,7 +18,7 @@ const SCHEMA_DERIVATION_TESTS: &str = "schema_derivation_tests";
 const REWRITE_TEST: &str = "rewrite_tests";
 const TYPE_CONSTRAINT_TESTS: &str = "type_constraint_tests";
 
-// we also want to filter out hte correctness catalogs
+// we also want to filter out the correctness catalogs
 const CORRECTNESS_CATALOG: &str = "correctness_catalog";
 
 /// sanitize_description sanitizes test names such that they may be used as function names in generated test cases
