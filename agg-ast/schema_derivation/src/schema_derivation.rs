@@ -675,7 +675,7 @@ impl DeriveSchema for Stage {
         }
 
         fn unwind_derive_schema(unwind: &Unwind, state: &mut ResultSetState) -> Result<Schema> {
-            let (path, mut nullish) = match unwind {
+            let (path, preserve_null_and_empty_arrays) = match unwind {
                 Unwind::FieldPath(Expression::Ref(Ref::FieldRef(r))) => (
                     Some(r.split(".").map(|s| s.to_string()).collect::<Vec<String>>()),
                     false,
@@ -692,6 +692,8 @@ impl DeriveSchema for Stage {
                 }
                 _ => (None, false),
             };
+            let mut nullish = preserve_null_and_empty_arrays;
+            state.result_set_schema = promote_missing(&state.result_set_schema);
             if let Some(path) = path.clone() {
                 if let Some(s) = get_schema_for_path_mut(&mut state.result_set_schema, path.clone())
                 {
@@ -704,23 +706,25 @@ impl DeriveSchema for Stage {
                             }
                         }
                         Schema::AnyOf(ao) => {
-                            *s = Schema::simplify(&Schema::AnyOf(
-                                ao.iter()
-                                    .map(|x| match x {
-                                        Schema::Array(a) => *a.clone(),
-                                        schema => {
-                                            nullish = true;
-                                            schema.clone()
-                                        }
-                                    })
-                                    .collect(),
-                            ));
-                            if nullish {
-                                *s = s.union(&Schema::Missing);
-                            }
+                            *s = ao.iter().fold(None, |acc, x| {
+                                let schema = match x {
+                                    Schema::Array(a) => *a.clone(),
+                                    schema => {
+                                        nullish = true;
+                                        schema.clone()
+                                    }
+                                };
+                                match acc {
+                                    None => Some(schema),
+                                    Some(acc) => Some(acc.union(&schema)),
+                                }
+                            }).unwrap_or(Schema::Missing);
                         }
                         _ => {}
                     };
+                    if !preserve_null_and_empty_arrays {
+                        schema_difference(s, set!(Schema::Missing));
+                    }
                     if let Unwind::Document(d) = unwind {
                         // include_array_index will specify an output field to put the index; it can be nullish if
                         // preserve_null_and_empty_arrays is included
