@@ -109,11 +109,11 @@ mod root_references {
 
 mod sql_null_semantics {
     use super::*;
-    use crate::air::desugarer::sql_null_semantics_operators::SQLNullSemanticsOperatorsDesugarerPass;
+    use crate::air::desugarer::sql_null_semantics_operators::SqlNullSemanticsOperatorsDesugarerPass;
 
     test_desugarer!(
         file = "desugar_sql_null_semantics.yml",
-        desugarer = SQLNullSemanticsOperatorsDesugarerPass
+        desugarer = SqlNullSemanticsOperatorsDesugarerPass
     );
 }
 

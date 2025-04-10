@@ -212,8 +212,8 @@ pub struct EquiLookup {
 #[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub enum Expression {
-    MQLSemanticOperator(MQLSemanticOperator),
-    SQLSemanticOperator(SQLSemanticOperator),
+    MqlSemanticOperator(MqlSemanticOperator),
+    SqlSemanticOperator(SqlSemanticOperator),
     Literal(LiteralValue),
     FieldRef(FieldRef),
     Variable(Variable),
@@ -241,7 +241,7 @@ pub enum Expression {
 
 #[allow(dead_code)]
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
-pub enum MQLOperator {
+pub enum MqlOperator {
     // String operators
     Concat,
 
@@ -342,7 +342,7 @@ pub enum MQLOperator {
 
 #[allow(dead_code)]
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
-pub enum SQLOperator {
+pub enum SqlOperator {
     // Arithmetic operators
     Pos,
     Neg,
@@ -466,14 +466,14 @@ impl SqlConvertTargetType {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct MQLSemanticOperator {
-    pub op: MQLOperator,
+pub struct MqlSemanticOperator {
+    pub op: MqlOperator,
     pub args: Vec<Expression>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct SQLSemanticOperator {
-    pub op: SQLOperator,
+pub struct SqlSemanticOperator {
+    pub op: SqlOperator,
     pub args: Vec<Expression>,
 }
 

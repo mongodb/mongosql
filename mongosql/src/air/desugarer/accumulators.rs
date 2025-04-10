@@ -4,7 +4,7 @@ use crate::{
         visitor::Visitor,
         AccumulatorExpr, AggregationFunction, Expression,
         Expression::*,
-        Group, LiteralValue, MQLOperator, MQLSemanticOperator, Map, Project, ProjectItem, Stage,
+        Group, LiteralValue, Map, MqlOperator, MqlSemanticOperator, Project, ProjectItem, Stage,
         Stage::*,
     },
     make_cond_expr, map,
@@ -18,11 +18,11 @@ use mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap;
 // that the arg is null or missing.
 macro_rules! count_arg_is_null_or_missing_cond {
     ($arg:expr) => {
-        MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::In,
+        MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::In,
             args: vec![
-                MQLSemanticOperator(MQLSemanticOperator {
-                    op: MQLOperator::Type,
+                MqlSemanticOperator(MqlSemanticOperator {
+                    op: MqlOperator::Type,
                     args: vec![$arg],
                 }),
                 Array(vec![
@@ -38,8 +38,8 @@ macro_rules! count_arg_is_null_or_missing_cond {
 // that the arg is an empty document.
 macro_rules! count_doc_arg_is_empty_cond {
     ($arg:expr) => {
-        MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Eq,
+        MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::Eq,
             args: vec![$arg, Document(UniqueLinkedHashMap::new())],
         })
     };
@@ -49,22 +49,22 @@ macro_rules! count_doc_arg_is_empty_cond {
 // that the arg contains only null values.
 macro_rules! count_doc_arg_has_all_null_values_cond {
     ($arg:expr) => {
-        MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::AllElementsTrue,
-            args: vec![MQLSemanticOperator(MQLSemanticOperator {
+        MqlSemanticOperator(MqlSemanticOperator {
+            op: MqlOperator::AllElementsTrue,
+            args: vec![MqlSemanticOperator(MqlSemanticOperator {
                 // $objectToArray and $map return null if the input is null, but $allElementsTrue
                 // throws a runtime error if the input is null. Therefore, we wrap this expression
                 // in $ifNull.
-                op: MQLOperator::IfNull,
+                op: MqlOperator::IfNull,
                 args: vec![
                     Map(Map {
-                        input: Box::new(MQLSemanticOperator(MQLSemanticOperator {
-                            op: MQLOperator::ObjectToArray,
+                        input: Box::new(MqlSemanticOperator(MqlSemanticOperator {
+                            op: MqlOperator::ObjectToArray,
                             args: vec![$arg],
                         })),
                         as_name: None,
-                        inside: Box::new(MQLSemanticOperator(MQLSemanticOperator {
-                            op: MQLOperator::Eq,
+                        inside: Box::new(MqlSemanticOperator(MqlSemanticOperator {
+                            op: MqlOperator::Eq,
                             args: vec![Variable("this.v".into()), Literal(LiteralValue::Null)],
                         })),
                     }),
@@ -97,7 +97,7 @@ struct AccumulatorsDesugarerVisitor;
 
 impl AccumulatorsDesugarerVisitor {
     /// Rewrites $sqlCount into the appropriate new accumulator expression and project item.
-    /// MongoSQL supports the following cases for COUNT:
+    /// MongoSql supports the following cases for COUNT:
     ///     - COUNT(DISTINCT? *)
     ///     - COUNT(DISTINCT? <col>)
     ///     - COUNT(DISTINCT? <col1>, <col2>, ...)
@@ -135,8 +135,8 @@ impl AccumulatorsDesugarerVisitor {
         };
 
         let project_item = if count_expr.distinct {
-            ProjectItem::Assignment(MQLSemanticOperator(MQLSemanticOperator {
-                op: MQLOperator::Size,
+            ProjectItem::Assignment(MqlSemanticOperator(MqlSemanticOperator {
+                op: MqlOperator::Size,
                 args: vec![FieldRef(count_expr.alias.clone().into())],
             }))
         } else {
@@ -201,15 +201,15 @@ impl AccumulatorsDesugarerVisitor {
                 // Document. If the condition evaluates to true, the expr is NOT counted.
                 let cond = match arg_is_possibly_doc {
                     Satisfaction::Not => count_arg_is_null_or_missing_cond!(arg.clone()),
-                    Satisfaction::Must => MQLSemanticOperator(MQLSemanticOperator {
-                        op: MQLOperator::Or,
+                    Satisfaction::Must => MqlSemanticOperator(MqlSemanticOperator {
+                        op: MqlOperator::Or,
                         args: vec![
                             count_doc_arg_is_empty_cond!(arg.clone()),
                             count_doc_arg_has_all_null_values_cond!(arg.clone()),
                         ],
                     }),
-                    Satisfaction::May => MQLSemanticOperator(MQLSemanticOperator {
-                        op: MQLOperator::Or,
+                    Satisfaction::May => MqlSemanticOperator(MqlSemanticOperator {
+                        op: MqlOperator::Or,
                         args: vec![
                             count_arg_is_null_or_missing_cond!(arg.clone()),
                             count_doc_arg_is_empty_cond!(arg.clone()),
@@ -243,20 +243,20 @@ impl AccumulatorsDesugarerVisitor {
             arg_is_possibly_doc: Satisfaction::Not,
         };
 
-        let project_item = ProjectItem::Assignment(MQLSemanticOperator(MQLSemanticOperator {
+        let project_item = ProjectItem::Assignment(MqlSemanticOperator(MqlSemanticOperator {
             op: match acc_expr.function {
                 AggregationFunction::AddToArray => unreachable!(),
                 AggregationFunction::AddToSet => unreachable!(),
-                AggregationFunction::Avg => MQLOperator::Avg,
+                AggregationFunction::Avg => MqlOperator::Avg,
                 AggregationFunction::Count => unreachable!(),
-                AggregationFunction::First => MQLOperator::First,
-                AggregationFunction::Last => MQLOperator::Last,
-                AggregationFunction::Max => MQLOperator::Max,
-                AggregationFunction::MergeDocuments => MQLOperator::MergeObjects,
-                AggregationFunction::Min => MQLOperator::Min,
-                AggregationFunction::StddevPop => MQLOperator::StddevPop,
-                AggregationFunction::StddevSamp => MQLOperator::StddevSamp,
-                AggregationFunction::Sum => MQLOperator::Sum,
+                AggregationFunction::First => MqlOperator::First,
+                AggregationFunction::Last => MqlOperator::Last,
+                AggregationFunction::Max => MqlOperator::Max,
+                AggregationFunction::MergeDocuments => MqlOperator::MergeObjects,
+                AggregationFunction::Min => MqlOperator::Min,
+                AggregationFunction::StddevPop => MqlOperator::StddevPop,
+                AggregationFunction::StddevSamp => MqlOperator::StddevSamp,
+                AggregationFunction::Sum => MqlOperator::Sum,
             },
             args: vec![FieldRef(acc_expr.alias.clone().into())],
         }));

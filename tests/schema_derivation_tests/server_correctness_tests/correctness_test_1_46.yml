@@ -1,3 +1,4 @@
+catalog_schema_file: correctness_catalog_1.yml
 current_db: test
 current_collection: fuzzer_coll
 pipeline: [ { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$year" : { "date" : { "$min" : [ "$obj.obj.obj.obj.obj.date", "$obj.obj.obj.date", "$obj.obj.obj.date", "$obj.obj.date" ] }, "timezone" : "US/Hawaii" } } } ]

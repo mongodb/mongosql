@@ -70,8 +70,9 @@ test_schema!(
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null),
             Schema::Missing,
-        ]),
-        found: Schema::Atomic(Atomic::Integer),
+        ])
+        .into(),
+        found: Schema::Atomic(Atomic::Integer).into(),
     }),
     input = Stage::Filter(Filter {
         source: Box::new(test_source()),
@@ -92,8 +93,9 @@ test_schema!(
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null),
             Schema::Missing,
-        ]),
-        found: Schema::Any,
+        ])
+        .into(),
+        found: Schema::Any.into(),
     }),
     input = Stage::Filter(Filter {
         source: Box::new(test_source()),

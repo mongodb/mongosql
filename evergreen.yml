@@ -40,6 +40,7 @@ pre:
 
 post:
   - func: "stop mongo orchestration"
+  - func: "upload static analysis information"
 
 functions:
   "fetch source":
@@ -907,22 +908,57 @@ functions:
           # Confirm semgrep version
           semgrep --version
           set +e
-          timestamp=$(date +'%Y-%m-%dT%H_%M_%S')
-          semgrep --config p/rust --metrics=off --sarif --exclude "benchmark" --verbose --error --severity=ERROR --sarif-output=mongosqltranslate_$timestamp.sast.sarif > mongosqltranslate_$timestamp.sast.cmd.verbose.out 2>&1
+          semgrep --config p/rust --metrics=off --sarif --exclude "benchmark" --verbose --error --severity=ERROR --sarif-output=mongosql.sast.sarif > mongosql.sast.cmd.verbose.out 2>&1
           SCAN_RESULT=$?
           set -e
+          
+          # This adds a timestamp to the SAST file (i.e., this adds `"executionDateTime": <timestamp>` to `runs.invocations`). 
+          jq --arg ts "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" '(.runs[] | select(has("invocations"))).invocations[0].executionDateTime = $ts' mongosql.sast.sarif > temp.sarif && mv temp.sarif mongosql.sast.sarif
+                    
           # Exit with a failure if the scan found an issue
           exit $SCAN_RESULT
+
+  "upload static analysis information":
     - command: s3.put
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_files_include_filter:
-          - mongosqltranslate*.sast.*
-        remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/
-        content_type: text/plain
+        optional: true
+        local_file: mongosql-rs/mongosql.sast.sarif
+        remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/mongosql.sast.sarif
+        content_type: text/json
         bucket: mciuploads
         permissions: public-read
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        optional: true
+        local_file: mongosql-rs/mongosql.sast.cmd.verbose.out
+        remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/mongosql.sast.cmd.verbose.out
+        content_type: text/plain; charset=utf-8
+        bucket: mciuploads
+        permissions: public-read
+
+  "publish static code analysis":
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/mongosql.sast.sarif
+        remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/mongosql.sast.sarif
+        content_type: application/json
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/mongosql.sast.sarif
+        remote_file: ${project_folder}/${project_folder}-v${release_version}.sast.sarif
+        content_type: application/json
+        bucket: translators-connectors-releases
+        permissions: public-read
+        display_name: ${project_folder}-v${release_version}.sast.sarif
 
 tasks:
   - name: clippy

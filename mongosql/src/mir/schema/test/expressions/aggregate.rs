@@ -61,11 +61,12 @@ mod avg {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Avg",
-            required: NUMERIC_OR_NULLISH.clone(),
+            required: NUMERIC_OR_NULLISH.clone().into(),
             found: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String),
-            ]),
+            ])
+            .into(),
         }),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Avg,
@@ -208,7 +209,7 @@ mod count {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Count DISTINCT".into(),
-            NON_SELF_COMPARABLE_SCHEMA.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone().into(),
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Count,
@@ -255,7 +256,7 @@ mod first {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "First DISTINCT".into(),
-            NON_SELF_COMPARABLE_SCHEMA.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone().into(),
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::First,
@@ -293,7 +294,7 @@ mod last {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Last DISTINCT".into(),
-            NON_SELF_COMPARABLE_SCHEMA.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone().into(),
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Last,
@@ -331,7 +332,7 @@ mod max {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Max".into(),
-            NON_SELF_COMPARABLE_SCHEMA.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone().into(),
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Max,
@@ -347,7 +348,7 @@ mod max {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Max DISTINCT".into(),
-            NON_SELF_COMPARABLE_SCHEMA.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone().into(),
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Max,
@@ -385,11 +386,12 @@ mod merge_documents {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "MergeDocuments",
-            required: ANY_DOCUMENT.clone(),
+            required: ANY_DOCUMENT.clone().into(),
             found: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String),
-            ]),
+            ])
+            .into(),
         }),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::MergeDocuments,
@@ -434,7 +436,7 @@ mod min {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Min".into(),
-            NON_SELF_COMPARABLE_SCHEMA.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone().into(),
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Min,
@@ -450,7 +452,7 @@ mod min {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Min DISTINCT".into(),
-            NON_SELF_COMPARABLE_SCHEMA.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone().into(),
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Min,
@@ -488,7 +490,7 @@ mod stddev_pop {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "StddevPop DISTINCT".into(),
-            NON_SELF_COMPARABLE_SCHEMA.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone().into(),
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::StddevPop,
@@ -504,11 +506,12 @@ mod stddev_pop {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "StddevPop",
-            required: NUMERIC_OR_NULLISH.clone(),
+            required: NUMERIC_OR_NULLISH.clone().into(),
             found: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String),
-            ]),
+            ])
+            .into(),
         }),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::StddevPop,
@@ -578,7 +581,7 @@ mod stddev_samp {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "StddevSamp DISTINCT".into(),
-            NON_SELF_COMPARABLE_SCHEMA.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone().into(),
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::StddevSamp,
@@ -594,11 +597,12 @@ mod stddev_samp {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "StddevSamp",
-            required: NUMERIC_OR_NULLISH.clone(),
+            required: NUMERIC_OR_NULLISH.clone().into(),
             found: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String),
-            ]),
+            ])
+            .into(),
         }),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::StddevSamp,
@@ -668,7 +672,7 @@ mod sum {
         expected_error_code = 1003,
         expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Sum DISTINCT".into(),
-            NON_SELF_COMPARABLE_SCHEMA.clone()
+            NON_SELF_COMPARABLE_SCHEMA.clone().into(),
         )),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Sum,
@@ -684,11 +688,12 @@ mod sum {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Sum",
-            required: NUMERIC_OR_NULLISH.clone(),
+            required: NUMERIC_OR_NULLISH.clone().into(),
             found: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String),
-            ]),
+            ])
+            .into(),
         }),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Sum,

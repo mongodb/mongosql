@@ -1,3 +1,4 @@
+catalog_schema_file: correctness_catalog_1.yml
 current_db: test
 current_collection: fuzzer_coll
 pipeline: [ { "$match" : { "array" : { "$lte" : [ /generating|sky blue|Quality/, ISODate("2019-05-05T01:23:42.016Z"), [ { "array" : [ ], "date" : ISODate("2019-05-04T08:28:56.236Z") }, true ], ISODate("2019-10-24T08:10:44.154Z"), 1 ] } } }, { "$replaceRoot" : { "newRoot" : { "k" : "Hill", "v" : { "$ifNull" : [ "Home visualize", null ] } } } } ]

@@ -354,6 +354,8 @@ impl ConstantFoldExprVisitor<'_> {
     }
 
     // Constant folds unary functions
+    // clippy erroneously thinks these as_bytes calls are unneeded
+    #[allow(clippy::needless_as_bytes)]
     fn fold_unary_function(&mut self, sf: ScalarFunctionApplication) -> (Expression, bool) {
         assert_eq!(sf.args.len(), 1, "Unary function should only have one arg");
         if self.has_null_arg(&sf.args) {
@@ -1001,7 +1003,7 @@ impl Visitor for ConstantFoldExprVisitor<'_> {
             Expression::SubqueryComparison(_) => (e, false),
             Expression::Subquery(_) => (e, false),
             Expression::TypeAssertion(_) => (e, false),
-            Expression::MQLIntrinsicFieldExistence(f) => {
+            Expression::MqlIntrinsicFieldExistence(f) => {
                 // Patrick: we clone in case somehow the field access is mutated into a non-field access by
                 // fold_field_access_expr. This would imply a bug in our code generation, *I
                 // think*, but I am doing this rather than panicking, just to be safe, since I do
@@ -1011,9 +1013,9 @@ impl Visitor for ConstantFoldExprVisitor<'_> {
                 if let (Expression::FieldAccess(fa), changed) =
                     self.fold_field_access_expr(f.clone())
                 {
-                    (Expression::MQLIntrinsicFieldExistence(fa), changed)
+                    (Expression::MqlIntrinsicFieldExistence(fa), changed)
                 } else {
-                    (Expression::MQLIntrinsicFieldExistence(f), false)
+                    (Expression::MqlIntrinsicFieldExistence(f), false)
                 }
             }
         };
@@ -1037,7 +1039,7 @@ impl Visitor for ConstantFoldExprVisitor<'_> {
             Stage::Sort(_) => (st, false),
             Stage::Derived(_) => (st, false),
             Stage::Unwind(_) => (st, false),
-            Stage::MQLIntrinsic(_) => (st, false),
+            Stage::MqlIntrinsic(_) => (st, false),
             Stage::Sentinel => unreachable!(),
         };
 

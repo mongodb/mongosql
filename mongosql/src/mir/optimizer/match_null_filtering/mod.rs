@@ -12,8 +12,8 @@
 ///   3. Update those FieldAccesses in the _original_ Filter's condition to
 ///      indicate they are _NOT_ NULL or MISSING.
 ///
-/// This will help the final MQL translations utilize indexes since it will
-/// ensure Filter stages can always use MQL semantics for condition operators.
+/// This will help the final Mql translations utilize indexes since it will
+/// ensure Filter stages can always use Mql semantics for condition operators.
 ///
 #[cfg(test)]
 mod test;
@@ -90,7 +90,7 @@ impl MatchNullFilteringVisitor {
         let (fields, condition) = self.gather_fields_for_null_filter(condition);
         let mut optimized_exists_ops = fields
             .into_values()
-            .map(Expression::MQLIntrinsicFieldExistence)
+            .map(Expression::MqlIntrinsicFieldExistence)
             .collect::<Vec<Expression>>();
 
         match optimized_exists_ops.len() {
@@ -227,7 +227,7 @@ impl Visitor for NullableFieldAccessGatherer {
                 self.found_impure = false;
                 let mut sf = sf.walk(self);
                 // If no impure functions were found, we can set all the semantics
-                // to MQL in the expression.
+                // to Mql in the expression.
                 if !self.found_impure {
                     let mut nullable_setter = NullableSetter {};
                     sf = nullable_setter.visit_scalar_function_application(sf);
@@ -259,10 +259,10 @@ impl Visitor for NullableFieldAccessGatherer {
 }
 
 impl ScalarFunction {
-    // This method defines those functions that have MQL NULL behavior that is divergent from SQL.
-    // That is to say, in SQL the function will return NULL if any argument is NULL, but in MQL it
+    // This method defines those functions that have Mql NULL behavior that is divergent from Sql.
+    // That is to say, in Sql the function will return NULL if any argument is NULL, but in Mql it
     // will not. For instance, NULL = 1 and NULL = NULL return false and true, respectively, in
-    // MQL.
+    // Mql.
     pub fn mql_null_semantics_diverge(&self) -> bool {
         match self {
             ScalarFunction::Lt
@@ -276,7 +276,7 @@ impl ScalarFunction {
             | ScalarFunction::And
             | ScalarFunction::Or => true,
 
-            // These functions all correctly return NULL in MQL, if there is a NULL argument.
+            // These functions all correctly return NULL in Mql, if there is a NULL argument.
             // NullIf is weird in that it can also return NULL if none of the arguments are NULL,
             // but that does not affect this optimization.
             // We include every variant instead of a wildcard in case new variants are added in the

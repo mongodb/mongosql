@@ -25,7 +25,7 @@
 ///
 /// The substitution mentioned above, is also defined in this file. Substitution for general
 /// expressions such as those in the normal FilterStage cannot fail, but for Stages like
-/// MatchFilter (which generates MQL match syntax) and Sort cannot always be substituted. Only
+/// MatchFilter (which generates Mql match syntax) and Sort cannot always be substituted. Only
 /// FieldPaths and Documents can potentially be substituted into those, since they require
 /// FieldPaths, not general Expressions.
 ///
@@ -35,7 +35,7 @@ mod test;
 use crate::{
     mir::{
         binding_tuple::Key, optimizer::util::insert_field_path_and_all_ancestors, visitor::Visitor,
-        ExistsExpr, Expression, FieldAccess, FieldPath, Filter, Group, MQLStage, MatchFilter,
+        ExistsExpr, Expression, FieldAccess, FieldPath, Filter, Group, MatchFilter, MqlStage,
         Project, ReferenceExpr, Sort, Stage, SubqueryComparison, SubqueryExpr, Unwind,
     },
     util::unique_linked_hash_map::UniqueLinkedHashMap,
@@ -148,13 +148,13 @@ impl Visitor for SingleStageFieldUseVisitor {
                     cache,
                 })
             }
-            Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
                 source,
                 condition,
                 cache,
             })) => {
                 let condition = self.visit_match_query(condition);
-                Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+                Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
                     source,
                     condition,
                     cache,
@@ -320,13 +320,13 @@ impl Visitor for SingleStageDatasourceUseVisitor {
                     cache,
                 })
             }
-            Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
                 source,
                 condition,
                 cache,
             })) => {
                 let condition = self.visit_match_query(condition);
-                Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+                Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
                     source,
                     condition,
                     cache,
@@ -562,13 +562,13 @@ impl Stage {
                 f.condition = subbed;
                 Ok(Stage::Filter(f))
             }
-            Stage::MQLIntrinsic(MQLStage::MatchFilter(mut f)) => {
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(mut f)) => {
                 let subbed = visitor.visit_match_query(f.condition.clone());
                 if visitor.failed {
-                    return Err(Stage::MQLIntrinsic(MQLStage::MatchFilter(f)));
+                    return Err(Stage::MqlIntrinsic(MqlStage::MatchFilter(f)));
                 }
                 f.condition = subbed;
-                Ok(Stage::MQLIntrinsic(MQLStage::MatchFilter(f)))
+                Ok(Stage::MqlIntrinsic(MqlStage::MatchFilter(f)))
             }
             Stage::Sort(mut s) => {
                 let cloned_specs = s.specs.clone();

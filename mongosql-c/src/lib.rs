@@ -33,7 +33,7 @@ pub extern "C" fn version() -> *mut raw::c_char {
 
 /// Returns a base64-encoded bson representation of
 /// [Translation](/mongosql/struct.Translation.html) for the provided
-/// SQL query, database, catalog schema, and schema checking mode.
+/// Sql query, database, catalog schema, and schema checking mode.
 #[no_mangle]
 pub extern "C" fn translate(
     current_db: *const libc::c_char,
@@ -154,7 +154,7 @@ fn translation_failure_payload(error: String, error_visibility: ErrorVisibility)
 
 /// Returns a base64-encoded bson representation of
 /// the namespaces referenced by the the provided
-/// SQL query, when executed in the provided database.
+/// Sql query, when executed in the provided database.
 #[no_mangle]
 pub extern "C" fn get_namespaces(
     current_db: *const libc::c_char,

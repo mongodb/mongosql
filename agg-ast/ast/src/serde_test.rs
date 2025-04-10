@@ -392,7 +392,7 @@ mod stage_test {
             expected = Stage::Match(MatchStage {
                 expr: vec![MatchExpression::Expr(MatchExpr {
                     expr: Box::new(Expression::UntaggedOperator(UntaggedOperator {
-                        op: UntaggedOperatorName::SQLEq,
+                        op: UntaggedOperatorName::SqlEq,
                         args: vec![
                             Expression::Ref(Ref::FieldRef("a".to_string())),
                             Expression::Ref(Ref::FieldRef("b".to_string())),
@@ -830,7 +830,7 @@ mod stage_test {
                     }
                 })],
                 condition: Some(Expression::UntaggedOperator(UntaggedOperator {
-                    op: UntaggedOperatorName::SQLEq,
+                    op: UntaggedOperatorName::SqlEq,
                     args: vec![
                         Expression::Ref(Ref::VariableRef("x".to_string())),
                         Expression::Ref(Ref::FieldRef("x".to_string())),
@@ -1115,7 +1115,7 @@ mod stage_test {
     mod group_test {
         use crate::{
             definitions::{
-                Expression, Group, LiteralValue, Ref, SQLAccumulator, Stage, TaggedOperator,
+                Expression, Group, LiteralValue, Ref, SqlAccumulator, Stage, TaggedOperator,
                 UntaggedOperator, UntaggedOperatorName,
             },
             map,
@@ -1137,8 +1137,8 @@ mod stage_test {
             expected = Stage::Group(Group {
                 keys: Expression::Literal(LiteralValue::Null),
                 aggregations: map! {
-                "acc".to_string() => Expression::TaggedOperator(TaggedOperator::SQLSum(
-                    SQLAccumulator {
+                "acc".to_string() => Expression::TaggedOperator(TaggedOperator::SqlSum(
+                    SqlAccumulator {
                         distinct: true,
                         var: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                         arg_is_possibly_doc: Some("not".to_string()),
@@ -1161,15 +1161,15 @@ mod stage_test {
                     "a".to_string() => Expression::Ref(Ref::FieldRef("a".to_string()))
                 },),
                 aggregations: map! {
-                    "acc_one".to_string() => Expression::TaggedOperator(TaggedOperator::SQLSum(
-                        SQLAccumulator {
+                    "acc_one".to_string() => Expression::TaggedOperator(TaggedOperator::SqlSum(
+                        SqlAccumulator {
                             distinct: true,
                             var: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                             arg_is_possibly_doc: None,
                         })
                     ),
-                    "acc_two".to_string() => Expression::TaggedOperator(TaggedOperator::SQLAvg(
-                        SQLAccumulator {
+                    "acc_two".to_string() => Expression::TaggedOperator(TaggedOperator::SqlAvg(
+                        SqlAccumulator {
                             distinct: true,
                             var: Box::new(Expression::Ref(Ref::FieldRef("b".to_string()))),
                             arg_is_possibly_doc: None,
@@ -1831,20 +1831,23 @@ mod stage_test {
 
         test_serde_stage!(
             with_no_optional_fields,
-            expected = Stage::GeoNear(GeoNear {
-                distance_field: "f".to_string(),
-                distance_multiplier: None,
-                include_locs: None,
-                key: None,
-                max_distance: None,
-                min_distance: None,
-                near: GeoNearPoint::GeoJSON(GeoJSON {
-                    r#type: "Point".to_string(),
-                    coordinates: [Bson::Double(-73.856077), Bson::Double(40.848447)],
-                }),
-                query: None,
-                spherical: None,
-            }),
+            expected = Stage::GeoNear(
+                GeoNear {
+                    distance_field: "f".to_string(),
+                    distance_multiplier: None,
+                    include_locs: None,
+                    key: None,
+                    max_distance: None,
+                    min_distance: None,
+                    near: GeoNearPoint::GeoJSON(GeoJSON {
+                        r#type: "Point".to_string(),
+                        coordinates: [Bson::Double(-73.856077), Bson::Double(40.848447)],
+                    }),
+                    query: None,
+                    spherical: None,
+                }
+                .into()
+            ),
             input = r#"stage: {"$geoNear": {
                 "distanceField": "f",
                 "near": {
@@ -1856,22 +1859,25 @@ mod stage_test {
 
         test_serde_stage!(
             fully_specified,
-            expected = Stage::GeoNear(GeoNear {
-                distance_field: "f".to_string(),
-                distance_multiplier: Some(Bson::Int32(3)),
-                include_locs: Some("locs".to_string()),
-                key: Some("idx".to_string()),
-                max_distance: Some(Bson::Int32(100)),
-                min_distance: Some(Bson::Int32(10)),
-                near: GeoNearPoint::Legacy([Bson::Double(-51.634855), Bson::Double(51.959558)]),
-                query: Some(MatchExpression::Field(MatchField {
-                    field: Ref::FieldRef("x".to_string()),
-                    ops: map! {
-                        MatchBinaryOp::Eq => Bson::Int32(42),
-                    },
-                })),
-                spherical: Some(true),
-            }),
+            expected = Stage::GeoNear(
+                GeoNear {
+                    distance_field: "f".to_string(),
+                    distance_multiplier: Some(Bson::Int32(3)),
+                    include_locs: Some("locs".to_string()),
+                    key: Some("idx".to_string()),
+                    max_distance: Some(Bson::Int32(100)),
+                    min_distance: Some(Bson::Int32(10)),
+                    near: GeoNearPoint::Legacy([Bson::Double(-51.634855), Bson::Double(51.959558)]),
+                    query: Some(MatchExpression::Field(MatchField {
+                        field: Ref::FieldRef("x".to_string()),
+                        ops: map! {
+                            MatchBinaryOp::Eq => Bson::Int32(42),
+                        },
+                    })),
+                    spherical: Some(true),
+                }
+                .into()
+            ),
             input = r#"stage: {"$geoNear": {
                 "distanceField": "f",
                 "distanceMultiplier": 3,
@@ -2210,9 +2216,9 @@ mod expression_test {
                 DateFromParts, DateFromString, DateSubtract, DateToParts, DateToString, DateTrunc,
                 Documents, Expression, Filter, Function, GetField, Let, Like, LiteralValue, Map,
                 Median, NArrayOp, Percentile, ProjectItem, ProjectStage, Reduce, Ref,
-                RegexAggExpression, Replace, SQLConvert, SQLDivide, SetField, SortArray,
-                SortArraySpec, Stage, Subquery, SubqueryComparison, SubqueryExists, Switch,
-                SwitchCase, TaggedOperator, Top, TopN, Trim, UnsetField, UntaggedOperator,
+                RegexAggExpression, Replace, SetField, SortArray, SortArraySpec, SqlConvert,
+                SqlDivide, Stage, Subquery, SubqueryComparison, SubqueryExists, Switch, SwitchCase,
+                TaggedOperator, Top, TopN, Trim, UnsetField, UntaggedOperator,
                 UntaggedOperatorName, Zip,
             },
             map,
@@ -2370,7 +2376,7 @@ mod expression_test {
 
         test_serde_expr!(
             sql_convert,
-            expected = Expression::TaggedOperator(TaggedOperator::SQLConvert(SQLConvert {
+            expected = Expression::TaggedOperator(TaggedOperator::SqlConvert(SqlConvert {
                 input: Box::new(Expression::Literal(LiteralValue::String("1".to_string()))),
                 to: "int".to_string(),
                 on_null: Box::new(Expression::Literal(LiteralValue::Null)),
@@ -2492,7 +2498,7 @@ mod expression_test {
 
         test_serde_expr!(
             sql_divide,
-            expected = Expression::TaggedOperator(TaggedOperator::SQLDivide(SQLDivide {
+            expected = Expression::TaggedOperator(TaggedOperator::SqlDivide(SqlDivide {
                 dividend: Box::new(Expression::Ref(Ref::FieldRef("a".to_string()))),
                 divisor: Box::new(Expression::Literal(LiteralValue::Int32(2))),
                 on_error: Box::new(Expression::Literal(LiteralValue::Null)),
@@ -3630,7 +3636,7 @@ mod expression_test {
         test_serde_expr!(
             one_argument_non_array,
             expected = Expression::UntaggedOperator(UntaggedOperator {
-                op: UntaggedOperatorName::SQLSqrt,
+                op: UntaggedOperatorName::SqlSqrt,
                 args: vec![Expression::Ref(Ref::FieldRef("x".to_string()))]
             }),
             input = r#"expr: {"$sqlSqrt": "$x"}"#
@@ -3639,7 +3645,7 @@ mod expression_test {
         test_serde_expr!(
             one_argument,
             expected = Expression::UntaggedOperator(UntaggedOperator {
-                op: UntaggedOperatorName::SQLSqrt,
+                op: UntaggedOperatorName::SqlSqrt,
                 args: vec![Expression::Ref(Ref::FieldRef("x".to_string()))]
             }),
             input = r#"expr: {"$sqlSqrt": ["$x"]}"#

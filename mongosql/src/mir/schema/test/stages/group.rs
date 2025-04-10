@@ -74,7 +74,8 @@ test_schema!(
         Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String)
-        ]),
+        ])
+        .into(),
     )),
     input = group_stage_refs_only(),
     schema_env = map! {

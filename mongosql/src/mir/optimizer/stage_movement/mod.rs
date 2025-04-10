@@ -27,7 +27,7 @@ use crate::mir::optimizer::util::ContainsSubqueryVisitor;
 use crate::{
     mir::{
         binding_tuple::Key, schema::SchemaInferenceState, visitor::Visitor, Derived, EquiJoin,
-        Expression, Filter, Group, Join, JoinType, LateralJoin, Limit, MQLStage, MatchFilter,
+        Expression, Filter, Group, Join, JoinType, LateralJoin, Limit, MatchFilter, MqlStage,
         Offset, Project, ScalarFunction, ScalarFunctionApplication, Set, Sort, Stage, Unwind,
     },
     schema::ResultSet,
@@ -75,7 +75,7 @@ impl Stage {
             // It's possible to have an Unwind that does not modify cardinality and thus invalidate
             // an offset, but we can consider that a very rare occurrence.
             Stage::Unwind(_) => true,
-            Stage::MQLIntrinsic(_) => true,
+            Stage::MqlIntrinsic(_) => true,
             Stage::Sentinel => unreachable!(),
         }
     }
@@ -159,24 +159,24 @@ impl Stage {
             ),
             // Only consider the LHS for EquiJoins since the RHS must
             // remain as just a collection source.
-            Stage::MQLIntrinsic(MQLStage::EquiJoin(n)) => (
+            Stage::MqlIntrinsic(MqlStage::EquiJoin(n)) => (
                 vec![*n.source],
-                Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+                Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
                     source: Box::new(Stage::Sentinel),
                     ..n
                 })),
             ),
-            Stage::MQLIntrinsic(MQLStage::LateralJoin(n)) => (
+            Stage::MqlIntrinsic(MqlStage::LateralJoin(n)) => (
                 vec![*n.source, *n.subquery],
-                Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+                Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
                     source: Box::new(Stage::Sentinel),
                     subquery: Box::new(Stage::Sentinel),
                     ..n
                 })),
             ),
-            Stage::MQLIntrinsic(MQLStage::MatchFilter(n)) => (
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(n)) => (
                 vec![*n.source],
-                Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+                Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
                     source: Box::new(Stage::Sentinel),
                     ..n
                 })),
@@ -231,21 +231,21 @@ impl Stage {
             Stage::Collection(_) | Stage::Array(_) => self,
             // Only consider the LHS for EquiJoins since the RHS must
             // remain as just a collection source.
-            Stage::MQLIntrinsic(MQLStage::EquiJoin(s)) => {
-                Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+            Stage::MqlIntrinsic(MqlStage::EquiJoin(s)) => {
+                Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
                     source: sources.swap_remove(0).into(),
                     ..s
                 }))
             }
-            Stage::MQLIntrinsic(MQLStage::LateralJoin(s)) => {
-                Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+            Stage::MqlIntrinsic(MqlStage::LateralJoin(s)) => {
+                Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
                     source: sources.swap_remove(0).into(),
                     subquery: sources.swap_remove(0).into(),
                     ..s
                 }))
             }
-            Stage::MQLIntrinsic(MQLStage::MatchFilter(s)) => {
-                Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(s)) => {
+                Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
                     source: sources.swap_remove(0).into(),
                     ..s
                 }))
@@ -337,11 +337,11 @@ impl StageMovementVisitor<'_> {
         // stage movement, set is_filter_filter_only_change to false.
         match (&stage, &out) {
             (Stage::Filter(_), Stage::Filter(_))
-            | (Stage::Filter(_), Stage::MQLIntrinsic(MQLStage::MatchFilter(_)))
-            | (Stage::MQLIntrinsic(MQLStage::MatchFilter(_)), Stage::Filter(_))
+            | (Stage::Filter(_), Stage::MqlIntrinsic(MqlStage::MatchFilter(_)))
+            | (Stage::MqlIntrinsic(MqlStage::MatchFilter(_)), Stage::Filter(_))
             | (
-                Stage::MQLIntrinsic(MQLStage::MatchFilter(_)),
-                Stage::MQLIntrinsic(MQLStage::MatchFilter(_)),
+                Stage::MqlIntrinsic(MqlStage::MatchFilter(_)),
+                Stage::MqlIntrinsic(MqlStage::MatchFilter(_)),
             ) => (),
             _ => self.is_filter_filter_only_change = false,
         };
@@ -465,11 +465,11 @@ impl StageMovementVisitor<'_> {
             Stage::Offset(o) => (Some(o.source.as_ref()), None),
             Stage::Unwind(u) => (Some(u.source.as_ref()), None),
             Stage::Derived(d) => (Some(d.source.as_ref()), None),
-            Stage::MQLIntrinsic(MQLStage::MatchFilter(m)) => (Some(m.source.as_ref()), None),
-            Stage::MQLIntrinsic(MQLStage::EquiJoin(e)) => {
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(m)) => (Some(m.source.as_ref()), None),
+            Stage::MqlIntrinsic(MqlStage::EquiJoin(e)) => {
                 (Some(e.source.as_ref()), Some(e.from.as_ref()))
             }
-            Stage::MQLIntrinsic(MQLStage::LateralJoin(l)) => {
+            Stage::MqlIntrinsic(MqlStage::LateralJoin(l)) => {
                 (Some(l.source.as_ref()), Some(l.subquery.as_ref()))
             }
             Stage::Join(j) => (Some(j.left.as_ref()), Some(j.right.as_ref())),
@@ -510,7 +510,7 @@ impl StageMovementVisitor<'_> {
         let source = match node {
             Stage::Sort(ref n) => &n.source,
             Stage::Filter(ref n) => &n.source,
-            Stage::MQLIntrinsic(MQLStage::MatchFilter(ref n)) => &n.source,
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(ref n)) => &n.source,
             _ => unreachable!(),
         };
         match source.as_ref() {
@@ -571,7 +571,7 @@ impl StageMovementVisitor<'_> {
             // RHS (from) must always remain a simple collection source. The dual_source
             // method ensures that the stage, node, is only able to move up the Left
             // source if possible.
-            Stage::MQLIntrinsic(MQLStage::EquiJoin(ref n)) => {
+            Stage::MqlIntrinsic(MqlStage::EquiJoin(ref n)) => {
                 let left_schema = n.source.schema(self.schema_state).unwrap();
                 let right_schema = n.from.schema(self.schema_state).unwrap();
                 self.dual_source(node, datasource_uses, left_schema, right_schema, true)
@@ -581,7 +581,7 @@ impl StageMovementVisitor<'_> {
             // (subquery) are used, then the stage is moved up that side.
             // Recall that the LHS (source) datasources are considered in-scope
             // inside the RHS (subquery) so this is safe.
-            Stage::MQLIntrinsic(MQLStage::LateralJoin(ref n)) => {
+            Stage::MqlIntrinsic(MqlStage::LateralJoin(ref n)) => {
                 let right_schema = n.subquery.schema(self.schema_state).unwrap();
                 // If this is a filter, we cannot move it, if the Join's JoinType is Left and any use is in the RHS.
                 // It is not semantically correct to merge WHERE conditions into lateral JOIN RHS clauses.
@@ -650,10 +650,10 @@ impl StageMovementVisitor<'_> {
                     | Stage::Array(_)
                     | Stage::Sort(_)
                     | Stage::Group(_)
-                    | Stage::MQLIntrinsic(MQLStage::LateralJoin(_))
+                    | Stage::MqlIntrinsic(MqlStage::LateralJoin(_))
             ),
             Stage::Filter(ref n) => matches!(&*n.source, Stage::Collection(_) | Stage::Array(_)),
-            Stage::MQLIntrinsic(MQLStage::MatchFilter(ref n)) => {
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(ref n)) => {
                 matches!(&*n.source, Stage::Collection(_) | Stage::Array(_))
             }
             _ => unreachable!(),
@@ -739,7 +739,7 @@ impl Visitor for StageMovementVisitor<'_> {
                 self.changed |= changed;
                 new_node
             }
-            Stage::Sort(_) | Stage::MQLIntrinsic(MQLStage::MatchFilter(_)) | Stage::Filter(_) => {
+            Stage::Sort(_) | Stage::MqlIntrinsic(MqlStage::MatchFilter(_)) | Stage::Filter(_) => {
                 let (new_node, changed) = self.handle_def_user(node);
                 self.changed |= changed;
                 new_node

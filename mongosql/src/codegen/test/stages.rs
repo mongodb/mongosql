@@ -207,8 +207,8 @@ mod match_stage {
         input = Stage::Match(Match::ExprLanguage(ExprLanguage {
             source: air_collection_stage("mydb", "col"),
             expr : Box::new(
-                Expression::MQLSemanticOperator( MQLSemanticOperator {
-                    op: MQLOperator::Eq,
+                Expression::MqlSemanticOperator( MqlSemanticOperator {
+                    op: MqlOperator::Eq,
                     args: vec![Expression::Literal(LiteralValue::Integer(1)), Expression::Literal(LiteralValue::Integer(2))]
                 })
             )
@@ -352,8 +352,8 @@ mod group {
                 },
                 NameExprPair {
                     name: "bar".into(),
-                    expr: Expression::MQLSemanticOperator( MQLSemanticOperator {
-                        op: MQLOperator::Add,
+                    expr: Expression::MqlSemanticOperator( MqlSemanticOperator {
+                        op: MqlOperator::Add,
                         args: vec![
                             Expression::FieldRef("bar".into()),
                             Expression::Literal(LiteralValue::Integer(1))
@@ -373,8 +373,8 @@ mod group {
                     alias: "y".into(),
                     function: AggregationFunction::Max,
                     distinct: false,
-                    arg: Expression::MQLSemanticOperator(MQLSemanticOperator {
-                        op: MQLOperator::Mod,
+                    arg: Expression::MqlSemanticOperator(MqlSemanticOperator {
+                        op: MqlOperator::Mod,
                         args: vec![
                             Expression::FieldRef("x".into()),
                             Expression::Literal(LiteralValue::Integer(1i32))
@@ -856,8 +856,8 @@ mod join {
             }}],
         }),
         input = Stage::Join(Join {
-            condition: Some(Expression::SQLSemanticOperator(SQLSemanticOperator {
-                op: SQLOperator::Eq,
+            condition: Some(Expression::SqlSemanticOperator(SqlSemanticOperator {
+                op: SqlOperator::Eq,
                 args: vec![
                     Expression::Variable("vcol_0".into()),
                     Expression::FieldRef("col2".into()),

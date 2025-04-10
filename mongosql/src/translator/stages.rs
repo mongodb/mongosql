@@ -27,7 +27,7 @@ impl MqlTranslator {
             mir::Stage::Set(s) => self.translate_set(s),
             mir::Stage::Derived(d) => self.translate_derived(d),
             mir::Stage::Unwind(u) => self.translate_unwind(u),
-            mir::Stage::MQLIntrinsic(i) => self.translate_mql_intrinsic(i),
+            mir::Stage::MqlIntrinsic(i) => self.translate_mql_intrinsic(i),
             mir::Stage::Sentinel => unreachable!(),
         }
     }
@@ -336,11 +336,11 @@ impl MqlTranslator {
         }))
     }
 
-    fn translate_mql_intrinsic(&mut self, mir_mql_intrinsic: mir::MQLStage) -> Result<air::Stage> {
+    fn translate_mql_intrinsic(&mut self, mir_mql_intrinsic: mir::MqlStage) -> Result<air::Stage> {
         match mir_mql_intrinsic {
-            mir::MQLStage::EquiJoin(ej) => self.translate_equijoin(ej),
-            mir::MQLStage::LateralJoin(lj) => self.translate_lateral_join(lj),
-            mir::MQLStage::MatchFilter(mf) => self.translate_match_filter(mf),
+            mir::MqlStage::EquiJoin(ej) => self.translate_equijoin(ej),
+            mir::MqlStage::LateralJoin(lj) => self.translate_lateral_join(lj),
+            mir::MqlStage::MatchFilter(mf) => self.translate_match_filter(mf),
         }
     }
 
@@ -573,7 +573,7 @@ impl MqlTranslator {
             .iter()
             .map(|k| k.alias.clone())
             .collect::<BTreeSet<_>>();
-        // the Group keys will be under _id in MQL, so we need to rename any alias that is _id.
+        // the Group keys will be under _id in Mql, so we need to rename any alias that is _id.
         unique_aliases.insert("_id".to_string());
 
         let mut translated_aggregations = Vec::new();

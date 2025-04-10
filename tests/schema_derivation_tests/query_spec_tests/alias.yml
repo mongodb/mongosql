@@ -267,7 +267,7 @@ tests:
   ]
   result_set_schema: {
     "additionalProperties": false, 
-    "required": [], 
+    "required": [ "_id"], 
     "properties": {
       "_id": {
         "additionalProperties": false, 

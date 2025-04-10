@@ -719,7 +719,7 @@ tests:
     }, 
     {
       "$lookup": {
-        pipeline: [
+        "pipeline": [
           {
             "$documents": [
               {
@@ -768,6 +768,20 @@ tests:
       "$project": {
         "__subquery_result_0": 0, 
         "_id": 0
+      }
+    },  
+    {
+      "$replaceWith": {
+        "$unsetField": {
+          "field": "__bot", 
+          "input": {
+            "$setField": {
+              "field": "", 
+              "value": "$__bot", 
+              "input": "$$ROOT"
+            }
+          }
+        }
       }
     }
   ]

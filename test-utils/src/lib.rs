@@ -23,6 +23,8 @@ pub mod index;
 pub use index::*;
 pub mod query;
 pub use query::*;
+pub mod schema_derivation;
+pub use schema_derivation::*;
 pub mod build_utils;
 pub mod e2e_db_manager;
 
@@ -48,7 +50,7 @@ pub enum Error {
     MongoDBInsert(String, String, mongodb::error::Error),
     #[error("failed to create indexes for '{0}.{1}': {2:?}")]
     MongoDBCreateIndexes(String, String, mongodb::error::Error),
-    #[error("failed to convert schema to MongoSQL model: {0:?}")]
+    #[error("failed to convert schema to MongoSql model: {0:?}")]
     InvalidSchema(mongosql::schema::Error),
     #[error("{0}")]
     UnsupportedBsonType(mongosql::schema::Error),

@@ -1,3 +1,4 @@
+catalog_schema_file: correctness_catalog_1.yml
 current_db: test
 current_collection: fuzzer_coll
 pipeline: [ { "$match" : { "$and" : [ { "$or" : [ { "obj.obj.obj.obj.any" : { "$not" : { "$in" : [ ] } } } ] }, { "$or" : [ { "$and" : [ { "bool" : { "$lt" : true } } ] }, { "obj.obj.obj.any" : { "$exists" : true } }, { "$and" : [ { "obj.obj.obj.obj.num" : { "$gte" : 38316 } } ] }, { "obj.array" : { "$all" : [ true ] } }, { "$and" : [ { "obj.obj.obj.obj.bool" : { "$gt" : false } } ] } ] } ] } }, { "$setWindowFields" : { "sortBy" : { "obj.obj.obj.num" : 1 }, "output" : { "obj" : { "$last" : { "$mergeObjects" : [ { "k" : "Grocery feed", "v" : { "$ifNull" : [ "analyzer", null ] } } ] } } } } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 50 } ]

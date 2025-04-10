@@ -12,7 +12,7 @@ use crate::{
         optimizer::Optimizer,
         schema::{SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        Filter, Join, LateralJoin, MQLStage, Stage,
+        Filter, Join, LateralJoin, MqlStage, Stage,
     },
     SchemaCheckingMode,
 };
@@ -61,7 +61,7 @@ impl Visitor for LowerJoinsVisitor {
                     });
                 }
                 self.changed = true;
-                Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+                Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
                     join_type,
                     source: left,
                     subquery: Box::new(Stage::Filter(Filter {

@@ -231,9 +231,9 @@ impl CachedSchema for Stage {
             Stage::Set(s) => &s.cache,
             Stage::Derived(s) => &s.cache,
             Stage::Unwind(s) => &s.cache,
-            Stage::MQLIntrinsic(MQLStage::EquiJoin(s)) => &s.cache,
-            Stage::MQLIntrinsic(MQLStage::LateralJoin(s)) => &s.cache,
-            Stage::MQLIntrinsic(MQLStage::MatchFilter(s)) => &s.cache,
+            Stage::MqlIntrinsic(MqlStage::EquiJoin(s)) => &s.cache,
+            Stage::MqlIntrinsic(MqlStage::LateralJoin(s)) => &s.cache,
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(s)) => &s.cache,
             Stage::Sentinel => unreachable!(),
         }
     }
@@ -254,8 +254,8 @@ impl CachedSchema for Stage {
                 if !state.check_satisfies(&cond_schema, &BOOLEAN_OR_NULLISH) {
                     return Err(Error::SchemaChecking {
                         name: "filter condition",
-                        required: BOOLEAN_OR_NULLISH.clone(),
-                        found: cond_schema,
+                        required: BOOLEAN_OR_NULLISH.clone().into(),
+                        found: cond_schema.into(),
                     });
                 }
 
@@ -277,8 +277,8 @@ impl CachedSchema for Stage {
                             if !state.check_satisfies(&s, &ANY_DOCUMENT) {
                                 Err(Error::SchemaChecking {
                                     name: "project datasource",
-                                    required: ANY_DOCUMENT.clone(),
-                                    found: s,
+                                    required: ANY_DOCUMENT.clone().into(),
+                                    found: s.into(),
                                 })
                             } else {
                                 Ok((k.clone(), s))
@@ -342,7 +342,7 @@ impl CachedSchema for Stage {
                         // If schema checking is in strict mode, the group key must have a
                         // schema that is self-comparable, otherwise it must or may have one.
                         if !state.check_self_comparable(&group_key_schema) {
-                            return Err(Error::GroupKeyNotSelfComparable(index, group_key_schema));
+                            return Err(Error::GroupKeyNotSelfComparable(index, group_key_schema.into()));
                         }
 
                         // Get the SchemaEnvironment BindingTuple key and its associated schema.
@@ -457,7 +457,7 @@ impl CachedSchema for Stage {
                         SortSpecification::Asc(a) | SortSpecification::Desc(a) => {
                             let schema = a.schema(&state)?;
                             if !state.check_self_comparable(&schema) {
-                                return Err(Error::SortKeyNotSelfComparable(index, schema));
+                                return Err(Error::SortKeyNotSelfComparable(index, schema.into()));
                             }
                             Ok(())
                         }
@@ -498,8 +498,8 @@ impl CachedSchema for Stage {
                 } else {
                     Err(Error::SchemaChecking {
                         name: "array datasource items",
-                        required: ANY_DOCUMENT.clone(),
-                        found: array_items_schema,
+                        required: ANY_DOCUMENT.clone().into(),
+                        found: array_items_schema.into(),
                     })
                 }
             }
@@ -514,8 +514,8 @@ impl CachedSchema for Stage {
                     if !state.check_satisfies(&cond_schema, &BOOLEAN_OR_NULLISH) {
                         return Err(Error::SchemaChecking {
                             name: "join condition",
-                            required: BOOLEAN_OR_NULLISH.clone(),
-                            found: cond_schema,
+                            required: BOOLEAN_OR_NULLISH.clone().into(),
+                            found: cond_schema.into(),
                         });
                     }
                 };
@@ -729,7 +729,7 @@ impl CachedSchema for Stage {
                     max_size: source_result_set.max_size,
                 })
             }
-            Stage::MQLIntrinsic(MQLStage::EquiJoin(j)) => {
+            Stage::MqlIntrinsic(MqlStage::EquiJoin(j)) => {
                 let source_result_set = j.source.schema(state)?;
                 let from_result_set = j.from.schema(state)?;
 
@@ -742,8 +742,8 @@ impl CachedSchema for Stage {
                 if !state.check_comparable_with(&local_field_schema, &foreign_field_schema) {
                     return Err(Error::InvalidComparison(
                         "equijoin comparison",
-                        local_field_schema,
-                        foreign_field_schema,
+                        local_field_schema.into(),
+                        foreign_field_schema.into(),
                     ));
                 }
 
@@ -783,7 +783,7 @@ impl CachedSchema for Stage {
                     }
                 }
             }
-            Stage::MQLIntrinsic(MQLStage::LateralJoin(j)) => {
+            Stage::MqlIntrinsic(MqlStage::LateralJoin(j)) => {
                 let source_result_set = j.source.schema(state)?;
                 let state = state.with_merged_schema_env(source_result_set.schema_env.clone());
                 let subquery_result_set = j.subquery.schema(&state)?;
@@ -824,15 +824,15 @@ impl CachedSchema for Stage {
                     }
                 }
             }
-            Stage::MQLIntrinsic(MQLStage::MatchFilter(f)) => {
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(f)) => {
                 let source_result_set = f.source.schema(state)?;
                 let state = state.with_merged_schema_env(source_result_set.schema_env.clone());
                 let cond_schema = f.condition.schema(&state)?;
                 if !state.check_satisfies(&cond_schema, &BOOLEAN_OR_NULLISH) {
                     return Err(Error::SchemaChecking {
                         name: "match filter condition",
-                        required: BOOLEAN_OR_NULLISH.clone(),
-                        found: cond_schema,
+                        required: BOOLEAN_OR_NULLISH.clone().into(),
+                        found: cond_schema.into(),
                     });
                 }
 
@@ -865,7 +865,7 @@ impl AggregationFunctionApplication {
         if self.distinct && !state.check_self_comparable(&arg_schema) {
             return Err(Error::AggregationArgumentMustBeSelfComparable(
                 format!("{} DISTINCT", self.function.as_str()),
-                arg_schema,
+                arg_schema.into(),
             ));
         }
         self.function.schema(state, arg_schema)
@@ -924,7 +924,7 @@ impl AggregationFunction {
                 if !state.check_self_comparable(&arg_schema) {
                     return Err(Error::AggregationArgumentMustBeSelfComparable(
                         self.as_str().to_string(),
-                        arg_schema,
+                        arg_schema.into(),
                     ));
                 }
                 arg_schema
@@ -979,10 +979,10 @@ impl SubqueryExpr {
     }
 }
 
-/// While a `SubqueryComparison` isn't strictly a `SQLFunction`, the actual comparison operation re-uses
+/// While a `SubqueryComparison` isn't strictly a `SqlFunction`, the actual comparison operation re-uses
 /// the same schema-checking that any binary comparison operator (Lt, Gt, Eq, etc.) uses. Those comparisons
 /// are represented as `ScalarFunction`s, and so that's where the schema checking lives.
-impl SQLFunction for SubqueryComparison {
+impl SqlFunction for SubqueryComparison {
     fn as_str(&self) -> &'static str {
         "subquery comparison"
     }
@@ -998,7 +998,7 @@ impl SubqueryComparison {
 
 impl Expression {
     // get_field_schema returns the Schema for a known field name retrieved
-    // from the argument Schema. It follows the MongoSQL semantics for
+    // from the argument Schema. It follows the MongoSql semantics for
     // path access.
     //
     // If it is possible for the argument Schema
@@ -1130,16 +1130,16 @@ impl Expression {
                 if !state.check_satisfies(&expr_schema, &STRING_OR_NULLISH) {
                     return Err(Error::SchemaChecking {
                         name: "Like",
-                        required: STRING_OR_NULLISH.clone(),
-                        found: expr_schema,
+                        required: STRING_OR_NULLISH.clone().into(),
+                        found: expr_schema.into(),
                     });
                 }
                 let pattern_schema = l.pattern.schema(state)?;
                 if !state.check_satisfies(&pattern_schema, &STRING_OR_NULLISH) {
                     return Err(Error::SchemaChecking {
                         name: "Like",
-                        required: STRING_OR_NULLISH.clone(),
-                        found: pattern_schema,
+                        required: STRING_OR_NULLISH.clone().into(),
+                        found: pattern_schema.into(),
                     });
                 }
                 match expr_schema
@@ -1154,7 +1154,7 @@ impl Expression {
                     Satisfaction::Must => Ok(Schema::Atomic(Atomic::Null)),
                 }
             }
-            Expression::MQLIntrinsicFieldExistence(_) => Ok(Schema::Atomic(Atomic::Boolean)),
+            Expression::MqlIntrinsicFieldExistence(_) => Ok(Schema::Atomic(Atomic::Boolean)),
         }
     }
 }
@@ -1195,8 +1195,8 @@ impl FieldAccess {
         if accessee_schema.satisfies(&ANY_DOCUMENT) == Satisfaction::Not {
             return Err(Error::SchemaChecking {
                 name: "FieldAccess",
-                required: ANY_DOCUMENT.clone(),
-                found: accessee_schema,
+                required: ANY_DOCUMENT.clone().into(),
+                found: accessee_schema.into(),
             });
         }
         if accessee_schema.contains_field(&self.field) == Satisfaction::Not {
@@ -1231,8 +1231,8 @@ impl FieldPath {
             if cur_schema.satisfies(&ANY_DOCUMENT) == Satisfaction::Not {
                 return Err(Error::SchemaChecking {
                     name: "FieldPath",
-                    required: ANY_DOCUMENT.clone(),
-                    found: cur_schema,
+                    required: ANY_DOCUMENT.clone().into(),
+                    found: cur_schema.into(),
                 });
             }
             if cur_schema.contains_field(field) == Satisfaction::Not {
@@ -1333,7 +1333,7 @@ pub(crate) fn max_numeric(a1: &Schema, a2: &Schema) -> Result<Schema, Error> {
     })
 }
 
-trait SQLFunction {
+trait SqlFunction {
     /// Returns the schema for an arithmetic function, maximizing the Numeric type
     /// based on the total order: Integer < Long < Double < Decimal.
     ///
@@ -1408,8 +1408,8 @@ trait SQLFunction {
             if !state.check_satisfies(arg, &required_schemas[i]) {
                 return Err(Error::SchemaChecking {
                     name: self.as_str(),
-                    required: required_schemas[i].clone(),
-                    found: arg.clone(),
+                    required: required_schemas[i].clone().into(),
+                    found: arg.clone().into(),
                 });
             }
             let sat = arg.satisfies(&NULLISH);
@@ -1505,29 +1505,29 @@ trait SQLFunction {
         } else {
             Err(Error::InvalidComparison(
                 self.as_str(),
-                arg_schemas[0].clone(),
-                arg_schemas[1].clone(),
+                arg_schemas[0].clone().into(),
+                arg_schemas[1].clone().into(),
             ))
         }
     }
 
-    /// as_str returns a static str representation for the SQLFunction.
+    /// as_str returns a static str representation for the SqlFunction.
     fn as_str(&self) -> &'static str;
 }
 
-impl SQLFunction for ScalarFunction {
+impl SqlFunction for ScalarFunction {
     fn as_str(&self) -> &'static str {
         self.as_str()
     }
 }
 
-impl SQLFunction for AggregationFunction {
+impl SqlFunction for AggregationFunction {
     fn as_str(&self) -> &'static str {
         self.as_str()
     }
 }
 
-impl SQLFunction for DateFunction {
+impl SqlFunction for DateFunction {
     fn as_str(&self) -> &'static str {
         self.as_str()
     }
@@ -1609,14 +1609,14 @@ impl ScalarFunction {
                 if arg_schemas[0].satisfies(&NUMERIC_OR_NULLISH) != Satisfaction::Must {
                     Err(Error::SchemaChecking {
                         name: Round.as_str(),
-                        required: NUMERIC_OR_NULLISH.clone(),
-                        found: arg_schemas[0].clone(),
+                        required: NUMERIC_OR_NULLISH.clone().into(),
+                        found: arg_schemas[0].clone().into(),
                     })
                 } else if arg_schemas[1].satisfies(&INTEGER_LONG_OR_NULLISH) != Satisfaction::Must {
                     Err(Error::SchemaChecking {
                         name: Round.as_str(),
-                        required: INTEGER_LONG_OR_NULLISH.clone(),
-                        found: arg_schemas[1].clone(),
+                        required: INTEGER_LONG_OR_NULLISH.clone().into(),
+                        found: arg_schemas[1].clone().into(),
                     })
                 } else {
                     Ok(arg_schemas[0].clone())
@@ -1798,7 +1798,7 @@ impl ScalarFunction {
                 let acc = acc?;
                 let sat = acc.has_overlapping_keys_with(&curr);
                 if sat != Satisfaction::Not {
-                    return Err(Error::CannotMergeObjects(acc, curr, sat));
+                    return Err(Error::CannotMergeObjects(acc.into(), curr.into(), sat));
                 }
                 if let (Schema::Document(mut d1), Schema::Document(d2)) = (acc, curr) {
                     d1.keys.extend(d2.keys);
@@ -1981,8 +1981,8 @@ impl SchemaCheckCaseExpr for SearchedCaseExpr {
             if !state.check_satisfies(when_schema, &BOOLEAN_OR_NULLISH) {
                 return Err(Error::SchemaChecking {
                     name: "SearchedCase",
-                    required: BOOLEAN_OR_NULLISH.clone(),
-                    found: when_schema.clone(),
+                    required: BOOLEAN_OR_NULLISH.clone().into(),
+                    found: when_schema.clone().into(),
                 });
             }
             Ok(())
@@ -2005,8 +2005,8 @@ impl SchemaCheckCaseExpr for SimpleCaseExpr {
             if !state.check_comparable_with(&case_operand_schema, when_schema) {
                 return Err(Error::InvalidComparison(
                     "SimpleCase",
-                    case_operand_schema.clone(),
-                    when_schema.clone(),
+                    case_operand_schema.clone().into(),
+                    when_schema.clone().into(),
                 ));
             }
             Ok(())
@@ -2032,8 +2032,8 @@ impl TypeAssertionExpr {
         if expr_schema.satisfies(&target_schema) == Satisfaction::Not {
             return Err(Error::SchemaChecking {
                 name: "::!",
-                required: target_schema,
-                found: expr_schema,
+                required: target_schema.into(),
+                found: expr_schema.into(),
             });
         }
 

@@ -12,7 +12,7 @@ pub enum Error {
     // DatasourceNotFoundInSchemaEnv is believed to be an internal error that can't be triggered by users.
     // Error 3007: NoSuchDatasource should cover it. However, since other parts of the code rely
     // on this error to function properly (see ticket SQL-1784 for more details), we've decided not to remove it.
-    // Note: The errors.md file does not mention this error because there is no known way to trigger it with a SQL query.
+    // Note: The errors.md file does not mention this error because there is no known way to trigger it with a Sql query.
     // Once/if we discover a way to trigger it, we will update the errors.md file accordingly.
     DatasourceNotFoundInSchemaEnv(binding_tuple::Key),
     IncorrectArgumentCount {
@@ -22,17 +22,17 @@ pub enum Error {
     },
     SchemaChecking {
         name: &'static str,
-        required: Schema,
-        found: Schema,
+        required: Box<Schema>,
+        found: Box<Schema>,
     },
     InvalidBinaryDataType,
-    AggregationArgumentMustBeSelfComparable(String, Schema),
-    InvalidComparison(&'static str, Schema, Schema),
-    CannotMergeObjects(Schema, Schema, Satisfaction),
+    AggregationArgumentMustBeSelfComparable(String, Box<Schema>),
+    InvalidComparison(&'static str, Box<Schema>, Box<Schema>),
+    CannotMergeObjects(Box<Schema>, Box<Schema>, Satisfaction),
     AccessMissingField(String, Option<Vec<String>>),
     InvalidSubqueryCardinality,
-    SortKeyNotSelfComparable(usize, Schema),
-    GroupKeyNotSelfComparable(usize, Schema),
+    SortKeyNotSelfComparable(usize, Box<Schema>),
+    GroupKeyNotSelfComparable(usize, Box<Schema>),
     UnwindIndexNameConflict(String),
     CollectionNotFound(String, String),
 }

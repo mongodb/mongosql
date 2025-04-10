@@ -18,7 +18,7 @@ mod mql_intrinsic {
     test_schema!(
         field_existence_is_always_boolean,
         expected = Ok(Schema::Atomic(Atomic::Boolean)),
-        input = Expression::MQLIntrinsicFieldExistence(FieldAccess::new(
+        input = Expression::MqlIntrinsicFieldExistence(FieldAccess::new(
             Box::new(Expression::Reference(("foo", 0u16).into())),
             "x".to_string(),
         )),

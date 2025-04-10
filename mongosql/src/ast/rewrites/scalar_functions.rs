@@ -6,7 +6,7 @@ use crate::ast::{
 };
 
 /// ScalarFunctionsRewritePass rewrites Scalar Functions included for alterate
-/// syntax compatibility reasons (e.g., ODBC) to the correct MongoSQL syntax.
+/// syntax compatibility reasons (e.g., ODBC) to the correct MongoSql syntax.
 pub struct ScalarFunctionsRewritePass;
 
 const DATE_PART_ERROR: Error = Error::InvalidDatePart(
