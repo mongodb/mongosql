@@ -20,6 +20,6 @@ result_set_schema:
         }
       }
     },
-    "required": ["_id", "array"],
+    "required": ["array"],
     "additionalProperties": false
   }

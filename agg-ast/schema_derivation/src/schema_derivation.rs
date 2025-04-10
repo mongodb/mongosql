@@ -303,11 +303,11 @@ impl DeriveSchema for Stage {
                 .aggregations
                 .iter()
                 .map(|(k, e)| {
-                    let field_schema = e.derive_schema(state)?;
+                    let field_schema = e.derive_schema(state)?.upconvert_missing_to_null();
                     Ok((k.to_string(), field_schema))
                 })
                 .collect::<Result<BTreeMap<String, Schema>>>()?;
-            keys.insert("_id".to_string(), group.keys.derive_schema(state)?);
+            keys.insert("_id".to_string(), group.keys.derive_schema(state)?.upconvert_missing_to_null());
             Ok(Schema::Document(Document {
                 required: keys.keys().cloned().collect(),
                 keys,
@@ -363,6 +363,7 @@ impl DeriveSchema for Stage {
             let mut id_schema = bucket.group_by.derive_schema(state)?;
             if let Some(default) = bucket.default.as_ref() {
                 let default_schema = schema_for_bson(default);
+                println!("{:?}", default);
                 id_schema = id_schema.union(&default_schema);
             }
             let mut keys = bucket_output_derive_keys(bucket.output.as_ref(), state)?;
@@ -2276,7 +2277,7 @@ impl DeriveSchema for UntaggedOperator {
                 }
             }
             UntaggedOperatorName::First | UntaggedOperatorName::Last => {
-                let schema = self.args[0].derive_schema(state)?;
+                let schema = self.args[0].derive_schema(state)?.upconvert_missing_to_null();
                 Ok(match schema {
                     Schema::Array(a) => *a,
                     schema => schema

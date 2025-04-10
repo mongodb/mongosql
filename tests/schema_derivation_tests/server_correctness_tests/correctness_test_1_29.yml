@@ -13,7 +13,7 @@ result_set_schema:
           "properties": {
             "count": { "bsonType": "int" },
             "_id": {
-              "any_of": [
+              "anyOf": [
                 { "bsonType": "int" },
                 { "bsonType": "date" }
               ]
@@ -23,10 +23,7 @@ result_set_schema:
           "additionalProperties": false
         }
       },
-      "_id": {
-        "bsonType": "objectId"
-      }
     },
-    "required": ["_id", "array"],
+    "required": ["array"],
     "additionalProperties": false
   }

@@ -18,10 +18,7 @@ result_set_schema:
           "additionalProperties": false
         }
       },
-      "_id": {
-        "bsonType": "objectId"
-      }
     },
-    "required": ["_id", "array"],
+    "required": ["array"],
     "additionalProperties": false
   }

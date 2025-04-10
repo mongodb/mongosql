@@ -7,7 +7,6 @@ result_set_schema:
     "bsonType": "object",
     "properties": {
       "_id": { "bsonType": "null" },
-
       "count": { "bsonType": "int" }
     },
     "required": ["_id", "count"],

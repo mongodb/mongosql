@@ -7,13 +7,13 @@ result_set_schema:
     "bsonType": "object",
     "properties": {
       "_id": {
-        "any_of": [
+        "anyOf": [
           { "bsonType": "null" },
           {
             "bsonType": "object",
             "properties": {
               "any": {
-                "any_of": [
+                "anyOf": [
                   { "bsonType": "double" },
                   { "bsonType": "string" },
                   { "bsonType": "bool" },
@@ -24,7 +24,7 @@ result_set_schema:
                 "bsonType": "object",
                 "properties": {
                   "bool": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "null" },
                       { "bsonType": "bool" }
                     ]
@@ -37,7 +37,7 @@ result_set_schema:
                   "array": {
                     "bsonType": "array",
                     "items": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "null" },
                         { "bsonType": "int" },
                         { "bsonType": "string" },
@@ -67,7 +67,7 @@ result_set_schema:
                   "any": { "bsonType": "int" },
                   "_id": { "bsonType": "int" },
                   "num": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "int" },
                       { "bsonType": "double" },
                       { "bsonType": "decimal" }
@@ -78,13 +78,13 @@ result_set_schema:
               },
               "_id": { "bsonType": "int" },
               "bool": {
-                "any_of": [
+                "anyOf": [
                   { "bsonType": "null" },
                   { "bsonType": "bool" }
                 ]
               },
               "geoLegacy": {
-                "any_of": [
+                "anyOf": [
                   {
                     "bsonType": "array",
                     "items": { "bsonType": "double" }
@@ -113,7 +113,7 @@ result_set_schema:
                 "additionalProperties": false
               },
               "num": {
-                "any_of": [
+                "anyOf": [
                   { "bsonType": "int" },
                   { "bsonType": "decimal" }
                 ]
@@ -121,7 +121,7 @@ result_set_schema:
               "array": {
                 "bsonType": "array",
                 "items": {
-                  "any_of": [
+                  "anyOf": [
                     { "bsonType": "null" },
                     { "bsonType": "int" },
                     { "bsonType": "decimal" },
@@ -135,7 +135,7 @@ result_set_schema:
                     {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "int" },
                           { "bsonType": "string" },
@@ -146,7 +146,7 @@ result_set_schema:
                     {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "string" },
                           { "bsonType": "bool" },
@@ -157,7 +157,7 @@ result_set_schema:
                     {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "string" },
                           { "bsonType": "date" }
@@ -167,7 +167,7 @@ result_set_schema:
                     {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "bool" },
                           { "bsonType": "date" }
                         ]
@@ -179,7 +179,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "int" },
                               { "bsonType": "decimal" },
@@ -217,7 +217,7 @@ result_set_schema:
                         "any": { "bsonType": "null" },
                         "date": { "bsonType": "date" },
                         "geoLegacy": {
-                          "any_of": [
+                          "anyOf": [
                             {
                               "bsonType": "array",
                               "items": { "bsonType": "double" }
@@ -240,7 +240,7 @@ result_set_schema:
                             "array": {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "null" },
                                   { "bsonType": "string" },
                                   { "bsonType": "bool" }
@@ -260,7 +260,7 @@ result_set_schema:
                           "additionalProperties": false
                         },
                         "num": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "int" },
                             { "bsonType": "decimal" }
                           ]
@@ -345,7 +345,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "int" },
                               { "bsonType": "string" },
@@ -367,7 +367,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "decimal" },
                               { "bsonType": "string" }
@@ -401,7 +401,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "string" },
                               { "bsonType": "date" }
@@ -469,9 +469,6 @@ result_set_schema:
         "bsonType": "array",
         "maxItems": 0
       },
-      "_id": {
-        "bsonType": "objectId"
-      }
     },
     "required": ["_id", "array"],
     "additionalProperties": false

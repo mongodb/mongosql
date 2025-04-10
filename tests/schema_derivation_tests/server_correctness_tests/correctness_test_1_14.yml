@@ -13,7 +13,7 @@ result_set_schema:
           "bsonType": "object",
           "properties": {
             "v": {
-              "any_of": [
+              "anyOf": [
                 { "bsonType": "string" },
                 { "bsonType": "bool" }
               ]
