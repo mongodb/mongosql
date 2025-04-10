@@ -155,9 +155,9 @@ fn get_schema_for_path_mut_aux(
     }
 }
 
-/// Gets a mutable reference to a specific field or document path in the schema.
-/// This allows us to insert, remove, or modify fields as we derive the schema for
-/// operators and stages.
+/// Gets a copy of the schema from a specific field or document path in the schema.
+/// This is used when we just need the output type rather than a mutable reference,
+/// such as for getting the schema of a reference itself (rather than mutating it).
 pub(crate) fn get_schema_for_path(schema: Schema, path: Vec<String>) -> Option<Schema> {
     let mut schema = schema;
     for (index, field) in path.clone().iter().enumerate() {
