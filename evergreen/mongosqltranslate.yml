@@ -455,6 +455,9 @@ tasks:
       - func: "publish static code analysis"
         vars:
           project_folder: "mongosqltranslate"
+      - func: "publish augmented SBOM"
+        vars:
+          project_folder: "mongosqltranslate"
 
   - name: ssdlc-artifacts-snapshot
     run_on: ubuntu2204-small
@@ -467,6 +470,9 @@ tasks:
     exec_timeout_secs: 300 # 5m
     commands:
       - func: "publish static code analysis"
+        vars:
+          project_folder: "mongosqltranslate"
+      - func: "publish augmented SBOM"
         vars:
           project_folder: "mongosqltranslate"
 
