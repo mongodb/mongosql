@@ -6,17 +6,26 @@ result_set_schema:
   {
     "bsonType": "object",
     "properties": {
-      "_id": {
-        "bsonType": "object",
-        "properties": {
-          "min": { "bsonType": "date" },
-          "max": { "bsonType": "date" }
-        },
-        "required": ["max", "min"],
-        "additionalProperties": false
+      "array": {
+        "bsonType": "array",
+        "items": {
+          "bsonType": "null"
+        }
       },
-      "count": { "bsonType": "int" }
+      "str": {
+        "bsonType": "string"
+      },
+      "_id": {
+        "bsonType": "array",
+        "items": {
+          "bsonType": "int"
+        }
+      }
     },
-    "required": ["_id", "count"],
+    "required": [
+      "_id",
+      "array",
+      "str"
+    ],
     "additionalProperties": false
   }

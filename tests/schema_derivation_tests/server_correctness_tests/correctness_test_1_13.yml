@@ -130,9 +130,7 @@ result_set_schema:
                     { "bsonType": "date" },
                     {
                       "bsonType": "array",
-                      "maxItems": {
-                        "$numberLong": "0"
-                      }
+                      "maxItems": 0
                     },
                     {
                       "bsonType": "array",
@@ -189,9 +187,7 @@ result_set_schema:
                               { "bsonType": "date" },
                               {
                                 "bsonType": "array",
-                                "maxItems": {
-                                  "$numberLong": "0"
-                                }
+                                "maxItems": 0
                               },
                               {
                                 "bsonType": "object",
@@ -285,9 +281,7 @@ result_set_schema:
                         "_id": { "bsonType": "int" },
                         "array": {
                           "bsonType": "array",
-                          "maxItems": {
-                            "$numberLong": "0"
-                          }
+                          "maxItems": 0
                         },
                         "str": { "bsonType": "string" }
                       },

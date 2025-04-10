@@ -29,9 +29,7 @@ result_set_schema:
                 { "bsonType": "date" },
                 {
                   "bsonType": "array",
-                  "maxItems": {
-                    "$numberLong": "0"
-                  }
+                  "maxItems": 0
                 },
                 {
                   "bsonType": "array",
@@ -215,9 +213,7 @@ result_set_schema:
                               "str": { "bsonType": "string" },
                               "array": {
                                 "bsonType": "array",
-                                "maxItems": {
-                                  "$numberLong": "0"
-                                }
+                                "maxItems": 0
                               },
                               "_id": { "bsonType": "int" },
                               "date": { "bsonType": "date" }
@@ -363,9 +359,7 @@ result_set_schema:
                         { "bsonType": "date" },
                         {
                           "bsonType": "array",
-                          "maxItems": {
-                            "$numberLong": "0"
-                          }
+                          "maxItems": 0
                         },
                         {
                           "bsonType": "array",
@@ -382,9 +376,7 @@ result_set_schema:
                           "properties": {
                             "array": {
                               "bsonType": "array",
-                              "maxItems": {
-                                "$numberLong": "0"
-                              }
+                              "maxItems": 0
                             },
                             "_id": { "bsonType": "int" },
                             "date": { "bsonType": "date" },
@@ -419,9 +411,7 @@ result_set_schema:
                                   { "bsonType": "date" },
                                   {
                                     "bsonType": "array",
-                                    "maxItems": {
-                                      "$numberLong": "0"
-                                    }
+                                    "maxItems": 0
                                   }
                                 ]
                               }

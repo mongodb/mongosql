@@ -99,9 +99,7 @@ result_set_schema:
                       { "bsonType": "date" },
                       {
                         "bsonType": "array",
-                        "maxItems": {
-                          "$numberLong": "0"
-                        }
+                        "maxItems": 0
                       }
                     ]
                   }
@@ -193,9 +191,7 @@ result_set_schema:
                             },
                             "array": {
                               "bsonType": "array",
-                              "maxItems": {
-                                "$numberLong": "0"
-                              }
+                              "maxItems": 0
                             }
                           },
                           "required": ["_id", "any", "array", "bool", "geoLegacy", "num", "obj", "str"],
@@ -247,18 +243,14 @@ result_set_schema:
                         "str": { "bsonType": "string" },
                         "array": {
                           "bsonType": "array",
-                          "maxItems": {
-                            "$numberLong": "0"
-                          }
+                          "maxItems": 0
                         },
                         "obj": {
                           "bsonType": "object",
                           "properties": {
                             "array": {
                               "bsonType": "array",
-                              "maxItems": {
-                                "$numberLong": "0"
-                              }
+                              "maxItems": 0
                             },
                             "str": { "bsonType": "string" },
                             "num": { "bsonType": "int" },
@@ -324,9 +316,7 @@ result_set_schema:
             { "bsonType": "date" },
             {
               "bsonType": "array",
-              "maxItems": {
-                "$numberLong": "0"
-              }
+              "maxItems": 0
             },
             {
               "bsonType": "array",
@@ -405,9 +395,7 @@ result_set_schema:
                       "bool": { "bsonType": "null" },
                       "array": {
                         "bsonType": "array",
-                        "maxItems": {
-                          "$numberLong": "0"
-                        }
+                        "maxItems": 0
                       },
                       "num": { "bsonType": "int" },
                       "date": { "bsonType": "date" }
@@ -495,9 +483,7 @@ result_set_schema:
                               "_id": { "bsonType": "int" },
                               "array": {
                                 "bsonType": "array",
-                                "maxItems": {
-                                  "$numberLong": "0"
-                                }
+                                "maxItems": 0
                               },
                               "str": { "bsonType": "string" },
                               "obj": {
@@ -845,9 +831,7 @@ result_set_schema:
                                   "date": { "bsonType": "date" },
                                   "array": {
                                     "bsonType": "array",
-                                    "maxItems": {
-                                      "$numberLong": "0"
-                                    }
+                                    "maxItems": 0
                                   },
                                   "str": { "bsonType": "string" },
                                   "obj": {

@@ -45,9 +45,7 @@ result_set_schema:
                           "bool": { "bsonType": "null" },
                           "array": {
                             "bsonType": "array",
-                            "maxItems": {
-                              "$numberLong": "0"
-                            }
+                            "maxItems": 0
                           },
                           "obj": {
                             "bsonType": "object",
@@ -61,9 +59,7 @@ result_set_schema:
                                   "date": { "bsonType": "date" },
                                   "array": {
                                     "bsonType": "array",
-                                    "maxItems": {
-                                      "$numberLong": "0"
-                                    }
+                                    "maxItems": 0
                                   },
                                   "geoJson": {
                                     "bsonType": "object",
@@ -89,9 +85,7 @@ result_set_schema:
                               "num": { "bsonType": "int" },
                               "array": {
                                 "bsonType": "array",
-                                "maxItems": {
-                                  "$numberLong": "0"
-                                }
+                                "maxItems": 0
                               }
                             },
                             "required": ["_id", "date", "obj", "str"],

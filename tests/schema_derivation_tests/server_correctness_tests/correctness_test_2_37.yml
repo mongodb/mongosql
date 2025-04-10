@@ -2,31 +2,39 @@ catalog_schema_file: correctness_catalog_2.yml
 current_db: test
 current_collection: fuzzer_coll
 pipeline: [ { "$sort" : { "_id" : 1 } }, { "$bucketAuto" : { "groupBy" : { "$max" : [ {"$date": {"$numberLong": "1564352712418"}}, "$date" ] }, "buckets" : 14, "output" : { "num" : { "$stdDevPop" : { "$week" : { "date" : { "$min" : [ {"$date": {"$numberLong": "1564352712418"}}, { "$max" : [ {"$date": {"$numberLong": "1564352712418"}}, { "$dateTrunc" : { "date" : {"$oid": "507f191e810c19729de860ea"}, "unit" : "millisecond", "binSize" : {"$numberLong": 237637936} } } ] }, {"$date": {"$numberLong": "1564352712418"}}, {"$date": {"$numberLong": "1564352712418"}}, "$obj.obj.date" ] }, "timezone" : "Asia/Chongqing" } } }, "array" : { "$min" : { "$map" : { "input" : [ { "$substrBytes" : [ "Creative invoice", {"$numberLong": "3"}, {"$numberLong": "3"} ] }, "$obj.obj.str", "$obj.obj.obj.str", { "$min" : [ ] }, { "$let" : { "vars" : { "dortha" : { "$sortArray" : { "input" : [ "$count", "$obj.obj.obj.obj.obj.num", "$obj.num", "$num" ], "sortBy" : { "obj.obj.geoLegacy" : -1 } } }, "caesar" : { "$mergeObjects" : [ { "k" : "Bedfordshire Rustic Fresh", "v" : { "$ifNull" : [ "$obj.obj.str", null ] } }, { "k" : "maroon invoice", "v" : { "$ifNull" : [ "$obj.obj.str", null ] } }, { "$setField" : { "field" : "virtual Senegal", "input" : { "k" : "disintermediate", "v" : { "$ifNull" : [ {"$numberDecimal": "NaN"}, null ] } }, "value" : { "$unsetField" : { "field" : "obj.obj.obj.any", "input" : { "$ifNull" : [ "$obj.obj.obj.obj.obj", {  } ] } } } } }, "$obj.obj.obj.obj.obj.obj" ] } }, "in" : { "$substrBytes" : [ "$obj.str", 7, 13 ] } } } ], "in" : { "$replaceAll" : { "input" : "$str", "find" : "$str", "replacement" : "$$this" } } } } } } } } ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "_id": {
-        "bsonType": "object",
-        "properties": {
-          "min": { "bsonType": "date" },
-          "max": { "bsonType": "date" }
-        },
-        "required": ["max", "min"],
-        "additionalProperties": false
-      },
-      "obj": {
-        "bsonType": "object",
-        "properties": {
-          "v": { "bsonType": "string" },
-          "k": { "bsonType": "string" }
-        },
-        "required": ["k", "v"],
-        "additionalProperties": false
-      },
-
-      "date": { "bsonType": "null" }
+result_set_schema: {
+  "additionalProperties": false, 
+  "required": [
+    "_id", 
+    "array", 
+    "num"
+  ], 
+  "properties": {
+    "array": {
+      "items": {
+        "bsonType": "null"
+      }, 
+      "bsonType": "array"
+    }, 
+    "num": {
+      "bsonType": "int"
+    }, 
+    "_id": {
+      "additionalProperties": false, 
+      "required": [
+        "max", 
+        "min"
+      ], 
+      "properties": {
+        "max": {
+          "bsonType": "date"
+        }, 
+        "min": {
+          "bsonType": "date"
+        }
+      }, 
+      "bsonType": "object"
     },
-    "required": ["_id", "date", "obj"],
-    "additionalProperties": false
-  }
+  }, 
+  "bsonType": "object"
+}
