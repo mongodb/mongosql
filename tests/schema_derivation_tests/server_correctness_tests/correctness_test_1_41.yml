@@ -8,13 +8,12 @@ result_set_schema:
     "properties": {
       "str": { "bsonType": "string" },
       "_id": {
-        "any_of": [
+        "anyOf": [
           { "bsonType": "null" },
           { "bsonType": "int" },
           { "bsonType": "decimal" }
         ]
       },
-
       "num": { "bsonType": "double" }
     },
     "required": ["_id", "num", "str"],

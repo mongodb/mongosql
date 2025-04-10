@@ -9,7 +9,7 @@ result_set_schema:
       "array": {
         "bsonType": "array",
         "items": {
-          "any_of": [
+          "anyOf": [
             { "bsonType": "int" },
             { "bsonType": "decimal" },
             { "bsonType": "bool" },
@@ -24,7 +24,7 @@ result_set_schema:
           "array": {
             "bsonType": "array",
             "items": {
-              "any_of": [
+              "anyOf": [
                 { "bsonType": "int" },
                 { "bsonType": "decimal" },
                 { "bsonType": "string" },
@@ -33,7 +33,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "int" },
                       { "bsonType": "string" },
                       { "bsonType": "date" },
@@ -105,7 +105,7 @@ result_set_schema:
             }
           },
           "bool": {
-            "any_of": [
+            "anyOf": [
               { "bsonType": "null" },
               { "bsonType": "bool" }
             ]
@@ -124,7 +124,7 @@ result_set_schema:
             "additionalProperties": false
           },
           "num": {
-            "any_of": [
+            "anyOf": [
               { "bsonType": "int" },
               { "bsonType": "decimal" }
             ]
@@ -136,7 +136,7 @@ result_set_schema:
             "bsonType": "object",
             "properties": {
               "bool": {
-                "any_of": [
+                "anyOf": [
                   { "bsonType": "null" },
                   { "bsonType": "bool" }
                 ]
@@ -145,7 +145,7 @@ result_set_schema:
               "array": {
                 "bsonType": "array",
                 "items": {
-                  "any_of": [
+                  "anyOf": [
                     { "bsonType": "null" },
                     { "bsonType": "int" },
                     { "bsonType": "string" },
@@ -173,7 +173,7 @@ result_set_schema:
                   "array": {
                     "bsonType": "array",
                     "items": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "null" },
                         { "bsonType": "int" },
                         { "bsonType": "string" },
@@ -189,7 +189,7 @@ result_set_schema:
                     "bsonType": "object",
                     "properties": {
                       "num": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "double" },
                           { "bsonType": "decimal" }
                         ]
@@ -213,7 +213,7 @@ result_set_schema:
                       "array": {
                         "bsonType": "array",
                         "items": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "null" },
                             { "bsonType": "int" },
                             { "bsonType": "string" },
@@ -221,7 +221,7 @@ result_set_schema:
                             {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "null" },
                                   { "bsonType": "string" },
                                   { "bsonType": "date" },
@@ -232,7 +232,7 @@ result_set_schema:
                                       "num": { "bsonType": "int" },
                                       "_id": { "bsonType": "int" },
                                       "bool": {
-                                        "any_of": [
+                                        "anyOf": [
                                           { "bsonType": "null" },
                                           { "bsonType": "bool" }
                                         ]
@@ -242,7 +242,7 @@ result_set_schema:
                                       "array": {
                                         "bsonType": "array",
                                         "items": {
-                                          "any_of": [
+                                          "anyOf": [
                                             { "bsonType": "string" },
                                             { "bsonType": "bool" },
                                             { "bsonType": "date" }

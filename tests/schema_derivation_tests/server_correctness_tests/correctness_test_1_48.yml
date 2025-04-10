@@ -8,9 +8,6 @@ result_set_schema:
     "properties": {
       "_id": { "bsonType": "null" },
       "count": { "bsonType": "int" },
-      "_id": {
-        "bsonType": "objectId"
-      }
     },
     "required": ["_id", "count"],
     "additionalProperties": false

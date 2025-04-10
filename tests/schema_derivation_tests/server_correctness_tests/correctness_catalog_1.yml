@@ -12537,9 +12537,7 @@
                                                           "_id": { "bsonType": "int" },
                                                           "array": {
                                                             "bsonType": "array",
-                                                            "maxItems": {
-                                                              "$numberLong": "0"
-                                                            }
+                                                            "maxItems": 0
                                                           },
                                                           "bool": { "bsonType": "null" },
                                                           "num": { "bsonType": "long" },

@@ -6,9 +6,8 @@ result_set_schema:
   {
     "bsonType": "object",
     "properties": {
-
       "str": { "bsonType": "string" }
     },
-    "required": ["_id", "str"],
+    "required": ["str"],
     "additionalProperties": false
   }

@@ -19,7 +19,7 @@ result_set_schema:
                   "array": {
                     "bsonType": "array",
                     "items": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "bool" },
                         {
                           "bsonType": "object",

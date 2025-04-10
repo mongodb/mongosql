@@ -1,13 +1,14 @@
 catalog_schema_file: correctness_catalog_1.yml
 current_db: test
 current_collection: fuzzer_coll
+skip_reason: SQL-2648
 pipeline: [ { "$match" : { "$or" : [ { "$and" : [ { "obj.obj.obj.obj.obj.date" : { "$lte" : {"$date": {"$numberLong": "1564352712418"}} } }, { "date" : { "$not" : { "$lt" : {"$date": {"$numberLong": "1564352712418"}} } } } ] }, { "bool" : { "$gt" : false } }, { "obj.obj.obj.any" : { "$not" : { "$in" : [ /Home Loan Account|bluetooth|executive/, "exuding Executive Principal" ] } } }, { "date" : { "$gte" : {"$date": {"$numberLong": "1564352712418"}} } } ] } }, { "$redact" : { "$cond" : { "if" : { "$toBool" : { "$isoDayOfWeek" : { "date" : "$obj.obj.date", "timezone" : "Asia/Taipei" } } }, "then" : "$$PRUNE", "else" : "$$KEEP" } } } ]
 result_set_schema:
   {
     "bsonType": "object",
     "properties": {
       "bool": {
-        "any_of": [
+        "anyOf": [
           { "bsonType": "null" },
           { "bsonType": "bool" }
         ]
@@ -25,7 +26,7 @@ result_set_schema:
         "additionalProperties": false
       },
       "geoLegacy": {
-        "any_of": [
+        "anyOf": [
           {
             "bsonType": "array",
             "items": { "bsonType": "double" }
@@ -42,12 +43,12 @@ result_set_schema:
         ]
       },
       "array": {
-        "any_of": [
+        "anyOf": [
           { "bsonType": "null" },
           {
             "bsonType": "array",
             "items": {
-              "any_of": [
+              "anyOf": [
                 { "bsonType": "null" },
                 { "bsonType": "int" },
                 { "bsonType": "double" },
@@ -66,7 +67,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "null" },
                       { "bsonType": "int" },
                       { "bsonType": "string" },
@@ -77,7 +78,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "null" },
                       { "bsonType": "int" },
                       { "bsonType": "string" },
@@ -113,7 +114,7 @@ result_set_schema:
                               "array": {
                                 "bsonType": "array",
                                 "items": {
-                                  "any_of": [
+                                  "anyOf": [
                                     { "bsonType": "null" },
                                     { "bsonType": "decimal" },
                                     { "bsonType": "date" }
@@ -131,7 +132,7 @@ result_set_schema:
                                   "array": {
                                     "bsonType": "array",
                                     "items": {
-                                      "any_of": [
+                                      "anyOf": [
                                         { "bsonType": "string" },
                                         { "bsonType": "date" }
                                       ]
@@ -165,7 +166,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "null" },
                       { "bsonType": "int" },
                       { "bsonType": "string" },
@@ -176,7 +177,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "null" },
                       { "bsonType": "int" },
                       { "bsonType": "string" },
@@ -227,7 +228,7 @@ result_set_schema:
                               "array": {
                                 "bsonType": "array",
                                 "items": {
-                                  "any_of": [
+                                  "anyOf": [
                                     { "bsonType": "null" },
                                     { "bsonType": "int" },
                                     { "bsonType": "decimal" },
@@ -254,7 +255,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "null" },
                       { "bsonType": "decimal" },
                       { "bsonType": "string" },
@@ -265,7 +266,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "null" },
                       { "bsonType": "decimal" },
                       { "bsonType": "date" }
@@ -275,7 +276,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "null" },
                       { "bsonType": "string" },
                       { "bsonType": "date" },
@@ -288,7 +289,7 @@ result_set_schema:
                           "array": {
                             "bsonType": "array",
                             "items": {
-                              "any_of": [
+                              "anyOf": [
                                 { "bsonType": "int" },
                                 { "bsonType": "string" },
                                 {
@@ -334,7 +335,7 @@ result_set_schema:
                                     "array": {
                                       "bsonType": "array",
                                       "items": {
-                                        "any_of": [
+                                        "anyOf": [
                                           { "bsonType": "int" },
                                           { "bsonType": "decimal" }
                                         ]
@@ -423,7 +424,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "null" },
                       { "bsonType": "bool" }
                     ]
@@ -432,7 +433,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "int" },
                       { "bsonType": "double" },
                       { "bsonType": "decimal" },
@@ -491,7 +492,7 @@ result_set_schema:
                           "array": {
                             "bsonType": "array",
                             "items": {
-                              "any_of": [
+                              "anyOf": [
                                 { "bsonType": "null" },
                                 { "bsonType": "int" },
                                 { "bsonType": "date" },
@@ -512,7 +513,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "int" },
                       { "bsonType": "decimal" },
                       { "bsonType": "string" },
@@ -528,7 +529,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "int" },
                       { "bsonType": "string" }
                     ]
@@ -537,7 +538,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "int" },
                       { "bsonType": "string" },
                       { "bsonType": "bool" },
@@ -548,7 +549,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "int" },
                       { "bsonType": "string" },
                       { "bsonType": "bool" },
@@ -563,7 +564,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "int" },
                       { "bsonType": "string" },
                       { "bsonType": "bool" },
@@ -595,7 +596,7 @@ result_set_schema:
                                   "array": {
                                     "bsonType": "array",
                                     "items": {
-                                      "any_of": [
+                                      "anyOf": [
                                         { "bsonType": "date" },
                                         {
                                           "bsonType": "object",
@@ -653,7 +654,7 @@ result_set_schema:
                               "array": {
                                 "bsonType": "array",
                                 "items": {
-                                  "any_of": [
+                                  "anyOf": [
                                     { "bsonType": "null" },
                                     { "bsonType": "string" }
                                   ]
@@ -684,7 +685,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "int" },
                       { "bsonType": "string" },
                       { "bsonType": "date" }
@@ -694,7 +695,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "int" },
                       { "bsonType": "string" },
                       {
@@ -737,7 +738,7 @@ result_set_schema:
                                   "array": {
                                     "bsonType": "array",
                                     "items": {
-                                      "any_of": [
+                                      "anyOf": [
                                         { "bsonType": "int" },
                                         { "bsonType": "date" }
                                       ]
@@ -792,7 +793,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "int" },
                       { "bsonType": "bool" },
                       { "bsonType": "date" }
@@ -802,7 +803,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "string" },
                       { "bsonType": "date" }
                     ]
@@ -815,7 +816,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "string" },
                           { "bsonType": "bool" },
@@ -825,7 +826,7 @@ result_set_schema:
                     },
                     "any": { "bsonType": "null" },
                     "bool": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "null" },
                         { "bsonType": "bool" }
                       ]
@@ -841,7 +842,7 @@ result_set_schema:
                         "any": { "bsonType": "string" },
                         "date": { "bsonType": "date" },
                         "str": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "null" },
                             { "bsonType": "string" }
                           ]
@@ -862,7 +863,7 @@ result_set_schema:
                           "bsonType": "object",
                           "properties": {
                             "any": {
-                              "any_of": [
+                              "anyOf": [
                                 { "bsonType": "null" },
                                 { "bsonType": "date" }
                               ]
@@ -888,7 +889,7 @@ result_set_schema:
                               "additionalProperties": false
                             },
                             "bool": {
-                              "any_of": [
+                              "anyOf": [
                                 { "bsonType": "null" },
                                 { "bsonType": "bool" }
                               ]
@@ -896,7 +897,7 @@ result_set_schema:
                             "array": {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "null" },
                                   { "bsonType": "int" },
                                   { "bsonType": "decimal" },
@@ -913,7 +914,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "int" },
                               { "bsonType": "string" },
@@ -943,7 +944,7 @@ result_set_schema:
                                       "array": {
                                         "bsonType": "array",
                                         "items": {
-                                          "any_of": [
+                                          "anyOf": [
                                             { "bsonType": "int" },
                                             { "bsonType": "string" },
                                             { "bsonType": "date" }
@@ -971,14 +972,14 @@ result_set_schema:
                           }
                         },
                         "num": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "null" },
                             { "bsonType": "int" },
                             { "bsonType": "decimal" }
                           ]
                         },
                         "bool": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "null" },
                             { "bsonType": "bool" }
                           ]
@@ -1031,7 +1032,7 @@ result_set_schema:
                             "any": {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "string" },
                                   { "bsonType": "bool" },
                                   { "bsonType": "date" }
@@ -1054,7 +1055,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "int" },
                           { "bsonType": "decimal" },
@@ -1111,7 +1112,7 @@ result_set_schema:
                                 "any": {
                                   "bsonType": "array",
                                   "items": {
-                                    "any_of": [
+                                    "anyOf": [
                                       { "bsonType": "null" },
                                       { "bsonType": "int" },
                                       { "bsonType": "string" },
@@ -1119,7 +1120,7 @@ result_set_schema:
                                       {
                                         "bsonType": "array",
                                         "items": {
-                                          "any_of": [
+                                          "anyOf": [
                                             { "bsonType": "int" },
                                             { "bsonType": "decimal" },
                                             { "bsonType": "string" },
@@ -1238,7 +1239,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "int" },
                           { "bsonType": "string" },
@@ -1293,7 +1294,7 @@ result_set_schema:
                                 "array": {
                                   "bsonType": "array",
                                   "items": {
-                                    "any_of": [
+                                    "anyOf": [
                                       { "bsonType": "string" },
                                       { "bsonType": "date" },
                                       {
@@ -1339,7 +1340,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "int" },
                           { "bsonType": "string" },
                           { "bsonType": "bool" }
@@ -1347,7 +1348,7 @@ result_set_schema:
                       }
                     },
                     "bool": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "null" },
                         { "bsonType": "bool" }
                       ]
@@ -1355,7 +1356,7 @@ result_set_schema:
                     "date": { "bsonType": "date" },
                     "_id": { "bsonType": "int" },
                     "num": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "int" },
                         { "bsonType": "decimal" }
                       ]
@@ -1380,7 +1381,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "int" },
                               { "bsonType": "string" },
@@ -1410,7 +1411,7 @@ result_set_schema:
                             "array": {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "null" },
                                   { "bsonType": "int" },
                                   { "bsonType": "string" },
@@ -1456,7 +1457,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "int" },
                           { "bsonType": "string" },
                           { "bsonType": "bool" },
@@ -1474,7 +1475,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "bool" },
                           { "bsonType": "date" }
                         ]
@@ -1546,14 +1547,14 @@ result_set_schema:
                           "bsonType": "object",
                           "properties": {
                             "any": {
-                              "any_of": [
+                              "anyOf": [
                                 { "bsonType": "string" },
                                 { "bsonType": "bool" }
                               ]
                             },
                             "date": { "bsonType": "date" },
                             "num": {
-                              "any_of": [
+                              "anyOf": [
                                 { "bsonType": "int" },
                                 { "bsonType": "decimal" }
                               ]
@@ -1562,7 +1563,7 @@ result_set_schema:
                             "array": {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "null" },
                                   { "bsonType": "string" }
                                 ]
@@ -1570,7 +1571,7 @@ result_set_schema:
                             },
                             "bool": { "bsonType": "bool" },
                             "str": {
-                              "any_of": [
+                              "anyOf": [
                                 { "bsonType": "null" },
                                 { "bsonType": "string" }
                               ]
@@ -1592,7 +1593,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "int" },
                               { "bsonType": "string" },
                               { "bsonType": "date" }
@@ -1612,12 +1613,12 @@ result_set_schema:
                     "num": { "bsonType": "int" },
                     "_id": { "bsonType": "int" },
                     "array": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "null" },
                         {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "int" },
                               { "bsonType": "decimal" },
                               { "bsonType": "string" },
@@ -1625,7 +1626,7 @@ result_set_schema:
                               {
                                 "bsonType": "array",
                                 "items": {
-                                  "any_of": [
+                                  "anyOf": [
                                     { "bsonType": "int" },
                                     { "bsonType": "string" }
                                   ]
@@ -1637,7 +1638,7 @@ result_set_schema:
                       ]
                     },
                     "str": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "null" },
                         { "bsonType": "string" }
                       ]
@@ -1687,7 +1688,7 @@ result_set_schema:
                             "array": {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "int" },
                                   { "bsonType": "decimal" },
                                   { "bsonType": "string" },
@@ -1713,7 +1714,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "int" },
                               { "bsonType": "decimal" },
                               { "bsonType": "string" },
@@ -1722,7 +1723,7 @@ result_set_schema:
                                 "bsonType": "object",
                                 "properties": {
                                   "any": {
-                                    "any_of": [
+                                    "anyOf": [
                                       { "bsonType": "null" },
                                       { "bsonType": "date" }
                                     ]
@@ -1735,7 +1736,7 @@ result_set_schema:
                                   },
                                   "date": { "bsonType": "date" },
                                   "num": {
-                                    "any_of": [
+                                    "anyOf": [
                                       { "bsonType": "int" },
                                       { "bsonType": "decimal" }
                                     ]
@@ -1749,7 +1750,7 @@ result_set_schema:
                                       "array": {
                                         "bsonType": "array",
                                         "items": {
-                                          "any_of": [
+                                          "anyOf": [
                                             { "bsonType": "int" },
                                             { "bsonType": "string" },
                                             { "bsonType": "date" }
@@ -1835,7 +1836,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "int" },
                           { "bsonType": "string" },
@@ -1851,7 +1852,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "string" },
                               { "bsonType": "bool" },
@@ -1920,7 +1921,7 @@ result_set_schema:
                                 "array": {
                                   "bsonType": "array",
                                   "items": {
-                                    "any_of": [
+                                    "anyOf": [
                                       { "bsonType": "string" },
                                       { "bsonType": "bool" }
                                     ]
@@ -1944,7 +1945,7 @@ result_set_schema:
                           "additionalProperties": false
                         },
                         "any": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "int" },
                             { "bsonType": "date" }
                           ]
@@ -1955,7 +1956,7 @@ result_set_schema:
                       "additionalProperties": false
                     },
                     "bool": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "null" },
                         { "bsonType": "bool" }
                       ]
@@ -1993,7 +1994,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "int" },
                           { "bsonType": "string" },
@@ -2069,7 +2070,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "string" },
                           { "bsonType": "bool" },
@@ -2078,7 +2079,7 @@ result_set_schema:
                       }
                     },
                     "bool": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "null" },
                         { "bsonType": "bool" }
                       ]
@@ -2093,7 +2094,7 @@ result_set_schema:
                         "date": { "bsonType": "date" },
                         "num": { "bsonType": "int" },
                         "bool": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "null" },
                             { "bsonType": "bool" }
                           ]
@@ -2132,7 +2133,7 @@ result_set_schema:
                             "array": {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "null" },
                                   { "bsonType": "string" },
                                   { "bsonType": "bool" }
@@ -2161,7 +2162,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "int" },
                               { "bsonType": "string" },
@@ -2206,7 +2207,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "int" },
                           { "bsonType": "string" },
                           { "bsonType": "bool" }
@@ -2237,7 +2238,7 @@ result_set_schema:
                     "str": { "bsonType": "string" },
                     "any": { "bsonType": "date" },
                     "bool": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "null" },
                         { "bsonType": "bool" }
                       ]
@@ -2250,12 +2251,12 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               {
                                 "bsonType": "array",
                                 "items": {
-                                  "any_of": [
+                                  "anyOf": [
                                     { "bsonType": "null" },
                                     { "bsonType": "bool" }
                                   ]
@@ -2273,7 +2274,7 @@ result_set_schema:
                             "array": {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "null" },
                                   { "bsonType": "int" },
                                   {
@@ -2325,7 +2326,7 @@ result_set_schema:
                                   "items": {
                                     "bsonType": "array",
                                     "items": {
-                                      "any_of": [
+                                      "anyOf": [
                                         { "bsonType": "decimal" },
                                         { "bsonType": "string" },
                                         { "bsonType": "bool" },
@@ -2388,7 +2389,7 @@ result_set_schema:
                       "additionalProperties": false
                     },
                     "num": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "int" },
                         { "bsonType": "double" }
                       ]
@@ -2409,7 +2410,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "int" },
                           { "bsonType": "decimal" },
@@ -2434,7 +2435,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "int" },
                               { "bsonType": "decimal" },
                               { "bsonType": "bool" },
@@ -2474,7 +2475,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "int" },
                           { "bsonType": "string" },
@@ -2499,19 +2500,19 @@ result_set_schema:
                         "str": { "bsonType": "string" },
                         "num": { "bsonType": "decimal" },
                         "bool": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "null" },
                             { "bsonType": "bool" }
                           ]
                         },
                         "_id": { "bsonType": "int" },
                         "any": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "int" },
                             {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "null" },
                                   { "bsonType": "int" },
                                   { "bsonType": "string" },
@@ -2564,7 +2565,7 @@ result_set_schema:
                       "additionalProperties": false
                     },
                     "bool": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "null" },
                         { "bsonType": "bool" }
                       ]
@@ -2595,7 +2596,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "int" },
                           { "bsonType": "string" },
@@ -2620,7 +2621,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "int" },
                               { "bsonType": "date" },
                               {
@@ -2653,7 +2654,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "int" },
                               { "bsonType": "string" },
                               { "bsonType": "date" }
@@ -2677,7 +2678,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "int" },
                           { "bsonType": "string" },
                           { "bsonType": "date" }
@@ -2710,7 +2711,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "string" },
                           { "bsonType": "date" }
                         ]
@@ -2744,7 +2745,7 @@ result_set_schema:
                     "any": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "int" },
                           { "bsonType": "string" },
@@ -2768,7 +2769,7 @@ result_set_schema:
                     "_id": { "bsonType": "int" },
                     "str": { "bsonType": "string" },
                     "bool": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "null" },
                         { "bsonType": "bool" }
                       ]
@@ -2786,7 +2787,7 @@ result_set_schema:
                       "additionalProperties": false
                     },
                     "any": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "int" },
                         { "bsonType": "bool" }
                       ]
@@ -2795,7 +2796,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "int" },
                           { "bsonType": "decimal" },
@@ -2809,7 +2810,7 @@ result_set_schema:
                       "bsonType": "object",
                       "properties": {
                         "any": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "int" },
                             { "bsonType": "string" }
                           ]
@@ -2822,7 +2823,7 @@ result_set_schema:
                             "array": {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "int" },
                                   { "bsonType": "string" },
                                   { "bsonType": "date" }
@@ -2831,7 +2832,7 @@ result_set_schema:
                             },
                             "_id": { "bsonType": "int" },
                             "bool": {
-                              "any_of": [
+                              "anyOf": [
                                 { "bsonType": "null" },
                                 { "bsonType": "bool" }
                               ]
@@ -2856,7 +2857,7 @@ result_set_schema:
                                 "array": {
                                   "bsonType": "array",
                                   "items": {
-                                    "any_of": [
+                                    "anyOf": [
                                       { "bsonType": "int" },
                                       { "bsonType": "date" }
                                     ]
@@ -2885,7 +2886,7 @@ result_set_schema:
                             "any": { "bsonType": "string" },
                             "str": { "bsonType": "string" },
                             "num": {
-                              "any_of": [
+                              "anyOf": [
                                 { "bsonType": "int" },
                                 { "bsonType": "decimal" }
                               ]
@@ -2898,7 +2899,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "int" },
                               { "bsonType": "string" },
@@ -2946,7 +2947,7 @@ result_set_schema:
                           }
                         },
                         "bool": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "null" },
                             { "bsonType": "bool" }
                           ]
@@ -2993,14 +2994,14 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "bool" },
                               { "bsonType": "date" },
                               {
                                 "bsonType": "array",
                                 "items": {
-                                  "any_of": [
+                                  "anyOf": [
                                     { "bsonType": "int" },
                                     { "bsonType": "string" },
                                     { "bsonType": "bool" }
@@ -3093,7 +3094,7 @@ result_set_schema:
                             "array": {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "string" },
                                   { "bsonType": "date" }
                                 ]
@@ -3220,7 +3221,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "int" },
                           { "bsonType": "decimal" },
@@ -3228,7 +3229,7 @@ result_set_schema:
                           {
                             "bsonType": "array",
                             "items": {
-                              "any_of": [
+                              "anyOf": [
                                 { "bsonType": "null" },
                                 { "bsonType": "date" },
                                 {
@@ -3279,7 +3280,7 @@ result_set_schema:
                                                 "array": {
                                                   "bsonType": "array",
                                                   "items": {
-                                                    "any_of": [
+                                                    "anyOf": [
                                                       { "bsonType": "int" },
                                                       { "bsonType": "date" },
                                                       {
@@ -3291,9 +3292,7 @@ result_set_schema:
                                                           "bool": { "bsonType": "null" },
                                                           "array": {
                                                             "bsonType": "array",
-                                                            "maxItems": {
-                                                              "$numberLong": "0"
-                                                            }
+                                                            "maxItems": 0
                                                           }
                                                         },
                                                         "required": ["_id", "array", "bool", "date", "num"],
@@ -3381,7 +3380,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "int" },
                           { "bsonType": "string" },
@@ -3403,7 +3402,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "int" },
                           { "bsonType": "string" },
@@ -3421,7 +3420,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "string" },
                               { "bsonType": "bool" },
@@ -3429,7 +3428,7 @@ result_set_schema:
                               {
                                 "bsonType": "array",
                                 "items": {
-                                  "any_of": [
+                                  "anyOf": [
                                     { "bsonType": "decimal" },
                                     { "bsonType": "string" }
                                   ]
@@ -3464,7 +3463,7 @@ result_set_schema:
                             "array": {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "null" },
                                   { "bsonType": "int" },
                                   { "bsonType": "bool" },
@@ -3493,7 +3492,7 @@ result_set_schema:
                         },
                         "_id": { "bsonType": "int" },
                         "bool": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "null" },
                             { "bsonType": "bool" }
                           ]
@@ -3516,7 +3515,7 @@ result_set_schema:
                     },
                     "num": { "bsonType": "int" },
                     "bool": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "null" },
                         { "bsonType": "bool" }
                       ]
@@ -3566,7 +3565,7 @@ result_set_schema:
                                 "array": {
                                   "bsonType": "array",
                                   "items": {
-                                    "any_of": [
+                                    "anyOf": [
                                       { "bsonType": "null" },
                                       { "bsonType": "int" },
                                       { "bsonType": "string" },
@@ -3590,7 +3589,7 @@ result_set_schema:
                             "array": {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "null" },
                                   { "bsonType": "int" },
                                   { "bsonType": "decimal" },
@@ -3631,7 +3630,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "int" },
                           { "bsonType": "string" },
@@ -3671,7 +3670,7 @@ result_set_schema:
                                       "array": {
                                         "bsonType": "array",
                                         "items": {
-                                          "any_of": [
+                                          "anyOf": [
                                             { "bsonType": "int" },
                                             { "bsonType": "string" },
                                             { "bsonType": "bool" },
@@ -3695,7 +3694,7 @@ result_set_schema:
                                   "array": {
                                     "bsonType": "array",
                                     "items": {
-                                      "any_of": [
+                                      "anyOf": [
                                         { "bsonType": "null" },
                                         { "bsonType": "int" },
                                         { "bsonType": "string" },
@@ -3703,7 +3702,7 @@ result_set_schema:
                                         {
                                           "bsonType": "array",
                                           "items": {
-                                            "any_of": [
+                                            "anyOf": [
                                               { "bsonType": "bool" },
                                               { "bsonType": "date" }
                                             ]
@@ -3739,7 +3738,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "int" },
                           { "bsonType": "date" },
@@ -3751,7 +3750,7 @@ result_set_schema:
                               "any": {
                                 "bsonType": "array",
                                 "items": {
-                                  "any_of": [
+                                  "anyOf": [
                                     { "bsonType": "null" },
                                     { "bsonType": "int" },
                                     { "bsonType": "string" },
@@ -3888,7 +3887,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "decimal" },
                           { "bsonType": "string" },
@@ -3907,7 +3906,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "string" }
                             ]
@@ -3929,7 +3928,7 @@ result_set_schema:
                                 "array": {
                                   "bsonType": "array",
                                   "items": {
-                                    "any_of": [
+                                    "anyOf": [
                                       { "bsonType": "decimal" },
                                       { "bsonType": "bool" },
                                       { "bsonType": "date" },
@@ -3963,7 +3962,7 @@ result_set_schema:
                       "additionalProperties": false
                     },
                     "bool": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "null" },
                         { "bsonType": "bool" }
                       ]
@@ -3993,7 +3992,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "string" },
                               { "bsonType": "bool" },
@@ -4029,7 +4028,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "int" },
                           { "bsonType": "string" },
                           { "bsonType": "date" }
@@ -4051,7 +4050,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "int" },
                           { "bsonType": "string" },
                           { "bsonType": "date" }
@@ -4076,7 +4075,7 @@ result_set_schema:
                     "array": {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "int" },
                           { "bsonType": "string" },
                           { "bsonType": "date" },
@@ -4134,14 +4133,14 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "string" },
                               { "bsonType": "bool" },
                               {
                                 "bsonType": "array",
                                 "items": {
-                                  "any_of": [
+                                  "anyOf": [
                                     { "bsonType": "null" },
                                     { "bsonType": "int" },
                                     { "bsonType": "decimal" },
@@ -4154,7 +4153,7 @@ result_set_schema:
                                         "array": {
                                           "bsonType": "array",
                                           "items": {
-                                            "any_of": [
+                                            "anyOf": [
                                               { "bsonType": "string" },
                                               { "bsonType": "date" }
                                             ]
@@ -4189,7 +4188,7 @@ result_set_schema:
                                   "array": {
                                     "bsonType": "array",
                                     "items": {
-                                      "any_of": [
+                                      "anyOf": [
                                         { "bsonType": "null" },
                                         { "bsonType": "int" },
                                         { "bsonType": "decimal" },
@@ -4254,7 +4253,7 @@ result_set_schema:
                             "array": {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "int" },
                                   { "bsonType": "string" },
                                   { "bsonType": "date" }
@@ -4290,13 +4289,13 @@ result_set_schema:
       },
 
       "date": {
-        "any_of": [
+        "anyOf": [
           { "bsonType": "null" },
           { "bsonType": "date" }
         ]
       },
       "num": {
-        "any_of": [
+        "anyOf": [
           { "bsonType": "null" },
           { "bsonType": "int" },
           { "bsonType": "double" },
@@ -4305,19 +4304,19 @@ result_set_schema:
       },
       "_id": { "bsonType": "int" },
       "obj": {
-        "any_of": [
+        "anyOf": [
           { "bsonType": "null" },
           {
             "bsonType": "object",
             "properties": {
               "str": {
-                "any_of": [
+                "anyOf": [
                   { "bsonType": "null" },
                   { "bsonType": "string" }
                 ]
               },
               "geoLegacy": {
-                "any_of": [
+                "anyOf": [
                   {
                     "bsonType": "array",
                     "items": { "bsonType": "double" }
@@ -4347,13 +4346,13 @@ result_set_schema:
               },
               "_id": { "bsonType": "int" },
               "date": {
-                "any_of": [
+                "anyOf": [
                   { "bsonType": "null" },
                   { "bsonType": "date" }
                 ]
               },
               "any": {
-                "any_of": [
+                "anyOf": [
                   { "bsonType": "null" },
                   { "bsonType": "int" },
                   { "bsonType": "string" },
@@ -4362,7 +4361,7 @@ result_set_schema:
                   {
                     "bsonType": "array",
                     "items": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "null" },
                         { "bsonType": "int" },
                         { "bsonType": "string" },
@@ -4389,7 +4388,7 @@ result_set_schema:
                         "additionalProperties": false
                       },
                       "bool": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "bool" }
                         ]
@@ -4400,7 +4399,7 @@ result_set_schema:
                         "bsonType": "object",
                         "properties": {
                           "bool": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "bool" }
                             ]
@@ -4411,7 +4410,7 @@ result_set_schema:
                           "array": {
                             "bsonType": "array",
                             "items": {
-                              "any_of": [
+                              "anyOf": [
                                 { "bsonType": "null" },
                                 { "bsonType": "int" },
                                 { "bsonType": "string" },
@@ -4421,7 +4420,7 @@ result_set_schema:
                             }
                           },
                           "num": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "int" },
                               { "bsonType": "double" },
                               { "bsonType": "decimal" }
@@ -4438,7 +4437,7 @@ result_set_schema:
                       "array": {
                         "bsonType": "array",
                         "items": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "null" },
                             { "bsonType": "int" },
                             { "bsonType": "string" },
@@ -4447,7 +4446,7 @@ result_set_schema:
                             {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "null" },
                                   { "bsonType": "int" },
                                   { "bsonType": "string" },
@@ -4458,7 +4457,7 @@ result_set_schema:
                             {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "null" },
                                   { "bsonType": "int" },
                                   { "bsonType": "string" },
@@ -4469,7 +4468,7 @@ result_set_schema:
                             {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "int" },
                                   { "bsonType": "string" },
                                   { "bsonType": "date" }
@@ -4479,7 +4478,7 @@ result_set_schema:
                             {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "string" },
                                   { "bsonType": "date" }
                                 ]
@@ -4514,7 +4513,7 @@ result_set_schema:
                         }
                       },
                       "any": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "int" },
                           { "bsonType": "date" }
                         ]
@@ -4528,7 +4527,7 @@ result_set_schema:
               "array": {
                 "bsonType": "array",
                 "items": {
-                  "any_of": [
+                  "anyOf": [
                     { "bsonType": "null" },
                     { "bsonType": "int" },
                     { "bsonType": "double" },
@@ -4543,7 +4542,7 @@ result_set_schema:
                     {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "int" },
                           { "bsonType": "decimal" },
@@ -4594,7 +4593,7 @@ result_set_schema:
                                       "array": {
                                         "bsonType": "array",
                                         "items": {
-                                          "any_of": [
+                                          "anyOf": [
                                             { "bsonType": "null" },
                                             { "bsonType": "int" },
                                             { "bsonType": "string" },
@@ -4641,7 +4640,7 @@ result_set_schema:
                     {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "int" },
                           { "bsonType": "string" },
@@ -4659,7 +4658,7 @@ result_set_schema:
                               "array": {
                                 "bsonType": "array",
                                 "items": {
-                                  "any_of": [
+                                  "anyOf": [
                                     { "bsonType": "null" },
                                     { "bsonType": "date" }
                                   ]
@@ -4679,7 +4678,7 @@ result_set_schema:
                     {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "int" },
                           { "bsonType": "string" },
@@ -4711,7 +4710,7 @@ result_set_schema:
                     {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "string" },
                           { "bsonType": "bool" }
@@ -4721,7 +4720,7 @@ result_set_schema:
                     {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "int" },
                           { "bsonType": "decimal" },
                           { "bsonType": "string" },
@@ -4733,7 +4732,7 @@ result_set_schema:
                     {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "int" },
                           { "bsonType": "date" }
                         ]
@@ -4742,7 +4741,7 @@ result_set_schema:
                     {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "int" },
                           { "bsonType": "date" },
                           {
@@ -4753,7 +4752,7 @@ result_set_schema:
                               "array": {
                                 "bsonType": "array",
                                 "items": {
-                                  "any_of": [
+                                  "anyOf": [
                                     { "bsonType": "null" },
                                     { "bsonType": "int" }
                                   ]
@@ -4779,7 +4778,7 @@ result_set_schema:
                     {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "string" },
                           { "bsonType": "date" }
                         ]
@@ -4979,12 +4978,12 @@ result_set_schema:
                           "additionalProperties": false
                         },
                         "array": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "null" },
                             {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "int" },
                                   { "bsonType": "double" },
                                   { "bsonType": "bool" },
@@ -5075,7 +5074,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "int" },
                               { "bsonType": "string" },
@@ -5124,7 +5123,7 @@ result_set_schema:
                             "array": {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "null" },
                                   { "bsonType": "int" },
                                   { "bsonType": "string" },
@@ -5191,7 +5190,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "string" },
                               { "bsonType": "bool" },
@@ -5225,7 +5224,7 @@ result_set_schema:
                             "array": {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "null" },
                                   { "bsonType": "int" },
                                   { "bsonType": "string" },
@@ -5233,7 +5232,7 @@ result_set_schema:
                                   {
                                     "bsonType": "array",
                                     "items": {
-                                      "any_of": [
+                                      "anyOf": [
                                         { "bsonType": "string" },
                                         { "bsonType": "bool" }
                                       ]
@@ -5275,7 +5274,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "int" },
                               { "bsonType": "decimal" },
                               { "bsonType": "string" },
@@ -5309,13 +5308,13 @@ result_set_schema:
                 }
               },
               "bool": {
-                "any_of": [
+                "anyOf": [
                   { "bsonType": "null" },
                   { "bsonType": "bool" }
                 ]
               },
               "num": {
-                "any_of": [
+                "anyOf": [
                   { "bsonType": "null" },
                   { "bsonType": "int" },
                   { "bsonType": "double" },
@@ -5323,7 +5322,7 @@ result_set_schema:
                 ]
               },
               "obj": {
-                "any_of": [
+                "anyOf": [
                   { "bsonType": "null" },
                   {
                     "bsonType": "object",
@@ -5332,7 +5331,7 @@ result_set_schema:
                       "array": {
                         "bsonType": "array",
                         "items": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "null" },
                             { "bsonType": "int" },
                             { "bsonType": "decimal" },
@@ -5346,7 +5345,7 @@ result_set_schema:
                             {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "int" },
                                   { "bsonType": "date" }
                                 ]
@@ -5356,7 +5355,7 @@ result_set_schema:
                         }
                       },
                       "bool": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "bool" }
                         ]
@@ -5374,7 +5373,7 @@ result_set_schema:
                         "additionalProperties": false
                       },
                       "any": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "string" },
                           { "bsonType": "date" }
                         ]
@@ -5403,7 +5402,7 @@ result_set_schema:
               "array": {
                 "bsonType": "array",
                 "items": {
-                  "any_of": [
+                  "anyOf": [
                     { "bsonType": "null" },
                     { "bsonType": "int" },
                     { "bsonType": "double" },
@@ -5418,7 +5417,7 @@ result_set_schema:
                     {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "string" },
                           { "bsonType": "bool" },
@@ -5429,7 +5428,7 @@ result_set_schema:
                     {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "string" },
                           { "bsonType": "date" },
@@ -5480,7 +5479,7 @@ result_set_schema:
                     {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "bool" },
                           { "bsonType": "date" },
@@ -5494,7 +5493,7 @@ result_set_schema:
                     {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "int" },
                           { "bsonType": "string" },
                           { "bsonType": "date" },
@@ -5538,7 +5537,7 @@ result_set_schema:
                     {
                       "bsonType": "array",
                       "items": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "date" },
                           {
                             "bsonType": "array",
@@ -5553,7 +5552,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "int" },
                               { "bsonType": "string" }
                             ]
@@ -5669,7 +5668,7 @@ result_set_schema:
                             "array": {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "int" },
                                   { "bsonType": "string" },
                                   { "bsonType": "date" }
@@ -5712,7 +5711,7 @@ result_set_schema:
                                     "array": {
                                       "bsonType": "array",
                                       "items": {
-                                        "any_of": [
+                                        "anyOf": [
                                           { "bsonType": "null" },
                                           { "bsonType": "int" },
                                           { "bsonType": "string" },
@@ -5826,7 +5825,7 @@ result_set_schema:
                             "array": {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "int" },
                                   { "bsonType": "string" },
                                   { "bsonType": "bool" },
@@ -5859,7 +5858,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "int" },
                               { "bsonType": "string" },
@@ -5885,7 +5884,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "null" },
                               { "bsonType": "int" },
                               { "bsonType": "date" },
@@ -5913,7 +5912,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "int" },
                               { "bsonType": "string" },
                               { "bsonType": "date" }
@@ -5935,7 +5934,7 @@ result_set_schema:
                         },
                         "num": { "bsonType": "int" },
                         "bool": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "null" },
                             { "bsonType": "bool" }
                           ]
@@ -5964,7 +5963,7 @@ result_set_schema:
                         "array": {
                           "bsonType": "array",
                           "items": {
-                            "any_of": [
+                            "anyOf": [
                               { "bsonType": "int" },
                               { "bsonType": "date" },
                               {
@@ -6060,7 +6059,7 @@ result_set_schema:
                   "array": {
                     "bsonType": "array",
                     "items": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "null" },
                         { "bsonType": "int" },
                         { "bsonType": "string" },
@@ -6101,7 +6100,7 @@ result_set_schema:
                 "additionalProperties": false
               },
               "any": {
-                "any_of": [
+                "anyOf": [
                   { "bsonType": "null" },
                   { "bsonType": "int" },
                   { "bsonType": "string" },
@@ -6115,7 +6114,7 @@ result_set_schema:
                       "any": {
                         "bsonType": "array",
                         "items": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "int" },
                             { "bsonType": "decimal" },
                             { "bsonType": "string" },
@@ -6128,7 +6127,7 @@ result_set_schema:
                       "array": {
                         "bsonType": "array",
                         "items": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "null" },
                             { "bsonType": "int" },
                             { "bsonType": "string" },
@@ -6157,7 +6156,7 @@ result_set_schema:
                 ]
               },
               "geoLegacy": {
-                "any_of": [
+                "anyOf": [
                   {
                     "bsonType": "array",
                     "items": { "bsonType": "double" }
@@ -6174,14 +6173,14 @@ result_set_schema:
                 ]
               },
               "num": {
-                "any_of": [
+                "anyOf": [
                   { "bsonType": "null" },
                   { "bsonType": "int" },
                   { "bsonType": "decimal" }
                 ]
               },
               "bool": {
-                "any_of": [
+                "anyOf": [
                   { "bsonType": "null" },
                   { "bsonType": "bool" }
                 ]
@@ -6192,7 +6191,7 @@ result_set_schema:
         ]
       },
       "any": {
-        "any_of": [
+        "anyOf": [
           { "bsonType": "null" },
           { "bsonType": "int" },
           { "bsonType": "double" },
@@ -6203,7 +6202,7 @@ result_set_schema:
           {
             "bsonType": "array",
             "items": {
-              "any_of": [
+              "anyOf": [
                 { "bsonType": "null" },
                 { "bsonType": "int" },
                 { "bsonType": "string" },
@@ -6211,7 +6210,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "null" },
                       { "bsonType": "date" }
                     ]
@@ -6223,7 +6222,7 @@ result_set_schema:
           {
             "bsonType": "array",
             "items": {
-              "any_of": [
+              "anyOf": [
                 { "bsonType": "null" },
                 { "bsonType": "string" },
                 { "bsonType": "bool" },
@@ -6231,7 +6230,7 @@ result_set_schema:
                 {
                   "bsonType": "array",
                   "items": {
-                    "any_of": [
+                    "anyOf": [
                       { "bsonType": "int" },
                       { "bsonType": "decimal" },
                       { "bsonType": "string" },
@@ -6245,7 +6244,7 @@ result_set_schema:
                           "array": {
                             "bsonType": "array",
                             "items": {
-                              "any_of": [
+                              "anyOf": [
                                 { "bsonType": "null" },
                                 { "bsonType": "string" },
                                 { "bsonType": "bool" },
@@ -6264,7 +6263,7 @@ result_set_schema:
                               "array": {
                                 "bsonType": "array",
                                 "items": {
-                                  "any_of": [
+                                  "anyOf": [
                                     { "bsonType": "null" },
                                     { "bsonType": "string" },
                                     { "bsonType": "date" }
@@ -6325,7 +6324,7 @@ result_set_schema:
               "array": {
                 "bsonType": "array",
                 "items": {
-                  "any_of": [
+                  "anyOf": [
                     { "bsonType": "null" },
                     { "bsonType": "int" },
                     { "bsonType": "string" },
@@ -6336,7 +6335,7 @@ result_set_schema:
               },
               "date": { "bsonType": "date" },
               "any": {
-                "any_of": [
+                "anyOf": [
                   { "bsonType": "null" },
                   {
                     "bsonType": "object",
@@ -6350,7 +6349,7 @@ result_set_schema:
                           "array": {
                             "bsonType": "array",
                             "items": {
-                              "any_of": [
+                              "anyOf": [
                                 { "bsonType": "null" },
                                 { "bsonType": "int" },
                                 { "bsonType": "decimal" },
@@ -6387,7 +6386,7 @@ result_set_schema:
                       "array": {
                         "bsonType": "array",
                         "items": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "null" },
                             { "bsonType": "int" },
                             { "bsonType": "string" },
@@ -6410,7 +6409,7 @@ result_set_schema:
                   "array": {
                     "bsonType": "array",
                     "items": {
-                      "any_of": [
+                      "anyOf": [
                         { "bsonType": "null" },
                         { "bsonType": "int" },
                         { "bsonType": "decimal" },
@@ -6430,7 +6429,7 @@ result_set_schema:
                             "array": {
                               "bsonType": "array",
                               "items": {
-                                "any_of": [
+                                "anyOf": [
                                   { "bsonType": "null" },
                                   { "bsonType": "int" },
                                   { "bsonType": "string" },
@@ -6486,7 +6485,7 @@ result_set_schema:
                       "array": {
                         "bsonType": "array",
                         "items": {
-                          "any_of": [
+                          "anyOf": [
                             { "bsonType": "null" },
                             { "bsonType": "int" },
                             { "bsonType": "string" },
@@ -6497,7 +6496,7 @@ result_set_schema:
                       },
                       "any": { "bsonType": "string" },
                       "bool": {
-                        "any_of": [
+                        "anyOf": [
                           { "bsonType": "null" },
                           { "bsonType": "bool" }
                         ]
@@ -6518,7 +6517,7 @@ result_set_schema:
               },
               "_id": { "bsonType": "int" },
               "num": {
-                "any_of": [
+                "anyOf": [
                   { "bsonType": "int" },
                   { "bsonType": "decimal" }
                 ]
@@ -6531,7 +6530,7 @@ result_set_schema:
         ]
       },
       "str": {
-        "any_of": [
+        "anyOf": [
           { "bsonType": "null" },
           { "bsonType": "string" }
         ]

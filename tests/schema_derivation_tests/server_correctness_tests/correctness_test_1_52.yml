@@ -9,9 +9,6 @@ result_set_schema:
       "_id": { "bsonType": "null" },
       "str": { "bsonType": "null" },
       "obj": { "bsonType": "null" },
-      "_id": {
-        "bsonType": "objectId"
-      }
     },
     "required": ["_id", "obj", "str"],
     "additionalProperties": false

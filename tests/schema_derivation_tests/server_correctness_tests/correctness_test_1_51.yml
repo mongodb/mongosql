@@ -10,7 +10,7 @@ result_set_schema:
       "_id": {
         "bsonType": "array",
         "items": {
-          "any_of": [
+          "anyOf": [
             { "bsonType": "null" },
             { "bsonType": "int" },
             { "bsonType": "double" },

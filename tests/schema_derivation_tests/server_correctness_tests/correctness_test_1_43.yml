@@ -9,16 +9,13 @@ result_set_schema:
       "obj.date": { "bsonType": "bool" },
       "k": { "bsonType": "string" },
       "v": {
-        "any_of": [
+        "anyOf": [
           { "bsonType": "null" },
           { "bsonType": "int" },
           { "bsonType": "decimal" }
         ]
       },
-      "_id": {
-        "bsonType": "objectId"
-      }
     },
-    "required": ["_id", "k", "obj.date", "v"],
+    "required": ["k", "obj.date", "v"],
     "additionalProperties": false
   }

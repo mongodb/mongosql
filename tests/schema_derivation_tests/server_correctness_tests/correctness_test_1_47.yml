@@ -12,7 +12,7 @@ result_set_schema:
         "items": {
           "bsonType": "array",
           "items": {
-            "any_of": [
+            "anyOf": [
               { "bsonType": "null" },
               { "bsonType": "int" },
               { "bsonType": "double" },
@@ -23,7 +23,7 @@ result_set_schema:
               {
                 "bsonType": "array",
                 "items": {
-                  "any_of": [
+                  "anyOf": [
                     { "bsonType": "bool" },
                     { "bsonType": "date" }
                   ]
@@ -42,9 +42,7 @@ result_set_schema:
                   "bool": { "bsonType": "bool" },
                   "array": {
                     "bsonType": "array",
-                    "maxItems": {
-                      "$numberLong": "0"
-                    }
+                    "maxItems": 0
                   },
                   "date": { "bsonType": "date" },
                   "num": { "bsonType": "null" },
