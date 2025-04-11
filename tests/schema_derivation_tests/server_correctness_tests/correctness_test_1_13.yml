@@ -467,8 +467,32 @@ result_set_schema:
       },
       "array": {
         "bsonType": "array",
-        "maxItems": 0
-      },
+        "items": {
+          "additionalProperties": false,
+          "bsonType": "object",
+          "properties": {
+            "captures": {
+              "bsonType": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "bsonType": "null"
+                  },
+                  {
+                    "bsonType": "string"
+                  }
+                ]
+              }
+            },
+            "idx": {
+              "bsonType": "int"
+            },
+            "match": {
+              "bsonType": "string"
+            }
+          }
+        }
+      }
     },
     "required": ["_id", "array"],
     "additionalProperties": false

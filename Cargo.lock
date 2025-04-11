@@ -1121,9 +1121,11 @@ dependencies = [
 name = "e2e-tests"
 version = "0.1.0"
 dependencies = [
+ "bson",
  "mongodb",
  "mongosql",
  "schema_derivation",
+ "serde_json",
  "serde_yaml",
  "test-utils",
 ]
@@ -4081,6 +4083,7 @@ dependencies = [
  "mongodb",
  "mongosql",
  "serde",
+ "serde_json",
  "serde_stacker",
  "serde_yaml",
  "thiserror 2.0.12",

@@ -364,7 +364,6 @@ impl DeriveSchema for Stage {
             let mut id_schema = bucket.group_by.derive_schema(state)?;
             if let Some(default) = bucket.default.as_ref() {
                 let default_schema = schema_for_bson(default);
-                println!("{:?}", default);
                 id_schema = id_schema.union(&default_schema);
             }
             let mut keys = bucket_output_derive_keys(bucket.output.as_ref(), state)?;
@@ -888,7 +887,8 @@ impl DeriveSchema for Expression {
                     .variables
                     .get_mut("CURRENT")
                     .unwrap_or(&mut state.result_set_schema);
-                let schema = get_schema_for_path(current_schema.clone(), path);
+                let schema = get_schema_for_path(current_schema.clone(), path.clone());
+                println!("{:?}, {:?}", path, schema);
                 match schema {
                     Some(schema) => Ok(schema.clone()),
                     // Unknown fields actually have the Schema Missing, while unknown variables are
@@ -2053,28 +2053,12 @@ impl DeriveSchema for UntaggedOperator {
             UntaggedOperatorName::Locf => {
                 self.args[0].derive_schema(state)
             }
-            UntaggedOperatorName::Max => {
-                let schema = self.args[0].derive_schema(state)?;
-                let schema = match schema {
-                    Schema::AnyOf(a) => {
-                        // Unsat should be impossible, since we should never see AnyOf(empty_set)
-                        let schema = a.iter().max().unwrap_or(&Schema::Unsat);
-                        numeric_filter(schema.clone(), a)
-                    }
-                    _ => schema,
-                };
-                Ok(schema)
-            }
-            UntaggedOperatorName::Min => {
-                let schema = self.args[0].derive_schema(state)?;
-                let schema = match schema {
-                    Schema::AnyOf(a) => {
-                        // Unsat should be impossible, since we should never see AnyOf(empty_set)
-                        let schema = a.iter().min().unwrap_or(&Schema::Unsat);
-                        numeric_filter(schema.clone(), a)
-                    }
-                    _ => schema,
-                };
+            UntaggedOperatorName::Max
+            | UntaggedOperatorName::Min => {
+                let schema = self.args.iter().fold(Ok(Schema::Unsat), |acc, arg| {
+                    let arg_schema = arg.derive_schema(state)?.upconvert_missing_to_null();
+                    Ok(acc?.union(&arg_schema))
+                })?;
                 Ok(schema)
             }
             UntaggedOperatorName::AddToSet | UntaggedOperatorName::Push => {
