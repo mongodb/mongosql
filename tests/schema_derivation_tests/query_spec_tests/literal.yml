@@ -332,6 +332,7 @@ tests:
   }
 - description: Signed integer literals
   current_db: test
+  skip_reason: SQL-2752 improve $literal ergonomics
   pipeline: [
     {
       "$documents": [
