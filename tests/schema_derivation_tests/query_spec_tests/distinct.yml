@@ -204,7 +204,6 @@ tests:
       }
     },
     "required": [
-      "_id",
       "t2"
     ],
     "additionalProperties": false

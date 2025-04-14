@@ -561,7 +561,7 @@ tests:
   }
 - description: COALESCE(v1, ..., vn) correctness tests
   current_db: foo
-  current_collection: multiArgCoalsce
+  current_collection: multiArgCoalesce
   pipeline: [
     {
       "$project": {

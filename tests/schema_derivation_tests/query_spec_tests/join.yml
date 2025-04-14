@@ -5,7 +5,7 @@ catalog_schema:
         "bar":
           {
             "bsonType": "object",
-            "required": ["foo"],
+            "required": ["_id", "foo"],
             "additionalProperties": false,
             "properties":
               { "_id": { "bsonType": "int" }, "foo": { "bsonType": "int" } },
@@ -13,7 +13,7 @@ catalog_schema:
         "bar2":
           {
             "bsonType": "object",
-            "required": ["foo"],
+            "required": ["_id", "foo"],
             "additionalProperties": false,
             "properties":
               {
@@ -25,7 +25,7 @@ catalog_schema:
         "coll":
           {
             "bsonType": "object",
-            "required": ["bar", "car"],
+            "required": ["_id", "bar", "car"],
             "additionalProperties": false,
             "properties":
               { "bar": { "bsonType": "int" }, "car": { "bsonType": "int" } },
@@ -36,7 +36,7 @@ catalog_schema:
         "foo":
           {
             "bsonType": "object",
-            "required": ["x"],
+            "required": ["_id", "x"],
             "additionalProperties": false,
             "properties": { "x": { "bsonType": "int" } },
           },
@@ -267,7 +267,7 @@ tests:
   }
 - description: right join correctness test
   current_db: mydb
-  current_collection: bar2
+  current_collection: bar
   pipeline: [
     {
       "$project": {

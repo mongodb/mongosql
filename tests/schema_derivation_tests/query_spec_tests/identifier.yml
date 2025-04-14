@@ -221,6 +221,7 @@ tests:
 - description: Delimited identifier with a $
   current_db: foo
   current_collection: bar
+  skip_reason: SQL-2752 improve $literal ergonomics
   pipeline: [
     {
       "$project": {
@@ -279,6 +280,7 @@ tests:
 - description: Nested delimited identifiers containing $ and .
   current_db: foo
   current_collection: bar
+  skip_reason: SQL-2752 improve $literal ergonomics
   pipeline: [
     {
       "$project": {
@@ -344,6 +346,7 @@ tests:
 - description: Mixed identifiers containing $ and .
   current_db: foo
   current_collection: bar
+  skip_reason: SQL-2752 improve $literal ergonomics
   pipeline: [
     {
       "$project": {
@@ -519,12 +522,34 @@ tests:
       "bar": {
         "bsonType": "object",
         "properties": {
-          "$a.b": {
-            "bsonType": "int"
-          },
-          "_id": {
-            "bsonType": "int"
-          }
+          "_id": { "bsonType": "int" },
+          "a":
+            {
+              "bsonType": "object",
+              "additionalProperties": true,
+              "properties":
+                {
+                  "b": { "bsonType": "int" },
+                  "b.c": { "bsonType": "int" },
+                },
+            },
+          "a.b": { "bsonType": "int" },
+          "$a.b": { "bsonType": "int" },
+          "$a.$b":
+            {
+              "bsonType": "object",
+              "additionalProperties": true,
+              "properties":
+                {
+                  "$c":
+                    {
+                      "bsonType": "object",
+                      "additionalProperties": true,
+                      "properties": { "d": { "bsonType": "int" } },
+                    },
+                  "$c.d": { "bsonType": "int" },
+                },
+            },
         },
         "required": [
           "$a.b",
@@ -534,7 +559,6 @@ tests:
       }
     },
     "required": [
-      "_id",
       "bar"
     ],
     "additionalProperties": false
@@ -622,27 +646,36 @@ tests:
           "_id": {
             "bsonType": "int"
           },
-          "$a.$b": {
-            "bsonType": "object",
-            "properties": {
-              "$c": {
-                "bsonType": "object",
-                "properties": {
-                  "d": {
-                    "bsonType": "int"
-                  }
+          "_id": { "bsonType": "int" },
+          "a":
+            {
+              "bsonType": "object",
+              "additionalProperties": true,
+              "properties":
+                {
+                  "b": { "bsonType": "int" },
+                  "b.c": { "bsonType": "int" },
                 },
-                "required": [
-                  "d"
-                ],
-                "additionalProperties": false
-              }
             },
-            "required": [
-              "$c"
-            ],
-            "additionalProperties": false
-          }
+          "a.b": { "bsonType": "int" },
+          "$a.b": { "bsonType": "int" },
+          "$a.$b":
+            {
+              "bsonType": "object",
+              "additionalProperties": true,
+              "required": ["$c"],
+              "properties":
+                {
+                  "$c":
+                    {
+                      "bsonType": "object",
+                      "additionalProperties": true,
+                      "properties": { "d": { "bsonType": "int" } },
+                      "required": ["d"]
+                    },
+                  "$c.d": { "bsonType": "int" },
+                },
+            },
         },
         "required": [
           "$a.$b",

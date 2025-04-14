@@ -116,7 +116,6 @@ tests:
   result_set_schema: {
     "additionalProperties": false, 
     "required": [
-      "_id", 
       "derived"
     ], 
     "properties": {
@@ -224,7 +223,6 @@ tests:
   result_set_schema: {
     "additionalProperties": false, 
     "required": [
-      "_id", 
       "derived"
     ], 
     "properties": {

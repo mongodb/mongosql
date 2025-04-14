@@ -421,7 +421,7 @@ tests:
   }
 - description: flatten polymorphic objects with just null or missing polymorphism
   current_db: mydb
-  current_collection: foo
+  current_collection: nullableDoc
   pipeline: [
     {
       "$project": {

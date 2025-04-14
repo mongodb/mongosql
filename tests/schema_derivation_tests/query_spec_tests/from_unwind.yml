@@ -115,8 +115,8 @@ catalog_schema:
          "bsonType": "array",
          "items": { "bsonType": "int" }
        },
-       "_id":{"bsonType":"objectId"}},
-       "required":["_id","g"],
+       "_id":{"bsonType":"int"}},
+       "required":["_id","a", "b", "g"],
        "additionalProperties":false
      }
    }
@@ -906,13 +906,27 @@ tests:
         bsonType: object
         properties:
           g:
-            bsonType: object
-            properties: {}
-            additionalProperties: true
+            {
+            "additionalProperties": false, 
+            "properties": {
+              "i": {
+                "bsonType": "int"
+              }, 
+              "h": {
+                "bsonType": "int"
+              }, 
+              "g": {
+                "items": {
+                  "bsonType": "int"
+                }, 
+                "bsonType": "array"
+              }
+            }, 
+            "bsonType": "object"
+          }
         required: [g]
         additionalProperties: false
-      _id: {bsonType: objectId}
-    required: ['', _id]
+    required: ['']
     additionalProperties: false
 - description: compound path resolves nested and sibling paths
   current_db: test
@@ -1057,6 +1071,12 @@ tests:
             "properties": {
               "g": {
                 "bsonType": "int"
+              },
+              "h": {
+                "bsonType": "int"
+              },
+              "i": {
+                "bsonType": "int"
               }
             }, 
             "bsonType": "object"
@@ -1131,6 +1151,12 @@ tests:
               "g"
             ], 
             "properties": {
+              "i": {
+                "bsonType": "int"
+              }, 
+              "h": {
+                "bsonType": "int"
+              }, 
               "g": {
                 "bsonType": "int"
               }

@@ -3674,6 +3674,17 @@ mod expression_test {
         );
 
         test_serde_expr!(
+            literal_string_with_dollar,
+            expected = Expression::UntaggedOperator(UntaggedOperator {
+                op: UntaggedOperatorName::Literal,
+                args: vec![Expression::Literal(LiteralValue::String(
+                    "$a.b".to_string()
+                ))]
+            }),
+            input = r#"expr: {"$literal": "$a.b"}"#
+        );
+
+        test_serde_expr!(
             empty_document_argument,
             expected = Expression::UntaggedOperator(UntaggedOperator {
                 op: UntaggedOperatorName::Count,
