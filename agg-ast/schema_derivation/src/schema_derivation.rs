@@ -15,8 +15,8 @@ use mongosql::{
     map,
     schema::{
         Atomic, Document, Satisfaction, Schema, ANY_DOCUMENT, DATE_OR_NULLISH, EMPTY_DOCUMENT,
-        INTEGER_LONG_OR_NULLISH, INTEGER_OR_NULLISH, INTEGRAL, NULLISH, NULLISH_OR_UNDEFINED,
-        NUMERIC, NUMERIC_OR_NULLISH,
+        INTEGER_LONG_OR_NULLISH, INTEGRAL, NULLISH, NULLISH_OR_UNDEFINED, NUMERIC,
+        NUMERIC_OR_NULLISH,
     },
     set,
 };
@@ -102,7 +102,9 @@ pub fn derive_schema_for_pipeline(
         state.result_set_schema = stage.derive_schema(state)?;
         Ok(())
     })?;
-    Ok(std::mem::take(&mut state.result_set_schema))
+    Ok(Schema::simplify(&std::mem::take(
+        &mut state.result_set_schema,
+    )))
 }
 
 impl DeriveSchema for Stage {
@@ -186,7 +188,10 @@ impl DeriveSchema for Stage {
                             })
                         },
                     );
-                    Ok(schema?.unwrap_or(Schema::Document(Document::default())))
+                    Ok(schema?.unwrap_or(Schema::AnyOf(set!(
+                        Schema::Missing,
+                        Schema::Document(Document::any())
+                    ))))
                 }
                 Documents::Expr(expr) => expr.derive_schema(state),
             }
@@ -434,14 +439,12 @@ impl DeriveSchema for Stage {
             project: &ProjectStage,
             state: &mut ResultSetState,
         ) -> Result<Schema> {
+            state.result_set_schema = promote_missing(&state.result_set_schema);
             // If this is an exclusion $project, we can remove the fields from the schema and
             // return
-            state.result_set_schema = promote_missing(&state.result_set_schema);
-            if project
-                .items
-                .iter()
-                .all(|(k, p)| matches!(p, ProjectItem::Exclusion) || k == "_id")
-            {
+            if project.items.iter().all(|(k, p)| {
+                matches!(p, ProjectItem::Exclusion) || (k == "_id" && project.items.len() > 1)
+            }) {
                 project.items.iter().for_each(|(k, _)| {
                     remove_field(
                         &mut state.result_set_schema,
@@ -672,41 +675,60 @@ impl DeriveSchema for Stage {
         }
 
         fn unwind_derive_schema(unwind: &Unwind, state: &mut ResultSetState) -> Result<Schema> {
-            let path = match unwind {
-                Unwind::FieldPath(Expression::Ref(Ref::FieldRef(r))) => {
-                    Some(r.split(".").map(|s| s.to_string()).collect::<Vec<String>>())
-                }
+            let (path, preserve_null_and_empty_arrays) = match unwind {
+                Unwind::FieldPath(Expression::Ref(Ref::FieldRef(r))) => (
+                    Some(r.split(".").map(|s| s.to_string()).collect::<Vec<String>>()),
+                    false,
+                ),
                 Unwind::Document(d) => {
                     if let Expression::Ref(Ref::FieldRef(r)) = d.path.as_ref() {
-                        Some(r.split(".").map(|s| s.to_string()).collect::<Vec<String>>())
+                        (
+                            Some(r.split(".").map(|s| s.to_string()).collect::<Vec<String>>()),
+                            d.preserve_null_and_empty_arrays == Some(true),
+                        )
                     } else {
-                        None
+                        (None, false)
                     }
                 }
-                _ => None,
+                _ => (None, false),
             };
-            if let Some(path) = path {
-                if let Some(s) = get_schema_for_path_mut(&mut state.result_set_schema, path) {
+            let mut nullish = preserve_null_and_empty_arrays;
+            state.result_set_schema = promote_missing(&state.result_set_schema);
+            if let Some(path) = path.clone() {
+                if let Some(s) = get_schema_for_path_mut(&mut state.result_set_schema, path.clone())
+                {
                     // the schema of the field being unwound goes from type Array[X] to type X
                     match s {
                         Schema::Array(a) => {
-                            *s = std::mem::take(a);
+                            *s = *std::mem::take(a);
+                            if nullish {
+                                *s = s.union(&Schema::Missing);
+                            }
                         }
                         Schema::AnyOf(ao) => {
-                            *s = Schema::simplify(&Schema::AnyOf(
-                                ao.iter()
-                                    .map(|x| match x {
+                            *s = ao
+                                .iter()
+                                .fold(None, |acc, x| {
+                                    let schema = match x {
                                         Schema::Array(a) => *a.clone(),
-                                        schema => schema.clone(),
-                                    })
-                                    .collect(),
-                            ));
+                                        schema => {
+                                            nullish = true;
+                                            schema.clone()
+                                        }
+                                    };
+                                    match acc {
+                                        None => Some(schema),
+                                        Some(acc) => Some(acc.union(&schema)),
+                                    }
+                                })
+                                .unwrap_or(Schema::Missing);
                         }
                         _ => {}
+                    };
+                    if !preserve_null_and_empty_arrays {
+                        schema_difference(s, set!(Schema::Missing));
                     }
                     if let Unwind::Document(d) = unwind {
-                        let nullish = d.preserve_null_and_empty_arrays == Some(true);
-
                         // include_array_index will specify an output field to put the index; it can be nullish if
                         // preserve_null_and_empty_arrays is included
                         if let Some(field) = d.include_array_index.clone() {
@@ -718,7 +740,7 @@ impl DeriveSchema for Stage {
                                 insert_required_key_into_document(
                                     &mut state.result_set_schema,
                                     Schema::AnyOf(set!(
-                                        Schema::Atomic(Atomic::Integer),
+                                        Schema::Atomic(Atomic::Long),
                                         Schema::Atomic(Atomic::Null)
                                     )),
                                     path,
@@ -727,7 +749,7 @@ impl DeriveSchema for Stage {
                             } else {
                                 insert_required_key_into_document(
                                     &mut state.result_set_schema,
-                                    Schema::Atomic(Atomic::Integer),
+                                    Schema::Atomic(Atomic::Long),
                                     path,
                                     true,
                                 );
@@ -736,7 +758,7 @@ impl DeriveSchema for Stage {
                     }
                 }
             }
-            Ok(state.result_set_schema.to_owned())
+            Ok(Schema::simplify(&state.result_set_schema.to_owned()))
         }
 
         fn unset_derive_schema(u: &Unset, state: &mut ResultSetState) -> Result<Schema> {
@@ -887,8 +909,13 @@ impl DeriveSchema for Expression {
                     .variables
                     .get_mut("CURRENT")
                     .unwrap_or(&mut state.result_set_schema);
-                let schema = get_schema_for_path(current_schema.clone(), path.clone());
-                println!("{:?}, {:?}", path, schema);
+                // if we have an Any schema, just short circuit and return any
+                if get_schema_for_path_mut(current_schema, vec![path[0].clone()])
+                    == Some(&mut Schema::Any)
+                {
+                    return Ok(Schema::Any);
+                }
+                let schema = get_schema_for_path(current_schema.clone(), path);
                 match schema {
                     Some(schema) => Ok(schema.clone()),
                     // Unknown fields actually have the Schema Missing, while unknown variables are
@@ -915,12 +942,11 @@ impl DeriveSchema for Expression {
                     v => {
                         let path: Vec<String> = v.split('.').map(|s| s.to_string()).collect();
                         let var_schema = if v.contains(".") {
-                            state
-                                .variables
-                                .get_mut(&path[0])
-                                .and_then(|doc| get_schema_for_path_mut(doc, path[1..].to_vec()))
+                            state.variables.get(&path[0]).and_then(|doc| {
+                                get_schema_for_path(doc.clone(), path[1..].to_vec())
+                            })
                         } else {
-                            state.variables.get_mut(v)
+                            state.variables.get(v).cloned()
                         };
                         match var_schema {
                             Some(schema) => Ok(schema.clone()),
@@ -1140,11 +1166,17 @@ impl DeriveSchema for TaggedOperator {
             | TaggedOperator::Hour(d)
             | TaggedOperator::Minute(d)
             | TaggedOperator::Second(d)
-            | TaggedOperator::Millisecond(d) => handle_null_satisfaction(
-                vec![d.date.as_ref(), optional_arg_or_truish!(d.timezone)],
-                state,
-                Schema::Atomic(Atomic::Integer),
-            ),
+            | TaggedOperator::Millisecond(d) => {
+                let date = match d.date.as_ref() {
+                    Expression::Array(a) => &a[0],
+                    expr => expr,
+                };
+                handle_null_satisfaction(
+                    vec![date, optional_arg_or_truish!(d.timezone)],
+                    state,
+                    Schema::Atomic(Atomic::Integer),
+                )
+            }
             TaggedOperator::DateFromParts(d) => {
                 let args = vec![
                     optional_arg_or_truish!(d.year),
@@ -1283,7 +1315,7 @@ impl DeriveSchema for TaggedOperator {
                     d.unit.as_ref(),
                     optional_arg_or_truish!(d.start_of_week),
                 ];
-                handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Date))
+                handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
             }
             TaggedOperator::DateTrunc(d) => {
                 let args = vec![
@@ -1321,9 +1353,8 @@ impl DeriveSchema for TaggedOperator {
                 l.inside.derive_schema(&mut let_state)
             }
             TaggedOperator::GetField(g) => {
-                let mut input_schema = g.input.derive_schema(state)?;
-                let field_schema =
-                    get_schema_for_path_mut(&mut input_schema, vec![g.field.clone()]);
+                let input_schema = g.input.derive_schema(state)?;
+                let field_schema = get_schema_for_path(input_schema, vec![g.field.clone()]);
                 match field_schema {
                     None => Ok(Schema::Missing),
                     Some(schema) => Ok(schema.clone()),
@@ -1340,16 +1371,26 @@ impl DeriveSchema for TaggedOperator {
                     // if we are setting a new field, add it in appropriately, unless its missing (no-op)
                     None => {
                         if value_schema != Schema::Missing {
-                            let new_field = Schema::Document(Document {
-                                keys: map! {
-                                    s.field.clone() => value_schema,
-                                },
-                                required: set!(s.field.clone()),
-                                ..Default::default()
-                            });
-                            Ok(input_schema.union(&new_field))
+                            if let Schema::Document(_) = input_schema {
+                                insert_required_key_into_document(
+                                    &mut input_schema,
+                                    value_schema.clone(),
+                                    vec![s.field.clone()],
+                                    true,
+                                );
+                                Ok(Schema::simplify(&input_schema))
+                            } else {
+                                let new_field = Schema::Document(Document {
+                                    keys: map! {
+                                        s.field.clone() => value_schema,
+                                    },
+                                    required: set!(s.field.clone()),
+                                    ..Default::default()
+                                });
+                                Ok(Schema::simplify(&input_schema.union(&new_field)))
+                            }
                         } else {
-                            Ok(input_schema)
+                            Ok(Schema::simplify(&input_schema))
                         }
                     }
                     // if we are handling a new field, check first if the schema is missing (could either be
@@ -1363,7 +1404,7 @@ impl DeriveSchema for TaggedOperator {
                                 *field_schema = value_schema;
                             }
                         }
-                        Ok(input_schema)
+                        Ok(Schema::simplify(&input_schema))
                     }
                 }
             }
@@ -1843,15 +1884,10 @@ impl DeriveSchema for UntaggedOperator {
 
                 // Here, we (safely) assume (nullable) numeric types for all non-Date arguments.
                 let numeric_input_schema = Schema::simplify(&Schema::AnyOf(non_dates));
-                let numeric_schema = if numeric_input_schema.satisfies(&INTEGER_OR_NULLISH) == Satisfaction::Must {
-                    // If all args are (nullable) Ints, the result is (nullable) Int or Long
+                let numeric_schema = if numeric_input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
                     handle_null_satisfaction(args, state, INTEGRAL.clone())
-                } else if numeric_input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
-                    // If all args are (nullable) Ints or Longs, the result is (nullable) Long
-                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
                 } else {
-                    // Otherwise, the result is (nullable) Double or Decimal
-                    get_decimal_double_or_nullish(args, state)
+                    handle_null_satisfaction(args, state, NUMERIC.clone())
                 };
 
                 if may_be_date {
@@ -1896,14 +1932,10 @@ impl DeriveSchema for UntaggedOperator {
             // int + int -> int or long; int + long, long + long -> long,
             UntaggedOperatorName::Multiply => {
                 let input_schema = get_input_schema(&args, state)?;
-                if input_schema.satisfies(&INTEGER_OR_NULLISH) == Satisfaction::Must {
-                    // If both are (nullable) Ints, the result is (nullable) Int or Long
+                if input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
                     handle_null_satisfaction(args, state, INTEGRAL.clone())
-                } else if input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
-                    // If both are (nullable) Ints or Longs, the result is (nullable) Long
-                    handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Long))
                 } else {
-                    get_decimal_double_or_nullish(args, state)
+                    handle_null_satisfaction(args, state, NUMERIC.clone())
                 }
             }
             // window function operators
@@ -1929,43 +1961,56 @@ impl DeriveSchema for UntaggedOperator {
             // because an int ^ int can return a long
             UntaggedOperatorName::Pow => {
                 let input_schema = get_input_schema(&args, state)?;
-                let schema = if input_schema.satisfies(&Schema::Atomic(Atomic::Decimal)) != Satisfaction::Not {
-                    Schema::Atomic(Atomic::Decimal)
-                } else if input_schema.satisfies(&Schema::Atomic(Atomic::Double))
-                    != Satisfaction::Not
-                {
-                    Schema::Atomic(Atomic::Double)
-                } else if input_schema.satisfies(&Schema::Atomic(Atomic::Long)) != Satisfaction::Not {
-                    Schema::Atomic(Atomic::Long)
-                } else {
-                    Schema::AnyOf(set!(
-                        Schema::Atomic(Atomic::Integer),
-                        Schema::Atomic(Atomic::Long),
-                    ))
+                let mut types: BTreeSet<Schema> = set!();
+                if input_schema.satisfies(&Schema::Atomic(Atomic::Decimal)) != Satisfaction::Not {
+                    types.insert(Schema::Atomic(Atomic::Decimal));
+                }
+                if input_schema.satisfies(&Schema::Atomic(Atomic::Double)) != Satisfaction::Not{
+                    types.insert(Schema::Atomic(Atomic::Double));
+                }
+                if input_schema.satisfies(&Schema::Atomic(Atomic::Long)) != Satisfaction::Not {
+                    types.insert(Schema::Atomic(Atomic::Long));
+                }
+                if input_schema.satisfies(&Schema::Atomic(Atomic::Integer)) != Satisfaction::Not {
+                    types.insert(Schema::Atomic(Atomic::Integer));
+                    types.insert(Schema::Atomic(Atomic::Long));
                 };
-                handle_null_satisfaction(args, state, schema)
+                handle_null_satisfaction(args, state, Schema::simplify(&Schema::AnyOf(types)))
             }
             // mod returns the maximal numeric type of its inputs
             UntaggedOperatorName::Mod => {
                 let input_schema = get_input_schema(&args, state)?;
-                let schema = if input_schema.satisfies(&Schema::Atomic(Atomic::Decimal)) != Satisfaction::Not {
-                    Schema::Atomic(Atomic::Decimal)
-                } else if input_schema.satisfies(&Schema::Atomic(Atomic::Double))
-                    != Satisfaction::Not
-                {
-                    Schema::Atomic(Atomic::Double)
-                } else if input_schema.satisfies(&Schema::Atomic(Atomic::Long)) != Satisfaction::Not
-                {
-                    Schema::Atomic(Atomic::Long)
-                } else {
-                    Schema::Atomic(Atomic::Integer)
+                let mut types: BTreeSet<Schema> = set!();
+                if input_schema.satisfies(&Schema::Atomic(Atomic::Decimal)) != Satisfaction::Not {
+                    types.insert(Schema::Atomic(Atomic::Decimal));
+                }
+                if input_schema.satisfies(&Schema::Atomic(Atomic::Double)) != Satisfaction::Not{
+                    types.insert(Schema::Atomic(Atomic::Double));
+                }
+                if input_schema.satisfies(&Schema::Atomic(Atomic::Long)) != Satisfaction::Not {
+                    types.insert(Schema::Atomic(Atomic::Long));
+                }
+                if input_schema.satisfies(&Schema::Atomic(Atomic::Integer)) != Satisfaction::Not {
+                    types.insert(Schema::Atomic(Atomic::Integer));
                 };
-                handle_null_satisfaction(args, state, schema)
+                handle_null_satisfaction(args, state, Schema::simplify(&Schema::AnyOf(types)))
             }
             UntaggedOperatorName::ArrayElemAt => {
                 let input_schema = self.args[0].derive_schema(state)?;
-                match input_schema {
+                match input_schema.clone() {
                     Schema::Array(a) => Ok(a.as_ref().clone()),
+                    ao @ Schema::AnyOf(_) => {
+                        let array_schema = match ao.intersection(&Schema::Array(Box::new(Schema::Any))) {
+                            Schema::Array(a) => *a,
+                            _ => Schema::Unsat
+                        };
+                        let null_schema = ao.intersection(&NULLISH.clone());
+                        if array_schema == Schema::Unsat && null_schema == Schema::Unsat {
+                            Err(Error::InvalidType(input_schema, 0usize))
+                        } else {
+                            Ok(Schema::simplify(&null_schema.union(&array_schema)))
+                        }
+                    }
                     _ => {
                         if input_schema.satisfies(&NULLISH_OR_UNDEFINED) == Satisfaction::Must {
                             Ok(Schema::Atomic(Atomic::Null))

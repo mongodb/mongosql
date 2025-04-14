@@ -2,8 +2,30 @@ catalog_schema:
   {
     'foo': {
       'bar': {
-        'bsonType': 'object',
-        'additionalProperties': true,
+        'bsonType': "object",
+        'required': [ '_id' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'a': {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "null" },
+              { 
+                "bsonType": "object" ,
+                required: [ 'b' ],
+                additionalProperties: false,
+                properties: {
+                  'b': {
+                    'bsonType': "int"
+                  }
+                }
+              }
+            ]
+          },
+        }
       }
     }
   }

@@ -935,9 +935,30 @@ impl<'de> Visitor<'de> for UntaggedOperatorVisitor {
             // In a general environment, this would be very brittle, however in this
             // controlled test environment, we safely make the assumption that
             // a single key that starts with a "$" is present and indicates an operator.
-            return Ok(UntaggedOperator {
-                op,
-                args: value.get_as_vec(),
+            return Ok(match op {
+                UntaggedOperatorName::Literal => {
+                    let args = value
+                        .get_as_vec()
+                        .iter()
+                        .map(|arg| match arg {
+                            Expression::Ref(Ref::FieldRef(f)) => {
+                                Expression::Literal(LiteralValue::String(format!("${f}")))
+                            }
+                            Expression::Ref(Ref::VariableRef(v)) => {
+                                Expression::Literal(LiteralValue::String(format!("$${v}")))
+                            }
+                            expr => expr.clone(),
+                        })
+                        .collect();
+                    UntaggedOperator {
+                        op: UntaggedOperatorName::Literal,
+                        args,
+                    }
+                }
+                _ => UntaggedOperator {
+                    op,
+                    args: value.get_as_vec(),
+                },
             });
         }
 

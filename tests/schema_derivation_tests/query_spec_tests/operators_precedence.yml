@@ -883,6 +883,7 @@ tests:
   }
 - description: unary ops bind tighter than mul/div
   current_db: db
+  skip_reason: SQL-2752 improve $literal ergonomics
   pipeline: [
     {
       "$documents": [

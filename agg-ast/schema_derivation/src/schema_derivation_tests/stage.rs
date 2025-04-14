@@ -381,7 +381,10 @@ mod documents {
 
     test_derive_stage_schema!(
         empty,
-        expected = Ok(Schema::Document(Document::default())),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Missing,
+            Schema::Document(Document::any())
+        ))),
         input = r#"{"$documents": []}"#
     );
 
@@ -740,7 +743,7 @@ mod unwind {
         expected = Ok(Schema::Document(Document {
             keys: map! {
                 "foo".to_string() => Schema::Atomic(Atomic::Double),
-                "i".to_string() => Schema::Atomic(Atomic::Integer)
+                "i".to_string() => Schema::Atomic(Atomic::Long)
             },
             required: set!("foo".to_string(), "i".to_string()),
             ..Default::default()
@@ -759,7 +762,7 @@ mod unwind {
                 )),
                 "bar".to_string() => Schema::Atomic(Atomic::ObjectId),
                 "i".to_string() => Schema::AnyOf(set!(
-                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
                     Schema::Atomic(Atomic::Null)
                 )),
             },

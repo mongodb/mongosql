@@ -1050,12 +1050,12 @@ mod date_operators {
     test_derive_expression_schema!(
         date_diff_one_arg_nullish,
         expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Long),
             Schema::Atomic(Atomic::Null)
         ))),
         input = r#"{"$dateDiff": {"startDate": "$foo", "endDate": {"$date": {"$numberLong": "123"}}, "unit": "hour", "startOfWeek": "mon", "timezone": "America/New_York"}}"#,
         ref_schema = Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Long),
             Schema::Atomic(Atomic::Null)
         ))
     );
@@ -1063,7 +1063,7 @@ mod date_operators {
     test_derive_expression_schema!(
         date_diff_one_arg_possibly_missing,
         expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Long),
             Schema::Atomic(Atomic::Null)
         ))),
         input = r#"{"$dateDiff": {"startDate": "$foo", "endDate": {"$date": {"$numberLong": "123"}}, "unit": "hour", "startOfWeek": "mon", "timezone": "America/New_York"}}"#,
@@ -1072,7 +1072,7 @@ mod date_operators {
 
     test_derive_expression_schema!(
         date_diff_all_args,
-        expected = Ok(Schema::Atomic(Atomic::Date)),
+        expected = Ok(Schema::Atomic(Atomic::Long)),
         input = r#"{"$dateDiff": {"startDate": {"$date": {"$numberLong": "121"}}, "endDate": {"$date": {"$numberLong": "123"}}, "unit": "hour", "startOfWeek": "mon", "timezone": "America/New_York"}}"#
     );
 
@@ -1142,7 +1142,7 @@ mod field_setter_ops {
                 "foo".to_string() => Schema::Atomic(Atomic::Integer),
                 "x".to_string() => Schema::Atomic(Atomic::Boolean),
             },
-            required: set!(),
+            required: set!("foo".to_string(), "x".to_string()),
             ..Default::default()
         })),
         input = r#"{ "$setField": { "input": "$$ROOT", "field": "x", "value": true } }"#,
@@ -1157,7 +1157,7 @@ mod field_setter_ops {
                 "y".to_string() => Schema::Atomic(Atomic::Integer),
                 "z".to_string() => Schema::Atomic(Atomic::Boolean),
             },
-            required: set!(),
+            required: set!("z".to_string()),
             ..Default::default()
         })),
         input = r#"{ "$setField": { "input": "$foo", "field": "z", "value": true } }"#,
@@ -1255,7 +1255,12 @@ mod field_setter_ops {
 
     test_derive_expression_schema!(
         let_simple,
-        expected = Ok(Schema::Atomic(Atomic::Decimal)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+        ))),
         input = r#"{ "$let": { "vars": {"x": {"$numberDecimal": "1"}}, "in": {"$multiply": ["$$x", "$foo"]}} }"#,
         ref_schema = Schema::Atomic(Atomic::Integer)
     );
@@ -1263,6 +1268,9 @@ mod field_setter_ops {
     test_derive_expression_schema!(
         let_accesses_existing_variables,
         expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
             Schema::Atomic(Atomic::Decimal),
             Schema::Atomic(Atomic::Null),
         ))),
@@ -1278,7 +1286,12 @@ mod field_setter_ops {
 
     test_derive_expression_schema!(
         let_overwrites_existing_variables,
-        expected = Ok(Schema::Atomic(Atomic::Decimal)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+        ))),
         input = r#"{ "$let": { "vars": {"x": {"$numberDecimal": "1"}}, "in": {"$multiply": ["$$x", "$foo"]}} }"#,
         ref_schema = Schema::Atomic(Atomic::Integer),
         variables = map! {

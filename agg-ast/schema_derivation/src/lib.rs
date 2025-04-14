@@ -162,15 +162,13 @@ pub(crate) fn get_schema_for_path(schema: Schema, path: Vec<String>) -> Option<S
     let mut schema = schema;
     for (index, field) in path.clone().iter().enumerate() {
         schema = match schema {
-            Schema::Document(d) => {
-                let (x, y) = (d.keys.get(field), d.additional_properties);
-                match (x, y) {
+            Schema::Document(d) => match (d.keys.get(field), d.additional_properties) {
                 (None, false) => {
                     return None;
                 }
                 (None, true) => Schema::Any,
                 (Some(s), _) => s.clone(),
-            }},
+            },
             Schema::AnyOf(ao) => {
                 let types = ao
                     .iter()
@@ -189,6 +187,7 @@ pub(crate) fn get_schema_for_path(schema: Schema, path: Vec<String>) -> Option<S
                 let array_schema = get_schema_for_path(*a.clone(), path[index..].to_vec());
                 return array_schema.map(|schema| Schema::Array(Box::new(schema)));
             }
+            Schema::Any => Schema::Any,
             Schema::Missing | Schema::Atomic(Atomic::Null) => {
                 return Some(Schema::Missing);
             }
