@@ -128,7 +128,7 @@ mod array_ops {
     );
     test_derive_expression_schema!(
         set_intersection_empty,
-        expected = Ok(Schema::Array(Box::new(Schema::Unsat,))),
+        expected = Ok(Schema::Array(Box::new(Schema::Atomic(Atomic::Integer)))),
         input = r#"{"$setIntersection": ["$foo", []]}"#,
         ref_schema = Schema::Array(Box::new(Schema::Atomic(Atomic::Integer)))
     );

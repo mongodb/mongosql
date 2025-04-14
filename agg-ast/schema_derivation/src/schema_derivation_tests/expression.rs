@@ -500,7 +500,7 @@ mod array {
 
     test_derive_expression_schema!(
         empty_array,
-        expected = Ok(Schema::Array(Box::new(Schema::Missing))),
+        expected = Ok(Schema::Array(Box::new(Schema::Unsat))),
         input = r#"[]"#
     );
 
