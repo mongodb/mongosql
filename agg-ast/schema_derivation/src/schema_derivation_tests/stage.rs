@@ -1269,6 +1269,24 @@ mod project {
         })
     );
     test_derive_stage_schema!(
+        project_array_of_docs,
+        expected = Ok(Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::String),
+                "b".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            ..Default::default()
+        })))),
+        input = r#"{"$project": {"foo.a": 1, "foo.b": 1}}"#,
+        ref_schema = Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::String),
+                "b".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            ..Default::default()
+        })))
+    );
+    test_derive_stage_schema!(
         project_remove_id,
         expected = Ok(Schema::Document(Document {
             keys: map! {

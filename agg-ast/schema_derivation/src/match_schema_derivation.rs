@@ -83,6 +83,7 @@ fn schema_for_match_bson_literal(bson: &Bson, include_missing: bool) -> Schema {
                 Schema::Atomic(Atomic::Null)
             }
         }
+        Bson::Array(_) => Schema::Array(Box::new(Schema::Any)),
         b => schema_for_bson(b),
     }
 }

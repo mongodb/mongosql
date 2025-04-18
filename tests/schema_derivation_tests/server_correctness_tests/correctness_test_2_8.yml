@@ -38,10 +38,13 @@ result_set_schema:
             "bsonType": "date"
           },
           "num": {
-            "bsonType": "int"
+            "bsonType": "long"
           },
           "obj.obj.obj.obj.num": {
-            "bsonType": "date"
+            "anyOf": [
+              { "bsonType": "date" },
+              { "bsonType": "string" },
+            ]
           },
           "obj": {
             "bsonType": "object",

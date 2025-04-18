@@ -11,9 +11,6 @@ result_set_schema:
         "items": {
           "bsonType": "object",
           "properties": {
-            "_id": {
-              "bsonType": "int"
-            },
             "obj": {
               "bsonType": "object",
               "properties": {
@@ -26,6 +23,29 @@ result_set_schema:
                         "obj": {
                           "bsonType": "object",
                           "properties": {
+                            "array": {
+                              "anyOf": [
+                                {
+                                  "bsonType": "null"
+                                },
+                                {
+                                  "bsonType": "array",
+                                  "items": {
+                                    "bsonType": "string"
+                                  }
+                                }
+                              ]
+                            },
+                            "bool": {
+                              "anyOf": [
+                                {
+                                  "bsonType": "null"
+                                },
+                                {
+                                  "bsonType": "bool"
+                                }
+                              ]
+                            },
                             "obj": {
                               "bsonType": "object",
                               "properties": {
@@ -45,9 +65,7 @@ result_set_schema:
                               ],
                               "additionalProperties": false
                             },
-                            "array": {
-                              "bsonType": "null"
-                            }
+                            "str": { "bsonType": "string" },
                           },
                           "required": [
                             "array",
@@ -72,6 +90,9 @@ result_set_schema:
                 "obj"
               ],
               "additionalProperties": false
+            },
+            "_id": {
+              "bsonType": "int"
             }
           },
           "required": [

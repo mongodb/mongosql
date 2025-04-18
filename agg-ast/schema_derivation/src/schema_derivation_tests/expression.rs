@@ -253,6 +253,83 @@ mod field_ref {
     );
 
     test_derive_expression_schema!(
+        nested_ref_nested_anyof,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Integer),
+            Schema::Missing
+        ))),
+        input = r#""$foo.a.b.c.d.e""#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Document(Document {
+                keys: map! {
+                    "a".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::Null), Schema::Document(Document {
+                        keys: map! {
+                            "b".to_string() => Schema::AnyOf(set!(
+                                Schema::Atomic(Atomic::Null),
+                                Schema::Document(Document {
+                                    keys: map! {
+                                        "c".to_string() => Schema::Document(Document {
+                                            keys: map! {
+                                                "d".to_string() => Schema::Document(Document {
+                                                    keys: map! {
+                                                        "e".to_string() => Schema::Atomic(Atomic::Double)
+                                                    },
+                                                    required: set!("e".to_string()),
+                                                    ..Default::default()
+                                                })
+                                            },
+                                            required: set!("d".to_string()),
+                                            ..Default::default()
+                                        })
+                                    },
+                                    required: set!("c".to_string()),
+                                    ..Default::default()
+                                })
+                            ))
+                        },
+                        required: set!("b".to_string()),
+                        ..Default::default()
+                    })))
+                },
+                required: set!("a".to_string()),
+                ..Default::default()
+            }),
+            Schema::Document(Document {
+                keys: map! {
+                    "a".to_string() => Schema::Document(Document {
+                        keys: map! {
+                            "b".to_string() => Schema::Document(Document {
+                                keys: map! {
+                                    "c".to_string() => Schema::Document(Document {
+                                        keys: map! {
+                                            "d".to_string() => Schema::Document(Document {
+                                                keys: map! {
+                                                    "e".to_string() => Schema::Atomic(Atomic::Integer)
+                                                },
+                                                required: set!("e".to_string()),
+                                                ..Default::default()
+                                            })
+                                        },
+                                        required: set!("d".to_string()),
+                                        ..Default::default()
+                                    })
+                                },
+                                required: set!("c".to_string()),
+                                ..Default::default()
+                            })
+                        },
+                        required: set!("b".to_string()),
+                        ..Default::default()
+                    })
+                },
+                required: set!("a".to_string()),
+                ..Default::default()
+            }),
+        ))
+    );
+
+    test_derive_expression_schema!(
         nested_ref_converts_null_to_missing,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Double),

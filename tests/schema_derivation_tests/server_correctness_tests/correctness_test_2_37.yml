@@ -17,7 +17,7 @@ result_set_schema: {
       "bsonType": "array"
     }, 
     "num": {
-      "bsonType": "int"
+      "bsonType": "double"
     }, 
     "_id": {
       "additionalProperties": false, 
