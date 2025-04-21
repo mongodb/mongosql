@@ -1318,6 +1318,7 @@ mod convert {
                     }),
                     current_db: "test".to_string(),
                     null_behavior: Satisfaction::Not,
+                    accumulator_stage: false,
                 };
                 let to_values = vec![
                     Expression::Literal(LiteralValue::String($string_rep.to_string())),

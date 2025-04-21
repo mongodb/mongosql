@@ -78,6 +78,7 @@ pub struct ResultSetState<'a> {
     // where more broadly things like null field references or a falsifiable return type (e.g. {$eq: [{$op: ...}, 0])
     // may influcence they types of values the underlying result_set_schema can contain.
     pub null_behavior: Satisfaction,
+    pub accumulator_stage: bool,
 }
 
 pub fn derive_schema_for_pipeline(
@@ -596,6 +597,7 @@ impl DeriveSchema for Stage {
                 result_set_schema: from_schema.clone(),
                 current_db: state.current_db.clone(),
                 null_behavior: state.null_behavior,
+                accumulator_stage: state.accumulator_stage,
             };
             let lookup_schema =
                 derive_schema_for_pipeline(pipeline.to_owned(), None, &mut lookup_state)?;
@@ -660,6 +662,7 @@ impl DeriveSchema for Stage {
                             result_set_schema: from_schema.clone(),
                             current_db: state.current_db.clone(),
                             null_behavior: state.null_behavior,
+                            accumulator_stage: state.accumulator_stage,
                         };
                         let pipeline_schema =
                             derive_schema_for_pipeline(pipeline, None, pipeline_state)?;
@@ -1349,6 +1352,7 @@ impl DeriveSchema for TaggedOperator {
                     variables,
                     current_db: state.current_db.clone(),
                     null_behavior: state.null_behavior,
+                    accumulator_stage: state.accumulator_stage,
                 };
                 l.inside.derive_schema(&mut let_state)
             }
