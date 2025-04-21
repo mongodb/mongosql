@@ -97,7 +97,7 @@ fn promote_missing(schema: &Schema) -> Schema {
 //
 // Note that this could also be achieved by complementing the Schema to be removed and intersecting
 // it with the Schema to be modified, but this would be quite a bit less efficient.
-pub fn schema_difference(schema: &mut Schema, to_remove: BTreeSet<Schema>) {
+fn schema_difference(schema: &mut Schema, to_remove: BTreeSet<Schema>) {
     match schema {
         Schema::Any => {
             *schema = UNFOLDED_ANY.clone();

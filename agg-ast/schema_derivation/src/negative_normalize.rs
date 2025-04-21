@@ -435,10 +435,7 @@ impl NegativeNormalize<MatchExpression> for MatchExpression {
                     self.clone()
                 }
                 // a $match where the expression is a value or field ref should fail in deserialization
-                _ => {
-                    println!("{:?}", self);
-                    unreachable!("Cannot negate match on non operator expression")
-                }
+                _ => unreachable!("Cannot negate match on non operator expression"),
             },
             MatchExpression::Logical(logical) => logical.get_negation(),
             MatchExpression::Field(field) => field.get_negation(),

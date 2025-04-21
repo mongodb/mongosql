@@ -4083,7 +4083,6 @@ dependencies = [
  "mongodb",
  "mongosql",
  "serde",
- "serde_json",
  "serde_stacker",
  "serde_yaml",
  "thiserror 2.0.12",
