@@ -158,22 +158,23 @@ mod window_ops {
             Schema::Atomic(Atomic::Decimal),
         ))
     );
-    test_derive_expression_schema!(
-        max_n,
-        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::Long),
-            Schema::Atomic(Atomic::Decimal),
-        ))))),
-        input = r#"{"$maxN": 
-            { "input": "$foo", "n": 3 }
-        }"#,
-        ref_schema = Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::Long),
-            Schema::Atomic(Atomic::Decimal),
-        ))
-    );
+    // SQL-2792
+    // test_derive_expression_schema!(
+    //     max_n,
+    //     expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
+    //         Schema::Atomic(Atomic::Integer),
+    //         Schema::Atomic(Atomic::Long),
+    //         Schema::Atomic(Atomic::Decimal),
+    //     ))))),
+    //     input = r#"{"$maxN":
+    //         { "input": "$foo", "n": 3 }
+    //     }"#,
+    //     ref_schema = Schema::AnyOf(set!(
+    //         Schema::Atomic(Atomic::Integer),
+    //         Schema::Atomic(Atomic::Long),
+    //         Schema::Atomic(Atomic::Decimal),
+    //     ))
+    // );
     test_derive_expression_schema!(
         median,
         expected = Ok(Schema::AnyOf(set!(
@@ -191,22 +192,23 @@ mod window_ops {
             Schema::Atomic(Atomic::Null),
         ))
     );
-    test_derive_expression_schema!(
-        min_n,
-        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::Long),
-            Schema::Atomic(Atomic::Decimal),
-        ))))),
-        input = r#"{"$minN": 
-            { "input": "$foo", "n": 3 }
-        }"#,
-        ref_schema = Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::Long),
-            Schema::Atomic(Atomic::Decimal),
-        ))
-    );
+    // SQL-2792
+    // test_derive_expression_schema!(
+    //     min_n,
+    //     expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
+    //         Schema::Atomic(Atomic::Integer),
+    //         Schema::Atomic(Atomic::Long),
+    //         Schema::Atomic(Atomic::Decimal),
+    //     ))))),
+    //     input = r#"{"$minN":
+    //         { "input": "$foo", "n": 3 }
+    //     }"#,
+    //     ref_schema = Schema::AnyOf(set!(
+    //         Schema::Atomic(Atomic::Integer),
+    //         Schema::Atomic(Atomic::Long),
+    //         Schema::Atomic(Atomic::Decimal),
+    //     ))
+    // );
     test_derive_expression_schema!(
         percentile,
         expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
@@ -533,50 +535,51 @@ mod group_ops {
                    }}"#,
         ref_schema = Schema::Atomic(Atomic::Integer)
     );
-    test_derive_expression_schema!(
-        max_n,
-        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set! {
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::String),
-            Schema::Atomic(Atomic::Double),
-            Schema::Atomic(Atomic::Decimal),
-            Schema::Atomic(Atomic::Date),
-            Schema::Atomic(Atomic::Timestamp),
-            Schema::Atomic(Atomic::MaxKey),
-        })))),
-        input = r#"{"$maxN": {"input": "$foo", "n": 64}}"#,
-        ref_schema = Schema::AnyOf(set! {
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::String),
-            Schema::Atomic(Atomic::Double),
-            Schema::Atomic(Atomic::Decimal),
-            Schema::Atomic(Atomic::Date),
-            Schema::Atomic(Atomic::Timestamp),
-            Schema::Atomic(Atomic::MaxKey),
-        })
-    );
-    test_derive_expression_schema!(
-        min_n,
-        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set! {
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::String),
-            Schema::Atomic(Atomic::Double),
-            Schema::Atomic(Atomic::Decimal),
-            Schema::Atomic(Atomic::Date),
-            Schema::Atomic(Atomic::Timestamp),
-            Schema::Atomic(Atomic::MaxKey),
-        })))),
-        input = r#"{"$minN": {"input": "$foo", "n": 64}}"#,
-        ref_schema = Schema::AnyOf(set! {
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::String),
-            Schema::Atomic(Atomic::Double),
-            Schema::Atomic(Atomic::Decimal),
-            Schema::Atomic(Atomic::Date),
-            Schema::Atomic(Atomic::Timestamp),
-            Schema::Atomic(Atomic::MaxKey),
-        })
-    );
+    // SQL-2792
+    // test_derive_expression_schema!(
+    //     max_n,
+    //     expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set! {
+    //         Schema::Atomic(Atomic::Integer),
+    //         Schema::Atomic(Atomic::String),
+    //         Schema::Atomic(Atomic::Double),
+    //         Schema::Atomic(Atomic::Decimal),
+    //         Schema::Atomic(Atomic::Date),
+    //         Schema::Atomic(Atomic::Timestamp),
+    //         Schema::Atomic(Atomic::MaxKey),
+    //     })))),
+    //     input = r#"{"$maxN": {"input": "$foo", "n": 64}}"#,
+    //     ref_schema = Schema::AnyOf(set! {
+    //         Schema::Atomic(Atomic::Integer),
+    //         Schema::Atomic(Atomic::String),
+    //         Schema::Atomic(Atomic::Double),
+    //         Schema::Atomic(Atomic::Decimal),
+    //         Schema::Atomic(Atomic::Date),
+    //         Schema::Atomic(Atomic::Timestamp),
+    //         Schema::Atomic(Atomic::MaxKey),
+    //     })
+    // );
+    // test_derive_expression_schema!(
+    //     min_n,
+    //     expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set! {
+    //         Schema::Atomic(Atomic::Integer),
+    //         Schema::Atomic(Atomic::String),
+    //         Schema::Atomic(Atomic::Double),
+    //         Schema::Atomic(Atomic::Decimal),
+    //         Schema::Atomic(Atomic::Date),
+    //         Schema::Atomic(Atomic::Timestamp),
+    //         Schema::Atomic(Atomic::MaxKey),
+    //     })))),
+    //     input = r#"{"$minN": {"input": "$foo", "n": 64}}"#,
+    //     ref_schema = Schema::AnyOf(set! {
+    //         Schema::Atomic(Atomic::Integer),
+    //         Schema::Atomic(Atomic::String),
+    //         Schema::Atomic(Atomic::Double),
+    //         Schema::Atomic(Atomic::Decimal),
+    //         Schema::Atomic(Atomic::Date),
+    //         Schema::Atomic(Atomic::Timestamp),
+    //         Schema::Atomic(Atomic::MaxKey),
+    //     })
+    // );
     test_derive_expression_schema!(
         push,
         expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(

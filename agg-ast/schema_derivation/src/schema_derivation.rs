@@ -1687,32 +1687,6 @@ fn get_decimal_double_or_nullish(
 
 impl DeriveSchema for UntaggedOperator {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
-        // numeric_filter is a helper that takes a schema and a set of schemas. If the schema is
-        // numeric it will retain all the numeric schemas from the set of schemas, otherwise it
-        // will return that original schema. This is useful for $min and $max.
-        let numeric_filter = |schema: Schema, schemas: BTreeSet<Schema>| {
-            if schema.satisfies(&NUMERIC) == Satisfaction::Must {
-                let out_schemas = schemas
-                    .into_iter()
-                    .filter(|s| {
-                        matches!(
-                            s,
-                            Schema::Atomic(
-                                Atomic::Integer | Atomic::Long | Atomic::Double | Atomic::Decimal
-                            )
-                        )
-                    })
-                    .collect::<BTreeSet<_>>();
-                if out_schemas.len() == 1 {
-                    out_schemas.into_iter().next().unwrap()
-                } else {
-                    Schema::AnyOf(out_schemas)
-                }
-            } else {
-                schema
-            }
-        };
-
         fn get_sum_type(s: Schema) -> Schema {
             // get the maximum numeric type
             let s = if let Schema::AnyOf(a) = s {
@@ -2101,9 +2075,9 @@ impl DeriveSchema for UntaggedOperator {
             }
             UntaggedOperatorName::Max
             | UntaggedOperatorName::Min => {
-                let schema = self.args.iter().fold(Ok(Schema::Unsat), |acc, arg| {
+                let schema = self.args.iter().try_fold(Schema::Unsat, |acc, arg| {
                     let arg_schema = arg.derive_schema(state)?.upconvert_missing_to_null();
-                    Ok(acc?.union(&arg_schema))
+                    Ok(acc.union(&arg_schema))
                 })?;
                 Ok(schema)
             }

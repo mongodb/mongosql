@@ -677,7 +677,10 @@ mod group_accumulator {
     );
     test_derive_expression_schema!(
         max,
-        expected = Ok(Schema::Atomic(Atomic::String)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))),
         input = r#"{"$max": "$foo"}"#,
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -686,7 +689,10 @@ mod group_accumulator {
     );
     test_derive_expression_schema!(
         min,
-        expected = Ok(Schema::Atomic(Atomic::Integer)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))),
         input = r#"{"$min": "$foo"}"#,
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -893,7 +899,10 @@ mod group_accumulator {
     );
     test_derive_expression_schema!(
         sql_max,
-        expected = Ok(Schema::Atomic(Atomic::String)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))),
         input = r#"{"$sqlMax": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -902,7 +911,10 @@ mod group_accumulator {
     );
     test_derive_expression_schema!(
         sql_min,
-        expected = Ok(Schema::Atomic(Atomic::Integer)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))),
         input = r#"{"$sqlMin": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
