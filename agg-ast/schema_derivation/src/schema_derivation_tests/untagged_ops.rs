@@ -20,7 +20,8 @@ macro_rules! test_type_conversion_op {
                         ..Default::default()
                     }),
                     current_db: "test".to_string(),
-                    null_behavior: Satisfaction::Not
+                    null_behavior: Satisfaction::Not,
+                    accumulator_stage: false,
                 };
                 let input: Expression = serde_json::from_str(format!("{{\"{0}\":\"$foo\"}}", $op).as_str()).unwrap();
                 // if the input schema is null, we should return null

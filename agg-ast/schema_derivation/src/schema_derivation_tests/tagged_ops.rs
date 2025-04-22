@@ -160,11 +160,11 @@ mod window_ops {
     );
     test_derive_expression_schema!(
         max_n,
-        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
+        expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long),
             Schema::Atomic(Atomic::Decimal),
-        ))))),
+        ))),
         input = r#"{"$maxN": 
             { "input": "$foo", "n": 3 }
         }"#,
@@ -193,11 +193,11 @@ mod window_ops {
     );
     test_derive_expression_schema!(
         min_n,
-        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set!(
+        expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long),
             Schema::Atomic(Atomic::Decimal),
-        ))))),
+        ))),
         input = r#"{"$minN": 
             { "input": "$foo", "n": 3 }
         }"#,
@@ -535,7 +535,7 @@ mod group_ops {
     );
     test_derive_expression_schema!(
         max_n,
-        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set! {
+        expected = Ok(Schema::AnyOf(set! {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Double),
@@ -543,7 +543,7 @@ mod group_ops {
             Schema::Atomic(Atomic::Date),
             Schema::Atomic(Atomic::Timestamp),
             Schema::Atomic(Atomic::MaxKey),
-        })))),
+        })),
         input = r#"{"$maxN": {"input": "$foo", "n": 64}}"#,
         ref_schema = Schema::AnyOf(set! {
             Schema::Atomic(Atomic::Integer),
@@ -557,7 +557,7 @@ mod group_ops {
     );
     test_derive_expression_schema!(
         min_n,
-        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set! {
+        expected = Ok(Schema::AnyOf(set! {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Double),
@@ -565,7 +565,7 @@ mod group_ops {
             Schema::Atomic(Atomic::Date),
             Schema::Atomic(Atomic::Timestamp),
             Schema::Atomic(Atomic::MaxKey),
-        })))),
+        })),
         input = r#"{"$minN": {"input": "$foo", "n": 64}}"#,
         ref_schema = Schema::AnyOf(set! {
             Schema::Atomic(Atomic::Integer),
@@ -1318,6 +1318,7 @@ mod convert {
                     }),
                     current_db: "test".to_string(),
                     null_behavior: Satisfaction::Not,
+                    accumulator_stage: false,
                 };
                 let to_values = vec![
                     Expression::Literal(LiteralValue::String($string_rep.to_string())),
