@@ -1,6 +1,6 @@
+use agg_ast::definitions::Namespace;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use mongosql::{
-    agg_ast::definitions::Namespace,
     catalog::Catalog,
     map,
     options::{ExcludeNamespacesOption, SqlOptions},
