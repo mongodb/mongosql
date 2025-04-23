@@ -459,12 +459,14 @@ impl DeriveSchema for Stage {
             // and then union them together to get the resulting schema.
             for (k, p) in project.items.clone() {
                 let path = k.split('.').map(|s| s.to_string()).collect::<Vec<String>>();
-                if path[0] == "_id" {
-                    include_id = false;
-                }
                 match p {
                     ProjectItem::Exclusion => {}
                     ProjectItem::Assignment(e) => {
+                        // project excludes the top level _id field if there is a field path to
+                        // one of its nested fields to avoid collision.
+                        if path[0] == "_id" {
+                            include_id = false;
+                        }
                         let field_schema = e.derive_schema(state)?;
                         insert_required_key_into_document(
                             &mut result_doc,
@@ -474,6 +476,11 @@ impl DeriveSchema for Stage {
                         );
                     }
                     ProjectItem::Inclusion => {
+                        // project excludes the top level _id field if there is a field path to
+                        // one of its nested fields to avoid collision.
+                        if path[0] == "_id" {
+                            include_id = false;
+                        }
                         let field_schema =
                             get_schema_for_path(state.result_set_schema.clone(), path.clone())
                                 .unwrap_or(Schema::Missing);
