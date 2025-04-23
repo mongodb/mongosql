@@ -1,14 +1,19 @@
 catalog_schema_file: correctness_catalog_1.yml
 current_db: test
 current_collection: fuzzer_coll
-pipeline: [ { "$count" : "num" }, { "$set" : { "date" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$dateFromParts" : { "isoWeekYear" : 17, "isoWeek" : {"$numberLong": "16"}, "hour" : {"$numberLong": "8"}, "minute" : {"$numberLong": "4"}, "timezone" : "Asia/Chungking" } } ] }, "obj.obj.obj.obj.obj" : { "$setField" : { "field" : "obj.obj.obj.obj.obj.str", "input" : { "$arrayToObject" : [ [ [ "dedicated", { "$ifNull" : [ false, null ] } ], [ "Turnpike", { "$ifNull" : [ "Assimilated", null ] } ], [ "FTP Gloves", { "$ifNull" : [ true, null ] } ] ] ] }, "value" : { "$substrCP" : [ "$obj.obj.obj.obj.obj.str", 19, {"$numberLong": "14"} ] } } }, "bool" : { "$and" : "$obj.obj.obj.array" } } } ]
+pipeline: [ { "$count" : "num" }, { "$set" : { "date" : { "$max" : [ {"$date": "0001-01-01T00:00:00Z"}, { "$dateFromParts" : { "isoWeekYear" : 17, "isoWeek" : {"$numberLong": "16"}, "hour" : {"$numberLong": "8"}, "minute" : {"$numberLong": "4"}, "timezone" : "Asia/Chungking" } } ] }, "obj.obj.obj.obj.obj" : { "$setField" : { "field" : "obj.obj.obj.obj.obj.str", "input" : { "$arrayToObject" : [ [ [ "dedicated", { "$ifNull" : [ false, null ] } ], [ "Turnpike", { "$ifNull" : [ "Assimilated", null ] } ], [ "FTP Gloves", { "$ifNull" : [ true, null ] } ] ] ] }, "value" : { "$substrCP" : [ "$obj.obj.obj.obj.obj.str", 19, {"$numberLong": "14"} ] } } }, "bool" : { "$and" : "$obj.obj.obj.array" } } } ]
 result_set_schema:
   {
     "bsonType": "object",
     "properties": {
       "date": { "bsonType": "date" },
       "bool": { "bsonType": "bool" },
-      "num": { "bsonType": "int" },
+      "num": {
+        anyOf: [
+          { "bsonType": "int" },
+          { "bsonType": "long" },
+        ]
+      },
       "obj": {
         "bsonType": "object",
         "properties": {
@@ -49,6 +54,6 @@ result_set_schema:
         "additionalProperties": false
       }
     },
-    "required": ["_id", "bool", "date", "num", "obj"],
+    "required": ["bool", "date", "num", "obj"],
     "additionalProperties": false
   }

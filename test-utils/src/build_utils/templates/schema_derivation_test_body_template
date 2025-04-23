@@ -41,13 +41,11 @@ pub fn {name}() {{
         current_db: db,
         result_set_schema: Schema::Any,
         variables: BTreeMap::new(),
-        null_behavior: Satisfaction::Not
+        null_behavior: Satisfaction::Not,
+        accumulator_stage: false,
     }};
 
     let derived_schema = derive_schema_for_pipeline(test.pipeline.to_owned(), test.current_collection.clone(), &mut result_set_state);
-    assert!(derived_schema.is_ok(), "{{:?}}", derived_schema.err());
     let result_set_schema = Schema::try_from(test.result_set_schema.to_owned()).map_err(|e| e.to_string()).unwrap();
-    println!("result_set_schema: {{:?}}", result_set_schema);
-    println!("derived_schema: {{:?}}", derived_schema.clone().unwrap());
-    assert!(result_set_schema.satisfies(&derived_schema.clone().unwrap()) == Satisfaction::Must, "{{:?}}, {{:?}}", result_set_schema, derived_schema);
+    assert!(result_set_schema.satisfies(&derived_schema.clone().unwrap()) == Satisfaction::Must);
 }}

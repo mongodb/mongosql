@@ -15,7 +15,7 @@ result_set_schema:
         "bsonType": "object",
         "properties": {
           "Unbranded": {
-            "any_of": [
+            "anyOf": [
               { "bsonType": "null" },
               { "bsonType": "int" },
               { "bsonType": "decimal" }

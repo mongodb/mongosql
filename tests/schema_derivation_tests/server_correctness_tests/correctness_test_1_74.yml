@@ -13,7 +13,7 @@ result_set_schema:
           "properties": {
             "array": {
               "bsonType": "array",
-              "maxItems": 0
+              "items": { "bsonType": "int" }
             },
             "_id": { "bsonType": "int" }
           },
@@ -22,6 +22,6 @@ result_set_schema:
         }
       },
     },
-    "required": ["_id", "array"],
+    "required": ["array"],
     "additionalProperties": false
   }

@@ -450,7 +450,7 @@ test_derive_schema_for_match_stage! {
         Schema::Atomic(Atomic::Integer),
         Schema::Missing,
         Schema::Atomic(Atomic::Null),
-        Schema::Array(Box::new(Schema::Any)),
+        Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
     })
 }
 

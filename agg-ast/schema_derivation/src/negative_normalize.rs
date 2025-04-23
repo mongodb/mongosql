@@ -430,6 +430,10 @@ impl NegativeNormalize<MatchExpression> for MatchExpression {
                         expr: Box::new(expr.get_negation()),
                     })
                 }
+                Expression::Ref(Ref::VariableRef(_)) => {
+                    // Ref expressions are not negated, so we return the original expression
+                    self.clone()
+                }
                 // a $match where the expression is a value or field ref should fail in deserialization
                 _ => unreachable!("Cannot negate match on non operator expression"),
             },

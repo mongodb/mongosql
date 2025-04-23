@@ -253,6 +253,83 @@ mod field_ref {
     );
 
     test_derive_expression_schema!(
+        nested_ref_nested_anyof,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Integer),
+            Schema::Missing
+        ))),
+        input = r#""$foo.a.b.c.d.e""#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Document(Document {
+                keys: map! {
+                    "a".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::Null), Schema::Document(Document {
+                        keys: map! {
+                            "b".to_string() => Schema::AnyOf(set!(
+                                Schema::Atomic(Atomic::Null),
+                                Schema::Document(Document {
+                                    keys: map! {
+                                        "c".to_string() => Schema::Document(Document {
+                                            keys: map! {
+                                                "d".to_string() => Schema::Document(Document {
+                                                    keys: map! {
+                                                        "e".to_string() => Schema::Atomic(Atomic::Double)
+                                                    },
+                                                    required: set!("e".to_string()),
+                                                    ..Default::default()
+                                                })
+                                            },
+                                            required: set!("d".to_string()),
+                                            ..Default::default()
+                                        })
+                                    },
+                                    required: set!("c".to_string()),
+                                    ..Default::default()
+                                })
+                            ))
+                        },
+                        required: set!("b".to_string()),
+                        ..Default::default()
+                    })))
+                },
+                required: set!("a".to_string()),
+                ..Default::default()
+            }),
+            Schema::Document(Document {
+                keys: map! {
+                    "a".to_string() => Schema::Document(Document {
+                        keys: map! {
+                            "b".to_string() => Schema::Document(Document {
+                                keys: map! {
+                                    "c".to_string() => Schema::Document(Document {
+                                        keys: map! {
+                                            "d".to_string() => Schema::Document(Document {
+                                                keys: map! {
+                                                    "e".to_string() => Schema::Atomic(Atomic::Integer)
+                                                },
+                                                required: set!("e".to_string()),
+                                                ..Default::default()
+                                            })
+                                        },
+                                        required: set!("d".to_string()),
+                                        ..Default::default()
+                                    })
+                                },
+                                required: set!("c".to_string()),
+                                ..Default::default()
+                            })
+                        },
+                        required: set!("b".to_string()),
+                        ..Default::default()
+                    })
+                },
+                required: set!("a".to_string()),
+                ..Default::default()
+            }),
+        ))
+    );
+
+    test_derive_expression_schema!(
         nested_ref_converts_null_to_missing,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Double),
@@ -600,7 +677,10 @@ mod group_accumulator {
     );
     test_derive_expression_schema!(
         max,
-        expected = Ok(Schema::Atomic(Atomic::String)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))),
         input = r#"{"$max": "$foo"}"#,
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -609,7 +689,10 @@ mod group_accumulator {
     );
     test_derive_expression_schema!(
         min,
-        expected = Ok(Schema::Atomic(Atomic::Integer)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))),
         input = r#"{"$min": "$foo"}"#,
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -816,7 +899,10 @@ mod group_accumulator {
     );
     test_derive_expression_schema!(
         sql_max,
-        expected = Ok(Schema::Atomic(Atomic::String)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))),
         input = r#"{"$sqlMax": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
@@ -825,7 +911,10 @@ mod group_accumulator {
     );
     test_derive_expression_schema!(
         sql_min,
-        expected = Ok(Schema::Atomic(Atomic::Integer)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ))),
         input = r#"{"$sqlMin": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),

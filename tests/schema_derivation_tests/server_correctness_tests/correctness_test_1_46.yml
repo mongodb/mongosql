@@ -7,15 +7,12 @@ result_set_schema:
     "bsonType": "object",
     "properties": {
       "_id": {
-        "any_of": [
+        "anyOf": [
           { "bsonType": "null" },
           { "bsonType": "int" }
         ]
       },
       "count": { "bsonType": "int" },
-      "_id": {
-        "bsonType": "objectId"
-      }
     },
     "required": ["_id", "count"],
     "additionalProperties": false

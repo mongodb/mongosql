@@ -6,7 +6,6 @@ result_set_schema:
   {
     "bsonType": "object",
     "properties": {
-
       "array": {
         "bsonType": "array",
         "items": {
@@ -20,6 +19,6 @@ result_set_schema:
         }
       }
     },
-    "required": ["_id", "array"],
+    "required": ["array"],
     "additionalProperties": false
   }

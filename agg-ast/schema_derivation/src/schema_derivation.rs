@@ -232,32 +232,35 @@ impl DeriveSchema for Stage {
                     .split('.')
                     .map(|s| s.to_string())
                     .collect::<Vec<String>>();
-                macro_rules! get_path_schema {
-                    () => {{
-                        // Unfortunately, the borrow checker requires us to compute path_schema in
-                        // both branches because we have a mutable borrow on state when
-                        // we compute the fill_schema in the Value case. This macro cleans up some
-                        // duplication.
-                        get_schema_for_path_mut(&mut state.result_set_schema, path_vec)
-                            .ok_or_else(|| Error::UnknownReference(path.clone()))?
-                    }};
-                }
                 match fill_output {
                     FillOutput::Value(e) => {
                         let fill_schema = e.derive_schema(state)?;
-                        let path_schema = get_path_schema!();
-                        // Null is possible if the value expression can evaluate to null, but
-                        // missing will always be impossible. We subtract NULL so it can only be
-                        // reintroduced via the union of the fill_schema
-                        *path_schema = std::mem::take(path_schema)
-                            .subtract_nullish()
-                            .union(&fill_schema);
+                        match get_schema_for_path_mut(
+                            &mut state.result_set_schema,
+                            path_vec.clone(),
+                        ) {
+                            Some(path_schema) => {
+                                *path_schema = std::mem::take(path_schema)
+                                    .subtract_nullish()
+                                    .union(&fill_schema);
+                            }
+                            None => {
+                                insert_required_key_into_document(
+                                    &mut state.result_set_schema,
+                                    fill_schema,
+                                    path_vec.clone(),
+                                    true,
+                                );
+                            }
+                        }
                     }
                     // The method does not matter, either of the currently supported methdos will
                     // remove null and missing from the schema, and cannot change the schema in
                     // any other meaningful way.
                     FillOutput::Method(_m) => {
-                        let path_schema = get_path_schema!();
+                        let path_schema =
+                            get_schema_for_path_mut(&mut state.result_set_schema, path_vec)
+                                .ok_or_else(|| Error::UnknownReference(path.clone()))?;
                         *path_schema = std::mem::take(path_schema).subtract_nullish();
                     }
                 }
@@ -311,11 +314,12 @@ impl DeriveSchema for Stage {
                 .aggregations
                 .iter()
                 .map(|(k, e)| {
-                    let field_schema = e.derive_schema(state)?;
+                    let field_schema = e.derive_schema(state)?.upconvert_missing_to_null();
                     Ok((k.to_string(), field_schema))
                 })
                 .collect::<Result<BTreeMap<String, Schema>>>()?;
-            keys.insert("_id".to_string(), group.keys.derive_schema(state)?);
+            let id_schema = group.keys.derive_schema(state)?.upconvert_missing_to_null();
+            keys.insert("_id".to_string(), id_schema);
             state.accumulator_stage = false;
             Ok(Schema::Document(Document {
                 required: keys.keys().cloned().collect(),
@@ -412,32 +416,17 @@ impl DeriveSchema for Stage {
             state: &mut ResultSetState,
         ) -> Result<Schema> {
             state.accumulator_stage = true;
-            let mut keys = set_windows
-                .output
-                .iter()
-                .map(|(k, e)| {
-                    let field_schema = e.window_func.derive_schema(state)?;
-                    Ok((k.to_string(), field_schema))
-                })
-                .collect::<Result<BTreeMap<_, _>>>()?;
-            let Schema::Document(Document {
-                keys: ref current_keys,
-                ..
-            }) = state.result_set_schema
-            else {
-                // This should never actually happen
-                panic!(
-                    "Found ResultSetSchema that is not a Document: {:?}",
-                    state.result_set_schema
-                );
-            };
-            keys.extend(current_keys.clone());
+            let mut result_doc = state.result_set_schema.clone();
+            for (k, e) in set_windows.output.clone() {
+                let field_schema = e
+                    .window_func
+                    .derive_schema(state)?
+                    .upconvert_missing_to_null();
+                let path = k.split('.').map(|s| s.to_string()).collect::<Vec<String>>();
+                insert_required_key_into_document(&mut result_doc, field_schema, path, true);
+            }
             state.accumulator_stage = false;
-            Ok(Schema::Document(Document {
-                required: keys.keys().cloned().collect(),
-                keys,
-                ..Default::default()
-            }))
+            Ok(result_doc)
         }
 
         fn project_derive_schema(
@@ -460,47 +449,65 @@ impl DeriveSchema for Stage {
                 state.result_set_schema = Schema::simplify(&state.result_set_schema);
                 return Ok(state.result_set_schema.to_owned());
             }
+            let mut result_doc = Schema::Document(Document::empty());
             // determine if the _id field should be included in the schema. This is the case, if the $project does not have _id: 0.
-            let include_id = project
+            let mut include_id = project
                 .items
                 .iter()
                 .all(|(k, p)| k != "_id" || !matches!(p, ProjectItem::Exclusion));
             // project is a map of field namespace to expression. We can derive the schema for each expression
             // and then union them together to get the resulting schema.
-            let mut keys = project
-                .items
-                .iter()
-                .filter(|(_k, p)| !matches!(p, ProjectItem::Exclusion))
-                .map(|(k, p)| match p {
+            for (k, p) in project.items.clone() {
+                let path = k.split('.').map(|s| s.to_string()).collect::<Vec<String>>();
+                match p {
+                    ProjectItem::Exclusion => {}
                     ProjectItem::Assignment(e) => {
+                        // project excludes the top level _id field if there is a field path to
+                        // one of its nested fields to avoid collision.
+                        if path[0] == "_id" {
+                            include_id = false;
+                        }
                         let field_schema = e.derive_schema(state)?;
-                        Ok((k.to_string(), field_schema))
+                        insert_required_key_into_document(
+                            &mut result_doc,
+                            field_schema,
+                            path.clone(),
+                            true,
+                        );
                     }
                     ProjectItem::Inclusion => {
-                        let field_schema = state
-                            .result_set_schema
-                            .get_key(k)
-                            .cloned()
-                            .unwrap_or(Schema::Missing);
-                        Ok((k.to_string(), field_schema))
+                        // project excludes the top level _id field if there is a field path to
+                        // one of its nested fields to avoid collision.
+                        if path[0] == "_id" {
+                            include_id = false;
+                        }
+                        let field_schema =
+                            get_schema_for_path(state.result_set_schema.clone(), path.clone())
+                                .unwrap_or(Schema::Missing);
+                        insert_required_key_into_document(
+                            &mut result_doc,
+                            field_schema,
+                            path.clone(),
+                            true,
+                        );
                     }
-                    _ => unreachable!(),
-                })
-                .collect::<Result<BTreeMap<String, Schema>>>()?;
+                }
+            }
             // if _id has not been excluded and has not been redefined, include it from the original schema
-            if include_id && !keys.contains_key("_id") {
+            if include_id {
                 // Only insert _id if it exists in the incoming schema
                 if let Some(id_value) = state.result_set_schema.get_key("_id") {
-                    keys.insert("_id".to_string(), id_value.clone());
+                    insert_required_key_into_document(
+                        &mut result_doc,
+                        id_value.clone(),
+                        vec!["_id".to_string()],
+                        true,
+                    );
                 }
             }
             // undo the promotion of missing
             state.result_set_schema = Schema::simplify(&state.result_set_schema);
-            Ok(Schema::simplify(&Schema::Document(Document {
-                required: keys.keys().cloned().collect(),
-                keys,
-                ..Default::default()
-            })))
+            Ok(Schema::simplify(&result_doc))
         }
 
         fn lookup_derive_schema(lookup: &Lookup, state: &mut ResultSetState) -> Result<Schema> {
@@ -1473,9 +1480,11 @@ impl DeriveSchema for TaggedOperator {
                 let mut variables = state.variables.clone();
                 variables.insert(var, array_element_schema);
                 new_state.variables = variables;
-                let not_null_schema =
-                    Schema::Array(Box::new(m.inside.derive_schema(&mut new_state)?))
-                        .upconvert_missing_to_null();
+                let not_null_schema = Schema::Array(Box::new(
+                    m.inside
+                        .derive_schema(&mut new_state)?
+                        .upconvert_missing_to_null(),
+                ));
                 Ok(
                     if input_schema.satisfies(&NULLISH.clone()) != Satisfaction::Not {
                         not_null_schema.union(&Schema::Atomic(Atomic::Null))
@@ -1698,32 +1707,6 @@ fn get_decimal_double_or_nullish(
 
 impl DeriveSchema for UntaggedOperator {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
-        // numeric_filter is a helper that takes a schema and a set of schemas. If the schema is
-        // numeric it will retain all the numeric schemas from the set of schemas, otherwise it
-        // will return that original schema. This is useful for $min and $max.
-        let numeric_filter = |schema: Schema, schemas: BTreeSet<Schema>| {
-            if schema.satisfies(&NUMERIC) == Satisfaction::Must {
-                let out_schemas = schemas
-                    .into_iter()
-                    .filter(|s| {
-                        matches!(
-                            s,
-                            Schema::Atomic(
-                                Atomic::Integer | Atomic::Long | Atomic::Double | Atomic::Decimal
-                            )
-                        )
-                    })
-                    .collect::<BTreeSet<_>>();
-                if out_schemas.len() == 1 {
-                    out_schemas.into_iter().next().unwrap()
-                } else {
-                    Schema::AnyOf(out_schemas)
-                }
-            } else {
-                schema
-            }
-        };
-
         fn get_sum_type(s: Schema) -> Schema {
             // get the maximum numeric type
             let s = if let Schema::AnyOf(a) = s {
@@ -1797,7 +1780,7 @@ impl DeriveSchema for UntaggedOperator {
                     Schema::Atomic(Atomic::Integer),
                 )
             }
-            UntaggedOperatorName::Concat | UntaggedOperatorName::Split | UntaggedOperatorName::ToString => handle_null_satisfaction(
+            UntaggedOperatorName::Concat | UntaggedOperatorName::ToString => handle_null_satisfaction(
                 args, state,
                 Schema::Atomic(Atomic::String),
             ),
@@ -2008,7 +1991,7 @@ impl DeriveSchema for UntaggedOperator {
             UntaggedOperatorName::ArrayElemAt => {
                 let input_schema = self.args[0].derive_schema(state)?;
                 match input_schema.clone() {
-                    Schema::Array(a) => Ok(a.as_ref().clone()),
+                    Schema::Array(a) => Ok(Schema::simplify(&a.as_ref().union(&Schema::Atomic(Atomic::Null)))),
                     ao @ Schema::AnyOf(_) => {
                         let array_schema = match ao.intersection(&Schema::Array(Box::new(Schema::Any))) {
                             Schema::Array(a) => *a,
@@ -2018,7 +2001,7 @@ impl DeriveSchema for UntaggedOperator {
                         if array_schema == Schema::Unsat && null_schema == Schema::Unsat {
                             Err(Error::InvalidType(input_schema, 0usize))
                         } else {
-                            Ok(Schema::simplify(&null_schema.union(&array_schema)))
+                            Ok(Schema::simplify(&null_schema.union(&array_schema).union(&Schema::Atomic(Atomic::Null))))
                         }
                     }
                     _ => {
@@ -2056,6 +2039,8 @@ impl DeriveSchema for UntaggedOperator {
                                     s @ (Schema::Atomic(Atomic::Null) | Schema::Missing) => {
                                         if let Some(ns) = null_schema.as_ref() {
                                             null_schema = Some(ns.union(s));
+                                        } else {
+                                            null_schema = Some(s.clone())
                                         }
                                     }
                                     Schema::Array(a) => array_schema = array_schema.union(a.as_ref()),
@@ -2108,28 +2093,12 @@ impl DeriveSchema for UntaggedOperator {
             UntaggedOperatorName::Locf => {
                 self.args[0].derive_schema(state)
             }
-            UntaggedOperatorName::Max => {
-                let schema = self.args[0].derive_schema(state)?;
-                let schema = match schema {
-                    Schema::AnyOf(a) => {
-                        // Unsat should be impossible, since we should never see AnyOf(empty_set)
-                        let schema = a.iter().max().unwrap_or(&Schema::Unsat);
-                        numeric_filter(schema.clone(), a)
-                    }
-                    _ => schema,
-                };
-                Ok(schema)
-            }
-            UntaggedOperatorName::Min => {
-                let schema = self.args[0].derive_schema(state)?;
-                let schema = match schema {
-                    Schema::AnyOf(a) => {
-                        // Unsat should be impossible, since we should never see AnyOf(empty_set)
-                        let schema = a.iter().min().unwrap_or(&Schema::Unsat);
-                        numeric_filter(schema.clone(), a)
-                    }
-                    _ => schema,
-                };
+            UntaggedOperatorName::Max
+            | UntaggedOperatorName::Min => {
+                let schema = self.args.iter().try_fold(Schema::Unsat, |acc, arg| {
+                    let arg_schema = arg.derive_schema(state)?.upconvert_missing_to_null();
+                    Ok(acc.union(&arg_schema))
+                })?;
                 Ok(schema)
             }
             UntaggedOperatorName::AddToSet | UntaggedOperatorName::Push => {
@@ -2337,13 +2306,17 @@ impl DeriveSchema for UntaggedOperator {
                 }
             }
             UntaggedOperatorName::First | UntaggedOperatorName::Last => {
-                let schema = self.args[0].derive_schema(state)?;
+                let schema = self.args[0].derive_schema(state)?.upconvert_missing_to_null();
                 Ok(match schema {
                     Schema::Array(a) => *a,
                     schema => schema
                 })
             }
             UntaggedOperatorName::Literal => self.args[0].derive_schema(state),
+            UntaggedOperatorName::Split => handle_null_satisfaction(
+                args, state,
+                Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
+            ),
             _ => Err(Error::InvalidUntaggedOperator(self.op.into())),
         }
     }

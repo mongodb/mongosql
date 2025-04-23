@@ -12,7 +12,7 @@ result_set_schema:
       },
 
       "_id": {
-        "any_of": [
+        "anyOf": [
           { "bsonType": "string" },
           { "bsonType": "bool" }
         ]

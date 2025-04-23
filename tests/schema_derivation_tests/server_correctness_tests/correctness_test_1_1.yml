@@ -11,7 +11,24 @@ result_set_schema:
       },
       "_id": {
         "bsonType": "array",
-        "maxItems": 0
+        "items" : {
+          "bsonType": "object",
+          "properties": {
+            "captures": {
+              "bsonType": "array",
+              "items": {
+                "anyOf": [
+                  { "bsonType": "null" },
+                  { "bsonType": "string" },
+                ]
+              }
+            },
+            "idx": { "bsonType": "int" },
+            "match": { "bsonType": "string" },
+          },
+          "required": [],
+          "additionalProperties": false
+        }
       },
     },
     "required": [

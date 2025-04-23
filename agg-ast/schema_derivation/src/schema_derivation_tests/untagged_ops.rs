@@ -61,14 +61,17 @@ mod array_ops {
     );
     test_derive_expression_schema!(
         array_elem_at_array_field,
-        expected = Ok(Schema::Atomic(Atomic::Integer)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null)
+        ))),
         input = r#"{"$arrayElemAt": ["$foo", 0]}"#,
         ref_schema = Schema::Array(Box::new(Schema::Atomic(Atomic::Integer)))
     );
     test_derive_expression_schema!(
         array_elem_at_literal_array,
         expected = Ok(Schema::AnyOf(
-            set! {Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)}
+            set! {Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)}
         )),
         input = r#"{"$arrayElemAt": [[1, "hello", 3], 0]}"#
     );
@@ -172,7 +175,15 @@ mod group_ops {
     use super::*;
     test_derive_expression_schema!(
         max,
-        expected = Ok(Schema::Atomic(Atomic::MaxKey)),
+        expected = Ok(Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Timestamp),
+            Schema::Atomic(Atomic::MaxKey),
+        })),
         input = r#"{"$max": "$foo"}"#,
         ref_schema = Schema::AnyOf(set! {
             Schema::Atomic(Atomic::Integer),
@@ -187,9 +198,13 @@ mod group_ops {
     test_derive_expression_schema!(
         min,
         expected = Ok(Schema::AnyOf(set! {
-            Schema::Atomic(Atomic::Double),
             Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Double),
             Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Date),
+            Schema::Atomic(Atomic::Timestamp),
+            Schema::Atomic(Atomic::MaxKey),
         })),
         input = r#"{"$min": "$foo"}"#,
         ref_schema = Schema::AnyOf(set! {
@@ -374,6 +389,7 @@ mod window_ops {
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Decimal),
             Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
         ))),
         input = r#"{"$max": "$foo" }"#,
         ref_schema = Schema::AnyOf(set!(
@@ -384,7 +400,11 @@ mod window_ops {
     );
     test_derive_expression_schema!(
         min,
-        expected = Ok(Schema::Atomic(Atomic::Null)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ))),
         input = r#"{"$min": "$foo" }"#,
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Decimal),
@@ -830,7 +850,10 @@ mod supremum_ops {
     use super::*;
     test_derive_expression_schema!(
         max,
-        expected = Ok(Schema::Atomic(Atomic::String)),
+        expected = Ok(Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+        })),
         input = r#"{"$max": ["$foo", 1, "hello"]}"#,
         ref_schema = Schema::AnyOf(set! {
             Schema::Atomic(Atomic::Integer),
@@ -839,7 +862,10 @@ mod supremum_ops {
     );
     test_derive_expression_schema!(
         min,
-        expected = Ok(Schema::Atomic(Atomic::Integer)),
+        expected = Ok(Schema::AnyOf(set! {
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+        })),
         input = r#"{"$min": ["$foo", 1, "hello"]}"#,
         ref_schema = Schema::AnyOf(set! {
             Schema::Atomic(Atomic::Integer),
