@@ -65,11 +65,8 @@ pub struct ResultSetState<'a> {
     pub accumulator_stage: bool,
 }
 
-impl ResultSetState<'_> {
-    pub fn new(
-        catalog: &BTreeMap<Namespace, Schema>,
-        current_db: String,
-    ) -> Self {
+impl<'a> ResultSetState<'a> {
+    pub fn new(catalog: &'a BTreeMap<Namespace, Schema>, current_db: String) -> Self {
         Self {
             catalog,
             variables: BTreeMap::new(),
