@@ -29,7 +29,8 @@ macro_rules! test_derive_stage_schema {
                 variables,
                 result_set_schema,
                 current_db: "test".to_string(),
-                null_behavior: Satisfaction::Not
+                null_behavior: Satisfaction::Not,
+                accumulator_stage: false,
             };
             let result = input.derive_schema(&mut state);
             assert_eq!($expected, result);
@@ -57,7 +58,8 @@ macro_rules! test_derive_expression_schema {
                 variables,
                 result_set_schema,
                 current_db: "test".to_string(),
-                null_behavior: Satisfaction::Not
+                null_behavior: Satisfaction::Not,
+                accumulator_stage: false,
             };
             let result = input.derive_schema(&mut state);
             assert_eq!($expected, result);
@@ -90,7 +92,8 @@ macro_rules! test_derive_schema_for_match_stage {
                 variables,
                 result_set_schema,
                 current_db: "test".to_string(),
-                null_behavior: Satisfaction::Not
+                null_behavior: Satisfaction::Not,
+                accumulator_stage: false,
             };
             let result = input.derive_schema(&mut state);
             // because we are calling Schema::simplify here, the resulting result set schema should have missing fields removed

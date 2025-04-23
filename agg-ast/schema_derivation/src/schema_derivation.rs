@@ -78,6 +78,7 @@ pub struct ResultSetState<'a> {
     // where more broadly things like null field references or a falsifiable return type (e.g. {$eq: [{$op: ...}, 0])
     // may influcence they types of values the underlying result_set_schema can contain.
     pub null_behavior: Satisfaction,
+    pub accumulator_stage: bool,
 }
 
 pub fn derive_schema_for_pipeline(
@@ -306,6 +307,7 @@ impl DeriveSchema for Stage {
         }
 
         fn group_derive_schema(group: &Group, state: &mut ResultSetState) -> Result<Schema> {
+            state.accumulator_stage = true;
             // group is a map of field namespace to expression. We can derive the schema for each expression
             // and then union them together to get the resulting schema.
             let mut keys = group
@@ -318,6 +320,7 @@ impl DeriveSchema for Stage {
                 .collect::<Result<BTreeMap<String, Schema>>>()?;
             let id_schema = group.keys.derive_schema(state)?.upconvert_missing_to_null();
             keys.insert("_id".to_string(), id_schema);
+            state.accumulator_stage = false;
             Ok(Schema::Document(Document {
                 required: keys.keys().cloned().collect(),
                 keys,
@@ -412,6 +415,7 @@ impl DeriveSchema for Stage {
             set_windows: &SetWindowFields,
             state: &mut ResultSetState,
         ) -> Result<Schema> {
+            state.accumulator_stage = true;
             let mut result_doc = state.result_set_schema.clone();
             for (k, e) in set_windows.output.clone() {
                 let field_schema = e
@@ -421,6 +425,7 @@ impl DeriveSchema for Stage {
                 let path = k.split('.').map(|s| s.to_string()).collect::<Vec<String>>();
                 insert_required_key_into_document(&mut result_doc, field_schema, path, true);
             }
+            state.accumulator_stage = false;
             Ok(result_doc)
         }
 
@@ -596,6 +601,7 @@ impl DeriveSchema for Stage {
                 result_set_schema: from_schema.clone(),
                 current_db: state.current_db.clone(),
                 null_behavior: state.null_behavior,
+                accumulator_stage: state.accumulator_stage,
             };
             let lookup_schema =
                 derive_schema_for_pipeline(pipeline.to_owned(), None, &mut lookup_state)?;
@@ -660,6 +666,7 @@ impl DeriveSchema for Stage {
                             result_set_schema: from_schema.clone(),
                             current_db: state.current_db.clone(),
                             null_behavior: state.null_behavior,
+                            accumulator_stage: state.accumulator_stage,
                         };
                         let pipeline_schema =
                             derive_schema_for_pipeline(pipeline, None, pipeline_state)?;
@@ -1349,6 +1356,7 @@ impl DeriveSchema for TaggedOperator {
                     variables,
                     current_db: state.current_db.clone(),
                     null_behavior: state.null_behavior,
+                    accumulator_stage: state.accumulator_stage,
                 };
                 l.inside.derive_schema(&mut let_state)
             }
@@ -1482,7 +1490,12 @@ impl DeriveSchema for TaggedOperator {
             // reduce the scope of the result Schema beyond Array(InputSchema)
             // because doing so would require knowing all the data.
             TaggedOperator::MaxNArrayElement(m) | TaggedOperator::MinNArrayElement(m) => {
-                m.input.derive_schema(state)
+                let input_schema = m.input.derive_schema(state)?;
+                if state.accumulator_stage {
+                    Ok(Schema::Array(Box::new(input_schema)))
+                } else {
+                    Ok(input_schema)
+                }
             }
             TaggedOperator::Reduce(r) => {
                 let input_schema = r.input.derive_schema(state)?;
