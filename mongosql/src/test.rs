@@ -5,7 +5,7 @@ mod test_get_namespaces {
             #[test]
             fn $func_name() {
                 #[allow(unused_imports)]
-                use crate::{get_namespaces, set, Namespace};
+                use crate::{get_namespaces, set};
                 let current_db = $current_db;
                 let sql = $sql;
                 let actual = get_namespaces(current_db, sql);
@@ -24,7 +24,7 @@ mod test_get_namespaces {
 
     test_get_namespaces!(
         implicit,
-        expected = Ok(set![Namespace {
+        expected = Ok(set![agg_ast::definitions::Namespace {
             database: "mydb".into(),
             collection: "foo".into()
         }]),
@@ -34,7 +34,7 @@ mod test_get_namespaces {
 
     test_get_namespaces!(
         explicit,
-        expected = Ok(set![Namespace {
+        expected = Ok(set![agg_ast::definitions::Namespace {
             database: "bar".into(),
             collection: "baz".into()
         }]),
@@ -44,7 +44,7 @@ mod test_get_namespaces {
 
     test_get_namespaces!(
         duplicates,
-        expected = Ok(set![Namespace {
+        expected = Ok(set![agg_ast::definitions::Namespace {
             database: "mydb".into(),
             collection: "foo".into()
         }]),
@@ -55,11 +55,11 @@ mod test_get_namespaces {
     test_get_namespaces!(
         semantically_invalid,
         expected = Ok(set![
-            Namespace {
+            agg_ast::definitions::Namespace {
                 database: "mydb".into(),
                 collection: "foo".into()
             },
-            Namespace {
+            agg_ast::definitions::Namespace {
                 database: "mydb".into(),
                 collection: "bar".into()
             }
@@ -351,15 +351,16 @@ mod test_get_select_order {
 
 mod select_list_order {
     use crate::{
-        catalog::{Catalog, Namespace},
+        catalog::Catalog,
         map,
         schema::{Atomic, Document, Schema},
     };
+    use agg_ast::definitions::Namespace;
     use lazy_static::lazy_static;
 
     lazy_static! {
         static ref CATALOG: Catalog = Catalog::new(map! {
-            Namespace {db: "test".to_string(), collection: "foo".to_string()} => Schema::Document(Document {
+            Namespace {database: "test".to_string(), collection: "foo".to_string()} => Schema::Document(Document {
                 keys: map! {
                     "a".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
                     "b".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
@@ -369,7 +370,7 @@ mod select_list_order {
                 additional_properties: false,
                 ..Default::default()
                 }),
-            Namespace {db: "test".to_string(), collection: "bar".to_string()} => Schema::Document(Document {
+            Namespace {database: "test".to_string(), collection: "bar".to_string()} => Schema::Document(Document {
                 keys: map! {
                     "a".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
                     "b".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),

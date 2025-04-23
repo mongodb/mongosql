@@ -22,6 +22,7 @@ name = "generate_proto"
 path = "src/bin/generate_proto.rs"
 
 [dependencies]
+agg-ast = { path = "../agg-ast/ast" }
 prost = "0.12.1"
 tonic = "0.10.2"
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

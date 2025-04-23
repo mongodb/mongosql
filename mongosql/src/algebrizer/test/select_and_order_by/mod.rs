@@ -5,7 +5,7 @@ fn select_and_order_by_column_not_in_select() {
     use crate::{
         algebrizer::{Algebrizer, ClauseType},
         ast,
-        catalog::{Catalog, Namespace},
+        catalog::Catalog,
         map,
         mir::{
             binding_tuple::Key, schema::SchemaCache, Collection, Expression, FieldAccess, Project,
@@ -13,6 +13,7 @@ fn select_and_order_by_column_not_in_select() {
         },
         schema, set, unchecked_unique_linked_hash_map, SchemaCheckingMode,
     };
+    use agg_ast::definitions::Namespace;
     let select = ast::SelectClause {
         set_quantifier: ast::SetQuantifier::All,
         body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -161,7 +162,7 @@ fn select_and_order_by_column_not_in_select() {
         .map(|(db, c)| {
             (
                 Namespace {
-                    db: db.into(),
+                    database: db.into(),
                     collection: c.into(),
                 },
                 schema::Schema::Document(schema::Document {

@@ -38,7 +38,6 @@ use crate::{
     schema::{Schema, SchemaEnvironment},
     translator::MqlTranslator,
 };
-use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// Contains all the information needed to execute the Mql translation of a Sql query.
@@ -132,17 +131,14 @@ pub fn translate_sql(
     })
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug, PartialOrd, Ord)]
-pub struct Namespace {
-    pub database: String,
-    pub collection: String,
-}
-
-pub fn get_namespaces(current_db: &str, sql: &str) -> Result<BTreeSet<Namespace>> {
+pub fn get_namespaces(
+    current_db: &str,
+    sql: &str,
+) -> Result<BTreeSet<agg_ast::definitions::Namespace>> {
     let ast = parser::parse_query(sql)?;
     let namespaces = ast::visitors::get_collection_sources(ast)
         .into_iter()
-        .map(|cs| Namespace {
+        .map(|cs| agg_ast::definitions::Namespace {
             database: cs.database.unwrap_or_else(|| current_db.to_string()),
             collection: cs.collection,
         })
@@ -332,9 +328,9 @@ pub fn build_catalog_from_base_64(base_64_doc: &str) -> Result<Catalog> {
                     ))
                 })?;
                 Ok((
-                    catalog::Namespace {
-                        db: db.clone(),
-                        collection,
+                    agg_ast::definitions::Namespace {
+                        database: db.clone(),
+                        collection
                     },
                     mongosql_schema,
                 ))
@@ -354,8 +350,8 @@ pub fn build_catalog_from_catalog_schema(
             coll_schemas.into_iter().map(move |(coll, schema)| {
                 let mongosql_schema = Schema::try_from(schema).map_err(|e| e.to_string()).unwrap();
                 Ok((
-                    catalog::Namespace {
-                        db: db.clone(),
+                    agg_ast::definitions::Namespace {
+                        database: db.clone(),
                         collection: coll,
                     },
                     mongosql_schema,
@@ -369,7 +365,8 @@ mod build_catalog_test {
     use bson::doc;
 
     use super::*;
-    use crate::{catalog::Namespace, json_schema::Schema};
+    use crate::json_schema::Schema;
+    use agg_ast::definitions::Namespace;
     use std::collections::BTreeMap;
 
     #[test]
@@ -388,7 +385,7 @@ mod build_catalog_test {
         };
 
         let catalog = Catalog::new(map! {
-        Namespace {db: "db1".into(), collection: "coll1".into()} => crate::schema::Schema::Document(crate::schema::Document {
+        Namespace {database: "db1".into(), collection: "coll1".into()} => crate::schema::Schema::Document(crate::schema::Document {
             keys: map! {
                 "field1".to_string() => crate::schema::Schema::Atomic(crate::schema::Atomic::String),
             },
@@ -419,7 +416,7 @@ mod build_catalog_test {
         };
 
         let catalog = Catalog::new(map! {
-        Namespace {db: "db1".into(), collection: "coll1".into()} => crate::schema::Schema::Document(crate::schema::Document {
+        Namespace {database: "db1".into(), collection: "coll1".into()} => crate::schema::Schema::Document(crate::schema::Document {
             keys: map! {
                 "field1".to_string() => crate::schema::Schema::Atomic(crate::schema::Atomic::String),
             },

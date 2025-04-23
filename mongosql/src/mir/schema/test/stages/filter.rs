@@ -1,5 +1,4 @@
 use crate::{
-    catalog::Namespace,
     map,
     mir::{
         schema::{Error as mir_error, SchemaCache},
@@ -8,6 +7,7 @@ use crate::{
     schema::{Atomic, ResultSet, Schema, ANY_DOCUMENT},
     set, test_schema, unchecked_unique_linked_hash_map,
 };
+use agg_ast::definitions::Namespace;
 
 fn true_mir() -> Expression {
     Expression::Literal(LiteralValue::Boolean(true))
@@ -30,7 +30,7 @@ test_schema!(
         cache: SchemaCache::new(),
     }),
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+        Namespace {database: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
     }),
 );
 
@@ -43,7 +43,7 @@ test_schema!(
         cache: SchemaCache::new(),
     }),
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+        Namespace {database: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
     }),
 );
 
@@ -57,7 +57,7 @@ test_schema!(
     }),
     schema_env = map! {("m", 0u16).into() => Schema::Missing},
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+        Namespace {database: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
     }),
 );
 
@@ -80,7 +80,7 @@ test_schema!(
         cache: SchemaCache::new(),
     }),
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+        Namespace {database: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
     }),
 );
 
@@ -106,7 +106,7 @@ test_schema!(
         cache: SchemaCache::new(),
     }),
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+        Namespace {database: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
     }),
 );
 
@@ -140,7 +140,7 @@ test_schema!(
         cache: SchemaCache::new(),
     }),
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+        Namespace {database: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
     }),
 );
 

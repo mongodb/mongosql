@@ -465,18 +465,21 @@ impl CachedSchema for Stage {
                 Ok(source_result_set)
             }
             Stage::Collection(c) => {
-                let schema = match state.catalog.get_schema_for_namespace(&Namespace {
-                    db: c.db.clone(),
-                    collection: c.collection.clone(),
-                }) {
-                    Some(s) => s.clone(),
-                    None => {
-                        return Err(Error::CollectionNotFound(
-                            c.db.clone(),
-                            c.collection.clone(),
-                        ))
-                    }
-                };
+                let schema =
+                    match state
+                        .catalog
+                        .get_schema_for_namespace(&agg_ast::definitions::Namespace {
+                            database: c.db.clone(),
+                            collection: c.collection.clone(),
+                        }) {
+                        Some(s) => s.clone(),
+                        None => {
+                            return Err(Error::CollectionNotFound(
+                                c.db.clone(),
+                                c.collection.clone(),
+                            ))
+                        }
+                    };
                 Ok(ResultSet {
                     schema_env: map! {
                         (c.collection.clone(), state.scope_level).into() => schema,

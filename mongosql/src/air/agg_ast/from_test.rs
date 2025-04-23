@@ -603,8 +603,8 @@ mod stage {
             }),
             input = agg_ast::Stage::Lookup(agg_ast::Lookup::Subquery(agg_ast::SubqueryLookup {
                 from: Some(agg_ast::LookupFrom::Namespace(agg_ast::Namespace {
-                    db: "db".to_string(),
-                    coll: "coll".to_string()
+                    database: "db".to_string(),
+                    collection: "coll".to_string()
                 })),
                 let_body: None,
                 pipeline: vec![],

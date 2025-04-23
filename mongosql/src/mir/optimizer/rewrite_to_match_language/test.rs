@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use crate::{
-    catalog::{Catalog, Namespace},
+    catalog::Catalog,
     map,
     mir::{
         optimizer::{rewrite_to_match_language::MatchLanguageRewriter, Optimizer},
@@ -13,11 +13,12 @@ use crate::{
     util::{mir_collection, mir_field_access, mir_field_path},
     SchemaCheckingMode,
 };
+use agg_ast::definitions::Namespace;
 use lazy_static::lazy_static;
 
 lazy_static! {
     static ref CATALOG: Catalog = Catalog::new(map! {
-        Namespace {db: "db".to_string(), collection: "foo".to_string()} => Schema::Document(Document {
+        Namespace {database: "db".to_string(), collection: "foo".to_string()} => Schema::Document(Document {
             keys: map! {
                 "str".to_string() => Schema::Atomic(Atomic::String),
                 "pat".to_string() => Schema::Atomic(Atomic::String),

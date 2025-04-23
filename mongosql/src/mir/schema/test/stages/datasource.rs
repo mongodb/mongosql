@@ -1,5 +1,4 @@
 use crate::{
-    catalog::Namespace,
     map,
     mir::{
         schema::{Error as mir_error, SchemaCache},
@@ -8,6 +7,7 @@ use crate::{
     schema::{Atomic, Document, ResultSet, Schema, ANY_DOCUMENT},
     set, test_schema, unchecked_unique_linked_hash_map,
 };
+use agg_ast::definitions::Namespace;
 
 mod collection {
     use super::*;
@@ -33,7 +33,7 @@ mod collection {
             cache: SchemaCache::new(),
         }),
         catalog = Catalog::new(map! {
-            Namespace {db: "foo".into(), collection: "bar".into()} => Schema::Atomic(Atomic::Integer)
+            Namespace {database: "foo".into(), collection: "bar".into()} => Schema::Atomic(Atomic::Integer)
         }),
     );
 
@@ -52,7 +52,7 @@ mod collection {
             cache: SchemaCache::new(),
         }),
         catalog = Catalog::new(map! {
-            Namespace {db: "foo".into(), collection: "bar".into()} => Schema::Atomic(Atomic::Integer)
+            Namespace {database: "foo".into(), collection: "bar".into()} => Schema::Atomic(Atomic::Integer)
         }),
     );
 }

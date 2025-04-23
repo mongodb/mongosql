@@ -1,6 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use mongosql::{
-    catalog::{Catalog, Namespace},
+    agg_ast::definitions::Namespace,
+    catalog::Catalog,
     map,
     options::{ExcludeNamespacesOption, SqlOptions},
     schema::ANY_DOCUMENT,

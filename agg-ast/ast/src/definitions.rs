@@ -2,6 +2,7 @@ use crate::custom_serde::{deserialize_mql_operator, serialize_mql_operator};
 use bson::Bson;
 use linked_hash_map::LinkedHashMap;
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 
 // This module contains an aggregation pipeline syntax tree that implements
 // serde::Deserialize. This allows us to deserialize aggregation pipelines from
@@ -532,10 +533,50 @@ pub struct SubqueryLookup {
     pub as_var: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize, Eq, PartialOrd, Ord)]
 pub struct Namespace {
-    pub db: String,
-    pub coll: String,
+    #[serde(alias = "db")]
+    pub database: String,
+    #[serde(alias = "coll")]
+    pub collection: String,
+}
+impl Namespace {
+    pub fn new(database: String, collection: String) -> Self {
+        Namespace {
+            database,
+            collection,
+        }
+    }
+}
+
+impl From<(&str, &str)> for Namespace {
+    fn from((db, coll): (&str, &str)) -> Self {
+        Namespace {
+            database: db.to_string(),
+            collection: coll.to_string(),
+        }
+    }
+}
+
+impl From<(String, String)> for Namespace {
+    fn from((database, collection): (String, String)) -> Self {
+        Namespace {
+            database,
+            collection,
+        }
+    }
+}
+
+impl Display for Namespace {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}", self.database, self.collection)
+    }
+}
+
+impl From<Namespace> for String {
+    fn from(ns: Namespace) -> Self {
+        ns.to_string()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

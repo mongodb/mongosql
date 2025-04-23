@@ -1,5 +1,4 @@
 use crate::{
-    catalog::Namespace,
     map,
     mir::{
         schema::{Atomic, Document, Error as mir_error, Group, ResultSet, SchemaCache},
@@ -10,6 +9,7 @@ use crate::{
     schema::{Satisfaction, Schema, ANY_DOCUMENT},
     set, test_schema,
 };
+use agg_ast::definitions::Namespace;
 use mongosql_datastructures::binding_tuple::Key;
 
 fn group_stage_refs_only() -> Stage {
@@ -62,7 +62,7 @@ test_schema!(
             }),
     },
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+        Namespace {database: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
     }),
 );
 
@@ -90,7 +90,7 @@ test_schema!(
             }),
     },
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+        Namespace {database: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
     }),
 );
 
@@ -132,7 +132,7 @@ test_schema!(
             }),
     },
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+        Namespace {database: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
     }),
 );
 
@@ -174,7 +174,7 @@ test_schema!(
             }),
     },
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+        Namespace {database: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
     }),
 );
 
@@ -205,7 +205,7 @@ test_schema!(
         scope: 0,
     }),
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+        Namespace {database: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
     }),
 );
 
@@ -243,7 +243,7 @@ test_schema!(
             }),
     },
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+        Namespace {database: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
     }),
 );
 
@@ -303,6 +303,6 @@ test_schema!(
         scope: 0,
     }),
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+        Namespace {database: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
     }),
 );

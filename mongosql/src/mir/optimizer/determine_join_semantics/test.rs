@@ -1,5 +1,5 @@
 use crate::{
-    catalog::{Catalog, Namespace},
+    catalog::Catalog,
     map,
     mir::{
         optimizer::{determine_join_semantics::JoinSemanticsOptimizer, Optimizer},
@@ -11,11 +11,12 @@ use crate::{
     util::{mir_field_access, mir_field_path, mir_project_collection},
     SchemaCheckingMode,
 };
+use agg_ast::definitions::Namespace;
 use lazy_static::lazy_static;
 
 lazy_static! {
     static ref CATALOG: Catalog = Catalog::new(map! {
-        Namespace {db: "test_db".to_string(), collection: "local".to_string()} => Schema::Document(Document {
+        Namespace {database: "test_db".to_string(), collection: "local".to_string()} => Schema::Document(Document {
             keys: map! {
                 "not_null".to_string() => Schema::Atomic(Atomic::Integer),
                 "may_be_null".to_string() => INTEGER_OR_NULLISH.clone(),
@@ -24,7 +25,7 @@ lazy_static! {
             additional_properties: false,
             ..Default::default()
             }),
-        Namespace {db: "test_db".to_string(), collection: "foreign".to_string()} => Schema::Document(Document {
+        Namespace {database: "test_db".to_string(), collection: "foreign".to_string()} => Schema::Document(Document {
             keys: map! {
                 "not_null".to_string() => Schema::Atomic(Atomic::Integer),
                 "may_be_null".to_string() => INTEGER_OR_NULLISH.clone(),
@@ -33,7 +34,7 @@ lazy_static! {
             additional_properties: false,
             ..Default::default()
             }),
-        Namespace {db: "test_db".to_string(), collection: "other".to_string()} => Schema::Document(Document {
+        Namespace {database: "test_db".to_string(), collection: "other".to_string()} => Schema::Document(Document {
             keys: map! {
                 "x".to_string() => Schema::Atomic(Atomic::Integer),
             },

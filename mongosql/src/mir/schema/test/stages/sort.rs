@@ -1,5 +1,4 @@
 use crate::{
-    catalog::Namespace,
     map,
     mir::{
         schema::{Error as mir_error, SchemaCache},
@@ -8,6 +7,7 @@ use crate::{
     schema::*,
     set, test_schema,
 };
+use agg_ast::definitions::Namespace;
 
 test_schema!(
     comparable_schemas,
@@ -50,7 +50,7 @@ test_schema!(
             }),
     },
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+        Namespace {database: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
     }),
 );
 
@@ -97,7 +97,7 @@ test_schema!(
             }),
     },
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+        Namespace {database: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
     }),
 );
 
@@ -137,6 +137,6 @@ test_schema!(
             }),
     },
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+        Namespace {database: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
     }),
 );

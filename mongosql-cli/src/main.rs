@@ -1,9 +1,8 @@
+use agg_ast::definitions::Namespace;
 use bson::{doc, Document};
 use clap::Parser;
 use mongodb::sync::{Client, Collection};
-use mongosql::{
-    build_catalog_from_catalog_schema, catalog::Catalog, json_schema::Schema, Namespace,
-};
+use mongosql::{build_catalog_from_catalog_schema, catalog::Catalog, json_schema::Schema};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 

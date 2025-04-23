@@ -1,5 +1,4 @@
 use crate::{
-    catalog::Namespace,
     map,
     mir::{
         binding_tuple::DatasourceName::Bottom,
@@ -11,6 +10,7 @@ use crate::{
     schema::{Schema, ANY_DOCUMENT},
     set, test_schema, unchecked_unique_linked_hash_map,
 };
+use agg_ast::definitions::Namespace;
 
 mod exists {
     use super::*;
@@ -27,7 +27,7 @@ mod exists {
             .into()
         ),
         catalog = Catalog::new(map! {
-            Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+            Namespace {database: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
         }),
     );
 
@@ -66,7 +66,7 @@ mod exists {
                 }),
         },
         catalog = Catalog::new(map! {
-            Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+            Namespace {database: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
         }),
     );
 
@@ -99,7 +99,7 @@ mod exists {
             .into()
         ),
         catalog = Catalog::new(map! {
-            Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+            Namespace {database: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
         }),
     );
 }
@@ -135,7 +135,7 @@ mod subquery_expr {
             })),
         )),
         catalog = Catalog::new(map! {
-            Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+            Namespace {database: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
         }),
     );
 
@@ -225,7 +225,7 @@ mod subquery_expr {
                 }),
         },
         catalog = Catalog::new(map! {
-            Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+            Namespace {database: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
         }),
     );
 
@@ -282,7 +282,7 @@ mod subquery_expr {
             is_nullable: false,
         }),
         catalog = Catalog::new(map! {
-            Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+            Namespace {database: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
         }),
     );
 

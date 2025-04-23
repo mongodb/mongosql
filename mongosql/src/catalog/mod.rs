@@ -1,25 +1,6 @@
 use crate::schema::Schema;
+use agg_ast::definitions::Namespace;
 use std::collections::BTreeMap;
-
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone)]
-pub struct Namespace {
-    pub db: String,
-    pub collection: String,
-}
-
-impl<D, S> From<(D, S)> for Namespace
-where
-    D: Into<String>,
-    S: Into<String>,
-{
-    fn from(tup: (D, S)) -> Self {
-        let (db, collection) = tup;
-        Self {
-            db: db.into(),
-            collection: collection.into(),
-        }
-    }
-}
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct Catalog {
