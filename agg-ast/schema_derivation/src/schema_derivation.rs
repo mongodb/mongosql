@@ -65,6 +65,22 @@ pub struct ResultSetState<'a> {
     pub accumulator_stage: bool,
 }
 
+impl ResultSetState<'_> {
+    pub fn new(
+        catalog: &BTreeMap<Namespace, Schema>,
+        current_db: String,
+    ) -> Self {
+        Self {
+            catalog,
+            variables: BTreeMap::new(),
+            result_set_schema: Schema::Any,
+            current_db,
+            null_behavior: Satisfaction::Not,
+            accumulator_stage: false,
+        }
+    }
+}
+
 pub fn derive_schema_for_pipeline(
     pipeline: Vec<Stage>,
     current_collection: Option<String>,
