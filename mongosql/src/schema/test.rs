@@ -863,6 +863,12 @@ mod satisfies {
         other = AnyOf(set![Atomic(String), Atomic(Integer), Any]),
     );
     test_satisfies!(
+        any_of_may_satisfy_atomic_that_is_in_any_of,
+        expected = May,
+        _self = AnyOf(set![Missing, Atomic(Null)]),
+        other = Atomic(Null),
+    );
+    test_satisfies!(
         array_of_string_must_satisfy_any_of_array_of_int_or_array_of_string,
         expected = Must,
         _self = Array(Box::new(Atomic(String))),
