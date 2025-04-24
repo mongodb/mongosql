@@ -1549,6 +1549,38 @@ mod project {
             ..Default::default()
         })))
     );
+    test_derive_stage_schema!(
+        project_nested_fields_not_required,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "a".to_string() => Schema::Document(Document {
+                            keys: map! {
+                                "b".to_string() => Schema::Atomic(Atomic::Double)
+                            },
+                            ..Default::default()
+                        }),
+                    },
+                    ..Default::default()
+                })
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo.a.b": 1}}"#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Atomic(Atomic::Double)
+                    },
+                    ..Default::default()
+                }),
+            },
+            ..Default::default()
+        })
+    );
 }
 
 mod union {
