@@ -47,5 +47,7 @@ pub fn {name}() {{
 
     let derived_schema = derive_schema_for_pipeline(test.pipeline.to_owned(), test.current_collection.clone(), &mut result_set_state);
     let result_set_schema = Schema::try_from(test.result_set_schema.to_owned()).map_err(|e| e.to_string()).unwrap();
+    println!("derived: {{:?}}", derived_schema.clone().unwrap());
+    println!("expected: {{:?}}", result_set_schema);
     assert!(result_set_schema.satisfies(&derived_schema.clone().unwrap()) == Satisfaction::Must);
 }}

@@ -442,7 +442,10 @@ impl DeriveSchema for Stage {
                 children_nodes: LinkedHashMap::new(),
                 project_item: None,
             };
-            for (k, v) in items {
+            for (k, v) in items
+                .iter()
+                .filter(|(_, p)| !matches!(p, ProjectItem::Exclusion))
+            {
                 let path = k.split('.').map(|s| s.to_string()).collect::<Vec<String>>();
                 if !project_paths.children_nodes.contains_key(&path[0]) {
                     project_paths.children_nodes.insert(
@@ -490,7 +493,7 @@ impl DeriveSchema for Stage {
                         ProjectItem::Inclusion => {
                             schemas.insert(schema.clone());
                         }
-                        ProjectItem::Exclusion => {}
+                        ProjectItem::Exclusion => return Schema::Missing,
                         ProjectItem::Assignment(e) => {
                             let schema = e.derive_schema(state);
                             if let Ok(s) = schema {
@@ -507,11 +510,10 @@ impl DeriveSchema for Stage {
                     }
                     Schema::AnyOf(ao) => {
                         ao.iter().for_each(|ao_schema| {
-                            schemas.insert(get_schema_for_project_path(
-                                node,
-                                Some(ao_schema),
-                                state,
-                            ));
+                            let schema = get_schema_for_project_path(node, Some(ao_schema), state);
+                            if schema != Schema::Unsat {
+                                schemas.insert(schema);
+                            }
                         });
                     }
                     d @ Schema::Document(_) => {
@@ -536,9 +538,7 @@ impl DeriveSchema for Stage {
                 }
                 Schema::simplify(&Schema::AnyOf(schemas))
             } else if let Some(ProjectItem::Assignment(e)) = &node.project_item.as_ref() {
-                let x = e.derive_schema(state).unwrap();
-                println!("x: {:?}", x);
-                x
+                e.derive_schema(state).unwrap()
             } else {
                 Schema::Missing
             }
@@ -549,6 +549,9 @@ impl DeriveSchema for Stage {
             state: &mut ResultSetState,
         ) -> Result<Schema> {
             state.result_set_schema = promote_missing(&state.result_set_schema);
+            let exclude_id = project.items.iter().any(|(field, item)| {
+                field == &"_id".to_string() && item == &ProjectItem::Exclusion
+            });
             // If this is an exclusion $project, we can remove the fields from the schema and
             // return
             if project.items.iter().all(|(k, p)| {
@@ -569,20 +572,21 @@ impl DeriveSchema for Stage {
             let project_paths = process_project_paths(&project.items);
             let mut result_doc = Schema::Document(Document::empty());
             for (field, node) in project_paths.iter() {
+                let schema = get_schema_for_project_path(
+                    node,
+                    state.result_set_schema.get_key(field),
+                    &mut state.clone(),
+                );
                 insert_required_key_into_document(
                     &mut result_doc,
-                    get_schema_for_project_path(
-                        node,
-                        state.result_set_schema.get_key(field),
-                        &mut state.clone(),
-                    ),
+                    schema,
                     vec![field.clone()],
                     true,
                 );
             }
 
             // if _id has not been excluded and has not been redefined, include it from the original schema
-            if !project_paths.contains_key("_id") {
+            if !project_paths.contains_key("_id") && !exclude_id {
                 // Only insert _id if it exists in the incoming schema
                 if let Some(id_value) = state.result_set_schema.get_key("_id") {
                     insert_required_key_into_document(
