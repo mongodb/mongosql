@@ -7,7 +7,7 @@ pub mod schema_derivation;
 
 #[allow(unused_imports)]
 pub use schema_derivation::*;
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, mem::take};
 #[cfg(test)]
 mod schema_derivation_tests;
 #[cfg(test)]
@@ -418,9 +418,18 @@ pub(crate) fn insert_required_key_into_document(
 pub(crate) fn remove_field(schema: &mut Schema, path: Vec<String>) {
     if let Some((field, field_path)) = path.split_last() {
         let input = get_schema_for_path_mut(schema, field_path.into());
-        if let Some(Schema::Document(d)) = input {
-            d.keys.remove(field);
-            d.required.remove(field);
+        match input {
+            Some(Schema::Document(d)) => {
+                d.keys.remove(field);
+                d.required.remove(field);
+            }
+            Some(Schema::Array(a)) => {
+                if let Schema::Document(d) = a.as_mut() {
+                    d.keys.remove(field);
+                    d.required.remove(field);
+                }
+            }
+            _ => {}
         }
     }
 }

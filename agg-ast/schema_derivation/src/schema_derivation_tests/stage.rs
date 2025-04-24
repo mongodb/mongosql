@@ -1503,6 +1503,52 @@ mod project {
             ..Default::default()
         })
     );
+    test_derive_stage_schema!(
+        project_include_exclude,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Array(Box::new(Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Atomic(Atomic::Integer),
+                    },
+                    ..Default::default()
+                })))
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo.a": 1, "foo.a": 0}}"#,
+        ref_schema = Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::String),
+                "b".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            ..Default::default()
+        })))
+    );
+    test_derive_stage_schema!(
+        project_exclude_include,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Array(Box::new(Schema::Document(Document {
+                    keys: map! {
+                        "a".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    ..Default::default()
+                })))
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo.a": 0, "foo.a": 1}}"#,
+        ref_schema = Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::String),
+                "b".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            ..Default::default()
+        })))
+    );
 }
 
 mod union {

@@ -469,6 +469,7 @@ impl DeriveSchema for Stage {
                     };
                     cur = cur.children_nodes.get_mut(field).unwrap();
                     if index == path.len() - 1 {
+                        println!("{:?}, {:?}", path, v);
                         cur.project_item = Some(v.clone());
                     }
                 }
