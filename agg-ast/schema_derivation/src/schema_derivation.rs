@@ -435,6 +435,9 @@ impl DeriveSchema for Stage {
             pub project_item: Option<ProjectItem>,
         }
 
+        /// process_project_paths takes in the set of ProjectItems from the $project stage and
+        /// creates a tree from the tree paths. Each "node" of the tree knows about each of its
+        /// subpaths, as well as any project item terminating at that node.
         fn process_project_paths(
             items: &LinkedHashMap<String, ProjectItem>,
         ) -> LinkedHashMap<String, ProjectPathNode> {
@@ -446,6 +449,8 @@ impl DeriveSchema for Stage {
                 .iter()
                 .filter(|(_, p)| !matches!(p, ProjectItem::Exclusion))
             {
+                // if the top level key for a path is not present in the root node, create an empty
+                // node for it
                 let path = k.split('.').map(|s| s.to_string()).collect::<Vec<String>>();
                 if !project_paths.children_nodes.contains_key(&path[0]) {
                     project_paths.children_nodes.insert(
@@ -456,6 +461,8 @@ impl DeriveSchema for Stage {
                         },
                     );
                 }
+                // beginning at the root node, descend down the path, adding new nodes
+                // for any unencountered paths
                 let mut cur = &mut project_paths;
                 for (index, field) in path.iter().enumerate() {
                     if !cur.children_nodes.contains_key(field) {
@@ -468,8 +475,10 @@ impl DeriveSchema for Stage {
                         );
                     };
                     cur = cur.children_nodes.get_mut(field).unwrap();
+                    // once we reach the terminal field for this path, set that node's
+                    // project item; i.e., for {$project: {"a.b.c": 1}}, once we reach "c",
+                    // that node's project_item should be Some(ProjectItem::Inclusion)
                     if index == path.len() - 1 {
-                        println!("{:?}, {:?}", path, v);
                         cur.project_item = Some(v.clone());
                     }
                 }
@@ -477,18 +486,29 @@ impl DeriveSchema for Stage {
             project_paths.children_nodes
         }
 
-        fn get_schema_for_project_path(
+        /// get_schema_for_project_node takes a node and generates the schema for all
+        /// fields in the project by traversing top down and evaluating any project_items.
+        /// the parent schema keeps a reference to the schema for the current node from the
+        /// result set schema -- that is, we traverse the result set schema in parallel in
+        /// order to properly evaluate inclusions.
+        fn get_schema_for_project_node(
             node: &ProjectPathNode,
             parent_schema: Option<&Schema>,
             state: &mut ResultSetState,
         ) -> Schema {
             if let Some(schema) = parent_schema {
+                // the former case is not likely, but if we have reached a terminal arm of the
+                // tree one way or another, return Missing.
                 if (node.children_nodes.is_empty() && node.project_item.is_none())
                     || (schema == &Schema::Missing)
                 {
                     return Schema::Missing;
                 }
+                // we keep track of all schemas, both from this node (if it is an inclusion or
+                // assignment) and from any children nodes, then make an AnyOf and simplify at the end
                 let mut schemas: BTreeSet<Schema> = set!();
+
+                // handle the case where this node is a terminal node (i.e. the field is named in the $project)
                 if let Some(project_item) = &node.project_item {
                     match project_item {
                         ProjectItem::Inclusion => {
@@ -504,24 +524,30 @@ impl DeriveSchema for Stage {
                     }
                 }
                 match schema {
+                    // if the current node is an Array, any child schemas will have to come from nested documents in this array.
+                    // evaluate the inner type of the array for any nested fields, then wrap the resulting schema in an Array
                     Schema::Array(a) => {
                         let inner_schema =
-                            get_schema_for_project_path(node, Some(a.as_ref()), state);
+                            get_schema_for_project_node(node, Some(a.as_ref()), state);
                         schemas.insert(Schema::Array(Box::new(inner_schema)));
                     }
+                    // similarly, anyofs can be part of a nested path if any of schemas are documents (or arrays of documents).
+                    // we evaulate each subtype to verify if it contains any of the children nodes
                     Schema::AnyOf(ao) => {
                         ao.iter().for_each(|ao_schema| {
-                            let schema = get_schema_for_project_path(node, Some(ao_schema), state);
+                            let schema = get_schema_for_project_node(node, Some(ao_schema), state);
                             if schema != Schema::Unsat {
                                 schemas.insert(schema);
                             }
                         });
                     }
+                    // documents are where we actually evaluate the children schemas to see if their paths are present in the document.
+                    // we iterate through each child, and build a document from the resulting key-schema pairs.
                     d @ Schema::Document(_) => {
                         let d = promote_missing(d);
                         let mut path_document = Schema::Document(Document::empty());
                         for (child_field, child_node) in node.children_nodes.iter() {
-                            let child_schema = get_schema_for_project_path(
+                            let child_schema = get_schema_for_project_node(
                                 child_node,
                                 d.get_key(child_field),
                                 state,
@@ -538,6 +564,7 @@ impl DeriveSchema for Stage {
                     _ => {}
                 }
                 Schema::simplify(&Schema::AnyOf(schemas))
+            // assignments are often new fields, so we don't require a parent schema to evaluate
             } else if let Some(ProjectItem::Assignment(e)) = &node.project_item.as_ref() {
                 e.derive_schema(state).unwrap()
             } else {
@@ -572,8 +599,10 @@ impl DeriveSchema for Stage {
             // if the $project is inclusions, assignments, or both, build up the schemas
             let project_paths = process_project_paths(&project.items);
             let mut result_doc = Schema::Document(Document::empty());
+
+            // for each top level field, generate a schema by traversing the path tree top-down
             for (field, node) in project_paths.iter() {
-                let schema = get_schema_for_project_path(
+                let schema = get_schema_for_project_node(
                     node,
                     state.result_set_schema.get_key(field),
                     &mut state.clone(),

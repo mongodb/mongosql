@@ -7,7 +7,7 @@ pub mod schema_derivation;
 
 #[allow(unused_imports)]
 pub use schema_derivation::*;
-use std::{collections::BTreeSet, mem::take};
+use std::collections::BTreeSet;
 #[cfg(test)]
 mod schema_derivation_tests;
 #[cfg(test)]
