@@ -23,8 +23,8 @@ use crate::{
         optimizer::Optimizer,
         schema::{SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        Derived, ExistsExpr, Expression, FieldAccess, Filter, LateralJoin, ScalarFunction,
-        ScalarFunctionApplication, Stage, SubqueryExpr,
+        Derived, ExistsExpr, Expression, FieldAccess, Filter, LateralJoin, LiteralValue,
+        ScalarFunction, ScalarFunctionApplication, Stage, SubqueryExpr,
     },
     SchemaCheckingMode,
 };
@@ -169,7 +169,9 @@ impl Visitor for MatchNullFilteringVisitor {
     }
 }
 
-struct NullableSetter {}
+struct NullableSetter {
+    found_nullable_expr: bool,
+}
 
 impl Visitor for NullableSetter {
     // Do not recurse down subqueries
@@ -182,21 +184,48 @@ impl Visitor for NullableSetter {
         node
     }
 
+    // todo: only set nullable for expressions that don't include a null literal
+
     fn visit_scalar_function_application(
         &mut self,
         node: ScalarFunctionApplication,
     ) -> ScalarFunctionApplication {
         let mut node = node.walk(self);
-        // In the case of recusive ScalarFunctions, this will get set twice.
-        // It is worth it for the improvement in code clarity.
-        node.is_nullable = false;
+        if !self.found_nullable_expr {
+            // In the case of recursive ScalarFunctions, this will get set twice.
+            // It is worth it for the improvement in code clarity.
+            node.is_nullable = false;
+        }
         node
     }
 
     fn visit_expression(&mut self, node: Expression) -> Expression {
-        let mut node = node.walk(self);
-        node.set_is_nullable(false);
-        node
+        match node {
+            // If we encounter a NullIf, Coalesce, or a literal Null, then we know that the
+            // containing expression could still be nullable. The presence of one of these
+            // exprs makes the entire tree possibly nullable (except for filtered field refs,
+            // which have already been marked appropriately).
+            Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::NullIf,
+                ..
+            })
+            | Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Coalesce,
+                ..
+            })
+            | Expression::Literal(LiteralValue::Null) => {
+                self.found_nullable_expr = true;
+                node
+            }
+            _ => {
+                let mut node = node.walk(self);
+                // Only set is_nullable to false if we do not find any of the above exprs.
+                if !self.found_nullable_expr {
+                    node.set_is_nullable(false);
+                }
+                node
+            }
+        }
     }
 }
 
@@ -226,10 +255,12 @@ impl Visitor for NullableFieldAccessGatherer {
                 self.is_collecting = true;
                 self.found_impure = false;
                 let mut sf = sf.walk(self);
-                // If no impure functions were found, we can set all the semantics
+                // If no impure functions were found, we can attempt to set all the semantics
                 // to Mql in the expression.
                 if !self.found_impure {
-                    let mut nullable_setter = NullableSetter {};
+                    let mut nullable_setter = NullableSetter {
+                        found_nullable_expr: false,
+                    };
                     sf = nullable_setter.visit_scalar_function_application(sf);
                 }
                 self.is_collecting = old_is_collecting;
@@ -247,6 +278,13 @@ impl Visitor for NullableFieldAccessGatherer {
                         }
                         Some(s) => {
                             self.filter_fields.insert(s, fa.clone());
+
+                            // If this is a pure field access, mark is as not nullable
+                            // since it will be filtered for nullability before the
+                            // stage containing this access.
+                            let mut fa = fa.clone();
+                            fa.is_nullable = false;
+                            return Expression::FieldAccess(fa);
                         }
                     }
                 }
@@ -280,8 +318,7 @@ impl ScalarFunction {
             // NullIf is weird in that it can also return NULL if none of the arguments are NULL,
             // but that does not affect this optimization.
             // We include every variant instead of a wildcard in case new variants are added in the
-            // future that could benefit
-            // from this optimization.
+            // future that could benefit from this optimization.
             ScalarFunction::Concat
             | ScalarFunction::Pos
             | ScalarFunction::Neg

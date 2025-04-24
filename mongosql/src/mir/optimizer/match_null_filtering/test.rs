@@ -67,7 +67,7 @@ mod all_fields_always_nullable {
     use super::*;
 
     test_match_null_filtering!(
-        ignore_literals,
+        ignore_non_null_literals,
         expected = Stage::Filter(Filter {
             source: Box::new(Stage::Filter(Filter {
                 source: mir_collection("db", "foo"),
@@ -92,6 +92,38 @@ mod all_fields_always_nullable {
                 vec![
                     field_access_expr("foo", vec!["nullable_a"], 0u16, true),
                     Expression::Literal(LiteralValue::Integer(1),),
+                ]
+            )),
+            cache: SchemaCache::new(),
+        })
+    );
+
+    test_match_null_filtering!(
+        do_not_update_is_nullable_for_exprs_with_literal_null_args,
+        expected = Stage::Filter(Filter {
+            source: Box::new(Stage::Filter(Filter {
+                source: mir_collection("db", "foo"),
+                condition: field_existence_expr("foo", vec!["nullable_a"], 0u16),
+                cache: SchemaCache::new(),
+            })),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Eq,
+                args: vec![
+                    field_access_expr("foo", vec!["nullable_a"], 0u16, false),
+                    Expression::Literal(LiteralValue::Null),
+                ],
+                is_nullable: true,
+            }),
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Filter(Filter {
+            source: mir_collection("db", "foo"),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::Eq,
+                vec![
+                    field_access_expr("foo", vec!["nullable_a"], 0u16, true),
+                    Expression::Literal(LiteralValue::Null,),
                 ]
             )),
             cache: SchemaCache::new(),
