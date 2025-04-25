@@ -41,22 +41,27 @@ fn field_access_expr(
     collection: &str,
     field: Vec<&str>,
     ref_scope: u16,
-    is_nullable: bool,
+    is_nullable: Vec<bool>,
 ) -> Expression {
-    field.into_iter().fold(
+    field.into_iter().enumerate().fold(
         Expression::Reference((collection, ref_scope).into()),
-        |acc, field_part| {
+        |acc, (idx, field_part)| {
             Expression::FieldAccess(FieldAccess {
                 expr: Box::new(acc),
                 field: field_part.to_string(),
-                is_nullable,
+                is_nullable: *is_nullable.get(idx).unwrap(),
             })
         },
     )
 }
 
-fn field_existence_expr(collection: &str, field: Vec<&str>, ref_scope: u16) -> Expression {
-    let field_access = match field_access_expr(collection, field, ref_scope, true) {
+fn field_existence_expr(
+    collection: &str,
+    field: Vec<&str>,
+    ref_scope: u16,
+    is_nullable: Vec<bool>,
+) -> Expression {
+    let field_access = match field_access_expr(collection, field, ref_scope, is_nullable) {
         Expression::FieldAccess(fa) => fa,
         _ => unreachable!(),
     };
@@ -67,17 +72,17 @@ mod all_fields_always_nullable {
     use super::*;
 
     test_match_null_filtering!(
-        ignore_literals,
+        ignore_non_null_literals,
         expected = Stage::Filter(Filter {
             source: Box::new(Stage::Filter(Filter {
                 source: mir_collection("db", "foo"),
-                condition: field_existence_expr("foo", vec!["nullable_a"], 0u16),
+                condition: field_existence_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
                 cache: SchemaCache::new(),
             })),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
                 args: vec![
-                    field_access_expr("foo", vec!["nullable_a"], 0u16, false),
+                    field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
                     Expression::Literal(LiteralValue::Integer(1)),
                 ],
                 is_nullable: false,
@@ -90,9 +95,86 @@ mod all_fields_always_nullable {
             condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
                 ScalarFunction::Eq,
                 vec![
-                    field_access_expr("foo", vec!["nullable_a"], 0u16, true),
+                    field_access_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
                     Expression::Literal(LiteralValue::Integer(1),),
                 ]
+            )),
+            cache: SchemaCache::new(),
+        })
+    );
+
+    test_match_null_filtering!(
+        do_not_update_is_nullable_for_exprs_with_literal_null_args,
+        expected = Stage::Filter(Filter {
+            source: Box::new(Stage::Filter(Filter {
+                source: mir_collection("db", "foo"),
+                condition: field_existence_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
+                cache: SchemaCache::new(),
+            })),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Eq,
+                args: vec![
+                    field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
+                    Expression::Literal(LiteralValue::Null),
+                ],
+                is_nullable: true,
+            }),
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Filter(Filter {
+            source: mir_collection("db", "foo"),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::Eq,
+                vec![
+                    field_access_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
+                    Expression::Literal(LiteralValue::Null,),
+                ]
+            )),
+            cache: SchemaCache::new(),
+        })
+    );
+
+    test_match_null_filtering!(
+        intrinsic_null_args_do_not_impact_nullable_updating_of_siblings,
+        expected = Stage::Filter(Filter {
+            source: Box::new(Stage::Filter(Filter {
+                source: mir_collection("db", "foo"),
+                condition: field_existence_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
+                cache: SchemaCache::new(),
+            })),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Eq,
+                args: vec![
+                    Expression::Literal(LiteralValue::Null,),
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Lt,
+                        args: vec![
+                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
+                            Expression::Literal(LiteralValue::Integer(3)),
+                        ],
+                        is_nullable: false,
+                    }),
+                ],
+                is_nullable: true
+            }),
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Filter(Filter {
+            source: mir_collection("db", "foo"),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::Eq,
+                vec![
+                    Expression::Literal(LiteralValue::Null,),
+                    Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::Lt,
+                        vec![
+                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
+                            Expression::Literal(LiteralValue::Integer(3)),
+                        ],
+                    )),
+                ],
             )),
             cache: SchemaCache::new(),
         })
@@ -106,8 +188,8 @@ mod all_fields_always_nullable {
                 condition: Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::And,
                     args: vec![
-                        field_existence_expr("foo", vec!["nullable_a"], 0u16),
-                        field_existence_expr("foo", vec!["nullable_b"], 0u16),
+                        field_existence_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
+                        field_existence_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
                     ],
                     is_nullable: false,
                 }),
@@ -116,8 +198,8 @@ mod all_fields_always_nullable {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
                 args: vec![
-                    field_access_expr("foo", vec!["nullable_a"], 0u16, false),
-                    field_access_expr("foo", vec!["nullable_b"], 0u16, false),
+                    field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
+                    field_access_expr("foo", vec!["nullable_b"], 0u16, vec![false]),
                 ],
                 is_nullable: false,
             }),
@@ -129,8 +211,8 @@ mod all_fields_always_nullable {
             condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
                 ScalarFunction::Eq,
                 vec![
-                    field_access_expr("foo", vec!["nullable_a"], 0u16, true),
-                    field_access_expr("foo", vec!["nullable_b"], 0u16, true),
+                    field_access_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
+                    field_access_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
                 ]
             )),
             cache: SchemaCache::new(),
@@ -145,8 +227,8 @@ mod all_fields_always_nullable {
                 condition: Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::And,
                     args: vec![
-                        field_existence_expr("foo", vec!["nullable_a"], 0u16),
-                        field_existence_expr("foo", vec!["nullable_b"], 0u16),
+                        field_existence_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
+                        field_existence_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
                     ],
                     is_nullable: false,
                 }),
@@ -158,16 +240,16 @@ mod all_fields_always_nullable {
                     Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Eq,
                         args: vec![
-                            field_access_expr("foo", vec!["nullable_a"], 0u16, false),
-                            field_access_expr("foo", vec!["nullable_b"], 0u16, false),
+                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
+                            field_access_expr("foo", vec!["nullable_b"], 0u16, vec![false]),
                         ],
                         is_nullable: false,
                     }),
                     Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Eq,
                         args: vec![
-                            field_access_expr("foo", vec!["nullable_a"], 0u16, false),
-                            field_access_expr("foo", vec!["nullable_b"], 0u16, false),
+                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
+                            field_access_expr("foo", vec!["nullable_b"], 0u16, vec![false]),
                         ],
                         is_nullable: false,
                     })
@@ -185,15 +267,15 @@ mod all_fields_always_nullable {
                     Expression::ScalarFunction(ScalarFunctionApplication::new(
                         ScalarFunction::Eq,
                         vec![
-                            field_access_expr("foo", vec!["nullable_a"], 0u16, true),
-                            field_access_expr("foo", vec!["nullable_b"], 0u16, true),
+                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
+                            field_access_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
                         ]
                     )),
                     Expression::ScalarFunction(ScalarFunctionApplication::new(
                         ScalarFunction::Eq,
                         vec![
-                            field_access_expr("foo", vec!["nullable_a"], 0u16, true),
-                            field_access_expr("foo", vec!["nullable_b"], 0u16, true),
+                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
+                            field_access_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
                         ]
                     ))
                 ],
@@ -211,8 +293,8 @@ mod all_fields_always_nullable {
                 condition: Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::And,
                     args: vec![
-                        field_existence_expr("foo", vec!["nullable_a"], 0u16),
-                        field_existence_expr("foo", vec!["nullable_b"], 0u16),
+                        field_existence_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
+                        field_existence_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
                     ],
                     is_nullable: false,
                 }),
@@ -224,7 +306,7 @@ mod all_fields_always_nullable {
                     Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Eq,
                         args: vec![
-                            field_access_expr("foo", vec!["nullable_a"], 0u16, false),
+                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
                             Expression::Literal(LiteralValue::Integer(1),),
                         ],
                         is_nullable: false,
@@ -232,7 +314,7 @@ mod all_fields_always_nullable {
                     Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Eq,
                         args: vec![
-                            field_access_expr("foo", vec!["nullable_b"], 0u16, false),
+                            field_access_expr("foo", vec!["nullable_b"], 0u16, vec![false]),
                             Expression::Literal(LiteralValue::Integer(1),),
                         ],
                         is_nullable: false,
@@ -251,14 +333,14 @@ mod all_fields_always_nullable {
                     Expression::ScalarFunction(ScalarFunctionApplication::new(
                         ScalarFunction::Eq,
                         vec![
-                            field_access_expr("foo", vec!["nullable_a"], 0u16, true),
+                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
                             Expression::Literal(LiteralValue::Integer(1),),
                         ]
                     )),
                     Expression::ScalarFunction(ScalarFunctionApplication::new(
                         ScalarFunction::Eq,
                         vec![
-                            field_access_expr("foo", vec!["nullable_b"], 0u16, true),
+                            field_access_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
                             Expression::Literal(LiteralValue::Integer(1),),
                         ]
                     )),
@@ -274,7 +356,7 @@ mod all_fields_always_nullable {
         expected = Stage::Filter(Filter {
             source: Box::new(Stage::Filter(Filter {
                 source: mir_collection("db", "foo"),
-                condition: field_existence_expr("foo", vec!["nullable_a"], 0u16),
+                condition: field_existence_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
                 cache: SchemaCache::new(),
             })),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -283,7 +365,7 @@ mod all_fields_always_nullable {
                     Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Gt,
                         args: vec![
-                            field_access_expr("foo", vec!["nullable_a"], 0u16, false),
+                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
                             Expression::Literal(LiteralValue::Integer(1),),
                         ],
                         is_nullable: false,
@@ -291,7 +373,7 @@ mod all_fields_always_nullable {
                     Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Lt,
                         args: vec![
-                            field_access_expr("foo", vec!["nullable_a"], 0u16, false),
+                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
                             Expression::Literal(LiteralValue::Integer(100),),
                         ],
                         is_nullable: false,
@@ -310,14 +392,14 @@ mod all_fields_always_nullable {
                     Expression::ScalarFunction(ScalarFunctionApplication::new(
                         ScalarFunction::Gt,
                         vec![
-                            field_access_expr("foo", vec!["nullable_a"], 0u16, true),
+                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
                             Expression::Literal(LiteralValue::Integer(1),),
                         ]
                     )),
                     Expression::ScalarFunction(ScalarFunctionApplication::new(
                         ScalarFunction::Lt,
                         vec![
-                            field_access_expr("foo", vec!["nullable_a"], 0u16, true),
+                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
                             Expression::Literal(LiteralValue::Integer(100),),
                         ]
                     )),
@@ -336,8 +418,18 @@ mod all_fields_always_nullable {
                 condition: Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::And,
                     args: vec![
-                        field_existence_expr("foo", vec!["doc_a", "nested"], 0u16),
-                        field_existence_expr("foo", vec!["doc_b", "nested"], 0u16),
+                        field_existence_expr(
+                            "foo",
+                            vec!["doc_a", "nested"],
+                            0u16,
+                            vec![false, true]
+                        ),
+                        field_existence_expr(
+                            "foo",
+                            vec!["doc_b", "nested"],
+                            0u16,
+                            vec![false, true]
+                        ),
                     ],
                     is_nullable: false,
                 }),
@@ -346,8 +438,8 @@ mod all_fields_always_nullable {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
                 args: vec![
-                    field_access_expr("foo", vec!["doc_a", "nested"], 0u16, false),
-                    field_access_expr("foo", vec!["doc_b", "nested"], 0u16, false),
+                    field_access_expr("foo", vec!["doc_a", "nested"], 0u16, vec![false, false]),
+                    field_access_expr("foo", vec!["doc_b", "nested"], 0u16, vec![false, false]),
                 ],
                 is_nullable: false,
             }),
@@ -359,8 +451,8 @@ mod all_fields_always_nullable {
             condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
                 ScalarFunction::Eq,
                 vec![
-                    field_access_expr("foo", vec!["doc_a", "nested"], 0u16, true),
-                    field_access_expr("foo", vec!["doc_b", "nested"], 0u16, true),
+                    field_access_expr("foo", vec!["doc_a", "nested"], 0u16, vec![false, true]),
+                    field_access_expr("foo", vec!["doc_b", "nested"], 0u16, vec![false, true]),
                 ]
             )),
             cache: SchemaCache::new(),
@@ -375,17 +467,17 @@ mod all_fields_always_nullable {
             expression: map! {
                 ("foo", 0u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
                     "sub".to_string() => Expression::Subquery(SubqueryExpr {
-                        output_expr: Box::new(field_access_expr("foo", vec!["nullable_a"], 1u16, true)),
+                        output_expr: Box::new(field_access_expr("foo", vec!["nullable_a"], 1u16, vec![true])),
                         subquery: Box::new(Stage::Filter(Filter {
                             source: Box::new(Stage::Filter(Filter {
                                 source: mir_collection("db", "foo"),
-                                condition: field_existence_expr("foo", vec!["nullable_a"], 1u16),
+                                condition: field_existence_expr("foo", vec!["nullable_a"], 1u16, vec![true]),
                                 cache: SchemaCache::new(),
                             })),
                             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                                 function: ScalarFunction::Eq,
                                 args: vec![
-                                    field_access_expr("foo", vec!["nullable_a"], 1u16, false),
+                                    field_access_expr("foo", vec!["nullable_a"], 1u16, vec![false]),
                                     Expression::Literal(LiteralValue::Integer(1)),
                                 ],
                                 is_nullable: false,
@@ -405,13 +497,13 @@ mod all_fields_always_nullable {
             expression: map! {
                 ("foo", 0u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
                     "sub".to_string() => Expression::Subquery(SubqueryExpr {
-                        output_expr: Box::new(field_access_expr("foo", vec!["nullable_a"], 1u16, true)),
+                        output_expr: Box::new(field_access_expr("foo", vec!["nullable_a"], 1u16, vec![true])),
                         subquery: Box::new(Stage::Filter(Filter {
                             source:  mir_collection("db", "foo"),
                             condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
                                 ScalarFunction::Eq,
                                 vec![
-                                    field_access_expr("foo", vec!["nullable_a"], 1u16, true),
+                                    field_access_expr("foo", vec!["nullable_a"], 1u16, vec![true]),
                                     Expression::Literal(LiteralValue::Integer(1),),
                                 ])),
                             cache: SchemaCache::new(),
@@ -431,26 +523,31 @@ mod all_fields_always_nullable {
                 source: Box::new(Stage::Filter(Filter {
                     source: Box::new(Stage::Filter(Filter {
                         source: mir_collection("db", "foo"),
-                        condition: field_existence_expr("foo", vec!["nullable_b"], 0u16),
+                        condition: field_existence_expr(
+                            "foo",
+                            vec!["nullable_b"],
+                            0u16,
+                            vec![true]
+                        ),
                         cache: SchemaCache::new(),
                     })),
                     condition: Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Eq,
                         args: vec![
-                            field_access_expr("foo", vec!["nullable_b"], 0u16, false),
+                            field_access_expr("foo", vec!["nullable_b"], 0u16, vec![false]),
                             Expression::Literal(LiteralValue::Integer(100)),
                         ],
                         is_nullable: false,
                     }),
                     cache: SchemaCache::new(),
                 })),
-                condition: field_existence_expr("foo", vec!["nullable_a"], 0u16),
+                condition: field_existence_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
                 cache: SchemaCache::new(),
             })),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
                 args: vec![
-                    field_access_expr("foo", vec!["nullable_a"], 0u16, false),
+                    field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
                     Expression::Literal(LiteralValue::Integer(1)),
                 ],
                 is_nullable: false,
@@ -464,7 +561,7 @@ mod all_fields_always_nullable {
                 condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
                     ScalarFunction::Eq,
                     vec![
-                        field_access_expr("foo", vec!["nullable_b"], 0u16, true),
+                        field_access_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
                         Expression::Literal(LiteralValue::Integer(100),),
                     ]
                 )),
@@ -473,7 +570,7 @@ mod all_fields_always_nullable {
             condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
                 ScalarFunction::Eq,
                 vec![
-                    field_access_expr("foo", vec!["nullable_a"], 0u16, true),
+                    field_access_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
                     Expression::Literal(LiteralValue::Integer(1),),
                 ]
             )),
@@ -489,18 +586,28 @@ mod all_fields_always_nullable {
                     stage: Box::new(Stage::Filter(Filter {
                         source: Box::new(Stage::Filter(Filter {
                             source: mir_collection("db", "nested"),
-                            condition: field_existence_expr("nested", vec!["nullable_field"], 2u16),
+                            condition: field_existence_expr(
+                                "nested",
+                                vec!["nullable_field"],
+                                2u16,
+                                vec![true]
+                            ),
                             cache: SchemaCache::new(),
                         })),
                         condition: Expression::ScalarFunction(ScalarFunctionApplication {
                             function: ScalarFunction::Eq,
                             args: vec![
                                 // Note that the top-level Stage is a Derived, which increases
-                                // the scope-level to 1.
-                                field_access_expr("foo", vec!["nullable_a"], 1u16, false),
-                                field_access_expr("nested", vec!["nullable_field"], 2u16, false),
+                                // the scope-level to 1. Then the Exists expr increases it to 2.
+                                field_access_expr("foo", vec!["nullable_a"], 1u16, vec![true]),
+                                field_access_expr(
+                                    "nested",
+                                    vec!["nullable_field"],
+                                    2u16,
+                                    vec![false]
+                                ),
                             ],
-                            is_nullable: false,
+                            is_nullable: true,
                         }),
                         cache: SchemaCache::new(),
                     })),
@@ -519,8 +626,13 @@ mod all_fields_always_nullable {
                         condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
                             ScalarFunction::Eq,
                             vec![
-                                field_access_expr("foo", vec!["nullable_a"], 1u16, true),
-                                field_access_expr("nested", vec!["nullable_field"], 2u16, true),
+                                field_access_expr("foo", vec!["nullable_a"], 1u16, vec![true]),
+                                field_access_expr(
+                                    "nested",
+                                    vec!["nullable_field"],
+                                    2u16,
+                                    vec![true]
+                                ),
                             ]
                         )),
                         cache: SchemaCache::new(),
@@ -541,14 +653,14 @@ mod mixed_field_nullability {
         expected = Stage::Filter(Filter {
             source: Box::new(Stage::Filter(Filter {
                 source: mir_collection("db", "foo"),
-                condition: field_existence_expr("foo", vec!["nullable_b"], 0u16),
+                condition: field_existence_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
                 cache: SchemaCache::new(),
             })),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
                 args: vec![
-                    field_access_expr("foo", vec!["non_nullable_a"], 0u16, false),
-                    field_access_expr("foo", vec!["nullable_b"], 0u16, false),
+                    field_access_expr("foo", vec!["non_nullable_a"], 0u16, vec![false]),
+                    field_access_expr("foo", vec!["nullable_b"], 0u16, vec![false]),
                 ],
                 is_nullable: false,
             }),
@@ -560,8 +672,8 @@ mod mixed_field_nullability {
             condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
                 ScalarFunction::Eq,
                 vec![
-                    field_access_expr("foo", vec!["non_nullable_a"], 0u16, false),
-                    field_access_expr("foo", vec!["nullable_b"], 0u16, true),
+                    field_access_expr("foo", vec!["non_nullable_a"], 0u16, vec![false]),
+                    field_access_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
                 ]
             )),
             cache: SchemaCache::new(),
@@ -575,8 +687,8 @@ mod mixed_field_nullability {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
                 args: vec![
-                    field_access_expr("foo", vec!["non_nullable_a"], 0u16, false),
-                    field_access_expr("foo", vec!["non_nullable_b"], 0u16, false),
+                    field_access_expr("foo", vec!["non_nullable_a"], 0u16, vec![false]),
+                    field_access_expr("foo", vec!["non_nullable_b"], 0u16, vec![false]),
                 ],
                 is_nullable: false,
             }),
@@ -588,8 +700,8 @@ mod mixed_field_nullability {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
                 args: vec![
-                    field_access_expr("foo", vec!["non_nullable_a"], 0u16, false),
-                    field_access_expr("foo", vec!["non_nullable_b"], 0u16, false),
+                    field_access_expr("foo", vec!["non_nullable_a"], 0u16, vec![false]),
+                    field_access_expr("foo", vec!["non_nullable_b"], 0u16, vec![false]),
                 ],
                 is_nullable: false,
             }),
