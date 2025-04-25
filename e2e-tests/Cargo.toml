@@ -8,10 +8,11 @@ edition = "2021"
 [dependencies]
 mongosql = { path = "../mongosql" }
 schema_derivation = { path = "../agg-ast/schema_derivation" }
+agg-ast = { path = "../agg-ast/ast" }
 test-utils = { path = "../test-utils" }
-mongodb = { workspace = true } 
-serde_yaml = { workspace = true } 
-bson = { workspace = true } 
+mongodb = { workspace = true }
+serde_yaml = { workspace = true }
+bson = { workspace = true }
 
 [build-dependencies]
 test-utils = { path = "../test-utils" }
