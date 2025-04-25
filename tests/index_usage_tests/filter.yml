@@ -271,12 +271,12 @@ tests:
 
   - description: complex filter uses index scan when fields are nullable
     current_db: test_db
-    query: "SELECT * FROM nullable_fields WHERE a / b > 4"
+    query: "SELECT * FROM nullable_fields WHERE a + b > 4"
     expected_utilization: IX_SCAN
 
   - description: complex filter uses collection scan when fields are non-nullable
     current_db: test_db
-    query: "SELECT * FROM non_nullable_fields WHERE a / b > 4"
+    query: "SELECT * FROM non_nullable_fields WHERE a + b > 4"
     # this one cannot utilize an index scan since there are no indexed bounds referenced in this query
     # and since the fields are definitely non-null
     expected_utilization: COLL_SCAN
