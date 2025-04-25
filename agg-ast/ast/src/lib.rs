@@ -1,5 +1,6 @@
 pub mod custom_serde;
 pub mod definitions;
+pub use definitions::Namespace;
 #[cfg(test)]
 mod serde_test;
 

@@ -2,7 +2,7 @@
 #![allow(clippy::all)]
 #![allow(non_snake_case, dead_code, unused_variables, unused_imports)]
 
-use schema_derivation::{{definitions::Namespace, ResultSetState, derive_schema_for_pipeline}};
+use schema_derivation::{{Namespace, ResultSetState, derive_schema_for_pipeline}};
 use mongosql::{{
     json_schema,
     schema::{{Document, Satisfaction, Schema}},
