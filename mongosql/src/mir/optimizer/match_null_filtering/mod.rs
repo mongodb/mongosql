@@ -229,12 +229,15 @@ impl Visitor for NullableSetter {
             // `(a < 3)` as not nullable).
             _ => {
                 let old_found_nullable_expr = self.found_nullable_expr;
+                self.found_nullable_expr = false;
                 let mut node = node.walk(self);
                 // Only set is_nullable to false if we do not find any of the above exprs.
                 if !self.found_nullable_expr {
                     node.set_is_nullable(false);
                 }
-                self.found_nullable_expr = old_found_nullable_expr;
+                // If we found a nullable expr, we need to continue to propagate that
+                // up the expression tree.
+                self.found_nullable_expr = self.found_nullable_expr || old_found_nullable_expr;
                 node
             }
         }
