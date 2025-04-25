@@ -9,6 +9,7 @@ use crate::translator::{
     SelectOrderItem, TranslateSqlRequest, TranslateSqlResponse,
 };
 use crate::version::VERSION;
+use agg_ast;
 use mongosql;
 use mongosql::options::SqlOptions;
 use serde_json;
@@ -142,7 +143,7 @@ impl TranslateSqlService {
     }
 
     fn create_get_namespaces_response(
-        namespaces: BTreeSet<mongosql::Namespace>,
+        namespaces: BTreeSet<agg_ast::definitions::Namespace>,
     ) -> GetNamespacesResponse {
         GetNamespacesResponse {
             metadata: Some(Metadata {

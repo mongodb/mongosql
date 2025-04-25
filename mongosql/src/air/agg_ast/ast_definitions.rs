@@ -246,7 +246,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
             Stage::Lookup(Lookup::Subquery(l)) => {
                 let (from_db, from_coll) = match l.from {
                     Some(LookupFrom::Collection(c)) => (None, Some(c)),
-                    Some(LookupFrom::Namespace(n)) => (Some(n.db), Some(n.coll)),
+                    Some(LookupFrom::Namespace(n)) => (Some(n.database), Some(n.collection)),
                     None => (None, None),
                 };
                 let let_vars = l.let_body.map(|let_body| {
@@ -280,7 +280,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
             Stage::Lookup(Lookup::Equality(eql)) => {
                 let (from_db, from_coll) = match eql.from {
                     LookupFrom::Collection(c) => (None, c),
-                    LookupFrom::Namespace(n) => (Some(n.db), n.coll),
+                    LookupFrom::Namespace(n) => (Some(n.database), n.collection),
                 };
                 air::Stage::EquiLookup(air::EquiLookup {
                     source: Box::new(source.expect("$equilookup without valid source stage")),

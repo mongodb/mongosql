@@ -7,7 +7,7 @@ use crate::{
 use agg_ast::definitions::{
     AtlasSearchStage, Bucket, BucketAuto, ConciseSubqueryLookup, Densify, Documents,
     EqualityLookup, Expression, Fill, FillOutput, GraphLookup, Group, LiteralValue, Lookup,
-    LookupFrom, ProjectItem, ProjectStage, Ref, SetWindowFields, Stage, SubqueryLookup,
+    LookupFrom, Namespace, ProjectItem, ProjectStage, Ref, SetWindowFields, Stage, SubqueryLookup,
     TaggedOperator, UnionWith, Unset, UntaggedOperator, UntaggedOperatorName, Unwind,
 };
 use linked_hash_map::LinkedHashMap;
@@ -22,7 +22,6 @@ use mongosql::{
 };
 use std::{
     collections::{BTreeMap, BTreeSet},
-    fmt::{Display, Formatter},
     sync::LazyLock,
 };
 
@@ -50,21 +49,6 @@ pub(crate) trait DeriveSchema {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema>;
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Namespace(pub String, pub String);
-
-impl Display for Namespace {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}.{}", self.0, self.1)
-    }
-}
-
-impl From<Namespace> for String {
-    fn from(ns: Namespace) -> Self {
-        ns.to_string()
-    }
-}
-
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ResultSetState<'a> {
@@ -81,6 +65,19 @@ pub struct ResultSetState<'a> {
     pub accumulator_stage: bool,
 }
 
+impl<'a> ResultSetState<'a> {
+    pub fn new(catalog: &'a BTreeMap<Namespace, Schema>, current_db: String) -> Self {
+        Self {
+            catalog,
+            variables: BTreeMap::new(),
+            result_set_schema: Schema::Any,
+            current_db,
+            null_behavior: Satisfaction::Not,
+            accumulator_stage: false,
+        }
+    }
+}
+
 pub fn derive_schema_for_pipeline(
     pipeline: Vec<Stage>,
     current_collection: Option<String>,
@@ -91,10 +88,10 @@ pub fn derive_schema_for_pipeline(
     // can only happen during the entrypoint to schema derivation
     if state.result_set_schema == Schema::Any {
         if let Some(collection) = current_collection {
-            if let Some(schema) = state
-                .catalog
-                .get(&Namespace(state.current_db.clone(), collection.clone()))
-            {
+            if let Some(schema) = state.catalog.get(&Namespace::new(
+                state.current_db.clone(),
+                collection.clone(),
+            )) {
                 state.result_set_schema = schema.clone()
             }
         }
@@ -274,7 +271,7 @@ impl DeriveSchema for Stage {
         ) -> Result<Schema> {
             // it is a bit annoying that we need to clone these Strings just to do a lookup, but I
             // don't think there is a way around that.
-            let from_field = Namespace(state.current_db.clone(), graph_lookup.from.clone());
+            let from_field = Namespace::new(state.current_db.clone(), graph_lookup.from.clone());
             let mut from_schema = state
                 .catalog
                 .get(&from_field)
@@ -520,8 +517,12 @@ impl DeriveSchema for Stage {
 
         fn from_to_ns(from: &LookupFrom, state: &ResultSetState) -> Namespace {
             match from {
-                LookupFrom::Collection(ref c) => Namespace(state.current_db.clone(), c.clone()),
-                LookupFrom::Namespace(ref n) => Namespace(n.db.clone(), n.coll.clone()),
+                LookupFrom::Collection(ref c) => {
+                    Namespace::new(state.current_db.clone(), c.clone())
+                }
+                LookupFrom::Namespace(ref n) => {
+                    Namespace::new(n.database.clone(), n.collection.clone())
+                }
             }
         }
 
@@ -641,7 +642,7 @@ impl DeriveSchema for Stage {
         ) -> Result<Schema> {
             match union {
                 UnionWith::Collection(c) => {
-                    let from_ns = Namespace(state.current_db.clone(), c.clone());
+                    let from_ns = Namespace::new(state.current_db.clone(), c.clone());
                     let from_schema = state
                         .catalog
                         .get(&from_ns)
@@ -655,7 +656,7 @@ impl DeriveSchema for Stage {
                     }
                     let from_schema = match p.coll.clone() {
                         Some(collection) => {
-                            let from_ns = Namespace(state.current_db.clone(), collection);
+                            let from_ns = Namespace::new(state.current_db.clone(), collection);
                             state
                                 .catalog
                                 .get(&from_ns)
@@ -800,7 +801,7 @@ impl DeriveSchema for Stage {
             Stage::Bucket(b) => bucket_derive_schema(b, state),
             Stage::BucketAuto(b) => bucket_auto_derive_schema(b, state),
             Stage::Collection(c) => {
-                let ns = Namespace(c.db.clone(), c.collection.clone());
+                let ns = Namespace::new(c.db.clone(), c.collection.clone());
                 state.result_set_schema = state
                     .catalog
                     .get(&ns)

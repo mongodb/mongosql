@@ -1,5 +1,5 @@
 use crate::{
-    catalog::{Catalog, Namespace},
+    catalog::Catalog,
     map, mir,
     mir::{
         optimizer::{dead_code_elimination::DeadCodeEliminator, Optimizer},
@@ -11,11 +11,12 @@ use crate::{
     util::mir_collection,
     SchemaCheckingMode,
 };
+use agg_ast::definitions::Namespace;
 use lazy_static::lazy_static;
 
 lazy_static! {
     static ref CATALOG: Catalog = Catalog::new(map! {
-        Namespace {db: "db".into(), collection: "bar".into()} => Schema::Document(Document {
+        Namespace {database: "db".into(), collection: "bar".into()} => Schema::Document(Document {
             keys: map! {
                 "a".to_string() => Schema::Atomic(Atomic::Integer),
                 "b".to_string() => Schema::Atomic(Atomic::Integer),

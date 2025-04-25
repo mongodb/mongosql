@@ -1,7 +1,7 @@
 use super::{catalog, mir_source_bar, mir_source_foo, AST_SOURCE_BAR, AST_SOURCE_FOO};
 use crate::{
     ast::{self, JoinSource},
-    catalog::{Catalog, Namespace},
+    catalog::Catalog,
     map,
     mir::{self, binding_tuple::Key, schema::SchemaCache, JoinType},
     multimap,
@@ -9,6 +9,7 @@ use crate::{
     set, unchecked_unique_linked_hash_map,
     usererror::UserError,
 };
+use agg_ast::definitions::Namespace;
 
 fn mir_array_source() -> mir::Stage {
     mir::Stage::Project(mir::Project {
@@ -1099,7 +1100,7 @@ test_algebrize!(
         options: vec![]
     })),
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "foo".into()} => Schema::Document(Document {
+        Namespace {database: "test".into(), collection: "foo".into()} => Schema::Document(Document {
             keys: map! {
                 "a".into() => Schema::AnyOf(set!{
                     Schema::Document(Document {
@@ -1147,7 +1148,7 @@ test_algebrize!(
         options: vec![]
     })),
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "foo".into()} => Schema::Document(Document {
+        Namespace {database: "test".into(), collection: "foo".into()} => Schema::Document(Document {
             keys: map! {
                 "a".into() => Schema::AnyOf(set!{
                     Schema::Document(Document {
@@ -1195,7 +1196,7 @@ test_algebrize!(
         options: vec![]
     })),
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "foo".into()} => Schema::Document(Document {
+        Namespace {database: "test".into(), collection: "foo".into()} => Schema::Document(Document {
             keys: map! {
                 "a".into() => Schema::AnyOf(set!{
                     Schema::Document(Document {
@@ -1243,7 +1244,7 @@ test_algebrize!(
         options: vec![]
     })),
     catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "foo".into()} => Schema::Document(Document {
+        Namespace {database: "test".into(), collection: "foo".into()} => Schema::Document(Document {
             keys: map! {
                 "a".into() => Schema::AnyOf(set!{
                     Schema::Document(Document {

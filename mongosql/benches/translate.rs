@@ -1,6 +1,7 @@
+use agg_ast::definitions::Namespace;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use mongosql::{
-    catalog::{Catalog, Namespace},
+    catalog::Catalog,
     map,
     options::{ExcludeNamespacesOption, SqlOptions},
     schema::ANY_DOCUMENT,
@@ -11,7 +12,7 @@ use pprof::criterion::{Output, PProfProfiler};
 fn translate(sql: &str) -> Translation {
     let current_db = "mydb";
     let catalog = Catalog::new(map! {
-        Namespace {db: "mydb".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+        Namespace {database: "mydb".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
     });
     translate_sql(
         current_db,

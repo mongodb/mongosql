@@ -940,8 +940,8 @@ mod stage_test {
             subquery_lookup_from_namespace,
             expected = Stage::Lookup(Lookup::Subquery(SubqueryLookup {
                 from: Some(LookupFrom::Namespace(Namespace {
-                    db: "from_db".to_string(),
-                    coll: "from_coll".to_string()
+                    database: "from_db".to_string(),
+                    collection: "from_coll".to_string()
                 })),
                 let_body: None,
                 pipeline: vec![],
@@ -954,8 +954,8 @@ mod stage_test {
             subquery_lookup_with_single_let_var,
             expected = Stage::Lookup(Lookup::Subquery(SubqueryLookup {
                 from: Some(LookupFrom::Namespace(Namespace {
-                    db: "from_db".to_string(),
-                    coll: "from_coll".to_string()
+                    database: "from_db".to_string(),
+                    collection: "from_coll".to_string()
                 })),
                 let_body: Some(map! {
                     "x".to_string() => Expression::Literal(LiteralValue::Int32(9))
@@ -975,8 +975,8 @@ mod stage_test {
             subquery_lookup_with_multiple_let_vars,
             expected = Stage::Lookup(Lookup::Subquery(SubqueryLookup {
                 from: Some(LookupFrom::Namespace(Namespace {
-                    db: "from_db".to_string(),
-                    coll: "from_coll".to_string()
+                    database: "from_db".to_string(),
+                    collection: "from_coll".to_string()
                 })),
                 let_body: Some(map! {
                     "x".to_string() => Expression::Literal(LiteralValue::Int32(9)),
@@ -1000,8 +1000,8 @@ mod stage_test {
             subquery_lookup_with_pipeline,
             expected = Stage::Lookup(Lookup::Subquery(SubqueryLookup {
                 from: Some(LookupFrom::Namespace(Namespace {
-                    db: "db".to_string(),
-                    coll: "bar".to_string()
+                    database: "db".to_string(),
+                    collection: "bar".to_string()
                 })),
                 let_body: Some(map! {
                     "foo_b_0".to_string() => Expression::Ref(Ref::FieldRef("b".to_string())),

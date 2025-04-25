@@ -5,7 +5,7 @@ use super::*;
 /// definition of that collection schema.
 fn make_catalog(s: Schema) -> Catalog {
     Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "foo".into()} => s,
+        Namespace {database: "test".into(), collection: "foo".into()} => s,
     })
 }
 

@@ -14,7 +14,7 @@ macro_rules! test_derive_stage_schema {
             let mut variables = BTreeMap::new();
             $(variables = $variables;)?
             let catalog = map!{
-                crate::Namespace("test".to_string(), "bar".to_string()) => Schema::Document(Document {
+                agg_ast::definitions::Namespace::new("test".to_string(), "bar".to_string()) => Schema::Document(Document {
                     keys: map!{
                         "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
                         "baz".to_string() => Schema::Atomic(Atomic::String),

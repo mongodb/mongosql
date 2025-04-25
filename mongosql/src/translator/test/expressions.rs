@@ -3993,15 +3993,14 @@ mod subquery {
 
 mod subquery_comparison {
     use crate::{
-        air,
-        catalog::Namespace,
-        map,
+        air, map,
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
         mir::{self, binding_tuple::DatasourceName::Bottom, schema::SchemaCache},
         schema::{Atomic, Document, Schema, ANY_DOCUMENT},
         set, unchecked_unique_linked_hash_map,
         util::mir_field_access,
     };
+    use agg_ast::definitions::Namespace;
 
     test_translate_expression_with_schema_info!(
         uncorrelated_with_sql_semantics,
@@ -4065,7 +4064,7 @@ mod subquery_comparison {
             is_nullable: true,
         }),
         catalog = Catalog::new(map! {
-            Namespace { db: "test".to_string(), collection: "foo".to_string() } => Schema::Document(Document {
+            Namespace { database: "test".to_string(), collection: "foo".to_string() } => Schema::Document(Document {
                 keys: map! {
                     "a".to_string() => Schema::Atomic(Atomic::Integer),
                 },
@@ -4139,7 +4138,7 @@ mod subquery_comparison {
             is_nullable: false,
         }),
         catalog = Catalog::new(map! {
-            Namespace { db: "test".to_string(), collection: "foo".to_string() } => Schema::Document(Document {
+            Namespace { database: "test".to_string(), collection: "foo".to_string() } => Schema::Document(Document {
                 keys: map! {
                     "a".to_string() => Schema::Atomic(Atomic::Integer),
                 },
@@ -4219,7 +4218,7 @@ mod subquery_comparison {
             mr
         },
         catalog = Catalog::new(map! {
-            Namespace { db: "test".to_string(), collection: "foo".to_string() } => Schema::Document(Document {
+            Namespace { database: "test".to_string(), collection: "foo".to_string() } => Schema::Document(Document {
                 keys: map! {
                     "a".to_string() => Schema::Atomic(Atomic::Integer),
                 },
@@ -4227,7 +4226,7 @@ mod subquery_comparison {
                 additional_properties: false,
                 ..Default::default()
                 }),
-            Namespace { db: "test".to_string(), collection: "bar".to_string() } => ANY_DOCUMENT.clone(),
+            Namespace { database: "test".to_string(), collection: "bar".to_string() } => ANY_DOCUMENT.clone(),
         }),
         schema_env = map! {("foo", 0u16).into() => ANY_DOCUMENT.clone()},
     );

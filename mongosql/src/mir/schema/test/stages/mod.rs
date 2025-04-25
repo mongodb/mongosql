@@ -8,12 +8,12 @@ mod unwind; // mir::Stage::Unwind
 
 mod limit {
     use crate::{
-        catalog::Namespace,
         map,
         mir::{schema::SchemaCache, *},
         schema::{ResultSet, ANY_DOCUMENT},
         test_schema, unchecked_unique_linked_hash_map,
     };
+    use agg_ast::definitions::Namespace;
 
     test_schema!(
         limit_collection_datasource,
@@ -34,7 +34,7 @@ mod limit {
             cache: SchemaCache::new(),
         }),
         catalog = Catalog::new(map! {
-            Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+            Namespace {database: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
         }),
     );
 
@@ -115,13 +115,13 @@ mod limit {
 
 mod project {
     use crate::{
-        catalog::Namespace,
         map,
         mir::{schema::SchemaCache, *},
         schema::{Atomic, Document, ResultSet, Schema, ANY_DOCUMENT},
         set, test_schema, unchecked_unique_linked_hash_map,
         util::mir_collection,
     };
+    use agg_ast::definitions::Namespace;
     use mongosql_datastructures::binding_tuple::Key;
 
     test_schema!(
@@ -153,7 +153,7 @@ mod project {
             cache: SchemaCache::new(),
         }),
         catalog = Catalog::new(map! {
-            Namespace {db: "test2".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+            Namespace {database: "test2".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
         }),
     );
 
@@ -187,7 +187,7 @@ mod project {
             cache: SchemaCache::new(),
         }),
         catalog = Catalog::new(map! {
-            Namespace {db: "test2".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+            Namespace {database: "test2".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
         }),
     );
 
@@ -230,19 +230,19 @@ mod project {
             }),
         },
         catalog = Catalog::new(map! {
-            Namespace {db: "db".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+            Namespace {database: "db".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
         }),
     );
 }
 
 mod offset {
     use crate::{
-        catalog::Namespace,
         map,
         mir::{schema::SchemaCache, *},
         schema::{ResultSet, ANY_DOCUMENT},
         test_schema, unchecked_unique_linked_hash_map,
     };
+    use agg_ast::definitions::Namespace;
 
     test_schema!(
         offset_collection_datasource,
@@ -263,7 +263,7 @@ mod offset {
             cache: SchemaCache::new(),
         }),
         catalog = Catalog::new(map! {
-            Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+            Namespace {database: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
         }),
     );
 

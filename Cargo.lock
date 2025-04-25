@@ -1121,7 +1121,7 @@ dependencies = [
 name = "e2e-tests"
 version = "0.1.0"
 dependencies = [
- "bson",
+ "agg-ast",
  "mongodb",
  "mongosql",
  "schema_derivation",
@@ -2483,6 +2483,7 @@ dependencies = [
 name = "mongosql-c"
 version = "0.1.0"
 dependencies = [
+ "agg-ast",
  "base64 0.22.1",
  "bson",
  "lazy_static",
@@ -2496,6 +2497,7 @@ dependencies = [
 name = "mongosql-cli"
 version = "0.1.0"
 dependencies = [
+ "agg-ast",
  "bson",
  "clap 4.5.32",
  "mongodb",
@@ -3741,6 +3743,7 @@ dependencies = [
 name = "service"
 version = "0.1.0"
 dependencies = [
+ "agg-ast",
  "anyhow",
  "bson",
  "futures",

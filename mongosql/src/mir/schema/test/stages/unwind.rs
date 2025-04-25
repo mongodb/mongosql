@@ -1,5 +1,5 @@
 use crate::{
-    catalog::{Catalog, Namespace},
+    catalog::Catalog,
     map,
     mir::{
         schema::{Atomic, Document, Error, Join, JoinType, ResultSet, SchemaCache},
@@ -8,6 +8,7 @@ use crate::{
     schema::Schema,
     set, test_schema,
 };
+use agg_ast::definitions::Namespace;
 
 /// Most tests use the same source, path, and cache for the Unwind stage.
 /// Typically, only the index and outer parameters change, so this helper
@@ -36,7 +37,7 @@ fn make_unwind(index: Option<String>, outer: bool) -> Stage {
 /// definition of that collection schema.
 fn make_catalog(s: Schema) -> Catalog {
     Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "foo".into()} => s,
+        Namespace {database: "test".into(), collection: "foo".into()} => s,
     })
 }
 
@@ -804,7 +805,7 @@ mod index_does_not_conflict {
             is_prefiltered: false,
         }),
         catalog = Catalog::new(map! {
-            Namespace {db: "test".into(), collection: "foo".into()} => Schema::Document(Document {
+            Namespace {database: "test".into(), collection: "foo".into()} => Schema::Document(Document {
                 keys: map! {
                     "arr".into() => Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
                 },
@@ -812,7 +813,7 @@ mod index_does_not_conflict {
                 additional_properties: false,
                 ..Default::default()
                 }),
-            Namespace {db: "test".into(), collection: "bar".into()} => Schema::Document(Document {
+            Namespace {database: "test".into(), collection: "bar".into()} => Schema::Document(Document {
                 keys: map! {
                     "idx".into() => Schema::Atomic(Atomic::String),
                 },

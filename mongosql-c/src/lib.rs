@@ -172,7 +172,7 @@ pub extern "C" fn get_namespaces(
 fn get_namespaces_helper(
     current_db: *const libc::c_char,
     sql: *const libc::c_char,
-) -> Result<BTreeSet<mongosql::Namespace>, String> {
+) -> Result<BTreeSet<agg_ast::definitions::Namespace>, String> {
     let current_db =
         from_extern_string(current_db).map_err(|_| "current_db not valid UTF-8".to_string())?;
     let sql =
@@ -183,7 +183,7 @@ fn get_namespaces_helper(
 
 /// Returns a base64-encoded BSON document representing the payload
 /// returned for a successful get_namespaces call.
-fn get_namespaces_success_payload(namespaces: BTreeSet<mongosql::Namespace>) -> String {
+fn get_namespaces_success_payload(namespaces: BTreeSet<agg_ast::definitions::Namespace>) -> String {
     use serde::ser::Serialize;
     let serializer = bson::Serializer::new();
     let serializer = serde_stacker::Serializer::new(serializer);

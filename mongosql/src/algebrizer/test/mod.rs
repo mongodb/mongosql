@@ -2,11 +2,12 @@
 use crate::mir::FieldAccess;
 use crate::{
     ast::{self, CollectionSource, Datasource},
-    catalog::{Catalog, Namespace},
+    catalog::Catalog,
     map,
     mir::{schema::SchemaCache, Collection, Expression, Project, Stage},
     schema::ANY_DOCUMENT,
 };
+use agg_ast::definitions::Namespace;
 use lazy_static::lazy_static;
 use linked_hash_map::LinkedHashMap;
 use mongosql_datastructures::binding_tuple::Key;
@@ -197,7 +198,7 @@ fn catalog(ns: Vec<(&str, &str)>) -> Catalog {
         .map(|(db, c)| {
             (
                 Namespace {
-                    db: db.into(),
+                    database: db.into(),
                     collection: c.into(),
                 },
                 ANY_DOCUMENT.clone(),

@@ -1,5 +1,4 @@
 use crate::{
-    catalog::Namespace,
     map,
     mir::{
         schema::{
@@ -15,6 +14,7 @@ use crate::{
     set, test_schema, unchecked_unique_linked_hash_map,
     util::{mir_field_path, mir_project_collection},
 };
+use agg_ast::definitions::Namespace;
 use mongosql_datastructures::binding_tuple::DatasourceName::Bottom;
 
 mod equijoin {
@@ -50,8 +50,8 @@ mod equijoin {
             cache: SchemaCache::new(),
         })),
         catalog = Catalog::new(map! {
-            Namespace {db: "test_db".into(), collection: "foo".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
-            Namespace {db: "test_db".into(), collection: "bar".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
+            Namespace {database: "test_db".into(), collection: "foo".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
+            Namespace {database: "test_db".into(), collection: "bar".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
         }),
     );
 
@@ -78,8 +78,8 @@ mod equijoin {
             cache: SchemaCache::new(),
         })),
         catalog = Catalog::new(map! {
-            Namespace {db: "test_db".into(), collection: "foo".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
-            Namespace {db: "test_db".into(), collection: "bar".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
+            Namespace {database: "test_db".into(), collection: "foo".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
+            Namespace {database: "test_db".into(), collection: "bar".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
         }),
     );
 
@@ -104,8 +104,8 @@ mod equijoin {
             cache: SchemaCache::new(),
         })),
         catalog = Catalog::new(map! {
-            Namespace {db: "test_db".into(), collection: "foo".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
-            Namespace {db: "test_db".into(), collection: "bar".into()} => TEST_DOCUMENT_SCHEMA_S.clone(),
+            Namespace {database: "test_db".into(), collection: "foo".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
+            Namespace {database: "test_db".into(), collection: "bar".into()} => TEST_DOCUMENT_SCHEMA_S.clone(),
         }),
     );
 }
@@ -141,8 +141,8 @@ mod lateral {
             cache: SchemaCache::new(),
         })),
         catalog = Catalog::new(map! {
-            Namespace {db: "test_db".into(), collection: "foo".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
-            Namespace {db: "test_db".into(), collection: "bar".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
+            Namespace {database: "test_db".into(), collection: "foo".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
+            Namespace {database: "test_db".into(), collection: "bar".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
         }),
     );
 
@@ -167,8 +167,8 @@ mod lateral {
             cache: SchemaCache::new(),
         })),
         catalog = Catalog::new(map! {
-            Namespace {db: "test_db".into(), collection: "foo".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
-            Namespace {db: "test_db".into(), collection: "bar".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
+            Namespace {database: "test_db".into(), collection: "foo".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
+            Namespace {database: "test_db".into(), collection: "bar".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
         }),
     );
 }
