@@ -12,7 +12,7 @@ use pprof::criterion::{Output, PProfProfiler};
 fn translate(sql: &str) -> Translation {
     let current_db = "mydb";
     let catalog = Catalog::new(map! {
-        Namespace {db: "mydb".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+        Namespace {database: "mydb".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
     });
     translate_sql(
         current_db,
