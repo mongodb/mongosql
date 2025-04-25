@@ -201,28 +201,40 @@ impl Visitor for NullableSetter {
 
     fn visit_expression(&mut self, node: Expression) -> Expression {
         match node {
-            // If we encounter a NullIf, Coalesce, or a literal Null, then we know that the
-            // containing expression could still be nullable. The presence of one of these
-            // exprs makes the entire tree possibly nullable (except for filtered field refs,
-            // which have already been marked appropriately).
+            // If we encounter a NullIf or a literal Null, then we know that the containing
+            // expression could still be nullable. NullIf and Null are intrinsically null values.
+            // The presence of one of these exprs makes the entire tree possibly nullable (except
+            // for filtered field refs, which have already been marked appropriately).
             Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::NullIf,
-                ..
-            })
-            | Expression::ScalarFunction(ScalarFunctionApplication {
-                function: ScalarFunction::Coalesce,
                 ..
             })
             | Expression::Literal(LiteralValue::Null) => {
                 self.found_nullable_expr = true;
                 node
             }
+            // Do not update FieldAccesses since those are handled as we collect them.
+            Expression::FieldAccess(fa) => {
+                // If a FieldAccess is from a different scope, we may not null-filter it,
+                // so it's nullability can still impact the expr tree
+                if fa.is_nullable {
+                    self.found_nullable_expr = true;
+                }
+                Expression::FieldAccess(fa)
+            }
+            // For every other expression type, store the old value of found_nullable_expr,
+            // walk its children, set nullability to false if no nullable children are found,
+            // and then restore the old value. This is useful for not having sibling exprs
+            // impact each other (e.g. for `null = (a < 3)`, we should still be able to mark
+            // `(a < 3)` as not nullable).
             _ => {
+                let old_found_nullable_expr = self.found_nullable_expr;
                 let mut node = node.walk(self);
                 // Only set is_nullable to false if we do not find any of the above exprs.
                 if !self.found_nullable_expr {
                     node.set_is_nullable(false);
                 }
+                self.found_nullable_expr = old_found_nullable_expr;
                 node
             }
         }
