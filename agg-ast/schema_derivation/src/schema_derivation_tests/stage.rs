@@ -1225,6 +1225,11 @@ mod project {
     use super::*;
 
     test_derive_stage_schema!(
+        project_empty,
+        expected = Err(crate::Error::InvalidProjectStage),
+        input = r#"{"$project": {}}"#
+    );
+    test_derive_stage_schema!(
         project_simple,
         expected = Ok(Schema::Document(Document {
             keys: map! {
@@ -1269,6 +1274,47 @@ mod project {
         })
     );
     test_derive_stage_schema!(
+        project_additional_properties_true,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "a".to_string() => Schema::Any
+                    },
+                    ..Default::default()
+                })
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo.a": 1}}"#,
+        ref_schema = Schema::Document(Document::any())
+    );
+    test_derive_stage_schema!(
+        project_any,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "a".to_string() => Schema::Any
+                        },
+                        ..Default::default()
+                    }),
+                    Schema::Array(Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "a".to_string() => Schema::Any
+                        },
+                        ..Default::default()
+                    })))
+                ))
+            },
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo.a": 1}}"#,
+        ref_schema = Schema::Any
+    );
+    test_derive_stage_schema!(
         project_multiple_fields_array_of_docs,
         expected = Ok(Schema::Document(Document {
             keys: map! {
@@ -1288,6 +1334,32 @@ mod project {
             keys: map! {
                 "a".to_string() => Schema::Atomic(Atomic::String),
                 "b".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            ..Default::default()
+        })))
+    );
+    test_derive_stage_schema!(
+        project_multiple_fields_but_not_all_array_fields_include,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Array(Box::new(Schema::Document(Document {
+                    keys: map! {
+                        "a".to_string() => Schema::Atomic(Atomic::String),
+                        "b".to_string() => Schema::Atomic(Atomic::Integer),
+                    },
+                    ..Default::default()
+                })))
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo.a": 1, "foo.b": 1}}"#,
+        ref_schema = Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::String),
+                "b".to_string() => Schema::Atomic(Atomic::Integer),
+                "c".to_string() => Schema::Atomic(Atomic::Integer),
+                "d".to_string() => Schema::Atomic(Atomic::Integer),
             },
             ..Default::default()
         })))

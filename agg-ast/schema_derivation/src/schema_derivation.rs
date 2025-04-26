@@ -497,11 +497,8 @@ impl DeriveSchema for Stage {
             state: &mut ResultSetState,
         ) -> Schema {
             if let Some(schema) = parent_schema {
-                // the former case is not likely, but if we have reached a terminal arm of the
-                // tree one way or another, return Missing.
-                if (node.children_nodes.is_empty() && node.project_item.is_none())
-                    || (schema == &Schema::Missing)
-                {
+                // If the parent schema is missing, the child schema is also missing
+                if schema == &Schema::Missing {
                     return Schema::Missing;
                 }
                 // we keep track of all schemas, both from this node (if it is an inclusion or
@@ -541,17 +538,39 @@ impl DeriveSchema for Stage {
                             }
                         });
                     }
+                    // if we want to get a nested path from an Any, we will treat it as a document with
+                    // additional properties true or an array of documents with additional properties true.
+                    // We should also include missing, as this path won't be required.
+                    Schema::Any => {
+                        let document_schema = get_schema_for_project_node(
+                            node,
+                            Some(&Schema::Document(Document::any())),
+                            state,
+                        );
+                        schemas.insert(Schema::Missing);
+                        schemas.insert(document_schema.clone());
+                        schemas.insert(Schema::Array(Box::new(document_schema)));
+                    }
                     // documents are where we actually evaluate the children schemas to see if their paths are present in the document.
                     // we iterate through each child, and build a document from the resulting key-schema pairs.
                     d @ Schema::Document(_) => {
                         let d = promote_missing(d);
                         let mut path_document = Schema::Document(Document::empty());
                         for (child_field, child_node) in node.children_nodes.iter() {
-                            let child_schema = get_schema_for_project_node(
-                                child_node,
-                                d.get_key(child_field),
-                                state,
-                            );
+                            let mut parent_schema = d.get_key(child_field);
+                            if parent_schema.is_none()
+                                && matches!(
+                                    d,
+                                    Schema::Document(Document {
+                                        additional_properties: true,
+                                        ..
+                                    })
+                                )
+                            {
+                                parent_schema = Some(&Schema::Any);
+                            }
+                            let child_schema =
+                                get_schema_for_project_node(child_node, parent_schema, state);
                             insert_required_key_into_document(
                                 &mut path_document,
                                 child_schema,
@@ -576,6 +595,9 @@ impl DeriveSchema for Stage {
             project: &ProjectStage,
             state: &mut ResultSetState,
         ) -> Result<Schema> {
+            if project.items.is_empty() {
+                return Err(Error::InvalidProjectStage);
+            }
             state.result_set_schema = promote_missing(&state.result_set_schema);
             let exclude_id = project.items.iter().any(|(field, item)| {
                 field == &"_id".to_string() && item == &ProjectItem::Exclusion

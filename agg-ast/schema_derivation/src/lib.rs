@@ -26,6 +26,8 @@ pub enum Error {
     InvalidLiteralType,
     #[error("Invalid JsonSchema")]
     InvalidJsonSchema,
+    #[error("Invalid $project stage: must have at least one field")]
+    InvalidProjectStage,
     #[error("Type value for convert invalid: {0}")]
     InvalidConvertTypeValue(String),
     #[error("Cannot derive schema for unsupported group accumulator: {0}")]
