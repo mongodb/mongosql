@@ -1213,6 +1213,11 @@ mod project {
     use super::*;
 
     test_derive_stage_schema!(
+        project_empty,
+        expected = Err(crate::Error::InvalidProjectStage),
+        input = r#"{"$project": {}}"#
+    );
+    test_derive_stage_schema!(
         project_simple,
         expected = Ok(Schema::Document(Document {
             keys: map! {
@@ -1256,31 +1261,254 @@ mod project {
             ..Default::default()
         })
     );
-    // SQL-2785
-    // test_derive_stage_schema!(
-    //     project_array_of_docs,
-    //     expected = Ok(Schema::Document(Document {
-    //         keys: map! {
-    //             "foo".to_string() => Schema::Array(Box::new(Schema::Document(Document {
-    //                 keys: map! {
-    //                     "a".to_string() => Schema::Atomic(Atomic::String),
-    //                     "b".to_string() => Schema::Atomic(Atomic::Integer),
-    //                 },
-    //                 ..Default::default()
-    //             })))
-    //         },
-    //         required: set!("foo".to_string()),
-    //         ..Default::default()
-    //     )),
-    //     input = r#"{"$project": {"foo.a": 1, "foo.b": 1}}"#,
-    //     ref_schema = Schema::Array(Box::new(Schema::Document(Document {
-    //         keys: map! {
-    //             "a".to_string() => Schema::Atomic(Atomic::String),
-    //             "b".to_string() => Schema::Atomic(Atomic::Integer),
-    //         },
-    //         ..Default::default()
-    //     })))
-    // );
+    test_derive_stage_schema!(
+        project_additional_properties_true,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "a".to_string() => Schema::Any
+                    },
+                    ..Default::default()
+                })
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo.a": 1}}"#,
+        ref_schema = Schema::Document(Document::any())
+    );
+    test_derive_stage_schema!(
+        project_any,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "a".to_string() => Schema::Any
+                        },
+                        ..Default::default()
+                    }),
+                    Schema::Array(Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "a".to_string() => Schema::Any
+                        },
+                        ..Default::default()
+                    })))
+                ))
+            },
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo.a": 1}}"#,
+        ref_schema = Schema::Any
+    );
+    test_derive_stage_schema!(
+        project_multiple_fields_array_of_docs,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Array(Box::new(Schema::Document(Document {
+                    keys: map! {
+                        "a".to_string() => Schema::Atomic(Atomic::String),
+                        "b".to_string() => Schema::Atomic(Atomic::Integer),
+                    },
+                    ..Default::default()
+                })))
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo.a": 1, "foo.b": 1}}"#,
+        ref_schema = Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::String),
+                "b".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            ..Default::default()
+        })))
+    );
+    test_derive_stage_schema!(
+        project_multiple_fields_but_not_all_array_fields_include,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Array(Box::new(Schema::Document(Document {
+                    keys: map! {
+                        "a".to_string() => Schema::Atomic(Atomic::String),
+                        "b".to_string() => Schema::Atomic(Atomic::Integer),
+                    },
+                    ..Default::default()
+                })))
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo.a": 1, "foo.b": 1}}"#,
+        ref_schema = Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::String),
+                "b".to_string() => Schema::Atomic(Atomic::Integer),
+                "c".to_string() => Schema::Atomic(Atomic::Integer),
+                "d".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            ..Default::default()
+        })))
+    );
+    test_derive_stage_schema!(
+        project_include_multiple_neighboring_fields_with_assignment,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Array(Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "a".to_string() => Schema::Atomic(Atomic::String),
+                            "b".to_string() => Schema::Atomic(Atomic::Integer),
+                            "c".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("a".to_string(), "c".to_string()),
+                        ..Default::default()
+                    }))),
+                    Schema::Document(Document {
+                        keys: map! {
+                            "a".to_string() => Schema::Atomic(Atomic::String),
+                            "b".to_string() => Schema::Atomic(Atomic::Integer),
+                            "c".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("b".to_string(), "c".to_string()),
+                        ..Default::default()
+                    })
+                ))
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo.a": 1, "foo.b": 1, "foo.c": "hello world"}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Array(Box::new(Schema::Document(Document {
+                keys: map! {
+                    "a".to_string() => Schema::Atomic(Atomic::String),
+                    "b".to_string() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!("a".to_string()),
+                ..Default::default()
+            }))),
+            Schema::Document(Document {
+                keys: map! {
+                    "a".to_string() => Schema::Atomic(Atomic::String),
+                    "b".to_string() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!("b".to_string()),
+                ..Default::default()
+            })
+        ))
+    );
+    // this test aims to cover all possible combinations of 3 level fields paths where we
+    // include multiple fields. That is, a stage that looks like the following:
+    // db.aggregate([
+    //     {$documents: [
+    //         {_id: 1, foo: [{bar: {a: 1, b: 2}}]},
+    //         {_id: 2, foo: [{bar: [{a: 1, b: 2}]}]},
+    //         {_id: 3, foo: {bar: [{a: 1, b: 2}]}},
+    //         {_id: 4, foo: {bar: {a: 1, b: 1}}},
+    //     ]},
+    //     {$project: {"foo.bar.a": 1, "foo.bar.b": 1}}
+    // ])
+    test_derive_stage_schema!(
+        project_multiple_fields_mixed_docs_arrays,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Array(Box::new(Schema::Document(Document {
+                        keys: map! {
+                            "bar".to_string() => Schema::AnyOf(set!(
+                                Schema::Document(Document {
+                                    keys: map! {
+                                        "a".to_string() => Schema::Atomic(Atomic::String),
+                                        "b".to_string() => Schema::Atomic(Atomic::Integer),
+                                    },
+                                    ..Default::default()
+                                }),
+                                Schema::Array(Box::new(Schema::Document(Document {
+                                    keys: map! {
+                                        "a".to_string() => Schema::Atomic(Atomic::String),
+                                        "b".to_string() => Schema::Atomic(Atomic::Integer),
+                                    },
+                                    ..Default::default()
+                                })))
+                            ))
+                        },
+                        ..Default::default()
+                    }))),
+                    Schema::Document(Document {
+                        keys: map! {
+                            "bar".to_string() => Schema::AnyOf(set!(
+                                Schema::Document(Document {
+                                    keys: map! {
+                                        "a".to_string() => Schema::Atomic(Atomic::String),
+                                        "b".to_string() => Schema::Atomic(Atomic::Integer),
+                                    },
+                                    ..Default::default()
+                                }),
+                                Schema::Array(Box::new(Schema::Document(Document {
+                                    keys: map! {
+                                        "a".to_string() => Schema::Atomic(Atomic::String),
+                                        "b".to_string() => Schema::Atomic(Atomic::Integer),
+                                    },
+                                    ..Default::default()
+                                })))
+                            ))
+                        },
+                        ..Default::default()
+                    })
+                ))
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo.bar.a": 1, "foo.bar.b": 1}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Array(Box::new(Schema::Document(Document {
+                keys: map! {
+                    "bar".to_string() => Schema::AnyOf(set!(
+                        Schema::Document(Document {
+                            keys: map! {
+                                "a".to_string() => Schema::Atomic(Atomic::String),
+                                "b".to_string() => Schema::Atomic(Atomic::Integer),
+                            },
+                            ..Default::default()
+                        }),
+                        Schema::Array(Box::new(Schema::Document(Document {
+                            keys: map! {
+                                "a".to_string() => Schema::Atomic(Atomic::String),
+                                "b".to_string() => Schema::Atomic(Atomic::Integer),
+                            },
+                            ..Default::default()
+                        })))
+                    ))
+                },
+                ..Default::default()
+            }))),
+            Schema::Document(Document {
+                keys: map! {
+                    "bar".to_string() => Schema::AnyOf(set!(
+                        Schema::Document(Document {
+                            keys: map! {
+                                "a".to_string() => Schema::Atomic(Atomic::String),
+                                "b".to_string() => Schema::Atomic(Atomic::Integer),
+                            },
+                            ..Default::default()
+                        }),
+                        Schema::Array(Box::new(Schema::Document(Document {
+                            keys: map! {
+                                "a".to_string() => Schema::Atomic(Atomic::String),
+                                "b".to_string() => Schema::Atomic(Atomic::Integer),
+                            },
+                            ..Default::default()
+                        })))
+                    ))
+                },
+                ..Default::default()
+            })
+        ))
+    );
     test_derive_stage_schema!(
         project_remove_id,
         expected = Ok(Schema::Document(Document {
@@ -1332,6 +1560,84 @@ mod project {
                 "bar".to_string(),
                 "baz".to_string()
             ),
+            ..Default::default()
+        })
+    );
+    test_derive_stage_schema!(
+        project_include_exclude,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Array(Box::new(Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Atomic(Atomic::Integer),
+                    },
+                    ..Default::default()
+                })))
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo.a": 1, "foo.a": 0}}"#,
+        ref_schema = Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::String),
+                "b".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            ..Default::default()
+        })))
+    );
+    test_derive_stage_schema!(
+        project_exclude_include,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Array(Box::new(Schema::Document(Document {
+                    keys: map! {
+                        "a".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    ..Default::default()
+                })))
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo.a": 0, "foo.a": 1}}"#,
+        ref_schema = Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::String),
+                "b".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            ..Default::default()
+        })))
+    );
+    test_derive_stage_schema!(
+        project_nested_fields_not_required,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "a".to_string() => Schema::Document(Document {
+                            keys: map! {
+                                "b".to_string() => Schema::Atomic(Atomic::Double)
+                            },
+                            ..Default::default()
+                        }),
+                    },
+                    ..Default::default()
+                })
+            },
+            required: set!("foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo.a.b": 1}}"#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Atomic(Atomic::Double)
+                    },
+                    ..Default::default()
+                }),
+            },
             ..Default::default()
         })
     );
