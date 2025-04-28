@@ -1914,7 +1914,7 @@ impl DeriveSchema for UntaggedOperator {
             // we can set the lower bound of numeric args as the largest type that is the minimum
             // of one of the arguments. For example, if the lowest ordered type an argument can take
             // on is a Double, the set that as the lower bound, as the operator will never return int or long.
-            let type_bound = arg_schemas
+            let lower_bound = arg_schemas
                 .iter()
                 .map(|schema| match schema {
                     Schema::Atomic(_) => schema,
@@ -1924,19 +1924,19 @@ impl DeriveSchema for UntaggedOperator {
                 .max()
                 .unwrap()
                 .to_owned();
-            type_set.insert(type_bound.clone());
+            type_set.insert(lower_bound.clone());
             // we then add any possible types that are > the lower bound to the set of types
             // our operator can return, and return the anyof of all the possible types.
             for arg_schema in arg_schemas {
                 match arg_schema {
                     Schema::Atomic(_) => {
-                        if arg_schema > type_bound {
+                        if arg_schema > lower_bound {
                             type_set.insert(arg_schema);
                         }
                     }
                     Schema::AnyOf(ao) => {
                         ao.into_iter().for_each(|schema| {
-                            if schema > type_bound {
+                            if schema > lower_bound {
                                 type_set.insert(schema);
                             }
                         });
@@ -1947,10 +1947,17 @@ impl DeriveSchema for UntaggedOperator {
             let mut schema = Schema::simplify(&Schema::AnyOf(type_set));
             // the operators calling this, like multiply and add, will return a long if the
             // inputs are integers and the value is sufficiently large, so we add that type
+            if schema.satisfies(&Schema::Atomic(Atomic::Long)) != Satisfaction::Not
+                && schema != Schema::Unsat
+            {
+                schema = schema.union(&Schema::Atomic(Atomic::Double));
+            }
             if schema.satisfies(&Schema::Atomic(Atomic::Integer)) != Satisfaction::Not
                 && schema != Schema::Unsat
             {
+                println!("{:?}", schema);
                 schema = schema.union(&Schema::Atomic(Atomic::Long));
+                println!("{:?}", schema);
             }
             Ok(schema)
         }
