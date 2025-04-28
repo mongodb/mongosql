@@ -497,6 +497,35 @@ mod window_ops {
         ))
     );
     test_derive_expression_schema!(
+        sum_nullish,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$sum": [1, "$foo"] }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_expression_schema!(
+        sum_ignores_non_numeric_args,
+        expected = Ok(Schema::Atomic(Atomic::Long)),
+        input = r#"{"$sum": [{"$numberLong": "1"}, "$foo"] }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Javascript),
+        ))
+    );
+    // this test reflects a weird quirk of sum ignoring non-numeric args,
+    // which is that if all args are non-numeric, it returns 0 (i.e. Integer)
+    test_derive_expression_schema!(
+        sum_all_non_numeric_args_returns_integer,
+        expected = Ok(Schema::Atomic(Atomic::Integer)),
+        input = r#"{"$sum": ["hi", {"a": 2}] }"#
+    );
+    test_derive_expression_schema!(
         first_non_array,
         expected = Ok(Schema::Atomic(Atomic::String)),
         input = r#"{"$first": "hello world"}"#
