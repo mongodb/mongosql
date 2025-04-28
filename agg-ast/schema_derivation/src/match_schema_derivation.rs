@@ -390,6 +390,37 @@ fn match_derive_schema_for_op(
 
 impl MatchConstrainSchema for Expression {
     fn match_derive_schema(&self, state: &mut ResultSetState) -> Result<()> {
+        /// TODO
+        macro_rules! handle_date_operator_arg {
+            ($exp:expr, $basic_schema:expr, $state:expr) => {
+                if let Expression::Ref(ref reference) = $exp {
+                    match $state.null_behavior {
+                        Satisfaction::Not => {
+                            intersect_if_exists(reference, $state, $basic_schema);
+                        }
+                        Satisfaction::May | Satisfaction::Must => {
+                            let schema = $basic_schema.union(&NULLISH.clone());
+                            intersect_if_exists(reference, $state, schema);
+                        }
+                    }
+                } else {
+                    $exp.match_derive_schema($state)?;
+                }
+            };
+        }
+
+        /// TODO
+        macro_rules! handle_reference_arg {
+            ($input:expr, $sch:expr, $state:expr) => {
+                if let Expression::Ref(ref reference) = $input {
+                    intersect_if_exists(reference, $state, $sch);
+                } else {
+                    $input.match_derive_schema($state)?;
+                }
+            };
+        }
+
+        /// TODO
         fn match_date_derive_common(
             d: &Expression,
             timezone: &Option<Box<Expression>>,
@@ -420,6 +451,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_date_expression(
             d: &DateExpression,
             state: &mut ResultSetState,
@@ -428,11 +460,13 @@ impl MatchConstrainSchema for Expression {
             match_date_derive_common(date, timezone, state)
         }
 
+        /// TODO
         fn match_derive_date_to_parts(d: &DateToParts, state: &mut ResultSetState) -> Result<()> {
             let DateToParts { date, timezone, .. } = d;
             match_date_derive_common(date, timezone, state)
         }
 
+        /// TODO
         fn match_derive_date_from_parts(
             d: &DateFromParts,
             state: &mut ResultSetState,
@@ -498,6 +532,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_date_from_string(
             d: &DateFromString,
             state: &mut ResultSetState,
@@ -540,6 +575,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_date_to_string(d: &DateToString, state: &mut ResultSetState) -> Result<()> {
             macro_rules! handle_date_field_schema {
                 ( $e:expr, $schema:expr ) => {
@@ -585,6 +621,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_string_operation(
             u: &UntaggedOperator,
             state: &mut ResultSetState,
@@ -610,6 +647,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_and(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             let mut initial_schema = state.result_set_schema.clone();
             loop {
@@ -624,6 +662,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_or(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             // because the conditions of $or are not additive, we need to create a fresh copy of the incoming result set schema for
             // each. This avoids us applying the constraints of one operand to another.
@@ -643,6 +682,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_eq(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             let null_behavior = state.null_behavior;
             if u.args.len() == 2 {
@@ -672,6 +712,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_ne(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             // we can only constrain the schema for ne with unitary types, for example ne null
             if u.args.len() == 2 {
@@ -806,6 +847,7 @@ impl MatchConstrainSchema for Expression {
             }
         }
 
+        /// TODO
         fn get_comparison_nullability(op: UntaggedOperatorName, schema: Schema) -> Satisfaction {
             // if we get a comparison that is <= null, this is null or missing. Technically, < null is only missing.
             // but for the purposes of constraining null we will keep these the same
@@ -825,6 +867,7 @@ impl MatchConstrainSchema for Expression {
             }
         }
 
+        /// TODO
         fn match_derive_comparison(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             let null_behavior = state.null_behavior;
             if u.args.len() == 2 {
@@ -857,6 +900,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_numeric(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             for arg in u.args.iter() {
                 if let Expression::Ref(reference) = arg {
@@ -878,6 +922,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_add(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             for arg in u.args.iter() {
                 if let Expression::Ref(reference) = arg {
@@ -909,6 +954,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_binary_size(
             u: &UntaggedOperator,
             state: &mut ResultSetState,
@@ -946,6 +992,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_index_of(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             if u.args.len() < 2 {
                 return Err(Error::NotEnoughArguments(u.op.to_string()));
@@ -965,28 +1012,20 @@ impl MatchConstrainSchema for Expression {
                     )
                 }
             };
-            macro_rules! handle_arg {
-                ($arg: expr, $sch: expr) => {
-                    if let Expression::Ref(ref reference) = $arg {
-                        intersect_if_exists(reference, state, $sch);
-                    } else {
-                        $arg.match_derive_schema(state)?;
-                    }
-                };
-            }
-            handle_arg!(u.args[0], input_schema);
-            handle_arg!(u.args[1], find_schema);
+            handle_reference_arg!(u.args[0], input_schema, state);
+            handle_reference_arg!(u.args[1], find_schema, state);
             if u.args.len() == 3 {
-                handle_arg!(u.args[2], number_schema);
+                handle_reference_arg!(u.args[2], number_schema, state);
             } else if u.args.len() == 4 {
                 // I don't like repeating the code, but it avoids a clone when there are only 3
                 // args
-                handle_arg!(u.args[2], number_schema.clone());
-                handle_arg!(u.args[3], number_schema);
+                handle_reference_arg!(u.args[2], number_schema.clone(), state);
+                handle_reference_arg!(u.args[3], number_schema, state);
             }
             Ok(())
         }
 
+        /// TODO
         fn match_derive_substr(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             if u.args.len() < 3 {
                 return Err(Error::NotEnoughArguments(u.op.to_string()));
@@ -998,21 +1037,13 @@ impl MatchConstrainSchema for Expression {
                     (STRING_OR_NULLISH.clone(), NUMERIC_OR_NULLISH.clone())
                 }
             };
-            macro_rules! handle_arg {
-                ($arg: expr, $sch: expr) => {
-                    if let Expression::Ref(ref reference) = $arg {
-                        intersect_if_exists(reference, state, $sch);
-                    } else {
-                        $arg.match_derive_schema(state)?;
-                    }
-                };
-            }
-            handle_arg!(u.args[0], string_schema);
-            handle_arg!(u.args[1], number_schema.clone());
-            handle_arg!(u.args[2], number_schema);
+            handle_reference_arg!(u.args[0], string_schema, state);
+            handle_reference_arg!(u.args[1], number_schema.clone(), state);
+            handle_reference_arg!(u.args[2], number_schema, state);
             Ok(())
         }
 
+        /// TODO
         fn match_derive_subtract(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             if u.args.len() == 2 {
                 if let Expression::Ref(reference) = &u.args[0] {
@@ -1083,6 +1114,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_object_to_array(
             u: &UntaggedOperator,
             state: &mut ResultSetState,
@@ -1115,6 +1147,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_let(l: &Let, state: &mut ResultSetState) -> Result<()> {
             let mut variables = state.variables.clone();
             for (var, expression) in l.vars.iter() {
@@ -1182,6 +1215,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_switch(s: &Switch, state: &mut ResultSetState) -> Result<()> {
             for case in s.branches.iter() {
                 if let Expression::Ref(reference) = case.case.as_ref() {
@@ -1194,6 +1228,7 @@ impl MatchConstrainSchema for Expression {
             s.default.match_derive_schema(state)
         }
 
+        /// TODO
         fn match_derive_bit_ops(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             for arg in u.args.iter() {
                 if let Expression::Ref(reference) = arg {
@@ -1222,6 +1257,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_is_number(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             if let Expression::Ref(reference) = &u.args[0] {
                 match state.null_behavior {
@@ -1250,6 +1286,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_range(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             for arg in u.args.iter() {
                 if let Expression::Ref(reference) = arg {
@@ -1261,6 +1298,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_round(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             if u.args.is_empty() {
                 return Err(Error::NotEnoughArguments(u.op.to_string()));
@@ -1308,6 +1346,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_numeric_conversion(
             u: &UntaggedOperator,
             state: &mut ResultSetState,
@@ -1345,26 +1384,19 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_replace(r: &Replace, state: &mut ResultSetState) -> Result<()> {
             let arg_schema = match state.null_behavior {
                 Satisfaction::Not => Schema::Atomic(Atomic::String),
                 Satisfaction::May | Satisfaction::Must => STRING_OR_NULLISH.clone(),
             };
-            macro_rules! handle_arg {
-                ($input:expr, $sch:expr) => {
-                    if let Expression::Ref(ref reference) = $input {
-                        intersect_if_exists(reference, state, $sch);
-                    } else {
-                        $input.match_derive_schema(state)?;
-                    }
-                };
-            }
-            handle_arg!(*r.input, arg_schema.clone());
-            handle_arg!(*r.find, arg_schema.clone());
-            handle_arg!(*r.replacement, arg_schema);
+            handle_reference_arg!(*r.input, arg_schema.clone(), state);
+            handle_reference_arg!(*r.find, arg_schema.clone(), state);
+            handle_reference_arg!(*r.replacement, arg_schema, state);
             Ok(())
         }
 
+        /// TODO
         fn match_derive_non_nullable_regex(
             r: &RegexAggExpression,
             state: &mut ResultSetState,
@@ -1377,25 +1409,17 @@ impl MatchConstrainSchema for Expression {
                     Schema::Atomic(Atomic::Regex)
                 ]),
             );
-            macro_rules! handle_arg {
-                ($input:expr, $sch:expr) => {
-                    if let Expression::Ref(ref reference) = $input {
-                        intersect_if_exists(reference, state, $sch);
-                    } else {
-                        $input.match_derive_schema(state)?;
-                    }
-                };
-            }
-            handle_arg!(*r.input, string_schema.clone());
-            handle_arg!(*r.regex, regex_schema);
+            handle_reference_arg!(*r.input, string_schema.clone(), state);
+            handle_reference_arg!(*r.regex, regex_schema, state);
             // options can always be NULL without producing NULL as an output, so
             // this behavior is regardless of null_behavior
             if let Some(options) = &r.options {
-                handle_arg!(*options.as_ref(), STRING_OR_NULLISH.clone());
+                handle_reference_arg!(*options.as_ref(), STRING_OR_NULLISH.clone(), state);
             }
             Ok(())
         }
 
+        /// TODO
         fn match_derive_regex_find(
             r: &RegexAggExpression,
             state: &mut ResultSetState,
@@ -1419,24 +1443,16 @@ impl MatchConstrainSchema for Expression {
                     ]),
                 ),
             };
-            macro_rules! handle_arg {
-                ($input:expr, $sch:expr) => {
-                    if let Expression::Ref(ref reference) = $input {
-                        intersect_if_exists(reference, state, $sch);
-                    } else {
-                        $input.match_derive_schema(state)?;
-                    }
-                };
-            }
-            handle_arg!(*r.input, string_schema.clone());
-            handle_arg!(*r.regex, regex_schema);
+            handle_reference_arg!(*r.input, string_schema.clone(), state);
+            handle_reference_arg!(*r.regex, regex_schema, state);
             if let Some(options) = &r.options {
                 // options can be NULLISH no matter the current null_behavior
-                handle_arg!(*options.as_ref(), STRING_OR_NULLISH.clone());
+                handle_reference_arg!(*options.as_ref(), STRING_OR_NULLISH.clone(), state);
             }
             Ok(())
         }
 
+        /// TODO
         fn match_derive_to_string(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             if u.args.is_empty() {
                 return Err(Error::NotEnoughArguments(u.op.to_string()));
@@ -1476,23 +1492,15 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_trim(t: &Trim, state: &mut ResultSetState) -> Result<()> {
             let arg_schema = match state.null_behavior {
                 Satisfaction::Not => Schema::Atomic(Atomic::String),
                 Satisfaction::May | Satisfaction::Must => STRING_OR_NULLISH.clone(),
             };
-            macro_rules! handle_arg {
-                ($input:expr, $sch:expr) => {
-                    if let Expression::Ref(ref reference) = $input {
-                        intersect_if_exists(reference, state, $sch);
-                    } else {
-                        $input.match_derive_schema(state)?;
-                    }
-                };
-            }
-            handle_arg!(*t.input, arg_schema.clone());
+            handle_reference_arg!(*t.input, arg_schema.clone(), state);
             if let Some(chars) = &t.chars {
-                handle_arg!(*chars.as_ref(), arg_schema);
+                handle_reference_arg!(*chars.as_ref(), arg_schema, state);
             }
             Ok(())
         }
@@ -1755,6 +1763,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         fn match_derive_date_arithmetic(
             start_date: &Expression,
             unit: &Expression,
@@ -1762,39 +1771,25 @@ impl MatchConstrainSchema for Expression {
             timezone: Option<&Expression>,
             state: &mut ResultSetState,
         ) -> Result<()> {
-            macro_rules! handle_arg {
-                ($exp:expr, $basic_schema:expr) => {
-                    if let Expression::Ref(ref reference) = $exp {
-                        match state.null_behavior {
-                            Satisfaction::Not => {
-                                intersect_if_exists(reference, state, $basic_schema);
-                            }
-                            Satisfaction::May | Satisfaction::Must => {
-                                let schema = $basic_schema.union(&NULLISH.clone());
-                                intersect_if_exists(reference, state, schema);
-                            }
-                        }
-                    } else {
-                        $exp.match_derive_schema(state)?;
-                    }
-                };
-            }
-            handle_arg!(
+            handle_date_operator_arg!(
                 start_date,
                 Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Date),
                     Schema::Atomic(Atomic::ObjectId),
                     Schema::Atomic(Atomic::Timestamp),
-                ])
+                ]),
+                state
             );
-            handle_arg!(unit, Schema::Atomic(Atomic::String));
-            handle_arg!(amount, NUMERIC.clone());
+            handle_date_operator_arg!(unit, Schema::Atomic(Atomic::String), state);
+            handle_date_operator_arg!(amount, NUMERIC.clone(), state);
             if let Some(ref timezone) = timezone {
-                handle_arg!(timezone, Schema::Atomic(Atomic::String));
+                handle_date_operator_arg!(timezone, Schema::Atomic(Atomic::String), state);
             }
             Ok(())
         }
 
+        /// match_derive_date_diff constrains the result_set_schema for $dateAdd.
+        /// See match_derive_date_arithmetic for details.
         fn match_derive_date_add(d: &DateAdd, state: &mut ResultSetState) -> Result<()> {
             let tz = d.timezone.as_ref().map(|tz| tz.as_ref());
             match_derive_date_arithmetic(
@@ -1806,6 +1801,8 @@ impl MatchConstrainSchema for Expression {
             )
         }
 
+        /// match_derive_date_subtract constrains the result_set_schema for $dateSubtract.
+        /// See match_derive_date_arithmetic for details.
         fn match_derive_date_subtract(d: &DateSubtract, state: &mut ResultSetState) -> Result<()> {
             let tz = d.timezone.as_ref().map(|tz| tz.as_ref());
             match_derive_date_arithmetic(
@@ -1817,85 +1814,68 @@ impl MatchConstrainSchema for Expression {
             )
         }
 
+        /// match_derive_date_diff constrains the result_set_schema for $dateDiff. The operator
+        /// can be null if any of the arguments are null, so we constrain the types any field reference
+        /// can take on by both the null behavior and the argument it is passed as.
         fn match_derive_date_diff(d: &DateDiff, state: &mut ResultSetState) -> Result<()> {
-            macro_rules! handle_arg {
-                ($exp:expr, $basic_schema:expr) => {
-                    if let Expression::Ref(ref reference) = $exp {
-                        match state.null_behavior {
-                            Satisfaction::Not => {
-                                intersect_if_exists(reference, state, $basic_schema);
-                            }
-                            Satisfaction::May | Satisfaction::Must => {
-                                let schema = $basic_schema.union(&NULLISH.clone());
-                                intersect_if_exists(reference, state, schema);
-                            }
-                        }
-                    } else {
-                        $exp.match_derive_schema(state)?;
-                    }
-                };
-            }
-            handle_arg!(
+            handle_date_operator_arg!(
                 d.start_date.as_ref(),
                 Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Date),
                     Schema::Atomic(Atomic::ObjectId),
                     Schema::Atomic(Atomic::Timestamp),
-                ])
+                ]),
+                state
             );
-            handle_arg!(
+            handle_date_operator_arg!(
                 d.end_date.as_ref(),
                 Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Date),
                     Schema::Atomic(Atomic::ObjectId),
                     Schema::Atomic(Atomic::Timestamp),
-                ])
+                ]),
+                state
             );
-            handle_arg!(d.unit.as_ref(), Schema::Atomic(Atomic::String));
+            handle_date_operator_arg!(d.unit.as_ref(), Schema::Atomic(Atomic::String), state);
             if let Some(ref timezone) = d.timezone {
-                handle_arg!(timezone.as_ref(), Schema::Atomic(Atomic::String));
+                handle_date_operator_arg!(timezone.as_ref(), Schema::Atomic(Atomic::String), state);
             }
             if let Some(ref start_of_week) = d.start_of_week {
-                handle_arg!(start_of_week.as_ref(), Schema::Atomic(Atomic::String));
+                handle_date_operator_arg!(
+                    start_of_week.as_ref(),
+                    Schema::Atomic(Atomic::String),
+                    state
+                );
             }
             Ok(())
         }
 
+        /// match_derive_date_trunc constrains the result_set_schema for $dateTrunc. The operator
+        /// can be null if any of the arguments are null, so we constrain the types any field reference
+        /// can take on by both the null behavior and the argument it is passed as.
         fn match_derive_date_trunc(d: &DateTrunc, state: &mut ResultSetState) -> Result<()> {
-            macro_rules! handle_arg {
-                ($exp:expr, $basic_schema:expr) => {
-                    if let Expression::Ref(ref reference) = $exp {
-                        match state.null_behavior {
-                            Satisfaction::Not => {
-                                intersect_if_exists(reference, state, $basic_schema);
-                            }
-                            Satisfaction::May | Satisfaction::Must => {
-                                let schema = $basic_schema.union(&NULLISH.clone());
-                                intersect_if_exists(reference, state, schema);
-                            }
-                        }
-                    } else {
-                        $exp.match_derive_schema(state)?;
-                    }
-                };
-            }
-            handle_arg!(
+            handle_date_operator_arg!(
                 d.date.as_ref(),
                 Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Date),
                     Schema::Atomic(Atomic::ObjectId),
                     Schema::Atomic(Atomic::Timestamp),
-                ])
+                ]),
+                state
             );
-            handle_arg!(d.unit.as_ref(), Schema::Atomic(Atomic::String));
+            handle_date_operator_arg!(d.unit.as_ref(), Schema::Atomic(Atomic::String), state);
             if let Some(ref bin_size) = d.bin_size {
-                handle_arg!(bin_size.as_ref(), NUMERIC.clone());
+                handle_date_operator_arg!(bin_size.as_ref(), NUMERIC.clone(), state);
             }
             if let Some(ref timezone) = d.timezone {
-                handle_arg!(timezone.as_ref(), Schema::Atomic(Atomic::String));
+                handle_date_operator_arg!(timezone.as_ref(), Schema::Atomic(Atomic::String), state);
             }
             if let Some(ref start_of_week) = d.start_of_week {
-                handle_arg!(start_of_week.as_ref(), Schema::Atomic(Atomic::String));
+                handle_date_operator_arg!(
+                    start_of_week.as_ref(),
+                    Schema::Atomic(Atomic::String),
+                    state
+                );
             }
             Ok(())
         }
@@ -1985,6 +1965,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// TODO
         macro_rules! derive_map_filter_input {
             ($input:expr, $state:expr, $inside:expr) => {
                 if let Expression::Ref(reference) = $input.input.as_ref() {

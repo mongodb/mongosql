@@ -78,6 +78,7 @@ impl<'a> ResultSetState<'a> {
     }
 }
 
+/// TODO
 pub fn derive_schema_for_pipeline(
     pipeline: Vec<Stage>,
     current_collection: Option<String>,
@@ -107,6 +108,7 @@ pub fn derive_schema_for_pipeline(
 
 impl DeriveSchema for Stage {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
+        /// TODO
         fn densify_derive_schema(densify: &Densify, state: &mut ResultSetState) -> Result<Schema> {
             // create a list of all the fields that densify references explicitly -- that is the partition by fields and
             // the actual field being densified.
@@ -156,6 +158,7 @@ impl DeriveSchema for Stage {
                 .document_union(required_doc))
         }
 
+        /// TODO
         fn documents_derive_schema(
             documents: &Documents,
             state: &mut ResultSetState,
@@ -195,6 +198,7 @@ impl DeriveSchema for Stage {
             }
         }
 
+        /// TODO
         fn facet_derive_schema(
             facet: &LinkedHashMap<String, Vec<Stage>>,
             state: &mut ResultSetState,
@@ -221,6 +225,7 @@ impl DeriveSchema for Stage {
             }))
         }
 
+        /// TODO
         fn fill_derive_schema(fill: &Fill, state: &mut ResultSetState) -> Result<Schema> {
             for (path, fill_output) in fill.output.iter() {
                 // Every key that appears in the output can no longer be missing, and can only be
@@ -265,6 +270,7 @@ impl DeriveSchema for Stage {
             Ok(state.result_set_schema.to_owned())
         }
 
+        /// TODO
         fn graph_lookup_derive_schema(
             graph_lookup: &GraphLookup,
             state: &mut ResultSetState,
@@ -303,6 +309,7 @@ impl DeriveSchema for Stage {
             Ok(state.result_set_schema.to_owned())
         }
 
+        /// TODO
         fn group_derive_schema(group: &Group, state: &mut ResultSetState) -> Result<Schema> {
             state.accumulator_stage = true;
             // group is a map of field namespace to expression. We can derive the schema for each expression
@@ -349,6 +356,7 @@ impl DeriveSchema for Stage {
             Ok(Schema::simplify(&state.result_set_schema).to_owned())
         }
 
+        /// TODO
         fn bucket_output_derive_keys(
             output: Option<&LinkedHashMap<String, Expression>>,
             state: &mut ResultSetState,
@@ -369,6 +377,7 @@ impl DeriveSchema for Stage {
             }
         }
 
+        /// TODO
         fn bucket_derive_schema(bucket: &Bucket, state: &mut ResultSetState) -> Result<Schema> {
             let mut id_schema = bucket.group_by.derive_schema(state)?;
             if let Some(default) = bucket.default.as_ref() {
@@ -384,6 +393,7 @@ impl DeriveSchema for Stage {
             }))
         }
 
+        /// TODO
         fn bucket_auto_derive_schema(
             bucket: &BucketAuto,
             state: &mut ResultSetState,
@@ -408,6 +418,7 @@ impl DeriveSchema for Stage {
             }))
         }
 
+        /// TODO
         fn set_window_fields_derive_schema(
             set_windows: &SetWindowFields,
             state: &mut ResultSetState,
@@ -588,6 +599,7 @@ impl DeriveSchema for Stage {
             }
         }
 
+        /// TODO
         fn project_derive_schema(
             project: &ProjectStage,
             state: &mut ResultSetState,
@@ -652,6 +664,7 @@ impl DeriveSchema for Stage {
             Ok(Schema::simplify(&result_doc))
         }
 
+        /// TODO
         fn lookup_derive_schema(lookup: &Lookup, state: &mut ResultSetState) -> Result<Schema> {
             match lookup {
                 Lookup::Equality(le) => derive_equality_lookup_schema(le, state),
@@ -660,6 +673,7 @@ impl DeriveSchema for Stage {
             }
         }
 
+        /// TODO
         fn from_to_ns(from: &LookupFrom, state: &ResultSetState) -> Namespace {
             match from {
                 LookupFrom::Collection(ref c) => {
@@ -671,6 +685,7 @@ impl DeriveSchema for Stage {
             }
         }
 
+        /// TODO
         fn derive_equality_lookup_schema(
             lookup: &EqualityLookup,
             state: &mut ResultSetState,
@@ -694,6 +709,7 @@ impl DeriveSchema for Stage {
             Ok(state.result_set_schema.to_owned())
         }
 
+        /// TODO
         fn derive_concise_lookup_schema(
             lookup: &ConciseSubqueryLookup,
             state: &mut ResultSetState,
@@ -707,6 +723,7 @@ impl DeriveSchema for Stage {
             )
         }
 
+        /// TODO
         fn derive_subquery_lookup_schema(
             lookup: &SubqueryLookup,
             state: &mut ResultSetState,
@@ -720,6 +737,7 @@ impl DeriveSchema for Stage {
             )
         }
 
+        /// TODO
         fn derive_subquery_lookup_schema_helper(
             // generally, we do not pass &Option<Type> but usually Option<&Type>, but this is an
             // internal helper function.
@@ -767,6 +785,7 @@ impl DeriveSchema for Stage {
             Ok(state.result_set_schema.to_owned())
         }
 
+        /// TODO
         fn sort_by_count_derive_schema(
             sort_expr: &Expression,
             state: &mut ResultSetState,
@@ -781,6 +800,7 @@ impl DeriveSchema for Stage {
             }))
         }
 
+        /// TODO
         fn union_with_derive_schema(
             union: &UnionWith,
             state: &mut ResultSetState,
@@ -834,6 +854,7 @@ impl DeriveSchema for Stage {
             }
         }
 
+        /// TODO
         fn unwind_derive_schema(unwind: &Unwind, state: &mut ResultSetState) -> Result<Schema> {
             let (path, preserve_null_and_empty_arrays) = match unwind {
                 Unwind::FieldPath(Expression::Ref(Ref::FieldRef(r))) => (
@@ -921,6 +942,7 @@ impl DeriveSchema for Stage {
             Ok(Schema::simplify(&state.result_set_schema.to_owned()))
         }
 
+        /// TODO
         fn unset_derive_schema(u: &Unset, state: &mut ResultSetState) -> Result<Schema> {
             let fields = match u {
                 Unset::Single(field) => &vec![field.clone()],
@@ -1182,6 +1204,7 @@ fn handle_null_satisfaction(
 
 impl DeriveSchema for TaggedOperator {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
+        /// TODO
         macro_rules! derive_window_func {
             ($input:expr) => {{
                 let input_schema = $input.input.derive_schema(state)?;
@@ -1200,6 +1223,7 @@ impl DeriveSchema for TaggedOperator {
                 Ok(Schema::simplify(&Schema::AnyOf(types)))
             }};
         }
+        /// TODO
         macro_rules! derive_date_addition {
             ($input:expr) => {{
                 let args = vec![
@@ -1353,6 +1377,7 @@ impl DeriveSchema for TaggedOperator {
                 ];
                 handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Date))
             }
+            /// TODO
             TaggedOperator::DateFromString(d) => {
                 let nullable_args = vec![
                     d.date_string.as_ref(),
@@ -1383,6 +1408,7 @@ impl DeriveSchema for TaggedOperator {
                 }
                 Ok(Schema::simplify(&Schema::AnyOf(types)))
             }
+            /// TODO
             TaggedOperator::DateToParts(d) => {
                 let args = vec![d.date.as_ref(), optional_arg_or_truish!(d.timezone)];
                 match d.iso8601 {
@@ -1438,6 +1464,7 @@ impl DeriveSchema for TaggedOperator {
                     ),
                 }
             }
+            /// TODO
             TaggedOperator::DateToString(d) => {
                 let nullable_args = vec![
                     d.date.as_ref(),
@@ -1586,6 +1613,7 @@ impl DeriveSchema for TaggedOperator {
                     set! {then_schema, else_schema},
                 )))
             }
+            /// TODO
             TaggedOperator::Filter(f) => {
                 let input_schema = f.input.derive_schema(state)?;
                 let is_nullable = input_schema.satisfies(&NULLISH.clone()) != Satisfaction::Not;
@@ -1613,6 +1641,7 @@ impl DeriveSchema for TaggedOperator {
                 get_decimal_double_or_nullish(vec![i.input.as_ref()], state)
             }
             TaggedOperator::LastN(n) => Ok(Schema::Array(Box::new(n.input.derive_schema(state)?))),
+            /// TODO
             TaggedOperator::Map(m) => {
                 let var = m._as.clone();
                 let var = var.unwrap_or("this".to_string());
@@ -1650,6 +1679,7 @@ impl DeriveSchema for TaggedOperator {
                     Ok(input_schema)
                 }
             }
+            /// TODO
             TaggedOperator::Reduce(r) => {
                 let input_schema = r.input.derive_schema(state)?;
                 if input_schema.satisfies(&NULLISH.clone()) == Satisfaction::Must {
@@ -1696,6 +1726,7 @@ impl DeriveSchema for TaggedOperator {
             }
             TaggedOperator::Top(t) => t.output.derive_schema(state),
             TaggedOperator::TopN(t) => Ok(Schema::Array(Box::new(t.output.derive_schema(state)?))),
+            /// TODO
             TaggedOperator::Zip(z) => {
                 let inputs = match z.inputs.as_ref() {
                     Expression::Array(a) => a,
@@ -1796,6 +1827,7 @@ fn get_input_schema(args: &[&Expression], state: &mut ResultSetState) -> Result<
     Ok(Schema::simplify(&Schema::AnyOf(x)))
 }
 
+/// TODO
 fn get_decimal_double_or_nullish_from_schema(schema: Schema) -> Schema {
     use Satisfaction::*;
     let numeric_satisfaction = schema.satisfies(&NUMERIC);
@@ -1853,6 +1885,7 @@ fn get_decimal_double_or_nullish(
 
 impl DeriveSchema for UntaggedOperator {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
+        /// TODO
         fn get_sum_type(s: Schema) -> Schema {
             // get the maximum numeric type
             let s = if let Schema::AnyOf(a) = s {
@@ -2134,6 +2167,7 @@ impl DeriveSchema for UntaggedOperator {
                 };
                 handle_null_satisfaction(args, state, Schema::simplify(&Schema::AnyOf(types)))
             }
+            /// TODO
             UntaggedOperatorName::ArrayElemAt => {
                 let input_schema = self.args[0].derive_schema(state)?;
                 match input_schema.clone() {
@@ -2171,6 +2205,7 @@ impl DeriveSchema for UntaggedOperator {
                     nullish_schema => Schema::simplify(&nullish_schema.union(&Schema::Document(Document::any()))),
                 })
             }
+            /// TODO
             UntaggedOperatorName::ConcatArrays | UntaggedOperatorName::SetUnion => {
                 let mut array_schema = Schema::Unsat;
                 let mut null_schema: Option<Schema> = None;
@@ -2203,6 +2238,7 @@ impl DeriveSchema for UntaggedOperator {
                     Ok(Schema::Array(Box::new(array_schema)))
                 }
             }
+            /// TODO
             UntaggedOperatorName::SetIntersection => {
                 if args.is_empty() {
                     return Ok(Schema::Array(Box::new(Schema::Unsat)));
@@ -2239,6 +2275,7 @@ impl DeriveSchema for UntaggedOperator {
             UntaggedOperatorName::Locf => {
                 self.args[0].derive_schema(state)
             }
+            /// TODO
             UntaggedOperatorName::Max
             | UntaggedOperatorName::Min => {
                 let schema = self.args.iter().try_fold(Schema::Unsat, |acc, arg| {
@@ -2397,6 +2434,7 @@ impl DeriveSchema for UntaggedOperator {
                     })
                 )))
             }
+            /// TODO
             UntaggedOperatorName::ObjectToArray => {
                 let input_doc = match &self.args[0].derive_schema(state)? {
                     Schema::Document(d) => Some(d.clone()),
@@ -2434,6 +2472,7 @@ impl DeriveSchema for UntaggedOperator {
                         "object",))
                 }
             }
+            /// TODO
             UntaggedOperatorName::Sum => {
                 if args.len() == 1 {
                     let arg_schema = args[0].derive_schema(state)?;
