@@ -755,8 +755,6 @@ mod group_accumulator {
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long),
-            Schema::Atomic(Atomic::Double),
-            Schema::Atomic(Atomic::Decimal)
         ))),
         input = r#"{"$sum": "$foo"}"#,
         ref_schema = Schema::AnyOf(set!(
@@ -766,10 +764,7 @@ mod group_accumulator {
     );
     test_derive_expression_schema!(
         sum_double,
-        expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Double),
-            Schema::Atomic(Atomic::Decimal)
-        ))),
+        expected = Ok(Schema::Atomic(Atomic::Double)),
         input = r#"{"$sum": "$foo"}"#,
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Double),
@@ -946,8 +941,6 @@ mod group_accumulator {
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long),
-            Schema::Atomic(Atomic::Double),
-            Schema::Atomic(Atomic::Decimal)
         ))),
         input = r#"{"$sqlSum": {"distinct": false, "var": "$foo", "arg_is_possibly_doc": null}}"#,
         ref_schema = Schema::AnyOf(set!(

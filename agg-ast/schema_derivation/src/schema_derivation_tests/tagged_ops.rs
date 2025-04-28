@@ -1258,12 +1258,7 @@ mod field_setter_ops {
 
     test_derive_expression_schema!(
         let_simple,
-        expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::Long),
-            Schema::Atomic(Atomic::Double),
-            Schema::Atomic(Atomic::Decimal),
-        ))),
+        expected = Ok(Schema::Atomic(Atomic::Decimal)),
         input = r#"{ "$let": { "vars": {"x": {"$numberDecimal": "1"}}, "in": {"$multiply": ["$$x", "$foo"]}} }"#,
         ref_schema = Schema::Atomic(Atomic::Integer)
     );
@@ -1271,9 +1266,6 @@ mod field_setter_ops {
     test_derive_expression_schema!(
         let_accesses_existing_variables,
         expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::Long),
-            Schema::Atomic(Atomic::Double),
             Schema::Atomic(Atomic::Decimal),
             Schema::Atomic(Atomic::Null),
         ))),
@@ -1289,12 +1281,7 @@ mod field_setter_ops {
 
     test_derive_expression_schema!(
         let_overwrites_existing_variables,
-        expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::Long),
-            Schema::Atomic(Atomic::Double),
-            Schema::Atomic(Atomic::Decimal),
-        ))),
+        expected = Ok(Schema::Atomic(Atomic::Decimal)),
         input = r#"{ "$let": { "vars": {"x": {"$numberDecimal": "1"}}, "in": {"$multiply": ["$$x", "$foo"]}} }"#,
         ref_schema = Schema::Atomic(Atomic::Integer),
         variables = map! {
