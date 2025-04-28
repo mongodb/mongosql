@@ -26,6 +26,8 @@ pub enum Error {
     InvalidLiteralType,
     #[error("Invalid JsonSchema")]
     InvalidJsonSchema,
+    #[error("Invalid $project stage: must have at least one field")]
+    InvalidProjectStage,
     #[error("Type value for convert invalid: {0}")]
     InvalidConvertTypeValue(String),
     #[error("Cannot derive schema for unsupported group accumulator: {0}")]
@@ -418,9 +420,18 @@ pub(crate) fn insert_required_key_into_document(
 pub(crate) fn remove_field(schema: &mut Schema, path: Vec<String>) {
     if let Some((field, field_path)) = path.split_last() {
         let input = get_schema_for_path_mut(schema, field_path.into());
-        if let Some(Schema::Document(d)) = input {
-            d.keys.remove(field);
-            d.required.remove(field);
+        match input {
+            Some(Schema::Document(d)) => {
+                d.keys.remove(field);
+                d.required.remove(field);
+            }
+            Some(Schema::Array(a)) => {
+                if let Schema::Document(d) = a.as_mut() {
+                    d.keys.remove(field);
+                    d.required.remove(field);
+                }
+            }
+            _ => {}
         }
     }
 }
