@@ -1955,9 +1955,7 @@ impl DeriveSchema for UntaggedOperator {
             if schema.satisfies(&Schema::Atomic(Atomic::Integer)) != Satisfaction::Not
                 && schema != Schema::Unsat
             {
-                println!("{:?}", schema);
                 schema = schema.union(&Schema::Atomic(Atomic::Long));
-                println!("{:?}", schema);
             }
             Ok(schema)
         }
