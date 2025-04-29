@@ -2155,15 +2155,27 @@ impl DeriveSchema for UntaggedOperator {
             }
             // mod returns the maximal numeric type of its inputs
             UntaggedOperatorName::Mod => {
-                let mut types: BTreeSet<Schema> = set!();
-                for arg in args {
-                    let numeric_schema = arg.derive_schema(state)?.upconvert_missing_to_null().intersection(&NUMERIC_OR_NULLISH.clone());
-                    if numeric_schema.satisfies(&NULLISH) == Satisfaction::Must {
-                        return Ok(Schema::Atomic(Atomic::Null))
+                let divisor = args[0].derive_schema(state)?.intersection(&NUMERIC_OR_NULLISH.clone());
+                let remainder = args[1].derive_schema(state)?.intersection(&NUMERIC_OR_NULLISH.clone());
+                if divisor.satisfies(&NULLISH) == Satisfaction::Must || remainder.satisfies(&NULLISH) == Satisfaction::Must {
+                    return Ok(Schema::Atomic(Atomic::Null))
+                };
+                let types = divisor.union(&remainder);
+                let lower_bound = match (&divisor, &remainder) {
+                    (Schema::Atomic(_), Schema::Atomic(_)) => std::cmp::max(&divisor, &remainder),
+                    (a @ Schema::Atomic(_), Schema::AnyOf(ao))
+                    | (Schema::AnyOf(ao), a @ Schema::Atomic(_)) => {
+                        std::cmp::max(ao.iter().min().unwrap(), a)
                     }
-                    types.insert(numeric_schema);
+                    (Schema::AnyOf(a), Schema::AnyOf(b)) => {
+                        std::cmp::max(a.iter().min().unwrap(), b.iter().min().unwrap())
+                    }
+                    _ => &Schema::Unsat
+                };
+                match types {
+                    Schema::AnyOf(ao) => Ok(Schema::simplify(&Schema::AnyOf(ao.into_iter().filter(|s| s >= lower_bound).collect()))),
+                    schema => Ok(schema)
                 }
-                Ok(Schema::simplify(&Schema::AnyOf(types)))
             }
             UntaggedOperatorName::ArrayElemAt => {
                 let input_schema = self.args[0].derive_schema(state)?;

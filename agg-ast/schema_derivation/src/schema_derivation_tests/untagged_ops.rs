@@ -718,10 +718,7 @@ mod numeric_ops {
     );
     test_derive_expression_schema!(
         mod_decimal,
-        expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Decimal),
-            Schema::Atomic(Atomic::Integer)
-        ))),
+        expected = Ok(Schema::Atomic(Atomic::Decimal)),
         input = r#"{"$mod": [1, "$foo"]}"#,
         ref_schema = Schema::Atomic(Atomic::Decimal)
     );
@@ -732,24 +729,37 @@ mod numeric_ops {
     );
     test_derive_expression_schema!(
         mod_double,
-        expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Double),
-            Schema::Atomic(Atomic::Integer)
-        ))),
+        expected = Ok(Schema::Atomic(Atomic::Double)),
         input = r#"{"$mod": [1, 2.1]}"#
     );
     test_derive_expression_schema!(
         mod_long,
-        expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::Long),
-        ))),
+        expected = Ok(Schema::Atomic(Atomic::Long)),
         input = r#"{"$mod": [3, {"$numberLong": "2"}]}"#
     );
     test_derive_expression_schema!(
         mod_int,
         expected = Ok(Schema::Atomic(Atomic::Integer)),
         input = r#"{"$mod": [1, 123]}"#
+    );
+    test_derive_expression_schema!(
+        mod_mixed_schemas,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Decimal)
+        ))),
+        input = r#"{"$mod": ["$foo", "$bar"]}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Decimal)
+                )),
+                "bar".to_string() => Schema::Atomic(Atomic::Long)
+            },
+            required: set!("foo".to_string(), "bar".to_string()),
+            ..Default::default()
+        })
     );
     test_derive_expression_schema!(
         add_nullable_int,
