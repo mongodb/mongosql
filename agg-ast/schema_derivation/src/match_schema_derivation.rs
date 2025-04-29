@@ -390,7 +390,10 @@ fn match_derive_schema_for_op(
 
 impl MatchConstrainSchema for Expression {
     fn match_derive_schema(&self, state: &mut ResultSetState) -> Result<()> {
-        /// TODO
+        /// date operators such as $dateAdd return null if _any_ of their arguments are null.
+        /// Thus, we should constrain the appropriate non-null type specified by basic_schema,
+        /// and allow for null if null_behavior is possible. Even if null behavior is Must, we
+        /// only constrain that the arg _may_ be null, because a different arg could be null instead.
         macro_rules! handle_date_operator_arg {
             ($exp:expr, $basic_schema:expr, $state:expr) => {
                 if let Expression::Ref(ref reference) = $exp {
@@ -409,7 +412,9 @@ impl MatchConstrainSchema for Expression {
             };
         }
 
-        /// TODO
+        /// handle_reference_arg will constrain a field or variable ref within the result
+        /// set schema if relevant, and if not, will recurse on the arg in case it contains
+        /// nested field refs we can constrain.
         macro_rules! handle_reference_arg {
             ($input:expr, $sch:expr, $state:expr) => {
                 if let Expression::Ref(ref reference) = $input {
@@ -420,7 +425,24 @@ impl MatchConstrainSchema for Expression {
             };
         }
 
-        /// TODO
+        /// handle_optional_reference_arg functions the same as handle_reference_arg, dealing
+        /// with field refs and recursing otherwise, except that it works on optional arguments
+        macro_rules! handle_optional_reference_arg {
+            ( $e:expr, $schema:expr, $state:expr ) => {
+                if let Some(e) = $e {
+                    if let Expression::Ref(reference) = e.as_ref() {
+                        intersect_if_exists(reference, $state, $schema);
+                    } else {
+                        e.match_derive_schema($state)?;
+                    }
+                }
+            };
+        }
+
+        /// match_date_derive_common is a helper for constraining result set schema for the date portions
+        /// of common date operators (like $hour or $minute) as well as $dateToParts. It constrains and field
+        /// refs in the date expression to be date coercible and, if present, the timezone to be a string, handling
+        /// null behavior appropriately.
         fn match_date_derive_common(
             d: &Expression,
             timezone: &Option<Box<Expression>>,
@@ -451,7 +473,8 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_date_expression constrains the result set schema for date part operators
+        /// such as $minute or $hour. See match_derive_date_common for details.
         fn match_derive_date_expression(
             d: &DateExpression,
             state: &mut ResultSetState,
@@ -460,28 +483,19 @@ impl MatchConstrainSchema for Expression {
             match_date_derive_common(date, timezone, state)
         }
 
-        /// TODO
+        /// match_derive_date_to_parts constrains result set schema schema for a $dateToParts operator.
+        /// See match_date_derive_common for details.
         fn match_derive_date_to_parts(d: &DateToParts, state: &mut ResultSetState) -> Result<()> {
             let DateToParts { date, timezone, .. } = d;
             match_date_derive_common(date, timezone, state)
         }
 
-        /// TODO
+        /// match_derive_date_from_parts constrains the result set schema for a $dateFromParts operator.
+        /// we unpack the date args and handle them all as numeric, besides timezone, which would be a string.
         fn match_derive_date_from_parts(
             d: &DateFromParts,
             state: &mut ResultSetState,
         ) -> Result<()> {
-            macro_rules! handle_date_field_schema {
-                ( $e:expr, $schema:expr ) => {
-                    if let Some(e) = $e {
-                        if let Expression::Ref(reference) = e.as_ref() {
-                            intersect_if_exists(reference, state, $schema);
-                        } else {
-                            e.match_derive_schema(state)?;
-                        }
-                    }
-                };
-            }
             let (most_part_schema, tz_schema) = match state.null_behavior {
                 Satisfaction::Not => (NUMERIC.clone(), Schema::Atomic(Atomic::String)),
                 Satisfaction::May | Satisfaction::Must => {
@@ -528,26 +542,16 @@ impl MatchConstrainSchema for Expression {
                     e.match_derive_schema(state)?;
                 }
             }
-            handle_date_field_schema!(timezone, tz_schema);
+            handle_optional_reference_arg!(timezone, tz_schema, state);
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_date_from_string constrains the result set schema for a $dateFromString operator.
+        /// date_string, if it is a reference, is date coercible; format and timezone, if references, are strings.
         fn match_derive_date_from_string(
             d: &DateFromString,
             state: &mut ResultSetState,
         ) -> Result<()> {
-            macro_rules! handle_date_field_schema {
-                ( $e:expr, $schema:expr ) => {
-                    if let Some(e) = $e {
-                        if let Expression::Ref(reference) = e.as_ref() {
-                            intersect_if_exists(reference, state, $schema);
-                        } else {
-                            e.match_derive_schema(state)?;
-                        }
-                    }
-                };
-            }
             let DateFromString {
                 date_string,
                 format,
@@ -570,24 +574,15 @@ impl MatchConstrainSchema for Expression {
             } else {
                 date_string.match_derive_schema(state)?;
             }
-            handle_date_field_schema!(format, string_schema.clone());
-            handle_date_field_schema!(timezone, string_schema);
+            handle_optional_reference_arg!(format, string_schema.clone(), state);
+            handle_optional_reference_arg!(timezone, string_schema, state);
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_date_to_string constrains the result set schema schema for a $dateToString operator.
+        /// date, if it is a reference, can be constrained to date coercible, while format and timezone
+        /// can be constrained to strings.
         fn match_derive_date_to_string(d: &DateToString, state: &mut ResultSetState) -> Result<()> {
-            macro_rules! handle_date_field_schema {
-                ( $e:expr, $schema:expr ) => {
-                    if let Some(e) = $e {
-                        if let Expression::Ref(reference) = e.as_ref() {
-                            intersect_if_exists(reference, state, $schema);
-                        } else {
-                            e.match_derive_schema(state)?;
-                        }
-                    }
-                };
-            }
             let DateToString {
                 date,
                 format,
@@ -616,12 +611,13 @@ impl MatchConstrainSchema for Expression {
             } else {
                 date.match_derive_schema(state)?;
             }
-            handle_date_field_schema!(format, string_schema.clone());
-            handle_date_field_schema!(timezone, string_schema);
+            handle_optional_reference_arg!(format, string_schema.clone(), state);
+            handle_optional_reference_arg!(timezone, string_schema, state);
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_string_operation constrains result set schema schema for generic untagged string
+        /// operators such as $toLower or $substr. args, if references, can be constrained to string types.
         fn match_derive_string_operation(
             u: &UntaggedOperator,
             state: &mut ResultSetState,
@@ -647,7 +643,9 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_and constrains the result set schema for $and operators. We evaluate
+        /// each sub expression, further constraining the same result set schema. This is run
+        /// to fixed point because ordering of operations can impact the resulting schema.
         fn match_derive_and(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             let mut initial_schema = state.result_set_schema.clone();
             loop {
@@ -662,7 +660,8 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_or constraints the result set schema for $or operators in match. We evaluate each condition independently and
+        /// union the constrained schemas, resulting in a schema representing any possible value from any of the branches.
         fn match_derive_or(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             // because the conditions of $or are not additive, we need to create a fresh copy of the incoming result set schema for
             // each. This avoids us applying the constraints of one operand to another.
@@ -682,7 +681,10 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_eq constrains the result_set_schema for $eq operators in match. We broadly
+        /// constrain both sides of the equality by considering the intersection of types that could
+        /// evaluate to be equal. That is, if one argument is numeric and the other is AnyOf(String, Int),
+        /// we know match will not return a value if the second argument is a string, so we can remove that type.
         fn match_derive_eq(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             let null_behavior = state.null_behavior;
             if u.args.len() == 2 {
@@ -712,7 +714,8 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_ne constrains the result set schema for $ne in match. This only real constraint
+        /// we can do is for unitary types (i.e. $x != null)
         fn match_derive_ne(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             // we can only constrain the schema for ne with unitary types, for example ne null
             if u.args.len() == 2 {
@@ -847,7 +850,8 @@ impl MatchConstrainSchema for Expression {
             }
         }
 
-        /// TODO
+        /// get_comparison_nullability is a helper for $lt, $lte, $gt, $gte that determines whether or not the argument
+        /// could be null. This allows us to recurse on any expressions with an understanding of what types it can take.
         fn get_comparison_nullability(op: UntaggedOperatorName, schema: Schema) -> Satisfaction {
             // if we get a comparison that is <= null, this is null or missing. Technically, < null is only missing.
             // but for the purposes of constraining null we will keep these the same
@@ -867,7 +871,9 @@ impl MatchConstrainSchema for Expression {
             }
         }
 
-        /// TODO
+        /// match_derive_comparison is a helper for constraining the result_set_schema for comparison operators in match.
+        /// To do so, we get the schema of both sides of the operation, and constrain the expressions according to the opposite's
+        /// schema. That is: x > y becomes constrain (x > schema y) and constrain (y < schema x)
         fn match_derive_comparison(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             let null_behavior = state.null_behavior;
             if u.args.len() == 2 {
@@ -900,7 +906,8 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_numeric is a helper for constraining genenric numeric operators (like $log) in match.
+        /// We treat the args as numeric, while factoring in null behavior.
         fn match_derive_numeric(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             for arg in u.args.iter() {
                 if let Expression::Ref(reference) = arg {
@@ -922,7 +929,8 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_add constrains the result set schema for $add operators in match. The args, broadly,
+        /// can be numeric or date, and can be null if any argument is null
         fn match_derive_add(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             for arg in u.args.iter() {
                 if let Expression::Ref(reference) = arg {
@@ -954,7 +962,8 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_binary_size constrains the result set schema for $binarySize operators in match. The
+        /// argument passed must be a string or bindata type
         fn match_derive_binary_size(
             u: &UntaggedOperator,
             state: &mut ResultSetState,
@@ -992,7 +1001,8 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_index_of constrains the result set schema for $indexOf operators in match. The
+        /// first two arguments are constrained to be string types, while the last argument must be an integer.
         fn match_derive_index_of(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             if u.args.len() < 2 {
                 return Err(Error::NotEnoughArguments(u.op.to_string()));
@@ -1025,7 +1035,9 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_substr constrains the result set schema for $substr operators in match. The first
+        /// argument is the string and is constrained as such; the second and third arguments, start and length,
+        /// are constrained to be numeric.
         fn match_derive_substr(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             if u.args.len() < 3 {
                 return Err(Error::NotEnoughArguments(u.op.to_string()));
@@ -1043,7 +1055,9 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_subtract constrains the result set schema for $subtract operators in match.
+        /// Similar to add, the arguments are numeric or date, and the operator can return null if any
+        /// arg is null. However, the second argument cannot be a date unless the first argument is a date.
         fn match_derive_subtract(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             if u.args.len() == 2 {
                 if let Expression::Ref(reference) = &u.args[0] {
@@ -1114,7 +1128,8 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_object_to_array constrains the result set schema for $objectToArray operators in match.
+        /// The argument is constrained to be of type document
         fn match_derive_object_to_array(
             u: &UntaggedOperator,
             state: &mut ResultSetState,
@@ -1122,16 +1137,14 @@ impl MatchConstrainSchema for Expression {
             for arg in u.args.iter() {
                 if let Expression::Ref(reference) = arg {
                     match state.null_behavior {
-                        Satisfaction::Not => intersect_if_exists(
-                            reference,
-                            state,
-                            Schema::Document(Document::default()),
-                        ),
+                        Satisfaction::Not => {
+                            intersect_if_exists(reference, state, Schema::Document(Document::any()))
+                        }
                         Satisfaction::May => intersect_if_exists(
                             reference,
                             state,
                             Schema::AnyOf(set!(
-                                Schema::Document(Document::default()),
+                                Schema::Document(Document::any()),
                                 Schema::Missing,
                                 Schema::Atomic(Atomic::Null)
                             )),
@@ -1147,7 +1160,9 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_let constrains the result set schema for $let operators in match.
+        /// we copy the variable environment, add the newly specified variables, and then
+        /// recurse on the expression.
         fn match_derive_let(l: &Let, state: &mut ResultSetState) -> Result<()> {
             let mut variables = state.variables.clone();
             for (var, expression) in l.vars.iter() {
@@ -1184,6 +1199,9 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
+        /// match_derive_max_min constrains the result set schema for $max and $min operators in match.
+        /// Because these expressions can take on any type, we are limited to just enforcing or removing
+        /// null if the null behavior is Must or Not.
         fn match_derive_max_min(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             for arg in u.args.iter() {
                 if let Expression::Ref(reference) = arg {
@@ -1215,7 +1233,9 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_switch constrains the result set schema for $switch operators in match. The
+        /// only constraining we can do is if one of the cases itself is a field reference, in which
+        /// case it must be a boolean. We recurse otherwise.
         fn match_derive_switch(s: &Switch, state: &mut ResultSetState) -> Result<()> {
             for case in s.branches.iter() {
                 if let Expression::Ref(reference) = case.case.as_ref() {
@@ -1228,7 +1248,8 @@ impl MatchConstrainSchema for Expression {
             s.default.match_derive_schema(state)
         }
 
-        /// TODO
+        /// match_derive_bit_ops is a helper for constraining the result set schema for bit ops such as $bitAnd
+        /// in match. The args to these functions must be integral typed.
         fn match_derive_bit_ops(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             for arg in u.args.iter() {
                 if let Expression::Ref(reference) = arg {
@@ -1257,7 +1278,8 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_is_number constrains the result set schema for $isNumber operators in match. Args
+        /// to this function must be numeric type for it to return true.
         fn match_derive_is_number(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             if let Expression::Ref(reference) = &u.args[0] {
                 match state.null_behavior {
@@ -1286,7 +1308,8 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_range constrains the result set schema for $range operators in match. The
+        /// args to this function (the start and end of the range) must be numeric
         fn match_derive_range(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             for arg in u.args.iter() {
                 if let Expression::Ref(reference) = arg {
@@ -1298,7 +1321,9 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_round constrains the result set schema for $round operators in match. The
+        /// first arg to this function (the number to be rounded) can be any numeric; the subsequent
+        /// arg (place) must be an integral type
         fn match_derive_round(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             if u.args.is_empty() {
                 return Err(Error::NotEnoughArguments(u.op.to_string()));
@@ -1346,7 +1371,8 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_numeric_conversion constrains the result set schema for numeric conversion operators
+        /// such as $toDouble in match. The argument must be numeric coercibile.
         fn match_derive_numeric_conversion(
             u: &UntaggedOperator,
             state: &mut ResultSetState,
@@ -1384,7 +1410,8 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_replace constarins the result set schema for $replace operators in match. The
+        /// args must all be strings; the operator returns null if any arg is null.
         fn match_derive_replace(r: &Replace, state: &mut ResultSetState) -> Result<()> {
             let arg_schema = match state.null_behavior {
                 Satisfaction::Not => Schema::Atomic(Atomic::String),
@@ -1396,7 +1423,9 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_non_nullable_regex constrains the result set schema for regex operators such as $regexMatch
+        /// and $regexFindAll, which return an empty array by default, in match. The string argument must be a string,
+        /// while the regex argument can be a string or a regex. If options are provided, those must also be a string.
         fn match_derive_non_nullable_regex(
             r: &RegexAggExpression,
             state: &mut ResultSetState,
@@ -1419,7 +1448,8 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_regex_find constrains the result set schema for $regexFind operators in match.
+        /// The string and options arguments must be a string, while the regex argument can be a string or regex.
         fn match_derive_regex_find(
             r: &RegexAggExpression,
             state: &mut ResultSetState,
@@ -1452,7 +1482,8 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_to_string constrains the result set schema for $toString operators in match. The
+        /// argument must be string coercible.
         fn match_derive_to_string(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             if u.args.is_empty() {
                 return Err(Error::NotEnoughArguments(u.op.to_string()));
@@ -1492,7 +1523,8 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_trim constrains the result set schema for $trim, $ltrim, and $trim operators in match.
+        /// The string being trimmed and the chars being trimmed must be strings if provided.
         fn match_derive_trim(t: &Trim, state: &mut ResultSetState) -> Result<()> {
             let arg_schema = match state.null_behavior {
                 Satisfaction::Not => Schema::Atomic(Atomic::String),
@@ -1763,7 +1795,9 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// match_derive_date_arithmetic is a helper for constraining date arithmetic operators like $dateAdd and $dateSubtract
+        /// in match. The date argument must be date coercible; the unit and timezone arguments must be strings; and the amount
+        /// argument must be numeric.
         fn match_derive_date_arithmetic(
             start_date: &Expression,
             unit: &Expression,
@@ -1965,7 +1999,9 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// TODO
+        /// derive_map_filter_input is a macro used to constrain the result set schema for $map and $filter operators in match.
+        /// the input must be an array. We then add any relevant context (namely, the variable) to the result set schema and recurse
+        /// on the sub expressions in the input.
         macro_rules! derive_map_filter_input {
             ($input:expr, $state:expr, $inside:expr) => {
                 if let Expression::Ref(reference) = $input.input.as_ref() {
