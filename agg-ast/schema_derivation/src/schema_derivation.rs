@@ -279,7 +279,7 @@ impl DeriveSchema for Stage {
         }
 
         /// graph_lookup_derive_schema derives the schema for a $graphLookup stage. Ultimately, this reduces to a collection
-        /// lookup that we insert under teh "depth_field" field name.
+        /// lookup that we insert under the "depth_field" field name.
         fn graph_lookup_derive_schema(
             graph_lookup: &GraphLookup,
             state: &mut ResultSetState,
