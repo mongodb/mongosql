@@ -714,7 +714,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// match_derive_ne constrains the result set schema for $ne in match. This only real constraint
+        /// match_derive_ne constrains the result set schema for $ne in match. The only real constraint
         /// we can do is for unitary types (i.e. $x != null)
         fn match_derive_ne(u: &UntaggedOperator, state: &mut ResultSetState) -> Result<()> {
             // we can only constrain the schema for ne with unitary types, for example ne null
