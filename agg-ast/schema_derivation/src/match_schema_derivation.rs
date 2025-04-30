@@ -1410,7 +1410,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// match_derive_replace constarins the result set schema for $replace operators in match. The
+        /// match_derive_replace constrains the result set schema for $replace operators in match. The
         /// args must all be strings; the operator returns null if any arg is null.
         fn match_derive_replace(r: &Replace, state: &mut ResultSetState) -> Result<()> {
             let arg_schema = match state.null_behavior {
