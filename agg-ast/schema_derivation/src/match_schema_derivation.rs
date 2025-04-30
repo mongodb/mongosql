@@ -806,18 +806,26 @@ impl MatchConstrainSchema for Expression {
             }
         }
 
-        fn get_comparison_nullability(op: UntaggedOperatorName, schema: Schema) -> Satisfaction {
-            // if we get a comparison that is <= null, this is null or missing. Technically, < null is only missing.
-            // but for the purposes of constraining null we will keep these the same
-            if (op == UntaggedOperatorName::Lt || op == UntaggedOperatorName::Lte)
-                && schema.satisfies(&NULLISH.clone()) == Satisfaction::Must
+        fn get_comparison_nullability(
+            op: UntaggedOperatorName,
+            schema: &Schema,
+            other_schema: &Schema,
+        ) -> Satisfaction {
+            // if we get a comparison that is <= null, this is null or missing
+            if op == UntaggedOperatorName::Lt
+                && other_schema.satisfies(&NULLISH.clone()) == Satisfaction::Must
+            {
+                Satisfaction::Not
+            } else if op == UntaggedOperatorName::Lte
+                && other_schema.satisfies(&NULLISH.clone()) == Satisfaction::Must
+                && schema.satisfies(&Schema::Atomic(Atomic::MinKey)) == Satisfaction::Not
             {
                 Satisfaction::Must
             }
             // similarly, >= null would exclude missing but include null, but for the sake of constraining the schema
             // we will ignore gte to be safe since we don't handle missing separately.
             else if op == UntaggedOperatorName::Gt
-                && schema.satisfies(&NULLISH.clone()) == Satisfaction::Not
+                && other_schema.satisfies(&NULLISH.clone()) == Satisfaction::Not
             {
                 Satisfaction::Not
             } else {
@@ -831,9 +839,15 @@ impl MatchConstrainSchema for Expression {
                 let lhs_schema = u.args[0].derive_schema(state)?;
                 let rhs_schema = u.args[1].derive_schema(state)?;
                 if let Expression::Ref(reference) = &u.args[0] {
-                    constrain_schema_for_comparison_reference(reference, u.op, state, rhs_schema);
+                    constrain_schema_for_comparison_reference(
+                        reference,
+                        u.op,
+                        state,
+                        rhs_schema.clone(),
+                    );
                 } else {
-                    state.null_behavior = get_comparison_nullability(u.op, rhs_schema);
+                    state.null_behavior =
+                        get_comparison_nullability(u.op, &lhs_schema, &rhs_schema);
                     u.args[0].match_derive_schema(state)?;
                     state.null_behavior = null_behavior;
                 }
@@ -849,7 +863,7 @@ impl MatchConstrainSchema for Expression {
                 if let Expression::Ref(reference) = &u.args[1] {
                     constrain_schema_for_comparison_reference(reference, op, state, lhs_schema);
                 } else {
-                    state.null_behavior = get_comparison_nullability(op, lhs_schema);
+                    state.null_behavior = get_comparison_nullability(op, &rhs_schema, &lhs_schema);
                     u.args[1].match_derive_schema(state)?;
                     state.null_behavior = null_behavior;
                 }
@@ -1163,15 +1177,19 @@ impl MatchConstrainSchema for Expression {
                             );
                         }
                         Satisfaction::Must => {
-                            intersect_if_exists(
-                                reference,
-                                state,
-                                Schema::AnyOf(set!(
-                                    Schema::Atomic(Atomic::Null),
-                                    Schema::Array(Box::new(Schema::Any)),
-                                    Schema::Missing
-                                )),
-                            );
+                            if state.accumulator_stage {
+                                intersect_if_exists(
+                                    reference,
+                                    state,
+                                    Schema::AnyOf(set!(
+                                        Schema::Atomic(Atomic::Null),
+                                        Schema::Array(Box::new(Schema::Any)),
+                                        Schema::Missing
+                                    )),
+                                );
+                            } else {
+                                intersect_if_exists(reference, state, NULLISH.clone());
+                            }
                         }
                         Satisfaction::May => {}
                     }
