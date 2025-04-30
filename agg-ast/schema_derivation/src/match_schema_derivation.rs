@@ -440,7 +440,7 @@ impl MatchConstrainSchema for Expression {
         }
 
         /// match_date_derive_common is a helper for constraining result set schema for the date portions
-        /// of common date operators (like $hour or $minute) as well as $dateToParts. It constrains and field
+        /// of common date operators (like $hour or $minute) as well as $dateToParts. It constrains any field
         /// refs in the date expression to be date coercible and, if present, the timezone to be a string, handling
         /// null behavior appropriately.
         fn match_date_derive_common(
