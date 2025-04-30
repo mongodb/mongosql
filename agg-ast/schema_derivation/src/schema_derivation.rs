@@ -78,8 +78,9 @@ impl<'a> ResultSetState<'a> {
     }
 }
 
-/// derive_schema_for_pipeline is the main entrypoint for schema derivation. It takes in a pipeline
-/// and the relevant context, and produces a schema. It can also be used for subpipelines in stages
+/// derive_schema_for_pipeline is the main entrypoint for schema derivation. It takes in a pipeline,
+/// the collection to run that pipeline on (the db will be part of the result set state), and the 
+/// other relevant context, and produces a schema. It can also be used for subpipelines in stages
 /// such as $lookup and $facet.
 pub fn derive_schema_for_pipeline(
     pipeline: Vec<Stage>,
@@ -367,8 +368,8 @@ impl DeriveSchema for Stage {
         }
 
         /// bucket_output_derive_keys is a helper for the $bucket and $bucketAuto stages.
-        /// It takes produces either a schema based on the specified output, with "count" as the
-        /// only key by default if none are specified
+        /// It produces a schema based on the output field if specified. If not, "count"
+        /// will be the only field.
         fn bucket_output_derive_keys(
             output: Option<&LinkedHashMap<String, Expression>>,
             state: &mut ResultSetState,

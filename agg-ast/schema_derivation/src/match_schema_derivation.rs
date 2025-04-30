@@ -483,7 +483,7 @@ impl MatchConstrainSchema for Expression {
             match_date_derive_common(date, timezone, state)
         }
 
-        /// match_derive_date_to_parts constrains result set schema schema for a $dateToParts operator.
+        /// match_derive_date_to_parts constrains result set schema for a $dateToParts operator.
         /// See match_date_derive_common for details.
         fn match_derive_date_to_parts(d: &DateToParts, state: &mut ResultSetState) -> Result<()> {
             let DateToParts { date, timezone, .. } = d;
@@ -579,7 +579,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// match_derive_date_to_string constrains the result set schema schema for a $dateToString operator.
+        /// match_derive_date_to_string constrains the result set schema for a $dateToString operator.
         /// date, if it is a reference, can be constrained to date coercible, while format and timezone
         /// can be constrained to strings.
         fn match_derive_date_to_string(d: &DateToString, state: &mut ResultSetState) -> Result<()> {
@@ -616,7 +616,7 @@ impl MatchConstrainSchema for Expression {
             Ok(())
         }
 
-        /// match_derive_string_operation constrains result set schema schema for generic untagged string
+        /// match_derive_string_operation constrains result set schema for generic untagged string
         /// operators such as $toLower or $substr. args, if references, can be constrained to string types.
         fn match_derive_string_operation(
             u: &UntaggedOperator,
