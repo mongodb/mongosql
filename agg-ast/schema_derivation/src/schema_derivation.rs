@@ -2482,7 +2482,7 @@ impl DeriveSchema for UntaggedOperator {
                 )))
             }
             // $objectToArray turns an object into an array of documents with fields k (the field names) and v (the field types)
-            // we produce and Array(Document {k: String, v: ...}) where v's schema is the union of all value types.
+            // we produce an Array(Document {k: String, v: ...}) where v's schema is the union of all value types.
             UntaggedOperatorName::ObjectToArray => {
                 let input_doc = match &self.args[0].derive_schema(state)? {
                     Schema::Document(d) => Some(d.clone()),
