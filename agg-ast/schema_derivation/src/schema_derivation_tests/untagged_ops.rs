@@ -458,13 +458,117 @@ mod window_ops {
     );
     test_derive_expression_schema!(
         sum,
-        expected = Ok(Schema::Atomic(Atomic::Decimal)),
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+        ))),
         input = r#"{"$sum": "$foo" }"#,
         ref_schema = Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long),
             Schema::Atomic(Atomic::Decimal),
         ))
+    );
+    test_derive_expression_schema!(
+        sum_multiple_args,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+        ))),
+        input = r#"{"$sum": [1, "$foo"] }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Decimal),
+        ))
+    );
+    test_derive_expression_schema!(
+        sum_captures_appropriate_type,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+        ))),
+        input = r#"{"$sum": [{"$numberLong": "1"}, "$foo"] }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Decimal),
+        ))
+    );
+    test_derive_expression_schema!(
+        sum_captures_integer_overflow,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
+        ))),
+        input = r#"{"$sum": ["$a", "$b"] }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Double)
+                )),
+                "b".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Double)
+                )),
+            },
+            required: set!("a".to_string(), "b".to_string()),
+            ..Default::default()
+        })
+    );
+    test_derive_expression_schema!(
+        sum_captures_long_overflow,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
+        ))),
+        input = r#"{"$sum": ["$a", "$b"] }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::Long),
+            },
+            required: set!("a".to_string(), "b".to_string()),
+            ..Default::default()
+        })
+    );
+    test_derive_expression_schema!(
+        sum_nullish,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Null),
+        ))),
+        input = r#"{"$sum": [1, "$foo"] }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+        ))
+    );
+    test_derive_expression_schema!(
+        sum_ignores_non_numeric_args,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double)
+        ))),
+        input = r#"{"$sum": [{"$numberLong": "1"}, "$foo"] }"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Javascript),
+        ))
+    );
+    // this test reflects a weird quirk of sum ignoring non-numeric args,
+    // which is that if all args are non-numeric, it returns 0 (i.e. Integer)
+    test_derive_expression_schema!(
+        sum_all_non_numeric_args_returns_integer,
+        expected = Ok(Schema::Atomic(Atomic::Integer)),
+        input = r#"{"$sum": ["hi", {"a": 2}] }"#
     );
     test_derive_expression_schema!(
         first_non_array,
@@ -536,8 +640,8 @@ mod numeric_ops {
     test_derive_expression_schema!(
         multiply_nullable_long,
         expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
             Schema::Atomic(Atomic::Null),
         ))),
         input = r#"{"$multiply": [1, "$foo"]}"#,
@@ -557,29 +661,21 @@ mod numeric_ops {
     test_derive_expression_schema!(
         multiply_long,
         expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double)
         ))),
         input = r#"{"$multiply": [1, {"$numberLong": "1"}]}"#
     );
     test_derive_expression_schema!(
         multiply_decimal,
-        expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Decimal),
-            Schema::Atomic(Atomic::Double),
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::Long),
-        ))),
+        expected = Ok(Schema::Atomic(Atomic::Decimal)),
         input = r#"{"$multiply": [1, "$foo"]}"#,
         ref_schema = Schema::Atomic(Atomic::Decimal)
     );
     test_derive_expression_schema!(
         multiply_double_or_null,
         expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::Long),
             Schema::Atomic(Atomic::Double),
-            Schema::Atomic(Atomic::Decimal),
             Schema::Atomic(Atomic::Null),
         ))),
         input = r#"{"$multiply": [1, "$foo"]}"#,
@@ -590,11 +686,7 @@ mod numeric_ops {
     );
     test_derive_expression_schema!(
         pow_decimal,
-        expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::Long),
-            Schema::Atomic(Atomic::Decimal)
-        ))),
+        expected = Ok(Schema::Atomic(Atomic::Decimal)),
         input = r#"{"$pow": [1, "$foo"]}"#,
         ref_schema = Schema::Atomic(Atomic::Decimal)
     );
@@ -605,18 +697,14 @@ mod numeric_ops {
     );
     test_derive_expression_schema!(
         pow_double,
-        expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::Long),
-            Schema::Atomic(Atomic::Double),
-        ))),
+        expected = Ok(Schema::Atomic(Atomic::Double)),
         input = r#"{"$pow": [1, 2.0]}"#
     );
     test_derive_expression_schema!(
         pow_long,
         expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double)
         ))),
         input = r#"{"$pow": [1, {"$numberLong": "1"}]}"#
     );
@@ -630,10 +718,7 @@ mod numeric_ops {
     );
     test_derive_expression_schema!(
         mod_decimal,
-        expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Decimal),
-            Schema::Atomic(Atomic::Integer)
-        ))),
+        expected = Ok(Schema::Atomic(Atomic::Decimal)),
         input = r#"{"$mod": [1, "$foo"]}"#,
         ref_schema = Schema::Atomic(Atomic::Decimal)
     );
@@ -644,24 +729,37 @@ mod numeric_ops {
     );
     test_derive_expression_schema!(
         mod_double,
-        expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Double),
-            Schema::Atomic(Atomic::Integer)
-        ))),
+        expected = Ok(Schema::Atomic(Atomic::Double)),
         input = r#"{"$mod": [1, 2.1]}"#
     );
     test_derive_expression_schema!(
         mod_long,
-        expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::Long),
-        ))),
+        expected = Ok(Schema::Atomic(Atomic::Long)),
         input = r#"{"$mod": [3, {"$numberLong": "2"}]}"#
     );
     test_derive_expression_schema!(
         mod_int,
         expected = Ok(Schema::Atomic(Atomic::Integer)),
         input = r#"{"$mod": [1, 123]}"#
+    );
+    test_derive_expression_schema!(
+        mod_mixed_schemas,
+        expected = Ok(Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Decimal)
+        ))),
+        input = r#"{"$mod": ["$foo", "$bar"]}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Decimal)
+                )),
+                "bar".to_string() => Schema::Atomic(Atomic::Long)
+            },
+            required: set!("foo".to_string(), "bar".to_string()),
+            ..Default::default()
+        })
     );
     test_derive_expression_schema!(
         add_nullable_int,
@@ -679,8 +777,8 @@ mod numeric_ops {
     test_derive_expression_schema!(
         add_nullable_long,
         expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
             Schema::Atomic(Atomic::Null),
         ))),
         input = r#"{"$add": [1, "$foo"]}"#,
@@ -700,29 +798,21 @@ mod numeric_ops {
     test_derive_expression_schema!(
         add_long,
         expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double)
         ))),
         input = r#"{"$add": [1, {"$numberLong": "1"}]}"#
     );
     test_derive_expression_schema!(
         add_decimal,
-        expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Decimal),
-            Schema::Atomic(Atomic::Double),
-            Schema::Atomic(Atomic::Long),
-            Schema::Atomic(Atomic::Integer)
-        ))),
+        expected = Ok(Schema::Atomic(Atomic::Decimal)),
         input = r#"{"$add": [1, "$foo"]}"#,
         ref_schema = Schema::Atomic(Atomic::Decimal)
     );
     test_derive_expression_schema!(
         add_double_or_null,
         expected = Ok(Schema::AnyOf(set!(
-            Schema::Atomic(Atomic::Decimal),
             Schema::Atomic(Atomic::Double),
-            Schema::Atomic(Atomic::Long),
-            Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null),
         ))),
         input = r#"{"$add": [1, "$foo"]}"#,

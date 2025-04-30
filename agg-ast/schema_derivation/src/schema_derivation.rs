@@ -15,8 +15,7 @@ use mongosql::{
     map,
     schema::{
         Atomic, Document, Satisfaction, Schema, ANY_DOCUMENT, DATE_OR_NULLISH, EMPTY_DOCUMENT,
-        INTEGER_LONG_OR_NULLISH, INTEGRAL, NULLISH, NULLISH_OR_UNDEFINED, NUMERIC,
-        NUMERIC_OR_NULLISH,
+        INTEGRAL, NULLISH, NULLISH_OR_UNDEFINED, NUMERIC, NUMERIC_OR_NULLISH,
     },
     set,
 };
@@ -1892,6 +1891,75 @@ impl DeriveSchema for UntaggedOperator {
             }
         }
 
+        fn get_numeric_operator_schema(
+            args: &[&Expression],
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            let mut type_set: BTreeSet<Schema> = set!();
+            let mut arg_schemas: BTreeSet<Schema> = set!();
+            // here we derive schema for all args and filter for numeric types only.
+            // we also use this time to capture if any args MAY be nullable, and to
+            // return null if any arg MUST be null or missing
+            for arg in args.iter() {
+                let arg_schema = arg.derive_schema(state)?;
+                match arg_schema.satisfies(&NULLISH.clone()) {
+                    Satisfaction::Must => return Ok(Schema::Atomic(Atomic::Null)),
+                    Satisfaction::May => {
+                        type_set.insert(Schema::Atomic(Atomic::Null));
+                    }
+                    Satisfaction::Not => {}
+                }
+                arg_schemas.insert(arg_schema.intersection(&NUMERIC.clone()));
+            }
+            // we can set the lower bound of numeric args as the largest type that is the minimum
+            // of one of the arguments. For example, if the lowest ordered type an argument can take
+            // on is a Double, the set that as the lower bound, as the operator will never return int or long.
+            let lower_bound = arg_schemas
+                .iter()
+                .map(|schema| match schema {
+                    Schema::Atomic(_) => schema,
+                    Schema::AnyOf(ao) => ao.iter().min().unwrap(),
+                    _ => &Schema::Unsat,
+                })
+                .max()
+                .unwrap()
+                .to_owned();
+            type_set.insert(lower_bound.clone());
+            // we then add any possible types that are > the lower bound to the set of types
+            // our operator can return, and return the anyof of all the possible types.
+            for arg_schema in arg_schemas {
+                match arg_schema {
+                    Schema::Atomic(_) => {
+                        if arg_schema > lower_bound {
+                            type_set.insert(arg_schema);
+                        }
+                    }
+                    Schema::AnyOf(ao) => {
+                        ao.into_iter().for_each(|schema| {
+                            if schema > lower_bound {
+                                type_set.insert(schema);
+                            }
+                        });
+                    }
+                    _ => {}
+                }
+            }
+            let mut schema = Schema::simplify(&Schema::AnyOf(type_set));
+            // the operators calling this, like multiply and add, will return a long if the
+            // inputs are integers and the value is sufficiently large, so we add that type
+            if schema.satisfies(&Schema::Atomic(Atomic::Long)) != Satisfaction::Not
+                && schema != Schema::Unsat
+            {
+                schema = schema.union(&Schema::Atomic(Atomic::Double));
+            }
+            if schema.satisfies(&Schema::Atomic(Atomic::Integer)) != Satisfaction::Not
+                && schema != Schema::Unsat
+            {
+                schema = schema.union(&Schema::Atomic(Atomic::Long));
+            }
+            Ok(schema)
+        }
+
         let mut args = self.args.iter().collect();
         match self.op {
             // no-ops
@@ -2022,17 +2090,12 @@ impl DeriveSchema for UntaggedOperator {
                 }
 
                 // Here, we (safely) assume (nullable) numeric types for all non-Date arguments.
-                let numeric_input_schema = Schema::simplify(&Schema::AnyOf(non_dates));
-                let numeric_schema = if numeric_input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
-                    handle_null_satisfaction(args, state, INTEGRAL.clone())
-                } else {
-                    handle_null_satisfaction(args, state, NUMERIC.clone())
-                };
+                let numeric_schema = get_numeric_operator_schema(&args, state)?;
 
                 if may_be_date {
-                    Ok(Schema::simplify(&Schema::AnyOf(set!{numeric_schema?, Schema::Atomic(Atomic::Date)})))
+                    Ok(Schema::simplify(&Schema::AnyOf(set!{numeric_schema, Schema::Atomic(Atomic::Date)})))
                 } else {
-                    numeric_schema
+                    Ok(numeric_schema)
                 }
             }
             UntaggedOperatorName::Subtract => {
@@ -2069,14 +2132,8 @@ impl DeriveSchema for UntaggedOperator {
                 }).collect())))
             }
             // int + int -> int or long; int + long, long + long -> long,
-            UntaggedOperatorName::Multiply => {
-                let input_schema = get_input_schema(&args, state)?;
-                if input_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must {
-                    handle_null_satisfaction(args, state, INTEGRAL.clone())
-                } else {
-                    handle_null_satisfaction(args, state, NUMERIC.clone())
-                }
-            }
+            UntaggedOperatorName::Multiply
+            | UntaggedOperatorName::Pow => get_numeric_operator_schema(&args, state),
             // window function operators
             UntaggedOperatorName::CovariancePop | UntaggedOperatorName::CovarianceSamp | UntaggedOperatorName::StdDevPop | UntaggedOperatorName::StdDevSamp => {
                 let input_schema = get_input_schema(&args, state)?;
@@ -2096,43 +2153,29 @@ impl DeriveSchema for UntaggedOperator {
                 }
                 Ok(Schema::simplify(&Schema::AnyOf(types)))
             }
-            // pow will return the maximal numeric type of its inputs; integrals are lumped together
-            // because an int ^ int can return a long
-            UntaggedOperatorName::Pow => {
-                let input_schema = get_input_schema(&args, state)?;
-                let mut types: BTreeSet<Schema> = set!();
-                if input_schema.satisfies(&Schema::Atomic(Atomic::Decimal)) != Satisfaction::Not {
-                    types.insert(Schema::Atomic(Atomic::Decimal));
-                }
-                if input_schema.satisfies(&Schema::Atomic(Atomic::Double)) != Satisfaction::Not{
-                    types.insert(Schema::Atomic(Atomic::Double));
-                }
-                if input_schema.satisfies(&Schema::Atomic(Atomic::Long)) != Satisfaction::Not {
-                    types.insert(Schema::Atomic(Atomic::Long));
-                }
-                if input_schema.satisfies(&Schema::Atomic(Atomic::Integer)) != Satisfaction::Not {
-                    types.insert(Schema::Atomic(Atomic::Integer));
-                    types.insert(Schema::Atomic(Atomic::Long));
-                };
-                handle_null_satisfaction(args, state, Schema::simplify(&Schema::AnyOf(types)))
-            }
             // mod returns the maximal numeric type of its inputs
             UntaggedOperatorName::Mod => {
-                let input_schema = get_input_schema(&args, state)?;
-                let mut types: BTreeSet<Schema> = set!();
-                if input_schema.satisfies(&Schema::Atomic(Atomic::Decimal)) != Satisfaction::Not {
-                    types.insert(Schema::Atomic(Atomic::Decimal));
-                }
-                if input_schema.satisfies(&Schema::Atomic(Atomic::Double)) != Satisfaction::Not{
-                    types.insert(Schema::Atomic(Atomic::Double));
-                }
-                if input_schema.satisfies(&Schema::Atomic(Atomic::Long)) != Satisfaction::Not {
-                    types.insert(Schema::Atomic(Atomic::Long));
-                }
-                if input_schema.satisfies(&Schema::Atomic(Atomic::Integer)) != Satisfaction::Not {
-                    types.insert(Schema::Atomic(Atomic::Integer));
+                let divisor = args[0].derive_schema(state)?.intersection(&NUMERIC_OR_NULLISH.clone());
+                let remainder = args[1].derive_schema(state)?.intersection(&NUMERIC_OR_NULLISH.clone());
+                if divisor.satisfies(&NULLISH) == Satisfaction::Must || remainder.satisfies(&NULLISH) == Satisfaction::Must {
+                    return Ok(Schema::Atomic(Atomic::Null))
                 };
-                handle_null_satisfaction(args, state, Schema::simplify(&Schema::AnyOf(types)))
+                let types = divisor.union(&remainder);
+                let lower_bound = match (&divisor, &remainder) {
+                    (Schema::Atomic(_), Schema::Atomic(_)) => std::cmp::max(&divisor, &remainder),
+                    (a @ Schema::Atomic(_), Schema::AnyOf(ao))
+                    | (Schema::AnyOf(ao), a @ Schema::Atomic(_)) => {
+                        std::cmp::max(ao.iter().min().unwrap(), a)
+                    }
+                    (Schema::AnyOf(a), Schema::AnyOf(b)) => {
+                        std::cmp::max(a.iter().min().unwrap(), b.iter().min().unwrap())
+                    }
+                    _ => &Schema::Unsat
+                };
+                match types {
+                    Schema::AnyOf(ao) => Ok(Schema::simplify(&Schema::AnyOf(ao.into_iter().filter(|s| s >= lower_bound).collect()))),
+                    schema => Ok(schema)
+                }
             }
             UntaggedOperatorName::ArrayElemAt => {
                 let input_schema = self.args[0].derive_schema(state)?;
@@ -2438,17 +2481,13 @@ impl DeriveSchema for UntaggedOperator {
                 if args.len() == 1 {
                     let arg_schema = args[0].derive_schema(state)?;
                     if let Schema::Array(item_schema) = arg_schema {
-                        Ok(get_sum_type(*item_schema))
-                    } else {
-                        Ok(get_sum_type(args[0].derive_schema(state)?))
+                        return Ok(get_sum_type(*item_schema))
                     }
                 }
-                else {
-                    let mut arg_schema = Schema::Unsat;
-                    for arg in args.iter() {
-                        arg_schema = arg_schema.union(&arg.derive_schema(state)?);
-                    }
-                    Ok(arg_schema)
+                let schema = get_numeric_operator_schema(&args, state)?;
+                match schema {
+                    Schema::Unsat => Ok(Schema::Atomic(Atomic::Integer)),
+                    schema => Ok(schema)
                 }
             }
             UntaggedOperatorName::First | UntaggedOperatorName::Last => {
