@@ -812,16 +812,12 @@ impl MatchConstrainSchema for Expression {
             other_schema: &Schema,
         ) -> Satisfaction {
             // if we get a comparison that is <= null, this is null or missing
-            if op == UntaggedOperatorName::Lt
-                && other_schema.satisfies(&NULLISH.clone()) == Satisfaction::Must
-            {
-                Satisfaction::Not
-            } else if op == UntaggedOperatorName::Lte
+            if (op == UntaggedOperatorName::Lt || op == UntaggedOperatorName::Lte)
                 && other_schema.satisfies(&NULLISH.clone()) == Satisfaction::Must
                 && schema.satisfies(&Schema::Atomic(Atomic::MinKey)) == Satisfaction::Not
             {
                 Satisfaction::Must
-            }
+            } 
             // similarly, >= null would exclude missing but include null, but for the sake of constraining the schema
             // we will ignore gte to be safe since we don't handle missing separately.
             else if op == UntaggedOperatorName::Gt
@@ -1177,19 +1173,16 @@ impl MatchConstrainSchema for Expression {
                             );
                         }
                         Satisfaction::Must => {
-                            if state.accumulator_stage {
-                                intersect_if_exists(
-                                    reference,
-                                    state,
-                                    Schema::AnyOf(set!(
-                                        Schema::Atomic(Atomic::Null),
-                                        Schema::Array(Box::new(Schema::Any)),
-                                        Schema::Missing
-                                    )),
-                                );
-                            } else {
-                                intersect_if_exists(reference, state, NULLISH.clone());
-                            }
+                            intersect_if_exists(
+                                reference,
+                                state,
+                                Schema::AnyOf(set!(
+                                    Schema::Atomic(Atomic::Null),
+                                    // array(any) is to handle the empty array case, which returns null.
+                                    Schema::Array(Box::new(Schema::Any)),
+                                    Schema::Missing
+                                )),
+                            );
                         }
                         Satisfaction::May => {}
                     }

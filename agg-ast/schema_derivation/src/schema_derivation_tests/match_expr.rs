@@ -284,9 +284,12 @@ mod comparison_ops {
         lt_null_still_returns_minkey_subexpression,
         expected = Ok(Schema::Document(Document {
             keys: map! {
-                "foo".to_string() => Schema::Atomic(Atomic::MinKey),
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::MinKey),
+                    Schema::Atomic(Atomic::Null),
+                ))
             },
-            required: set!("foo".to_string()),
+            required: set!(),
             ..Default::default()
         })),
         input = r#"{"$match": {"$expr": {"$lt": [{"$max": "$foo"}, null]}}}"#,
