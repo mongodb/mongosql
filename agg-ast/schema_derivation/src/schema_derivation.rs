@@ -77,6 +77,10 @@ impl<'a> ResultSetState<'a> {
     }
 }
 
+/// derive_schema_for_pipeline is the main entrypoint for schema derivation. It takes in a pipeline,
+/// the collection to run that pipeline on (the db will be part of the result set state), and the
+/// other relevant context, and produces a schema. It can also be used for subpipelines in stages
+/// such as $lookup and $facet.
 pub fn derive_schema_for_pipeline(
     pipeline: Vec<Stage>,
     current_collection: Option<String>,
@@ -106,6 +110,8 @@ pub fn derive_schema_for_pipeline(
 
 impl DeriveSchema for Stage {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
+        /// densify_derive_schema derives the schema for a $densify stage. Any field specified in the partition
+        /// by becomes required, and any field originally in the schema that is not mentioned becomes non-required.
         fn densify_derive_schema(densify: &Densify, state: &mut ResultSetState) -> Result<Schema> {
             // create a list of all the fields that densify references explicitly -- that is the partition by fields and
             // the actual field being densified.
@@ -155,6 +161,9 @@ impl DeriveSchema for Stage {
                 .document_union(required_doc))
         }
 
+        /// documents_derive_schema derives the schema for a $documents stage. $documents can either be a list of document
+        /// literals, in which case we union the schema of those literals, or an expression, in which case we derive the
+        /// schema for that expression.
         fn documents_derive_schema(
             documents: &Documents,
             state: &mut ResultSetState,
@@ -194,6 +203,8 @@ impl DeriveSchema for Stage {
             }
         }
 
+        /// facet_derive_schema derives the schema for a $facet stage. It adds fields to the existing
+        /// result set schema based on an underlying pipeline that we recursively call derive_schema_for_pipeline on
         fn facet_derive_schema(
             facet: &LinkedHashMap<String, Vec<Stage>>,
             state: &mut ResultSetState,
@@ -220,6 +231,9 @@ impl DeriveSchema for Stage {
             }))
         }
 
+        /// fill_derive_schema derives the schema for a $fill stage. For each field in the output
+        /// map, we generate the schema and add insert it into the result set schema if it does not
+        /// exist, or union it with the existing schema if it does.
         fn fill_derive_schema(fill: &Fill, state: &mut ResultSetState) -> Result<Schema> {
             for (path, fill_output) in fill.output.iter() {
                 // Every key that appears in the output can no longer be missing, and can only be
@@ -250,7 +264,7 @@ impl DeriveSchema for Stage {
                             }
                         }
                     }
-                    // The method does not matter, either of the currently supported methdos will
+                    // The method does not matter, either of the currently supported methods will
                     // remove null and missing from the schema, and cannot change the schema in
                     // any other meaningful way.
                     FillOutput::Method(_m) => {
@@ -264,6 +278,8 @@ impl DeriveSchema for Stage {
             Ok(state.result_set_schema.to_owned())
         }
 
+        /// graph_lookup_derive_schema derives the schema for a $graphLookup stage. Ultimately, this reduces to a collection
+        /// lookup that we insert under the "depth_field" field name.
         fn graph_lookup_derive_schema(
             graph_lookup: &GraphLookup,
             state: &mut ResultSetState,
@@ -302,6 +318,8 @@ impl DeriveSchema for Stage {
             Ok(state.result_set_schema.to_owned())
         }
 
+        /// group_derive_schema derives schema for $group stages. The output will be any fields specified
+        /// by the group (with their respective schemas) as well as _id
         fn group_derive_schema(group: &Group, state: &mut ResultSetState) -> Result<Schema> {
             state.accumulator_stage = true;
             // group is a map of field namespace to expression. We can derive the schema for each expression
@@ -348,6 +366,9 @@ impl DeriveSchema for Stage {
             Ok(Schema::simplify(&state.result_set_schema).to_owned())
         }
 
+        /// bucket_output_derive_keys is a helper for the $bucket and $bucketAuto stages.
+        /// It produces a schema based on the output field if specified. If not, "count"
+        /// will be the only field.
         fn bucket_output_derive_keys(
             output: Option<&LinkedHashMap<String, Expression>>,
             state: &mut ResultSetState,
@@ -368,6 +389,8 @@ impl DeriveSchema for Stage {
             }
         }
 
+        /// bucket_derive_schema derives the schema for a $bucket stage. The schema is defined by the output field,
+        /// and contains _id as well.
         fn bucket_derive_schema(bucket: &Bucket, state: &mut ResultSetState) -> Result<Schema> {
             let mut id_schema = bucket.group_by.derive_schema(state)?;
             if let Some(default) = bucket.default.as_ref() {
@@ -383,6 +406,8 @@ impl DeriveSchema for Stage {
             }))
         }
 
+        /// bucket_auto_derive_schema derives the schema for a $bucketAuto stage. The schema is defined by the output field,
+        /// and contains _id as well.
         fn bucket_auto_derive_schema(
             bucket: &BucketAuto,
             state: &mut ResultSetState,
@@ -407,6 +432,8 @@ impl DeriveSchema for Stage {
             }))
         }
 
+        /// set_window_fields_derive_schema derives the schema for a $setWindowFields stage. The schema is
+        /// defined by the output field
         fn set_window_fields_derive_schema(
             set_windows: &SetWindowFields,
             state: &mut ResultSetState,
@@ -587,6 +614,9 @@ impl DeriveSchema for Stage {
             }
         }
 
+        /// project_derive_schema derives the schema for a $project stage. Described in more detail within the
+        /// helpers, it builds a tree of field paths, and traverses the result set schema in parallel to that
+        /// tree to evaluate what schemas each inclusion and assignment can take on, building up the output schema.
         fn project_derive_schema(
             project: &ProjectStage,
             state: &mut ResultSetState,
@@ -651,6 +681,8 @@ impl DeriveSchema for Stage {
             Ok(Schema::simplify(&result_doc))
         }
 
+        /// lookup_derive_schema derives the schema for a $lookup stage by calling the appropriate function based on
+        /// the lookup semantics
         fn lookup_derive_schema(lookup: &Lookup, state: &mut ResultSetState) -> Result<Schema> {
             match lookup {
                 Lookup::Equality(le) => derive_equality_lookup_schema(le, state),
@@ -659,6 +691,7 @@ impl DeriveSchema for Stage {
             }
         }
 
+        /// from_to_ns is a helper converting the $lookup "from" field into our standard namespace struct
         fn from_to_ns(from: &LookupFrom, state: &ResultSetState) -> Namespace {
             match from {
                 LookupFrom::Collection(ref c) => {
@@ -670,6 +703,9 @@ impl DeriveSchema for Stage {
             }
         }
 
+        /// derive_equality_lookup_schema is a helper for deriving schema for $lookup stages joining another namespace
+        /// based on field equality (local field / foreign field). The output schema includes a new field
+        /// (the "as" field) which is an array of docs with the from field's schema
         fn derive_equality_lookup_schema(
             lookup: &EqualityLookup,
             state: &mut ResultSetState,
@@ -693,6 +729,9 @@ impl DeriveSchema for Stage {
             Ok(state.result_set_schema.to_owned())
         }
 
+        /// derive_equality_lookup_schema is a helper for deriving schema for $lookup stages joining another
+        /// schema based on a pipeline. The output has a new field, based on "as", that is a vec of documents
+        /// with the pipeline's schema
         fn derive_concise_lookup_schema(
             lookup: &ConciseSubqueryLookup,
             state: &mut ResultSetState,
@@ -706,6 +745,9 @@ impl DeriveSchema for Stage {
             )
         }
 
+        /// derive_subquery_lookup_schema is a helper for deriving schema for $lookup stages joining another
+        /// schema based on a pipeline. The output has a new field, based on "as", that is a vec of documents
+        /// with the pipeline's schema
         fn derive_subquery_lookup_schema(
             lookup: &SubqueryLookup,
             state: &mut ResultSetState,
@@ -719,6 +761,8 @@ impl DeriveSchema for Stage {
             )
         }
 
+        /// derive_subquery_lookup_schema_helper is a helper that determines and inserts the schema of a sub
+        /// pipeline for subquery (normal and concise syntax) lookups
         fn derive_subquery_lookup_schema_helper(
             // generally, we do not pass &Option<Type> but usually Option<&Type>, but this is an
             // internal helper function.
@@ -766,6 +810,8 @@ impl DeriveSchema for Stage {
             Ok(state.result_set_schema.to_owned())
         }
 
+        /// sort_by_count_derive_schema derives the schema for $sortByCount stages. The output contains two fields:
+        /// _id (determined by the sort expression) and count
         fn sort_by_count_derive_schema(
             sort_expr: &Expression,
             state: &mut ResultSetState,
@@ -780,6 +826,8 @@ impl DeriveSchema for Stage {
             }))
         }
 
+        /// union_with_derive_schema derives the schema for $unionWith stages. It gets the new schema defined by a
+        /// collection or pipeline, and unions it with the existing result set schema.
         fn union_with_derive_schema(
             union: &UnionWith,
             state: &mut ResultSetState,
@@ -833,6 +881,9 @@ impl DeriveSchema for Stage {
             }
         }
 
+        /// unwind_derive_schema derives schema for $unwind stages. It will update the schema for
+        /// and existing field to unnest the inner schema from an array, and it will insert a new
+        /// field if include_array_index is specified.
         fn unwind_derive_schema(unwind: &Unwind, state: &mut ResultSetState) -> Result<Schema> {
             let (path, preserve_null_and_empty_arrays) = match unwind {
                 Unwind::FieldPath(Expression::Ref(Ref::FieldRef(r))) => (
@@ -920,6 +971,8 @@ impl DeriveSchema for Stage {
             Ok(Schema::simplify(&state.result_set_schema.to_owned()))
         }
 
+        /// unset_derive_schema derives schema for $unset stages. It simply removes any fields
+        /// specified from the result set schema.
         fn unset_derive_schema(u: &Unset, state: &mut ResultSetState) -> Result<Schema> {
             let fields = match u {
                 Unset::Single(field) => &vec![field.clone()],
@@ -1181,6 +1234,9 @@ fn handle_null_satisfaction(
 
 impl DeriveSchema for TaggedOperator {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
+        /// derive_window_func is a macro helper for getting the schema for $derivative and $expMovingAverage operators
+        /// within $setWindowFunc stages. They are numeric with certain constraints about what types are returned based
+        /// on the input.
         macro_rules! derive_window_func {
             ($input:expr) => {{
                 let input_schema = $input.input.derive_schema(state)?;
@@ -1199,6 +1255,8 @@ impl DeriveSchema for TaggedOperator {
                 Ok(Schema::simplify(&Schema::AnyOf(types)))
             }};
         }
+        /// derive_date_addition is a macro helper for deriving the schema for the $dateAdd and $dateSubtract operators.
+        /// They return date (possibly null)
         macro_rules! derive_date_addition {
             ($input:expr) => {{
                 let args = vec![
@@ -1215,6 +1273,9 @@ impl DeriveSchema for TaggedOperator {
                 handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Date))
             }};
         }
+        /// optional arg or truish is a macro used to help with determining nullabililty around
+        /// optional arguments. It returns the value if it exists, otherwise returns true, ie, a
+        /// value that does not evaluate to false / null / 0
         macro_rules! optional_arg_or_truish {
             ($input:expr) => {{
                 $input
@@ -1352,6 +1413,7 @@ impl DeriveSchema for TaggedOperator {
                 ];
                 handle_null_satisfaction(args, state, Schema::Atomic(Atomic::Date))
             }
+            // $dateFromString returns a Date, however we also union on any types implied by onNull or onError
             TaggedOperator::DateFromString(d) => {
                 let nullable_args = vec![
                     d.date_string.as_ref(),
@@ -1382,6 +1444,8 @@ impl DeriveSchema for TaggedOperator {
                 }
                 Ok(Schema::simplify(&Schema::AnyOf(types)))
             }
+            // $dateToParts returns a document with a fixed schema, however, the fixed schema is different
+            // depending on whether iso8601 is true or false
             TaggedOperator::DateToParts(d) => {
                 let args = vec![d.date.as_ref(), optional_arg_or_truish!(d.timezone)];
                 match d.iso8601 {
@@ -1437,6 +1501,8 @@ impl DeriveSchema for TaggedOperator {
                     ),
                 }
             }
+            // $dateToString produces a string, however we must also add null if possible, as well
+            // as unioning the onNull expression's schema if provided
             TaggedOperator::DateToString(d) => {
                 let nullable_args = vec![
                     d.date.as_ref(),
@@ -1585,6 +1651,8 @@ impl DeriveSchema for TaggedOperator {
                     set! {then_schema, else_schema},
                 )))
             }
+            // $filter can actually _constrain_ the result set schema, so we add the relevant variables to a
+            // copy of the state and call match derive schema to get a constrained schema based on the cond
             TaggedOperator::Filter(f) => {
                 let input_schema = f.input.derive_schema(state)?;
                 let is_nullable = input_schema.satisfies(&NULLISH.clone()) != Satisfaction::Not;
@@ -1612,6 +1680,7 @@ impl DeriveSchema for TaggedOperator {
                 get_decimal_double_or_nullish(vec![i.input.as_ref()], state)
             }
             TaggedOperator::LastN(n) => Ok(Schema::Array(Box::new(n.input.derive_schema(state)?))),
+            // $map sets up a copy of the state and evaluates the in expression based on the schema of the input array.
             TaggedOperator::Map(m) => {
                 let var = m._as.clone();
                 let var = var.unwrap_or("this".to_string());
@@ -1649,6 +1718,7 @@ impl DeriveSchema for TaggedOperator {
                     Ok(input_schema)
                 }
             }
+            // $reduce sets up a copy of the state and evaluates the in expression based on the schema of the input array.
             TaggedOperator::Reduce(r) => {
                 let input_schema = r.input.derive_schema(state)?;
                 if input_schema.satisfies(&NULLISH.clone()) == Satisfaction::Must {
@@ -1695,6 +1765,7 @@ impl DeriveSchema for TaggedOperator {
             }
             TaggedOperator::Top(t) => t.output.derive_schema(state),
             TaggedOperator::TopN(t) => Ok(Schema::Array(Box::new(t.output.derive_schema(state)?))),
+            // $zip unions the schema for all of the inputs as well as the defaults, if provided
             TaggedOperator::Zip(z) => {
                 let inputs = match z.inputs.as_ref() {
                     Expression::Array(a) => a,
@@ -1795,6 +1866,8 @@ fn get_input_schema(args: &[&Expression], state: &mut ResultSetState) -> Result<
     Ok(Schema::simplify(&Schema::AnyOf(x)))
 }
 
+/// get_decimal_double_or_nullish_from_schema is a helper for some numeric operators that return
+/// decimal if any arg is a decimal, or double otherwise.
 fn get_decimal_double_or_nullish_from_schema(schema: Schema) -> Schema {
     use Satisfaction::*;
     let numeric_satisfaction = schema.satisfies(&NUMERIC);
@@ -1852,6 +1925,9 @@ fn get_decimal_double_or_nullish(
 
 impl DeriveSchema for UntaggedOperator {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
+        /// get_sum_type is a helper for getting the output schema of a $sum operator. It filters
+        /// out non-numeric types (the operator ignores these also) and then calculates return type
+        /// based on max numeric type (+ overflow type for that numeric type)
         fn get_sum_type(s: Schema) -> Schema {
             // get the maximum numeric type
             let s = if let Schema::AnyOf(a) = s {
@@ -2177,6 +2253,8 @@ impl DeriveSchema for UntaggedOperator {
                     schema => Ok(schema)
                 }
             }
+            // $arrayElemAt operators get the sc hema of an element of the array, handling nullability. If the input
+            // is not an array, it can still be valid if it must be null or missing.
             UntaggedOperatorName::ArrayElemAt => {
                 let input_schema = self.args[0].derive_schema(state)?;
                 match input_schema.clone() {
@@ -2214,6 +2292,8 @@ impl DeriveSchema for UntaggedOperator {
                     nullish_schema => Schema::simplify(&nullish_schema.union(&Schema::Document(Document::any()))),
                 })
             }
+            // $concatArrays and $setUnion operators both return array schemas where the inner objects
+            // have a schema that is a union of the inner schemas of all of the inputs
             UntaggedOperatorName::ConcatArrays | UntaggedOperatorName::SetUnion => {
                 let mut array_schema = Schema::Unsat;
                 let mut null_schema: Option<Schema> = None;
@@ -2246,6 +2326,8 @@ impl DeriveSchema for UntaggedOperator {
                     Ok(Schema::Array(Box::new(array_schema)))
                 }
             }
+            // $setIntersection gets the intersecting types from the input arguments, while
+            // accounting for numeric intersection (even if the types aren't exact)
             UntaggedOperatorName::SetIntersection => {
                 if args.is_empty() {
                     return Ok(Schema::Array(Box::new(Schema::Unsat)));
@@ -2282,6 +2364,9 @@ impl DeriveSchema for UntaggedOperator {
             UntaggedOperatorName::Locf => {
                 self.args[0].derive_schema(state)
             }
+            // $max and $min simply union together the schemas of all of the arguments
+            // NOTE: this could be improved in precision, if one argument's schema supercedes all the others
+            // however, this is a bit tricky to implement given AnyOfs / Any.
             UntaggedOperatorName::Max
             | UntaggedOperatorName::Min => {
                 let schema = self.args.iter().try_fold(Schema::Unsat, |acc, arg| {
@@ -2440,6 +2525,8 @@ impl DeriveSchema for UntaggedOperator {
                     })
                 )))
             }
+            // $objectToArray turns an object into an array of documents with fields k (the field names) and v (the field types)
+            // we produce an Array(Document {k: String, v: ...}) where v's schema is the union of all value types.
             UntaggedOperatorName::ObjectToArray => {
                 let input_doc = match &self.args[0].derive_schema(state)? {
                     Schema::Document(d) => Some(d.clone()),
@@ -2477,6 +2564,9 @@ impl DeriveSchema for UntaggedOperator {
                         "object",))
                 }
             }
+            // described above, $sum ignores all non-numeric arguments and handles calculation of the
+            // maximum numeric type. It can also handle summing not only arrays of arguments but singular
+            // arguments, including numerics themselves
             UntaggedOperatorName::Sum => {
                 if args.len() == 1 {
                     let arg_schema = args[0].derive_schema(state)?;
