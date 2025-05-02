@@ -184,8 +184,6 @@ impl Visitor for NullableSetter {
         node
     }
 
-    // todo: only set nullable for expressions that don't include a null literal
-
     fn visit_scalar_function_application(
         &mut self,
         node: ScalarFunctionApplication,
