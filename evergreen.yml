@@ -579,9 +579,30 @@ functions:
         script: |
           ${prepare_shell}
           benchmark/scripts/run_tpch.sh ${pipeline_dir} ${workload_filename} ${dataset_filename} ${EVERGREEN_SF0_01_LIMIT} ${EVERGREEN_SF0_1_LIMIT}
-    - command: perf.send
+    - command: shell.exec
       params:
-        file: ./mongosql-rs/processed-tpch-perf-results.json
+        script: |
+          if [ "${requester}" == "commit" ]; then
+            is_mainline=true
+          else
+            is_mainline=false
+          fi
+          parsed_order_id=$(echo "${revision_order_id}" | awk -F'_' '{print $NF}')
+          response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X 'POST' \
+            "https://performance-monitoring-api.corp.mongodb.com/raw_perf_results/cedar_report?project=${project_id}&version=${version_id}&variant=${build_variant}&order=$parsed_order_id&task_name=${task_name}&task_id=${task_id}&execution=${execution}&mainline=$is_mainline" \
+            -H 'accept: application/json' \
+            -H 'Content-Type: application/json' \
+            -d @./mongosql-rs/processed-tpch-perf-results.json)
+          http_status=$(echo "$response" | grep "HTTP_STATUS" | awk -F':' '{print $2}')
+          response_body=$(echo "$response" | sed '/HTTP_STATUS/d')
+          # We want to throw an error if the data was not successfully submitted
+          if [ "$http_status" -ne 200 ]; then
+            echo "Error: Received HTTP status $http_status"
+            echo "Response Body: $response_body"
+            exit 1
+          fi
+          echo "Response Body: $response_body"
+          echo "HTTP Status: $http_status"
     - command: s3.put
       params:
         aws_key: ${aws_key}
@@ -652,7 +673,7 @@ functions:
 
           # run_mem_profiler.sh writes three files
           # - memory-usage-results.log: Memory usage metrics to upload to S3
-          # - memory-usage-cedar-data.json: Metrics to use in perf.send command
+          # - memory-usage-cedar-data.json: Metrics to use in send perf data command
           # - heaptrack.profiler.gz: compressed file of full heaptrack profiling results
           benchmark/scripts/run_mem_profiler.sh "target/release/profiler" ${test_file}
           cat memory-usage-results.log
@@ -674,9 +695,30 @@ functions:
         bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
-    - command: perf.send
+    - command: shell.exec
       params:
-        file: ./mongosql-rs/memory-usage-cedar-data.json
+        script: |
+          if [ "${requester}" == "commit" ]; then
+            is_mainline=true
+          else
+            is_mainline=false
+          fi
+          parsed_order_id=$(echo "${revision_order_id}" | awk -F'_' '{print $NF}')
+          response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X 'POST' \
+            "https://performance-monitoring-api.corp.mongodb.com/raw_perf_results/cedar_report?project=${project_id}&version=${version_id}&variant=${build_variant}&order=$parsed_order_id&task_name=${task_name}&task_id=${task_id}&execution=${execution}&mainline=$is_mainline" \
+            -H 'accept: application/json' \
+            -H 'Content-Type: application/json' \
+            -d @./mongosql-rs/memory-usage-cedar-data.json)
+          http_status=$(echo "$response" | grep "HTTP_STATUS" | awk -F':' '{print $2}')
+          response_body=$(echo "$response" | sed '/HTTP_STATUS/d')
+          # We want to throw an error if the data was not successfully submitted
+          if [ "$http_status" -ne 200 ]; then
+            echo "Error: Received HTTP status $http_status"
+            echo "Response Body: $response_body"
+            exit 1
+          fi
+          echo "Response Body: $response_body"
+          echo "HTTP Status: $http_status"
     - command: shell.exec
       type: test
       params:
