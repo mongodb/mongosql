@@ -546,6 +546,105 @@ mod fill {
             ..Default::default()
         })
     );
+
+    test_derive_stage_schema!(
+        fill_anyof_in_paths,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::AnyOf(set!(
+                            Schema::Atomic(Atomic::Integer),
+                            Schema::Document(Document {
+                                keys: map! {
+                                    "c".to_string() => Schema::AnyOf(set!(
+                                        Schema::Atomic(Atomic::Integer),
+                                        Schema::Atomic(Atomic::String)
+                                    ))
+                                },
+                                required: set!("c".to_string()),
+                                ..Default::default()
+                            })
+                        ))
+                    },
+                    required: set!("b".to_string()),
+                    ..Default::default()
+                })
+            },
+            required: set!("a".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$fill": {"output": {"a.b.c": {"value": "hi"}}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::AnyOf(set!(
+                            Schema::Atomic(Atomic::Integer),
+                            Schema::Document(Document {
+                                keys: map! {
+                                    "c".to_string() => Schema::Atomic(Atomic::Integer)
+                                },
+                                ..Default::default()
+                            })
+                        ))
+                    },
+                    required: set!(),
+                    ..Default::default()
+                })
+            },
+            required: set!("a".to_string()),
+            ..Default::default()
+        })
+    );
+    
+    test_derive_stage_schema!(
+        fill_method_anyof_in_paths,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::AnyOf(set!(
+                            Schema::Atomic(Atomic::Integer),
+                            Schema::Document(Document {
+                                keys: map! {
+                                    "c".to_string() => Schema::Atomic(Atomic::Integer)
+                                },
+                                required: set!("c".to_string()),
+                                ..Default::default()
+                            })
+                        ))
+                    },
+                    required: set!("b".to_string()),
+                    ..Default::default()
+                })
+            },
+            required: set!("a".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$fill": {"output": {"a.b.c": {"method": "locf"}}}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::AnyOf(set!(
+                            Schema::Atomic(Atomic::Integer),
+                            Schema::Document(Document {
+                                keys: map! {
+                                    "c".to_string() => Schema::Atomic(Atomic::Integer)
+                                },
+                                ..Default::default()
+                            })
+                        ))
+                    },
+                    required: set!(),
+                    ..Default::default()
+                })
+            },
+            required: set!("a".to_string()),
+            ..Default::default()
+        })
+    );
 }
 
 mod group {
@@ -1564,6 +1663,79 @@ mod project {
         })
     );
     test_derive_stage_schema!(
+        project_exclude_nested_anyof,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                "foo".to_string() => Schema::Atomic(Atomic::String)
+            },
+            required: set!(
+                "_id".to_string(),
+                "foo".to_string(),
+            ),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo.bar": 0 }}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::String),
+                    Schema::Document(Document {
+                        keys: map! {
+                            "bar".to_string() => Schema::Atomic(Atomic::Integer)
+                        },
+                        ..Default::default()
+                    })
+                )),
+            },
+            required: set!(
+                "_id".to_string(),
+                "foo".to_string(),
+            ),
+            ..Default::default()
+        })
+    );
+    test_derive_stage_schema!(
+        project_include_nested_anyof,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                "foo".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "bar".to_string() => Schema::Atomic(Atomic::Integer)
+                    },
+                    ..Default::default()
+                })
+            },
+            required: set!(
+                "_id".to_string(),
+                "foo".to_string(),
+            ),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo.bar": 1 }}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::String),
+                    Schema::Document(Document {
+                        keys: map! {
+                            "bar".to_string() => Schema::Atomic(Atomic::Integer)
+                        },
+                        ..Default::default()
+                    })
+                )),
+            },
+            required: set!(
+                "_id".to_string(),
+                "foo".to_string(),
+            ),
+            ..Default::default()
+        })
+    );
+    test_derive_stage_schema!(
         project_include_exclude,
         expected = Ok(Schema::Document(Document {
             keys: map! {
@@ -2046,6 +2218,56 @@ mod unset_fields {
                     required: set!("first".to_string(), "last".to_string()),
                     ..Default::default()
                 }),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        unset_nested_anyof_field,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "last".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("last".to_string()),
+                        ..Default::default()
+                    }),
+                    Schema::Atomic(Atomic::String)
+                )),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })),
+        input = r#"{ "$unset": "author.first"}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "first".to_string() => Schema::Atomic(Atomic::String),
+                            "last".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("first".to_string(), "last".to_string()),
+                        ..Default::default()
+                    }),
+                    Schema::Atomic(Atomic::String),
+                )),
             },
             required: set!(
                 "title".to_string(),

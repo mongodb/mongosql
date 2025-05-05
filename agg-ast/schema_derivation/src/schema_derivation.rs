@@ -1167,8 +1167,8 @@ impl DeriveSchema for Expression {
                                     // CURRENT is equivalent to ROOT, if it has not been rebound
                                     // The reason we do this is because a field reference
                                     // `$<field>` is equivalent to `$$CURRENT.<field>.
-                                    Ok(get_schema_for_path_mut(
-                                        &mut state.result_set_schema,
+                                    Ok(get_schema_for_path(
+                                        state.result_set_schema.clone(),
                                         path[1..].to_vec(),
                                     )
                                     .unwrap()
