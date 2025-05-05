@@ -45,6 +45,9 @@ MONGO_ORCHESTRATION_HOME: "${MONGO_ORCHESTRATION_HOME}"
 MONGODB_BINARIES: "${MONGODB_BINARIES}"
 ALLOW_VULNS: "${ALLOW_VULNS}"
 LIBRARY_PATH: "${LIBRARY_PATH}"
+cargo_bin: "$HOME/.cargo/bin"
+script_dir: "$PROJECT_DIRECTORY/sql-engines-common-test-infra/evergreen/scripts"
+working_dir: "mongosql-rs"
 prepare_shell: |
   set -o errexit
   set -o xtrace

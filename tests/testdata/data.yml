@@ -1,0 +1,19 @@
+dataset:
+  - db: "test"
+    collection:
+      name: "foo"
+      docs:
+        - { _id: 1, a: "yes" }
+        - { _id: 2, a: "no" }
+        - { _id: 3, a: "maybe" }
+    schema:
+      {
+        bsonType: "object",
+        required: [ "_id", "a" ],
+        properties:
+          {
+            _id: { bsonType: "int" },
+            a: { bsonType: "string" },
+          },
+        additionalProperties: false
+      }

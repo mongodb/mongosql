@@ -27,11 +27,22 @@ timeout:
       script: |
         ls -la
 
+modules:
+  - name: sql-engines-common-test-infra
+    owner: 10gen
+    repo: sql-engines-common-test-infra
+    branch: main
+    auto_update: true
+
 include:
   # https://jira.mongodb.org/browse/DEVPROD-12779
   # - filename: evergreen/grpc.yml
   - filename: evergreen/mongosqltranslate.yml
   - filename: evergreen/suite-tasks.yml
+  - filename: evergreen/configs/rust_util.yml
+    module: sql-engines-common-test-infra
+  - filename: evergreen/configs/mongodb_util.yml
+    module: sql-engines-common-test-infra
 
 pre:
   - func: "fetch source"
@@ -39,7 +50,7 @@ pre:
   - func: "prepare resources"
 
 post:
-  - func: "stop mongo orchestration"
+  - func: "stop mongo-orchestration"
   - func: "upload static analysis information"
 
 functions:
@@ -47,48 +58,6 @@ functions:
     - command: git.get_project
       params:
         directory: mongosql-rs
-
-  "prepare resources":
-    - command: subprocess.exec
-      params:
-        working_dir: mongosql-rs
-        include_expansions_in_env:
-          - DRIVERS_TOOLS
-        binary: bash
-        args:
-          - ./evergreen/fetch-drivers-tools.sh
-
-  "bootstrap mongo-orchestration":
-    - command: subprocess.exec
-      params:
-        binary: sh
-        args:
-          - ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
-        include_expansions_in_env:
-          - DRIVERS_TOOLS
-          - TOPOLOGY
-          - MONGODB_VERSION
-          - MONGODB_BINARIES
-
-  "stop mongo orchestration":
-    - command: shell.exec
-
-      params:
-        include_expansions_in_env:
-          - DRIVERS_TOOLS
-          - MONGO_ORCHESTRATION_HOME
-          - PROJECT_DIRECTORY
-        script: |
-          ${PREPARE_SHELL}
-
-          cd ${MONGO_ORCHESTRATION_HOME}
-          # source the mongo-orchestration virtualenv if it exists
-          if [ -f venv/bin/activate ]; then
-            . venv/bin/activate
-          elif [ -f venv/Scripts/activate ]; then
-            . venv/Scripts/activate
-          fi
-          mongo-orchestration stop
 
   "create expansions":
     - command: subprocess.exec
@@ -104,80 +73,6 @@ functions:
       params:
         file: mongosql-rs/expansions.yml
 
-  "install rust toolchain":
-    - command: shell.exec
-      params:
-        shell: bash
-        script: |
-          ${prepare_shell}
-
-          # make sure to use msvc toolchain rather than gnu, which is
-          # the default for cygwin
-          if [ "Windows_NT" == "$OS" ]; then
-              export HOST="x86_64-pc-windows-msvc"
-              export DEFAULT_HOST_OPTIONS="--default-host $HOST"
-              export DEFAULT_TOOLCHAIN="stable-$HOST"
-          fi
-
-          # install rustup from scratch
-          rm -rf ~/.rustup
-          curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path $DEFAULT_HOST_OPTIONS
-          # rustup installs into C:\Users\$USER instead of
-          # C:\home\$USER, so we symlink both .rustup and .cargo
-          if [ "Windows_NT" == "$OS" ]; then
-              ln -sf /cygdrive/c/Users/$USER/.rustup/toolchains/$DEFAULT_TOOLCHAIN ~/.rustup
-              ln -sf /cygdrive/c/Users/$USER/.cargo/ ~/.cargo
-              rustup toolchain install $DEFAULT_TOOLCHAIN
-              rustup default $DEFAULT_TOOLCHAIN
-          fi
-
-          echo --------- rustup show -----------
-          rustup show
-          echo ----- Rustup toolchain list -----
-          rustup toolchain list
-          echo --------- Cargo version ---------
-          cargo --version
-          echo ---------------------------------
-
-  "set and check packages version":
-    - command: shell.exec
-      type: test
-      params:
-        shell: bash
-        working_dir: mongosql-rs
-        script: |
-          ${prepare_shell}
-          #no-op when not triggered by a tag
-          if [[ "${triggered_by_git_tag}" != "" ]]; then
-            cargo install cargo-edit
-            # we only release one project at a time, so setting the version on all Cargo.toml files is safe
-            cargo set-version $release_version
-          fi
-          cargo install cargo-get
-
-          # check all of the releasable packages in the monorepo to verify that whichever is being released has the correct version
-          MONGOSQL_CARGO_PKGS_VERSION=$(cargo get --entry="mongosql/Cargo.toml" package.version)
-          MONGOSQLTRANSLATE_CARGO_PKGS_VERSION=$(cargo get --entry="mongosqltranslate/Cargo.toml" package.version)
-          if [[ "${triggered_by_git_tag}" == "" ]]; then
-            EXPECTED_RELEASE_VERSION="0.0.0"
-          else
-            EXPECTED_RELEASE_VERSION="$release_version"
-          fi
-          if [[ "$MONGOSQL_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" || "$MONGOSQLTRANSLATE_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" ]]; then
-            >&2 echo "Expected version $EXPECTED_RELEASE_VERSION doesn't match for at least one package ; mongosql version $MONGOSQL_CARGO_PKGS_VERSION,  mongosqltranslate version $MONGOSQLTRANSLATE_CARGO_PKGS_VERSION"
-            exit 1
-          fi
-
-  "check clippy":
-    - command: shell.exec
-      type: test
-      params:
-        shell: bash
-        working_dir: mongosql-rs
-        script: |
-          ${prepare_shell}
-          cargo clippy --all-targets -- -D warnings
-
   "check gofmt":
     - command: shell.exec
       type: test
@@ -187,26 +82,6 @@ functions:
         script: |
           ${prepare_shell}
           gofmt -s -d .
-
-  "check unused dependencies":
-    - command: shell.exec
-      type: test
-      params:
-        shell: bash
-        working_dir: mongosql-rs
-        script: |
-          ${prepare_shell}
-          cargo install cargo-machete
-          cargo build --all-features
-          set +e
-          cargo machete
-          RETURN=$?
-          set -e
-          if [ $RETURN -ne 0 ]; then
-            >&2 echo "Unused dependencies found"
-            >&2 cargo machete
-            exit 1
-          fi
 
   "check goimports":
     - command: shell.exec
@@ -251,16 +126,6 @@ functions:
           # fail if tidying changed files
           diff go.mod.original go.mod.tidied || exit 1
           diff go.sum.original go.sum.tidied || exit 1
-
-  "check rustfmt":
-    - command: shell.exec
-      type: test
-      params:
-        shell: bash
-        working_dir: mongosql-rs
-        script: |
-          ${prepare_shell}
-          rustfmt --check $(find . -not \( -path \./e2e-tests -prune -o -path \./target -prune \) -name \*.rs)
 
   # "mongosql-rs" is the name of the library we release for Atlas SQL.
   "compile mongosql-rs":
@@ -459,20 +324,6 @@ functions:
           EXITCODE=$?
           set -e
           exit $EXITCODE
-
-  # This function should be used to run rust tests that do not need a running
-  # mongod instance. Additional flags can be passed in via the calling task.
-  # e.g. cargo_test_flags: "-- --ignored"
-  "run rust tests":
-    - command: shell.exec
-      type: test
-      params:
-        shell: bash
-        working_dir: mongosql-rs
-        script: |
-          ${prepare_shell}
-          echo ${description}
-          cargo test ${cargo_test_flags}
 
   "run pipeline generator":
     - command: shell.exec
@@ -980,21 +831,6 @@ functions:
         display_name: ${project_folder}-v${release_version}.sast.sarif
 
 tasks:
-  - name: clippy
-    commands:
-      - func: "install rust toolchain"
-      - func: "check clippy"
-
-  - name: rustfmt
-    commands:
-      - func: "install rust toolchain"
-      - func: "check rustfmt"
-
-  - name: unused-dependencies
-    commands:
-      - func: "install rust toolchain"
-      - func: "check unused dependencies"
-
   - name: gofmt
     commands:
       - func: "check gofmt"
@@ -1072,6 +908,17 @@ tasks:
       - func: "run criterion benchmarks"
       - func: "run criterion profile"
       - func: "upload criterion artifacts"
+
+  - name: test-data-loading
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
+      - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          data_loader_args: "--mongod-uri 'mongodb://localhost:27017' -d tests/testdata"
 
   - name: tpch-0.001-normalized-atlas-sql
     depends_on:
