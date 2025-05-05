@@ -583,17 +583,31 @@ pub fn get_namespaces_for_pipeline(
     state: &mut ResultSetState,
 ) -> BTreeSet<agg_ast::definitions::Namespace> {
     let mut namespaces = BTreeSet::new();
+
+    macro_rules! add_namespace {
+        ($coll:expr) => {
+            namespaces.insert(agg_ast::definitions::Namespace::new(
+                state.current_db.clone(),
+                $coll,
+            ));
+        };
+    }
+
     if let Some(current_collection) = current_collection {
-        namespaces.insert(agg_ast::definitions::Namespace::new(
-            state.current_db.clone(),
-            current_collection,
-        ));
+        add_namespace!(current_collection);
     }
     for stage in pipeline {
         match stage {
             agg_ast::definitions::Stage::Lookup(lookup) => {
-                let lookup_from = match lookup {
-                    agg_ast::definitions::Lookup::Equality(el) => Some(el.from),
+                match lookup {
+                    agg_ast::definitions::Lookup::Equality(el) => match el.from {
+                        agg_ast::definitions::LookupFrom::Collection(c) => {
+                            add_namespace!(c);
+                        }
+                        agg_ast::definitions::LookupFrom::Namespace(ns) => {
+                            namespaces.insert(ns);
+                        }
+                    },
                     agg_ast::definitions::Lookup::Subquery(
                         agg_ast::definitions::SubqueryLookup { from, pipeline, .. },
                     )
@@ -614,28 +628,11 @@ pub fn get_namespaces_for_pipeline(
                             from_collection,
                             state,
                         ));
-                        from
                     }
                 };
-                if let Some(from) = lookup_from {
-                    match from {
-                        agg_ast::definitions::LookupFrom::Collection(c) => {
-                            namespaces.insert(agg_ast::definitions::Namespace::new(
-                                state.current_db.clone(),
-                                c,
-                            ));
-                        }
-                        agg_ast::definitions::LookupFrom::Namespace(ns) => {
-                            namespaces.insert(ns);
-                        }
-                    }
-                }
             }
             agg_ast::definitions::Stage::GraphLookup(graph_lookup) => {
-                namespaces.insert(agg_ast::definitions::Namespace::new(
-                    state.current_db.clone(),
-                    graph_lookup.from,
-                ));
+                add_namespace!(graph_lookup.from);
             }
             agg_ast::definitions::Stage::UnionWith(union_with) => match union_with {
                 agg_ast::definitions::UnionWith::Collection(c) => {
@@ -645,19 +642,15 @@ pub fn get_namespaces_for_pipeline(
                     ));
                 }
                 agg_ast::definitions::UnionWith::Pipeline(union_with_pipepline) => {
-                    if let Some(c) = union_with_pipepline.coll.as_ref() {
-                        namespaces.insert(agg_ast::definitions::Namespace::new(
-                            state.current_db.clone(),
-                            c.clone(),
-                        ));
-                    };
                     if let Some(pipeline) = union_with_pipepline.pipeline {
                         namespaces.append(&mut get_namespaces_for_pipeline(
                             pipeline,
                             union_with_pipepline.coll,
                             state,
                         ));
-                    }
+                    } else if let Some(c) = union_with_pipepline.coll.as_ref() {
+                        add_namespace!(c.clone());
+                    };
                 }
             },
             agg_ast::definitions::Stage::Join(join) => {
