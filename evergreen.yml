@@ -58,6 +58,8 @@ functions:
     - command: git.get_project
       params:
         directory: mongosql-rs
+        revisions:
+          sql-engines-common-test-infra: ${sql-engines-common-test-infra_rev}
 
   "create expansions":
     - command: subprocess.exec
@@ -913,12 +915,13 @@ tasks:
     commands:
       - func: "bootstrap mongo-orchestration"
         vars:
-          MONGODB_VERSION: 8.0
+          MONGODB_VERSION: 6.0
           TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run data loader"
         vars:
-          data_loader_args: "--mongod-uri 'mongodb://localhost:27017' -d tests/testdata"
+          working_dir: mongosql-rs/sql-engines-common-test-infra
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata"
 
   - name: tpch-0.001-normalized-atlas-sql
     depends_on:
@@ -1293,6 +1296,8 @@ buildvariants:
   - name: static-analysis
     display_name: "* Static Analysis"
     run_on: [ubuntu1804-test]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: clippy
       - name: rustfmt
@@ -1312,6 +1317,8 @@ buildvariants:
   - name: rhel76
     display_name: "RHEL 7.6"
     run_on: [rhel76-large]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1319,6 +1326,7 @@ buildvariants:
       - name: test-rust-fuzz
       - name: test-spec-rewrite-and-type-constraints
       - name: test-go
+      - name: test-data-loading
       - name: .standalone !.7.0 !.8.0 !.rapid !.latest
 
   - name: ubuntu2204
