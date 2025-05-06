@@ -681,6 +681,15 @@ pub fn get_namespaces_for_pipeline(
             agg_ast::definitions::Stage::Collection(c) => {
                 namespaces.insert(agg_ast::definitions::Namespace::new(c.db, c.collection));
             }
+            agg_ast::definitions::Stage::Facet(f) => {
+                for (_, stages) in f {
+                    namespaces.append(&mut get_namespaces_for_pipeline(
+                        stages,
+                        current_db.clone(),
+                        current_collection.clone(),
+                    ));
+                }
+            }
             _ => {}
         }
     }
