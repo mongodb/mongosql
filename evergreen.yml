@@ -302,31 +302,6 @@ functions:
           export LIBRARY_PATH="$(cd .. && pwd)"
           go test -v ./... | tee go-test-results.txt
 
-  # Just running the spec tests on RHEL 7.6 for now
-  # This function should be used to run rust tests that need a running mongod
-  # Additional flags can be passed in via the calling task
-  # e.g. cargo_test_flags: "-- --ignored"
-  "run rust integration tests":
-    - command: shell.exec
-      type: test
-      params:
-        shell: bash
-        working_dir: mongosql-rs
-        script: |
-          ${prepare_shell}
-
-          if [[ "${load_data_cmd}" != "" ]]; then
-            echo "loading data"
-            eval ${load_data_cmd}
-          fi
-
-          echo ${description}
-          set +e
-          cargo test ${cargo_test_flags}
-          EXITCODE=$?
-          set -e
-          exit $EXITCODE
-
   "run pipeline generator":
     - command: shell.exec
       type: test

@@ -11,7 +11,7 @@ tasks:
           MONGODB_VERSION: 6.0
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
           description: run spec query tests
           cargo_test_flags: --features=query --package=e2e-tests -- --test-threads=1
@@ -25,7 +25,7 @@ tasks:
           MONGODB_VERSION: 6.0
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
           description: run index usage tests
           cargo_test_flags: --features=index --package=e2e-tests -- --test-threads=1
@@ -39,9 +39,9 @@ tasks:
           MONGODB_VERSION: 6.0
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
-          description: run rust integration tests
+          description: run rust e2e tests
           cargo_test_flags: --features=e2e --package=e2e-tests -- --test-threads=1
     
 
@@ -53,7 +53,7 @@ tasks:
           MONGODB_VERSION: 6.0
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
           description: run rust error tests
           cargo_test_flags: --features=error --package=e2e-tests -- --test-threads=1
@@ -67,7 +67,7 @@ tasks:
           MONGODB_VERSION: 7.0
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
           description: run spec query tests
           cargo_test_flags: --features=query --package=e2e-tests -- --test-threads=1
@@ -81,7 +81,7 @@ tasks:
           MONGODB_VERSION: 7.0
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
           description: run index usage tests
           cargo_test_flags: --features=index --package=e2e-tests -- --test-threads=1
@@ -95,9 +95,9 @@ tasks:
           MONGODB_VERSION: 7.0
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
-          description: run rust integration tests
+          description: run rust e2e tests
           cargo_test_flags: --features=e2e --package=e2e-tests -- --test-threads=1
     
 
@@ -109,7 +109,7 @@ tasks:
           MONGODB_VERSION: 7.0
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
           description: run rust error tests
           cargo_test_flags: --features=error --package=e2e-tests -- --test-threads=1
@@ -123,7 +123,7 @@ tasks:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
           description: run spec query tests
           cargo_test_flags: --features=query --package=e2e-tests -- --test-threads=1
@@ -137,7 +137,7 @@ tasks:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
           description: run index usage tests
           cargo_test_flags: --features=index --package=e2e-tests -- --test-threads=1
@@ -151,9 +151,9 @@ tasks:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
-          description: run rust integration tests
+          description: run rust e2e tests
           cargo_test_flags: --features=e2e --package=e2e-tests -- --test-threads=1
     
 
@@ -165,7 +165,7 @@ tasks:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
           description: run rust error tests
           cargo_test_flags: --features=error --package=e2e-tests -- --test-threads=1
@@ -179,7 +179,7 @@ tasks:
           MONGODB_VERSION: rapid
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
           description: run spec query tests
           cargo_test_flags: --features=query --package=e2e-tests -- --test-threads=1
@@ -193,7 +193,7 @@ tasks:
           MONGODB_VERSION: rapid
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
           description: run index usage tests
           cargo_test_flags: --features=index --package=e2e-tests -- --test-threads=1
@@ -207,9 +207,9 @@ tasks:
           MONGODB_VERSION: rapid
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
-          description: run rust integration tests
+          description: run rust e2e tests
           cargo_test_flags: --features=e2e --package=e2e-tests -- --test-threads=1
     
 
@@ -221,7 +221,7 @@ tasks:
           MONGODB_VERSION: rapid
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
           description: run rust error tests
           cargo_test_flags: --features=error --package=e2e-tests -- --test-threads=1
@@ -235,7 +235,7 @@ tasks:
           MONGODB_VERSION: latest
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
           description: run spec query tests
           cargo_test_flags: --features=query --package=e2e-tests -- --test-threads=1
@@ -249,7 +249,7 @@ tasks:
           MONGODB_VERSION: latest
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
           description: run index usage tests
           cargo_test_flags: --features=index --package=e2e-tests -- --test-threads=1
@@ -263,9 +263,9 @@ tasks:
           MONGODB_VERSION: latest
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
-          description: run rust integration tests
+          description: run rust e2e tests
           cargo_test_flags: --features=e2e --package=e2e-tests -- --test-threads=1
     
 
@@ -277,7 +277,7 @@ tasks:
           MONGODB_VERSION: latest
           TOPOLOGY: server
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
           description: run rust error tests
           cargo_test_flags: --features=error --package=e2e-tests -- --test-threads=1

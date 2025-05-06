@@ -34,7 +34,7 @@ static TEST_TYPES: &[(&str, &str, &str)] = &[
     ),
     (
         "rust-e2e",
-        "run rust integration tests",
+        "run rust e2e tests",
         "--features=e2e --package=e2e-tests -- --test-threads=1",
     ),
     (
@@ -54,7 +54,7 @@ fn main() {
           MONGODB_VERSION: {{version}}
           TOPOLOGY: {{topology}}
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run rust tests"
         vars:
           description: {{description}}
           cargo_test_flags: {{flags}}
