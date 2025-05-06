@@ -1,24 +1,3 @@
-catalog_data:
-  test:
-    foo:
-      - {'_id': 0, 'x': 11, 'y': 12}
-    bar:
-      - {'_id': 0, 'x': 11, 'y': 12}
-
-catalog_schema:
-  {
-    'test': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'bar': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
-
 tests:
   - description: both unqualified and qualified references to derived table datasource fields are allowed
     query: "SELECT VALUE {'asub': asub, 'bsub': derived.bsub} FROM (SELECT VALUE {'asub': a, 'bsub': b} FROM [{'a': 1, 'b': 1}] AS arr) AS derived"
@@ -51,13 +30,13 @@ tests:
     algebrize_error: 'derived source derived Must have overlapping keys between schemata Document(Document { keys: {"a": Atomic(Integer), "x": Atomic(Integer)}, required: {"a", "x"}, additional_properties: false }) and Document(Document { keys: {"x": Atomic(Integer), "y": Atomic(Integer)}, required: {"x", "y"}, additional_properties: false })'
 
   - description: derived table can result in ambiguous fields when the datasource fields are not enumerable and must report a static error
-    current_db: test
+    current_db: spec_query_derived
     query: "SELECT * FROM (SELECT * FROM foo AS foo, bar AS bar) AS derived"
     should_compile: false
     algebrize_error: "Error 3016: Derived datasource"
 
   - description: there is no ambiguity with one schema-less datasource in a derived table
-    current_db: test
+    current_db: spec_query_derived
     query: "SELECT * FROM (SELECT * FROM foo AS foo) AS derived"
     result:
       - {'derived': {'_id': {'$numberInt': "0"}, 'x': 11, 'y': 12}}

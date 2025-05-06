@@ -1,97 +1,6 @@
-catalog_data:
-  db:
-    foo:
-      - { _id: 1, a: 1, b: 2 }
-      - { _id: 2, a: 1, b: 2 }
-      - { _id: 3, a: 2, b: 2 }
-      - { _id: 4, b: 2, a: 1 }
-      - { _id: 5, a: 2, b: 2, c: true, d: "a", e: null }
-      - { _id: 6, a: 2, b: 2, c: true, d: "a", e: null }
-
-    bar:
-      - { _id: 1, a: 1, b: 2 }
-      - { _id: 2, a: 2, b: 2 }
-      - { _id: 3, a: 2, b: 2 }
-      - { _id: 4, a: 2, b: 4 }
-      - { _id: 5, a: 2, b: 4, c: 1 }
-
-    documents:
-      - { _id: 1, doc: { a: 1, b: 2 } }
-      - { _id: 2, doc: { a: 1, b: 2 } }
-      - { _id: 3, doc: { a: 2, b: 2 } }
-      - { _id: 4, doc: { a: 2, b: 3 } }
-      - { _id: 5, doc: { b: 2, a: 1 } }
-      - { _id: 6, doc: { a: 1, b: 2, c: 3 } }
-
-    arrays:
-      - { _id: 1, arr: [1, 2, 3] }
-      - { _id: 2, arr: [1, 2, 3] }
-      - { _id: 3, arr: [2, 3, 4] }
-      - { _id: 4, arr: [3, 2, 1] }
-      - { _id: 5, arr: [3, 2, 1, 4] }
-
-catalog_schema:
-  {
-    "db": {
-      "foo": {
-        "bsonType": "object",
-        "required": ["_id", "a", "b"],
-        "additionalProperties": false,
-        "properties": {
-          "_id": { "bsonType": "int" },
-          "a":   { "bsonType": "int" },
-          "b":   { "bsonType": "int" },
-          "c":   { "bsonType": "bool" },
-          "d":   { "bsonType": "string" },
-          "e":   { "bsonType": "null" }
-        }
-      },
-      "bar": {
-        "bsonType": "object",
-        "required": [ "_id", "a", "b" ],
-        "additionalProperties": false,
-        "properties": {
-          "_id": { "bsonType": "int" },
-          "a": { "bsonType": "int" },
-          "b": { "bsonType": "int" },
-          "c": { "bsonType": "int" }
-        }
-      },
-      "documents": {
-        "bsonType": "object",
-        "required": ["_id", "doc"],
-        "additionalProperties": false,
-        "properties": {
-          "_id": { "bsonType": "int" },
-          "doc": {
-            "bsonType": "object",
-            "required": ["a", "b"],
-            "properties": {
-              "a": { "bsonType": "int" },
-              "b": { "bsonType": "int" },
-              "c": { "bsonType": "int" }
-            }
-          }
-        }
-      },
-      "arrays": {
-        "bsonType": "object",
-        "required": ["_id", "arr"],
-        "additionalProperties": false,
-        "properties": {
-          "_id": { "bsonType": "int" },
-          "arr": {
-            "bsonType": "array",
-            "items": { "bsonType": "int" }
-          }
-        }
-      }
-    }
-  }
-
 tests:
   - description: "SELECT DISTINCT * ensures unique rows for entire document"
-    query: "SELECT DISTINCT * FROM db.foo"
+    query: "SELECT DISTINCT * FROM spec_query_distinct.foo"
     result:
       - { 'foo': { "_id": 1, "a": 1, "b": 2 } }
       - { 'foo': { "_id": 2, "a": 1, "b": 2 } }
@@ -107,7 +16,7 @@ tests:
           SELECT DISTINCT *
           FROM (
             SELECT a, b, c
-            FROM db.foo
+            FROM spec_query_distinct.foo
           ) AS t1
         ) AS t2
     result:
@@ -116,7 +25,7 @@ tests:
       - { 't2': { "a": 2, "b": 2, "c": true } }
 
   - description: "SELECT DISTINCT * on joined tables unique rows for entire document"
-    query: "SELECT DISTINCT * FROM db.foo,db.bar WHERE foo._id = bar._id"
+    query: "SELECT DISTINCT * FROM spec_query_distinct.foo,spec_query_distinct.bar WHERE foo._id = bar._id"
     result:
       - { 'foo': { "_id": 1, "a": 1, "b": 2 }, 'bar': { "_id": 1, "a": 1, "b": 2 } }
       - { 'foo': { "_id": 2, "a": 1, "b": 2 }, 'bar': { "_id": 2, "a": 2, "b": 2 } }
@@ -125,7 +34,7 @@ tests:
       - { 'foo': { "_id": 5, "a": 2, "b": 2, "c": true, "d": "a", "e": null }, 'bar': { "_id": 5, "a": 2, "b": 4, "c":1 } }
 
   - description: "SELECT DISTINCT specific columns from joined tables"
-    query: "SELECT DISTINCT foo.a, bar.b FROM db.foo, db.bar WHERE foo._id = bar._id"
+    query: "SELECT DISTINCT foo.a, bar.b FROM spec_query_distinct.foo, spec_query_distinct.bar WHERE foo._id = bar._id"
     result:
       - { '': { "a": 1, "b": 2 } }
       - { '': { "a": 2, "b": 2 } }
@@ -133,19 +42,19 @@ tests:
       - { '': { "a": 2, "b": 4 } }
 
   - description: "SELECT DISTINCT columns ensures we see unique values"
-    query: "SELECT DISTINCT a, b FROM db.foo"
+    query: "SELECT DISTINCT a, b FROM spec_query_distinct.foo"
     result:
       - { '': { "a": 1, "b": 2 } }
       - { '': { "a": 2, "b": 2 } }
 
   - description: "SELECT DISTINCT columns with alias"
-    query: "SELECT DISTINCT a as col1, b as col2 FROM db.foo"
+    query: "SELECT DISTINCT a as col1, b as col2 FROM spec_query_distinct.foo"
     result:
       - { '': { "col1": 1, "col2": 2 } }
       - { '': { "col1": 2, "col2": 2 } }
 
   - description: "SELECT DISTINCT document column of repeated documents"
-    query: "SELECT DISTINCT doc FROM db.documents"
+    query: "SELECT DISTINCT doc FROM spec_query_distinct.documents"
     result:
       - { '': { "doc": { "a": 1, "b": 2 } } }
       - { '': { "doc": { "a": 2, "b": 2 } } }
@@ -154,7 +63,7 @@ tests:
       - { '': { "doc": { "a": 1, "b":2, "c": 3 } } }
 
   - description: "SELECT DISTINCT arr checking deduplication of repeated arrays"
-    query: "SELECT DISTINCT arr FROM db.arrays"
+    query: "SELECT DISTINCT arr FROM spec_query_distinct.arrays"
     result:
       - { '': { "arr": [1, 2, 3] } }
       - { '': { "arr": [2, 3, 4] } }
@@ -162,21 +71,21 @@ tests:
       - { '': { "arr": [3, 2, 1, 4] } }
 
   - description: "SELECT DISTINCT with ORDER BY"
-    query: "SELECT DISTINCT a FROM db.foo ORDER BY a ASC"
+    query: "SELECT DISTINCT a FROM spec_query_distinct.foo ORDER BY a ASC"
     ordered: true
     result:
       - { '': { "a": 1 } }
       - { '': { "a": 2 } }
 
   - description: "basic UNION distinct correctness test"
-    current_db: "db"
+    current_db: spec_query_distinct
     query: "SELECT VALUE {'a': a} FROM foo UNION SELECT VALUE {'a': a} FROM foo"
     result:
       - {'': {'a': 1}}
       - {'': {'a': 2}}
 
   - description: "duplicates are still removed when collections with different schema are unioned"
-    current_db: "db"
+    current_db: spec_query_distinct
     query: "SELECT VALUE {'a': a} FROM foo AS foo UNION SELECT VALUE {'b': b, 'c': c} FROM bar AS bar"
     result:
       - {'': {'a': 1}}
@@ -186,14 +95,14 @@ tests:
       - {'': {'b': 4, 'c': 1}}
 
   - description: "UNION is left associative"
-    current_db: "db"
+    current_db: spec_query_distinct
     query: "SELECT VALUE {'a': a} FROM foo UNION ALL SELECT VALUE {'a': a} FROM foo UNION SELECT VALUE {'a': a} FROM foo"
     result:
       - {'': {'a': 1}}
       - {'': {'a': 2}}
 
   - description: "UNION distinct with select * in both queries"
-    current_db: "db"
+    current_db: spec_query_distinct
     query: | 
       SELECT * FROM (SELECT a,b,c FROM foo) AS foo 
       UNION 
@@ -208,7 +117,7 @@ tests:
       - {'bar': {'a': 2, 'b': 4, 'c': 1}}
 
   - description: "UNION distinct with same value order"
-    current_db: "db"
+    current_db: spec_query_distinct
     query: "SELECT a,b FROM foo UNION SELECT a,b FROM bar"
     result:
       - {'': {'a': 1, 'b': 2}}
@@ -216,7 +125,7 @@ tests:
       - {'': {'a': 2, 'b': 4}}
 
   - description: "UNION distinct with mixed value order"
-    current_db: "db"
+    current_db: spec_query_distinct
     query: "SELECT a,b FROM foo UNION SELECT b,a FROM bar"
     result:
       - {'': {'a': 1, 'b': 2}}
@@ -226,7 +135,7 @@ tests:
       - {'': {'b': 2, 'a': 2}}
 
   - description: "UNION distinct with mixed star and values select list"
-    current_db: "db"
+    current_db: spec_query_distinct
     query: "SELECT * FROM foo UNION SELECT a,b from bar"
     result:
       - {'foo': {'_id': 1, 'a': 1, 'b': 2}}
@@ -240,7 +149,7 @@ tests:
       - {'': {'a': 2, 'b': 4}}
 
   - description: "UNION distinct with join"
-    current_db: db
+    current_db: spec_query_distinct
     query: | 
       SELECT *
       FROM 

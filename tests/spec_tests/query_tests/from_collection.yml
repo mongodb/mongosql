@@ -1,43 +1,19 @@
-catalog_data:
-  mydb:
-    foo:
-      - {'_id': 0, 'a': 1}
-  otherdb:
-    foo:
-      - {'_id': 0, 'b': 1}
-
-catalog_schema:
-  {
-    'mydb': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    },
-    'otherdb': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
-
 tests:
   - description: reference collection in current db by fully qualified name
-    current_db: mydb
-    query: "SELECT * FROM mydb.foo AS foo"
+    current_db: spec_query_collection
+    query: "SELECT * FROM spec_query_collection.foo AS foo"
     result:
       - {'foo': {'_id': 0, 'a': 1}}
 
   - description: reference collection in current db by unqualified name
-    current_db: mydb
+    current_db: spec_query_collection
     query: "SELECT * FROM foo AS foo"
     result:
       - {'foo': {'_id': 0, 'a': 1}}
 
   - description: reference collection in other db by fully qualified name
-    current_db: mydb
-    query: "SELECT * FROM otherdb.foo AS foo"
+    current_db: spec_query_collection
+    query: "SELECT * FROM spec_query_collection_other.foo AS foo"
     result:
       - {'foo': {'_id': 0, 'b': 1}}
 

@@ -1,0 +1,9 @@
+dataset:
+  - db: "spec_query_array"
+    collection:
+      name: "foo"
+      docs:
+        - { "_id": 0, "a": 1 }
+      schema:
+        bsonType: "object"
+        additionalProperties: true

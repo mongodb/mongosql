@@ -1,0 +1,168 @@
+dataset:
+  - db: "spec_query_unwind"
+    collection:
+      name: "foo"
+      docs:
+        - { "_id": 0, "arr": [ 1, 2, 3 ] }
+        - { "_id": 1, "arr": [ 4, 5, 6 ] }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "arr" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          a:
+            bsonType: "array"
+
+  - db: "spec_query_unwind"
+    collection:
+      name: "bar"
+      docs:
+        - { "_id": 0, "arr": [ 10, 20, 30 ] }
+        - { "_id": 1, "arr": [ 40, 50, 60 ] }
+      schema:
+        bsonType: "object"
+        additionalProperties: true
+
+  - db: "spec_query_unwind"
+    collection:
+      name: "nested"
+      docs:
+        - { "_id": 0, "a": { "b": { "c": [ 1, 2, 3 ], "x": 30 }, "y": 20 }, "z": 10 }
+        - { "_id": 1, "a": { "b": { "c": [ 4, 5, 6 ], "x": 300 }, "y": 200 }, "z": 100 }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "a", "z" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          a:
+            bsonType: "object"
+            required: [ "b", "y" ]
+            additionalProperties: false
+            properties:
+              b:
+                bsonType: "object"
+                required: [ "c", "x" ]
+                additionalProperties: false
+                properties:
+                  c:
+                    bsonType: "array"
+                  x:
+                    bsonType: "int"
+              y:
+                bsonType: "int"
+          z:
+            bsonType: "int"
+
+  - db: "spec_query_unwind"
+    collection:
+      name: "two_d"
+      docs:
+        - { "_id": 0, "arr": [ [ 1, 2 ], [ 3, 4 ] ] }
+        - { "_id": 1, "arr": [ [ 10, 20 ], [ 30, 40 ] ] }
+      schema:
+        bsonType: "object"
+        additionalProperties: true
+
+  - db: "spec_query_unwind"
+    collection:
+      name: "non_arrays"
+      docs:
+        - { "_id": 0, "arr": [ 1, 2 ], "comment": "array" }
+        - { "_id": 1, "arr": "not array", "comment": "string" }
+        - { "_id": 2, "arr": { "a": [ 3, 4 ] }, "comment": "object" }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "arr", "comment" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          arr:
+            anyOf:
+              - bsonType: "array"
+              - bsonType: "string"
+              - bsonType: "object"
+          comment:
+            bsonType: "string"
+
+  - db: "spec_query_unwind"
+    collection:
+      name: "empty_null_and_missing"
+      docs:
+        - { "_id": 0, "arr": [], "comment": "empty" }
+        - { "_id": 1, "arr": [ 1, 2 ], "comment": "non-empty" }
+        - { "_id": 2, "arr": null, "comment": "null" }
+        - { "_id": 3, "comment": "missing" }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "comment" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          arr:
+            anyOf:
+              - bsonType: "array"
+              - bsonType: !!str "null"
+          comment:
+            bsonType: "string"
+
+  - db: "spec_query_unwind"
+    collection:
+      name: "index_conflict"
+      docs:
+        - { "_id": 0, "arr": [ 1, 2 ], "i": "abc" }
+        - { "_id": 1, "arr": [ 3, 4 ] }
+      schema:
+        bsonType: "object"
+        additionalProperties: true
+
+  - db: "spec_query_unwind"
+    collection:
+      name: "compound"
+      docs:
+        - { "_id": 0, "g": [ [ { "g": [ 5 ] } ], [ { "h": 8 } ], [ { "i": 4 } ], { "g": [ 9 ]} ], "a": [ 42 ], "b": [ 55 ] }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "g" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "objectId"
+          a:
+            bsonType: "array"
+            items:
+              bsonType: "int"
+          b:
+            bsonType: "array"
+            items:
+              bsonType: "int"
+          g:
+            bsonType: "array"
+            items:
+              anyOf:
+                - bsonType: "array"
+                  items:
+                    bsonType: "object"
+                    additionalProperties: false
+                    properties:
+                      h:
+                        bsonType: "int"
+                      i:
+                        bsonType: "int"
+                      g:
+                        bsonType: "array"
+                        items:
+                          bsonType: "int"
+                - bsonType: "object"
+                  required: [ "g" ]
+                  additionalProperties: false
+                  properties:
+                    g:
+                      bsonType: "array"
+                      items:
+                        bsonType: "int"

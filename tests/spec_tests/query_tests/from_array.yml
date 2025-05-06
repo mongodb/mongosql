@@ -1,18 +1,3 @@
-catalog_data:
-  test:
-    foo:
-      - {'_id': 0, 'a': 1}
-
-catalog_schema:
-  {
-    'test': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
-
 tests:
   - description: basic array datasource correctness test
     query: "SELECT * FROM [{'a': 1, 'b': 1}] AS arr"
@@ -68,6 +53,6 @@ tests:
 
   - description: references in array datasources are disallowed
     query: "SELECT (SELECT * FROM [{'a': foo.a}] AS arr) FROM foo"
-    current_db: test
+    current_db: spec_query_array
     should_compile: false
     algebrize_error: "array datasource must be constant"
