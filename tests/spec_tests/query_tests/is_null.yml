@@ -1,52 +1,20 @@
-catalog_data:
-    db:
-        null_and_missing:
-            - {'_id': 0, 'x': true}
-            - {'_id': 1, 'x': null}
-            - {'_id': 2}
-            - {'_id': 3, 'x': false}
-
-        missing:
-            - {'_id': 0, 'x': true}
-            - {'_id': 1}
-            - {'_id': 2, 'x': false}
-            - {'_id': 3}
-
-catalog_schema:
-    db:
-        null_and_missing:
-            bsonType: 'object'
-            additionalProperties: false
-            required: ['_id']
-            properties:
-                '_id': {'bsonType': 'int'}
-                x: {'anyOf': [{'bsonType': 'bool'}, {'bsonType': 'null'}]}
-
-        missing:
-            bsonType: 'object'
-            additionalProperties: false
-            required: ['_id']
-            properties:
-                '_id': {'bsonType': 'int'}
-                x: {'bsonType': 'bool'}
-
 tests:
     - description: IS NULL covers missing fields
-      current_db: db
+      current_db: spec_query_is_null
       query: 'SELECT * FROM null_and_missing WHERE x IS NULL'
       result:
           - {'null_and_missing': {'_id': 1, 'x': null}}
           - {'null_and_missing': {'_id': 2}}
 
     - description: IS NOT NULL covers missing fields
-      current_db: db
+      current_db: spec_query_is_null
       query: 'SELECT * FROM null_and_missing WHERE x IS NOT NULL'
       result:
           - {'null_and_missing': {'_id': 0, 'x': true}}
           - {'null_and_missing': {'_id': 3, 'x': false}}
 
     - description: IS NULL covers missing fields without null schema
-      current_db: db
+      current_db: spec_query_is_null
       query: 'SELECT * FROM `missing` WHERE x IS NULL'
       result:
           - {'missing': {'_id': 1}}

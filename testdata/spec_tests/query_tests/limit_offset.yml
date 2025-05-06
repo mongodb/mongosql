@@ -1,0 +1,33 @@
+dataset:
+  - db: "spec_query_limit_offset"
+    collection:
+      name: "bar"
+      docs:
+        - { "_id": 0, "a": 1 }
+        - { "_id": 1, "a": 2 }
+        - { "_id": 1, "a": 3 }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "a" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          a:
+            bsonType: "int"
+
+  - db: "spec_query_limit_offset"
+    collection:
+      name: "baz"
+      docs:
+        - { "_id": 0, "a": 1 }
+        - { "_id": 1, "a": 2 }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "a" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          a:
+            bsonType: "int"

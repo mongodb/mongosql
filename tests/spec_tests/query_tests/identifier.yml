@@ -1,57 +1,3 @@
-catalog_data:
-  foo:
-    bar:
-      - { "_id": 1, "a": { "b": 1 } }
-      - { "_id": 2, "a.b": 2 }
-      - { "_id": 3, "a": { "b.c": 3 } }
-      - { "_id": 4, "$a.b": 4 }
-      - { "_id": 5, "$a.$b": { "$c.d": 5 } }
-      - { "_id": 6, "$a.$b": { "$c": { "d": 6 } } }
-      - { "_id": 7, "": 7 }
-
-catalog_schema:
-  {
-    "foo":
-      {
-        "bar":
-          {
-            "bsonType": "object",
-            "additionalProperties": true,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a":
-                  {
-                    "bsonType": "object",
-                    "additionalProperties": true,
-                    "properties":
-                      {
-                        "b": { "bsonType": "int" },
-                        "b.c": { "bsonType": "int" },
-                      },
-                  },
-                "a.b": { "bsonType": "int" },
-                "$a.b": { "bsonType": "int" },
-                "$a.$b":
-                  {
-                    "bsonType": "object",
-                    "additionalProperties": true,
-                    "properties":
-                      {
-                        "$c":
-                          {
-                            "bsonType": "object",
-                            "additionalProperties": true,
-                            "properties": { "d": { "bsonType": "int" } },
-                          },
-                        "$c.d": { "bsonType": "int" },
-                      },
-                  },
-              },
-          },
-      },
-  }
-
 tests:
   - description: Undelimited identifier containing a . character is a compound identifier
     query: "SELECT VALUE {'c': a.c} FROM [{'a': {'c': 1}}, {'a': 3}] arr"
@@ -62,7 +8,7 @@ tests:
 
   - description: Delimited identifier containing a .
     query: "SELECT VALUE {'ab': `a.b`} FROM bar"
-    current_db: foo
+    current_db: spec_query_identifier
     result:
       - { "": {} }
       - { "": { "ab": 2 } }
@@ -74,7 +20,7 @@ tests:
 
   - description: Nested delimited identifier containing a .
     query: "SELECT VALUE {'abc': a.`b.c`} FROM bar"
-    current_db: foo
+    current_db: spec_query_identifier
     result:
       - { "": {} }
       - { "": {} }
@@ -86,7 +32,7 @@ tests:
 
   - description: Delimited identifier with a $
     query: "SELECT VALUE {'ab': `$a.b`} FROM bar"
-    current_db: foo
+    current_db: spec_query_identifier
     result:
       - { "": {} }
       - { "": {} }
@@ -98,7 +44,7 @@ tests:
 
   - description: Nested delimited identifiers containing $ and .
     query: "SELECT VALUE {'abcd': `$a.$b`.`$c.d`} FROM bar"
-    current_db: foo
+    current_db: spec_query_identifier
     result:
       - { "": {} }
       - { "": {} }
@@ -110,7 +56,7 @@ tests:
 
   - description: Mixed identifiers containing $ and .
     query: "SELECT VALUE {'abcd': `$a.$b`.`$c`.d} FROM bar"
-    current_db: foo
+    current_db: spec_query_identifier
     result:
       - { "": {} }
       - { "": {} }
@@ -122,7 +68,7 @@ tests:
 
   - description: Delimited identifier containing an empty string
     query: "SELECT VALUE {'empty': ``} FROM bar"
-    current_db: foo
+    current_db: spec_query_identifier
     result:
       - { "": {} }
       - { "": {} }
@@ -134,13 +80,13 @@ tests:
 
   - description: Unaliased use of field reference expression with $ and .
     query: "SELECT * FROM bar WHERE `$a.b` = 4"
-    current_db: foo
+    current_db: spec_query_identifier
     result:
       - { "bar": { "_id": 4, "$a.b": 4 } }
 
   - description: Unaliased use of nested field reference expressions with $ and .
     query: "SELECT * FROM bar WHERE `$a.$b`.`$c`.d = 6"
-    current_db: foo
+    current_db: spec_query_identifier
     result:
       - { "bar": { "_id": 6, "$a.$b": { "$c": { "d": 6 } } } }
 
