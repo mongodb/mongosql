@@ -665,4 +665,4 @@ mod get_namespaces_for_pipeline {
             }
         }]"#
     );
-
+}
