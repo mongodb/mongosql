@@ -1,0 +1,93 @@
+dataset:
+  - db: "spec_query_operators_strings"
+    collection:
+      name: "concat"
+      docs:
+        - { "_id": 0, "s1": "ab", "s2": "c", }
+        - { "_id": 1, "s1": "ab", "s2": null, }
+        - { "_id": 2, "s1": "ab" }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "s1" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          s1:
+            bsonType: "string"
+          s2:
+            anyOf:
+              - bsonType: "string"
+              - bsonType: !!str "null"
+
+  - db: "spec_query_operators_strings"
+    collection:
+      name: "nullAndMissing"
+      docs:
+        - { "_id": 0, "s": null, "p": "abc" }
+        - { "_id": 1, "p": "abc" }
+        - { "_id": 2, "s": "abc", "p": null }
+        - { "_id": 3, "s": "abc" }
+      schema:
+        bsonType: "object"
+        required: [ "_id" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          s:
+            anyOf:
+              - bsonType: "string"
+              - bsonType: !!str "null"
+          p:
+            anyOf:
+              - bsonType: "string"
+              - bsonType: !!str "null"
+
+  - db: "spec_query_operators_strings"
+    collection:
+      name: "like"
+      docs:
+        - { "_id": 0, "s": "abc", "p": "abc" }
+        - { "_id": 1, "s": "abc", "p": "a_c" }
+        - { "_id": 2, "s": "abc", "p": "a%" }
+        - { "_id": 3, "s": "abc", "p": "ab_%", }
+        - { "_id": 4, "s": "bc", "p": "abc", }
+        - { "_id": 5, "s": "bc", "p": "_bc", }
+        - { "_id": 6, "s": "bc", "p": "ab%c", }
+        - { "_id": 7, "s": "bc", "p": "%_bc", }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "s", "p" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          s:
+            anyOf:
+              - bsonType: "string"
+              - bsonType: !!str "null"
+          p:
+            anyOf:
+              - bsonType: "string"
+              - bsonType: !!str "null"
+
+  - db: "spec_query_operators_strings"
+    collection:
+      name: "escape"
+      docs:
+        - { "_id": 0, "s": "abc", "p": "abc" }
+        - { "_id": 1, "s": "abc", "p": "a$_c" }
+        - { "_id": 2, "s": "a$_%c", "p": "a$$$_$%c" }
+        - { "_id": 3, "s": "abc", "p": "ab$c" }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "s", "p" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          s:
+            bsonType: "string"
+          p:
+            bsonType: "string"

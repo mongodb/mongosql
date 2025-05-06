@@ -1,0 +1,30 @@
+dataset:
+  - db: "spec_query_operators_types"
+    collection:
+      name: "bar"
+      docs:
+        - { "_id": 0, "type": "double", "v": { "$numberDouble": "1.9" } }
+        - { "_id": 1, "type": "string", "v": "xyz" }
+        - { "_id": 2, "type": "document", "v": { "a": 1 } }
+        - { "_id": 3, "type": "array", "v": [ 1, 2, 3 ] }
+        - { "_id": 4, "type": "binData", "v": {  "$binary": {  "base64": "yO2rw/c4TKO2jauSqRR4ow==", "subType": "04" } } }
+        - { "_id": 5, "type": "undefined", "v": { "$undefined": true } }
+        - { "_id": 6, "type": "objectid", "v": { "$oid": "5ab9c3da31c2ab715d421285" } }
+        - { "_id": 7, "type": "boolean", "v": true }
+        - { "_id": 8, "type": "date", "v": { "$date": { "$numberLong": "253402300799999" } } }
+        - { "_id": 9, "type": "null", "v": null }
+        - { "_id": 10, "type": "missing" }
+        - { "_id": 11, "type": "regex", "v": { "$regularExpression": { "pattern": "foo*", "options": "ix" } } }
+        - { "_id": 12, "type": "dbPointer", "v": { "$dbPointer": { "$ref": "foo", "$id": { "$oid": "57e193d7a9cc81b4027498b5"}}} }
+        - { "_id": 13, "type": "javascript", "v": { "$code": "function() {}"} }
+        - { "_id": 14, "type": "symbol", "v": { "$symbol": "symbol" } }
+        - { "_id": 15, "type": "javascriptWithScope", "v": { "$code": "function() {}", "$scope": {} } }
+        - { "_id": 16, "type": "int", "v": { "$numberInt": "1" } }
+        - { "_id": 17, "type": "timestamp", "v": { "$timestamp": { "t": 42, "i": 1 } } }
+        - { "_id": 18, "type": "long", "v": { "$numberLong": "1" } }
+        - { "_id": 19, "type": "decimal", "v": { "$numberDecimal": "1.9"} }
+        - { "_id": 20, "type": "minKey", "v": { "$minKey": 1 } }
+        - { "_id": 21, "type": "maxKey", "v": { "$maxKey": 1 } }
+      schema:
+        bsonType: "object"
+        additionalProperties: true
