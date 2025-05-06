@@ -629,4 +629,40 @@ mod get_namespaces_for_pipeline {
             }}
         ]"#
     );
-}
+
+
+    test_get_namespaces_for_pipeline!(
+        facet_one_namespace,
+        expected = set!(Namespace::new("test".to_string(), "foo".to_string()),),
+        input = r#"[{
+            "$facet": {
+                "facet1": [
+                    { "$match": { "foo": 1 } }
+                ]
+            }
+        }]"#
+    );
+
+    test_get_namespaces_for_pipeline!(
+        facet_with_lookups,
+        expected = set!(
+            Namespace::new("test".to_string(), "foo".to_string()),
+            Namespace::new("test".to_string(), "bar".to_string()),
+            Namespace::new("test".to_string(), "baz".to_string()),
+            Namespace::new("test".to_string(), "biz".to_string()),
+            Namespace::new("test".to_string(), "quz".to_string()),
+        ),
+        input = r#"[{
+            "$facet": {
+                "facet1": [
+                    { "$lookup": { "from": "bar", "pipeline": [], "as": "as_var" } },
+                    { "$lookup": { "from": "baz", "pipeline": [], "as": "as_var" } }
+                ],
+                "facet2": [
+                    { "$lookup": { "from": "biz", "pipeline": [], "as": "as_var" } },
+                    { "$lookup": { "from": "quz", "pipeline": [], "as": "as_var" } }
+                ]
+            }
+        }]"#
+    );
+
