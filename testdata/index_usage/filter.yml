@@ -1,0 +1,131 @@
+dataset:
+  - db: "index_usage_filter"
+    collection:
+      name: "nullable_fields"
+      docs:
+        - { "_id": 1, "a": 100, "b": 5050 }
+        - { "_id": 2, "a": 250, "b": 4132 }
+        - { "_id": 3, "a": 42, "b": 3456 }
+        - { "_id": 4, "a": null, "b": 6000 }
+        - { "_id": 5, "a": 321, "b": 10 }
+        - { "_id": 6, "a": 322 }
+        - { "_id": 7, "b": 5203 }
+        - { "_id": 8, "a": 50, "b": 50 }
+        - { "_id": 9, "a": null, "b": 6704 }
+        - { "_id": 10, "a": 263, "b": 1218 }
+      indexes:
+        - { "key": { "a": 1 } }
+        - { "key": { "b": 1 } }
+        - { "key": { "a": 1, "b": 1 } }
+      schema:
+        bsonType: "object"
+        required: [ "_id" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          a:
+            anyOf:
+              - bsonType: "int"
+              - bsonType: "null"
+          b:
+            bsonType: "int"
+
+  - db: "index_usage_filter"
+    collection:
+      name: "non_nullable_fields"
+      docs:
+        - { "_id": 1, "a": 111, "b": 4621 }
+        - { "_id": 2, "a": 283, "b": 4443 }
+        - { "_id": 3, "a": 315, "b": 70 }
+        - { "_id": 4, "a": 392, "b": 5890 }
+        - { "_id": 5, "a": 12, "b": 406 }
+        - { "_id": 6, "a": 340, "b": 3748 }
+        - { "_id": 7, "a": 50, "b": 50 }
+        - { "_id": 8, "a": 60, "b": 60 }
+        - { "_id": 9, "a": 164, "b": 2961 }
+        - { "_id": 10, "a": 300, "b": 2811 }
+      indexes:
+        - { "key": { "a": 1 } }
+        - { "key": { "b": 1 } }
+        - { "key": { "a": 1, "b": 1 } }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "a", "b" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          a:
+            bsonType: "int"
+          b:
+            bsonType: "int"
+
+  - db: "index_usage_filter"
+    collection:
+      name: "strings"
+      docs:
+        - { "_id": 1, "s": "aabcc" }
+        - { "_id": 2, "s": "abc" }
+        - { "_id": 3, "s": "aabbcc" }
+        - { "_id": 4, "s": "ab" }
+        - { "_id": 5, "s": "bc" }
+        - { "_id": 6, "s": "" }
+        - { "_id": 7, "s": "no" }
+      indexes:
+        - { "key": { "s": 1 } }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "s" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          s:
+            bsonType: "string"
+
+  - db: "index_usage_filter"
+    collection:
+      name: "mixed"
+      docs:
+        - { "_id": 1, v: "str" }
+        - { "_id": 2, v: 1 }
+        - { "_id": 3, v: 5 }
+        - { "_id": 4, v: "xyz" }
+        - { "_id": 5, v: 10.2 }
+        - { "_id": 6, v: "" }
+      indexes:
+        - { "key": { "v": 1 } }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "v" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          v:
+            anyOf:
+              - bsonType: "int"
+              - bsonType: "string"
+              - bsonType: "double"
+
+  - db: "index_usage_filter"
+    collection:
+      name: "arrays"
+      docs:
+        - { "_id": 1, v: [ 1, 2, 3 ] }
+        - { "_id": 2, v: [ 4, 5, 6 ] }
+        - { "_id": 3, v: [ 7, 8, 9 ] }
+      indexes:
+        - { "key": { "v": 1 } }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "v" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          v:
+            bsonType: "array"
+            items:
+              bsonType: "int"

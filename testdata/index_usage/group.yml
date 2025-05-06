@@ -1,0 +1,29 @@
+dataset:
+  - db: "index_usage_group"
+    collection:
+      name: "test_coll"
+      docs:
+        - { "_id": 1, "a": 1, "b": 4.2 }
+        - { "_id": 2, "a": 1, "b": 5.1 }
+        - { "_id": 3, "a": 2, "b": 6.0 }
+        - { "_id": 4, "a": null, "b": 4.1 }
+        - { "_id": 5, "a": 2, "b": 10.8 }
+        - { "_id": 6, "a": null, "b": 3.2 }
+      indexes:
+        - { "key": { "a": 1 } }
+        - { "key": { "a": 1, "b": -1 } }
+      schema:
+        bsonType: "object"
+        required: [ "_id" ]
+        additionalProperties: true
+        properties:
+          _id:
+            bsonType: "int"
+          a:
+            anyOf:
+              - bsonType: "int"
+              - bsonType: "null"
+          b:
+            anyOf:
+              - bsonType: "double"
+              - bsonType: "null"

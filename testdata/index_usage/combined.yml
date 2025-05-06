@@ -1,0 +1,62 @@
+dataset:
+  - db: "index_usage_combined"
+    collection:
+      name: "foo"
+      docs:
+        - { "_id": 1, "a": 100, "b": 5050 }
+        - { "_id": 2, "a": 250, "b": 4132 }
+        - { "_id": 3, "a": 42, "b": 3456 }
+        - { "_id": 4, "a": null, "b": 6000 }
+        - { "_id": 5, "a": 321, "b": 10 }
+        - { "_id": 6, "a": 322 }
+        - { "_id": 7, "b": 5203 }
+        - { "_id": 8, "a": 50, "b": 50 }
+        - { "_id": 9, "a": null, "b": 6704 }
+        - { "_id": 10, "a": 263, "b": 1218 }
+      indexes:
+        - { "key": { "a": 1 } }
+        - { "key": { "b": 1 } }
+        - { "key": { "a": 1, "b": 1 } }
+      schema:
+        bsonType: "object"
+        required: [ "_id" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          a:
+            anyOf:
+              - bsonType: "int"
+              - bsonType: "null"
+          b:
+            bsonType: "int"
+
+  - db: "index_usage_combined"
+    collection:
+      name: "bar"
+      docs:
+        - { "_id": 1, "a": 42 }
+        - { "_id": 2, "a": 43 }
+        - { "_id": 3, "a": 45 }
+        - { "_id": 4, "a": 100 }
+        - { "_id": 5, "a": null }
+        - { "_id": 6, "a": 250 }
+        - { "_id": 7, "a": 201 }
+        - { "_id": 8 }
+        - { "_id": 9, "a": 322 }
+        - { "_id": 10, "a": null }
+      indexes:
+        - { "key": { "a": 1 } }
+      schema:
+        bsonType: "object"
+        required: [ "_id" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          a:
+            anyOf:
+              - bsonType: "int"
+              - bsonType: "null"
+          b:
+            bsonType: "int"
