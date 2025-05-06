@@ -370,6 +370,53 @@ mod densify {
             ..Default::default()
         })
     );
+
+    test_derive_stage_schema!(
+        densify_nested_anyofs,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::AnyOf(set!(
+                            Schema::Atomic(Atomic::Integer),
+                            Schema::Document(Document { keys:
+                                map! {
+                                    "c".to_string() => Schema::Atomic(Atomic::Integer),
+                                    "d".to_string() => Schema::Atomic(Atomic::Integer),
+                                },
+                                ..Default::default()
+                            })
+                        )),
+                    },
+                    ..Default::default()
+                }),
+            },
+            required: set!("a".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$densify": {"field": "a.b.c", "partitionByFields": ["a.b.d"], "range": { "step": 1, "bounds": "full" }}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::AnyOf(set!(
+                            Schema::Atomic(Atomic::Integer),
+                            Schema::Document(Document { keys:
+                                map! {
+                                    "c".to_string() => Schema::Atomic(Atomic::Integer),
+                                    "d".to_string() => Schema::Atomic(Atomic::Integer),
+                                },
+                                ..Default::default()
+                            })
+                        )),
+                    },
+                    ..Default::default()
+                }),
+            },
+            required: set!("a".to_string()),
+            ..Default::default()
+        })
+    );
 }
 
 mod documents {
@@ -810,6 +857,50 @@ mod unwind {
                 "bar".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Double)))
             },
             required: set!("bar".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        field_ref_nested_anyofs_in_path,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Document(Document {
+                            keys: map! {
+                                "c".to_string() => Schema::Atomic(Atomic::Double)
+                            },
+                            required: set!("c".to_string()),
+                            ..Default::default()
+                        })
+                    },
+                    required: set!("b".to_string()),
+                    ..Default::default()
+                })
+            },
+            required: set!("a".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$unwind": {"path": "$a.b.c"}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::AnyOf(set!(
+                            Schema::Atomic(Atomic::Integer),
+                            Schema::Document(Document {
+                                keys: map! {
+                                    "c".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Double)))
+                                },
+                                ..Default::default()
+                            })
+                        ))
+                    },
+                    ..Default::default()
+                })
+            },
+            required: set!("a".to_string()),
             ..Default::default()
         })
     );
