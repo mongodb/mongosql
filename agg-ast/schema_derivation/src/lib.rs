@@ -603,7 +603,7 @@ pub fn get_namespaces_for_pipeline(
 
     // if the current agg pipeline is on a collection (i.e. not aggregate 1), add that
     // namespace to the set
-    if let Some(current_collection) = current_collection {
+    if let Some(current_collection) = current_collection.as_ref() {
         add_namespace!(current_collection);
     }
     for stage in pipeline {
