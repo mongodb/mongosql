@@ -979,6 +979,7 @@ impl DeriveSchema for Stage {
                 Unset::Multiple(fields) => fields,
             };
             fields.iter().for_each(|field| {
+                println!("{:?}", field);
                 remove_field(
                     &mut state.result_set_schema,
                     field.split('.').map(|s| s.to_string()).collect(),

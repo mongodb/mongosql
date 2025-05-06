@@ -597,7 +597,7 @@ mod fill {
             ..Default::default()
         })
     );
-    
+
     test_derive_stage_schema!(
         fill_method_anyof_in_paths,
         expected = Ok(Schema::Document(Document {
@@ -1669,10 +1669,7 @@ mod project {
                 "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
                 "foo".to_string() => Schema::Atomic(Atomic::String)
             },
-            required: set!(
-                "_id".to_string(),
-                "foo".to_string(),
-            ),
+            required: set!("_id".to_string(), "foo".to_string(),),
             ..Default::default()
         })),
         input = r#"{"$project": {"foo.bar": 0 }}"#,
@@ -1689,10 +1686,7 @@ mod project {
                     })
                 )),
             },
-            required: set!(
-                "_id".to_string(),
-                "foo".to_string(),
-            ),
+            required: set!("_id".to_string(), "foo".to_string(),),
             ..Default::default()
         })
     );
@@ -1708,10 +1702,7 @@ mod project {
                     ..Default::default()
                 })
             },
-            required: set!(
-                "_id".to_string(),
-                "foo".to_string(),
-            ),
+            required: set!("_id".to_string(), "foo".to_string(),),
             ..Default::default()
         })),
         input = r#"{"$project": {"foo.bar": 1 }}"#,
@@ -1728,10 +1719,7 @@ mod project {
                     })
                 )),
             },
-            required: set!(
-                "_id".to_string(),
-                "foo".to_string(),
-            ),
+            required: set!("_id".to_string(), "foo".to_string(),),
             ..Default::default()
         })
     );
