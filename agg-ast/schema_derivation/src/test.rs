@@ -630,7 +630,6 @@ mod get_namespaces_for_pipeline {
         ]"#
     );
 
-
     test_get_namespaces_for_pipeline!(
         facet_one_namespace,
         expected = set!(Namespace::new("test".to_string(), "foo".to_string()),),
