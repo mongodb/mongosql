@@ -1,0 +1,46 @@
+dataset:
+  - db: "e2e_ext_json"
+    collection:
+      name: "foo"
+      docs:
+        - {
+          '_id': 0,
+          'str': '"world"',
+          'num': 1,
+          'ts': { '$timestamp': { 't': 42, 'i': 1 } },
+          'uuid': { '$uuid': 'c8edabc3-f738-4ca3-b68d-ab92a91478a3' },
+          'oid': { '$oid': '63448dfed38427a35d534e40' },
+          'datetime': { '$date': { '$numberLong': '253402300799999' } },
+          'symbol': { '$symbol': 'sym' },
+        }
+        - {
+          '_id': 1,
+          'str': '{"$oid": "invalid"}',
+          'num': 2,
+          'ts': { '$timestamp': { 't': 43, 'i': 1 } },
+          'uuid': { '$uuid': 'b7dcbab2-e627-3b92-a57c-9a8198036792' },
+          'oid': { '$oid': '52337cedc27316924c423d3b' },
+          'datetime': { '$date': { '$numberLong': '253402300776543' } },
+          'symbol': { '$symbol': 'sym2' },
+        }
+      schema:
+        bsonType: 'object'
+        required: [ '_id', 'str', 'num', 'ts', 'uuid', 'oid', 'datetime', 'symbol' ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: 'int'
+          str:
+            bsonType: 'string'
+          num:
+            bsonType: 'int'
+          ts:
+            bsonType: 'timestamp'
+          uuid:
+            bsonType: 'binData'
+          oid:
+            bsonType: 'objectId'
+          datetime:
+            bsonType: 'date'
+          symbol:
+            bsonType: 'symbol'
