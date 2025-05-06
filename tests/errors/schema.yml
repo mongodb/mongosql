@@ -1,158 +1,91 @@
-catalog_data:
-  db:
-    foo:
-      - { '_id': 0, 'a': 1, 'b': 2, 'c': "foo", 'd': { 'a': 1 }, p: true }
-    bar:
-      - { '_id': 0, 'a': 1, 'b': 2, 'c': "bar", 'd': { 'a': 2 } }
-
-catalog_schema:
-  {
-    'db': {
-      'foo': {
-        'bsonType': 'object',
-        "required": [ "_id", "a", "b", "c", "d", "p" ],
-        "additionalProperties": false,
-        "properties":
-          {
-            "_id": { "bsonType": "int" },
-            "a": { "bsonType": "int" },
-            "b": { "bsonType": "int" },
-            "c": { "bsonType": "string" },
-            "d":
-              {
-                "required": [ "a" ],
-                "bsonType": "object",
-                "properties": {
-                  "a": { "bsonType": "int" }
-                }
-              },
-            "p":
-              {
-                "anyOf":
-                  [
-                    { "bsonType": "string" },
-                    { "bsonType": "bool" },
-                  ]
-              }
-          },
-      },
-      'bar': {
-        'bsonType': 'object',
-        "required": [ "_id", "a", "b", "c", "d" ],
-        "additionalProperties": false,
-        "properties":
-          {
-            "_id": { "bsonType": "int" },
-            "a": { "bsonType": "int" },
-            "b": { "bsonType": "int" },
-            "c": { "bsonType": "string" },
-            "d":
-              {
-                "bsonType": "object",
-                "additionalProperties": true,
-              },
-          },
-      },
-      'any_sch': {
-        'bsonType': 'object',
-        "required": [ "_id", ],
-        "additionalProperties": true,
-        "properties":
-          {
-            "_id": { "bsonType": "int" },
-          },
-      },
-    }
-  }
-
 tests:
   - description: Error 1001 IncorrectArgumentCount
     query: "SELECT ROUND(a,1,5) FROM foo"
-    current_db: db
+    current_db: errors_schema
     should_compile: false
     algebrize_error: 'Error 1001: incorrect argument count for Round: required 2, found 3'
 
   - description: Error 1002 SchemaChecking
     query: "SELECT ROUND(c,5) FROM foo"
-    current_db: db
+    current_db: errors_schema
     should_compile: false
     algebrize_error: 'Error 1002: Incorrect argument type for `Round`. Required: nullable numeric type. Found: string.'
 
   - description: Error 1002 SchemaChecking with Any value
     query: "SELECT ROUND(c,5) FROM any_sch"
-    current_db: db
+    current_db: errors_schema
     should_compile: false
     algebrize_error: 'Error 1002: Incorrect argument type for `Round`. Required: nullable numeric type. Found: any type. An `any type` schema may indicate that schema is not set for the relevant collection or field. Please verify that the schema is set as expected.'
 
   - description: Error 1003 AggregationArgumentMustBeSelfComparable
     query: "SELECT * FROM foo GROUP BY a AGGREGATE min(p) AS min"
-    current_db: db
+    current_db: errors_schema
     should_compile: false
     algebrize_error: 'Error 1003: Cannot perform `Min` aggregation over the type `polymorphic type` as it is not comparable to itself.'
 
   - description: Error 1003 AggregationArgumentMustBeSelfComparable with Any value
     query: "SELECT * FROM any_sch GROUP BY _id AGGREGATE min(d) AS min"
-    current_db: db
+    current_db: errors_schema
     should_compile: false
     algebrize_error: 'Error 1003: Cannot perform `Min` aggregation over the type `any type` as it is not comparable to itself. An `any type` schema may indicate that schema is not set for the relevant collection or field. Please verify that the schema is set as expected.'
 
   - description: Error 1005 InvalidComparison
     query: "SELECT * FROM foo WHERE a <= c"
-    current_db: db
+    current_db: errors_schema
     should_compile: false
     algebrize_error: 'Error 1005: Invalid use of `Lte` due to incomparable types: `int` cannot be compared to `string`.'
 
   - description: Error 1005 InvalidComparison with Any values
     query: "SELECT * FROM any_sch WHERE a <= c"
-    current_db: db
+    current_db: errors_schema
     should_compile: false
     algebrize_error: 'Error 1005: Invalid use of `Lte` due to incomparable types: `any type` cannot be compared to `any type`. An `any type` schema may indicate that schema is not set for the relevant collection or field. Please verify that the schema is set as expected.'
 
   - description: Error 1007 AccessMissingField
     query: "SELECT foo.f FROM foo"
-    current_db: db
+    current_db: errors_schema
     should_compile: false
     algebrize_error: 'Error 1007: Cannot access field `f` because it could not be found. Did you mean: a, b, c, d'
 
   - description: Error 1008 InvalidSubqueryCardinality
     query: "SELECT (SELECT a FROM foo) FROM bar"
-    current_db: db
+    current_db: errors_schema
     should_compile: false
     algebrize_error: "Error 1008: cardinality of the subquery's result set may be greater than 1"
 
   - description: Error 1010 SortKeyNotSelfComparable
     query: "SELECT * FROM foo ORDER BY p"
-    current_db: db
+    current_db: errors_schema
     should_compile: false
     algebrize_error: "Error 1010: Cannot sort by key because `polymorphic type` can't be compared against itself."
 
   - description: Error 1010 SortKeyNotSelfComparable with Any value
     query: "SELECT * FROM any_sch ORDER BY d"
-    current_db: db
+    current_db: errors_schema
     should_compile: false
     algebrize_error: "Error 1010: Cannot sort by key because `any type` can't be compared against itself. An `any type` schema may indicate that schema is not set for the relevant collection or field. Please verify that the schema is set as expected."
 
   - description: Error 1011 GroupKeyNotSelfComparable
     query: "SELECT * FROM foo GROUP BY p"
-    current_db: db
+    current_db: errors_schema
     should_compile: false
     algebrize_error: "Error 1011: Cannot group by key because `polymorphic type` can't be compared against itself."
 
   - description: Error 1011 GroupKeyNotSelfComparable with Any value
     query: "SELECT * FROM any_sch GROUP BY d"
-    current_db: db
+    current_db: errors_schema
     should_compile: false
     algebrize_error: "Error 1011: Cannot group by key because `any type` can't be compared against itself. An `any type` schema may indicate that schema is not set for the relevant collection or field. Please verify that the schema is set as expected."
 
   - description: Error 1014 UnwindIndexNameConflict
     query: "SELECT * FROM UNWIND(foo WITH PATH => a, INDEX => b)"
-    current_db: db
+    current_db: errors_schema
     should_compile: false
     algebrize_error: "Error 1014: UNWIND INDEX name 'b' conflicts with existing field name"
 
   - description: Error 1016 CollectionNotFound
     query: "SELECT * FROM baz"
-    current_db: db
+    current_db: errors_schema
     should_compile: false
-    algebrize_error: "Error 1016: unknown collection 'baz' in database 'db'"
+    algebrize_error: "Error 1016: unknown collection 'baz' in database 'errors_schema'"
 
