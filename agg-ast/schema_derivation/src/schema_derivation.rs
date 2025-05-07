@@ -905,6 +905,27 @@ impl DeriveSchema for Stage {
             let mut nullish = preserve_null_and_empty_arrays;
             state.result_set_schema = promote_missing(&state.result_set_schema);
             if let Some(path) = path.clone() {
+                if nullish == false {
+                    for index in 0..path.len() - 1 {
+                        let vec_path = path[0..index + 1].to_vec();
+                        if let Some(s) =
+                            get_schema_for_path_mut(&mut state.result_set_schema, vec_path)
+                        {
+                            if let Schema::AnyOf(ao) = s {
+                                *s = ao
+                                    .iter()
+                                    .find_map(|x| {
+                                        if matches!(x, Schema::Document(_)) {
+                                            Some(x.clone())
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .unwrap_or(Schema::Missing);
+                            }
+                        }
+                    }
+                }
                 if let Some(s) = get_schema_for_path_mut(&mut state.result_set_schema, path.clone())
                 {
                     // the schema of the field being unwound goes from type Array[X] to type X

@@ -889,6 +889,7 @@ mod unwind {
                     keys: map! {
                         "b".to_string() => Schema::AnyOf(set!(
                             Schema::Atomic(Atomic::Null),
+                            Schema::Atomic(Atomic::Integer),
                             Schema::Document(Document {
                                 keys: map! {
                                     "c".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Double)))
