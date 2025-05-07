@@ -1,72 +1,20 @@
-catalog_data:
-  foo:
-    bar:
-      - {'_id': 1, 'v': 1}
-      - {'_id': 2, 'v': 2}
-      - {'_id': 3, 'v': 3}
-      - {'_id': 4, 'v': 4}
-      - {'_id': 5, 'v': null}
-      - {'_id': 6}
-    target:
-      - {'_id': 1, 'a': 2}
-      - {'_id': 2, 'a': 3}
-      - {'_id': 3, 'a': null}
-
-catalog_schema:
-  {
-    'foo': {
-      'bar': {
-        'bsonType': "object",
-        'required': [ '_id', 'v' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'v': {
-            'anyOf': [
-              { 'bsonType': "int" },
-              { 'bsonType': !!str "null" }
-            ]
-          }
-        },
-      },
-      'target': {
-        'bsonType': "object",
-        'required': [ '_id', 'a' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'a': {
-            'anyOf': [
-              { 'bsonType': "int" },
-              { 'bsonType': !!str "null" }
-            ]
-          }
-        },
-      }
-    }
-  }
-
 tests:
   - description: correctness test for eq ANY Operator without NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v = ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
     result:
       - {'bar': {'_id': 2, 'v': 2}}
       - {'bar': {'_id': 3, 'v': 3}}
 
   - description: correctness test for eq ANY Operator with NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v = ANY(SELECT a FROM target AS target)"
     result:
       - {'bar': {'_id': 2, 'v': 2}}
       - {'bar': {'_id': 3, 'v': 3}}
 
   - description: correctness test for neq ANY Operator without NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v <> ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
     result:
       - {'bar': {'_id': 1, 'v': 1}}
@@ -75,7 +23,7 @@ tests:
       - {'bar': {'_id': 4, 'v': 4}}
 
   - description: correctness test for neq ANY Operator with NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v <> ANY(SELECT a FROM target)"
     result:
       - {'bar': {'_id': 1, 'v': 1}}
@@ -84,21 +32,21 @@ tests:
       - {'bar': {'_id': 4, 'v': 4}}
 
   - description: correctness test for lt ANY Operator without NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v < ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
     result:
       - {'bar': {'_id': 1, 'v': 1}}
       - {'bar': {'_id': 2, 'v': 2}}
 
   - description: correctness test for lt ANY Operator with NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v < ANY(SELECT a FROM target)"
     result:
       - {'bar': {'_id': 1, 'v': 1}}
       - {'bar': {'_id': 2, 'v': 2}}
 
   - description: correctness test for lte ANY Operator without NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v <= ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
     result:
       - {'bar': {'_id': 1, 'v': 1}}
@@ -106,7 +54,7 @@ tests:
       - {'bar': {'_id': 3, 'v': 3}}
 
   - description: correctness test for lte ANY Operator with NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v <= ANY(SELECT a FROM target)"
     result:
       - {'bar': {'_id': 1, 'v': 1}}
@@ -114,21 +62,21 @@ tests:
       - {'bar': {'_id': 3, 'v': 3}}
 
   - description: correctness test for gt ANY Operator without NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v > ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
     result:
       - {'bar': {'_id': 3, 'v': 3}}
       - {'bar': {'_id': 4, 'v': 4}}
 
   - description: correctness test for gt ANY Operator with NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v > ANY(SELECT a FROM target)"
     result:
       - {'bar': {'_id': 3, 'v': 3}}
       - {'bar': {'_id': 4, 'v': 4}}
 
   - description: correctness test for gte ANY Operator without NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v >= ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
     result:
       - {'bar': {'_id': 2, 'v': 2}}
@@ -136,7 +84,7 @@ tests:
       - {'bar': {'_id': 4, 'v': 4}}
 
   - description: correctness test for gte ANY Operator with NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v >= ANY(SELECT a FROM target)"
     result:
       - {'bar': {'_id': 2, 'v': 2}}
@@ -144,23 +92,23 @@ tests:
       - {'bar': {'_id': 4, 'v': 4}}
 
   - description: correctness test for eq ALL Operator without NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
     result: []
 
   - description: correctness test for eq ALL Operator with NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target)"
     result: []
 
   - description: correctness test for eq ALL Operator with matching result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target AS target WHERE a = 2)"
     result:
       - {'bar': {'_id': 2, 'v': 2}}
 
   - description: ALL comparisons are vacuously true when subquery returns no results
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target AS target WHERE false)"
     result:
       - {'bar': {'_id': 1, 'v': 1}}
@@ -171,70 +119,70 @@ tests:
       - {'bar': {'_id': 6}}
 
   - description: ANY comparisons are vacuously false when subquery returns no results
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v = ANY(SELECT a FROM target AS target WHERE false)"
     result: []
 
   - description: correctness test for neq ALL Operator without NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v <> ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
     result:
       - {'bar': {'_id': 1, 'v': 1}}
       - {'bar': {'_id': 4, 'v': 4}}
 
   - description: correctness test for neq ALL Operator with NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v <> ALL(SELECT a FROM target)"
     result: []
 
   - description: correctness test for lt ALL Operator without NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v < ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
     result:
       - {'bar': {'_id': 1, 'v': 1}}
 
   - description: correctness test for lt ALL Operator with NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v < ALL(SELECT a FROM target)"
     result: []
 
   - description: correctness test for lte ALL Operator without NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v <= ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
     result:
       - {'bar': {'_id': 1, 'v': 1}}
       - {'bar': {'_id': 2, 'v': 2}}
 
   - description: correctness test for lte ALL Operator with NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v <= ALL(SELECT a FROM target)"
     result: []
 
   - description: correctness test for gt ALL Operator without NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v > ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
     result:
       - {'bar': {'_id': 4, 'v': 4}}
 
   - description: correctness test for gt ALL Operator with NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v > ALL(SELECT a FROM target)"
     result: []
 
   - description: correctness test for gte ALL Operator without NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v >= ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
     result:
       - {'bar': {'_id': 3, 'v': 3}}
       - {'bar': {'_id': 4, 'v': 4}}
 
   - description: correctness test for gte ALL Operator with NULL in subquery result
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v >= ALL(SELECT a FROM target)"
     result: []
 
   - description: ANY subquery comparison in SELECT clause
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT VALUE {'v': v, 'x': bar.v = ANY (SELECT a FROM target AS target)} FROM bar AS bar"
     result:
       - {'': {'v': 1, 'x': null}}
@@ -246,7 +194,7 @@ tests:
 
 
   - description: ALL subquery comparison in SELECT clause
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT VALUE {'v': v, 'x': bar.v = ALL (SELECT a FROM target AS target WHERE NOT(a IS NULL))} FROM bar AS bar"
     result:
       - {'': {'v': 1, 'x': false}}
@@ -257,14 +205,14 @@ tests:
       - {'': {'x': null}}
 
   - description: correctness test for EXISTS Operator
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE EXISTS(SELECT * FROM target AS target WHERE v = a)"
     result:
       - {'bar': {'_id': 2, 'v': 2}}
       - {'bar': {'_id': 3, 'v': 3}}
 
   - description: correctness test for NOT EXISTS Operator
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE NOT EXISTS(SELECT * FROM target AS target WHERE v = a)"
     result:
       - {'bar': {'_id': 1, 'v': 1}}
@@ -273,7 +221,7 @@ tests:
       - {'bar': {'_id': 6}}
 
   - description: EXISTS expression in SELECT clause
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT VALUE {'v': v, 'x': EXISTS(SELECT * FROM target AS target WHERE target.a = bar.v)} FROM bar AS bar"
     result:
       - {'': {'v': 1, 'x': false}}
@@ -284,19 +232,19 @@ tests:
       - {'': {'x': false}}
 
   - description: IN Operator fails if it has different degree on both sides
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v IN(SELECT * FROM target)"
     should_compile: false
     algebrize_error: "subquery expressions must have a degree of 1"
 
   - description: ANY Operator fails if it has different degree on both sides
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v <> ANY(SELECT * FROM target)"
     should_compile: false
     algebrize_error: "subquery expressions must have a degree of 1"
 
   - description: ALL Operator fails if it has different degree on both sides
-    current_db: foo
+    current_db: spec_query_table_subquery_expressions
     query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT * FROM target)"
     should_compile: false
     algebrize_error: "subquery expressions must have a degree of 1"

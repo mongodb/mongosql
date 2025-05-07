@@ -1,0 +1,122 @@
+dataset:
+  - db: "spec_query_order_by"
+    collection:
+      name: "foo"
+      docs:
+        - { "_id": 0, "a": 1, "b": "def" }
+        - { "_id": 1, "a": 2, "b": "abc" }
+        - { "_id": 2, "a": 1, "b": "abc" }
+      schema:
+        bsonType: "object"
+        additionalProperties: true
+
+  - db: "spec_query_order_by"
+    collection:
+      name: "bar"
+      docs:
+        - { "_id": 0, "a": 3, "b": { "c": 1 } }
+        - { "_id": 1, "a": 2, "b": { "c": 3 } }
+        - { "_id": 2, "a": 1, "b": { "c": 2 } }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "a", "b" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          a:
+            bsonType: "int"
+          b:
+            bsonType: "object"
+            properties:
+              c:
+                bsonType: "int"
+
+  - db: "spec_query_order_by"
+    collection:
+      name: "nullAndNonNull"
+      docs:
+        - { "_id": 0, "a": null }
+        - { "_id": 1, "a": 1 }
+        - { "_id": 2, "a": null }
+      schema:
+        bsonType: "object"
+        additionalProperties: true
+
+  - db: "spec_query_order_by"
+    collection:
+      name: "baz"
+      docs:
+        - { "_id": 0, "a": { "$numberInt": "1" }, "b": { "$numberInt": "2" }, "coll": "foo" }
+        - { "_id": 1, "a": { "$numberInt": "2" }, "b": { "$numberInt": "1" }, "coll": "foo" }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "a", "b", "coll" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          a:
+            bsonType: "int"
+          b:
+            bsonType: "int"
+          coll:
+            bsonType: "string"
+
+  - db: "spec_query_order_by"
+    collection:
+      name: "local"
+      docs:
+        - { "_id": 0 }
+        - { "_id": 1 }
+        - { "_id": 2 }
+      schema:
+        bsonType: "object"
+        required: [ "_id" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+
+  - db: "spec_query_order_by"
+    collection:
+      name: "foreign"
+      docs:
+        - { "_id": 0, "l_id": 0, "x": 0 }
+        - { "_id": 1, "l_id": 1, "x": 1 }
+        - { "_id": 2, "l_id": 0, "x": 2 }
+        - { "_id": 3, "l_id": 1, "x": 1 }
+        - { "_id": 4, "l_id": 0, "x": 3 }
+        - { "_id": 5, "l_id": 1, "x": 2 }
+        - { "_id": 6, "l_id": 0, "x": 2 }
+        - { "_id": 7, "l_id": 1, "x": 2 }
+        - { "_id": 8, "l_id": 0, "x": 3 }
+        - { "_id": 9, "l_id": 1, "x": 0 }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "l_id", "x" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          l_id:
+            bsonType: "int"
+          x:
+            bsonType: "int"
+
+  - db: "spec_query_order_by"
+    collection:
+      name: "car"
+      docs:
+        - { "_id": 0, "s": "xyz" }
+        - { "_id": 1, "s": "abc" }
+        - { "_id": 2, "s": "abc" }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "s" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          s:
+            bsonType: "string"

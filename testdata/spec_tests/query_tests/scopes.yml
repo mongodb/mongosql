@@ -1,0 +1,85 @@
+dataset:
+  - db: "spec_query_scopes"
+    collection:
+      name: "coll"
+      docs:
+        - { "_id": 1, "bar": 11, "car": 12 }
+        - { "_id": 2, "bar": -11, "car": -12 }
+        - { "_id": 3, "bar": 211, "car": 212 }
+      schema:
+        bsonType: "object"
+        additionalProperties: true
+
+  - db: "spec_query_scopes"
+    collection:
+      name: "schema_coll"
+      docs:
+        - { "_id": 1, "bar": 11, "car": 12 }
+        - { "_id": 2, "bar": -11, "car": -12 }
+        - { "_id": 3, "bar": 211, "car": 212 }
+      schema:
+        bsonType: "object"
+        required: [ "bar", "car" ]
+        additionalProperties: false
+        properties:
+          bar:
+            bsonType: "int"
+          car:
+            bsonType: "int"
+
+  - db: "spec_query_scopes"
+    collection:
+      name: "schema_foo"
+      docs:
+        - { "_id": 1, "baz": 1 }
+      schema:
+        bsonType: "object"
+        required: [ "baz" ]
+        additionalProperties: false
+        properties:
+          baz:
+            bsonType: "int"
+
+  - db: "spec_query_scopes"
+    collection:
+      name: "nested"
+      docs:
+        - { "_id": 1, "n": { "a": 1 } }
+      schema:
+        bsonType: "object"
+        additionalProperties: true
+
+  - db: "spec_query_scopes"
+    collection:
+      name: "bar"
+      docs:
+        - { "_id": 1, "a": 1 }
+        - { "_id": 2, "a": 2 }
+      schema:
+        bsonType: "object"
+        additionalProperties: true
+        properties:
+          a:
+            bsonType: "int"
+
+  - db: "spec_query_scopes"
+    collection:
+      name: "baz"
+      docs:
+        - { "_id": 1, "a": 1 }
+        - { "_id": 2, "a": 3 }
+      schema:
+        bsonType: "object"
+        additionalProperties: true
+        properties:
+          a:
+            bsonType: "int"
+
+  - db: "spec_query_scopes_2"
+    collection:
+      name: "coll"
+      docs:
+        - { "_id": 1, "a": 1, "b": 2 }
+      schema:
+        bsonType: "object"
+        additionalProperties: true

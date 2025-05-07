@@ -1,50 +1,12 @@
-catalog_data:
-  foo:
-    bar:
-      - { _id: {"$numberInt": "1"}, v1: "abc"}
-      - { _id: {"$numberInt": "2"}, v1: {"$numberInt": "2"}}
-      - { _id: {"$numberInt": "3"}, v1: null}
-    bar_schema:
-      - { _id: {"$numberInt": "1"}, v1: "abc"}
-      - { _id: {"$numberInt": "2"}, v1: {"$numberInt": "2"}}
-      - { _id: {"$numberInt": "3"}, v1: null}
-
-catalog_schema:
-  {
-    "foo": {
-      "bar": {
-        "bsonType": "object",
-        "additionalProperties": true
-      },
-      "bar_schema": {
-        "bsonType": "object",
-        "required": [ '_id', 'v1' ],
-        "additionalProperties": false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "v1": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": "int" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-        }
-      }
-    }
-  }
-
 tests:
   - description: for expression with determined types, asserted type must be among those types
-    current_db: "foo"
+    current_db: spec_query_type_assertion
     query: "SELECT v1::!DOUBLE AS v1 FROM bar_schema"
     should_compile: false
     algebrize_error: "schema checking failed for ::!: required Atomic(Double), found AnyOf({Atomic(String), Atomic(Integer), Atomic(Null)})"
 
   - description: correctness test for type assertion in schema mode
-    current_db: "foo"
+    current_db: spec_query_type_assertion
     query: "SELECT v1::!INT AS v1 FROM bar_schema"
     result:
       - {'': {v1: "abc"}}
@@ -52,7 +14,7 @@ tests:
       - {'': {v1: null}}
 
   - description: correctness test for type assertion in schema-less mode, target type can be any
-    current_db: "foo"
+    current_db: spec_query_type_assertion
     query: "SELECT v1::!DOUBLE AS v1 FROM bar"
     result:
       - {'': {v1: "abc"}}
