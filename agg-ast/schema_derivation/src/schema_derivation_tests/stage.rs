@@ -211,8 +211,6 @@ mod bucket {
                 "c".to_string() => Schema::AnyOf(set!(
                     Schema::Atomic(Atomic::Integer),
                     Schema::Atomic(Atomic::Long),
-                    Schema::Atomic(Atomic::Double),
-                    Schema::Atomic(Atomic::Decimal)
                 )),
                 "values".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::String)))
             },
@@ -261,8 +259,6 @@ mod bucket {
                 "c".to_string() => Schema::AnyOf(set!(
                     Schema::Atomic(Atomic::Integer),
                     Schema::Atomic(Atomic::Long),
-                    Schema::Atomic(Atomic::Double),
-                    Schema::Atomic(Atomic::Decimal)
                 )),
                 "values".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::String)))
             },
@@ -563,8 +559,6 @@ mod group {
                 "count".to_string() => Schema::AnyOf(set!(
                     Schema::Atomic(Atomic::Integer),
                     Schema::Atomic(Atomic::Long),
-                    Schema::Atomic(Atomic::Double),
-                    Schema::Atomic(Atomic::Decimal)
                 ))
             },
             required: set!("_id".to_string(), "count".to_string()),
@@ -589,14 +583,10 @@ mod group {
                 "count".to_string() => Schema::AnyOf(set!(
                     Schema::Atomic(Atomic::Integer),
                     Schema::Atomic(Atomic::Long),
-                    Schema::Atomic(Atomic::Double),
-                    Schema::Atomic(Atomic::Decimal)
                 )),
                 "sum".to_string() => Schema::AnyOf(set!(
                     Schema::Atomic(Atomic::Integer),
                     Schema::Atomic(Atomic::Long),
-                    Schema::Atomic(Atomic::Double),
-                    Schema::Atomic(Atomic::Decimal)
                 ))
             },
             required: set!("_id".to_string(), "count".to_string(), "sum".to_string()),
@@ -1132,8 +1122,6 @@ mod set_window_fields {
                 "documents".to_string() => Schema::AnyOf(set!(
                     Schema::Atomic(Atomic::Integer),
                     Schema::Atomic(Atomic::Long),
-                    Schema::Atomic(Atomic::Double),
-                    Schema::Atomic(Atomic::Decimal)
                 )),
                 "no_window".to_string() => Schema::AnyOf(set!(
                     Schema::Atomic(Atomic::Double),

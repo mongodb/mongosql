@@ -1840,7 +1840,7 @@ mod misc_ops {
         object_to_array_not_null,
         expected = Ok(Schema::Document(Document {
             keys: map! {
-                "foo".to_string() => Schema::Document(Document::default())
+                "foo".to_string() => Schema::Document(Document::any())
             },
             required: set!("foo".to_string()),
             ..Default::default()
@@ -1864,7 +1864,7 @@ mod misc_ops {
         expected = Ok(Schema::Document(Document {
             keys: map! {
                 "foo".to_string() => Schema::AnyOf(set!(
-                    Schema::Document(Document::default()),
+                    Schema::Document(Document::any()),
                     Schema::Atomic(Atomic::Null)
                 ))
             },

@@ -576,3 +576,122 @@ macro_rules! array_element_schema_or_error {
         }
     }};
 }
+
+/// get_namespaces_for_pipeline is a helper function that takes a pipeline and the
+/// database and collection it is called on, and iterates through the stages, parsing
+/// out all collection namespaces referenced in the pipeline. This allows for more
+/// concise catalogs to be sent to derive_schema_for_pipeline, rather than the catalog
+/// for the entire database.
+pub fn get_namespaces_for_pipeline(
+    pipeline: Vec<agg_ast::definitions::Stage>,
+    current_db: String,
+    current_collection: Option<String>,
+) -> BTreeSet<agg_ast::definitions::Namespace> {
+    let mut namespaces = BTreeSet::new();
+
+    // because a pipeline references collections from within the same database,
+    // we can use that database to create a namespace and add it to the set. This
+    // macro makes it easier to read for places where we unpack a collection name.
+    macro_rules! add_namespace {
+        ($coll:expr) => {
+            namespaces.insert(agg_ast::definitions::Namespace::new(
+                current_db.clone(),
+                $coll,
+            ));
+        };
+    }
+
+    // if the current agg pipeline is on a collection (i.e. not aggregate 1), add that
+    // namespace to the set
+    if let Some(current_collection) = current_collection.as_ref() {
+        add_namespace!(current_collection.clone());
+    }
+    for stage in pipeline {
+        match stage {
+            agg_ast::definitions::Stage::Lookup(lookup) => {
+                match lookup {
+                    agg_ast::definitions::Lookup::Equality(el) => match el.from {
+                        agg_ast::definitions::LookupFrom::Collection(c) => {
+                            add_namespace!(c);
+                        }
+                        agg_ast::definitions::LookupFrom::Namespace(ns) => {
+                            namespaces.insert(ns);
+                        }
+                    },
+                    agg_ast::definitions::Lookup::Subquery(
+                        agg_ast::definitions::SubqueryLookup { from, pipeline, .. },
+                    )
+                    | agg_ast::definitions::Lookup::ConciseSubquery(
+                        agg_ast::definitions::ConciseSubqueryLookup { from, pipeline, .. },
+                    ) => {
+                        let (from_db, from_collection) = match from.as_ref() {
+                            Some(agg_ast::definitions::LookupFrom::Collection(c)) => {
+                                (current_db.clone(), Some(c.clone()))
+                            }
+                            // technically this should be the same db as the current_db, but it is worth
+                            // handling in case we can deal with cross database lookups in the future.
+                            Some(agg_ast::definitions::LookupFrom::Namespace(ns)) => {
+                                (ns.database.clone(), Some(ns.collection.clone()))
+                            }
+                            _ => (current_db.clone(), None),
+                        };
+                        // we directly recurse on the subpipeline because the from collection will be
+                        // added to the set as the first step of the recursive call
+                        namespaces.append(&mut get_namespaces_for_pipeline(
+                            pipeline,
+                            from_db,
+                            from_collection,
+                        ));
+                    }
+                };
+            }
+            agg_ast::definitions::Stage::GraphLookup(graph_lookup) => {
+                add_namespace!(graph_lookup.from);
+            }
+            agg_ast::definitions::Stage::UnionWith(union_with) => match union_with {
+                agg_ast::definitions::UnionWith::Collection(c) => {
+                    namespaces.insert(agg_ast::definitions::Namespace::new(current_db.clone(), c));
+                }
+                agg_ast::definitions::UnionWith::Pipeline(union_with_pipepline) => {
+                    if let Some(pipeline) = union_with_pipepline.pipeline {
+                        namespaces.append(&mut get_namespaces_for_pipeline(
+                            pipeline,
+                            current_db.clone(),
+                            union_with_pipepline.coll,
+                        ));
+                    } else if let Some(c) = union_with_pipepline.coll.as_ref() {
+                        add_namespace!(c.clone());
+                    };
+                }
+            },
+            // collection, join, and equijoin are sql constructs that get converted into lookup stages; however, we
+            // handle here for the sake of completeness.
+            agg_ast::definitions::Stage::Join(join) => {
+                let db = join.database.unwrap_or_else(|| current_db.clone());
+                if let Some(coll) = join.collection {
+                    namespaces.insert(agg_ast::definitions::Namespace::new(db, coll));
+                }
+            }
+            agg_ast::definitions::Stage::EquiJoin(ej) => {
+                let db = ej.database.unwrap_or_else(|| current_db.clone());
+                if let Some(coll) = ej.collection {
+                    namespaces.insert(agg_ast::definitions::Namespace::new(db, coll));
+                }
+            }
+            agg_ast::definitions::Stage::Collection(c) => {
+                namespaces.insert(agg_ast::definitions::Namespace::new(c.db, c.collection));
+            }
+            agg_ast::definitions::Stage::Facet(f) => {
+                for (_, stages) in f {
+                    namespaces.append(&mut get_namespaces_for_pipeline(
+                        stages,
+                        current_db.clone(),
+                        current_collection.clone(),
+                    ));
+                }
+            }
+            _ => {}
+        }
+    }
+    namespaces
+}
