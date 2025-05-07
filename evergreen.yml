@@ -1021,6 +1021,73 @@ functions:
         permissions: public-read
         display_name: ${project_folder}-v${release_version}.sast.sarif
 
+  "generate compliance report":
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        env:
+          AUTHOR: "${author}"
+          AUTHOR_EMAIL: "${author_email}"
+          RELEASE_VERSION: "${release_version}"
+          PRODUCT_NAME: "${project_folder}"
+        script: |
+          ${prepare_shell}
+          echo "Author = $AUTHOR"
+          echo "Author email = $AUTHOR_EMAIL"
+          echo "Version = $RELEASE_VERSION"
+          SBOM_URL="https://translators-connectors-releases.s3.amazonaws.com/${project_folder}/${project_folder}-v${release_version}.sbom.json"
+          SARIF_URL="https://translators-connectors-releases.s3.amazonaws.com/${project_folder}/${project_folder}-v${release_version}.sast.sarif"
+          echo "Sbom url = $SBOM_URL"
+          echo "Sarif Url = $SARIF_URL"
+
+          # Copy template
+          cp resources/ssdlc/compliance_report_template.md ${project_folder}/$COMPLIANCE_REPORT_NAME
+
+          # Update the version
+          sed -i.bu "s,%VERSION%,$RELEASE_VERSION,g" ${project_folder}/$COMPLIANCE_REPORT_NAME
+          # Update the SBOM link
+          sed -i.bu "s,%SBOM_URL%,$SBOM_URL,g" ${project_folder}/$COMPLIANCE_REPORT_NAME
+          # Update the SARIF link
+          sed -i.bu "s,%SARIF_URL%,$SARIF_URL,g" ${project_folder}/$COMPLIANCE_REPORT_NAME
+          # Update the author information
+          sed -i.bu "s,%AUTHOR%,$AUTHOR,g" ${project_folder}/$COMPLIANCE_REPORT_NAME
+          sed -i.bu "s,%AUTHOR_EMAIL%,$AUTHOR_EMAIL,g" ${project_folder}/$COMPLIANCE_REPORT_NAME
+          # Set the release date
+          release_date=$(date -u +'%Y-%m-%d')
+          sed -i.bu "s,%RELEASE_DATE%,$release_date,g" ${project_folder}/$COMPLIANCE_REPORT_NAME
+          # Set the product name
+          sed -i.bu "s,%PRODUCT_NAME%,$PRODUCT_NAME,g" ${project_folder}/$COMPLIANCE_REPORT_NAME
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/${project_folder}/${COMPLIANCE_REPORT_NAME}
+        remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/${project_folder}/${COMPLIANCE_REPORT_NAME}
+        content_type: text/markdown
+        bucket: mciuploads
+        permissions: public-read
+
+  "publish compliance report":
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/${project_folder}/${COMPLIANCE_REPORT_NAME}
+        remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/${project_folder}/${COMPLIANCE_REPORT_NAME}
+        content_type: text/markdown
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/${project_folder}/${COMPLIANCE_REPORT_NAME}
+        remote_file: ${project_folder}/${project_folder}-v${release_version}-compliance-report.md
+        content_type: text/markdown
+        bucket: translators-connectors-releases
+        permissions: public-read
+        display_name: ${project_folder}-v${release_version}-compliance-report.md
+
 tasks:
   - name: clippy
     commands:
