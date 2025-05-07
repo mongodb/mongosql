@@ -1353,20 +1353,20 @@ pub struct Function {
     pub lang: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct GetField {
     pub field: String,
     pub input: Box<Expression>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct SetField {
     pub field: String,
     pub input: Box<Expression>,
     pub value: Box<Expression>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct UnsetField {
     pub field: String,
     pub input: Box<Expression>,

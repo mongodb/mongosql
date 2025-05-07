@@ -2311,6 +2311,17 @@ mod expression_test {
         );
 
         test_serde_expr!(
+            get_field_literal,
+            expected = Expression::TaggedOperator(TaggedOperator::GetField(GetField {
+                field: "x".to_string(),
+                input: Box::new(Expression::Document(map! {
+                    "x".to_string() => Expression::Literal(LiteralValue::Int32(1))
+                }))
+            })),
+            input = r#"expr: {"$getField": {"field": {"$literal": "x"}, "input": {"x": 1}}}"#
+        );
+
+        test_serde_expr!(
             set_field,
             expected = Expression::TaggedOperator(TaggedOperator::SetField(SetField {
                 field: "x".to_string(),
@@ -2323,6 +2334,18 @@ mod expression_test {
         );
 
         test_serde_expr!(
+            set_field_literal,
+            expected = Expression::TaggedOperator(TaggedOperator::SetField(SetField {
+                field: "x".to_string(),
+                input: Box::new(Expression::Document(map! {
+                    "x".to_string() => Expression::Literal(LiteralValue::Int32(1))
+                })),
+                value: Box::new(Expression::Literal(LiteralValue::String("new".to_string())))
+            })),
+            input = r#"expr: {"$setField": {"field": {"$literal": "x"}, "input": {"x": 1}, "value": "new"}}"#
+        );
+
+        test_serde_expr!(
             unset_field,
             expected = Expression::TaggedOperator(TaggedOperator::UnsetField(UnsetField {
                 field: "x".to_string(),
@@ -2331,6 +2354,17 @@ mod expression_test {
                 }))
             })),
             input = r#"expr: {"$unsetField": {"field": "x", "input": {"x": 1}}}"#
+        );
+
+        test_serde_expr!(
+            unset_field_literal,
+            expected = Expression::TaggedOperator(TaggedOperator::UnsetField(UnsetField {
+                field: "x".to_string(),
+                input: Box::new(Expression::Document(map! {
+                    "x".to_string() => Expression::Literal(LiteralValue::Int32(1))
+                }))
+            })),
+            input = r#"expr: {"$unsetField": {"field": {"$literal": "x"}, "input": {"x": 1}}}"#
         );
 
         test_serde_expr!(

@@ -1,10 +1,10 @@
 use crate::{
     definitions::{
         Cond, Convert, DateExpression, DateFromParts, DateFromString, DateToString, Expression,
-        LiteralValue, MatchArrayExpression, MatchArrayQuery, MatchBinaryOp, MatchElement,
+        GetField, LiteralValue, MatchArrayExpression, MatchArrayQuery, MatchBinaryOp, MatchElement,
         MatchExpression, MatchField, MatchNot, MatchNotExpression, MatchRegex, MatchStage,
-        ProjectItem, ProjectStage, Ref, SetWindowFieldsOutput, Trim, UntaggedOperator,
-        UntaggedOperatorName, VecOrSingleExpr, Window,
+        ProjectItem, ProjectStage, Ref, SetField, SetWindowFieldsOutput, Trim, UnsetField,
+        UntaggedOperator, UntaggedOperatorName, VecOrSingleExpr, Window,
     },
     map,
 };
@@ -1309,6 +1309,124 @@ impl<'de> Deserialize<'de> for Convert {
                 )),
             },
             _ => Err(serde_err::custom("input to convert must be document")),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for SetField {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let expression = Expression::deserialize(deserializer)?;
+        match expression {
+            Expression::Document(mut d) => {
+                let field = match d.remove("field") {
+                    Some(Expression::Literal(LiteralValue::String(s))) => s,
+                    Some(Expression::UntaggedOperator(UntaggedOperator {
+                        op: UntaggedOperatorName::Literal,
+                        args: a,
+                    })) => {
+                        if let Some(Expression::Literal(LiteralValue::String(s))) = a.get(0) {
+                            s.clone()
+                        } else {
+                            return Err(serde_err::custom("field to setField must be a string"));
+                        }
+                    }
+                    _ => return Err(serde_err::custom("field to setField must be a string")),
+                };
+                let input = d.remove("input");
+                let value = d.remove("value");
+                match (input, value) {
+                    (Some(input), Some(value)) => Ok(SetField {
+                        field,
+                        input: Box::new(input),
+                        value: Box::new(value),
+                    }),
+                    _ => Err(serde_err::custom(
+                        "input and value must be specified for $setField",
+                    )),
+                }
+            }
+            _ => Err(serde_err::custom("input to setField must be document")),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for GetField {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let expression = Expression::deserialize(deserializer)?;
+        match expression {
+            Expression::Document(mut d) => {
+                let field = match d.remove("field") {
+                    Some(Expression::Literal(LiteralValue::String(s))) => s,
+                    Some(Expression::UntaggedOperator(UntaggedOperator {
+                        op: UntaggedOperatorName::Literal,
+                        args: a,
+                    })) => {
+                        if let Some(Expression::Literal(LiteralValue::String(s))) = a.get(0) {
+                            s.clone()
+                        } else {
+                            return Err(serde_err::custom("field to getField must be a string"));
+                        }
+                    }
+                    _ => return Err(serde_err::custom("field to getField must be a string")),
+                };
+                let input = d.remove("input");
+                if let Some(input) = input {
+                    Ok(GetField {
+                        field,
+                        input: Box::new(input),
+                    })
+                } else {
+                    Err(serde_err::custom(
+                        "input and value must be specified for $getField",
+                    ))
+                }
+            }
+            _ => Err(serde_err::custom("input to getField must be document")),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for UnsetField {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let expression = Expression::deserialize(deserializer)?;
+        match expression {
+            Expression::Document(mut d) => {
+                let field = match d.remove("field") {
+                    Some(Expression::Literal(LiteralValue::String(s))) => s,
+                    Some(Expression::UntaggedOperator(UntaggedOperator {
+                        op: UntaggedOperatorName::Literal,
+                        args: a,
+                    })) => {
+                        if let Some(Expression::Literal(LiteralValue::String(s))) = a.get(0) {
+                            s.clone()
+                        } else {
+                            return Err(serde_err::custom("field to unsetField must be a string"));
+                        }
+                    }
+                    _ => return Err(serde_err::custom("field to unsetField must be a string")),
+                };
+                let input = d.remove("input");
+                if let Some(input) = input {
+                    Ok(UnsetField {
+                        field,
+                        input: Box::new(input),
+                    })
+                } else {
+                    Err(serde_err::custom(
+                        "input and value must be specified for $unsetField",
+                    ))
+                }
+            }
+            _ => Err(serde_err::custom("input to unsetField must be document")),
         }
     }
 }

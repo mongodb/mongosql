@@ -1104,6 +1104,20 @@ mod field_setter_ops {
     );
 
     test_derive_expression_schema!(
+        get_field_literal,
+        expected = Ok(Schema::Atomic(Atomic::String)),
+        input = r#"{ "$getField": { "input": "$foo", "field": {"$literal": "x" } } }"#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("x".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_expression_schema!(
         get_field_missing,
         expected = Ok(Schema::Missing),
         input = r#"{ "$getField": { "input": "$foo", "field": "z" } }"#,
@@ -1128,6 +1142,28 @@ mod field_setter_ops {
             ..Default::default()
         })),
         input = r#"{ "$setField": { "input": "$foo", "field": "x", "value": true } }"#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("x".to_string(), "y".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_expression_schema!(
+        set_field_literal,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::Boolean),
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("x".to_string(), "y".to_string()),
+            ..Default::default()
+        })),
+        input =
+            r#"{ "$setField": { "input": "$foo", "field": {"$literal": "x"}, "value": true } }"#,
         ref_schema = Schema::Document(Document {
             keys: map! {
                 "x".to_string() => Schema::Atomic(Atomic::String),
@@ -1225,6 +1261,26 @@ mod field_setter_ops {
             ..Default::default()
         })),
         input = r#"{ "$unsetField": { "input": "$foo", "field": "x" } }"#,
+        ref_schema = Schema::Document(Document {
+            keys: map! {
+                "x".to_string() => Schema::Atomic(Atomic::String),
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("x".to_string(), "y".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_expression_schema!(
+        unset_field_literal,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "y".to_string() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set!("y".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{ "$unsetField": { "input": "$foo", "field": {"$literal": "x" } } }"#,
         ref_schema = Schema::Document(Document {
             keys: map! {
                 "x".to_string() => Schema::Atomic(Atomic::String),
