@@ -188,6 +188,8 @@ dataset:
             - bsonType: "object"
               additionalProperties: true
             - bsonType: !!str "null"
+        comment:
+          bsonType: "string"
 
   - db: "spec_query_operators_comparison"
     collection:
@@ -225,6 +227,8 @@ dataset:
               items:
                 bsonType: "int"
             - bsonType: !!str "null"
+        comment:
+          bsonType: "string"
 
   - db: "spec_query_operators_comparison"
     collection:

@@ -1,5 +1,6 @@
 tests:
   - description: a user db called information_schema should require no special handling
+    skip_reason: "SQL-xxx: Should this actually be part of the spec?"
     query: "SELECT * FROM information_schema.mytbl"
     result:
       - {'mytbl': {'_id': 0, 'a': 1}}

@@ -96,7 +96,7 @@ tests:
     algebrize_error: "field `foo` cannot be resolved to any datasource"
 
   - description: qualified collection reference in FROM clause will error if collection not found
-    current_db: foo
+    current_db: spec_query_scopes
     query: "SELECT * FROM bar.a AS a"
     skip_reason: "SQL-517: disallow field references in FROM clauses"
     should_compile: false
@@ -115,13 +115,13 @@ tests:
       - {'c': {'_id': 1, 'a': 1}}
 
   - description: with a qualified reference, the highest scope number for repeated qualifiers is chosen
-    current_db: foo
+    current_db: spec_query_scopes
     query: "SELECT VALUE{'bar': (SELECT q.bar FROM schema_foo AS q)} FROM schema_coll AS q"
     should_compile: false
     algebrize_error: "cannot access field bar because it does not exist"
 
   - description: if an unqualified reference CANNOT be from subquery's datasource and MUST be from outer query's datasource, use outer query's datasource
-    current_db: foo
+    current_db: spec_query_scopes
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_foo AS q LIMIT 1)} FROM schema_coll AS q"
     result:
       - {'': {'bar': 11}}
@@ -129,7 +129,7 @@ tests:
       - {'': {'bar': 211}}
 
   - description: if an unqualified reference CANNOT be from subquery's datasource and MAY be from outer query's datasource, use outer query's datasource
-    current_db: foo
+    current_db: spec_query_scopes
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_foo AS q LIMIT 1)} FROM coll AS q"
     result:
       - {'': {'bar': 11}}
@@ -137,30 +137,30 @@ tests:
       - {'': {'bar': 211}}
 
   - description: if an unqualified reference CANNOT be from subquery's datasource and CANNOT be from outer query's datasource, the datasource cannot be found
-    current_db: foo
+    current_db: spec_query_scopes
     query: "SELECT VALUE{'bar': (SELECT x FROM schema_coll AS q LIMIT 1)} FROM schema_foo AS q"
     should_compile: false
     algebrize_error: "field `x` cannot be resolved to any datasource"
 
   - description: if an unqualified reference MAY be from subquery's datasource and MAY be from outer query's datasource, use outer query's datasource, the datasource is ambiguous
-    current_db: foo
+    current_db: spec_query_scopes
     query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q LIMIT 1)} FROM coll AS q"
     should_compile: false
     algebrize_error: "ambiguous field `bar`"
 
   - description: if an unqualified reference MAY be from subquery's datasource and MUST be from outer query's datasource, the datasource is ambiguous
-    current_db: foo
+    current_db: spec_query_scopes
     query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q LIMIT 1)} FROM schema_coll AS q"
     should_compile: false
     algebrize_error: "ambiguous field `bar`"
 
   - description: if an unqualified reference MAY be from subquery's datasource and CANNOT be from outer query's datasource, use subquery's datasource
-    current_db: foo
+    current_db: spec_query_scopes
     query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q LIMIT 1)} FROM schema_foo AS q"
     result:
       - {'': {}}
   - description: if an unqualified reference MUST be from subquery's datasource and MUST be from outer query's datasource, the highest scope number is chosen
-    current_db: foo
+    current_db: spec_query_scopes
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q LIMIT 1)} FROM schema_coll AS q"
     result:
       - {'': {'bar': 11}}
@@ -168,7 +168,7 @@ tests:
       - {'': {'bar': 11}}
 
   - description: if an unqualified reference MUST be from subquery's datasource and MAY be from outer query's datasource, use subquery's datasource
-    current_db: foo
+    current_db: spec_query_scopes
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q LIMIT 1)} FROM coll AS q"
     result:
       - {'': {'bar': 11}}
@@ -176,7 +176,7 @@ tests:
       - {'': {'bar': 11}}
 
   - description: if an unqualified reference MUST be from subquery's datasource and CANNOT be from outer query's datasource, use subquery's datasource
-    current_db: foo
+    current_db: spec_query_scopes
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q LIMIT 1)} FROM schema_foo AS q"
     result:
       - {'': {'bar': 11}}

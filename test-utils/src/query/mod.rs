@@ -31,6 +31,7 @@ pub struct QueryTest {
     pub description: String,
     pub skip_reason: Option<String>,
     pub current_db: Option<String>,
+    pub catalog_dbs: Option<Vec<String>>,
     pub query: String,
     pub exclude_namespaces: Option<bool>,
     pub should_compile: Option<bool>,

@@ -13,6 +13,8 @@ tests:
 
   - description: reference collection in other db by fully qualified name
     current_db: spec_query_collection
+    catalog_dbs:
+      - spec_query_collection_other
     query: "SELECT * FROM spec_query_collection_other.foo AS foo"
     result:
       - {'foo': {'_id': 0, 'b': 1}}

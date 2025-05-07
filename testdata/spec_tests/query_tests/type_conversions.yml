@@ -1,7 +1,7 @@
 dataset:
   - db: "spec_query_type_conversions"
     collection:
-      name: "double"
+      name: "doubles"
       docs:
         - { "_id": 0, "v": { "$numberDouble": "0" } }
         - { "_id": 1, "v": { "$numberDouble": "1.9" } }
