@@ -4,16 +4,16 @@ dataset:
       name: "bar"
       docs:
         - { "_id": 0, "a": 2, "b": null, "c": 3 }
-      schema:
-        bsonType: "object"
-        required: [ "a", "b", "c" ]
-        additionalProperties: false
-        properties:
-          a:
-            bsonType: "int"
-          b:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: !!str "null"
-          c:
-            bsonType: "int"
+    schema:
+      bsonType: "object"
+      required: [ "a", "b", "c" ]
+      additionalProperties: false
+      properties:
+        a:
+          bsonType: "int"
+        b:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+        c:
+          bsonType: "int"

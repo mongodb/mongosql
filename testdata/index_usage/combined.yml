@@ -17,19 +17,19 @@ dataset:
         - { "key": { "a": 1 } }
         - { "key": { "b": 1 } }
         - { "key": { "a": 1, "b": 1 } }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: "null"
-          b:
-            bsonType: "int"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "null"
+        b:
+          bsonType: "int"
 
   - db: "index_usage_combined"
     collection:
@@ -47,16 +47,16 @@ dataset:
         - { "_id": 10, "a": null }
       indexes:
         - { "key": { "a": 1 } }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: "null"
-          b:
-            bsonType: "int"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "null"
+        b:
+          bsonType: "int"

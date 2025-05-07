@@ -17,19 +17,19 @@ dataset:
         - { "key": { "a": 1 } }
         - { "key": { "b": 1 } }
         - { "key": { "a": 1, "b": 1 } }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: "null"
-          b:
-            bsonType: "int"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "null"
+        b:
+          bsonType: "int"
 
   - db: "index_usage_filter"
     collection:
@@ -49,17 +49,17 @@ dataset:
         - { "key": { "a": 1 } }
         - { "key": { "b": 1 } }
         - { "key": { "a": 1, "b": 1 } }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a", "b" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            bsonType: "int"
-          b:
-            bsonType: "int"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"
 
   - db: "index_usage_filter"
     collection:
@@ -74,15 +74,15 @@ dataset:
         - { "_id": 7, "s": "no" }
       indexes:
         - { "key": { "s": 1 } }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "s" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          s:
-            bsonType: "string"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "s" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        s:
+          bsonType: "string"
 
   - db: "index_usage_filter"
     collection:
@@ -96,18 +96,18 @@ dataset:
         - { "_id": 6, v: "" }
       indexes:
         - { "key": { "v": 1 } }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "v" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          v:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: "string"
-              - bsonType: "double"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "v" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "string"
+            - bsonType: "double"
 
   - db: "index_usage_filter"
     collection:
@@ -118,14 +118,14 @@ dataset:
         - { "_id": 3, v: [ 7, 8, 9 ] }
       indexes:
         - { "key": { "v": 1 } }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "v" ]
-        additionalProperties: false
-        properties:
-          _id:
+    schema:
+      bsonType: "object"
+      required: [ "_id", "v" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          bsonType: "array"
+          items:
             bsonType: "int"
-          v:
-            bsonType: "array"
-            items:
-              bsonType: "int"

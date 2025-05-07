@@ -9,23 +9,23 @@ dataset:
         - { "_id": 4, "b": 2, "a": 1 }
         - { "_id": 5, "a": 2, "b": 2, "c": true, "d": "a", "e": null }
         - { "_id": 6, "a": 2, "b": 2, "c": true, "d": "a", "e": null }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a", "b" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            bsonType: "int"
-          b:
-            bsonType: "int"
-          c:
-            bsonType: "bool"
-          d:
-            bsonType: "string"
-          e:
-            bsonType: "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"
+        c:
+          bsonType: "bool"
+        d:
+          bsonType: "string"
+        e:
+          bsonType: "null"
 
   - db: "spec_query_distinct"
     collection:
@@ -36,19 +36,19 @@ dataset:
         - { "_id": 3, "a": 2, "b": 2 }
         - { "_id": 4, "a": 2, "b": 4 }
         - { "_id": 5, "a": 2, "b": 4, "c": 1 }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a", "b" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            bsonType: "int"
-          b:
-            bsonType: "int"
-          c:
-            bsonType: "int"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"
+        c:
+          bsonType: "int"
 
   - db: "spec_query_distinct"
     collection:
@@ -60,23 +60,23 @@ dataset:
         - { "_id": 4, "doc": { "a": 2, "b": 3 } }
         - { "_id": 5, "doc": { "b": 2, "a": 1 } }
         - { "_id": 6, "doc": { "a": 1, "b": 2, "c": 3 } }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "doc" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          doc:
-            bsonType: "object"
-            required: [ "a", "b" ]
-            properties:
-              a:
-                bsonType: "int"
-              b:
-                bsonType: "int"
-              c:
-                bsonType: "int"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "doc" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        doc:
+          bsonType: "object"
+          required: [ "a", "b" ]
+          properties:
+            a:
+              bsonType: "int"
+            b:
+              bsonType: "int"
+            c:
+              bsonType: "int"
 
   - db: "spec_query_distinct"
     collection:
@@ -87,14 +87,14 @@ dataset:
         - { "_id": 3, "arr": [ 2, 3, 4 ] }
         - { "_id": 4, "arr": [ 3, 2, 1 ] }
         - { "_id": 5, "arr": [ 3, 2, 1, 4 ] }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "arr" ]
-        additionalProperties: false
-        properties:
-          _id:
+    schema:
+      bsonType: "object"
+      required: [ "_id", "arr" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        arr:
+          bsonType: "array"
+          items:
             bsonType: "int"
-          arr:
-            bsonType: "array"
-            items:
-              bsonType: "int"

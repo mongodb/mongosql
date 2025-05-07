@@ -10,33 +10,33 @@ dataset:
         - { "_id": 5, "$a.$b": { "$c.d": 5 } }
         - { "_id": 6, "$a.$b": { "$c": { "d": 6 } } }
         - { "_id": 7, "": 7 }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            bsonType: "object"
-            additionalProperties: true
-            properties:
-              b:
-                bsonType: "int"
-              "b.c":
-                bsonType: "int"
-          "a.b":
-            bsonType: "int"
-          "$a.b":
-            bsonType: "int"
-          "$a.$b":
-            bsonType: "object"
-            additionalProperties: true
-            properties:
-              "$c":
-                bsonType: "object"
-                additionalProperties: true
-                properties:
-                  d:
-                    bsonType: "int"
-              "$c.d":
-                bsonType: "int"
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "object"
+          additionalProperties: true
+          properties:
+            b:
+              bsonType: "int"
+            "b.c":
+              bsonType: "int"
+        "a.b":
+          bsonType: "int"
+        "$a.b":
+          bsonType: "int"
+        "$a.$b":
+          bsonType: "object"
+          additionalProperties: true
+          properties:
+            "$c":
+              bsonType: "object"
+              additionalProperties: true
+              properties:
+                d:
+                  bsonType: "int"
+            "$c.d":
+              bsonType: "int"

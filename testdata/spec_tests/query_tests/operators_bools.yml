@@ -7,17 +7,17 @@ dataset:
         - { "_id": 1, "a": false }
         - { "_id": 2, "a": null }
         - { "_id": 3 }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "bool"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: !!str "null"
 
   - db: "spec_query_operators_bools"
     collection:
@@ -39,18 +39,18 @@ dataset:
         - { "_id": 13, "b": false }
         - { "_id": 14, "b": null }
         - { "_id": 15 }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a", "b" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "bool"
-              - bsonType: !!str "null"
-          b:
-            anyOf:
-              - bsonType: "bool"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: !!str "null"

@@ -4,6 +4,6 @@ dataset:
       name: "foo"
       docs:
         - { "_id": 0, "a": 1, "b": 2 }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true

@@ -25,6 +25,6 @@ dataset:
         - { "_id": 19, "type": "decimal", "v": { "$numberDecimal": "1.9"} }
         - { "_id": 20, "type": "minKey", "v": { "$minKey": 1 } }
         - { "_id": 21, "type": "maxKey", "v": { "$maxKey": 1 } }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true

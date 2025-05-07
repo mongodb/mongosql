@@ -8,9 +8,9 @@ dataset:
         - { "_id": 2, "v": { "$numberDouble": "-2.4" } }
         - { "_id": 3, "v": { "$numberDouble": "2147483648.4" } }
         - { "_id": 4, "v": { "$numberDouble": "-2147483649.7" } }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true
 
   - db: "spec_query_type_conversions"
     collection:
@@ -34,9 +34,9 @@ dataset:
         - { "_id": 15, "v": "2018-03-03" }
         - { "_id": 16, "v": "2018-03-20 11:00:06 +0500" }
         - { "_id": 17, "v": "5ab9cbfa31c2ab715d42129e" }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true
 
   - db: "spec_query_type_conversions"
     collection:
@@ -44,9 +44,9 @@ dataset:
       docs:
         - { "_id": 0, "v": {} }
         - { "_id": 1, "v": { "a": 1, "b": 2} }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true
 
   - db: "spec_query_type_conversions"
     collection:
@@ -54,27 +54,27 @@ dataset:
       docs:
         - { "_id": 0, "v": [] }
         - { "_id": 1, "v": [1, 2, 3] }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true
 
   - db: "spec_query_type_conversions"
     collection:
       name: "bindatum"
       docs:
         - { "_id": 0, "v": { "$binary": { "base64": "hn3uUsMxSE6S0cVkebjmfg==", "subType": "04" } }  }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true
 
   - db: "spec_query_type_conversions"
     collection:
       name: "objectIDs"
       docs:
         - { "_id": 0, "v": { "$oid": "5ab9c3da31c2ab715d421285" } }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true
 
   - db: "spec_query_type_conversions"
     collection:
@@ -82,9 +82,9 @@ dataset:
       docs:
         - { "_id": 0, "v": true }
         - { "_id": 1, "v": false }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true
 
   - db: "spec_query_type_conversions"
     collection:
@@ -93,9 +93,9 @@ dataset:
         - { "_id": 0, "v": { "$date": { "$numberLong": "0" } } }
         - { "_id": 1, "v": { "$date": { "$numberLong": "253402300799999" } } }
         - { "_id": 2, "v": { "$date": { "$numberLong": "-62135596800000" } } }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true
 
   - db: "spec_query_type_conversions"
     collection:
@@ -103,9 +103,9 @@ dataset:
       docs:
         - { "_id": 0, "v": null }
         - { "_id": 1 }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true
 
   - db: "spec_query_type_conversions"
     collection:
@@ -114,9 +114,9 @@ dataset:
         - { "_id": 0, "v": { "$numberInt": "0" } }
         - { "_id": 1, "v": { "$numberInt": "1" } }
         - { "_id": 2, "v": { "$numberInt": "-2" } }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true
 
   - db: "spec_query_type_conversions"
     collection:
@@ -127,9 +127,9 @@ dataset:
         - { "_id": 2, "v": { "$numberLong": "-2" } }
         - { "_id": 3, "v": { "$numberLong": "2147483648" } }
         - { "_id": 4, "v": { "$numberLong": "-2147483649" } }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true
 
   - db: "spec_query_type_conversions"
     collection:
@@ -144,9 +144,9 @@ dataset:
         - { "_id": 6, "v": { "$numberDecimal": "-9223372036854775809.8" } }
         - { "_id": 7, "v": { "$numberDecimal": "1.8976931348623157E308" } }
         - { "_id": 8, "v": { "$numberDecimal": "-1.8976931348623157E308" } }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true
 
   - db: "spec_query_type_conversions"
     collection:
@@ -162,6 +162,6 @@ dataset:
         - { "_id": 7, "type": "timestamp", "v": { "$timestamp": { "t": 42, "i": 1} } }
         - { "_id": 8, "type": "minKey", "v": { "$minKey": 1} }
         - { "_id": 9, "type": "maxKey", "v": { "$maxKey": 1} }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true

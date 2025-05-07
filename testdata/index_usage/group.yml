@@ -12,18 +12,18 @@ dataset:
       indexes:
         - { "key": { "a": 1 } }
         - { "key": { "a": 1, "b": -1 } }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: true
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: "null"
-          b:
-            anyOf:
-              - bsonType: "double"
-              - bsonType: "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: true
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "null"
+        b:
+          anyOf:
+            - bsonType: "double"
+            - bsonType: "null"

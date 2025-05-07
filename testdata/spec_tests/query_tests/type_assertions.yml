@@ -6,9 +6,9 @@ dataset:
         - { "_id": { "$numberInt": "1" }, "v1": "abc" }
         - { "_id": { "$numberInt": "2" }, "v1": { "$numberInt": "2" } }
         - { "_id": { "$numberInt": "3" }, "v1": null }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true
 
   - db: "spec_query_type_assertion"
     collection:
@@ -17,15 +17,15 @@ dataset:
         - { "_id": { "$numberInt": "1" }, "v1": "abc" }
         - { "_id": { "$numberInt": "2" }, "v1": { "$numberInt": "2" } }
         - { "_id": { "$numberInt": "3" }, "v1": null }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "v1" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          v1:
-            anyOf:
-              - bsonType: "string"
-              - bsonType: "int"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "v1" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v1:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: "int"
+            - bsonType: !!str "null"

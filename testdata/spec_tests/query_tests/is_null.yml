@@ -7,17 +7,17 @@ dataset:
         - { "_id": 1, "x": null }
         - { "_id": 2 }
         - { "_id": 3, "x": false }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          x:
-            anyOf:
-              - bsonType: "bool"
-              - bsonType: "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        x:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: "null"
 
   - db: "spec_query_is_null"
     collection:
@@ -27,12 +27,12 @@ dataset:
         - { "_id": 1 }
         - { "_id": 2, "x": false }
         - { "_id": 3 }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          x:
-            bsonType: "bool"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        x:
+          bsonType: "bool"

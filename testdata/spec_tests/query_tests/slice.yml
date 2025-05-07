@@ -3,7 +3,7 @@ dataset:
     collection:
       name: "no_start"
       docs:
-        - { "_id": 0, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "-1 "} }
+        - { "_id": 0, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "-1" } }
         - { "_id": 1, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "0" } }
         - { "_id": 2, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "2" } }
         - { "_id": 3, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "3" } }
@@ -12,37 +12,37 @@ dataset:
         - { "_id": 6, "arr": [ 1, 2, 3 ] }
         - { "_id": 7, "arr": null, "len": { "$numberInt": "1" } }
         - { "_id": 8, "len": { "$numberInt": "1" } }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true
 
   - db: "spec_query_slice"
     collection:
       name: "start"
       docs:
-        - { "_id": 0, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "0" }, "start": { "$numberInt": "-1 "}, "comment": "len = 0, start < 0" }
+        - { "_id": 0, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "0" }, "start": { "$numberInt": "-1" }, "comment": "len = 0, start < 0" }
         - { "_id": 1, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "0" }, "start": { "$numberInt": "0" }, "comment": "len = 0, start = 0" }
         - { "_id": 2, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "0" }, "start": { "$numberInt": "1" }, "comment": "len = 0, start > 0" }
-        - { "_id": 3, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "2" }, "start": { "$numberInt": "-4 "}, "comment": "0 < len < length(arr), start < 0, abs(start) > length(arr)" }
-        - { "_id": 4, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "2" }, "start": { "$numberInt": "-2 "}, "comment": "0 < len < length(arr), start < 0, abs(start) <= length(arr)" }
+        - { "_id": 3, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "2" }, "start": { "$numberInt": "-4" }, "comment": "0 < len < length(arr), start < 0, abs(start) > length(arr)" }
+        - { "_id": 4, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "2" }, "start": { "$numberInt": "-2" }, "comment": "0 < len < length(arr), start < 0, abs(start) <= length(arr)" }
         - { "_id": 5, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "2" }, "start": { "$numberInt": "0" }, "comment": "0 < len < length(arr), start = 0" }
         - { "_id": 6, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "2" }, "start": { "$numberInt": "1" }, "comment": "0 < len < length(arr), start > 0, len + start <= length(arr)" }
         - { "_id": 7, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "2" }, "start": { "$numberInt": "2" }, "comment": "0 < len < length(arr), start > 0, len + start > length(arr)" }
-        - { "_id": 8, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "3" }, "start": { "$numberInt": "-1 "}, "comment": "len = length(arr), start < 0" }
+        - { "_id": 8, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "3" }, "start": { "$numberInt": "-1" }, "comment": "len = length(arr), start < 0" }
         - { "_id": 9, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "3" }, "start": { "$numberInt": "0" }, "comment": "len = length(arr), start = 0" }
         - { "_id": 10, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "3" }, "start": { "$numberInt": "1" }, "comment": "len = length(arr), start > 0" }
-        - { "_id": 11, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "4" }, "start": { "$numberInt": "-1 "}, "comment": "len > length(arr), start < 0" }
+        - { "_id": 11, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "4" }, "start": { "$numberInt": "-1" }, "comment": "len > length(arr), start < 0" }
         - { "_id": 12, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "4" }, "start": { "$numberInt": "0" }, "comment": "len > length(arr), start = 0" }
         - { "_id": 13, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "4" }, "start": { "$numberInt": "1" }, "comment": "len > length(arr), start > 0" }
-        - { "_id": 14, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "-1 "}, "start": { "$numberInt": "-1 "}, "comment": "(invalid => null) len < 0, start < 0" }
-        - { "_id": 15, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "-1 "}, "start": { "$numberInt": "0" }, "comment": "(invalid => null) len < 0, start = 0" }
-        - { "_id": 16, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "-1 "}, "start": { "$numberInt": "1" }, "comment": "(invalid => null) len < 0, start > 0" }
+        - { "_id": 14, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "-1" }, "start": { "$numberInt": "-1" }, "comment": "(invalid => null) len < 0, start < 0" }
+        - { "_id": 15, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "-1" }, "start": { "$numberInt": "0" }, "comment": "(invalid => null) len < 0, start = 0" }
+        - { "_id": 16, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "-1" }, "start": { "$numberInt": "1" }, "comment": "(invalid => null) len < 0, start > 0" }
         - { "_id": 17, "arr": null, "len": { "$numberInt": "1" }, "start": { "$numberInt": "1" }, "comment": "arr null" }
         - { "_id": 18, "len": { "$numberInt": "1" }, "start": { "$numberInt": "1" }, "comment": "arr missing" }
         - { "_id": 19, "arr": [ 1, 2, 3 ], "len": null, "start": { "$numberInt": "1" }, "comment": "len null" }
         - { "_id": 20, "arr": [ 1, 2, 3 ], "start": { "$numberInt": "1" }, "comment": "len missing" }
         - { "_id": 21, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "1" }, "start": null, "comment": "start null" }
         - { "_id": 22, "arr": [ 1, 2, 3 ], "len": { "$numberInt": "1" }, "comment": "start missing" }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true

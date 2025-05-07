@@ -16,20 +16,20 @@ dataset:
         - { "_id": 10, "a": { "$numberDecimal": "NaN"} }
         - { "_id": 11, "a": { "$numberDecimal": "Infinity"} }
         - { "_id": 12, "a": { "$numberDecimal": "-Infinity"} }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: "long"
-              - bsonType: "double"
-              - bsonType: "decimal"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
 
   - db: "spec_query_operators_arithmetic"
     collection:
@@ -90,52 +90,52 @@ dataset:
         - { "_id": 53, "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberLong": "2" } }
         - { "_id": 54, "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDouble": "2" } }
         - { "_id": 55, "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "2" } }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a", "b" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: "long"
-              - bsonType: "double"
-              - bsonType: "decimal"
-              - bsonType: !!str "null"
-          b:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: "long"
-              - bsonType: "double"
-              - bsonType: "decimal"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
 
   - db: "spec_query_operators_arithmetic"
     collection:
-      name: "binary"
+      name: "integer_division"
       docs:
         - { "_id": 1, "a": { "$numberInt": "5" }, "b": { "$numberInt": "2" }, "c": { "$numberInt": "5" }, "d": { "$numberInt": "2" }}
         - { "_id": 2, "a": { "$numberInt": "5" }, "b": { "$numberLong": "2" }, "c": { "$numberInt": "5" }, "d": { "$numberInt": "2" } }
         - { "_id": 3, "a": { "$numberLong": "5" }, "b": { "$numberInt": "2" }, "c": { "$numberInt": "5" }, "d": { "$numberInt": "2" }}
         - { "_id": 4, "a": { "$numberLong": "5" }, "b": { "$numberLong": "2" }, "c": { "$numberInt": "5" }, "d": { "$numberInt": "2" } }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a", "b", "c", "d" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: "long"
-          b:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: "long"
-          c:
-            bsonType: "int"
-          d:
-            bsonType: "int"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "c", "d" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+        b:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+        c:
+          bsonType: "int"
+        d:
+          bsonType: "int"

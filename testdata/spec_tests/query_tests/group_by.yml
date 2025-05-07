@@ -8,19 +8,19 @@ dataset:
         - { "_id": 3, "a": 11, "b": 22, "c": 3 }
         - { "_id": 4, "a": 1, "b": 42, "c": 3 }
         - { "_id": 5, "a": 111, "b": 142, "c": 13 }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a", "b", "c" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            bsonType: "int"
-          b:
-            bsonType: "int"
-          c:
-            bsonType: "int"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "c" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"
+        c:
+          bsonType: "int"
 
   - db: "spec_query_group_by"
     collection:
@@ -32,25 +32,25 @@ dataset:
         - { "_id": 4, "a": 2, "b": 3, "c": 4 }
         - { "_id": 5, "a": 1, "b": 2, "c": 5 }
         - { "_id": 6, "a": null, "b": null, "c": null}
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a", "b", "c" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: !!str "null"
-          b:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: !!str "null"
-          c:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "c" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+        c:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
 
   - db: "spec_query_group_by"
     collection:
@@ -60,17 +60,17 @@ dataset:
         - { "_id": 2, "n": null }
         - { "_id": 3 }
         - { "_id": 4, "n": 1 }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          n:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        n:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
 
   - db: "spec_query_group_by"
     collection:
@@ -80,26 +80,26 @@ dataset:
         - { "_id": 2, "a": { "a": 2, "b": 2 } }
         - { "_id": 3, "a": { "a": 2, "b": 3 } }
         - { "_id": 4, "a": { "a": null, "b": null } }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            bsonType: "object"
-            required: [ "a", "b" ]
-            additionalProperties: false
-            properties:
-              a:
-                anyOf:
-                  - bsonType: "int"
-                  - bsonType: !!str "null"
-              b:
-                anyOf:
-                  - bsonType: "int"
-                  - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "object"
+          required: [ "a", "b" ]
+          additionalProperties: false
+          properties:
+            a:
+              anyOf:
+                - bsonType: "int"
+                - bsonType: !!str "null"
+            b:
+              anyOf:
+                - bsonType: "int"
+                - bsonType: !!str "null"
 
   - db: "spec_query_group_by"
     collection:
@@ -109,23 +109,23 @@ dataset:
         - { "_id": 2, "a": 1, "doc": { "b": "b" } }
         - { "_id": 3, "a": 2, "doc": { "a": "c" } }
         - { "_id": 4, "a": 2, "doc": { "a": "d" } }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a", "doc" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            bsonType: "int"
-          doc:
-            bsonType: "object"
-            required: []
-            properties:
-              a:
-                bsonType: "string"
-              b:
-                bsonType: "string"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "doc" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        doc:
+          bsonType: "object"
+          required: []
+          properties:
+            a:
+              bsonType: "string"
+            b:
+              bsonType: "string"
 
   - db: "spec_query_group_by"
     collection:
@@ -134,18 +134,18 @@ dataset:
         - { "_id": 1, "a": { "$numberDecimal": "3.0" } }
         - { "_id": 2, "a": { "$numberDouble": "3.0" } }
         - { "_id": 3, "a": { "$numberInt": "3" } }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: "double"
-              - bsonType: "decimal"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "double"
+            - bsonType: "decimal"
 
   - db: "spec_query_group_by"
     collection:
@@ -154,28 +154,28 @@ dataset:
         - { "_id": 1, "a": 1 }
         - { "_id": 2, "a": 2 }
         - { "_id": 3, "a": 1 }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            bsonType: "int"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
 
   - db: "spec_query_group_by"
     collection:
       name: "arr"
       docs:
         - { "_id": 1, "a": [ 1, 2 ] }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a" ]
-        additionalProperties: false
-        properties:
-          arr:
-            bsonType: "array"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        arr:
+          bsonType: "array"
 
   - db: "spec_query_group_by"
     collection:
@@ -187,24 +187,24 @@ dataset:
         - { "_id": 4, "d": null }
         - { "_id": 5, "d": { "a": 2 } }
         - { "_id": 6 }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          d:
-            anyOf:
-              - bsonType: !!str "null"
-              - bsonType: "object"
-                required: []
-                additionalProperties: false
-                properties:
-                  a:
-                    anyOf:
-                      - bsonType: "int"
-                      - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        d:
+          anyOf:
+            - bsonType: !!str "null"
+            - bsonType: "object"
+              required: []
+              additionalProperties: false
+              properties:
+                a:
+                  anyOf:
+                    - bsonType: "int"
+                    - bsonType: !!str "null"
 
   - db: "spec_query_group_by"
     collection:
@@ -212,14 +212,14 @@ dataset:
       docs:
         - { "_id": 0, "a": true }
         - { "_id": 1, "a": "yes" }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "bool"
-              - bsonType: "string"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: "string"

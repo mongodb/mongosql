@@ -23,24 +23,24 @@ dataset:
           'datetime': { '$date': { '$numberLong': '253402300776543' } },
           'symbol': { '$symbol': 'sym2' },
         }
-      schema:
-        bsonType: 'object'
-        required: [ '_id', 'str', 'num', 'ts', 'uuid', 'oid', 'datetime', 'symbol' ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: 'int'
-          str:
-            bsonType: 'string'
-          num:
-            bsonType: 'int'
-          ts:
-            bsonType: 'timestamp'
-          uuid:
-            bsonType: 'binData'
-          oid:
-            bsonType: 'objectId'
-          datetime:
-            bsonType: 'date'
-          symbol:
-            bsonType: 'symbol'
+    schema:
+      bsonType: 'object'
+      required: [ '_id', 'str', 'num', 'ts', 'uuid', 'oid', 'datetime', 'symbol' ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: 'int'
+        str:
+          bsonType: 'string'
+        num:
+          bsonType: 'int'
+        ts:
+          bsonType: 'timestamp'
+        uuid:
+          bsonType: 'binData'
+        oid:
+          bsonType: 'objectId'
+        datetime:
+          bsonType: 'date'
+        symbol:
+          bsonType: 'symbol'

@@ -8,6 +8,6 @@ dataset:
         - { "_id": 3, "a": 3 }
         - { "_id": 4, "a": null }
         - { "_id": 5 }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true

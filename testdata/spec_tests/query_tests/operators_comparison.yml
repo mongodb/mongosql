@@ -12,44 +12,44 @@ dataset:
         - { "_id": 6, "b": { "$numberLong": "3" } }
         - { "_id": 7, "a": { "$numberDecimal": "Infinity" }, "b": { "$numberDecimal": "-Infinity" } }
         - { "_id": 8, "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "Infinity" } }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: "long"
-              - bsonType: "double"
-              - bsonType: "decimal"
-              - bsonType: !!str "null"
-          b:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: "long"
-              - bsonType: "double"
-              - bsonType: "decimal"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
 
   - db: "spec_query_operators_comparison"
     collection:
       name: "nan"
       docs:
         - { "_id": 0, "a": { "$numberDecimal": "NaN"}, "b": { "$numberDecimal": "NaN" } }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a", "b" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            bsonType: "decimal"
-          b:
-            bsonType: "decimal"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "decimal"
+        b:
+          bsonType: "decimal"
 
   - db: "spec_query_operators_comparison"
     collection:
@@ -62,21 +62,21 @@ dataset:
         - { "_id": 4, "a": null, "b": "abc" }
         - { "_id": 5, "a": "abc" }
         - { "_id": 6, "b": "" }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "string"
-              - bsonType: !!str "null"
-          b:
-            anyOf:
-              - bsonType: "string"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
 
   - db: "spec_query_operators_comparison"
     collection:
@@ -89,21 +89,21 @@ dataset:
         - { "_id": 4, "a": null, "b": true }
         - { "_id": 5, "a": false }
         - { "_id": 6, "b": true }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "bool"
-              - bsonType: !!str "null"
-          b:
-            anyOf:
-              - bsonType: "bool"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: !!str "null"
 
   - db: "spec_query_operators_comparison"
     collection:
@@ -116,21 +116,21 @@ dataset:
         - { "_id": 4, "a": null, "b": { "$date": { "$numberLong": "253402300799999" } } }
         - { "_id": 5, "a": { "$date": { "$numberLong": "253402300799999" } } }
         - { "_id": 6, "b": { "$date": { "$numberLong": "253402300799999" } } }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "date"
-              - bsonType: !!str "null"
-          b:
-            anyOf:
-              - bsonType: "date"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "date"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "date"
+            - bsonType: !!str "null"
 
   - db: "spec_query_operators_comparison"
     collection:
@@ -140,17 +140,17 @@ dataset:
         - { "_id": 1, "a": null }
         - { "_id": 2, "b": null }
         - { "_id": 3 }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            bsonType: !!str "null"
-          b:
-            bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: !!str "null"
+        b:
+          bsonType: !!str "null"
 
   - db: "spec_query_operators_comparison"
     collection:
@@ -171,23 +171,23 @@ dataset:
         - { "_id": 12, "a": { }, "b": null, "comment": "right null" }
         - { "_id": 13, "b": { }, "comment": "left missing" }
         - { "_id": 14, "a": { }, "comment": "right missing" }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "object"
-                additionalProperties: true
-              - bsonType: !!str "null"
-          b:
-            anyOf:
-              - bsonType: "object"
-                additionalProperties: true
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "object"
+              additionalProperties: true
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "object"
+              additionalProperties: true
+            - bsonType: !!str "null"
 
   - db: "spec_query_operators_comparison"
     collection:
@@ -206,25 +206,25 @@ dataset:
         - { "_id": 10, "a": [], "b": null, "comment": "right null" }
         - { "_id": 11, "b": [], "comment": "left missing" }
         - { "_id": 12, "a": [], "comment": "right missing" }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "array"
-                items:
-                  bsonType: "int"
-              - bsonType: !!str "null"
-          b:
-            anyOf:
-              - bsonType: "array"
-                items:
-                  bsonType: "int"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "array"
+              items:
+                bsonType: "int"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "array"
+              items:
+                bsonType: "int"
+            - bsonType: !!str "null"
 
   - db: "spec_query_operators_comparison"
     collection:
@@ -241,34 +241,34 @@ dataset:
         - { "_id": 8, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" } }
         - { "_id": 9, "a": { "$numberLong": "2" }, "c": { "$numberInt": "3" } }
         - { "_id": 10, "a": { "$numberLong": "2" }, "b": { "$numberInt": "1" } }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: "long"
-              - bsonType: "double"
-              - bsonType: "decimal"
-              - bsonType: !!str "null"
-          b:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: "long"
-              - bsonType: "double"
-              - bsonType: "decimal"
-              - bsonType: !!str "null"
-          c:
-            anyOf:
-              - bsonType: "int"
-              - bsonType: "long"
-              - bsonType: "double"
-              - bsonType: "decimal"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        c:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
 
   - db: "spec_query_operators_comparison"
     collection:
@@ -285,25 +285,25 @@ dataset:
         - { "_id": 8, "b": "x", "c": "z" }
         - { "_id": 9, "a": "y", "c": "z" }
         - { "_id": 10, "a": "y", "b": "x" }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "string"
-              - bsonType: !!str "null"
-          b:
-            anyOf:
-              - bsonType: "string"
-              - bsonType: !!str "null"
-          c:
-            anyOf:
-              - bsonType: "string"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        c:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
 
   - db: "spec_query_operators_comparison"
     collection:
@@ -320,25 +320,25 @@ dataset:
         - { "_id": 8, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } } }
         - { "_id": 9, "a": { "$date": { "$numberLong": "10" } }, "c": { "$date": { "$numberLong": "15" } } }
         - { "_id": 10, "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } } }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "date"
-              - bsonType: !!str "null"
-          b:
-            anyOf:
-              - bsonType: "date"
-              - bsonType: !!str "null"
-          c:
-            anyOf:
-              - bsonType: "date"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "date"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "date"
+            - bsonType: !!str "null"
+        c:
+          anyOf:
+            - bsonType: "date"
+            - bsonType: !!str "null"
 
   - db: "spec_query_operators_comparison"
     collection:
@@ -355,28 +355,28 @@ dataset:
         - { "_id": 8, "b": { "x": 1 }, "c": { "z": 1 }, "comment": "first arg missing" }
         - { "_id": 9, "a": { "y": 1 }, "c": { "z": 1 }, "comment": "second arg missing" }
         - { "_id": 10, "a": { "y": 1 }, "b": { "x": 1 }, "comment": "third arg missing" }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "comment" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "object"
-                additionalProperties: true
-              - bsonType: !!str "null"
-          b:
-            anyOf:
-              - bsonType: "object"
-                additionalProperties: true
-              - bsonType: !!str "null"
-          c:
-            anyOf:
-              - bsonType: "object"
-                additionalProperties: true
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "comment" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "object"
+              additionalProperties: true
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "object"
+              additionalProperties: true
+            - bsonType: !!str "null"
+        c:
+          anyOf:
+            - bsonType: "object"
+              additionalProperties: true
+            - bsonType: !!str "null"
 
   - db: "spec_query_operators_comparison"
     collection:
@@ -393,28 +393,28 @@ dataset:
         - { "_id": 8, "b": [1, 2], "c": [5, 6], "comment": "first arg missing" }
         - { "_id": 9, "a": [3, 4], "c": [5, 6], "comment": "second arg missing" }
         - { "_id": 10, "a": [3, 4], "b": [1, 2], "comment": "third arg missing" }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "comment" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "array"
-                items:
-                  bsonType: "int"
-              - bsonType: !!str "null"
-          b:
-            anyOf:
-              - bsonType: "array"
-                items:
-                  bsonType: "int"
-              - bsonType: !!str "null"
-          c:
-            anyOf:
-              - bsonType: "array"
-                items:
-                  bsonType: "int"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "comment" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "array"
+              items:
+                bsonType: "int"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "array"
+              items:
+                bsonType: "int"
+            - bsonType: !!str "null"
+        c:
+          anyOf:
+            - bsonType: "array"
+              items:
+                bsonType: "int"
+            - bsonType: !!str "null"

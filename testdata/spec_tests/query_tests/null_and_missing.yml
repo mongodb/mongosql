@@ -5,23 +5,23 @@ dataset:
       docs:
         - { "_id": 0, "a": 42, "b": null, "c": { "d": "hello", "e": 142 } }
         - { "_id": 1, "a": 52, "c": { "d": "world" } }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a", "c" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            bsonType: "int"
-          b:
-            bsonType: !!str "null"
-          c:
-            bsonType: "object"
-            required: [ "d" ]
-            additionalProperties: true
-            properties:
-              d:
-                bsonType: "string"
-              e:
-                bsonType: "int"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "c" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: !!str "null"
+        c:
+          bsonType: "object"
+          required: [ "d" ]
+          additionalProperties: true
+          properties:
+            d:
+              bsonType: "string"
+            e:
+              bsonType: "int"

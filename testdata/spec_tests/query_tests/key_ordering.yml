@@ -5,9 +5,9 @@ dataset:
       docs:
         - { "_id": 0, "a": 1 }
         - { "_id": 1, "a": 2 }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true
 
   - db: "spec_query_key_ordering"
     collection:
@@ -15,6 +15,6 @@ dataset:
       docs:
         - { "_id": 0, "sub": { "a": 1, "b": 1 } }
         - { "_id": 1, "sub": { "a": 2, "b": 2 } }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true

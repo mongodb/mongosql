@@ -5,16 +5,16 @@ dataset:
       docs:
         - { "_id": 0, "a": 6, "b": 2, "c": 11 }
         - { "_id": 1, "a": 6, "b": 1, "c": 10 }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "a", "b", "c" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            bsonType: "int"
-          b:
-            bsonType: "int"
-          c:
-            bsonType: "int"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "c" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"
+        c:
+          bsonType: "int"

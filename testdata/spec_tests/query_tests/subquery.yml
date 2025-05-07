@@ -7,19 +7,19 @@ dataset:
         - { "_id": 2, "name": "b", "salary": 4, "department_id": 1 }
         - { "_id": 3, "name": "c", "salary": 9, "department_id": 1 }
         - { "_id": 4, "name": "d", "salary": 1, "department_id": 2 }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "name", "salary", "department_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          name:
-            bsonType: "string"
-          salary:
-            bsonType: "int"
-          department_id:
-            bsonType: "int"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "name", "salary", "department_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        name:
+          bsonType: "string"
+        salary:
+          bsonType: "int"
+        department_id:
+          bsonType: "int"
 
   - db: "spec_query_subquery"
     collection:
@@ -28,15 +28,15 @@ dataset:
         - { "_id": 1, "name": "d1" }
         - { "_id": 2, "name": "d2" }
         - { "_id": 3, "name": "d3" }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "name" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          name:
-            bsonType: "string"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "name" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        name:
+          bsonType: "string"
 
   - db: "spec_query_subquery"
     collection:
@@ -46,19 +46,19 @@ dataset:
         - { "_id": 2, "name": "b", "salary": 4, "department_id": 1 }
         - { "_id": 3, "name": "c", "salary": 9, "department_id": 1 }
         - { "_id": 4, "name": "d", "salary": 1, "department_id": 2 }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "name", "salary", "department_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          name:
-            bsonType: "string"
-          salary:
-            bsonType: "int"
-          department_id:
-            bsonType: "int"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "name", "salary", "department_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        name:
+          bsonType: "string"
+        salary:
+          bsonType: "int"
+        department_id:
+          bsonType: "int"
 
   - db: "spec_query_subquery"
     collection:
@@ -67,21 +67,21 @@ dataset:
         - { "_id": 1, "name": "d1" }
         - { "_id": 2, "name": "d2" }
         - { "_id": 3, "name": "d3" }
-      schema:
-        bsonType: "object"
-        required: [ "_id", "name" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          name:
-            bsonType: "string"
+    schema:
+      bsonType: "object"
+      required: [ "_id", "name" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        name:
+          bsonType: "string"
 
   - db: "spec_query_subquery"
     collection:
       name: "baz"
       docs:
         - { "_id": 1, "a": "foo" }
-      schema:
-        bsonType: "object"
-        additionalProperties: true
+    schema:
+      bsonType: "object"
+      additionalProperties: true
