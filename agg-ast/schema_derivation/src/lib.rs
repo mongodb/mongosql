@@ -155,49 +155,6 @@ fn get_schema_for_path_mut_aux(
             get_schema_for_path_mut_aux(d.keys.get_mut(&field)?, path, None, field_index + 1)
         }
         Schema::Array(s) => get_schema_for_path_mut_aux(&mut **s, path, Some(field), field_index),
-        // Schema::AnyOf(schemas) => {
-        //     if !schemas.iter().any(|s| matches!(s, &Schema::Document(_))) {
-        //         // We only investigate Arrays if the AnyOf contains no Document schemas. There
-        //         // could be a situation where the key should be in the Array and not the Document,
-        //         // but this is just a best case attempt here. Worst case is we just don't refine a
-        //         // Schema when we could. We can revisit this in the future, if it comes up more.
-        //         let schemas = std::mem::take(schemas);
-        //         if let Some(a) = schemas.into_iter().find_map(|s| {
-        //             if let Schema::Array(a) = s {
-        //                 Some(a)
-        //             } else {
-        //                 None
-        //             }
-        //         }) {
-        //             *schema = Schema::Array(a);
-        //             return get_schema_for_path_mut_aux(schema, path, Some(field), field_index);
-        //         }
-        //         return None;
-        //     }
-        //     // This is how we avoid the clone. By doing a std::mem::take here, we can take
-        //     // ownership of the schemas, and thus the Document schema. Sadly, we still have to
-        //     // allocate a BTreeSet::default(), semantically. There is a price to pay for safety
-        //     // sometimes, but, there is a good chance the compiler will be smart enough to know
-        //     // that BTreeSet::default() is never used and optimize it out.
-        //     let schemas = std::mem::take(schemas);
-        //     let mut d = schemas.into_iter().find_map(|s| {
-        //         if let Schema::Document(doc) = s {
-        //             // we would have to clone here without the std::mem::take above.
-        //             Some(doc)
-        //         } else {
-        //             None
-        //         }
-        //     })?;
-        //     // We can only add keys, if additionalProperties is true.
-        //     if d.additional_properties {
-        //         d.keys.entry(field.clone()).or_insert(Schema::Any);
-        //     }
-        //     // this is a wonky way to do this, putting it in the map and then getting it back
-        //     // out with this match, but it's what the borrow checker forces (we can't keep the
-        //     // reference across the move of ownership into the Schema::Document constructor).
-        //     *schema = Schema::Document(d);
-        //     get_schema_for_path_mut_aux(schema.get_key_mut(&field)?, path, None, field_index + 1)
-        // }
         _ => None,
     }
 }
@@ -477,36 +434,39 @@ pub(crate) fn remove_field(schema: &mut Schema, path: Vec<String>) {
                 }
             }
             Some(Schema::AnyOf(schemas)) => {
+                // we search the anyof for a single document schema to remove the key from.
                 if schemas
                     .iter()
                     .filter(|x| matches!(x, &Schema::Document(_)))
                     .count()
                     == 1
                 {
-                    // let schemas = std::mem::take(schemas);
-                    let schemas = schemas.clone();
+                    let schemas = std::mem::take(schemas);
+                    // because we already matched on the document schema, we should always find one here
                     let d = schemas.clone().into_iter().find_map(|s| {
                         if let Schema::Document(doc) = s {
-                            // we would have to clone here without the std::mem::take above.
                             Some(doc)
                         } else {
                             None
                         }
                     });
                     if let Some(mut doc) = d {
+                        // we create a new set with all the non document schemas
                         let mut any_of: BTreeSet<Schema> = schemas
                             .into_iter()
                             .filter(|x| !matches!(x, &Schema::Document(_)))
                             .collect();
+                        // mutate the document to remove the field, then insert it into the anyof
                         doc.keys.remove(field);
                         doc.required.remove(field);
                         if doc.keys.len() > 0 {
                             any_of.insert(Schema::Document(doc));
                         }
+                        // finally, we update the original schema to be this new anyof with the updated
+                        // document schema.
                         if let Some(s) = get_schema_for_path_mut(schema, field_path.into()) {
                             *s = Schema::AnyOf(any_of);
                         }
-                        // get_schema_for_path_mut(schema, field_path.into()) = ;
                     }
                 }
             }

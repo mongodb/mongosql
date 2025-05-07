@@ -905,6 +905,10 @@ impl DeriveSchema for Stage {
             let mut nullish = preserve_null_and_empty_arrays;
             state.result_set_schema = promote_missing(&state.result_set_schema);
             if let Some(path) = path.clone() {
+                // if preserve_null_and_empty_arrays is not true, we walk the path of the
+                // unwound field and remove any non-documents schemas. That is, if any of
+                // the subpaths are anyofs, any type that is not a document does not lead
+                // to the unwound field, so it will be filtered out.
                 if nullish == false {
                     for index in 0..path.len() - 1 {
                         let vec_path = path[0..index + 1].to_vec();
@@ -1000,7 +1004,6 @@ impl DeriveSchema for Stage {
                 Unset::Multiple(fields) => fields,
             };
             fields.iter().for_each(|field| {
-                println!("{:?}", field);
                 remove_field(
                     &mut state.result_set_schema,
                     field.split('.').map(|s| s.to_string()).collect(),
