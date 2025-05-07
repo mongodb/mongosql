@@ -458,6 +458,9 @@ tasks:
       - func: "publish augmented SBOM"
         vars:
           project_folder: "mongosqltranslate"
+      - func: "generate compliance report"
+        vars:
+          project_folder: "mongosqltranslate"
 
   - name: ssdlc-artifacts-snapshot
     run_on: ubuntu2204-small
@@ -473,6 +476,9 @@ tasks:
         vars:
           project_folder: "mongosqltranslate"
       - func: "publish augmented SBOM"
+        vars:
+          project_folder: "mongosqltranslate"
+      - func: "generate compliance report"
         vars:
           project_folder: "mongosqltranslate"
 
