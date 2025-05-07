@@ -11,6 +11,10 @@ tasks:
           MONGODB_VERSION: 6.0
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/spec_tests/query_tests"
       - func: "run rust tests"
         vars:
           description: run spec query tests
@@ -25,6 +29,10 @@ tasks:
           MONGODB_VERSION: 6.0
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/index_usage"
       - func: "run rust tests"
         vars:
           description: run index usage tests
@@ -39,6 +47,10 @@ tasks:
           MONGODB_VERSION: 6.0
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/e2e_tests"
       - func: "run rust tests"
         vars:
           description: run rust e2e tests
@@ -53,6 +65,10 @@ tasks:
           MONGODB_VERSION: 6.0
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/errors"
       - func: "run rust tests"
         vars:
           description: run rust error tests
@@ -67,6 +83,10 @@ tasks:
           MONGODB_VERSION: 7.0
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/spec_tests/query_tests"
       - func: "run rust tests"
         vars:
           description: run spec query tests
@@ -81,6 +101,10 @@ tasks:
           MONGODB_VERSION: 7.0
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/index_usage"
       - func: "run rust tests"
         vars:
           description: run index usage tests
@@ -95,6 +119,10 @@ tasks:
           MONGODB_VERSION: 7.0
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/e2e_tests"
       - func: "run rust tests"
         vars:
           description: run rust e2e tests
@@ -109,6 +137,10 @@ tasks:
           MONGODB_VERSION: 7.0
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/errors"
       - func: "run rust tests"
         vars:
           description: run rust error tests
@@ -123,6 +155,10 @@ tasks:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/spec_tests/query_tests"
       - func: "run rust tests"
         vars:
           description: run spec query tests
@@ -137,6 +173,10 @@ tasks:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/index_usage"
       - func: "run rust tests"
         vars:
           description: run index usage tests
@@ -151,6 +191,10 @@ tasks:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/e2e_tests"
       - func: "run rust tests"
         vars:
           description: run rust e2e tests
@@ -165,6 +209,10 @@ tasks:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/errors"
       - func: "run rust tests"
         vars:
           description: run rust error tests
@@ -179,6 +227,10 @@ tasks:
           MONGODB_VERSION: rapid
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/spec_tests/query_tests"
       - func: "run rust tests"
         vars:
           description: run spec query tests
@@ -193,6 +245,10 @@ tasks:
           MONGODB_VERSION: rapid
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/index_usage"
       - func: "run rust tests"
         vars:
           description: run index usage tests
@@ -207,6 +263,10 @@ tasks:
           MONGODB_VERSION: rapid
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/e2e_tests"
       - func: "run rust tests"
         vars:
           description: run rust e2e tests
@@ -221,6 +281,10 @@ tasks:
           MONGODB_VERSION: rapid
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/errors"
       - func: "run rust tests"
         vars:
           description: run rust error tests
@@ -235,6 +299,10 @@ tasks:
           MONGODB_VERSION: latest
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/spec_tests/query_tests"
       - func: "run rust tests"
         vars:
           description: run spec query tests
@@ -249,6 +317,10 @@ tasks:
           MONGODB_VERSION: latest
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/index_usage"
       - func: "run rust tests"
         vars:
           description: run index usage tests
@@ -263,6 +335,10 @@ tasks:
           MONGODB_VERSION: latest
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/e2e_tests"
       - func: "run rust tests"
         vars:
           description: run rust e2e tests
@@ -277,6 +353,10 @@ tasks:
           MONGODB_VERSION: latest
           TOPOLOGY: server
       - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/errors"
       - func: "run rust tests"
         vars:
           description: run rust error tests
