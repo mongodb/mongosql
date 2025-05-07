@@ -1555,6 +1555,13 @@ mod convert {
     );
 
     test_derive_expression_schema!(
+        convert_literal_expression_to_type,
+        expected = Ok(Schema::Atomic(Atomic::BinData)),
+        input = r#"{ "$convert": {"input": "$foo", "to": {"$literal": "binData"} } }"#,
+        ref_schema = Schema::Any
+    );
+
+    test_derive_expression_schema!(
         convert_with_on_null,
         expected = Ok(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Integer),

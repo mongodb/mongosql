@@ -2440,6 +2440,21 @@ mod expression_test {
         );
 
         test_serde_expr!(
+            convert_literal_to_type,
+            expected = Expression::TaggedOperator(TaggedOperator::Convert(Convert {
+                input: Box::new(Expression::Literal(LiteralValue::String("1".to_string()))),
+                to: Box::new(Expression::Literal(LiteralValue::String("int".to_string()))),
+                format: None,
+                on_null: None,
+                on_error: None,
+            })),
+            input = r#"expr: {"$convert": {
+                                "input": "1",
+                                "to": {"$literal": "int"}
+            }}"#
+        );
+
+        test_serde_expr!(
             convert_subtype,
             expected = Expression::TaggedOperator(TaggedOperator::Convert(Convert {
                 input: Box::new(Expression::Literal(LiteralValue::Int32(123))),

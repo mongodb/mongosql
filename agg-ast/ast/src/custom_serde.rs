@@ -1294,6 +1294,25 @@ impl<'de> Deserialize<'de> for Convert {
                             ))
                         }
                     };
+                    let to = if let Expression::UntaggedOperator(UntaggedOperator {
+                        op: UntaggedOperatorName::Literal,
+                        args,
+                    }) = to
+                    {
+                        match args.get(0) {
+                            // the two type can either be a string (the name of the type) or a numeric (int convertible)
+                            Some(Expression::Literal(LiteralValue::String(_)))
+                            | Some(Expression::Literal(LiteralValue::Int32(_)))
+                            | Some(Expression::Literal(LiteralValue::Int64(_)))
+                            | Some(Expression::Literal(LiteralValue::Double(_)))
+                            | Some(Expression::Literal(LiteralValue::Decimal128(_))) => {
+                                args[0].to_owned()
+                            }
+                            _ => return Err(serde_err::custom("invalid to format for convert")),
+                        }
+                    } else {
+                        to
+                    };
                     let on_error = d.remove("onError").map(Box::new);
                     let on_null = d.remove("onNull").map(Box::new);
                     Ok(Convert {
