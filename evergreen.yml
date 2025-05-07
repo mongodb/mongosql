@@ -1026,6 +1026,26 @@ functions:
         bucket: mciuploads
         permissions: public-read
 
+  "publish compliance report":
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/${project_folder}/${COMPLIANCE_REPORT_NAME}
+        remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/${project_folder}/${COMPLIANCE_REPORT_NAME}
+        content_type: text/markdown
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/${project_folder}/${COMPLIANCE_REPORT_NAME}
+        remote_file: ${project_folder}/${project_folder}-v${release_version}-compliance-report.md
+        content_type: text/markdown
+        bucket: translators-connectors-releases
+        permissions: public-read
+        display_name: ${project_folder}-v${release_version}-compliance-report.md
+
 tasks:
   - name: clippy
     commands:
