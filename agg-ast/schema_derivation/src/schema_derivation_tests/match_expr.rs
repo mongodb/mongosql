@@ -281,6 +281,26 @@ mod comparison_ops {
     );
 
     test_derive_schema_for_match_stage!(
+        lt_null_still_returns_minkey_subexpression,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "foo".to_string() => Schema::AnyOf(set!(
+                    Schema::Atomic(Atomic::MinKey),
+                    Schema::Atomic(Atomic::Null),
+                ))
+            },
+            required: set!(),
+            ..Default::default()
+        })),
+        input = r#"{"$match": {"$expr": {"$lt": [{"$max": "$foo"}, null]}}}"#,
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Atomic(Atomic::MinKey),
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing
+        ))
+    );
+
+    test_derive_schema_for_match_stage!(
         lte_atomic,
         expected = Ok(Schema::Document(Document {
             keys: map! {
@@ -3139,7 +3159,12 @@ mod array_ops {
             ..Default::default()
         })),
         input = r#"{"$match": {"$expr": {"$not": {"$reverseArray": "$foo"}}}}"#,
-        ref_schema = Schema::Any
+        ref_schema = Schema::AnyOf(set!(
+            Schema::Array(Box::new(Schema::Any)),
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing
+        ))
     );
     test_derive_schema_for_match_stage!(
         concat_arrays_not_null,
