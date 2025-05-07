@@ -817,7 +817,7 @@ impl MatchConstrainSchema for Expression {
                 && schema.satisfies(&Schema::Atomic(Atomic::MinKey)) == Satisfaction::Not
             {
                 Satisfaction::Must
-            } 
+            }
             // similarly, >= null would exclude missing but include null, but for the sake of constraining the schema
             // we will ignore gte to be safe since we don't handle missing separately.
             else if op == UntaggedOperatorName::Gt
