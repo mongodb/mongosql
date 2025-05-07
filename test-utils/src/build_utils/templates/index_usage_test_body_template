@@ -2,10 +2,9 @@
 #[test]
 pub fn {name}() {{
     use test_utils::*;
-    let (client, test_file) = initialize_test();
+    let (client, test_file, catalog) = initialize_test();
     let test = test_file.tests.get({index}).unwrap();
 
-    let catalog = build_catalog_from_catalog_schema(test_file.catalog_schema.clone()).unwrap();
     let translation = mongosql::translate_sql(
         "{current_db}",
         "{query}",

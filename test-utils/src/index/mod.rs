@@ -10,9 +10,6 @@ use std::{collections::BTreeMap, fs, io::Read, path::PathBuf};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IndexUsageYamlTestFile {
-    pub catalog_data: BTreeMap<String, BTreeMap<String, Vec<Bson>>>,
-    pub catalog_schema: BTreeMap<String, BTreeMap<String, mongosql::json_schema::Schema>>,
-    pub indexes: BTreeMap<String, BTreeMap<String, Vec<IndexModel>>>,
     pub tests: Vec<IndexUsageTest>,
 }
 
