@@ -1,7 +1,7 @@
 
-# Atlas SQL schema manager SSDLC Compliance Report - %VERSION%
+# Atlas SQL - %PRODUCT_NAME%  SSDLC Compliance Report - %VERSION%
 
-**Release date**
+**Release Date**
 %RELEASE_DATE%
 
 **Release Creator**  
@@ -24,7 +24,7 @@ Product is signed with signatures available upon request.
 To verify a package, request the signature artifacts matching your library and follow the instructions to validate MongoDB packages described [here](https://www.mongodb.com/docs/manual/tutorial/verify-mongodb-packages/). 
 
 > :warning:  
-> For this [step](!https://www.mongodb.com/docs/manual/tutorial/verify-mongodb-packages/#download-then-import-the-key-file), download and import the MongoDB schema manager public key using this url : `https://pgp.mongodb.com/mongodb-schema-manager.asc`
+> For this [step](https://www.mongodb.com/docs/manual/tutorial/verify-mongodb-packages/#download-then-import-the-key-file), download and import the MongoDB mongosql-rs public key using this url : `https://pgp.mongodb.com/mongosql-rs.asc`
 
 **Known Vulnerabilities**  
 Any vulnerabilities that may be shown in the links referenced above have been reviewed and accepted by the appropriate reviewers.
