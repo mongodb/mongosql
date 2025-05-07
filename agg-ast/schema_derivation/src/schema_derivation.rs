@@ -145,7 +145,7 @@ impl DeriveSchema for Stage {
             });
             paths.into_iter().for_each(|path| {
                 if let Some(field_schema) =
-                    get_schema_for_path_mut(&mut state.result_set_schema, path.clone())
+                    get_schema_for_path(state.result_set_schema.clone(), path.clone())
                 {
                     insert_required_key_into_document(
                         &mut required_doc,

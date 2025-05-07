@@ -329,14 +329,7 @@ fn match_derive_schema_for_op(
         }
         MatchBinaryOp::Exists => {
             if is_exists_true_bson(b) {
-                // let path: Vec<String> = match reference {
-                //     Ref::FieldRef(reference) => {
-                //         reference.as_str()[1..].split('.').map(|s| s.to_string()).collect()
-                //     }
-                //     Ref::VariableRef(v) => {
-                //         v.as_str()[2..].split('.').map(|s| s.to_string()).collect()
-                //     }
-                // };
+                state.result_set_schema = promote_missing(&state.result_set_schema);
                 result_set_schema_difference(reference, state, set![Schema::Missing]);
             } else {
                 intersect_if_exists(reference, state, Schema::Missing);
