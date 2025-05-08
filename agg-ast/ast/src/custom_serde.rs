@@ -1299,7 +1299,7 @@ impl<'de> Deserialize<'de> for Convert {
                         args,
                     }) = to
                     {
-                        match args.get(0) {
+                        match args.first() {
                             // the two type can either be a string (the name of the type) or a numeric (int convertible)
                             Some(Expression::Literal(LiteralValue::String(_)))
                             | Some(Expression::Literal(LiteralValue::Int32(_)))
@@ -1346,7 +1346,7 @@ impl<'de> Deserialize<'de> for SetField {
                         op: UntaggedOperatorName::Literal,
                         args: a,
                     })) => {
-                        if let Some(Expression::Literal(LiteralValue::String(s))) = a.get(0) {
+                        if let Some(Expression::Literal(LiteralValue::String(s))) = a.first() {
                             s.clone()
                         } else {
                             return Err(serde_err::custom("field to setField must be a string"));
@@ -1386,7 +1386,7 @@ impl<'de> Deserialize<'de> for GetField {
                         op: UntaggedOperatorName::Literal,
                         args: a,
                     })) => {
-                        if let Some(Expression::Literal(LiteralValue::String(s))) = a.get(0) {
+                        if let Some(Expression::Literal(LiteralValue::String(s))) = a.first() {
                             s.clone()
                         } else {
                             return Err(serde_err::custom("field to getField must be a string"));
@@ -1425,7 +1425,7 @@ impl<'de> Deserialize<'de> for UnsetField {
                         op: UntaggedOperatorName::Literal,
                         args: a,
                     })) => {
-                        if let Some(Expression::Literal(LiteralValue::String(s))) = a.get(0) {
+                        if let Some(Expression::Literal(LiteralValue::String(s))) = a.first() {
                             s.clone()
                         } else {
                             return Err(serde_err::custom("field to unsetField must be a string"));
@@ -1477,7 +1477,7 @@ impl<'de> Deserialize<'de> for TopBottomN {
                     Some(Expression::UntaggedOperator(UntaggedOperator {
                         op: UntaggedOperatorName::Literal,
                         args: a,
-                    })) => match a.get(0) {
+                    })) => match a.first() {
                         Some(Expression::Literal(LiteralValue::Int32(n))) => *n as i64,
                         Some(Expression::Literal(LiteralValue::Int64(n))) => *n,
                         Some(Expression::Literal(LiteralValue::Double(n))) => *n as i64,
