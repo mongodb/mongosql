@@ -3,8 +3,8 @@ use crate::{
         Cond, Convert, DateExpression, DateFromParts, DateFromString, DateToString, Expression,
         GetField, LiteralValue, MatchArrayExpression, MatchArrayQuery, MatchBinaryOp, MatchElement,
         MatchExpression, MatchField, MatchNot, MatchNotExpression, MatchRegex, MatchStage,
-        ProjectItem, ProjectStage, Ref, SetField, SetWindowFieldsOutput, Trim, UnsetField,
-        UntaggedOperator, UntaggedOperatorName, VecOrSingleExpr, Window,
+        ProjectItem, ProjectStage, Ref, SetField, SetWindowFieldsOutput, TopBottomN, Trim,
+        UnsetField, UntaggedOperator, UntaggedOperatorName, VecOrSingleExpr, Window,
     },
     map,
 };
@@ -1443,6 +1443,69 @@ impl<'de> Deserialize<'de> for UnsetField {
                     Err(serde_err::custom(
                         "input and value must be specified for $unsetField",
                     ))
+                }
+            }
+            _ => Err(serde_err::custom("input to unsetField must be document")),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for TopBottomN {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let expression = Expression::deserialize(deserializer)?;
+        match expression {
+            Expression::Document(mut d) => {
+                let sort_by = d.remove("sortBy");
+                let output = d.remove("output");
+                let n = match d.remove("n") {
+                    Some(Expression::Literal(LiteralValue::Int32(n))) => n as i64,
+                    Some(Expression::Literal(LiteralValue::Int64(n))) => n,
+                    Some(Expression::Literal(LiteralValue::Double(n))) => n as i64,
+                    Some(Expression::Literal(LiteralValue::Decimal128(n))) => {
+                        match n.to_string().parse::<i64>() {
+                            Ok(n) => n,
+                            Err(_) => {
+                                return Err(serde_err::custom(
+                                    "invalid decimal literal value for n in bottomN operator",
+                                ));
+                            }
+                        }
+                    }
+                    Some(Expression::UntaggedOperator(UntaggedOperator {
+                        op: UntaggedOperatorName::Literal,
+                        args: a,
+                    })) => match a.get(0) {
+                        Some(Expression::Literal(LiteralValue::Int32(n))) => *n as i64,
+                        Some(Expression::Literal(LiteralValue::Int64(n))) => *n,
+                        Some(Expression::Literal(LiteralValue::Double(n))) => *n as i64,
+                        Some(Expression::Literal(LiteralValue::Decimal128(n))) => {
+                            match n.to_string().parse::<i64>() {
+                                Ok(n) => n,
+                                Err(_) => {
+                                    return Err(serde_err::custom(
+                                        "invalid decimal literal value for n in bottomN operator",
+                                    ));
+                                }
+                            }
+                        }
+                        _ => {
+                            return Err(serde_err::custom("n to bottomN must be an numeric"));
+                        }
+                    },
+                    _ => return Err(serde_err::custom("n to bottomN must be an numeric")),
+                };
+                match (sort_by, output) {
+                    (Some(sort_by), Some(output)) => Ok(TopBottomN {
+                        sort_by: Box::new(sort_by),
+                        output: Box::new(output),
+                        n,
+                    }),
+                    _ => Err(serde_err::custom(
+                        "input and value must be specified for $unsetField",
+                    )),
                 }
             }
             _ => Err(serde_err::custom("input to unsetField must be document")),

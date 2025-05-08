@@ -2212,14 +2212,13 @@ mod expression_test {
     mod tagged_operators {
         use crate::{
             definitions::{
-                Accumulator, Bottom, BottomN, Convert, DateAdd, DateDiff, DateExpression,
-                DateFromParts, DateFromString, DateSubtract, DateToParts, DateToString, DateTrunc,
-                Documents, Expression, Filter, Function, GetField, Let, Like, LiteralValue, Map,
-                Median, NArrayOp, Percentile, ProjectItem, ProjectStage, Reduce, Ref,
-                RegexAggExpression, Replace, SetField, SortArray, SortArraySpec, SqlConvert,
-                SqlDivide, Stage, Subquery, SubqueryComparison, SubqueryExists, Switch, SwitchCase,
-                TaggedOperator, Top, TopN, Trim, UnsetField, UntaggedOperator,
-                UntaggedOperatorName, Zip,
+                Accumulator, Bottom, Convert, DateAdd, DateDiff, DateExpression, DateFromParts,
+                DateFromString, DateSubtract, DateToParts, DateToString, DateTrunc, Documents,
+                Expression, Filter, Function, GetField, Let, Like, LiteralValue, Map, Median,
+                NArrayOp, Percentile, ProjectItem, ProjectStage, Reduce, Ref, RegexAggExpression,
+                Replace, SetField, SortArray, SortArraySpec, SqlConvert, SqlDivide, Stage,
+                Subquery, SubqueryComparison, SubqueryExists, Switch, SwitchCase, TaggedOperator,
+                Top, TopBottomN, Trim, UnsetField, UntaggedOperator, UntaggedOperatorName, Zip,
             },
             map,
         };
@@ -2768,7 +2767,7 @@ mod expression_test {
 
         test_serde_expr!(
             bottom_n,
-            expected = Expression::TaggedOperator(TaggedOperator::BottomN(BottomN {
+            expected = Expression::TaggedOperator(TaggedOperator::BottomN(TopBottomN {
                 output: Box::new(Expression::Array(vec![
                     Expression::Ref(Ref::FieldRef("playerId".to_string())),
                     Expression::Ref(Ref::FieldRef("score".to_string()))
@@ -2872,7 +2871,7 @@ mod expression_test {
 
         test_serde_expr!(
             top_n,
-            expected = Expression::TaggedOperator(TaggedOperator::TopN(TopN {
+            expected = Expression::TaggedOperator(TaggedOperator::TopN(TopBottomN {
                 output: Box::new(Expression::Array(vec![
                     Expression::Ref(Ref::FieldRef("playerId".to_string())),
                     Expression::Ref(Ref::FieldRef("score".to_string()))

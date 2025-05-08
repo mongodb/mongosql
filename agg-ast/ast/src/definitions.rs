@@ -1219,7 +1219,7 @@ pub enum TaggedOperator {
     #[serde(rename = "$bottom")]
     Bottom(Bottom),
     #[serde(rename = "$bottomN")]
-    BottomN(BottomN),
+    BottomN(TopBottomN),
     #[serde(rename = "$median")]
     Median(Median),
     #[serde(rename = "$percentile")]
@@ -1227,7 +1227,7 @@ pub enum TaggedOperator {
     #[serde(rename = "$top")]
     Top(Top),
     #[serde(rename = "$topN")]
-    TopN(TopN),
+    TopN(TopBottomN),
 
     // Array Operators
     #[serde(rename = "$firstN")]
@@ -1659,17 +1659,9 @@ pub struct Top {
     pub output: Box<Expression>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct BottomN {
-    pub sort_by: Box<Expression>,
-    pub output: Box<Expression>,
-    pub n: i64,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TopN {
+pub struct TopBottomN {
     pub sort_by: Box<Expression>,
     pub output: Box<Expression>,
     pub n: i64,
