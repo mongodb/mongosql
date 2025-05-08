@@ -11,7 +11,6 @@ use std::{
     io::{self},
     string::ToString,
 };
-
 use thiserror::Error;
 
 lazy_static! {
@@ -27,7 +26,6 @@ pub use query::*;
 pub mod schema_derivation;
 pub use schema_derivation::*;
 pub mod build_utils;
-
 pub mod e2e_db_manager;
 pub use build_utils::*;
 
