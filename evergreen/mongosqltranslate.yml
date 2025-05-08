@@ -404,6 +404,9 @@ tasks:
     commands:
       - func: "install rust toolchain"
       - func: "set and check packages version"
+        vars:
+          cargo_file: "mongosqltranslate/Cargo.toml"
+          package_name: "mongosqltranslate"
       - func: "compile libmongosqltranslate"
       - func: "mciuploads mongosqltranslate"
 
@@ -411,6 +414,9 @@ tasks:
     commands:
       - func: "install rust toolchain"
       - func: "set and check packages version"
+        vars:
+          cargo_file: "mongosqltranslate/Cargo.toml"
+          package_name: "mongosqltranslate"
       - func: "generate SBOM"
         vars:
           project_folder: "mongosqltranslate"

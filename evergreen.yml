@@ -824,6 +824,9 @@ tasks:
     commands:
       - func: "install rust toolchain"
       - func: "set and check packages version"
+        vars:
+          cargo_file: "mongosql/Cargo.toml"
+          package_name: "mongosql"
       - func: "compile mongosql-rs"
       - func: "upload c library"
 
