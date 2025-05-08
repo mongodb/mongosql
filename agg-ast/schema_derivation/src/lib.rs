@@ -459,7 +459,7 @@ pub(crate) fn remove_field(schema: &mut Schema, path: Vec<String>) {
                         // mutate the document to remove the field, then insert it into the anyof
                         doc.keys.remove(field);
                         doc.required.remove(field);
-                        if doc.keys.len() > 0 {
+                        if !doc.keys.is_empty() {
                             any_of.insert(Schema::Document(doc));
                         }
                         // finally, we update the original schema to be this new anyof with the updated

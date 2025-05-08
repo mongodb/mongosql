@@ -909,7 +909,7 @@ impl DeriveSchema for Stage {
                 // unwound field and remove any non-documents schemas. That is, if any of
                 // the subpaths are anyofs, any type that is not a document does not lead
                 // to the unwound field, so it will be filtered out.
-                if nullish == false {
+                if !nullish {
                     for index in 0..path.len() - 1 {
                         let vec_path = path[0..index + 1].to_vec();
                         if let Some(s) =
