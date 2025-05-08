@@ -929,6 +929,33 @@ impl DeriveSchema for Stage {
                             }
                         }
                     }
+                // if preserve null and empty arrays is false, any type along the path is fine and will be preserved.
+                // the safest way to handle this, for now, is to remove the key, modify it, and union it back in.
+                // We should be able to do this in place once mutating anyofs is possible.
+                } else if let Some(schema) =
+                    get_schema_for_path(state.result_set_schema.clone(), path.clone())
+                {
+                    let unwound_schema = match schema {
+                        Schema::Array(a) => *a,
+                        Schema::AnyOf(ao) => Schema::AnyOf(
+                            ao.into_iter()
+                                .map(|s| match s {
+                                    Schema::Array(a) => *a,
+                                    schema => schema,
+                                })
+                                .collect(),
+                        ),
+                        schema => schema,
+                    };
+                    remove_field(&mut state.result_set_schema, path.clone());
+                    let mut required_doc = Schema::Document(Document::empty());
+                    insert_required_key_into_document(
+                        &mut required_doc,
+                        unwound_schema,
+                        path.clone(),
+                        true,
+                    );
+                    state.result_set_schema = state.result_set_schema.union(&required_doc);
                 }
                 if let Some(s) = get_schema_for_path_mut(&mut state.result_set_schema, path.clone())
                 {

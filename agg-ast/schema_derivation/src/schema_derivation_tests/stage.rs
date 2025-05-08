@@ -808,6 +808,53 @@ mod unwind {
     );
 
     test_derive_stage_schema!(
+        field_ref_nested_anyofs_in_path_preserve_null_and_empty_arrays,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::AnyOf(set!(
+                            Schema::Atomic(Atomic::Null),
+                            Schema::Atomic(Atomic::Integer),
+                            Schema::Document(Document {
+                                keys: map! {
+                                    "c".to_string() => Schema::Atomic(Atomic::Double)
+                                },
+                                ..Default::default()
+                            })
+                        )),
+                    },
+                    ..Default::default()
+                })
+            },
+            required: set!("a".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$unwind": {"path": "$a.b.c", "preserveNullAndEmptyArrays": true}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::AnyOf(set!(
+                            Schema::Atomic(Atomic::Null),
+                            Schema::Atomic(Atomic::Integer),
+                            Schema::Document(Document {
+                                keys: map! {
+                                    "c".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Double)))
+                                },
+                                ..Default::default()
+                            })
+                        ))
+                    },
+                    ..Default::default()
+                })
+            },
+            required: set!("a".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
         document_no_options,
         expected = Ok(Schema::Document(Document {
             keys: map! {
@@ -848,7 +895,7 @@ mod unwind {
                     Schema::Atomic(Atomic::Null)
                 )),
             },
-            required: set!("bar".to_string(), "i".to_string()),
+            required: set!("i".to_string()),
             ..Default::default()
         })),
         input = r#"{"$unwind": {"path": "$foo", "includeArrayIndex": "i", "preserveNullAndEmptyArrays": true }}"#,
