@@ -1300,7 +1300,7 @@ impl<'de> Deserialize<'de> for Convert {
                     }) = to
                     {
                         match args.first() {
-                            // the two type can either be a string (the name of the type) or a numeric (int convertible)
+                            // the to type can either be a string (the name of the type) or a numeric (int convertible)
                             Some(Expression::Literal(LiteralValue::String(_)))
                             | Some(Expression::Literal(LiteralValue::Int32(_)))
                             | Some(Expression::Literal(LiteralValue::Int64(_)))
@@ -1469,7 +1469,7 @@ impl<'de> Deserialize<'de> for TopBottomN {
                             Ok(n) => n,
                             Err(_) => {
                                 return Err(serde_err::custom(
-                                    "invalid decimal literal value for n in bottomN operator",
+                                    "invalid decimal literal value for n in top/bottomN operator",
                                 ));
                             }
                         }
@@ -1486,16 +1486,16 @@ impl<'de> Deserialize<'de> for TopBottomN {
                                 Ok(n) => n,
                                 Err(_) => {
                                     return Err(serde_err::custom(
-                                        "invalid decimal literal value for n in bottomN operator",
+                                        "invalid decimal literal value for n in top/bottomN operator",
                                     ));
                                 }
                             }
                         }
                         _ => {
-                            return Err(serde_err::custom("n to bottomN must be an numeric"));
+                            return Err(serde_err::custom("n to top/bottomN must be an numeric"));
                         }
                     },
-                    _ => return Err(serde_err::custom("n to bottomN must be an numeric")),
+                    _ => return Err(serde_err::custom("n to top/bottomN must be an numeric")),
                 };
                 match (sort_by, output) {
                     (Some(sort_by), Some(output)) => Ok(TopBottomN {
@@ -1504,11 +1504,11 @@ impl<'de> Deserialize<'de> for TopBottomN {
                         n,
                     }),
                     _ => Err(serde_err::custom(
-                        "input and value must be specified for $unsetField",
+                        "sortBy and output must be specified for top/bottomN",
                     )),
                 }
             }
-            _ => Err(serde_err::custom("input to unsetField must be document")),
+            _ => Err(serde_err::custom("input to top/bottomN must be document")),
         }
     }
 }
