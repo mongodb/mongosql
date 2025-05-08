@@ -3,10 +3,11 @@
 # Put our own installation of Cargo first in the path to make sure this is the one used.
 # Otherwise, on MacOs it will use the version installed with Brew which is not as recent.
 if [ "Windows_NT" == "$OS" ]; then
-    export PATH="$HOME/.rustup/bin:$HOME/.cargo/bin:$PATH"
+    export CARGO_BIN="$HOME/.rustup/bin:$HOME/.cargo/bin"
 else
-    export PATH="$HOME/.cargo/bin:$PATH"
+    export CARGO_BIN="$HOME/.cargo/bin"
 fi
+export PATH="$CARGO_BIN:$PATH"
 export CARGO_NET_GIT_FETCH_WITH_CLI=true
 
 export GOPATH="$HOME/go"
@@ -46,7 +47,7 @@ MONGO_ORCHESTRATION_HOME: "${MONGO_ORCHESTRATION_HOME}"
 MONGODB_BINARIES: "${MONGODB_BINARIES}"
 ALLOW_VULNS: "${ALLOW_VULNS}"
 LIBRARY_PATH: "${LIBRARY_PATH}"
-cargo_bin: "$HOME/.cargo/bin"
+cargo_bin: "$CARGO_BIN"
 common_test_infra_dir: "$COMMON_TEST_INFRA_DIR"
 script_dir: "$COMMON_TEST_INFRA_DIR/evergreen/scripts"
 working_dir: "mongosql-rs"
