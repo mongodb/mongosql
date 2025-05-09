@@ -3733,6 +3733,24 @@ mod expression_test {
         );
 
         test_serde_expr!(
+            literal_empty_doc,
+            expected = Expression::UntaggedOperator(UntaggedOperator {
+                op: UntaggedOperatorName::Literal,
+                args: vec![Expression::Document(map!())]
+            }),
+            input = r#"expr: {"$literal": {}}"#
+        );
+
+        test_serde_expr!(
+            literal_empty_array,
+            expected = Expression::UntaggedOperator(UntaggedOperator {
+                op: UntaggedOperatorName::Literal,
+                args: vec![]
+            }),
+            input = r#"expr: {"$literal": []}"#
+        );
+
+        test_serde_expr!(
             empty_document_argument,
             expected = Expression::UntaggedOperator(UntaggedOperator {
                 op: UntaggedOperatorName::Count,

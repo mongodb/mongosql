@@ -241,9 +241,6 @@ tests:
                 "bsonType": "null"
               }, 
               {
-                "bsonType": "int"
-              }, 
-              {
                 "bsonType": "long"
               }, 
               {

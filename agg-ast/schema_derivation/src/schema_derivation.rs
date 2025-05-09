@@ -12,12 +12,10 @@ use agg_ast::definitions::{
 };
 use linked_hash_map::LinkedHashMap;
 use mongosql::{
-    map,
-    schema::{
+    json_schema, map, schema::{
         Atomic, Document, Satisfaction, Schema, ANY_DOCUMENT, DATE_OR_NULLISH, EMPTY_DOCUMENT,
         INTEGRAL, NULLISH, NULLISH_OR_UNDEFINED, NUMERIC, NUMERIC_OR_NULLISH,
-    },
-    set,
+    }, set
 };
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -178,6 +176,10 @@ impl DeriveSchema for Stage {
                             // field namespace - field schema. We collect in such a way that we can get the error from any derivation.
                             let doc_fields = document
                                 .into_iter()
+                                .filter(|(field, expr)| {
+                                    !(*field == "$literal"
+                                        && *expr == &Expression::Document(map!()))
+                                })
                                 .map(|(field, expr)| {
                                     let field_schema = expr.derive_schema(state)?;
                                     Ok((field.clone(), field_schema))
