@@ -15,6 +15,7 @@ bson = { workspace = true }
 
 [build-dependencies]
 test-utils = { path = "../test-utils" }
+sql-engines-common-test-infra = { git = "https://github.com/10gen/sql-engines-common-test-infra.git", branch = "main", package = "test-generator" }
 
 [features]
 index = ["generated"]
