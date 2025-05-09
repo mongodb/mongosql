@@ -1,10 +1,10 @@
 use crate::{
     definitions::{
         Cond, Convert, DateExpression, DateFromParts, DateFromString, DateToString, Expression,
-        LiteralValue, MatchArrayExpression, MatchArrayQuery, MatchBinaryOp, MatchElement,
+        GetField, LiteralValue, MatchArrayExpression, MatchArrayQuery, MatchBinaryOp, MatchElement,
         MatchExpression, MatchField, MatchNot, MatchNotExpression, MatchRegex, MatchStage,
-        ProjectItem, ProjectStage, Ref, SetWindowFieldsOutput, Trim, UntaggedOperator,
-        UntaggedOperatorName, VecOrSingleExpr, Window,
+        ProjectItem, ProjectStage, Ref, SetField, SetWindowFieldsOutput, TopBottomN, Trim,
+        UnsetField, UntaggedOperator, UntaggedOperatorName, VecOrSingleExpr, Window,
     },
     map,
 };
@@ -1294,6 +1294,25 @@ impl<'de> Deserialize<'de> for Convert {
                             ))
                         }
                     };
+                    let to = if let Expression::UntaggedOperator(UntaggedOperator {
+                        op: UntaggedOperatorName::Literal,
+                        args,
+                    }) = to
+                    {
+                        match args.first() {
+                            // the to type can either be a string (the name of the type) or a numeric (int convertible)
+                            Some(Expression::Literal(LiteralValue::String(_)))
+                            | Some(Expression::Literal(LiteralValue::Int32(_)))
+                            | Some(Expression::Literal(LiteralValue::Int64(_)))
+                            | Some(Expression::Literal(LiteralValue::Double(_)))
+                            | Some(Expression::Literal(LiteralValue::Decimal128(_))) => {
+                                args[0].to_owned()
+                            }
+                            _ => return Err(serde_err::custom("invalid to format for convert")),
+                        }
+                    } else {
+                        to
+                    };
                     let on_error = d.remove("onError").map(Box::new);
                     let on_null = d.remove("onNull").map(Box::new);
                     Ok(Convert {
@@ -1309,6 +1328,187 @@ impl<'de> Deserialize<'de> for Convert {
                 )),
             },
             _ => Err(serde_err::custom("input to convert must be document")),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for SetField {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let expression = Expression::deserialize(deserializer)?;
+        match expression {
+            Expression::Document(mut d) => {
+                let field = match d.remove("field") {
+                    Some(Expression::Literal(LiteralValue::String(s))) => s,
+                    Some(Expression::UntaggedOperator(UntaggedOperator {
+                        op: UntaggedOperatorName::Literal,
+                        args: a,
+                    })) => {
+                        if let Some(Expression::Literal(LiteralValue::String(s))) = a.first() {
+                            s.clone()
+                        } else {
+                            return Err(serde_err::custom("field to setField must be a string"));
+                        }
+                    }
+                    _ => return Err(serde_err::custom("field to setField must be a string")),
+                };
+                let input = d.remove("input");
+                let value = d.remove("value");
+                match (input, value) {
+                    (Some(input), Some(value)) => Ok(SetField {
+                        field,
+                        input: Box::new(input),
+                        value: Box::new(value),
+                    }),
+                    _ => Err(serde_err::custom(
+                        "input and value must be specified for $setField",
+                    )),
+                }
+            }
+            _ => Err(serde_err::custom("input to setField must be document")),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for GetField {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let expression = Expression::deserialize(deserializer)?;
+        match expression {
+            Expression::Document(mut d) => {
+                let field = match d.remove("field") {
+                    Some(Expression::Literal(LiteralValue::String(s))) => s,
+                    Some(Expression::UntaggedOperator(UntaggedOperator {
+                        op: UntaggedOperatorName::Literal,
+                        args: a,
+                    })) => {
+                        if let Some(Expression::Literal(LiteralValue::String(s))) = a.first() {
+                            s.clone()
+                        } else {
+                            return Err(serde_err::custom("field to getField must be a string"));
+                        }
+                    }
+                    _ => return Err(serde_err::custom("field to getField must be a string")),
+                };
+                let input = d.remove("input");
+                if let Some(input) = input {
+                    Ok(GetField {
+                        field,
+                        input: Box::new(input),
+                    })
+                } else {
+                    Err(serde_err::custom(
+                        "input and value must be specified for $getField",
+                    ))
+                }
+            }
+            _ => Err(serde_err::custom("input to getField must be document")),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for UnsetField {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let expression = Expression::deserialize(deserializer)?;
+        match expression {
+            Expression::Document(mut d) => {
+                let field = match d.remove("field") {
+                    Some(Expression::Literal(LiteralValue::String(s))) => s,
+                    Some(Expression::UntaggedOperator(UntaggedOperator {
+                        op: UntaggedOperatorName::Literal,
+                        args: a,
+                    })) => {
+                        if let Some(Expression::Literal(LiteralValue::String(s))) = a.first() {
+                            s.clone()
+                        } else {
+                            return Err(serde_err::custom("field to unsetField must be a string"));
+                        }
+                    }
+                    _ => return Err(serde_err::custom("field to unsetField must be a string")),
+                };
+                let input = d.remove("input");
+                if let Some(input) = input {
+                    Ok(UnsetField {
+                        field,
+                        input: Box::new(input),
+                    })
+                } else {
+                    Err(serde_err::custom(
+                        "input and value must be specified for $unsetField",
+                    ))
+                }
+            }
+            _ => Err(serde_err::custom("input to unsetField must be document")),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for TopBottomN {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let expression = Expression::deserialize(deserializer)?;
+        match expression {
+            Expression::Document(mut d) => {
+                let sort_by = d.remove("sortBy");
+                let output = d.remove("output");
+                let n = match d.remove("n") {
+                    Some(Expression::Literal(LiteralValue::Int32(n))) => n as i64,
+                    Some(Expression::Literal(LiteralValue::Int64(n))) => n,
+                    Some(Expression::Literal(LiteralValue::Double(n))) => n as i64,
+                    Some(Expression::Literal(LiteralValue::Decimal128(n))) => {
+                        match n.to_string().parse::<i64>() {
+                            Ok(n) => n,
+                            Err(_) => {
+                                return Err(serde_err::custom(
+                                    "invalid decimal literal value for n in top/bottomN operator",
+                                ));
+                            }
+                        }
+                    }
+                    Some(Expression::UntaggedOperator(UntaggedOperator {
+                        op: UntaggedOperatorName::Literal,
+                        args: a,
+                    })) => match a.first() {
+                        Some(Expression::Literal(LiteralValue::Int32(n))) => *n as i64,
+                        Some(Expression::Literal(LiteralValue::Int64(n))) => *n,
+                        Some(Expression::Literal(LiteralValue::Double(n))) => *n as i64,
+                        Some(Expression::Literal(LiteralValue::Decimal128(n))) => {
+                            match n.to_string().parse::<i64>() {
+                                Ok(n) => n,
+                                Err(_) => {
+                                    return Err(serde_err::custom(
+                                        "invalid decimal literal value for n in top/bottomN operator",
+                                    ));
+                                }
+                            }
+                        }
+                        _ => {
+                            return Err(serde_err::custom("n to top/bottomN must be an numeric"));
+                        }
+                    },
+                    _ => return Err(serde_err::custom("n to top/bottomN must be an numeric")),
+                };
+                match (sort_by, output) {
+                    (Some(sort_by), Some(output)) => Ok(TopBottomN {
+                        sort_by: Box::new(sort_by),
+                        output: Box::new(output),
+                        n,
+                    }),
+                    _ => Err(serde_err::custom(
+                        "sortBy and output must be specified for top/bottomN",
+                    )),
+                }
+            }
+            _ => Err(serde_err::custom("input to top/bottomN must be document")),
         }
     }
 }
