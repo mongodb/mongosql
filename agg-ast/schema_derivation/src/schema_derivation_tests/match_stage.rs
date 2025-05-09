@@ -322,6 +322,44 @@ test_derive_schema_for_match_stage! {
 }
 
 test_derive_schema_for_match_stage! {
+    derivation_for_nested_anyof_exists_true,
+    expected = Ok(Schema::Document(Document {
+        keys: map! {
+            "foo".to_string() => Schema::Document(Document {
+                keys: map! {
+                    "a".to_string() => Schema::Document(Document {
+                        keys: map! {
+                            "b".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!{"b".to_string()},
+                        ..Default::default()
+                    }),
+                },
+                required: set!{"a".to_string()},
+                ..Default::default()
+            }),
+        },
+        required: set!{"foo".to_string()},
+        ..Default::default()
+    })),
+    input = r#"{"$match": {"foo.a.b": {"$exists": true}}}"#,
+    ref_schema = Schema::AnyOf(set!(
+        Schema::Missing,
+        Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    ..Default::default()
+                }),
+            },
+            ..Default::default()
+        }),
+    ))
+}
+
+test_derive_schema_for_match_stage! {
     derivation_for_exists_0,
     expected = Ok(Schema::Document(Document {
         ..Default::default()
