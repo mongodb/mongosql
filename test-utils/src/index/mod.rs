@@ -7,7 +7,45 @@ use mongodb::{
 };
 use mongosql::Translation;
 use serde::{Deserialize, Serialize};
+use sql_engines_common_test_infra::{TestGenerator, YamlTestCase};
+use std::fs::File;
 use std::{collections::BTreeMap, fs, io::Read, path::PathBuf};
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IndexUsageTestExpectations {
+    pub expected_utilization: IndexUtilization,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IndexUsageTestOptions {
+    pub current_db: String,
+}
+
+pub type IndexUsageTestCase =
+    YamlTestCase<String, IndexUsageTestOptions, IndexUsageTestExpectations>;
+
+pub struct IndexUsageTestGenerator;
+
+impl TestGenerator for IndexUsageTestGenerator {
+    type YamlTestCase = IndexUsageTestCase;
+
+    fn generate_test_file_header(
+        &self,
+        generated_test_file: &mut File,
+        canonicalized_path: String,
+    ) -> sql_engines_common_test_infra::Result<()> {
+        todo!()
+    }
+
+    fn generate_test_case(
+        &self,
+        generated_test_file: &mut File,
+        index: usize,
+        test_case: &Self::YamlTestCase,
+    ) -> sql_engines_common_test_infra::Result<()> {
+        todo!()
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IndexUsageYamlTestFile {

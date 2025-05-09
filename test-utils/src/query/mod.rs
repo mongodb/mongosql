@@ -1,13 +1,14 @@
 #![allow(clippy::result_large_err)]
+use super::Error;
 use mongodb::{
     bson::{doc, Bson, Decimal128, Document},
     sync::Client,
 };
 use mongosql::Translation;
 use serde::{Deserialize, Serialize};
+use sql_engines_common_test_infra::{TestGenerator, YamlTestCase};
+use std::fs::File;
 use std::{collections::HashSet, fs, io::Read, path::PathBuf};
-
-use super::Error;
 
 /// load_query_test_files loads the YAML files in the provided `dir` into a Vec
 /// of QueryYamlTestFile structs.
@@ -23,6 +24,51 @@ pub fn load_query_test_files(dir: PathBuf) -> Result<Vec<QueryYamlTestFile>, Err
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct QueryTestExpectations {
+    pub result: Option<Vec<Document>>,
+    pub parse_error: Option<String>,
+    pub algebrize_error: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct QueryTestOptions {
+    pub current_db: Option<String>,
+    pub catalog_dbs: Option<Vec<String>>,
+    pub exclude_namespaces: Option<bool>,
+    pub should_compile: Option<bool>,
+    pub allow_order_by_missing: Option<bool>,
+    pub ordered: Option<bool>,
+    pub type_compare: Option<bool>,
+}
+
+pub type QueryTestCase = YamlTestCase<String, QueryTestExpectations, QueryTestOptions>;
+
+pub struct QueryTestGenerator {
+    pub feature: String,
+}
+
+impl TestGenerator for QueryTestGenerator {
+    type YamlTestCase = QueryTestCase;
+
+    fn generate_test_file_header(
+        &self,
+        generated_test_file: &mut File,
+        canonicalized_path: String,
+    ) -> sql_engines_common_test_infra::Result<()> {
+        todo!()
+    }
+
+    fn generate_test_case(
+        &self,
+        generated_test_file: &mut File,
+        index: usize,
+        test_case: &Self::YamlTestCase,
+    ) -> sql_engines_common_test_infra::Result<()> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct QueryYamlTestFile {
     pub tests: Vec<QueryTest>,
 }
@@ -31,9 +77,9 @@ pub struct QueryYamlTestFile {
 pub struct QueryTest {
     pub description: String,
     pub skip_reason: Option<String>,
+    pub query: String,
     pub current_db: Option<String>,
     pub catalog_dbs: Option<Vec<String>>,
-    pub query: String,
     pub exclude_namespaces: Option<bool>,
     pub should_compile: Option<bool>,
     pub result: Option<Vec<Document>>,

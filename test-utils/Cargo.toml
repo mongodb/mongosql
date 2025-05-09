@@ -11,9 +11,10 @@ itertools = { workspace = true }
 lazy_static = { workspace = true }
 mongosql = { path = "../mongosql" }
 serde = { workspace = true, features = ["derive"] }
-serde_yaml = { workspace = true }
-thiserror = { workspace = true }
 serde_stacker = { workspace = true }
+serde_yaml = { workspace = true }
+sql-engines-common-test-infra = { git = "https://github.com/10gen/sql-engines-common-test-infra.git", branch = "main", package = "test-generator" }
+thiserror = { workspace = true }
 
 [dependencies.mongodb]
 version = "3.1.0"
