@@ -7,13 +7,3 @@ dataset:
     schema:
       bsonType: "object"
       additionalProperties: true
-
-  # SQL-xxx: Should this actually be part of the spec?
-#  - db: "information_schema"
-#    collection:
-#      name: "mytbl"
-#      docs:
-#        - { "_id": 0, "a": 1 }
-#    schema:
-#      bsonType: "object"
-#      additionalProperties: true
