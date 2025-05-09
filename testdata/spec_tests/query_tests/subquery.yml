@@ -1,0 +1,87 @@
+dataset:
+  - db: "spec_query_subquery"
+    collection:
+      name: "employees"
+      docs:
+        - { "_id": 1, "name": "a", "salary": 2, "department_id": 1 }
+        - { "_id": 2, "name": "b", "salary": 4, "department_id": 1 }
+        - { "_id": 3, "name": "c", "salary": 9, "department_id": 1 }
+        - { "_id": 4, "name": "d", "salary": 1, "department_id": 2 }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "name", "salary", "department_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        name:
+          bsonType: "string"
+        salary:
+          bsonType: "int"
+        department_id:
+          bsonType: "int"
+
+  - db: "spec_query_subquery"
+    collection:
+      name: "department"
+      docs:
+        - { "_id": 1, "name": "d1" }
+        - { "_id": 2, "name": "d2" }
+        - { "_id": 3, "name": "d3" }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "name" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        name:
+          bsonType: "string"
+
+  - db: "spec_query_subquery"
+    collection:
+      name: "employees_w_schema"
+      docs:
+        - { "_id": 1, "name": "a", "salary": 2, "department_id": 1 }
+        - { "_id": 2, "name": "b", "salary": 4, "department_id": 1 }
+        - { "_id": 3, "name": "c", "salary": 9, "department_id": 1 }
+        - { "_id": 4, "name": "d", "salary": 1, "department_id": 2 }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "name", "salary", "department_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        name:
+          bsonType: "string"
+        salary:
+          bsonType: "int"
+        department_id:
+          bsonType: "int"
+
+  - db: "spec_query_subquery"
+    collection:
+      name: "department_w_schema"
+      docs:
+        - { "_id": 1, "name": "d1" }
+        - { "_id": 2, "name": "d2" }
+        - { "_id": 3, "name": "d3" }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "name" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        name:
+          bsonType: "string"
+
+  - db: "spec_query_subquery"
+    collection:
+      name: "baz"
+      docs:
+        - { "_id": 1, "a": "foo" }
+    schema:
+      bsonType: "object"
+      additionalProperties: true

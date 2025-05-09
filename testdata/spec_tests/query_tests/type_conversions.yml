@@ -1,0 +1,167 @@
+dataset:
+  - db: "spec_query_type_conversions"
+    collection:
+      name: "doubles"
+      docs:
+        - { "_id": 0, "v": { "$numberDouble": "0" } }
+        - { "_id": 1, "v": { "$numberDouble": "1.9" } }
+        - { "_id": 2, "v": { "$numberDouble": "-2.4" } }
+        - { "_id": 3, "v": { "$numberDouble": "2147483648.4" } }
+        - { "_id": 4, "v": { "$numberDouble": "-2147483649.7" } }
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "spec_query_type_conversions"
+    collection:
+      name: "strings"
+      docs:
+        - { "_id": 0, "v": "" }
+        - { "_id": 1, "v": "string" }
+        - { "_id": 2, "v": "true" }
+        - { "_id": 3, "v": "false" }
+        - { "_id": 4, "v": "0" }
+        - { "_id": 5, "v": "0.0" }
+        - { "_id": 6, "v": "1" }
+        - { "_id": 7, "v": "-1" }
+        - { "_id": 8, "v": "1.4" }
+        - { "_id": 9, "v": "-1.6" }
+        - { "_id": 10, "v": "2147483648" }
+        - { "_id": 11, "v": "-2147483649" }
+        - { "_id": 12, "v": "9223372036854775808" }
+        - { "_id": 13, "v": "-9223372036854775809" }
+        - { "_id": 14, "v": "5e550" }
+        - { "_id": 15, "v": "2018-03-03" }
+        - { "_id": 16, "v": "2018-03-20 11:00:06 +0500" }
+        - { "_id": 17, "v": "5ab9cbfa31c2ab715d42129e" }
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "spec_query_type_conversions"
+    collection:
+      name: "documents"
+      docs:
+        - { "_id": 0, "v": {} }
+        - { "_id": 1, "v": { "a": 1, "b": 2} }
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "spec_query_type_conversions"
+    collection:
+      name: "arrays"
+      docs:
+        - { "_id": 0, "v": [] }
+        - { "_id": 1, "v": [1, 2, 3] }
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "spec_query_type_conversions"
+    collection:
+      name: "bindatum"
+      docs:
+        - { "_id": 0, "v": { "$binary": { "base64": "hn3uUsMxSE6S0cVkebjmfg==", "subType": "04" } }  }
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "spec_query_type_conversions"
+    collection:
+      name: "objectIDs"
+      docs:
+        - { "_id": 0, "v": { "$oid": "5ab9c3da31c2ab715d421285" } }
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "spec_query_type_conversions"
+    collection:
+      name: "bools"
+      docs:
+        - { "_id": 0, "v": true }
+        - { "_id": 1, "v": false }
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "spec_query_type_conversions"
+    collection:
+      name: "dates"
+      docs:
+        - { "_id": 0, "v": { "$date": { "$numberLong": "0" } } }
+        - { "_id": 1, "v": { "$date": { "$numberLong": "253402300799999" } } }
+        - { "_id": 2, "v": { "$date": { "$numberLong": "-62135596800000" } } }
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "spec_query_type_conversions"
+    collection:
+      name: "nullAndMissing"
+      docs:
+        - { "_id": 0, "v": null }
+        - { "_id": 1 }
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "spec_query_type_conversions"
+    collection:
+      name: "ints"
+      docs:
+        - { "_id": 0, "v": { "$numberInt": "0" } }
+        - { "_id": 1, "v": { "$numberInt": "1" } }
+        - { "_id": 2, "v": { "$numberInt": "-2" } }
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "spec_query_type_conversions"
+    collection:
+      name: "longs"
+      docs:
+        - { "_id": 0, "v": { "$numberLong": "0" } }
+        - { "_id": 1, "v": { "$numberLong": "1" } }
+        - { "_id": 2, "v": { "$numberLong": "-2" } }
+        - { "_id": 3, "v": { "$numberLong": "2147483648" } }
+        - { "_id": 4, "v": { "$numberLong": "-2147483649" } }
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "spec_query_type_conversions"
+    collection:
+      name: "decimals"
+      docs:
+        - { "_id": 0, "v": { "$numberDecimal": "0" } }
+        - { "_id": 1, "v": { "$numberDecimal": "1.9" } }
+        - { "_id": 2, "v": { "$numberDecimal": "-2.4" } }
+        - { "_id": 3, "v": { "$numberDecimal": "2147483648.4" } }
+        - { "_id": 4, "v": { "$numberDecimal": "-2147483649.4" } }
+        - { "_id": 5, "v": { "$numberDecimal": "9223372036854775808.8" } }
+        - { "_id": 6, "v": { "$numberDecimal": "-9223372036854775809.8" } }
+        - { "_id": 7, "v": { "$numberDecimal": "1.8976931348623157E308" } }
+        - { "_id": 8, "v": { "$numberDecimal": "-1.8976931348623157E308" } }
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "spec_query_type_conversions"
+    collection:
+      name: "invalidSourceTypes"
+      docs:
+        - { "_id": 0, "type": "binData", "v": { "$binary": { "base64": "yO2rw/c4TKO2jauSqRR4ow==", "subType": "04" } } }
+        - { "_id": 1, "type": "undefined", "v": { "$undefined": true} }
+        - { "_id": 2, "type": "regex", "v": { "$regularExpression": { "pattern": "foo*", "options": "ix" } } }
+        - { "_id": 3, "type": "dbPointer", "v": { "$dbPointer": { "$ref": "foo", "$id": { "$oid": "57e193d7a9cc81b4027498b5" } }} }
+        - { "_id": 4, "type": "javascript", "v": { "$code": "function() {}" } }
+        - { "_id": 5, "type": "symbol", "v": { "$symbol": "symbol" } }
+        - { "_id": 6, "type": "javascriptWithScope", "v": { "$code": "function() {}", "$scope": {} } }
+        - { "_id": 7, "type": "timestamp", "v": { "$timestamp": { "t": 42, "i": 1} } }
+        - { "_id": 8, "type": "minKey", "v": { "$minKey": 1} }
+        - { "_id": 9, "type": "maxKey", "v": { "$maxKey": 1} }
+    schema:
+      bsonType: "object"
+      additionalProperties: true

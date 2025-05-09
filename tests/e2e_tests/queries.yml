@@ -1,282 +1,12 @@
-"catalog_data":
-  "mydb":
-    "bar":
-      - { "_id": 0, "foo": 1 }
-      - { "_id": 1, "foo": 42 }
-    "bar2":
-      - { "_id": 0, "foo": 42, "baz": 63 }
-      - { "_id": 1, "foo": 43 }
-    "coll":
-      - { "_id": 0, "bar": 53, "car": 42 }
-  "db2":
-    "foo":
-      - { "_id": 0, "x": 1 }
-  "testquerydb":
-    "foo":
-      - {
-          "_id": 0,
-          "a": { "$numberInt": "1" },
-          "b": { "$numberInt": "2" },
-          "coll": "foo",
-        }
-      - {
-          "_id": 1,
-          "a": { "$numberInt": "2" },
-          "b": { "$numberInt": "1" },
-          "coll": "foo",
-        }
-    "foo2":
-      - {
-          "_id": 0,
-          "a": { "$numberInt": "4" },
-          "b": { "$numberInt": "5" },
-          "coll": "foo",
-        }
-      - {
-          "_id": 1,
-          "a": { "$numberInt": "5" },
-          "b": { "$numberInt": "4" },
-          "coll": "foo",
-        }
-    "_foo":
-      - {
-          "_id": 0,
-          "a": { "$numberInt": "1" },
-          "b": { "$numberInt": "2" },
-          "coll": "_foo",
-        }
-      - {
-          "_id": 1,
-          "a": { "$numberInt": "2" },
-          "b": { "$numberInt": "1" },
-          "coll": "_foo",
-        }
-    "bar.baz":
-      - {
-          "_id": 0,
-          "a": { "$numberInt": "1" },
-          "b": { "$numberInt": "2" },
-          "coll": "bar.baz",
-        }
-      - {
-          "_id": 1,
-          "a": { "$numberInt": "2" },
-          "b": { "$numberInt": "1" },
-          "coll": "bar.baz",
-        }
-    "bar":
-      - {
-          "_id": 0,
-          "a": { "$numberInt": "1" },
-          "b": { "$numberInt": "2" },
-          "coll": "bar",
-        }
-      - {
-          "_id": 1,
-          "a": { "$numberInt": "2" },
-          "b": { "$numberInt": "1" },
-          "coll": "bar",
-        }
-    "boolz":
-      - { "_id": 0, "a": true, "b": 1 }
-      - { "_id": 1, "a": false, "b": 1 }
-  "test_db":
-    "foo":
-      - { "_id": 0, "a1": [ 1, 2, 3 ], "a2": [ { "x": 1 }, { "x": 2 } ] }
-    "bar":
-      - { "_id": 0, a: 1 }
-      - { "_id": 1, a: 6 }
-      - { "_id": 2, a: 11 }
-
-"catalog_schema":
-  {
-    "shared":
-      {
-        "notation":
-           {"bsonType":["object"],"properties":{"value":{"bsonType":["string"]},"variableScope":{"bsonType":["int"]},"notebookId":{"bsonType":["objectId"]},"notationDate":{"bsonType":["date"]},"tenantId":{"bsonType":["objectId"]},"subjectType":{"bsonType":["int"]},"observationRoundId":{"bsonType":["null"]},"reviewStatus":{"bsonType":["int"]},"_id":{"bsonType":["objectId"]},"subjectId":{"bsonType":["objectId"]},"variableId":{"bsonType":["objectId"]},"finalValue":{"bsonType":["string"]},"systemMetadata":{"bsonType":["object"],"properties":{"updatedBy":{"bsonType":["string"]},"schemaVersion":{"bsonType":["int"]},"createdBy":{"bsonType":["string"]},"createdDate":{"bsonType":["date"]},"updatedDate":{"bsonType":["date"]}},"additionalProperties":false},"observerId":{"bsonType":["null"]}},"additionalProperties":false,"required":["_id","notebookId","subjectType","subjectId","variableId","variableScope","notationDate","value","systemMetadata","reviewStatus","finalValue","tenantId","observationRoundId","observerId"]},
-        "notebook":
-           {"bsonType":["object"],"properties":{"trialId":{"bsonType":["objectId"]},"observationRoundId":{"bsonType":["objectId"]},"observerId":{"bsonType":["string"]},"systemMetadata":{"bsonType":["object"],"properties":{"createdBy":{"bsonType":["string"]},"createdDate":{"bsonType":["date"]},"updatedDate":{"bsonType":["date"]},"updatedBy":{"bsonType":["string"]},"schemaVersion":{"bsonType":["int"]}},"additionalProperties":false},"tenantId":{"bsonType":["objectId"]},"completion":{"bsonType":["object"],"properties":{"totalDone":{"bsonType":["int"]},"totalExpected":{"bsonType":["int"]}},"additionalProperties":false},"_id":{"bsonType":["objectId"]},"status":{"bsonType":["string"]}},"additionalProperties":false,"required":["_id","status","trialId","observationRoundId","observerId","systemMetadata","tenantId","completion"]},
-        "opTask":
-           {"bsonType":["object"],"properties":{"systemMetadata":{"bsonType":["object"],"properties":{"schemaVersion":{"bsonType":["int"]},"createdBy":{"bsonType":["string"]},"createdDate":{"bsonType":["date"]},"updatedDate":{"bsonType":["date"]},"updatedBy":{"bsonType":["string"]}},"additionalProperties":false},"startDate":{"bsonType":["date"]},"team":{"bsonType":["array"],"items":{"bsonType":["string"]}},"experimentId":{"bsonType":["objectId"]},"status":{"bsonType":["string"]},"tenantId":{"bsonType":["objectId"]},"eventOption":{"bsonType":["bool"]},"endDate":{"bsonType":["date"]},"_id":{"bsonType":["objectId"]},"name":{"bsonType":["string"]},"isTemplate":{"bsonType":["bool"]},"type":{"bsonType":["string"]},"variableGroupId":{"bsonType":["objectId"]},"trialId":{"bsonType":["null"]}},"additionalProperties":false,"required":["_id","name","type","endDate","startDate","status","team","experimentId","isTemplate","systemMetadata","eventOption","variableGroupId","tenantId","trialId"]},
-        "plot":
-           {"bsonType":["object"],"properties":{"codification":{"bsonType":["string"]},"treatmentId":{"bsonType":["objectId"]},"trialId":{"bsonType":["objectId"]},"qtyOfSeeds":{"bsonType":["int"]},"repNumber":{"bsonType":["int"]},"tenantId":{"bsonType":["objectId"]},"plotId":{"bsonType":["string"]},"_id":{"bsonType":["objectId"]},"systemMetadata":{"bsonType":["object"],"properties":{"updatedDate":{"bsonType":["date"]},"updatedBy":{"bsonType":["string"]},"schemaVersion":{"bsonType":["int"]},"createdBy":{"bsonType":["string"]},"createdDate":{"bsonType":["date"]}},"additionalProperties":false}},"additionalProperties":false,"required":["_id","systemMetadata","treatmentId","trialId","codification","qtyOfSeeds","plotId","repNumber","tenantId"]},
-        "varGroup":
-           {"bsonType":["object"],"properties":{"tenantId":{"bsonType":["objectId"]},"_id":{"bsonType":["objectId"]},"name":{"bsonType":["string"]},"variables":{"bsonType":["array"],"items":{"bsonType":["object"],"properties":{"variableId":{"bsonType":["objectId"]},"scope":{"bsonType":["int"]}},"additionalProperties":false}},"templateObsId":{"bsonType":["objectId"]}},"additionalProperties":false,"required":["_id","name","variables","templateObsId","tenantId"]},
-        "variable":
-           {"bsonType":["object"],"properties":{"identifier":{"bsonType":["string"]},"name":{"bsonType":["object"],"properties":{"en":{"bsonType":["string"]}},"additionalProperties":false},"type":{"bsonType":["string"]},"tenantId":{"bsonType":["objectId"]},"systemMetadata":{"bsonType":["object"],"properties":{"createdBy":{"bsonType":["string"]},"createdDate":{"bsonType":["date"]},"updatedBy":{"bsonType":["string"]},"updatedDate":{"bsonType":["date"]},"schemaVersion":{"bsonType":["int"]}},"additionalProperties":false},"category":{"bsonType":["int"]},"scope":{"bsonType":["int"]},"shortName":{"bsonType":["string"]},"limitedChoices":{"bsonType":["array"],"items":{"bsonType":["object"],"properties":{"label":{"bsonType":["string"]},"value":{"bsonType":["int"]}},"additionalProperties":false}},"_id":{"bsonType":["objectId"]},"description":{"bsonType":["string"]},"inputType":{"bsonType":["string"]}},"additionalProperties":false,"required":["_id","category","identifier","inputType","name","scope","shortName","type","description","limitedChoices","tenantId","systemMetadata"]}
-      },
-    "testquerydb":
-      {
-        "foo":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a", "b", "coll"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a": { "bsonType": "int" },
-                "b": { "bsonType": "int" },
-                "coll": { "bsonType": "string" },
-              },
-          },
-        "foo2":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a", "b", "coll"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a": { "bsonType": "int" },
-                "b": { "bsonType": "int" },
-                "coll": { "bsonType": "string" },
-              },
-          },
-        "_foo":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a", "b", "coll"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a": { "bsonType": "int" },
-                "b": { "bsonType": "int" },
-                "coll": { "bsonType": "string" },
-              },
-          },
-        "bar.baz":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a", "b", "coll"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a": { "bsonType": "int" },
-                "b": { "bsonType": "int" },
-                "coll": { "bsonType": "string" },
-              },
-          },
-        "bar":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a", "b", "coll"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a": { "bsonType": "int" },
-                "b": { "bsonType": "int" },
-                "coll": { "bsonType": "string" },
-              },
-          },
-        "boolz":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a", "b"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a": { "bsonType": "bool" },
-                "b": { "bsonType": "int" },
-              },
-          },
-      },
-    "mydb":
-      {
-        "bar":
-          {
-            "bsonType": "object",
-            "required": ["foo"],
-            "additionalProperties": false,
-            "properties":
-              { "_id": { "bsonType": "int" }, "foo": { "bsonType": "int" } },
-          },
-        "bar2":
-          {
-            "bsonType": "object",
-            "required": ["foo"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "foo": { "bsonType": "int" },
-                "baz": { "bsonType": "int" },
-              },
-          },
-        "coll":
-          {
-            "bsonType": "object",
-            "required": ["bar", "car"],
-            "additionalProperties": false,
-            "properties":
-              { "bar": { "bsonType": "int" }, "car": { "bsonType": "int" } },
-          },
-      },
-    "db2":
-      {
-        "foo":
-          {
-            "bsonType": "object",
-            "required": ["x"],
-            "additionalProperties": false,
-            "properties": { "x": { "bsonType": "int" } },
-          },
-      },
-    "test_db":
-      {
-        "foo":
-          {
-            "bsonType": "object",
-            "required": [ "_id", "a1", "a2" ],
-            "additionalProperties": false,
-            "properties": {
-              "_id": { "bsonType": "int" },
-              "a1": {
-                "bsonType": "array",
-                "items": {
-                  "bsonType": "int",
-                }
-              },
-              "a2": {
-                "bsonType": "array",
-                "items": {
-                  "bsonType": "object",
-                  "required": [ "x" ],
-                  "additionalProperties": false,
-                  "properties": {
-                    "x": { "bsonType": "int" }
-                  }
-                }
-              },
-            },
-          },
-        "bar":
-          {
-            "bsonType": "object",
-            "required": [ "_id", "a" ],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a": { "bsonType": "int" }
-              }
-          }
-      },
-  }
-
 tests:
   - description: HELP-57147
-    query: "SELECT `var_group_variables__count` `var_group_variables__count`, `plot__count` `plot__count`, `notation__count` `notation__count` FROM ( SELECT `main__variable`.identifier `variable__identifier`, count( `main__plot`._id) `plot__count`, count( `main__notation`._id) `notation__count` FROM shared.notation AS `main__notation` LEFT JOIN shared.notebook AS `main__notebook` ON `main__notation`.notebookId = `main__notebook`._id LEFT JOIN shared.plot AS `main__plot` ON `main__notation`.subjectId = `main__plot`._id LEFT JOIN shared.variable AS `main__variable` ON `main__variable`._id = `main__notation`.variableId LEFT JOIN shared.opTask AS `main__op_task` ON `main__notebook`.observationRoundId = `main__op_task`._id LEFT JOIN ( SELECT variables_variableId, _id FROM FLATTEN( UNWIND( shared.varGroup WITH PATH => variables, INDEX => idx ) ) ) AS `main__var_group_variables` ON `main__op_task`.variableGroupId = `main__var_group_variables`._id WHERE (`main__notebook`.trialId = CAST('65b3ca00089363af01fa2e38' AS OBJECTID)) GROUP BY `variable__identifier` ) as q_0 LEFT JOIN ( SELECT `Y`.`variable__identifier`, count( `var_group_variables_key__var_group_variables`._id ) `var_group_variables__count` FROM ( SELECT `var_group_variables_key__variable`.identifier `variable__identifier`, `X`._id `var_group_variables__id` FROM shared.notation AS `var_group_variables_key__notation` LEFT JOIN shared.notebook AS `var_group_variables_key__notebook` ON `var_group_variables_key__notation`.notebookId = `var_group_variables_key__notebook`._id LEFT JOIN shared.plot AS `var_group_variables_key__plot` ON `var_group_variables_key__notation`.subjectId = `var_group_variables_key__plot`._id LEFT JOIN shared.variable AS `var_group_variables_key__variable` ON `var_group_variables_key__variable`._id = `var_group_variables_key__notation`.variableId LEFT JOIN shared.opTask AS `var_group_variables_key__op_task` ON `var_group_variables_key__notebook`.observationRoundId = `var_group_variables_key__op_task`._id LEFT JOIN ( SELECT variables_variableId, _id FROM FLATTEN( UNWIND( shared.varGroup WITH PATH => variables, INDEX => idx ) ) ) AS `X` ON `var_group_variables_key__op_task`.variableGroupId = `X`._id WHERE ( `var_group_variables_key__notebook`.trialId = '65b3ca00089363af01fa2e38'::OBJECTID ) ) AS `Y` LEFT JOIN ( SELECT variables_variableId, _id FROM FLATTEN( UNWIND( shared.varGroup WITH PATH => variables, INDEX => idx ) ) ) AS `var_group_variables_key__var_group_variables` ON `Y`.`var_group_variables__id` = `var_group_variables_key__var_group_variables`._id GROUP BY `variable__identifier` ) as q_1 ON ( q_0.`variable__identifier` = q_1.`variable__identifier`)"
-    current_db: shared
+    query: "SELECT `var_group_variables__count` `var_group_variables__count`, `plot__count` `plot__count`, `notation__count` `notation__count` FROM ( SELECT `main__variable`.identifier `variable__identifier`, count( `main__plot`._id) `plot__count`, count( `main__notation`._id) `notation__count` FROM e2e_queries_shared.notation AS `main__notation` LEFT JOIN e2e_queries_shared.notebook AS `main__notebook` ON `main__notation`.notebookId = `main__notebook`._id LEFT JOIN e2e_queries_shared.plot AS `main__plot` ON `main__notation`.subjectId = `main__plot`._id LEFT JOIN e2e_queries_shared.variable AS `main__variable` ON `main__variable`._id = `main__notation`.variableId LEFT JOIN e2e_queries_shared.opTask AS `main__op_task` ON `main__notebook`.observationRoundId = `main__op_task`._id LEFT JOIN ( SELECT variables_variableId, _id FROM FLATTEN( UNWIND( e2e_queries_shared.varGroup WITH PATH => variables, INDEX => idx ) ) ) AS `main__var_group_variables` ON `main__op_task`.variableGroupId = `main__var_group_variables`._id WHERE (`main__notebook`.trialId = CAST('65b3ca00089363af01fa2e38' AS OBJECTID)) GROUP BY `variable__identifier` ) as q_0 LEFT JOIN ( SELECT `Y`.`variable__identifier`, count( `var_group_variables_key__var_group_variables`._id ) `var_group_variables__count` FROM ( SELECT `var_group_variables_key__variable`.identifier `variable__identifier`, `X`._id `var_group_variables__id` FROM e2e_queries_shared.notation AS `var_group_variables_key__notation` LEFT JOIN e2e_queries_shared.notebook AS `var_group_variables_key__notebook` ON `var_group_variables_key__notation`.notebookId = `var_group_variables_key__notebook`._id LEFT JOIN e2e_queries_shared.plot AS `var_group_variables_key__plot` ON `var_group_variables_key__notation`.subjectId = `var_group_variables_key__plot`._id LEFT JOIN e2e_queries_shared.variable AS `var_group_variables_key__variable` ON `var_group_variables_key__variable`._id = `var_group_variables_key__notation`.variableId LEFT JOIN e2e_queries_shared.opTask AS `var_group_variables_key__op_task` ON `var_group_variables_key__notebook`.observationRoundId = `var_group_variables_key__op_task`._id LEFT JOIN ( SELECT variables_variableId, _id FROM FLATTEN( UNWIND( e2e_queries_shared.varGroup WITH PATH => variables, INDEX => idx ) ) ) AS `X` ON `var_group_variables_key__op_task`.variableGroupId = `X`._id WHERE ( `var_group_variables_key__notebook`.trialId = '65b3ca00089363af01fa2e38'::OBJECTID ) ) AS `Y` LEFT JOIN ( SELECT variables_variableId, _id FROM FLATTEN( UNWIND( e2e_queries_shared.varGroup WITH PATH => variables, INDEX => idx ) ) ) AS `var_group_variables_key__var_group_variables` ON `Y`.`var_group_variables__id` = `var_group_variables_key__var_group_variables`._id GROUP BY `variable__identifier` ) as q_1 ON ( q_0.`variable__identifier` = q_1.`variable__identifier`)"
+    current_db: e2e_queries_shared
     result: []
 
   - description: Can use $ and . characters in collection aliases
     query: "SELECT * FROM foo as `$foo.alias`"
-    current_db: testquerydb
+    current_db: e2e_queries_db2
     result:
       - {
           "$foo.alias":
@@ -299,14 +29,14 @@ tests:
 
   - description: Can use $ and . characters in field aliases
     query: "SELECT VALUE { '$a.alias': a } FROM foo"
-    current_db: testquerydb
+    current_db: e2e_queries_db2
     result:
       - { "": { "$a.alias": { "$numberInt": "1" } } }
       - { "": { "$a.alias": { "$numberInt": "2" } } }
 
   - description: Resolves conflicts for aliases with $ and .
     query: "SELECT * FROM `foo`, `bar.baz`, `_foo`, `bar`"
-    current_db: testquerydb
+    current_db: e2e_queries_db2
     result:
       - {
           "foo":
@@ -798,7 +528,7 @@ tests:
 
   - description: Can use aliases in on when defined in subselects
     query: "SELECT t1.*, t2.* FROM (SELECT * FROM foo AS t1) AS t1 JOIN (SELECT * FROM bar AS t2) as t2 ON t1.a = t2.b"
-    current_db: testquerydb
+    current_db: e2e_queries_db2
     result:
       - {
           "t1":
@@ -835,7 +565,7 @@ tests:
 
   - description: Can compare bool column to literal value
     query: "SELECT * from boolz where a = 1"
-    current_db: testquerydb
+    current_db: e2e_queries_db2
     result:
       - {
           "boolz": {
@@ -847,14 +577,14 @@ tests:
 
   - description: Can still compare numerics
     query: "SELECT * from boolz where b = 1"
-    current_db: testquerydb
+    current_db: e2e_queries_db2
     result:
       - { "boolz": { "_id": 0, "a": true, b: 1 } }
       - { "boolz": { "_id": 1, "a": false, b: 1 } }
 
   - description: Select with multiple bottom works
     query: "SELECT foo.a, bar.*, foo.b from foo, bar"
-    current_db: testquerydb
+    current_db: e2e_queries_db2
     result:
       - { "bar": { "_id": 0, "a": 1, "b": 2, "coll": "bar" }, "": { "a": 1, "b": 2 } }
       - { "bar": { "_id": 1, "a": 2, "b": 1, "coll": "bar" }, "": { "a": 1, "b": 2 } }
@@ -863,7 +593,7 @@ tests:
 
   - description: Select pulls colls from proper collections
     query: "SELECT foo.a, foo2.b from foo, foo2"
-    current_db: testquerydb
+    current_db: e2e_queries_db2
     result:
       - { "": { "a": 1, "b": 4 } }
       - { "": { "a": 1, "b": 5 } }
@@ -872,7 +602,7 @@ tests:
 
   - description: One clauses
     query: "SELECT * from foo join bar on 1 where 1 having 1"
-    current_db: testquerydb
+    current_db: e2e_queries_db2
     result:
       - { "foo": { "_id": 0, "a":  1, "b": 2, "coll": "foo"}, "bar": { "_id": 0, "a":  1, "b": 2, "coll": "bar"} }
       - { "foo": { "_id": 1, "a":  2, "b": 1, "coll": "foo"}, "bar": { "_id": 0, "a":  1, "b": 2, "coll": "bar"} }
@@ -881,20 +611,20 @@ tests:
 
   - description: Multiple argument COUNT in non-AGGREGATE phrase works as expected
     query: "SELECT COUNT(DISTINCT foo, baz) AS c FROM bar2 GROUP BY NULL AS n"
-    current_db: "mydb"
+    current_db: "e2e_queries_db1"
     result:
       - { '': { 'c': 2 } }
 
   - description: derived join datasource with filter correctness
-    current_db: mydb
-    query: "SELECT * FROM ( SELECT OTBL.foo as ofoo, ITBL.foo as ifoo, baz FROM mydb.bar AS OTBL LEFT OUTER JOIN mydb.bar2 AS ITBL ON (OTBL._id = ITBL._id)) AS ITBL WHERE baz > 60"
+    current_db: e2e_queries_db1
+    query: "SELECT * FROM ( SELECT OTBL.foo as ofoo, ITBL.foo as ifoo, baz FROM e2e_queries_db1.bar AS OTBL LEFT OUTER JOIN e2e_queries_db1.bar2 AS ITBL ON (OTBL._id = ITBL._id)) AS ITBL WHERE baz > 60"
     result:
       - {
         "ITBL": {"ofoo": 1, "ifoo": 42, "baz": 63}
       }
 
   - description: Subquery filtering against nested unwinds is semantically valid
-    current_db: test_db
+    current_db: e2e_queries_db3
     query: "SELECT * FROM UNWIND((SELECT * FROM UNWIND (foo WITH PATH => a1)) AS f WITH PATH => a2) WHERE f.a2.x+1 IN (1,2)"
     result:
       - { "f": { "_id": 0, "a1": 1, "a2": { "x": 1 } } }
@@ -908,6 +638,6 @@ tests:
       - { '':  { '$1': 1, '2.0': 2, '$3': 3, '$4': 4, '5.0': 5, '$6.': 6, '7': 7, '8': 8, '9': 9, '10': 10, '11': 11, '12': 12, '13': 13, '14': 14, '15': 15, '16': 16, '17': 17, '18': 18, '19': 19, '20': 20, '21': 21, '22': 22, '23': 23, '24': 24, '25': 25, '26': 26, '27': 27, '28': 28, '29': 29, '30': 30, '31': 31, '32': 32, '33': 33, '34': 34, '35': 35, '36': 36, '37': 37, '38': 38, '39': 39, '40': 40, '41': 41, '42': 42, '43': 43, '44': 44, '45': 45, '46': 46, '47': 47, '48': 48, '49': 49, '50': 50, '51': 51, '52': 52, '53': 53, '54': 54, '55': 55, '56': 56, '57': 57, '58': 58, '59': 59, '60': 60, '61': 61, '62': 62, '63': 63, '64': 64, '65': 65, '66': 66, '67': 67, '68': 68, '69': 69, '70': 70, '71': 71, '72': 72, '73': 73, '74': 74, '75': 75, '76': 76, '77': 77, '78': 78, '79': 79, '80': 80, '81': 81, '82': 82, '83': 83, '84': 84, '85': 85, '86': 86, '87': 87, '88': 88, '89': 89, '90': 90, '91': 91, '92': 92, '93': 93, '94': 94, '95': 95, '96': 96, '97': 97, '98': 98, '99': 99 } }
 
   - description: Nullable expression is treated as nullable inside an operator that requires SQL null semantics
-    current_db: test_db
+    current_db: e2e_queries_db3
     query: "SELECT * FROM bar WHERE CHAR_LENGTH(CASE WHEN a < 5 THEN NULL WHEN a < 10 THEN '' END) <> 0"
     result: []

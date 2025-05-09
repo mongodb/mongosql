@@ -1,103 +1,6 @@
-catalog_data:
-  foo:
-    employees:
-      - {'_id': 1, 'name': 'a', 'salary': 2, 'department_id': 1}
-      - {'_id': 2, 'name': 'b', 'salary': 4, 'department_id': 1}
-      - {'_id': 3, 'name': 'c', 'salary': 9, 'department_id': 1}
-      - {'_id': 4, 'name': 'd', 'salary': 1, 'department_id': 2}
-    department:
-      - {'_id': 1, 'name': 'd1'}
-      - {'_id': 2, 'name': 'd2'}
-      - {'_id': 3, 'name': 'd3'}
-    employees_w_schema:
-      - {'_id': 1, 'name': 'a', 'salary': 2, 'department_id': 1}
-      - {'_id': 2, 'name': 'b', 'salary': 4, 'department_id': 1}
-      - {'_id': 3, 'name': 'c', 'salary': 9, 'department_id': 1}
-      - {'_id': 4, 'name': 'd', 'salary': 1, 'department_id': 2}
-    department_w_schema:
-      - {'_id': 1, 'name': 'd1'}
-      - {'_id': 2, 'name': 'd2'}
-      - {'_id': 3, 'name': 'd3'}
-    baz:
-      - {'_id': 1, 'a': 'foo'}
-
-catalog_schema:
-  {
-    'foo': {
-      'employees': {
-        'bsonType': "object",
-        'required': [ '_id', 'name', 'salary', 'department_id' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'name': {
-            'bsonType': "string"
-          },
-          'salary': {
-            'bsonType': "int"
-          },
-          'department_id': {
-            'bsonType': "int"
-          }
-        }
-      },
-      'department': {
-        'bsonType': "object",
-        'required': [ '_id', 'name' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'name': {
-            'bsonType': "string"
-          }
-        }
-      },
-      'employees_w_schema': {
-        'bsonType': "object",
-        'required': [ '_id', 'name', 'salary', 'department_id' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'name': {
-            'bsonType': "string"
-          },
-          'salary': {
-            'bsonType': "int"
-          },
-          'department_id': {
-            'bsonType': "int"
-          }
-        }
-      },
-      'department_w_schema': {
-        'bsonType': "object",
-        'required': [ '_id', 'name' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'name': {
-            'bsonType': "string"
-          }
-        }
-      },
-      'baz': {
-        'bsonType': 'object',
-        'additionalProperties': true
-      }
-    }
-  }
-
 tests:
   - description: uncorrelated scalar subquery expression correctness test
-    current_db: foo
+    current_db: spec_query_subquery
     query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT arr.a FROM [{'a': 4}] AS arr)} FROM employees AS emp"
     result:
       - {'': {'name': 'a', 'avg_salary': 4}}
@@ -106,7 +9,7 @@ tests:
       - {'': {'name': 'd', 'avg_salary': 4}}
 
   - description: correlated scalar subquery correctness test
-    current_db: foo
+    current_db: spec_query_subquery
     query: "SELECT VALUE {'name': name, 'department_name': (SELECT dep.name FROM department_w_schema AS dep WHERE dep.`_id` = emp.department_id LIMIT 1)} FROM employees_w_schema AS emp"
     result:
       - {'': {'name': 'a', 'department_name': 'd1'}}
@@ -115,19 +18,19 @@ tests:
       - {'': {'name': 'd', 'department_name': 'd2'}}
 
   - description: scalar subquery fails if it cannot prove that it statically returns a single row
-    current_db: foo
+    current_db: spec_query_subquery
     query: "SELECT VALUE {'department_name': (SELECT dep.name FROM department_w_schema AS dep WHERE dep.`_id` = emp.department_id)} FROM employees_w_schema AS emp"
     should_compile: false
     algebrize_error: "cardinality of the subquery's result set may be greater than 1"
 
   - description: scalar subquery fails if it cannot prove that it statically returns a single column
-    current_db: foo
+    current_db: spec_query_subquery
     query: "SELECT VALUE {'department_name': (SELECT * FROM department_w_schema AS dep WHERE dep._id = emp.department_id LIMIT 1)} FROM employees_w_schema AS emp"
     should_compile: false
     algebrize_error: "subquery expressions must have a degree of 1"
 
   - description: cardinality of 1 should be inferrable from array datasource
-    current_db: foo
+    current_db: spec_query_subquery
     query: "SELECT VALUE {'name': name, 'sub': (SELECT a FROM [{'a': 1}] arr)} FROM department AS dep"
     result:
       - {'': {'name': 'd1', 'sub': 1}}
@@ -135,7 +38,7 @@ tests:
       - {'': {'name': 'd3', 'sub': 1}}
   
   - description: cardinality of 1 should be inferrable from group by constant
-    current_db: foo
+    current_db: spec_query_subquery
     query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT avg_salary FROM employees AS emp GROUP BY NULL AS _ AGGREGATE AVG(salary) AS avg_salary)} FROM employees AS emp"
     result:
       - {'': {'name': 'a', 'avg_salary': {'$numberDouble': "4"}}}
@@ -144,7 +47,7 @@ tests:
       - {'': {'name': 'd', 'avg_salary': {'$numberDouble': "4"}}}
 
   - description: nested subquery should be able to access field from its grandparent query correctness test
-    current_db: foo
+    current_db: spec_query_subquery
     query: "SELECT VALUE {'name': name, 'department_name': (SELECT dep.name FROM department_w_schema AS dep WHERE dep._id = (SELECT emp2.department_id FROM employees_w_schema AS emp2 WHERE emp2._id = emp1._id LIMIT 1) LIMIT 1)} FROM employees_w_schema AS emp1"
     result:
       - {'': {'name': 'a', 'department_name': 'd1'}}
@@ -153,13 +56,13 @@ tests:
       - {'': {'name': 'd', 'department_name': 'd2'}}
 
   - description: an empty array datasource does not have a degree of one
-    current_db: foo
+    current_db: spec_query_subquery
     query: "SELECT VALUE {'sub': (SELECT * FROM [] AS arr)} FROM employees AS emp"
     should_compile: false
     algebrize_error: "subquery expressions must have a degree of 1"
 
   - description: allow select star if we can statically prove the degree is equal to one
-    current_db: foo
+    current_db: spec_query_subquery
     query: "SELECT VALUE {'sub': (SELECT * FROM [{'a': 4}] AS arr)} FROM employees AS emp"
     result:
       - { '': {'sub': 4 } }
@@ -168,7 +71,7 @@ tests:
       - { '': {'sub': 4 } }
 
   - description: allow select substar if we can statically prove the degree is equal to one
-    current_db: foo
+    current_db: spec_query_subquery
     query: "SELECT VALUE {'sub': (SELECT arr.* FROM [{'a': 4}] AS arr)} FROM employees AS emp"
     result:
       - { '': { 'sub': 4 } }
@@ -177,7 +80,7 @@ tests:
       - { '': { 'sub': 4 } }
 
   - description: subquery selecting potentially missing field from collection
-    current_db: foo
+    current_db: spec_query_subquery
     query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q LIMIT 1)} FROM department_w_schema AS q"
     result:
       - {'': {}}

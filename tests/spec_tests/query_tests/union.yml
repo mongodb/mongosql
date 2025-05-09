@@ -1,29 +1,6 @@
-catalog_data:
-  mydb:
-    foo:
-      - {'_id': 0, 'a': 1}
-      - {'_id': 1, 'a': 2}
-      - {'_id': 2, 'a': 1}
-    bar:
-      - {'_id': 0, 'b': 1, 'c': 1}
-
-catalog_schema:
-  {
-    'mydb': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'bar': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
-
 tests:
   - description: collections with different schema can be unioned
-    current_db: mydb
+    current_db: spec_query_union
     query: "SELECT * FROM foo AS foo UNION ALL SELECT * FROM bar AS bar"
     ordered: false
     result:
@@ -33,7 +10,7 @@ tests:
       - {'bar': {'_id': 0, 'b': 1, 'c': 1}}
 
   - description: basic union all correctness test
-    current_db: mydb
+    current_db: spec_query_union
     query: "SELECT VALUE {'a': a} FROM foo UNION ALL SELECT VALUE {'a': a} FROM foo"
     ordered: false
     result:
@@ -45,7 +22,7 @@ tests:
       - {'': {'a': 2}}
 
   - description: union works with array datasources
-    current_db: mydb
+    current_db: spec_query_union
     query: "SELECT VALUE {'a': a} FROM foo AS foo UNION ALL SELECT * FROM [{'b': 1}, {'b': 2}] AS arr"
     ordered: false
     result:

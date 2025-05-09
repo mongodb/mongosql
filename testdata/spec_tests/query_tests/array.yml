@@ -1,0 +1,15 @@
+dataset:
+  - db: "spec_query_array"
+    collection:
+      name: "bar"
+      docs:
+        - { "_id": 0, "arr": [ 1, 2, 3 ], "d": 2.3, "i": 2 }
+    schema:
+      bsonType: "object"
+      required: [ "d", "i" ]
+      additionalProperties: false
+      properties:
+        d:
+          bsonType: "double"
+        i:
+          bsonType: "int"

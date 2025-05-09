@@ -1,123 +1,6 @@
-catalog_data:
-  foo:
-    concat:
-      - { "_id": 0, "s1": "ab", "s2": "c", }
-      - { "_id": 1, "s1": "ab", "s2": null, }
-      - { "_id": 2, "s1": "ab" }
-    nullAndMissing:
-      - { "_id": 0, "s": null, "p": "abc" }
-      - { "_id": 1, "p": "abc" }
-      - { "_id": 2, "s": "abc", "p": null }
-      - { "_id": 3, "s": "abc" }
-    like:
-      - { "_id": 0, "s": "abc", "p": "abc" }
-      - { "_id": 1, "s": "abc", "p": "a_c" }
-      - { "_id": 2, "s": "abc", "p": "a%" }
-      - { "_id": 3, "s": "abc", "p": "ab_%", }
-      - { "_id": 4, "s": "bc", "p": "abc", }
-      - { "_id": 5, "s": "bc", "p": "_bc", }
-      - { "_id": 6, "s": "bc", "p": "ab%c", }
-      - { "_id": 7, "s": "bc", "p": "%_bc", }
-    escape:
-      - { "_id": 0, "s": "abc", "p": "abc" }
-      - { "_id": 1, "s": "abc", "p": "a$_c" }
-      - { "_id": 2, "s": "a$_%c", "p": "a$$$_$%c" }
-      - { "_id": 3, "s": "abc", "p": "ab$c" }
-
-catalog_schema:
-  {
-    "foo": {
-      "concat": {
-        "bsonType": "object",
-        'required': [ '_id', 's1', 's2' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "s1": {
-            "bsonType": "string"
-          },
-          "s2": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "nullAndMissing": {
-        "bsonType": "object",
-        'required': [ '_id', 's', 'p' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "s": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "p": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "like": {
-        "bsonType": "object",
-        'required': [ '_id', 's', 'p' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "s": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "p": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "escape": {
-        "bsonType": "object",
-        'required': [ '_id', 's', 'p' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "s": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "p": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      }
-    }
-  }
-
 tests:
   - description: correctness test for string concatentation
-    current_db: foo
+    current_db: spec_query_operators_strings
     query: "SELECT VALUE {'s1': s1, 's2': s2, 's': s1 || s2} FROM concat AS c"
     result:
       - {'': {'s1': 'ab', 's2': 'c', 's': 'abc'}}
@@ -135,13 +18,13 @@ tests:
     parse_error: "Escape character must be a string of length 1"
 
   - description: LIKE ESCAPE value cannot be non-literal
-    current_db: foo
+    current_db: spec_query_operators_strings
     query: "SELECT VALUE {'_1': 'a' LIKE '_' ESCAPE s} FROM `like` AS `like`"
     should_compile: false
     parse_error: "Unrecognized token `s`"
 
   - description: LIKE operator - NULL or MISSING arguments result in NULL
-    current_db: foo
+    current_db: spec_query_operators_strings
     query: "SELECT VALUE {'s': s, 'p': p, 'r': s LIKE p} FROM nullAndMissing AS n"
     skip_reason: "SQL-330: Update $like desugarer to work for non-literal patterns"
     result:
@@ -151,7 +34,7 @@ tests:
       - {'': {'s': 'abc', 'r': null}}
 
   - description: LIKE operator with no ESCAPE correctness tests
-    current_db: foo
+    current_db: spec_query_operators_strings
     query: "SELECT VALUE {'s': s, 'p': p, 'r': s LIKE p} FROM `like` AS l"
     skip_reason: "SQL-330: Update $like desugarer to work for non-literal patterns"
     result:
@@ -165,7 +48,7 @@ tests:
       - {'': {'s': 'bc', 'p': '%_bc', 'r': false}}
 
   - description: LIKE operator with ESCAPE correctness tests
-    current_db: foo
+    current_db: spec_query_operators_strings
     query: "SELECT VALUE {'s': s, 'p': p, 'r': s LIKE p ESCAPE '$'} FROM `escape` AS e"
     skip_reason: "SQL-521: wrap '$' in $literal document"
     result:

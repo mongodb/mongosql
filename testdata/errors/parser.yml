@@ -1,0 +1,22 @@
+dataset:
+  - db: "errors_parser"
+    collection:
+      name: "foo"
+      docs:
+        - { "_id": 0, "a": 1, "b": 2 }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "c", "d" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"
+        c:
+          bsonType: "string"
+        d:
+          bsonType: "object"
+          additionalProperties: true

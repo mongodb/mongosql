@@ -1,144 +1,6 @@
-catalog_data:
-  foo:
-    doubles:
-      - {'_id': 0, 'v': {'$numberDouble': '0'}}
-      - {'_id': 1, 'v': {'$numberDouble': '1.9'}}
-      - {'_id': 2, 'v': {'$numberDouble': '-2.4'}}
-      - {'_id': 3, 'v': {'$numberDouble': '2147483648.4'}}
-      - {'_id': 4, 'v': {'$numberDouble': '-2147483649.7'}}
-    strings:
-      - {'_id': 0, 'v': ''}
-      - {'_id': 1, 'v': 'string'}
-      - {'_id': 2, 'v': 'true'}
-      - {'_id': 3, 'v': 'false'}
-      - {'_id': 4, 'v': '0'}
-      - {'_id': 5, 'v': '0.0'}
-      - {'_id': 6, 'v': '1'}
-      - {'_id': 7, 'v': '-1'}
-      - {'_id': 8, 'v': '1.4'}
-      - {'_id': 9, 'v': '-1.6'}
-      - {'_id': 10, 'v': '2147483648'}
-      - {'_id': 11, 'v': '-2147483649'}
-      - {'_id': 12, 'v': '9223372036854775808'}
-      - {'_id': 13, 'v': '-9223372036854775809'}
-      - {'_id': 14, 'v': '5e550'}
-      - {'_id': 15, 'v': '2018-03-03'}
-      - {'_id': 16, 'v': '2018-03-20 11:00:06 +0500'}
-      - {'_id': 17, 'v': '5ab9cbfa31c2ab715d42129e'}
-    documents:
-      - {'_id': 0, 'v': {}}
-      - {'_id': 1, 'v': {'a': 1, 'b': 2}}
-    arrays:
-      - {'_id': 0, 'v': []}
-      - {'_id': 1, 'v': [1, 2, 3]}
-    bindatum:
-      - {'_id': 0, 'v': {'$binary': {'base64': 'hn3uUsMxSE6S0cVkebjmfg==', 'subType': '04' } } }
-    objectIDs:
-      - {'_id': 0, 'v': {'$oid': '5ab9c3da31c2ab715d421285'}}
-    bools:
-      - {'_id': 0, 'v': true}
-      - {'_id': 1, 'v': false}
-    dates:
-      - {'_id': 0, 'v': {'$date': {'$numberLong': '0'}}}
-      - {'_id': 1, 'v': {'$date': {'$numberLong': '253402300799999'}}}
-      - {'_id': 2, 'v': {'$date': {'$numberLong': '-62135596800000'}}}
-    nullAndMissing:
-      - {'_id': 0, 'v': null}
-      - {'_id': 1}
-    ints:
-      - {'_id': 0, 'v': {'$numberInt': '0'}}
-      - {'_id': 1, 'v': {'$numberInt': '1'}}
-      - {'_id': 2, 'v': {'$numberInt': '-2'}}
-    longs:
-      - {'_id': 0, 'v': {'$numberLong': '0'}}
-      - {'_id': 1, 'v': {'$numberLong': '1'}}
-      - {'_id': 2, 'v': {'$numberLong': '-2'}}
-      - {'_id': 3, 'v': {'$numberLong': '2147483648'}}
-      - {'_id': 4, 'v': {'$numberLong': '-2147483649'}}
-    decimals:
-      - {'_id': 0, 'v': {'$numberDecimal': '0'}}
-      - {'_id': 1, 'v': {'$numberDecimal': '1.9'}}
-      - {'_id': 2, 'v': {'$numberDecimal': '-2.4'}}
-      - {'_id': 3, 'v': {'$numberDecimal': '2147483648.4'}}
-      - {'_id': 4, 'v': {'$numberDecimal': '-2147483649.4'}}
-      - {'_id': 5, 'v': {'$numberDecimal': '9223372036854775808.8'}}
-      - {'_id': 6, 'v': {'$numberDecimal': '-9223372036854775809.8'}}
-      - {'_id': 7, 'v': {'$numberDecimal': '1.8976931348623157E308'}}
-      - {'_id': 8, 'v': {'$numberDecimal': '-1.8976931348623157E308'}}
-
-    invalidSourceTypes:
-      - {'_id': 0, 'type': 'binData', 'v': {'$binary': {'base64': 'yO2rw/c4TKO2jauSqRR4ow==', 'subType': '04'}}}
-      - {'_id': 1, 'type': 'undefined', 'v': {'$undefined': true}}
-      - {'_id': 2, 'type': 'regex', 'v': {'$regularExpression': {'pattern': 'foo*', 'options': 'ix'}}}
-      - {'_id': 3, 'type': 'dbPointer', 'v': {'$dbPointer': {'$ref': 'foo', '$id': {'$oid': '57e193d7a9cc81b4027498b5'}}}}
-      - {'_id': 4, 'type': 'javascript', 'v': {'$code': 'function() {}'}}
-      - {'_id': 5, 'type': 'symbol', 'v': {'$symbol': 'symbol'}}
-      - {'_id': 6, 'type': 'javascriptWithScope', 'v': {'$code': 'function() {}', '$scope': {}}}
-      - {'_id': 7, 'type': 'timestamp', 'v': {'$timestamp': {'t': 42, 'i': 1}}}
-      - {'_id': 8, 'type': 'minKey', 'v': {'$minKey': 1}}
-      - {'_id': 9, 'type': 'maxKey', 'v': {'$maxKey': 1}}
-
-catalog_schema:
-  {
-    'foo': {
-      'doubles': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'strings': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'documents': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'arrays': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'bindatum': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'objectIDs': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'bools': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'dates': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'nullAndMissing': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'ints': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'longs': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'decimals': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'invalidSourceTypes': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-    }
-  }
-
 tests:
   - description: Cast DOUBLE to BOOL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM doubles AS doubles"
     result:
       - {'': {'v': {'$numberDouble': '0'}, 'asBool': false}}
@@ -148,7 +10,7 @@ tests:
       - {'': {'v': {'$numberDouble': '-2147483649.7'}, 'asBool': true}}
 
   - description: Cast STRING to BOOL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM strings AS strings"
     result:
       - {'': {'v': '', 'asBool': true}}
@@ -171,7 +33,7 @@ tests:
       - {'': {'v': '5ab9cbfa31c2ab715d42129e', 'asBool': true}}
 
   - description: Cast DOCUMENT to BOOL
-    current_db: foo
+    current_db: spec_query_type_conversions
     type_compare: true
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM documents AS documents"
     result:
@@ -179,27 +41,27 @@ tests:
       - {'': {'v': {'a': 1, 'b': 2}, 'asBool': true}}
 
   - description: Cast ARRAY to BOOL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM arrays AS arrays"
     result:
       - {'': {'v': [], 'asBool': true}}
       - {'': {'v': [1, 2, 3], 'asBool': true}}
 
   - description: Cast OBJECTID to BOOL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM objectIDs AS objectIDs"
     result:
       - {'': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asBool': true}}
 
   - description: Cast BOOL to BOOL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM bools AS bools"
     result:
       - {'': {'v': true, 'asBool': true}}
       - {'': {'v': false, 'asBool': false}}
 
   - description: Cast BSON_DATE to BOOL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM dates AS dates"
     result:
       - {'': {'v': {'$date': {'$numberLong': '0'}}, 'asBool': true}}
@@ -207,14 +69,14 @@ tests:
       - {'': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asBool': true}}
 
   - description: Cast NULL and MISSING to BOOL, returns NULL by default and ON NULL when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asBoolDefault': CAST(v AS BOOL), 'asBoolOnNull': CAST(v AS BOOL, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
     result:
       - {'': {'v': null, 'asBoolDefault': null, 'asBoolOnNull': !!str 'null' }}
       - {'': {'asBoolDefault': null, 'asBoolOnNull': !!str 'null' }}
 
   - description: Cast INT to BOOL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM ints AS ints"
     result:
       - {'': {'v': {'$numberInt': '0'}, 'asBool': false}}
@@ -222,7 +84,7 @@ tests:
       - {'': {'v': {'$numberInt': '-2'}, 'asBool': true}}
 
   - description: Cast LONG to BOOL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM longs AS longs"
     result:
       - {'': {'v': {'$numberLong': '0'}, 'asBool': false}}
@@ -232,7 +94,7 @@ tests:
       - {'': {'v': {'$numberLong': '-2147483649'}, 'asBool': true}}
 
   - description: Cast DECIMAL to BOOL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM decimals AS decimals"
     result:
       - {'': {'v': {'$numberDecimal': '0'}, 'asBool': false}}
@@ -246,7 +108,7 @@ tests:
       - {'': {'v': {'$numberDecimal': '-1.8976931348623157E308'}, 'asBool': true}}
 
   - description: Cast invalid source types to BOOL returns True
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'type': type, 'asBool': CAST(v AS BOOL)} FROM invalidSourceTypes AS invalidSourceTypes"
     result:
       - {'': {'type': 'binData', 'asBool': true}}
@@ -261,7 +123,7 @@ tests:
       - {'': {'type': 'maxKey', 'asBool': true}}
 
   - description: Cast DOUBLE to INT, out of range numbers are invalid and return NULL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM doubles AS doubles"
     result:
       - {'': {'v': {'$numberDouble': '0'}, 'asInt': {'$numberInt': '0'}}}
@@ -271,7 +133,7 @@ tests:
       - {'': {'v': {'$numberDouble': '-2147483649.7'}, 'asInt': null}}
 
   - description: Cast STRING to INT, non-numbers, non-ints, and out of range numbers are invalid and return NULL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM strings AS strings"
     result:
       - {'': {'v': '', 'asInt': null}}
@@ -294,34 +156,34 @@ tests:
       - {'': {'v': '5ab9cbfa31c2ab715d42129e', 'asInt': null}}
 
   - description: Cast DOCUMENT to INT is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnError': CAST(v AS INT, 'null' ON ERROR)} FROM documents AS documents"
     result:
       - {'': {'v': {}, 'asIntDefault': null, 'asIntOnError': !!str 'null'}}
       - {'': {'v': {'a': 1, 'b': 2}, 'asIntDefault': null, 'asIntOnError': !!str 'null'}}
 
   - description: Cast ARRAY to INT is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnError': CAST(v AS INT, 'null' ON ERROR)} FROM arrays AS arrays"
     result:
       - {'': {'v': [], 'asIntDefault': null, 'asIntOnError': !!str 'null'}}
       - {'': {'v': [1, 2, 3], 'asIntDefault': null, 'asIntOnError': !!str 'null'}}
 
   - description: Cast OBJECTID to INT is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnError': CAST(v AS INT, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
     result:
       - {'': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asIntDefault': null, 'asIntOnError': !!str 'null'}}
 
   - description: Cast BOOL to INT
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM bools AS bools"
     result:
       - {'': {'v': true, 'asInt': {'$numberInt': '1'}}}
       - {'': {'v': false, 'asInt': {'$numberInt': '0'}}}
 
   - description: Cast BSON_DATE to INT is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnError': CAST(v AS INT, 'null' ON ERROR)} FROM dates AS dates"
     result:
       - {'': {'v': {'$date': {'$numberLong': '0'}}, 'asIntDefault': null, 'asIntOnError': !!str 'null'}}
@@ -329,14 +191,14 @@ tests:
       - {'': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asIntDefault': null, 'asIntOnError': !!str 'null'}}
 
   - description: Cast NULL and MISSING to INT, returns NULL by default and ON NULL when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnNull': CAST(v AS INT, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
     result:
       - {'': {'v': null, 'asIntDefault': null, 'asIntOnNull': !!str 'null'}}
       - {'': {'asIntDefault': null, 'asIntOnNull': !!str 'null'}}
 
   - description: Cast INT to INT
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM ints AS ints"
     result:
       - {'': {'v': {'$numberInt': '0'}, 'asInt': {'$numberInt': '0'}}}
@@ -344,7 +206,7 @@ tests:
       - {'': {'v': {'$numberInt': '-2'}, 'asInt': {'$numberInt': '-2'}}}
 
   - description: Cast LONG to INT, out of range numbers are invalid and return NULL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM longs AS longs"
     result:
       - {'': {'v': {'$numberLong': '0'}, 'asInt': {'$numberInt': '0'}}}
@@ -354,7 +216,7 @@ tests:
       - {'': {'v': {'$numberLong': '-2147483649'}, 'asInt': null}}
 
   - description: Cast DECIMAL to INT, out of range numbers are invalid and return NULL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM decimals AS decimals"
     result:
       - {'': {'v': {'$numberDecimal': '0'}, 'asInt': {'$numberInt': '0'}}}
@@ -368,7 +230,7 @@ tests:
       - {'': {'v': {'$numberDecimal': '-1.8976931348623157E308'}, 'asInt': null}}
 
   - description: Cast invalid source types to INT
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'type': type, 'asInt': CAST(v AS INT)} FROM invalidSourceTypes AS invalidSourceTypes"
     result:
       - {'': {'type': 'binData', 'asInt': null}}
@@ -383,7 +245,7 @@ tests:
       - {'': {'type': 'maxKey', 'asInt': null}}
 
   - description: Cast DOUBLE to DECIMAL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM doubles AS doubles"
     result:
       - {'': {'v': {'$numberDouble': '0'}, 'asDecimal': {'$numberDecimal': '0'}}}
@@ -393,7 +255,7 @@ tests:
       - {'': {'v': {'$numberDouble': '-2147483649.7'}, 'asDecimal': {'$numberDecimal': '-2147483649.70000'}}}
 
   - description: Cast STRING to DECIMAL, non-numbers return NULL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM strings AS strings"
     result:
       - {'': {'v': '', 'asDecimal': null}}
@@ -416,34 +278,34 @@ tests:
       - {'': {'v': '5ab9cbfa31c2ab715d42129e', 'asDecimal': null}}
 
   - description: Cast DOCUMENT to DECIMAL is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDecimalDefault': CAST(v AS DECIMAL), 'asDecimalOnError': CAST(v AS DECIMAL, 'null' ON ERROR)} FROM documents AS documents"
     result:
       - {'': {'v': {}, 'asDecimalDefault': null, 'asDecimalOnError': !!str 'null'}}
       - {'': {'v': {'a': 1, 'b': 2}, 'asDecimalDefault': null, 'asDecimalOnError': !!str 'null'}}
 
   - description: Cast ARRAY to DECIMAL is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDecimalDefault': CAST(v AS DECIMAL), 'asDecimalOnError': CAST(v AS DECIMAL, 'null' ON ERROR)} FROM arrays AS arrays"
     result:
       - {'': {'v': [], 'asDecimalDefault': null, 'asDecimalOnError': !!str 'null'}}
       - {'': {'v': [1, 2, 3], 'asDecimalDefault': null, 'asDecimalOnError': !!str 'null'}}
 
   - description: Cast OBJECTID to DECIMAL is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDecimalDefault': CAST(v AS DECIMAL), 'asDecimalOnError': CAST(v AS DECIMAL, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
     result:
       - {'': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asDecimalDefault': null, 'asDecimalOnError': !!str 'null'}}
 
   - description: Cast BOOL to DECIMAL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM bools AS bools"
     result:
       - {'': {'v': true, 'asDecimal': {'$numberDecimal': '1'}}}
       - {'': {'v': false, 'asDecimal': {'$numberDecimal': '0'}}}
 
   - description: Cast BSON_DATE to DECIMAL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM dates AS dates"
     result:
       - {'': {'v': {'$date': {'$numberLong': '0'}}, 'asDecimal': {'$numberDecimal': '0'}}}
@@ -451,14 +313,14 @@ tests:
       - {'': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asDecimal': {'$numberDecimal': '-62135596800000'}}}
 
   - description: Cast NULL and MISSING to DECIMAL, returns NULL by default and ON NULL when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDecimalDefault': CAST(v AS DECIMAL), 'asDecimalOnNull': CAST(v AS DECIMAL, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
     result:
       - {'': {'v': null, 'asDecimalDefault': null, 'asDecimalOnNull': !!str 'null'}}
       - {'': {'asDecimalDefault': null, 'asDecimalOnNull': !!str 'null'}}
 
   - description: Cast INT to DECIMAL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM ints AS ints"
     result:
       - {'': {'v': {'$numberInt': '0'}, 'asDecimal': {'$numberDecimal': '0'}}}
@@ -466,7 +328,7 @@ tests:
       - {'': {'v': {'$numberInt': '-2'}, 'asDecimal': {'$numberDecimal': '-2'}}}
 
   - description: Cast LONG to DECIMAL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM longs AS longs"
     result:
       - {'': {'v': {'$numberLong': '0'}, 'asDecimal': {'$numberDecimal': '0'}}}
@@ -476,7 +338,7 @@ tests:
       - {'': {'v': {'$numberLong': '-2147483649'}, 'asDecimal': {'$numberDecimal': '-2147483649'}}}
 
   - description: Cast DECIMAL to DECIMAL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM decimals AS decimals"
     result:
       - {'': {'v': {'$numberDecimal': '0'}, 'asDecimal': {'$numberDecimal': '0'}}}
@@ -490,7 +352,7 @@ tests:
       - {'': {'v': {'$numberDecimal': '-1.8976931348623157E308'}, 'asDecimal': {'$numberDecimal': '-1.8976931348623157E308'}}}
 
   - description: Cast invalid source types to DECIMAL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'type': type, 'asDecimal': CAST(v AS DECIMAL)} FROM invalidSourceTypes AS invalidSourceTypes"
     result:
       - {'': {'type': 'binData', 'asDecimal': null}}
@@ -505,7 +367,7 @@ tests:
       - {'': {'type': 'maxKey', 'asDecimal': null}}
 
   - description: Cast DOUBLE to DOUBLE
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM doubles AS doubles"
     result:
       - {'': {'v': {'$numberDouble': '0'}, 'asDouble': {'$numberDouble': '0'}}}
@@ -515,7 +377,7 @@ tests:
       - {'': {'v': {'$numberDouble': '-2147483649.7'}, 'asDouble': {'$numberDouble': '-2147483649.7'}}}
 
   - description: Cast STRING to DOUBLE, non-numbers and out of range numbers are invalid and return NULL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM strings AS strings"
     result:
       - {'': {'v': '', 'asDouble': null}}
@@ -538,34 +400,34 @@ tests:
       - {'': {'v': '5ab9cbfa31c2ab715d42129e', 'asDouble': null}}
 
   - description: Cast DOCUMENT to DOUBLE is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDoubleDefault': CAST(v AS DOUBLE), 'asDoubleOnError': CAST(v AS DOUBLE, 'null' ON ERROR)} FROM documents AS documents"
     result:
       - {'': {'v': {}, 'asDoubleDefault': null, 'asDoubleOnError': !!str 'null'}}
       - {'': {'v': {'a': 1, 'b': 2}, 'asDoubleDefault': null, 'asDoubleOnError': !!str 'null'}}
 
   - description: Cast ARRAY to DOUBLE is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDoubleDefault': CAST(v AS DOUBLE), 'asDoubleOnError': CAST(v AS DOUBLE, 'null' ON ERROR)} FROM arrays AS arrays"
     result:
       - {'': {'v': [], 'asDoubleDefault': null, 'asDoubleOnError': !!str 'null'}}
       - {'': {'v': [1, 2, 3], 'asDoubleDefault': null, 'asDoubleOnError': !!str 'null'}}
 
   - description: Cast OBJECTID to DOUBLE is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDoubleDefault': CAST(v AS DOUBLE), 'asDoubleOnError': CAST(v AS DOUBLE, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
     result:
       - {'': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asDoubleDefault': null, 'asDoubleOnError': !!str 'null'}}
 
   - description: Cast BOOL to DOUBLE
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM bools AS bools"
     result:
       - {'': {'v': true, 'asDouble': {'$numberDouble': '1'}}}
       - {'': {'v': false, 'asDouble': {'$numberDouble': '0'}}}
 
   - description: Cast BSON_DATE to DOUBLE
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM dates AS dates"
     result:
       - {'': {'v': {'$date': {'$numberLong': '0'}}, 'asDouble': {'$numberDouble': '0'}}}
@@ -573,14 +435,14 @@ tests:
       - {'': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asDouble': {'$numberDouble': '-62135596800000'}}}
 
   - description: Cast NULL and MISSING to DOUBLE, returns NULL by default and ON NULL when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDoubleDefault': CAST(v AS DOUBLE), 'asDoubleOnNull': CAST(v AS DOUBLE, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
     result:
       - {'': {'v': null, 'asDoubleDefault': null, 'asDoubleOnNull': !!str 'null'}}
       - {'': {'asDoubleDefault': null, 'asDoubleOnNull': !!str 'null'}}
 
   - description: Cast INT to DOUBLE
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM ints AS ints"
     result:
       - {'': {'v': {'$numberInt': '0'}, 'asDouble': {'$numberDouble': '0'}}}
@@ -588,7 +450,7 @@ tests:
       - {'': {'v': {'$numberInt': '-2'}, 'asDouble': {'$numberDouble': '-2'}}}
 
   - description: Cast LONG to DOUBLE
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM longs AS longs"
     result:
       - {'': {'v': {'$numberLong': '0'}, 'asDouble': {'$numberDouble': '0'}}}
@@ -598,7 +460,7 @@ tests:
       - {'': {'v': {'$numberLong': '-2147483649'}, 'asDouble': {'$numberDouble': '-2147483649'}}}
 
   - description: Cast DECIMAL to DOUBLE, out of range numbers are invalid and return NULL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM decimals AS decimals"
     result:
       - {'': {'v': {'$numberDecimal': '0'}, 'asDouble': {'$numberDouble': '0'}}}
@@ -612,7 +474,7 @@ tests:
       - {'': {'v': {'$numberDecimal': '-1.8976931348623157E308'}, 'asDouble': null}}
 
   - description: Cast invalid source types to DOUBLE
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'type': type, 'asDouble': CAST(v AS DOUBLE)} FROM invalidSourceTypes AS invalidSourceTypes"
     result:
       - {'': {'type': 'binData', 'asDouble': null}}
@@ -627,7 +489,7 @@ tests:
       - {'': {'type': 'maxKey', 'asDouble': null}}
 
   - description: Cast DOUBLE to LONG
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM doubles AS doubles"
     result:
       - {'': {'v': {'$numberDouble': '0'}, 'asLong': {'$numberLong': '0'}}}
@@ -637,7 +499,7 @@ tests:
       - {'': {'v': {'$numberDouble': '-2147483649.7'}, 'asLong': {'$numberLong': '-2147483649'}}}
 
   - description: Cast STRING to LONG, non-numbers, non-ints, and out of range numbers are invalid and return NULL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM strings AS strings"
     result:
       - {'': {'v': '', 'asLong': null}}
@@ -660,34 +522,34 @@ tests:
       - {'': {'v': '5ab9cbfa31c2ab715d42129e', 'asLong': null}}
 
   - description: Cast DOCUMENT to LONG is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asLongDefault': CAST(v AS LONG), 'asLongOnError': CAST(v AS LONG, 'null' ON ERROR)} FROM documents AS documents"
     result:
       - {'': {'v': {}, 'asLongDefault': null, 'asLongOnError': !!str 'null'}}
       - {'': {'v': {'a': 1, 'b': 2}, 'asLongDefault': null, 'asLongOnError': !!str 'null'}}
 
   - description: Cast ARRAY to LONG is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asLongDefault': CAST(v AS LONG), 'asLongOnError': CAST(v AS LONG, 'null' ON ERROR)} FROM arrays AS arrays"
     result:
       - {'': {'v': [], 'asLongDefault': null, 'asLongOnError': !!str 'null'}}
       - {'': {'v': [1, 2, 3], 'asLongDefault': null, 'asLongOnError': !!str 'null'}}
 
   - description: Cast OBJECTID to LONG is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asLongDefault': CAST(v AS LONG), 'asLongOnError': CAST(v AS LONG, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
     result:
       - {'': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asLongDefault': null, 'asLongOnError': !!str 'null'}}
 
   - description: Cast BOOL to LONG
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM bools AS bools"
     result:
       - {'': {'v': true, 'asLong': {'$numberLong': '1'}}}
       - {'': {'v': false, 'asLong': {'$numberLong': '0'}}}
 
   - description: Cast BSON_DATE to LONG
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM dates AS dates"
     result:
       - {'': {'v': {'$date': {'$numberLong': '0'}}, 'asLong': {'$numberLong': '0'}}}
@@ -695,14 +557,14 @@ tests:
       - {'': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asLong': {'$numberLong': '-62135596800000'}}}
 
   - description: Cast NULL and MISSING to LONG, returns NULL by default and ON NULL when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asLongDefault': CAST(v AS LONG), 'asLongOnNull': CAST(v AS LONG, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
     result:
       - {'': {'v': null, 'asLongDefault': null, 'asLongOnNull': !!str 'null'}}
       - {'': {'asLongDefault': null, 'asLongOnNull': !!str 'null'}}
 
   - description: Cast INT to LONG
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM ints AS ints"
     result:
       - {'': {'v': {'$numberInt': '0'}, 'asLong': {'$numberLong': '0'}}}
@@ -710,7 +572,7 @@ tests:
       - {'': {'v': {'$numberInt': '-2'}, 'asLong': {'$numberLong': '-2'}}}
 
   - description: Cast LONG to LONG
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM longs AS longs"
     result:
       - {'': {'v': {'$numberLong': '0'}, 'asLong': {'$numberLong': '0'}}}
@@ -720,7 +582,7 @@ tests:
       - {'': {'v': {'$numberLong': '-2147483649'}, 'asLong': {'$numberLong': '-2147483649'}}}
 
   - description: Cast DECIMAL to LONG, out of range numbers are invalid and return NULL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM decimals AS decimals"
     result:
       - {'': {'v': {'$numberDecimal': '0'}, 'asLong': {'$numberLong': '0'}}}
@@ -734,7 +596,7 @@ tests:
       - {'': {'v': {'$numberDecimal': '-1.8976931348623157E308'}, 'asLong': null}}
 
   - description: Cast invalid source types to LONG
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'type': type, 'asLong': CAST(v AS LONG)} FROM invalidSourceTypes AS invalidSourceTypes"
     result:
       - {'': {'type': 'binData', 'asLong': null}}
@@ -749,7 +611,7 @@ tests:
       - {'': {'type': 'maxKey', 'asLong': null}}
 
   - description: Cast DOUBLE to BSON_DATE
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM doubles AS doubles"
     result:
       - {'': {'v': {'$numberDouble': '0'}, 'asDate': {'$date': {'$numberLong': '0'}}}}
@@ -759,7 +621,7 @@ tests:
       - {'': {'v': {'$numberDouble': '-2147483649.7'}, 'asDate': {'$date': {'$numberLong': '-2147483649'}}}}
 
   - description: Cast STRING to BSON_DATE, non-dates are invalid and return NULL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM strings AS strings"
     result:
       - {'': {'v': '', 'asDate': null}}
@@ -782,34 +644,34 @@ tests:
       - {'': {'v': '5ab9cbfa31c2ab715d42129e', 'asDate': null}}
 
   - description: Cast DOCUMENT to BSON_DATE is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnError': CAST(v AS BSON_DATE, 'null' ON ERROR)} FROM documents AS documents"
     result:
       - {'': {'v': {}, 'asDateDefault': null, 'asDateOnError': !!str 'null'}}
       - {'': {'v': {'a': 1, 'b': 2}, 'asDateDefault': null, 'asDateOnError': !!str 'null'}}
 
   - description: Cast ARRAY to BSON_DATE is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnError': CAST(v AS BSON_DATE, 'null' ON ERROR)} FROM arrays AS arrays"
     result:
       - {'': {'v': [], 'asDateDefault': null, 'asDateOnError': !!str 'null'}}
       - {'': {'v': [1, 2, 3], 'asDateDefault': null, 'asDateOnError': !!str 'null'}}
 
   - description: Cast OBJECTID to BSON_DATE
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM objectIDs AS objectIDs"
     result:
       - {'': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asDate': {'$date': {'$numberLong': '1522123738000'}}}}
 
   - description: Cast BOOL to BSON_DATE is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnError': CAST(v AS BSON_DATE, 'null' ON ERROR)} FROM bools AS bools"
     result:
       - {'': {'v': true, 'asDateDefault': null, 'asDateOnError': !!str 'null'}}
       - {'': {'v': false, 'asDateDefault': null, 'asDateOnError': !!str 'null'}}
 
   - description: Cast BSON_DATE to BSON_DATE
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM dates AS dates"
     result:
       - {'': {'v': {'$date': {'$numberLong': '0'}}, 'asDate': {'$date': {'$numberLong': '0'}}}}
@@ -817,14 +679,14 @@ tests:
       - {'': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asDate': {'$date': {'$numberLong': '-62135596800000'}}}}
 
   - description: Cast NULL and MISSING to BSON_DATE, returns NULL by default and ON NULL when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnNull': CAST(v AS BSON_DATE, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
     result:
       - {'': {'v': null, 'asDateDefault': null, 'asDateOnNull': !!str 'null'}}
       - {'': {'asDateDefault': null, 'asDateOnNull': !!str 'null'}}
 
   - description: Cast INT to BSON_DATE is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnError': CAST(v AS BSON_DATE, 'null' ON ERROR)} FROM ints AS ints"
     result:
       - {'': {'v': {'$numberInt': '0'}, 'asDateDefault': null, 'asDateOnError': !!str 'null'}}
@@ -832,7 +694,7 @@ tests:
       - {'': {'v': {'$numberInt': '-2'}, 'asDateDefault': null, 'asDateOnError': !!str 'null'}}
 
   - description: Cast LONG to BSON_DATE
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM longs AS longs"
     result:
       - {'': {'v': {'$numberLong': '0'}, 'asDate': {'$date': {'$numberLong': '0'}}}}
@@ -842,7 +704,7 @@ tests:
       - {'': {'v': {'$numberLong': '-2147483649'}, 'asDate': {'$date': {'$numberLong': '-2147483649'}}}}
 
   - description: Cast DECIMAL to BSON_DATE, out of range numbers are invalid and return NULL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM decimals AS decimals"
     result:
       - {'': {'v': {'$numberDecimal': '0'}, 'asDate': {'$date': {'$numberLong': '0'}}}}
@@ -856,7 +718,7 @@ tests:
       - {'': {'v': {'$numberDecimal': '-1.8976931348623157E308'}, 'asDate': null}}
 
   - description: Cast invalid source types to BSON_DATE
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'type': type, 'asDate': CAST(v AS BSON_DATE)} FROM invalidSourceTypes AS invalidSourceTypes"
     result:
       - {'': {'type': 'binData', 'asDate': null}}
@@ -871,7 +733,7 @@ tests:
       - {'': {'type': 'maxKey', 'asDate': null}}
 
   - description: Cast DOUBLE to OBJECTID is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM doubles AS doubles"
     result:
       - {'': {'v': {'$numberDouble': '0'}, 'asObjectIDDefault': null, 'asObjectIDOnError': !!str 'null'}}
@@ -881,7 +743,7 @@ tests:
       - {'': {'v': {'$numberDouble': '-2147483649.7'}, 'asObjectIDDefault': null, 'asObjectIDOnError': !!str 'null'}}
 
   - description: Cast STRING to OBJECTID, non-objectIDs are invalid and return NULL
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asObjectID': CAST(v AS OBJECTID)} FROM strings AS strings"
     result:
       - {'': {'v': '', 'asObjectID': null}}
@@ -904,34 +766,34 @@ tests:
       - {'': {'v': '5ab9cbfa31c2ab715d42129e', 'asObjectID': {'$oid': '5ab9cbfa31c2ab715d42129e'}}}
 
   - description: Cast DOCUMENT to OBJECTID is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM documents AS documents"
     result:
       - {'': {'v': {}, 'asObjectIDDefault': null, 'asObjectIDOnError': !!str 'null'}}
       - {'': {'v': {'a': 1, 'b': 2}, 'asObjectIDDefault': null, 'asObjectIDOnError': !!str 'null'}}
 
   - description: Cast ARRAY to OBJECTID is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM arrays AS arrays"
     result:
       - {'': {'v': [], 'asObjectIDDefault': null, 'asObjectIDOnError': !!str 'null'}}
       - {'': {'v': [1, 2, 3], 'asObjectIDDefault': null, 'asObjectIDOnError': !!str 'null'}}
 
   - description: Cast OBJECTID to OBJECTID
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asObjectID': CAST(v AS OBJECTID)} FROM objectIDs AS objectIDs"
     result:
       - {'': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asObjectID': {'$oid': '5ab9c3da31c2ab715d421285'}}}
 
   - description: Cast BOOL to OBJECTID is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM bools AS bools"
     result:
       - {'': {'v': true, 'asObjectIDDefault': null, 'asObjectIDOnError': !!str 'null'}}
       - {'': {'v': false, 'asObjectIDDefault': null, 'asObjectIDOnError': !!str 'null'}}
 
   - description: Cast BSON_DATE to OBJECTID is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM dates AS dates"
     result:
       - {'': {'v': {'$date': {'$numberLong': '0'}}, 'asObjectIDDefault': null, 'asObjectIDOnError': !!str 'null'}}
@@ -939,14 +801,14 @@ tests:
       - {'': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asObjectIDDefault': null, 'asObjectIDOnError': !!str 'null'}}
 
   - description: Cast NULL and MISSING to OBJECTID, returns NULL by default and ON NULL when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnNull': CAST(v AS OBJECTID, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
     result:
       - {'': {'v': null, 'asObjectIDDefault': null, 'asObjectIDOnNull': !!str 'null'}}
       - {'': {'asObjectIDDefault': null, 'asObjectIDOnNull': !!str 'null'}}
 
   - description: Cast INT to OBJECTID is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM ints AS ints"
     result:
       - {'': {'v': {'$numberInt': '0'}, 'asObjectIDDefault': null, 'asObjectIDOnError': !!str 'null'}}
@@ -954,7 +816,7 @@ tests:
       - {'': {'v': {'$numberInt': '-2'}, 'asObjectIDDefault': null, 'asObjectIDOnError': !!str 'null'}}
 
   - description: Cast LONG to OBJECTID is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM longs AS longs"
     result:
       - {'': {'v': {'$numberLong': '0'}, 'asObjectIDDefault': null, 'asObjectIDOnError': !!str 'null'}}
@@ -964,7 +826,7 @@ tests:
       - {'': {'v': {'$numberLong': '-2147483649'}, 'asObjectIDDefault': null, 'asObjectIDOnError': !!str 'null'}}
 
   - description: Cast DECIMAL to OBJECTID is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM decimals AS decimals"
     result:
       - {'': {'v': {'$numberDecimal': '0'}, 'asObjectIDDefault': null, 'asObjectIDOnError': !!str 'null'}}
@@ -978,7 +840,7 @@ tests:
       - {'': {'v': {'$numberDecimal': '-1.8976931348623157E308'}, 'asObjectIDDefault': null, 'asObjectIDOnError': !!str 'null'}}
 
   - description: Cast invalid source types to OBJECTID
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'type': type, 'asObjectID': CAST(v AS OBJECTID)} FROM invalidSourceTypes AS invalidSourceTypes"
     result:
       - {'': {'type': 'binData', 'asObjectID': null}}
@@ -993,7 +855,7 @@ tests:
       - {'': {'type': 'maxKey', 'asObjectID': null}}
 
   - description: Cast DOUBLE to STRING
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM doubles AS doubles"
     type_compare: true
     result:
@@ -1004,7 +866,7 @@ tests:
       - {'': {'v': {'$numberDouble': '-2147483649.7'}, 'asString': '-2.14748e+09'}}
 
   - description: Cast STRING to STRING
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM strings AS strings"
     result:
       - {'': {'v': '', 'asString': ''}}
@@ -1027,34 +889,34 @@ tests:
       - {'': {'v': '5ab9cbfa31c2ab715d42129e', 'asString': '5ab9cbfa31c2ab715d42129e'}}
 
   - description: Cast DOCUMENT to STRING is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asStringDefault': CAST(v AS STRING), 'asStringOnError': CAST(v AS STRING, 'null' ON ERROR)} FROM documents AS documents"
     result:
       - {'': {'v': {}, 'asStringDefault': null, 'asStringOnError': !!str 'null'}}
       - {'': {'v': {'a': 1, 'b': 2}, 'asStringDefault': null, 'asStringOnError': !!str 'null'}}
 
   - description: Cast ARRAY to STRING is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asStringDefault': CAST(v AS STRING), 'asStringOnError': CAST(v AS STRING, 'null' ON ERROR)} FROM arrays AS arrays"
     result:
       - {'': {'v': [], 'asStringDefault': null, 'asStringOnError': !!str 'null'}}
       - {'': {'v': [1, 2, 3], 'asStringDefault': null, 'asStringOnError': !!str 'null'}}
 
   - description: Cast OBJECTID to STRING
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM objectIDs AS objectIDs"
     result:
       - {'': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asString': '5ab9c3da31c2ab715d421285'}}
 
   - description: Cast BOOL to STRING
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM bools AS bools"
     result:
       - {'': {'v': true, 'asString': 'true'}}
       - {'': {'v': false, 'asString': 'false'}}
 
   - description: Cast BSON_DATE to STRING
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM dates AS dates"
     result:
       - {'': {'v': {'$date': {'$numberLong': '0'}}, 'asString': '1970-01-01T00:00:00.000Z'}}
@@ -1062,14 +924,14 @@ tests:
       - {'': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asString': '0001-01-01T00:00:00.000Z'}}
 
   - description: Cast NULL and MISSING to STRING, returns NULL by default and ON NULL when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asStringDefault': CAST(v AS STRING), 'asStringOnNull': CAST(v AS STRING, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
     result:
       - {'': {'v': null, 'asStringDefault': null, 'asStringOnNull': !!str 'null'}}
       - {'': {'asStringDefault': null, 'asStringOnNull': !!str 'null'}}
 
   - description: Cast INT to STRING
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM ints AS ints"
     result:
       - {'': {'v': {'$numberInt': '0'}, 'asString': '0'}}
@@ -1077,7 +939,7 @@ tests:
       - {'': {'v': {'$numberInt': '-2'}, 'asString': '-2'}}
 
   - description: Cast LONG to STRING
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM longs AS longs"
     result:
       - {'': {'v': {'$numberLong': '0'}, 'asString': '0'}}
@@ -1087,7 +949,7 @@ tests:
       - {'': {'v': {'$numberLong': '-2147483649'}, 'asString': '-2147483649'}}
 
   - description: Cast DECIMAL to STRING
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM decimals AS decimals"
     type_compare: true
     result:
@@ -1102,7 +964,7 @@ tests:
       - {'': {'v': {'$numberDecimal': '-1.8976931348623157E308'}, 'asString': '-1.8976931348623157E+308'}}
 
   - description: Cast invalid source types to STRING
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'type': type, 'asString': CAST(v AS STRING)} FROM invalidSourceTypes AS invalidSourceTypes"
     result:
       # Note that in MongoDB 8.0, casting binData to string is supported.
@@ -1123,13 +985,13 @@ tests:
     # and older version of MongoDB. This test should be modified as part of SQL-2314 to include the format option,
     # which should then change the expected return from null to a valid string value.
   - description: Cast BINDATA to STRING
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM bindatum as bindatum"
     result:
       - {'': {'v': {'$binary': {'base64': 'hn3uUsMxSE6S0cVkebjmfg==', 'subType': '04'}}, 'asString': null}}
 
   - description: Cast DOUBLE to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM doubles AS doubles"
     result:
       - {'': {'v': {'$numberDouble': '0'}, 'asDocumentDefault': null, 'asDocumentOnError': !!str 'null'}}
@@ -1139,7 +1001,7 @@ tests:
       - {'': {'v': {'$numberDouble': '-2147483649.7'}, 'asDocumentDefault': null, 'asDocumentOnError': !!str 'null'}}
 
   - description: Cast STRING to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM strings AS strings"
     result:
       - {'': {'v': '', 'asDocumentDefault': null, 'asDocumentOnError': !!str 'null'}}
@@ -1162,34 +1024,34 @@ tests:
       - {'': {'v': '5ab9cbfa31c2ab715d42129e', 'asDocumentDefault': null, 'asDocumentOnError': !!str 'null'}}
 
   - description: Cast DOCUMENT to DOCUMENT
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDocument': CAST(v AS DOCUMENT)} FROM documents AS documents"
     result:
       - {'': {'v': {}, 'asDocument': {}}}
       - {'': {'v': {'a': 1, 'b': 2}, 'asDocument': {'a': 1, 'b': 2}}}
 
   - description: Cast ARRAY to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM arrays AS arrays"
     result:
       - {'': {'v': [], 'asDocumentDefault': null, 'asDocumentOnError': !!str 'null'}}
       - {'': {'v': [1, 2, 3], 'asDocumentDefault': null, 'asDocumentOnError': !!str 'null'}}
 
   - description: Cast OBJECTID to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
     result:
       - {'': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asDocumentDefault': null, 'asDocumentOnError': !!str 'null'}}
 
   - description: Cast BOOL to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM bools AS bools"
     result:
       - {'': {'v': true, 'asDocumentDefault': null, 'asDocumentOnError': !!str 'null'}}
       - {'': {'v': false, 'asDocumentDefault': null, 'asDocumentOnError': !!str 'null'}}
 
   - description: Cast BSON_DATE to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM dates AS dates"
     result:
       - {'': {'v': {'$date': {'$numberLong': '0'}}, 'asDocumentDefault': null, 'asDocumentOnError': !!str 'null'}}
@@ -1197,14 +1059,14 @@ tests:
       - {'': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asDocumentDefault': null, 'asDocumentOnError': !!str 'null'}}
 
   - description: Cast NULL and MISSING to DOCUMENT, returns NULL by default and ON NULL when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnNull': CAST(v AS DOCUMENT, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
     result:
       - {'': {'v': null, 'asDocumentDefault': null, 'asDocumentOnNull': !!str 'null'}}
       - {'': {'asDocumentDefault': null, 'asDocumentOnNull': !!str 'null'}}
 
   - description: Cast INT to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM ints AS ints"
     result:
       - {'': {'v': {'$numberInt': '0'}, 'asDocumentDefault': null, 'asDocumentOnError': !!str 'null'}}
@@ -1212,7 +1074,7 @@ tests:
       - {'': {'v': {'$numberInt': '-2'}, 'asDocumentDefault': null, 'asDocumentOnError': !!str 'null'}}
 
   - description: Cast LONG to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM longs AS longs"
     result:
       - {'': {'v': {'$numberLong': '0'}, 'asDocumentDefault': null, 'asDocumentOnError': !!str 'null'}}
@@ -1222,7 +1084,7 @@ tests:
       - {'': {'v': {'$numberLong': '-2147483649'}, 'asDocumentDefault': null, 'asDocumentOnError': !!str 'null'}}
 
   - description: Cast DECIMAL to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM decimals AS decimals"
     result:
       - {'': {'v': {'$numberDecimal': '0'}, 'asDocumentDefault': null, 'asDocumentOnError': !!str 'null'}}
@@ -1236,7 +1098,7 @@ tests:
       - {'': {'v': {'$numberDecimal': '-1.8976931348623157E308'}, 'asDocumentDefault': null, 'asDocumentOnError': !!str 'null'}}
 
   - description: Cast invalid source types to DOCUMENT
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'type': type, 'asDocument': CAST(v AS DOCUMENT)} FROM invalidSourceTypes AS invalidSourceTypes"
     result:
       - {'': {'type': 'binData', 'asDocument': null}}
@@ -1251,7 +1113,7 @@ tests:
       - {'': {'type': 'maxKey', 'asDocument': null}}
 
   - description: Cast DOUBLE to ARRAY is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM doubles AS doubles"
     result:
       - {'': {'v': {'$numberDouble': '0'}, 'asArrayDefault': null, 'asArrayOnError': !!str 'null'}}
@@ -1261,7 +1123,7 @@ tests:
       - {'': {'v': {'$numberDouble': '-2147483649.7'}, 'asArrayDefault': null, 'asArrayOnError': !!str 'null'}}
 
   - description: Cast STRING to ARRAY is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM strings AS strings"
     result:
       - {'': {'v': '', 'asArrayDefault': null, 'asArrayOnError': !!str 'null'}}
@@ -1284,34 +1146,34 @@ tests:
       - {'': {'v': '5ab9cbfa31c2ab715d42129e', 'asArrayDefault': null, 'asArrayOnError': !!str 'null'}}
 
   - description: Cast DOCUMENT to ARRAY is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM documents AS documents"
     result:
       - {'': {'v': {}, 'asArrayDefault': null, 'asArrayOnError': !!str 'null'}}
       - {'': {'v': {'a': 1, 'b': 2}, 'asArrayDefault': null, 'asArrayOnError': !!str 'null'}}
 
   - description: Cast ARRAY to ARRAY
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asArray': CAST(v AS ARRAY)} FROM arrays AS arrays"
     result:
       - {'': {'v': [], 'asArray': []}}
       - {'': {'v': [1, 2, 3], 'asArray': [1, 2, 3]}}
 
   - description: Cast OBJECTID to ARRAY is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
     result:
       - {'': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asArrayDefault': null, 'asArrayOnError': !!str 'null'}}
 
   - description: Cast BOOL to ARRAY is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM bools AS bools"
     result:
       - {'': {'v': true, 'asArrayDefault': null, 'asArrayOnError': !!str 'null'}}
       - {'': {'v': false, 'asArrayDefault': null, 'asArrayOnError': !!str 'null'}}
 
   - description: Cast BSON_DATE to ARRAY is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM dates AS dates"
     result:
       - {'': {'v': {'$date': {'$numberLong': '0'}}, 'asArrayDefault': null, 'asArrayOnError': !!str 'null'}}
@@ -1319,14 +1181,14 @@ tests:
       - {'': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asArrayDefault': null, 'asArrayOnError': !!str 'null'}}
 
   - description: Cast NULL and MISSING to ARRAY, returns NULL by default and ON NULL when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnNull': CAST(v AS ARRAY, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
     result:
       - {'': {'v': null, 'asArrayDefault': null, 'asArrayOnNull': !!str 'null'}}
       - {'': {'asArrayDefault': null, 'asArrayOnNull': !!str 'null'}}
 
   - description: Cast INT to ARRAY is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM ints AS ints"
     result:
       - {'': {'v': {'$numberInt': '0'}, 'asArrayDefault': null, 'asArrayOnError': !!str 'null'}}
@@ -1334,7 +1196,7 @@ tests:
       - {'': {'v': {'$numberInt': '-2'}, 'asArrayDefault': null, 'asArrayOnError': !!str 'null'}}
 
   - description: Cast LONG to ARRAY is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM longs AS longs"
     result:
       - {'': {'v': {'$numberLong': '0'}, 'asArrayDefault': null, 'asArrayOnError': !!str 'null'}}
@@ -1344,7 +1206,7 @@ tests:
       - {'': {'v': {'$numberLong': '-2147483649'}, 'asArrayDefault': null, 'asArrayOnError': !!str 'null'}}
 
   - description: Cast DECIMAL to ARRAY is invalid, returns NULL by default and ON ERROR when set
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM decimals AS decimals"
     result:
       - {'': {'v': {'$numberDecimal': '0'}, 'asArrayDefault': null, 'asArrayOnError': !!str 'null'}}
@@ -1358,7 +1220,7 @@ tests:
       - {'': {'v': {'$numberDecimal': '-1.8976931348623157E308'}, 'asArrayDefault': null, 'asArrayOnError': !!str 'null'}}
 
   - description: Cast invalid source types to ARRAY
-    current_db: foo
+    current_db: spec_query_type_conversions
     query: "SELECT VALUE {'type': type, 'asArray': CAST(v AS ARRAY)} FROM invalidSourceTypes AS invalidSourceTypes"
     result:
       - {'': {'type': 'binData', 'asArray': null}}

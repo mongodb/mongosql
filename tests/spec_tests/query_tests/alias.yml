@@ -1,18 +1,3 @@
-catalog_data:
-  db:
-    foo:
-      - {'_id': 0, 'a': 1, 'b': 2}
-
-catalog_schema:
-  {
-    'db': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
-
 tests:
   - description: Cannot use duplicate implicit aliases for fields
     query: "SELECT a, a FROM [{'a': 1}] arr"
@@ -69,25 +54,25 @@ tests:
       - {'_id': {'a': 1}}
 
   - description: Cannot use duplicate implicit aliases for collections
-    current_db: db
+    current_db: spec_query_alias
     query: "SELECT * FROM foo, foo"
     should_compile: false
     algebrize_error: 'cannot create schema environment with duplicate key: Key { datasource: Named("foo"), scope: 0 }'
 
   - description: Cannot use duplicate explicit aliases for collections
-    current_db: db
+    current_db: spec_query_alias
     query: "SELECT * FROM foo AS alias, foo AS alias"
     should_compile: false
     algebrize_error: 'cannot create schema environment with duplicate key: Key { datasource: Named("alias"), scope: 0 }'
 
   - description: Can use different alias for same collection
-    current_db: db
+    current_db: spec_query_alias
     query: "SELECT * FROM foo AS foo1, foo AS foo2"
     result:
       - {"foo1": {'_id': 0, "a": 1, "b": 2}, "foo2": {'_id': 0, "a": 1, "b": 2}}
 
   - description: Can use duplicate aliases on both sides of UNION
-    current_db: db
+    current_db: spec_query_alias
     query: "SELECT VALUE {'a': a, 'c': b} FROM foo AS alias UNION ALL SELECT VALUE {'a': a, 'c': b} FROM foo AS alias"
     result:
       - {'': {'a': 1, 'c': 2}}

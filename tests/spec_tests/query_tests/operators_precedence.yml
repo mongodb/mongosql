@@ -1,71 +1,3 @@
-catalog_data:
-  db:
-    and_or_tier:
-      - {'_id': 0, 'a': false, 'b': true, 'c': true}
-      - {'_id': 1, 'a': false, 'b': false, 'c': true}
-    not_and_tier:
-      - {'_id': 0, 'a': true, 'b': false}
-      - {'_id': 1, 'a': true, 'b': null}
-      - {'_id': 2, 'a': false, 'b': null}
-    mul_add_tier:
-      - {'_id': 0, 'a': 1, 'b': 1, 'c': 1}
-      - {'_id': 1, 'a': 6, 'b': 3, 'c': 3}
-    subpath_type_tier:
-      - {'_id': 0, 'a': {'b': true, 'c': 1}}
-
-catalog_schema:
-  {
-    'db': {
-      'and_or_tier': {
-        'bsonType': 'object',
-        'required': [ '_id', 'a', 'b', 'c' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': 'int'
-          },
-          'a': { 'bsonType': 'bool' },
-          'b': { 'bsonType': 'bool' },
-          'c': { 'bsonType': 'bool' }
-        }
-      },
-      'not_and_tier': {
-        'bsonType': 'object',
-        'required': [ '_id', 'a', 'b' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': 'int'
-          },
-          'a': { 'bsonType': 'bool' },
-          'b': {
-            'anyOf': [
-              { 'bsonType': 'bool' },
-              { 'bsonType': !!str "null" }
-            ]
-          }
-        }
-      },
-      'mul_add_tier': {
-        'bsonType': 'object',
-        'required': [ '_id', 'a', 'b', 'c' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': 'int'
-          },
-          'a': { 'bsonType': 'int' },
-          'b': { 'bsonType': 'int' },
-          'c': { 'bsonType': 'int' }
-        }
-      },
-      'subpath_type_tier': {
-        'bsonType': 'object',
-        'additionalProperties': true
-      }
-    }
-  }
-
 tests:
   # The expression
   #
@@ -79,7 +11,7 @@ tests:
   #
   #   a AND (b OR c)
   - description: AND binds tighter than OR
-    current_db: db
+    current_db: spec_query_operators_precedence
     query: "SELECT VALUE {'a': a, 'b': b, 'c': c, 'v': a AND b OR c, 'alt': a AND (b OR c)} FROM and_or_tier AS coll"
     result:
       - {'': {'a': false, 'b': true, 'c': true, 'v': true, 'alt': false}}
@@ -97,7 +29,7 @@ tests:
   #
   #   NOT (a AND b)
   - description: NOT binds tighter than AND
-    current_db: db
+    current_db: spec_query_operators_precedence
     query: "SELECT VALUE {'a': a, 'b': b, 'v': NOT a AND b, 'alt': NOT (a AND b)} FROM not_and_tier AS coll"
     result:
       - {'': {'a': true, 'b': false, 'v': false, 'alt': true}}
@@ -116,7 +48,7 @@ tests:
   #
   #   (NOT a) IS <type>
   - description: IS binds tighter than NOT
-    current_db: db
+    current_db: spec_query_operators_precedence
     query: "SELECT VALUE {'a': a, 'v': NOT a IS BOOL, 'alt': (NOT a) IS BOOL} FROM [{'a': true}, {'a': null}] AS arr"
     result:
       - {'': {'a': true, 'v': false, 'alt': true}}
@@ -134,7 +66,7 @@ tests:
   #
   #   a LIKE (b IS <type>)
   - description: LIKE binds tighter than IS
-    current_db: db
+    current_db: spec_query_operators_precedence
     query: "SELECT VALUE {'a': a, 'b': b, 'v': a LIKE b IS NULL} FROM [{'a': 'str', 'b': 'str'}, {'a': 'str', 'b': null}] AS arr"
     skip_reason: "SQL-330: Update $like desugarer to work for non-literal patterns"
     result:
@@ -158,7 +90,7 @@ tests:
   # the "core syntax". Here, though, we leave IN in the query intentionally to
   # show precedence behavior.
   - description: IN binds tighter than LIKE
-    current_db: db
+    current_db: spec_query_operators_precedence
     query: "SELECT VALUE {'v': a LIKE b IN ('str', 'string')} FROM [{'a': 'str', 'b': 'string'}] AS arr"
     algebrize_error: "failed to translate query: algebrize error: Error 1002: Incorrect argument type for `Like`. Required: nullable string. Found: boolean.\n\tCaused by:\n\tschema checking failed for Like: required AnyOf({Missing, Atomic(Null), Atomic(String)}), found Atomic(Boolean)"
 
@@ -179,7 +111,7 @@ tests:
   # the "core syntax". Here, though, we leave IN in the query intentionally to
   # show precedence behavior.
   - description: BETWEEN binds tighter than IN
-    current_db: db
+    current_db: spec_query_operators_precedence
     query: "SELECT VALUE {'a': a, 'v': a BETWEEN 0 AND 2 IN (true)} FROM [{'a': 1}, {'a': 3}] AS arr"
     result:
       - {'': {'a': 1, 'v': true}}
@@ -197,7 +129,7 @@ tests:
   #
   #   a <comp op> (b BETWEEN c AND d)
   - description: comparison ops bind tighter than BETWEEN
-    current_db: db
+    current_db: spec_query_operators_precedence
     query: "SELECT VALUE {'v': a = b BETWEEN c AND d} FROM [{'a': 1.5, 'b': 1.5, 'c': 1, 'd': 2}] AS arr"
     algebrize_error: "failed to translate query: algebrize error: Error 1005: Invalid use of `Between` due to incomparable types: `boolean` cannot be compared to `int`"
 
@@ -213,7 +145,7 @@ tests:
   #
   #   a || (b <comp op> c)
   - description: "|| binds tighter than comparison ops"
-    current_db: db
+    current_db: spec_query_operators_precedence
     query: "SELECT VALUE {'a': a, 'b': b, 'c': c, 'v': a || b = c} FROM [{'a': 'a', 'b': 'b', 'c': 'ab'}] AS arr"
     result:
       - {'': {'a': 'a', 'b': 'b', 'c': 'ab', 'v': true}}
@@ -230,7 +162,7 @@ tests:
   #
   #   a +/- (b || c)
   - description: add/sub bind tighter than ||
-    current_db: db
+    current_db: spec_query_operators_precedence
     query: "SELECT VALUE {'v': a + b || c} FROM [{'a': 1.5, 'b': 1, 'c': 'str'}] AS arr"
     # If || was higher precedence than +, the error would read "... found Atomic(Integer)"
     algebrize_error: "failed to translate query: algebrize error: Error 1002: Incorrect argument type for `Concat`. Required: nullable string. Found: double.\n\tCaused by:\n\tschema checking failed for Concat: required AnyOf({Missing, Atomic(Null), Atomic(String)}), found Atomic(Double)"
@@ -247,7 +179,7 @@ tests:
   #
   #   a *// (b +/- c)
   - description: mul/div bind tighter than add/sub
-    current_db: db
+    current_db: spec_query_operators_precedence
     query: "SELECT VALUE {'a': a, 'b': b, 'c': c, 'v': a * b + c, 'alt': a * (b + c)} FROM mul_add_tier AS coll"
     result:
       - {'': {'a': 1, 'b': 1, 'c': 1, 'v': 2, 'alt': 2}}
@@ -265,7 +197,7 @@ tests:
   #
   #   +/- (a *// b)
   - description: unary ops bind tighter than mul/div
-    current_db: db
+    current_db: spec_query_operators_precedence
     query: "SELECT VALUE {'a': a, 'b': b, 'v': - a * b, 'alt': - (a * b)} FROM [{'a': -1, 'b': 1}] AS arr"
     result:
       - {'': {'a': { '$numberInt': '-1' }, 'b': 1, 'v': 1, 'alt': 1}}
@@ -287,7 +219,7 @@ tests:
   # "core syntax". Here, though, we leave :: in the query intentionally to
   # show precedence behavior.
   - description: type ops bind tighter than unary ops
-    current_db: db
+    current_db: spec_query_operators_precedence
     query: "SELECT VALUE {'v': +a::STRING} FROM [{'a': 1}] AS arr"
     algebrize_error: "failed to translate query: algebrize error: Error 1002: Incorrect argument type for `Pos`. Required: nullable numeric type. Found: polymorphic type.\n\tCaused by:\n\tschema checking failed for Pos: required AnyOf({Missing, Atomic(Null), Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal)}), found AnyOf({Atomic(Null), Atomic(String)})"
 
@@ -308,7 +240,7 @@ tests:
   # "core syntax". Here, though, we leave :: in the query intentionally to
   # show precedence behavior.
   - description: subpath op binds tighter than type ops
-    current_db: db
+    current_db: spec_query_operators_precedence
     query: "SELECT VALUE {'a': a, 'v': a.b::INT} FROM subpath_type_tier AS coll"
     result:
       - {'': {'a': {'b': true, 'c': 1}, 'v': 1}}

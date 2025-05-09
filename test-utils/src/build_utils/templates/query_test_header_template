@@ -7,7 +7,6 @@ use mongodb::{{
     sync::Client,
 }};
 use mongosql::{{
-    build_catalog_from_catalog_schema,
     catalog::Catalog,
     options::{{ExcludeNamespacesOption, SqlOptions}},
     Translation,
@@ -20,19 +19,36 @@ use test_utils::*;
 
 static INIT: Once = Once::new();
 
-pub fn initialize_test() -> (&'static Client, &'static QueryYamlTestFile) {{
+pub fn initialize_test() -> (&'static Client, &'static QueryYamlTestFile, &'static Catalog) {{
     static mut CLIENT: Option<Client> = None;
     static mut TEST_FILE: Option<QueryYamlTestFile> = None;
+    static mut CATALOG: Option<Catalog> = None;
 
     INIT.call_once(|| {{
         unsafe {{
             CLIENT = Some(Client::with_uri_str(MONGODB_URI.clone()).map_err(Error::CannotCreateMongoDBClient).unwrap());
-            TEST_FILE = Some(parse_query_yaml_file(PathBuf::from({path})).unwrap());
+            let test_file = parse_query_yaml_file(PathBuf::from({path})).unwrap();
+            let db_names = test_file.tests.iter().flat_map(|t| {{
+                let mut db_names = vec![];
+                if let Some(current_db) = t.current_db.as_ref() {{
+                    db_names.push(current_db.clone())
+                }}
+
+                if let Some(catalog_dbs) = t.catalog_dbs.as_ref() {{
+                    db_names.append(&mut catalog_dbs.clone())
+                }}
+
+                db_names
+            }}).collect();
+            let catalog = get_catalog_for_dbs(CLIENT.as_ref().unwrap(), db_names);
+            TEST_FILE = Some(test_file);
+            CATALOG = Some(catalog);
         }}
     }});
 
     unsafe {{
         (CLIENT.as_ref().unwrap(),
-        TEST_FILE.as_ref().unwrap())
+        TEST_FILE.as_ref().unwrap(),
+        CATALOG.as_ref().unwrap())
     }}
 }}

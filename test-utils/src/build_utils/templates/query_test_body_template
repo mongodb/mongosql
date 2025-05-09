@@ -6,32 +6,8 @@
 // if the results are correct as there won't be any
 pub fn {name}() {{
     use test_utils::*;
-    let (client, test_file) = initialize_test();
+    let (client, test_file, catalog) = initialize_test();
     let test = test_file.tests.get({index}).unwrap();
-
-    if let Some(catalog_error) = test.catalog_error.clone() {{
-        let res = std::panic::catch_unwind(|| {{
-            build_catalog_from_catalog_schema(test_file.catalog_schema.as_ref().unwrap().clone())
-        }});
-        assert!(res.is_err(), "expected error, got {{:?}}", res);
-        return;
-    }}
-
-    let no_catalog = test_file.catalog_data.is_none() && test_file.catalog_schema.is_none();
-    // we need to drop the catalog data before loading the new one, so we collect the db names
-    // here to use in a drop after the inner loop
-    let catalog_dbs = test_file
-        .catalog_data
-        .clone()
-        .map_or(vec![], |cat| cat.keys().map(|k| k.to_string()).collect());
-    let catalog = if !no_catalog {{
-        load_catalog_data(&client, test_file.catalog_data.as_ref().unwrap().clone()).unwrap();
-
-        build_catalog_from_catalog_schema(test_file.catalog_schema.as_ref().unwrap().clone()).unwrap()
-    }} else {{
-        // some query tests don't have a catalog, so we generate a default one
-        Catalog::default()
-    }};
 
     let default_db = "test".to_string();
 
@@ -106,16 +82,6 @@ pub fn {name}() {{
     let type_compare = test.type_compare.unwrap_or(false);
 
     if let Some(expected_results) = test.result.clone() {{
-        // fun times here. If there isn't a catalog where the type is specified, then the
-        // type is elided. Unfortunately, when coming in from serde_yaml, all positive numbers
-        // are just assumed to be u64. When the driver gets this, it just puts it in an i64, not
-        // bothering to see if it will fit in an i32.
-        // https://jira.mongodb.org/browse/RUST-1692
-        let expected_results = if no_catalog {{
-            convert_numerics_in_results(expected_results)
-        }} else {{
-            expected_results
-        }};
         assert_eq!(
             expected_results.len(),
             result.len(),
@@ -151,9 +117,5 @@ pub fn {name}() {{
                 );
             }}
         }}
-    }}
-    // drop the catalog data for this particular test file
-    if !no_catalog {{
-        drop_catalog_data(&client, catalog_dbs.clone()).unwrap();
     }}
 }}

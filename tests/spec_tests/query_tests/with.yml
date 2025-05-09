@@ -1,71 +1,25 @@
-catalog_data:
-  "mydb":
-    "biz":
-      - { "_id": 0, "foo": 1 }
-      - { "_id": 1, "foo": 42 }
-    "bar":
-      - { "_id": 0, "foo": 42, "baz": 63 }
-      - { "_id": 1, "foo": 43 }
-    "baz":
-      - { "_id": 0, "bar": 53, "car": 42 }
-
-catalog_schema:
-  {
-    "mydb":
-      {
-        "biz":
-          {
-            "bsonType": "object",
-            "required": ["_id", "foo"],
-            "additionalProperties": false,
-            "properties":
-              { "_id": { "bsonType": "int" }, "foo": { "bsonType": "int" } },
-          },
-        "bar":
-          {
-            "bsonType": "object",
-            "required": ["_id", "foo"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "foo": { "bsonType": "int" },
-                "baz": { "bsonType": "int" },
-              },
-          },
-        "baz":
-          {
-            "bsonType": "object",
-            "required": ["bar", "car"],
-            "additionalProperties": false,
-            "properties":
-              { "_id": { "bsonType": "int" }, "bar": { "bsonType": "int" }, "car": { "bsonType": "int" } },
-          },
-      },
-  }
-
 tests:
   - description: WITH clause simple query
-    current_db: mydb
+    current_db: spec_query_with
     query: "WITH t as (SELECT foo from biz) (SELECT * from t)"
     result:
       - { "t": { "foo": 1 } }
       - { "t": { "foo": 42 } }
 
   - description: WITH clause join query
-    current_db: mydb
+    current_db: spec_query_with
     query: "WITH t as (SELECT foo, bar, car from biz JOIN baz ON biz._id = baz._id) (SELECT * from t)"
     result:
       - { "t": { "foo": 1, "bar": 53, "car": 42 } }
 
   - description: WITH clause multiple derived with a join
-    current_db: mydb
+    current_db: spec_query_with
     query: "WITH t as (SELECT _id, foo from biz), u as (SELECT _id, bar, car from baz) (SELECT * from t JOIN u ON t._id = u._id)"
     result:
       - { "t": { "_id": 0, "foo": 1, }, "u": { "_id": 0, "bar": 53, "car": 42 } }
 
   - description: WITH clause filters
-    current_db: mydb
+    current_db: spec_query_with
     query: "WITH t as (SELECT foo from biz WHERE foo > 1), u as (SELECT baz from bar where baz > 1) (SELECT t.foo, u.baz from t, u)"
     result:
       - { "": { "foo": 42, "baz": 63 } }

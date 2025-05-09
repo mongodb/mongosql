@@ -1,9 +1,10 @@
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use mongodb::{
-    bson::{doc, Bson},
+    bson::{doc, Bson, Document},
     sync::Client,
 };
+use mongosql::{build_catalog_from_catalog_schema, catalog::Catalog, json_schema, map};
 use std::{
     collections::BTreeMap,
     env,
@@ -18,7 +19,6 @@ lazy_static! {
         env::var("MDB_TEST_LOCAL_PORT").unwrap_or_else(|_| "27017".to_string())
     );
 }
-
 pub mod index;
 pub use index::*;
 pub mod query;
@@ -27,7 +27,6 @@ pub mod schema_derivation;
 pub use schema_derivation::*;
 pub mod build_utils;
 pub mod e2e_db_manager;
-
 pub use build_utils::*;
 
 #[derive(Debug, Error)]
@@ -75,6 +74,49 @@ impl From<mongosql::schema::Error> for Error {
             _ => Error::InvalidSchema(e),
         }
     }
+}
+
+const SQL_SCHEMAS_COLLECTION: &str = "__sql_schemas";
+
+/// get_catalog_for_dbs builds a Catalog from the schemas stored in mongod for
+/// the provided list of databases.
+pub fn get_catalog_for_dbs(client: &Client, db_names: Vec<String>) -> Catalog {
+    let mut catalog_schema: BTreeMap<String, BTreeMap<String, json_schema::Schema>> = map! {};
+
+    for db_name in db_names {
+        let mut db_catalog_schema: BTreeMap<String, json_schema::Schema> = map! {};
+        let db = client.database(&db_name);
+        let schema_collection = db.collection::<Document>(SQL_SCHEMAS_COLLECTION);
+
+        let schema_pipeline = vec![doc! {"$project": {
+            "coll_name": "$_id",
+            "schema": 1,
+        }}];
+
+        let schema_docs: Vec<Document> = schema_collection
+            .aggregate(schema_pipeline)
+            .run()
+            .expect("failed to run schema aggregation pipeline")
+            .collect::<Result<Vec<Document>, _>>()
+            .expect("failed to collect aggregation pipeline results");
+
+        for doc in schema_docs {
+            let coll_name = doc
+                .get_str("coll_name")
+                .expect("expected coll_name but it was missing");
+            let schema = doc
+                .get_document("schema")
+                .expect("expected schema but it was missing");
+            let schema_json = json_schema::Schema::from_document(schema)
+                .expect("expected schema to deserialize into json_schema::Schema but it failed");
+
+            db_catalog_schema.insert(coll_name.to_string(), schema_json);
+        }
+
+        catalog_schema.insert(db_name, db_catalog_schema);
+    }
+
+    build_catalog_from_catalog_schema(catalog_schema).expect("failed to build catalog")
 }
 
 /// load_catalog_data drops any existing catalog data and then inserts the

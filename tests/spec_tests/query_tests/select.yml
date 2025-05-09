@@ -1,110 +1,94 @@
-catalog_data:
-  mydb:
-    foo:
-      - {'_id': 0, 'a': 1, 'b': 1}
-      - {'_id': 1, 'a': 2, 'b': 2}
-
-catalog_schema:
-  {
-    'mydb': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
-
 tests:
   - description: key names in SELECT VALUE document must be unique
-    current_db: mydb
+    current_db: spec_query_select
     query: "SELECT VALUE {'a': 2, 'a': 5} FROM foo AS f"
     should_compile: false
     algebrize_error: 'found duplicate document key "a"'
 
   - description: star cannot be used in conjunction with other select expressions
-    current_db: mydb
+    current_db: spec_query_select
     query: "SELECT *, a FROM foo AS f"
     should_compile: false
     algebrize_error: "standard SELECT expressions can only contain *"
 
   - description: star cannot be used in SELECT VALUE
-    current_db: mydb
+    current_db: spec_query_select
     query: "SELECT VALUE * FROM foo AS f"
     should_compile: false
     parse_error: "Unrecognized token `*`"
 
   - description: star is not an ordinary expression
-    current_db: mydb
+    current_db: spec_query_select
     query: "SELECT VALUE {'a': *} FROM foo AS f"
     should_compile: false
     parse_error: "Unrecognized token `*`"
 
   - description: substar is not an ordinary expression
-    current_db: mydb
+    current_db: spec_query_select
     query: "SELECT VALUE {'a': foo.*} FROM foo AS foo"
     should_compile: false
     parse_error: "Unrecognized token `.*`"
 
   - description: aliases disallowed for substar expressions in SELECT VALUE
-    current_db: mydb
+    current_db: spec_query_select
     query: "SELECT VALUE t.* AS a FROM foo AS f"
     should_compile: false
     parse_error: "Unrecognized token `AS`"
 
   - description: aliases disallowed for substar expressions in standard SELECT
-    current_db: mydb
+    current_db: spec_query_select
     query: "SELECT t.* AS a FROM foo AS f"
     should_compile: false
     parse_error: "Unrecognized token `AS`"
 
   - description: aliases disallowed for document expressions in SELECT VALUE
-    current_db: mydb
+    current_db: spec_query_select
     query: "SELECT VALUE {'a': 1} AS a FROM foo AS f"
     should_compile: false
     parse_error: Unrecognized token `AS`
 
   - description: duplicate datasource names disallowed in SELECT VALUES
-    current_db: mydb
+    current_db: spec_query_select
     query: "SELECT VALUES f.*, f.* FROM foo AS f"
     should_compile: false
     algebrize_error: 'cannot create schema environment with duplicate key: Key { datasource: Named("f"), scope: 0 }'
 
   - description: non-document expressions disallowed in SELECT VALUE
-    current_db: mydb
+    current_db: spec_query_select
     query: "SELECT VALUE [a, b] FROM foo"
     should_compile: false
     algebrize_error: "schema checking failed for project datasource: required Document(Document { keys: {}, required: {}, additional_properties: true }), found Array(AnyOf({AnyOf({Atomic(String), Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal), Atomic(BinData), Atomic(ObjectId), Atomic(Boolean), Atomic(Date), Atomic(Regex), Atomic(DbPointer), Atomic(Javascript), Atomic(Symbol), Atomic(JavascriptWithScope), Atomic(Timestamp), Atomic(MinKey), Atomic(MaxKey), Array(Any), Document(Document { keys: {}, required: {}, additional_properties: true })})}))"
 
   - description: simple star correctness test
-    current_db: mydb
+    current_db: spec_query_select
     query: "SELECT * FROM foo AS f"
     result:
      - {'f': {'_id': 0, 'a': 1, 'b': 1}}
      - {'f': {'_id': 1, 'a': 2, 'b': 2}}
 
   - description: simple document correctness test
-    current_db: mydb
+    current_db: spec_query_select
     query: "SELECT VALUE {'a': a, 'b': b} FROM foo AS foo"
     result:
       - {'': {'a': 1, 'b': 1}}
       - {'': {'a': 2, 'b': 2}}
 
   - description: simple sub-star correctness test
-    current_db: mydb
+    current_db: spec_query_select
     query: "SELECT VALUE f.* FROM foo AS f"
     result:
      - {'f': {'_id': 0, 'a': 1, 'b': 1}}
      - {'f': {'_id': 1, 'a': 2, 'b': 2}}
 
   - description: correctness test for mixed sub-star and document
-    current_db: mydb
+    current_db: spec_query_select
     query: "SELECT VALUES {'a': foo.a}, foo.* FROM foo AS foo"
     result:
       - {'foo': {'_id': 0, 'a': 1, 'b': 1}, '': {'a': 1}}
       - {'foo': {'_id': 1, 'a': 2, 'b': 2}, '': {'a': 2}}
 
   - description: SELECT VALUES may create unmaterializable binding tuples
-    current_db: mydb
+    current_db: spec_query_select
     query: "SELECT VALUES {'a': a.a}, a.* FROM foo AS a"
     result:
       - {'a': {'_id': 0, 'a': 1, 'b': 1}, '': {'a': 1}}

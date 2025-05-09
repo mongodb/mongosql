@@ -4,12 +4,7 @@ use mongodb::{
 };
 use mongosql::Translation;
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::{BTreeMap, HashSet},
-    fs,
-    io::Read,
-    path::PathBuf,
-};
+use std::{collections::HashSet, fs, io::Read, path::PathBuf};
 
 use super::Error;
 
@@ -28,8 +23,6 @@ pub fn load_query_test_files(dir: PathBuf) -> Result<Vec<QueryYamlTestFile>, Err
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryYamlTestFile {
-    pub catalog_data: Option<BTreeMap<String, BTreeMap<String, Vec<Bson>>>>,
-    pub catalog_schema: Option<BTreeMap<String, BTreeMap<String, mongosql::json_schema::Schema>>>,
     pub tests: Vec<QueryTest>,
 }
 
@@ -38,6 +31,7 @@ pub struct QueryTest {
     pub description: String,
     pub skip_reason: Option<String>,
     pub current_db: Option<String>,
+    pub catalog_dbs: Option<Vec<String>>,
     pub query: String,
     pub exclude_namespaces: Option<bool>,
     pub should_compile: Option<bool>,

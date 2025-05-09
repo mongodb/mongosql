@@ -27,11 +27,22 @@ timeout:
       script: |
         ls -la
 
+modules:
+  - name: sql-engines-common-test-infra
+    owner: 10gen
+    repo: sql-engines-common-test-infra
+    branch: main
+    auto_update: true
+
 include:
   # https://jira.mongodb.org/browse/DEVPROD-12779
   # - filename: evergreen/grpc.yml
   - filename: evergreen/mongosqltranslate.yml
   - filename: evergreen/suite-tasks.yml
+  - filename: evergreen/configs/rust_util.yml
+    module: sql-engines-common-test-infra
+  - filename: evergreen/configs/mongodb_util.yml
+    module: sql-engines-common-test-infra
 
 pre:
   - func: "fetch source"
@@ -39,7 +50,7 @@ pre:
   - func: "prepare resources"
 
 post:
-  - func: "stop mongo orchestration"
+  - func: "stop mongo-orchestration"
   - func: "upload static analysis information"
 
 functions:
@@ -47,48 +58,8 @@ functions:
     - command: git.get_project
       params:
         directory: mongosql-rs
-
-  "prepare resources":
-    - command: subprocess.exec
-      params:
-        working_dir: mongosql-rs
-        include_expansions_in_env:
-          - DRIVERS_TOOLS
-        binary: bash
-        args:
-          - ./evergreen/fetch-drivers-tools.sh
-
-  "bootstrap mongo-orchestration":
-    - command: subprocess.exec
-      params:
-        binary: sh
-        args:
-          - ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
-        include_expansions_in_env:
-          - DRIVERS_TOOLS
-          - TOPOLOGY
-          - MONGODB_VERSION
-          - MONGODB_BINARIES
-
-  "stop mongo orchestration":
-    - command: shell.exec
-
-      params:
-        include_expansions_in_env:
-          - DRIVERS_TOOLS
-          - MONGO_ORCHESTRATION_HOME
-          - PROJECT_DIRECTORY
-        script: |
-          ${PREPARE_SHELL}
-
-          cd ${MONGO_ORCHESTRATION_HOME}
-          # source the mongo-orchestration virtualenv if it exists
-          if [ -f venv/bin/activate ]; then
-            . venv/bin/activate
-          elif [ -f venv/Scripts/activate ]; then
-            . venv/Scripts/activate
-          fi
-          mongo-orchestration stop
+        revisions:
+          sql-engines-common-test-infra: ${sql-engines-common-test-infra_rev}
 
   "create expansions":
     - command: subprocess.exec
@@ -104,80 +75,6 @@ functions:
       params:
         file: mongosql-rs/expansions.yml
 
-  "install rust toolchain":
-    - command: shell.exec
-      params:
-        shell: bash
-        script: |
-          ${prepare_shell}
-
-          # make sure to use msvc toolchain rather than gnu, which is
-          # the default for cygwin
-          if [ "Windows_NT" == "$OS" ]; then
-              export HOST="x86_64-pc-windows-msvc"
-              export DEFAULT_HOST_OPTIONS="--default-host $HOST"
-              export DEFAULT_TOOLCHAIN="stable-$HOST"
-          fi
-
-          # install rustup from scratch
-          rm -rf ~/.rustup
-          curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path $DEFAULT_HOST_OPTIONS
-          # rustup installs into C:\Users\$USER instead of
-          # C:\home\$USER, so we symlink both .rustup and .cargo
-          if [ "Windows_NT" == "$OS" ]; then
-              ln -sf /cygdrive/c/Users/$USER/.rustup/toolchains/$DEFAULT_TOOLCHAIN ~/.rustup
-              ln -sf /cygdrive/c/Users/$USER/.cargo/ ~/.cargo
-              rustup toolchain install $DEFAULT_TOOLCHAIN
-              rustup default $DEFAULT_TOOLCHAIN
-          fi
-
-          echo --------- rustup show -----------
-          rustup show
-          echo ----- Rustup toolchain list -----
-          rustup toolchain list
-          echo --------- Cargo version ---------
-          cargo --version
-          echo ---------------------------------
-
-  "set and check packages version":
-    - command: shell.exec
-      type: test
-      params:
-        shell: bash
-        working_dir: mongosql-rs
-        script: |
-          ${prepare_shell}
-          #no-op when not triggered by a tag
-          if [[ "${triggered_by_git_tag}" != "" ]]; then
-            cargo install cargo-edit
-            # we only release one project at a time, so setting the version on all Cargo.toml files is safe
-            cargo set-version $release_version
-          fi
-          cargo install cargo-get
-
-          # check all of the releasable packages in the monorepo to verify that whichever is being released has the correct version
-          MONGOSQL_CARGO_PKGS_VERSION=$(cargo get --entry="mongosql/Cargo.toml" package.version)
-          MONGOSQLTRANSLATE_CARGO_PKGS_VERSION=$(cargo get --entry="mongosqltranslate/Cargo.toml" package.version)
-          if [[ "${triggered_by_git_tag}" == "" ]]; then
-            EXPECTED_RELEASE_VERSION="0.0.0"
-          else
-            EXPECTED_RELEASE_VERSION="$release_version"
-          fi
-          if [[ "$MONGOSQL_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" || "$MONGOSQLTRANSLATE_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" ]]; then
-            >&2 echo "Expected version $EXPECTED_RELEASE_VERSION doesn't match for at least one package ; mongosql version $MONGOSQL_CARGO_PKGS_VERSION,  mongosqltranslate version $MONGOSQLTRANSLATE_CARGO_PKGS_VERSION"
-            exit 1
-          fi
-
-  "check clippy":
-    - command: shell.exec
-      type: test
-      params:
-        shell: bash
-        working_dir: mongosql-rs
-        script: |
-          ${prepare_shell}
-          cargo clippy --all-targets -- -D warnings
-
   "check gofmt":
     - command: shell.exec
       type: test
@@ -187,26 +84,6 @@ functions:
         script: |
           ${prepare_shell}
           gofmt -s -d .
-
-  "check unused dependencies":
-    - command: shell.exec
-      type: test
-      params:
-        shell: bash
-        working_dir: mongosql-rs
-        script: |
-          ${prepare_shell}
-          cargo install cargo-machete
-          cargo build --all-features
-          set +e
-          cargo machete
-          RETURN=$?
-          set -e
-          if [ $RETURN -ne 0 ]; then
-            >&2 echo "Unused dependencies found"
-            >&2 cargo machete
-            exit 1
-          fi
 
   "check goimports":
     - command: shell.exec
@@ -251,16 +128,6 @@ functions:
           # fail if tidying changed files
           diff go.mod.original go.mod.tidied || exit 1
           diff go.sum.original go.sum.tidied || exit 1
-
-  "check rustfmt":
-    - command: shell.exec
-      type: test
-      params:
-        shell: bash
-        working_dir: mongosql-rs
-        script: |
-          ${prepare_shell}
-          rustfmt --check $(find . -not \( -path \./e2e-tests -prune -o -path \./target -prune \) -name \*.rs)
 
   # "mongosql-rs" is the name of the library we release for Atlas SQL.
   "compile mongosql-rs":
@@ -434,45 +301,6 @@ functions:
           ${prepare_shell}
           export LIBRARY_PATH="$(cd .. && pwd)"
           go test -v ./... | tee go-test-results.txt
-
-  # Just running the spec tests on RHEL 7.6 for now
-  # This function should be used to run rust tests that need a running mongod
-  # Additional flags can be passed in via the calling task
-  # e.g. cargo_test_flags: "-- --ignored"
-  "run rust integration tests":
-    - command: shell.exec
-      type: test
-      params:
-        shell: bash
-        working_dir: mongosql-rs
-        script: |
-          ${prepare_shell}
-
-          if [[ "${load_data_cmd}" != "" ]]; then
-            echo "loading data"
-            eval ${load_data_cmd}
-          fi
-
-          echo ${description}
-          set +e
-          cargo test ${cargo_test_flags}
-          EXITCODE=$?
-          set -e
-          exit $EXITCODE
-
-  # This function should be used to run rust tests that do not need a running
-  # mongod instance. Additional flags can be passed in via the calling task.
-  # e.g. cargo_test_flags: "-- --ignored"
-  "run rust tests":
-    - command: shell.exec
-      type: test
-      params:
-        shell: bash
-        working_dir: mongosql-rs
-        script: |
-          ${prepare_shell}
-          echo ${description}
-          cargo test ${cargo_test_flags}
 
   "run pipeline generator":
     - command: shell.exec
@@ -1089,21 +917,6 @@ functions:
         display_name: ${project_folder}-v${release_version}-compliance-report.md
 
 tasks:
-  - name: clippy
-    commands:
-      - func: "install rust toolchain"
-      - func: "check clippy"
-
-  - name: rustfmt
-    commands:
-      - func: "install rust toolchain"
-      - func: "check rustfmt"
-
-  - name: unused-dependencies
-    commands:
-      - func: "install rust toolchain"
-      - func: "check unused dependencies"
-
   - name: gofmt
     commands:
       - func: "check gofmt"
@@ -1120,6 +933,9 @@ tasks:
     commands:
       - func: "install rust toolchain"
       - func: "set and check packages version"
+        vars:
+          cargo_file: "mongosql/Cargo.toml"
+          package_name: "mongosql"
       - func: "compile mongosql-rs"
       - func: "upload c library"
 
@@ -1555,6 +1371,8 @@ buildvariants:
   - name: static-analysis
     display_name: "* Static Analysis"
     run_on: [ubuntu1804-test]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: clippy
       - name: rustfmt
@@ -1565,6 +1383,8 @@ buildvariants:
   - name: ubuntu1804
     display_name: "Ubuntu 18.04"
     run_on: [ubuntu1804-large]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1574,6 +1394,8 @@ buildvariants:
   - name: rhel76
     display_name: "RHEL 7.6"
     run_on: [rhel76-large]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1587,12 +1409,16 @@ buildvariants:
     display_name: "MongoDB Integration Suite"
     tags: ["mongodb-suite-variant"]
     run_on: [ubuntu2204-large]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: .standalone
 
   - name: macos
     display_name: "macOS"
     run_on: [macos-11]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1603,6 +1429,8 @@ buildvariants:
   - name: macos-arm64
     display_name: "macOS arm64"
     run_on: [macos-13-arm64]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1613,6 +1441,8 @@ buildvariants:
   - name: amazon2-arm64
     display_name: "Amazon2 arm64"
     run_on: [amazon2-arm64-large]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1623,6 +1453,8 @@ buildvariants:
   - name: windows
     display_name: "Windows"
     run_on: [windows-64-vs2019-large]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1633,6 +1465,8 @@ buildvariants:
   - name: benchmark
     display_name: "Benchmark"
     run_on: [ubuntu2004-medium]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: criterion
 
@@ -1640,6 +1474,8 @@ buildvariants:
     display_name: "TPC-H"
     cron: "0 0 * * 1,3,5" # M,W,F at 00:00
     run_on: [ubuntu2204-large]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: tpch-0.001-normalized-atlas-sql
       - name: tpch-0.01-normalized-atlas-sql
@@ -1649,6 +1485,8 @@ buildvariants:
     display_name: "TPC-H Monthly"
     activate: false
     run_on: [ubuntu2204-large]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: tpch-0.1-normalized-atlas-sql
       - name: tpch-0.001-normalized-validation
@@ -1656,12 +1494,16 @@ buildvariants:
   - name: tpch-validation
     display_name: "TPC-H Validation"
     run_on: [ubuntu2204-large]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: tpch-0.001-normalized-validation
 
   - name: mem-usage
     display_name: "Memory Usage Profiler"
     run_on: [amazon2-large]
+    modules:
+      - sql-engines-common-test-infra
     activate: true
     tasks:
       - name: mem-usage-profiler-generator
@@ -1669,6 +1511,8 @@ buildvariants:
   - name: release
     display_name: "Release"
     run_on: [ubuntu1804-large]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: release
 

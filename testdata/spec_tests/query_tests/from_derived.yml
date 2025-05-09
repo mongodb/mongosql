@@ -1,0 +1,18 @@
+dataset:
+  - db: "spec_query_derived"
+    collection:
+      name: "foo"
+      docs:
+        - { "_id": 0, "x": 11, "y": 12 }
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "spec_query_derived"
+    collection:
+      name: "bar"
+      docs:
+        - { "_id": 0, "x": 11, "y": 12 }
+    schema:
+      bsonType: "object"
+      additionalProperties: true

@@ -1,0 +1,51 @@
+dataset:
+  - db: "e2e_exclude_ns"
+    collection:
+      name: "foo"
+      docs:
+        - { "_id": 0, "a": 1, "b": 2 }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"
+
+  - db: "e2e_exclude_ns"
+    collection:
+      name: "bar"
+      docs:
+        - { "_id": 0, "c": 1, "d": 2 }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "c", "d" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        c:
+          bsonType: "int"
+        d:
+          bsonType: "int"
+
+  - db: "e2e_exclude_ns"
+    collection:
+      name: "baz"
+      docs:
+        - { "_id": 0, "a": 3, "b": 2 }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"

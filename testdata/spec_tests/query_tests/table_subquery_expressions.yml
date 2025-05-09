@@ -1,0 +1,41 @@
+dataset:
+  - db: "spec_query_table_subquery_expressions"
+    collection:
+      name: "bar"
+      docs:
+        - { "_id": 1, "v": 1 }
+        - { "_id": 2, "v": 2 }
+        - { "_id": 3, "v": 3 }
+        - { "_id": 4, "v": 4 }
+        - { "_id": 5, "v": null }
+        - { "_id": 6 }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_table_subquery_expressions"
+    collection:
+      name: "target"
+      docs:
+        - { "_id": 1, "a": 2 }
+        - { "_id": 2, "a": 3 }
+        - { "_id": 3, "a": null }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"

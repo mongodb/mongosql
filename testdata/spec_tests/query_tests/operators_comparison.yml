@@ -1,0 +1,424 @@
+dataset:
+  - db: "spec_query_operators_comparison"
+    collection:
+      name: "numbers"
+      docs:
+        - { "_id": 0, "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" } }
+        - { "_id": 1, "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" } }
+        - { "_id": 2, "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" } }
+        - { "_id": 3, "a": { "$numberDouble": "6.25" }, "b": null }
+        - { "_id": 4, "a": null, "b": { "$numberInt": "3" } }
+        - { "_id": 5, "a": { "$numberDouble": "6.25" } }
+        - { "_id": 6, "b": { "$numberLong": "3" } }
+        - { "_id": 7, "a": { "$numberDecimal": "Infinity" }, "b": { "$numberDecimal": "-Infinity" } }
+        - { "_id": 8, "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "Infinity" } }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_operators_comparison"
+    collection:
+      name: "nan"
+      docs:
+        - { "_id": 0, "a": { "$numberDecimal": "NaN"}, "b": { "$numberDecimal": "NaN" } }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "decimal"
+        b:
+          bsonType: "decimal"
+
+  - db: "spec_query_operators_comparison"
+    collection:
+      name: "strings"
+      docs:
+        - { "_id": 0, "a": "abc", "b": "def" }
+        - { "_id": 1, "a": "xyz", "b": "xyz" }
+        - { "_id": 2, "a": "xyz", "b": "abc" }
+        - { "_id": 3, "a": "", "b": null }
+        - { "_id": 4, "a": null, "b": "abc" }
+        - { "_id": 5, "a": "abc" }
+        - { "_id": 6, "b": "" }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_operators_comparison"
+    collection:
+      name: "bools"
+      docs:
+        - { "_id": 0, "a": false, "b": true }
+        - { "_id": 1, "a": true, "b": true }
+        - { "_id": 2, "a": true, "b": false }
+        - { "_id": 3, "a": false, "b": null }
+        - { "_id": 4, "a": null, "b": true }
+        - { "_id": 5, "a": false }
+        - { "_id": 6, "b": true }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_operators_comparison"
+    collection:
+      name: "dates"
+      docs:
+        - { "_id": 0, "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } } }
+        - { "_id": 1, "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } } }
+        - { "_id": 2, "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } } }
+        - { "_id": 3, "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null }
+        - { "_id": 4, "a": null, "b": { "$date": { "$numberLong": "253402300799999" } } }
+        - { "_id": 5, "a": { "$date": { "$numberLong": "253402300799999" } } }
+        - { "_id": 6, "b": { "$date": { "$numberLong": "253402300799999" } } }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "date"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "date"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_operators_comparison"
+    collection:
+      name: "nullAndMissing"
+      docs:
+        - { "_id": 0, "a": null, "b": null }
+        - { "_id": 1, "a": null }
+        - { "_id": 2, "b": null }
+        - { "_id": 3 }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: !!str "null"
+        b:
+          bsonType: !!str "null"
+
+  - db: "spec_query_operators_comparison"
+    collection:
+      name: "documents"
+      docs:
+        - { "_id": 0, "a": { }, "b": { }, "comment": "empty empty" }
+        - { "_id": 1, "a": { }, "b": { "x": 1 }, "comment": "empty non-empty" }
+        - { "_id": 2, "a": { "x": 1 }, "b": { }, "comment": "non-empty empty" }
+        - { "_id": 3, "a": { "x": 1, "y": "abc" }, "b": { "x": 1, "y": "abc" }, "comment": "same keys in same order with same values" }
+        - { "_id": 4, "a": { "x": 1, "y": "abc" }, "b": { "x": 2, "y": "xyz" }, "comment": "same keys in same order with different values" }
+        - { "_id": 5, "a": { "x": 1, "y": "abc" }, "b": { "y": "abc", "x": 1 }, "comment": "same keys in different order with same values" }
+        - { "_id": 6, "a": { "x": 1, "y": "abc" }, "b": { "y": "xyz", "x": 2 }, "comment": "same keys in different order with different values" }
+        - { "_id": 7, "a": { "x": 1, "y": "abc" }, "b": { "n": 1, "m": "abc" }, "comment": "different keys with same values" }
+        - { "_id": 8, "a": { "x": 1, "y": "abc" }, "b": { "n": 2, "m": "xyz" }, "comment": "different keys with different values" }
+        - { "_id": 9, "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "abc"}, "comment": "different number of keys with overlapping names and same values" }
+        - { "_id": 10, "a": { "x": 1, "y": "abc", z: true }, "b": { "x": 1, "y": "xyz" }, "comment": "different number of keys with overlapping names and different values" }
+        - { "_id": 11, "a": null, "b": { }, "comment": "left null" }
+        - { "_id": 12, "a": { }, "b": null, "comment": "right null" }
+        - { "_id": 13, "b": { }, "comment": "left missing" }
+        - { "_id": 14, "a": { }, "comment": "right missing" }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "object"
+              additionalProperties: true
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "object"
+              additionalProperties: true
+            - bsonType: !!str "null"
+        comment:
+          bsonType: "string"
+
+  - db: "spec_query_operators_comparison"
+    collection:
+      name: "arrays"
+      docs:
+        - { "_id": 0, "a": [ ], "b": [ ], "comment": "empty empty" }
+        - { "_id": 1, "a": [ ], "b": [1], "comment": "empty non-empty" }
+        - { "_id": 2, "a": [1], "b": [ ], "comment": "non-empty empty" }
+        - { "_id": 3, "a": [1, 2, 3], "b": [1, 2, 3], "comment": "same length, same values"}
+        - { "_id": 4, "a": [1, 2, 3], "b": [500, 2, 3], "comment": "same length, different first values"}
+        - { "_id": 5, "a": [1, 2, 3, 4, 5], "b": [1, 2, 3, -10, 5], "comment": "same length, same prefix and suffix, different later values"}
+        - { "_id": 6, "a": [1, 2], "b": [1, 2, 3], "comment": "different length, one is a prefix of the other"}
+        - { "_id": 7, "a": [1, 2], "b": [24, 2, 3], "comment": "different length, different first values"}
+        - { "_id": 8, "a": [1, 2, 3], "b": [1, 2, 0, 1, 2], "comment": "different length, same prefix, different later values"}
+        - { "_id": 9, "a": null, "b": [], "comment": "left null" }
+        - { "_id": 10, "a": [], "b": null, "comment": "right null" }
+        - { "_id": 11, "b": [], "comment": "left missing" }
+        - { "_id": 12, "a": [], "comment": "right missing" }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "array"
+              items:
+                bsonType: "int"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "array"
+              items:
+                bsonType: "int"
+            - bsonType: !!str "null"
+        comment:
+          bsonType: "string"
+
+  - db: "spec_query_operators_comparison"
+    collection:
+      name: "betweenNumeric"
+      docs:
+        - { "_id": 0, "a": { "$numberInt": "2" }, "b": { "$numberLong": "1" }, "c": { "$numberDouble": "3.1" } }
+        - { "_id": 1, "a": { "$numberInt": "1" }, "b": { "$numberLong": "1" }, "c": { "$numberDecimal": "3.1" } }
+        - { "_id": 2, "a": { "$numberInt": "3" }, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" } }
+        - { "_id": 3, "a": { "$numberInt": "0" }, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" } }
+        - { "_id": 4, "a": { "$numberInt": "4" }, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" } }
+        - { "_id": 5, "a": null, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" } }
+        - { "_id": 6, "a": { "$numberLong": "2" }, "b": null, "c": { "$numberInt": "3" } }
+        - { "_id": 7, "a": { "$numberLong": "2" }, "b": { "$numberLong": "1" }, "c": null }
+        - { "_id": 8, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" } }
+        - { "_id": 9, "a": { "$numberLong": "2" }, "c": { "$numberInt": "3" } }
+        - { "_id": 10, "a": { "$numberLong": "2" }, "b": { "$numberInt": "1" } }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        c:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_operators_comparison"
+    collection:
+      name: "betweenStrings"
+      docs:
+        - { "_id": 0, "a": "y", "b": "x", "c": "z" }
+        - { "_id": 1, "a": "x", "b": "x", "c": "z" }
+        - { "_id": 2, "a": "z", "b": "x", "c": "z" }
+        - { "_id": 3, "a": "w", "b": "x", "c": "z" }
+        - { "_id": 4, "a": "d", "b": "a", "c": "c" }
+        - { "_id": 5, "a": null, "b": "x", "c": "z" }
+        - { "_id": 6, "a": "y", "b": null, "c": "z" }
+        - { "_id": 7, "a": "y", "b": "x", "c": null }
+        - { "_id": 8, "b": "x", "c": "z" }
+        - { "_id": 9, "a": "y", "c": "z" }
+        - { "_id": 10, "a": "y", "b": "x" }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        c:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_operators_comparison"
+    collection:
+      name: "betweenDates"
+      docs:
+        - { "_id": 0, "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } } }
+        - { "_id": 1, "a": { "$date": { "$numberLong": "5" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } } }
+        - { "_id": 2, "a": { "$date": { "$numberLong": "15" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } } }
+        - { "_id": 3, "a": { "$date": { "$numberLong": "0" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } } }
+        - { "_id": 4, "a": { "$date": { "$numberLong": "20" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } } }
+        - { "_id": 5, "a": null, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } } }
+        - { "_id": 6, "a": { "$date": { "$numberLong": "10" } }, "b": null, "c": { "$date": { "$numberLong": "15" } } }
+        - { "_id": 7, "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } }, "c": null }
+        - { "_id": 8, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } } }
+        - { "_id": 9, "a": { "$date": { "$numberLong": "10" } }, "c": { "$date": { "$numberLong": "15" } } }
+        - { "_id": 10, "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } } }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "date"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "date"
+            - bsonType: !!str "null"
+        c:
+          anyOf:
+            - bsonType: "date"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_operators_comparison"
+    collection:
+      name: "betweenDocuments"
+      docs:
+        - { "_id": 0, "a": { "y": 1 }, "b": { "x": 1 }, "c": { "z": 1 }, "comment": "is between" }
+        - { "_id": 1, "a": { "x": 1 }, "b": { "x": 1 }, "c": { "z": 1 }, "comment": "equals lower bound" }
+        - { "_id": 2, "a": { "z": 1 }, "b": { "x": 1 }, "c": { "z": 1 }, "comment": "equals upper bound" }
+        - { "_id": 3, "a": { "x": 1, "y": 0 }, "b": { "x": 1, "y": 1 }, "c": { "z": 1, "n": 1 }, "comment": "less than lower bound" }
+        - { "_id": 4, "a": { "z": 2, "n": 1 }, "b": { "x": 1, "y": 1 }, "c": { "z": 1, "n": 1 }, "comment": "greater than upper bound" }
+        - { "_id": 5, "a": null, "b": { "x": 1 }, "c": { "z": 1 }, "comment": "first arg null" }
+        - { "_id": 6, "a": { "y": 1 }, "b": null, "c": { "z": 1 }, "comment": "second arg null" }
+        - { "_id": 7, "a": { "y": 1 }, "b": { "x": 1 }, "c": null, "comment": "third arg null" }
+        - { "_id": 8, "b": { "x": 1 }, "c": { "z": 1 }, "comment": "first arg missing" }
+        - { "_id": 9, "a": { "y": 1 }, "c": { "z": 1 }, "comment": "second arg missing" }
+        - { "_id": 10, "a": { "y": 1 }, "b": { "x": 1 }, "comment": "third arg missing" }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "comment" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "object"
+              additionalProperties: true
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "object"
+              additionalProperties: true
+            - bsonType: !!str "null"
+        c:
+          anyOf:
+            - bsonType: "object"
+              additionalProperties: true
+            - bsonType: !!str "null"
+
+  - db: "spec_query_operators_comparison"
+    collection:
+      name: "betweenArrays"
+      docs:
+        - { "_id": 0, "a": [3, 4], "b": [1, 2], "c": [5, 6], "comment": "is between" }
+        - { "_id": 1, "a": [1, 2], "b": [1, 2], "c": [5, 6], "comment": "equals lower bound" }
+        - { "_id": 2, "a": [5, 6], "b": [1, 2], "c": [5, 6], "comment": "equals upper bound" }
+        - { "_id": 3, "a": [0], "b": [1, 2, 3], "c": [5], "comment": "less than lower bound" }
+        - { "_id": 4, "a": [7, 8], "b": [1, 2, 3], "c": [5], "comment": "greater than upper bound" }
+        - { "_id": 5, "a": null, "b": [1, 2], "c": [5, 6], "comment": "first arg null" }
+        - { "_id": 6, "a": [3, 4], "b": null, "c": [5, 6], "comment": "second arg null" }
+        - { "_id": 7, "a": [3, 4], "b": [1, 2], "c": null, "comment": "third arg null" }
+        - { "_id": 8, "b": [1, 2], "c": [5, 6], "comment": "first arg missing" }
+        - { "_id": 9, "a": [3, 4], "c": [5, 6], "comment": "second arg missing" }
+        - { "_id": 10, "a": [3, 4], "b": [1, 2], "comment": "third arg missing" }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "comment" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "array"
+              items:
+                bsonType: "int"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "array"
+              items:
+                bsonType: "int"
+            - bsonType: !!str "null"
+        c:
+          anyOf:
+            - bsonType: "array"
+              items:
+                bsonType: "int"
+            - bsonType: !!str "null"

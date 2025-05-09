@@ -1,0 +1,70 @@
+dataset:
+  - db: "spec_query_operators_precedence"
+    collection:
+      name: "and_or_tier"
+      docs:
+        - { "_id": 0, "a": false, "b": true, "c": true }
+        - { "_id": 1, "a": false, "b": false, "c": true }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "c" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "bool"
+        b:
+          bsonType: "bool"
+        c:
+          bsonType: "bool"
+
+  - db: "spec_query_operators_precedence"
+    collection:
+      name: "not_and_tier"
+      docs:
+        - { "_id": 0, "a": true, "b": false }
+        - { "_id": 1, "a": true, "b": null }
+        - { "_id": 2, "a": false, "b": null }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "bool"
+        b:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_operators_precedence"
+    collection:
+      name: "mul_add_tier"
+      docs:
+        - { "_id": 0, "a": 1, "b": 1, "c": 1 }
+        - { "_id": 1, "a": 6, "b": 3, "c": 3 }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "c" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"
+        c:
+          bsonType: "int"
+
+  - db: "spec_query_operators_precedence"
+    collection:
+      name: "subpath_type_tier"
+      docs:
+        - { "_id": 0, "a": { "b": true, "c": 1 } }
+    schema:
+      bsonType: "object"
+      additionalProperties: true

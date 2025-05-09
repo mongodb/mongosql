@@ -1,27 +1,12 @@
-catalog_data:
-  db:
-    foo:
-      - {'_id': 0, 'a': 1}
-
-catalog_schema:
-  {
-    'db': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
-
 tests:
   - description: Standard embedded comment
-    current_db: 'db'
+    current_db: spec_query_comments
     query: 'SELECT a FROM foo -- This is a standard comment'
     result:
       - {'': {'a': 1}}
 
   - description: Standard single line comment
-    current_db: 'db'
+    current_db: spec_query_comments
     query: '-- This is a standard single line comment
 
     SELECT a FROM foo'
@@ -29,13 +14,13 @@ tests:
       - {'': {'a': 1}}
 
   - description: Inline comment
-    current_db: 'db'
+    current_db: spec_query_comments
     query: 'SELECT a /* This is an inline comment */ FROM foo'
     result:
       - {'': {'a': 1}}
 
   - description: Multiline comment
-    current_db: 'db'
+    current_db: spec_query_comments
     query: '/* This is a multiline comment
 
     This is a multiline comment */
@@ -45,7 +30,7 @@ tests:
       - {'': {'a': 1}}
 
   - description: Inline multiline comment
-    current_db: 'db'
+    current_db: spec_query_comments
     query: 'SELECT a /* This is an inline
 
     comment */ FROM foo'
@@ -54,7 +39,7 @@ tests:
 
 
   - description: Multiline comment with nesting
-    current_db: 'db'
+    current_db: spec_query_comments
     query: '/* This is a multiline comment
 
     * with nesting: /* nested block comment */

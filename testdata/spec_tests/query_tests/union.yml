@@ -1,0 +1,20 @@
+dataset:
+  - db: "spec_query_union"
+    collection:
+      name: "foo"
+      docs:
+        - { "_id": 0, "a": 1 }
+        - { "_id": 1, "a": 2 }
+        - { "_id": 2, "a": 1 }
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "spec_query_union"
+    collection:
+      name: "bar"
+      docs:
+        - { "_id": 0, "b": 1, "c": 1 }
+    schema:
+      bsonType: "object"
+      additionalProperties: true

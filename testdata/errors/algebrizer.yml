@@ -1,0 +1,77 @@
+dataset:
+  - db: "errors_algebrizer"
+    collection:
+      name: "foo"
+      docs:
+        - { "_id": 0, "a": 1, "b": 2 }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "c", "d" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"
+        c:
+          bsonType: "string"
+        d:
+          anyOf:
+            - bsonType: "object"
+            - bsonType: "int"
+
+  - db: "errors_algebrizer"
+    collection:
+      name: "bar"
+      docs:
+        - { "_id": 0, "a": 1, "b": 2 }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "c", "d" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"
+        c:
+          bsonType: "string"
+        d:
+          bsonType: "object"
+          additionalProperties: true
+
+  - db: "errors_algebrizer"
+    collection:
+      name: "noSchemaInfo"
+      docs:
+        - { "_id": 0, "a": { "b": 1 } }
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "errors_algebrizer"
+    collection:
+      name: "docOrInt"
+      docs:
+        - { "_id": 0, "a": { "b": 1 } }
+        - { "_id": 1, "a": 2 }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "object"
+              required: [ "b" ]
+              additionalProperties: false
+              properties:
+                b:
+                  bsonType: "int"

@@ -1,0 +1,693 @@
+dataset:
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "nullif"
+      docs:
+        - { "_id": 0, "v1": "a", "v2": "a" }
+        - { "_id": 1, "v1": "a", "v2": "b" }
+        - { "_id": 2, "v1": "a", "v2": null }
+        - { "_id": 3, "v1": null, "v2": "b" }
+        - { "_id": 4, "v1": "a" }
+        - { "_id": 5, "v2": "b" }
+        - { "_id": 6 }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v1:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        v2:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "twoArgCoalesce"
+      docs:
+        - { "_id": 0, "v1": 123, "v2": 456 }
+        - { "_id": 1, "v1": null, "v2": 456 }
+        - { "_id": 2, "v2": 456 }
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "multiArgCoalesce"
+      docs:
+        - { "_id": 0, "v1": 123, "v2": null, "v4": 789, "v5": null }
+        - { "_id": 1, "v1": null, "v3": 456, "v4": 789 }
+        - { "_id": 2, "v2": null, "v3": null, "v5": 789 }
+        - { "_id": 3, "v1": null, "v2": null, "v5": null }
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "size"
+      docs:
+        - { "_id": 0, "a": [] }
+        - { "_id": 1, "a": [1] }
+        - { "_id": 2, "a": [1, 2, 3] }
+        - { "_id": 3, "a": null }
+        - { "_id": 4 }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "array"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "position"
+      docs:
+        - { "_id": 0, "s1": "", "s2": "abc" }
+        - { "_id": 1, "s1": "a", "s2": "abc" }
+        - { "_id": 2, "s1": "b", "s2": "abc" }
+        - { "_id": 3, "s1": "b", "s2": "abbbc" }
+        - { "_id": 4, "s1": "bc", "s2": "abbcbc" }
+        - { "_id": 5, "s1": "x", "s2": "abc" }
+        - { "_id": 6, "s1": null, "s2": "abc" }
+        - { "_id": 7, "s2": "abc" }
+        - { "_id": 8, "s1": "b", "s2": null }
+        - { "_id": 9, "s1": "b" }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        s1:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        s2:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "length"
+      docs:
+        - { "_id": 0, "s": "" }
+        - { "_id": 1, "s": "a" }
+        - { "_id": 2, "s": "ã" }
+        - { "_id": 3, "s": "abc" }
+        - { "_id": 5, "s": "$€λG", "comment": "€ is encoded using three bytes. λ is encoded using two bytes." }
+        - { "_id": 6, "s": "寿司", "comment": "Each character is encoded using three bytes." }
+        - { "_id": 7, "s": null }
+        - { "_id": 8 }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        s:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        comment:
+          bsonType: "string"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "nullAndMissing"
+      docs:
+        - { "_id": 0, "d": null }
+        - { "_id": 1 }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        d:
+          anyOf:
+            - bsonType: "date"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "substring"
+      docs:
+        - { "_id": 0, "str": "", "start": { "$numberInt": "0" }, "length": { "$numberInt": "1" } }
+        - { "_id": 1, "str": "", "start": { "$numberInt": "1" }, "length": { "$numberInt": "1" } }
+        - { "_id": 2, "str": "abc", "start": { "$numberInt": "0" }, "length": { "$numberInt": "-1" } }
+        - { "_id": 3, "str": "abc", "start": { "$numberInt": "0" }, "length": { "$numberInt": "0" } }
+        - { "_id": 4, "str": "abc", "start": { "$numberInt": "0" }, "length": { "$numberInt": "1" } }
+        - { "_id": 5, "str": "abc", "start": { "$numberInt": "0" }, "length": { "$numberInt": "2" } }
+        - { "_id": 6, "str": "abc", "start": { "$numberInt": "0" }, "length": { "$numberInt": "4" } }
+        - { "_id": 7, "str": "abc", "start": { "$numberInt": "1" }, "length": { "$numberInt": "2" } }
+        - { "_id": 8, "str": "abc", "start": { "$numberInt": "2" }, "length": { "$numberInt": "-1" } }
+        - { "_id": 9, "str": "$€λGx", "start": { "$numberInt": "1" }, "length": { "$numberInt": "3" } }
+        - { "_id": 10, "str": null, start: { "$numberInt": "1" }, length: { "$numberInt": "1" } }
+        - { "_id": 11, start: { "$numberInt": "1" }, length: { "$numberInt": "1" } }
+        - { "_id": 12, "str": "abc", start: null, length: { "$numberInt": "1" } }
+        - { "_id": 13, "str": "abc", length: { "$numberInt": "1" } }
+        - { "_id": 14, "str": "abc", "start": { "$numberInt": "1" }, "length": null }
+        - { "_id": 15, "str": "abc", "start": { "$numberInt": "1" } }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        str:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        start:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+        length:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "fold"
+      docs:
+        - { "_id": 0, "s": "" }
+        - { "_id": 1, "s": "abcd" }
+        - { "_id": 2, "s": "aBcD" }
+        - { "_id": 3, "s": "ABCD" }
+        - { "_id": 4, "s": null }
+        - { "_id": 5 }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        s:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "trim"
+      docs:
+        - { "_id": 0, "substr": "", "str": "" }
+        - { "_id": 1, "substr": " ", "str": "" }
+        - { "_id": 2, "substr": " ", "str": "   " }
+        - { "_id": 3, "substr": " ", "str": "abc" }
+        - { "_id": 4, "substr": " ", "str": "  abc  " }
+        - { "_id": 5, "substr": "x", "str": "x abc x" }
+        - { "_id": 6, "substr": "123", "str": "123abc123" }
+        - { "_id": 7, "substr": null, "str": "abc" }
+        - { "_id": 8, "str": "abc" }
+        - { "_id": 9, "substr": " ", "str": null }
+        - { "_id": 10, "substr": " " }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        substr:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        str:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "abs"
+      docs:
+        - { "_id": 0, "v": { "$numberInt": "1" } }
+        - { "_id": 1, "v": { "$numberLong": "-1" } }
+        - { "_id": 2, "v": { "$numberDouble": "-1" } }
+        - { "_id": 3, "v": { "$numberDecimal": "-1" } }
+        - { "_id": 4, "v": { "$numberDouble": "NaN" } }
+        - { "_id": 5, "v": { "$numberDouble": "Infinity" } }
+        - { "_id": 6, "v": { "$numberDouble": "-Infinity" } }
+        - { "_id": 7, "v": null }
+        - { "_id": 8 }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "ceilAndFloor"
+      docs:
+        - { "_id": 0, "v": { "$numberInt": "7" } }
+        - { "_id": 1, "v": { "$numberLong": "7" } }
+        - { "_id": 2, "v": { "$numberDouble": "-7.8" } }
+        - { "_id": 3, "v": { "$numberDecimal": "7.8" } }
+        - { "_id": 4, "v": { "$numberDouble": "NaN" } }
+        - { "_id": 5, "v": { "$numberDouble": "Infinity" } }
+        - { "_id": 6, "v": { "$numberDouble": "-Infinity" } }
+        - { "_id": 7, "v": null }
+        - { "_id": 8 }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "log"
+      docs:
+        - { "_id": 0, "v": { "$numberInt": "-100" }, "base": { "$numberInt": "10" } }
+        - { "_id": 1, "v": { "$numberInt": "0" }, "base": { "$numberLong": "10" } }
+        - { "_id": 2, "v": { "$numberInt": "100" }, "base": { "$numberDouble": "-10" } }
+        - { "_id": 3, "v": { "$numberInt": "100" }, "base": { "$numberDecimal": "0" } }
+        - { "_id": 4, "v": { "$numberInt": "100" }, "base": null }
+        - { "_id": 5, "v": { "$numberInt": "100" } }
+        - { "_id": 6, "v": { "$numberLong": "100" }, "base": { "$numberInt": "1" } }
+        - { "_id": 7, "v": { "$numberLong": "100" }, "base": { "$numberLong": "10" } }
+        - { "_id": 8, "v": { "$numberLong": "100" }, "base": { "$numberDouble": "10" } }
+        - { "_id": 9, "v": { "$numberLong": "100" }, "base": { "$numberDecimal": "10" } }
+        - { "_id": 10, "v": { "$numberLong": "100" }, "base": null }
+        - { "_id": 11, "v": { "$numberLong": "100" } }
+        - { "_id": 12, "v": { "$numberDouble": "100" }, "base": { "$numberInt": "10" } }
+        - { "_id": 13, "v": { "$numberDouble": "100" }, "base": { "$numberLong": "10" } }
+        - { "_id": 14, "v": { "$numberDouble": "100" }, "base": { "$numberDouble": "10" } }
+        - { "_id": 15, "v": { "$numberDouble": "100" }, "base": { "$numberDecimal": "10" } }
+        - { "_id": 16, "v": { "$numberDouble": "100" }, "base": null }
+        - { "_id": 17, "v": { "$numberDouble": "100" } }
+        - { "_id": 18, "v": { "$numberDecimal": "100" }, "base": { "$numberInt": "10" } }
+        - { "_id": 19, "v": { "$numberDecimal": "100" }, "base": { "$numberLong": "10" } }
+        - { "_id": 20, "v": { "$numberDecimal": "100" }, "base": { "$numberDouble": "10" } }
+        - { "_id": 21, "v": { "$numberDecimal": "100" }, "base": { "$numberDecimal": "10" } }
+        - { "_id": 22, "v": { "$numberDecimal": "100" }, "base": null }
+        - { "_id": 23, "v": { "$numberDecimal": "100" } }
+        - { "_id": 24, "v": { "$numberDouble": "NaN" }, "base": { "$numberInt": "10" } }
+        - { "_id": 25, "v": { "$numberInt": "100" }, "base": { "$numberDouble": "NaN" } }
+        - { "_id": 26, "v": { "$numberDouble": "Infinity" }, "base": { "$numberInt": "10" } }
+        - { "_id": 27, "v": { "$numberInt": "100" }, "base": { "$numberDouble": "Infinity" } }
+        - { "_id": 28, "v": { "$numberDouble": "-Infinity" }, "base": { "$numberInt": "10" } }
+        - { "_id": 29, "v": { "$numberInt": "100" }, "base": { "$numberDouble": "-Infinity" } }
+        - { "_id": 30, "v": null,  "base": { "$numberInt": "10" } }
+        - { "_id": 31, "v": null, "base": null }
+        - { "_id": 32, "v": null }
+        - { "_id": 33 }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        base:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "mod"
+      docs:
+        - { "_id": 0, "v": { "$numberInt": "-80" }, "divisor": { "$numberInt": "7" } }
+        - { "_id": 1, "v": { "$numberInt": "0" }, "divisor": { "$numberLong": "7" } }
+        - { "_id": 2, "v": { "$numberInt": "80" }, "divisor": { "$numberDouble": "-7" } }
+        - { "_id": 3, "v": { "$numberInt": "80" }, "divisor": { "$numberDecimal": "0" } }
+        - { "_id": 4, "v": { "$numberInt": "80" }, "divisor": null }
+        - { "_id": 5, "v": { "$numberInt": "80" } }
+        - { "_id": 6, "v": { "$numberLong": "80" }, "divisor": { "$numberInt": "7" } }
+        - { "_id": 7, "v": { "$numberLong": "80" }, "divisor": { "$numberLong": "7" } }
+        - { "_id": 8, "v": { "$numberLong": "80" }, "divisor": { "$numberDouble": "7" } }
+        - { "_id": 9, "v": { "$numberLong": "80" }, "divisor": { "$numberDecimal": "7" } }
+        - { "_id": 10, "v": { "$numberLong": "80" }, "divisor": null }
+        - { "_id": 11, "v": { "$numberLong": "80" } }
+        - { "_id": 12, "v": { "$numberDouble": "80" }, "divisor": { "$numberInt": "7" } }
+        - { "_id": 13, "v": { "$numberDouble": "80" }, "divisor": { "$numberLong": "7" } }
+        - { "_id": 14, "v": { "$numberDouble": "80" }, "divisor": { "$numberDouble": "7" } }
+        - { "_id": 15, "v": { "$numberDouble": "80" }, "divisor": { "$numberDecimal": "7" } }
+        - { "_id": 16, "v": { "$numberDouble": "80" }, "divisor": null }
+        - { "_id": 17, "v": { "$numberDouble": "80" } }
+        - { "_id": 18, "v": { "$numberDecimal": "80" }, "divisor": { "$numberInt": "7" } }
+        - { "_id": 19, "v": { "$numberDecimal": "80" }, "divisor": { "$numberLong": "7" } }
+        - { "_id": 20, "v": { "$numberDecimal": "80" }, "divisor": { "$numberDouble": "7" } }
+        - { "_id": 21, "v": { "$numberDecimal": "80" }, "divisor": { "$numberDecimal": "7" } }
+        - { "_id": 22, "v": { "$numberDecimal": "80" }, "divisor": null }
+        - { "_id": 23, "v": { "$numberDecimal": "80" } }
+        - { "_id": 24, "v": { "$numberDouble": "NaN" }, "divisor": { "$numberInt": "7" } }
+        - { "_id": 25, "v": { "$numberInt": "80" }, "divisor": { "$numberDouble": "NaN" } }
+        - { "_id": 26, "v": { "$numberDouble": "Infinity" }, "divisor": { "$numberInt": "7" } }
+        - { "_id": 27, "v": { "$numberInt": "80" }, "divisor": { "$numberDouble": "Infinity" } }
+        - { "_id": 28, "v": { "$numberDouble": "-Infinity" }, "divisor": { "$numberInt": "7" } }
+        - { "_id": 29, "v": { "$numberInt": "80" }, "divisor": { "$numberDouble": "-Infinity" } }
+        - { "_id": 30, "v": null, "divisor": { "$numberInt": "7" } }
+        - { "_id": 31, "v": null, "divisor": null }
+        - { "_id": 32, "v": null }
+        - { "_id": 33 }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        divisor:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "pow"
+      docs:
+        - { "_id": 0, "v": { "$numberInt": "-5" }, "exponent": { "$numberInt": "2" } }
+        - { "_id": 1, "v": { "$numberInt": "0" }, "exponent": { "$numberLong": "2" } }
+        - { "_id": 2, "v": { "$numberInt": "5" }, "exponent": { "$numberDouble": "-2" } }
+        - { "_id": 3, "v": { "$numberInt": "5" }, "exponent": { "$numberDecimal": "0" } }
+        - { "_id": 4, "v": { "$numberInt": "5" }, "exponent": null }
+        - { "_id": 5, "v": { "$numberInt": "5" } }
+        - { "_id": 6, "v": { "$numberLong": "5" }, "exponent": { "$numberInt": "2" } }
+        - { "_id": 7, "v": { "$numberLong": "5" }, "exponent": { "$numberLong": "2" } }
+        - { "_id": 8, "v": { "$numberLong": "5" }, "exponent": { "$numberDouble": "2" } }
+        - { "_id": 9, "v": { "$numberLong": "5" }, "exponent": { "$numberDecimal": "2" } }
+        - { "_id": 10, "v": { "$numberLong": "5" }, "exponent": null }
+        - { "_id": 11, "v": { "$numberLong": "5" } }
+        - { "_id": 12, "v": { "$numberDouble": "5" }, "exponent": { "$numberInt": "2" } }
+        - { "_id": 13, "v": { "$numberDouble": "5" }, "exponent": { "$numberLong": "2" } }
+        - { "_id": 14, "v": { "$numberDouble": "5" }, "exponent": { "$numberDouble": "2" } }
+        - { "_id": 15, "v": { "$numberDouble": "5" }, "exponent": { "$numberDecimal": "2" } }
+        - { "_id": 16, "v": { "$numberDouble": "5" }, "exponent": null }
+        - { "_id": 17, "v": { "$numberDouble": "5" } }
+        - { "_id": 18, "v": { "$numberDecimal": "5" }, "exponent": { "$numberInt": "2" } }
+        - { "_id": 19, "v": { "$numberDecimal": "5" }, "exponent": { "$numberLong": "2" } }
+        - { "_id": 20, "v": { "$numberDecimal": "5" }, "exponent": { "$numberDouble": "2" } }
+        - { "_id": 21, "v": { "$numberDecimal": "5" }, "exponent": { "$numberDecimal": "2" } }
+        - { "_id": 22, "v": { "$numberDecimal": "5" }, "exponent": null }
+        - { "_id": 23, "v": { "$numberDecimal": "5" } }
+        - { "_id": 24, "v": { "$numberDouble": "NaN" }, "exponent": { "$numberInt": "2" } }
+        - { "_id": 25, "v": { "$numberInt": "5" }, "exponent": { "$numberDouble": "NaN" } }
+        - { "_id": 26, "v": { "$numberDouble": "Infinity" }, "exponent": { "$numberInt": "2" } }
+        - { "_id": 27, "v": { "$numberInt": "5" }, "exponent": { "$numberDouble": "Infinity" } }
+        - { "_id": 28, "v": { "$numberDouble": "-Infinity" }, "exponent": { "$numberInt": "2" } }
+        - { "_id": 29, "v": { "$numberInt": "5" }, "exponent": { "$numberDouble": "-Infinity" } }
+        - { "_id": 30, "v": null, "exponent": { "$numberInt": "2" } }
+        - { "_id": 31, "v": null, "exponent": null }
+        - { "_id": 32, "v": null }
+        - { "_id": 33 }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        exponent:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "radians"
+      docs:
+        - { "_id": 0, "degrees": { "$numberInt": "90" } }
+        - { "_id": 1, "degrees": { "$numberLong": "-90" } }
+        - { "_id": 2, "degrees": { "$numberDouble": "0" } }
+        - { "_id": 3, "degrees": { "$numberDecimal": "90" } }
+        - { "_id": 4, "degrees": { "$numberDouble": "NaN" } }
+        - { "_id": 5, "degrees": { "$numberDouble": "Infinity" } }
+        - { "_id": 6, "degrees": { "$numberDouble": "-Infinity" } }
+        - { "_id": 7, "degrees": null }
+        - { "_id": 8 }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        degrees:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "round"
+      docs:
+        - { "_id": 0, "v": { "$numberInt": "-1234" }, "place": { "$numberInt": "-2" } }
+        - { "_id": 1, "v": { "$numberInt": "0" }, "place": { "$numberLong": "-2" } }
+        - { "_id": 2, "v": { "$numberInt": "1234" }, "place": null }
+        - { "_id": 3, "v": { "$numberInt": "1234" } }
+        - { "_id": 4, "v": { "$numberLong": "1234" }, "place": { "$numberInt": "2" } }
+        - { "_id": 5, "v": { "$numberLong": "1234" }, "place": { "$numberLong": "0" } }
+        - { "_id": 6, "v": { "$numberLong": "1234" }, "place": null }
+        - { "_id": 7, "v": { "$numberLong": "1234" } }
+        - { "_id": 8, "v": { "$numberDouble": "1234.5678" }, "place": { "$numberInt": "2" } }
+        - { "_id": 9, "v": { "$numberDouble": "1234.5678" }, "place": { "$numberLong": "2" } }
+        - { "_id": 10, "v": { "$numberDouble": "1234.5678" }, "place": null }
+        - { "_id": 11, "v": { "$numberDouble": "1234.5678" } }
+        - { "_id": 12, "v": { "$numberDecimal": "1234.5678" }, "place": { "$numberInt": "2" } }
+        - { "_id": 13, "v": { "$numberDecimal": "1234.5678" }, "place": { "$numberLong": "2" } }
+        - { "_id": 14, "v": { "$numberDecimal": "1234.5678" }, "place": null }
+        - { "_id": 15, "v": { "$numberDecimal": "1234.5678" } }
+        - { "_id": 16, "v": { "$numberDouble": "NaN" }, "place": { "$numberInt": "2" } }
+        - { "_id": 17, "v": { "$numberDouble": "Infinity" }, "place": { "$numberInt": "2" } }
+        - { "_id": 18, "v": { "$numberDouble": "-Infinity" }, "place": { "$numberInt": "2" } }
+        - { "_id": 19, "v": { "$numberInt": "1234" }, "place": { "$numberInt": "-21" } }
+        - { "_id": 20, "v": { "$numberInt": "1234" }, "place": { "$numberInt": "101" } }
+        - { "_id": 21, "v": null, "place": { "$numberInt": "-2" } }
+        - { "_id": 22, "v": null, "place": null }
+        - { "_id": 23, "v": null }
+        - { "_id": 24 }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        place:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "sqrt"
+      docs:
+        - { "_id": 0, "v": { "$numberInt": "16" } }
+        - { "_id": 1, "v": { "$numberLong": "-16" } }
+        - { "_id": 2, "v": { "$numberDouble": "0" } }
+        - { "_id": 3, "v": { "$numberDecimal": "16" } }
+        - { "_id": 4, "v": { "$numberDouble": "NaN" } }
+        - { "_id": 5, "v": { "$numberDouble": "Infinity" } }
+        - { "_id": 6, "v": { "$numberDouble": "-Infinity" } }
+        - { "_id": 7, "v": null }
+        - { "_id": 8 }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "trigonometry"
+      docs:
+        - { "_id": 0, "radians": { "$numberInt": "1" } }
+        - { "_id": 1, "radians": { "$numberLong": "-1" } }
+        - { "_id": 2, "radians": { "$numberDouble": "0" } }
+        - { "_id": 3, "radians": { "$numberDecimal": "0.7854" } }
+        - { "_id": 4, "radians": { "$numberDouble": "NaN" } }
+        - { "_id": 5, "radians": { "$numberDouble": "Infinity" } }
+        - { "_id": 6, "radians": { "$numberDouble": "-Infinity" } }
+        - { "_id": 7, "radians": null }
+        - { "_id": 8 }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        radians:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "split"
+      docs:
+        - { "_id": 0, "str": "", "delim": "-", "tokenNum": { "$numberInt": "0" } }
+        - { "_id": 1, "str": "abcd", "delim": "-", "tokenNum": { "$numberInt": "0" } }
+        - { "_id": 2, "str": "abcd", "delim": "", "tokenNum": { "$numberInt": "0" } }
+        - { "_id": 3, "str": "a-bee-c-d", "delim": "-", "tokenNum": { "$numberInt": "1" } }
+        - { "_id": 4, "str": "a-bee-c-d", "delim": "-", "tokenNum": { "$numberInt": "-2" } }
+        - { "_id": 5, "str": "a-bee-c-d", "delim": "-", "tokenNum": { "$numberInt": "0" } }
+        - { "_id": 6, "str": "a-bee-c-d", "delim": "-", "tokenNum": { "$numberInt": "7" } }
+        - { "_id": 7, "str": "a-bee-c-d", "delim": "-", "tokenNum": { "$numberInt": "-7" } }
+        - { "_id": 8, "str": "a-bee-c-d", "delim": "-", "tokenNum": { "$numberInt": "4" }  }
+        - { "_id": 9, "str": "a-bee-c-d", "delim": "-", "tokenNum": { "$numberInt": "-4" }  }
+        - { "_id": 10, "str": "a/\\bee/\\c/\\d", "delim": "/\\", "tokenNum": { "$numberInt": "2" } }
+        - { "_id": 11, "str": null, "delim": "-", "tokenNum": { "$numberInt": "0" } }
+        - { "_id": 12, "str": "a-bee-c-d", "delim": null, "tokenNum": { "$numberInt": "0" } }
+        - { "_id": 13, "str": "a-bee-c-d", "delim": "-", "tokenNum": null }
+        - { "_id": 14, "delim": "-", "tokenNum": { "$numberInt": "0" }  }
+        - { "_id": 15, "str": "a-bee-c-d", "tokenNum": { "$numberInt": "0" }  }
+        - { "_id": 16, "str": "a-bee-c-d", "delim": "-"  }
+        - { "_id": 17, "str": "λ-bee-寿-d", "delim": "-", "tokenNum": { "$numberInt": "2" } }
+        - { "_id": 18, "str": "λ€bee€寿€d", "delim": "€", "tokenNum": { "$numberInt": "2" } }
+        - { "_id": 19 }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        str:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        delim:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        tokenNum:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+
+    # The date function tests use timestamps as opposed to date strings. The date
+    # string to timestamp conversions are provided below for better readability.
+    # { $toLong: new Date("2022-06-02T03:55:13Z") } => 1654142113000
+    # { $toLong: new Date("2024-08-10T05:58:19Z") } => 1723269499000
+    # { $toLong: new Date("2019-03-01T02:35:08Z") } => 1551407708000
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "dates"
+      docs:
+        - { "_id": 0, "date1": { "$date": { "$numberLong": "1654142113000" } }, "date2": { "$date": { "$numberLong": "1723269499000" } }, "interval": { "$numberInt": "3" } }
+        - { "_id": 1, "date1": { "$date": { "$numberLong": "1654142113000" } }, "date2": { "$date": { "$numberLong": "1551407708000" } }, "interval": { "$numberLong": "-3" } }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "date1", "date2", "interval" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        date1:
+          bsonType: "date"
+        date2:
+          bsonType: "date"
+        interval:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "datepart"
+      docs:
+        - { "_id": 0, "date1": { "$date": { "$numberLong": "1654142113000" } } }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "date1" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        date1:
+          bsonType: "date"

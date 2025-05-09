@@ -404,6 +404,9 @@ tasks:
     commands:
       - func: "install rust toolchain"
       - func: "set and check packages version"
+        vars:
+          cargo_file: "mongosqltranslate/Cargo.toml"
+          package_name: "mongosqltranslate"
       - func: "compile libmongosqltranslate"
       - func: "mciuploads mongosqltranslate"
 
@@ -411,6 +414,9 @@ tasks:
     commands:
       - func: "install rust toolchain"
       - func: "set and check packages version"
+        vars:
+          cargo_file: "mongosqltranslate/Cargo.toml"
+          package_name: "mongosqltranslate"
       - func: "generate SBOM"
         vars:
           project_folder: "mongosqltranslate"
@@ -492,6 +498,8 @@ buildvariants:
   - name: mongosqltranslate-release
     display_name: "Mongosqltranslate Release"
     run_on: [ubuntu2004-large]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: mongosqltranslate-release
       - name: trace-artifacts
@@ -501,6 +509,8 @@ buildvariants:
     tags: ["mongosqltranslate-release-variant"]
     display_name: "Mongosqltranslate - macOS"
     run_on: [macos-11]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: compile-mongosqltranslate
       - name: test-mongosqltranslate
@@ -510,6 +520,8 @@ buildvariants:
     tags: ["mongosqltranslate-release-variant"]
     display_name: "Mongosqltranslate - macOS arm64"
     run_on: [macos-13-arm64]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: compile-mongosqltranslate
       - name: test-mongosqltranslate
@@ -519,6 +531,8 @@ buildvariants:
     tags: ["mongosqltranslate-release-variant"]
     display_name: "Mongosqltranslate - windows"
     run_on: [windows-64-vs2019-large]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: compile-mongosqltranslate
       - name: test-mongosqltranslate
@@ -529,6 +543,8 @@ buildvariants:
     tags: ["mongosqltranslate-release-variant"]
     display_name: "Mongosqltranslate - linux"
     run_on: [rhel76-large]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: compile-mongosqltranslate
       - name: test-mongosqltranslate
@@ -539,6 +555,8 @@ buildvariants:
     tags: ["mongosqltranslate-release-variant"]
     display_name: "Mongosqltranslate - linux arm"
     run_on: [amazon2-arm64-large]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: compile-mongosqltranslate
       - name: test-mongosqltranslate
@@ -548,6 +566,8 @@ buildvariants:
   - name: mongosqltranslate-code-quality-security
     display_name: "Mongosqltranslate Code Quality and Security"
     run_on: [ubuntu2204-small]
+    modules:
+      - sql-engines-common-test-infra
     tasks:
       - name: mongosqltranslate-sbom
       - name: mongosqltranslate-static-code-analysis

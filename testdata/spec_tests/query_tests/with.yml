@@ -1,0 +1,51 @@
+dataset:
+  - db: "spec_query_with"
+    collection:
+      name: "biz"
+      docs:
+        - { "_id": 0, "foo": 1 }
+        - { "_id": 1, "foo": 42 }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "foo" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        foo:
+          bsonType: "int"
+
+  - db: "spec_query_with"
+    collection:
+      name: "bar"
+      docs:
+        - { "_id": 0, "foo": 42, "baz": 63 }
+        - { "_id": 1, "foo": 43 }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "foo" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        foo:
+          bsonType: "int"
+        baz:
+          bsonType: "int"
+
+  - db: "spec_query_with"
+    collection:
+      name: "baz"
+      docs:
+        - { "_id": 0, "bar": 53, "car": 42 }
+    schema:
+      bsonType: "object"
+      required: [ "bar", "car" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        bar:
+          bsonType: "int"
+        car:
+          bsonType: "int"

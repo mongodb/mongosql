@@ -1,0 +1,124 @@
+dataset:
+  - db: "spec_query_flatten"
+    collection:
+      name: "foo"
+      docs:
+        - { "_id": 0, "a": { "b": { "c": 1 } } }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "object"
+          required: [ "b" ]
+          additionalProperties: false
+          properties:
+            b:
+              bsonType: "object"
+              required: [ "c" ]
+              additionalProperties: false
+              properties:
+                c:
+                  bsonType: "int"
+
+  - db: "spec_query_flatten"
+    collection:
+      name: "docOrInt"
+      docs:
+        - { "_id": 0, "a": { "b": 1 } }
+        - { "_id": 1, "a": 1 }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "object"
+              required: [ "b" ]
+              additionalProperties: false
+              properties:
+                b:
+                  bsonType: "int"
+
+  - db: "spec_query_flatten"
+    collection:
+      name: "nullableDoc"
+      docs:
+        - { "_id": 0, "a": { "b": 0 } }
+        - { "_id": 1, "a": { "b": 1 }}
+        - { "_id": 2 }
+        - { "_id": 3, "a": null }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "null"
+            - bsonType: "object"
+              required: [ "b" ]
+              additionalProperties: false
+              properties:
+                b:
+                  bsonType: "int"
+
+  - db: "spec_query_flatten"
+    collection:
+      name: "mustCollide"
+      docs:
+        - { "_id": 0, "a": { "b": 1 }, "a_b": 2 }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "object"
+          required: [ "b" ]
+          additionalProperties: false
+          properties:
+            b:
+              bsonType: "int"
+        a_b:
+          bsonType: "int"
+
+  - db: "spec_query_flatten"
+    collection:
+      name: "mayCollide"
+      docs:
+        - { "_id": 0, "a": { "b": 1 }, "a_b": 2 }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: true
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "object"
+          required: [ "b" ]
+          additionalProperties: false
+          properties:
+            b:
+              bsonType: "int"
+
+  - db: "spec_query_flatten"
+    collection:
+      name: "noSchemaInfo"
+      docs:
+        - { "_id": 0, "a": { "b": 1 } }
+    schema:
+      bsonType: "object"
+      additionalProperties: true

@@ -1,0 +1,9 @@
+dataset:
+  - db: "INFORMATION_SCHEMA"
+    collection:
+      name: "mytbl"
+      docs:
+        - { "_id": 0, "a": 1 }
+    schema:
+      bsonType: "object"
+      additionalProperties: true

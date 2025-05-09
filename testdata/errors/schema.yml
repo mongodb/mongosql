@@ -1,0 +1,63 @@
+dataset:
+  - db: "errors_schema"
+    collection:
+      name: "foo"
+      docs:
+        - { "_id": 0, "a": 1, "b": 2, "c": "foo", "d": { "a": 1 }, "p": true }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "c", "d", "p" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"
+        c:
+          bsonType: "string"
+        d:
+          bsonType: "object"
+          required: [ "a" ]
+          properties:
+            a:
+              bsonType: "int"
+        p:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: "bool"
+
+  - db: "errors_schema"
+    collection:
+      name: "bar"
+      docs:
+        - { "_id": 0, "a": 1, "b": 2, "c": "bar", "d": { "a": 2 } }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "c", "d" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"
+        c:
+          bsonType: "string"
+        d:
+          bsonType: "object"
+          additionalProperties: true
+
+  - db: "errors_schema"
+    collection:
+      name: "any_sch"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: true
+      properties:
+        _id:
+          bsonType: "int"

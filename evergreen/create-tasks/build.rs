@@ -21,24 +21,28 @@ static TOPOLOGIES: &[(&str, &str)] = &[("standalone", "server")];
 
 // If more test types are added, add them here.
 // TEST_TYPE: (test name seed in evergreen, description in evergreen, cargo test flags)
-static TEST_TYPES: &[(&str, &str, &str)] = &[
+static TEST_TYPES: &[(&str, &str, &str, &str)] = &[
     (
         "spec-query",
+        "../testdata/spec_tests/query_tests",
         "run spec query tests",
         "--features=query --package=e2e-tests -- --test-threads=1",
     ),
     (
         "index-usage",
+        "../testdata/index_usage",
         "run index usage tests",
         "--features=index --package=e2e-tests -- --test-threads=1",
     ),
     (
         "rust-e2e",
-        "run rust integration tests",
+        "../testdata/e2e_tests",
+        "run rust e2e tests",
         "--features=e2e --package=e2e-tests -- --test-threads=1",
     ),
     (
         "rust-errors",
+        "../testdata/errors",
         "run rust error tests",
         "--features=error --package=e2e-tests -- --test-threads=1",
     ),
@@ -54,7 +58,11 @@ fn main() {
           MONGODB_VERSION: {{version}}
           TOPOLOGY: {{topology}}
       - func: "install rust toolchain"
-      - func: "run rust integration tests"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d {{test_data_path}}"
+      - func: "run rust tests"
         vars:
           description: {{description}}
           cargo_test_flags: {{flags}}
@@ -70,12 +78,13 @@ fn main() {
 
     for &version in VERSIONS.iter() {
         for &(topology_name, topology) in TOPOLOGIES.iter() {
-            for &(test_name, description, flags) in TEST_TYPES.iter() {
+            for &(test_name, test_data_path, description, flags) in TEST_TYPES.iter() {
                 writeln!(
                     file,
                     "{}",
                     test_template
                         .replace("{{test_name}}", test_name)
+                        .replace("{{test_data_path}}", test_data_path)
                         .replace("{{description}}", description)
                         .replace("{{flags}}", flags)
                         .replace("{{version}}", version)

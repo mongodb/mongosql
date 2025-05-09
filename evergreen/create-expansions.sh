@@ -3,10 +3,11 @@
 # Put our own installation of Cargo first in the path to make sure this is the one used.
 # Otherwise, on MacOs it will use the version installed with Brew which is not as recent.
 if [ "Windows_NT" == "$OS" ]; then
-    export PATH="$HOME/.rustup/bin:$HOME/.cargo/bin:$PATH"
+    export CARGO_BIN="$HOME/.rustup/bin:$HOME/.cargo/bin"
 else
-    export PATH="$HOME/.cargo/bin:$PATH"
+    export CARGO_BIN="$HOME/.cargo/bin"
 fi
+export PATH="$CARGO_BIN:$PATH"
 export CARGO_NET_GIT_FETCH_WITH_CLI=true
 
 export GOPATH="$HOME/go"
@@ -33,6 +34,7 @@ DRIVERS_TOOLS="${PROJECT_DIRECTORY}/evergreen/drivers-tools"
 MONGO_ORCHESTRATION_HOME="${DRIVERS_TOOLS}/.evergreen/orchestration"
 MONGODB_BINARIES="${DRIVERS_TOOLS}/mongodb/bin"
 LIBRARY_PATH="${PROJECT_DIRECTORY}"
+COMMON_TEST_INFRA_DIR="$PROJECT_DIRECTORY/sql-engines-common-test-infra"
 ALLOW_VULNS="${AllowVulns}"
 export DB_TOOLS_VERSION="100.7.2"
 export MONGOSH_VERSION="1.8.0"
@@ -47,6 +49,10 @@ MONGODB_BINARIES: "${MONGODB_BINARIES}"
 ALLOW_VULNS: "${ALLOW_VULNS}"
 COMPLIANCE_REPORT_NAME: "$COMPLIANCE_REPORT_NAME"
 LIBRARY_PATH: "${LIBRARY_PATH}"
+cargo_bin: "$CARGO_BIN"
+common_test_infra_dir: "$COMMON_TEST_INFRA_DIR"
+script_dir: "$COMMON_TEST_INFRA_DIR/evergreen/scripts"
+working_dir: "mongosql-rs"
 prepare_shell: |
   set -o errexit
   set -o xtrace

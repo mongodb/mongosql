@@ -1,0 +1,13 @@
+dataset:
+  - db: "spec_query_document"
+    collection:
+      name: "bar"
+      docs:
+        - { "_id": 1, "a": { "b": 1 } }
+        - { "_id": 2, "a": { "b": 2 } }
+        - { "_id": 3, "a": 3 }
+        - { "_id": 4, "a": null }
+        - { "_id": 5 }
+    schema:
+      bsonType: "object"
+      additionalProperties: true
