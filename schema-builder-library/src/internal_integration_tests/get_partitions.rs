@@ -1,4 +1,4 @@
-use crate::internal_integration_tests::consts::{LARGE_PARTITIONS, SMALL_PARTITIONS};
+use crate::internal_integration_tests::consts::SMALL_PARTITIONS;
 
 macro_rules! test_get_partitions {
     ($test_name:ident, expected = $expected:expr, input_db = $input_db:expr, input_coll = $input_coll:expr $(, ignore = $ignore:expr)?) => {

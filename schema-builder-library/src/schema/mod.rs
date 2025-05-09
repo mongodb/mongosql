@@ -1,6 +1,6 @@
 use futures::{future, TryStreamExt};
 use mongodb::{
-    bson::{doc, Document},
+    bson::{self, doc, Document},
     options::AggregateOptions,
     Collection, Database,
 };
@@ -37,7 +37,7 @@ pub(crate) async fn derive_schema_for_partitions(
     db_name: String,
     collection: &Collection<Document>,
     col_parts: Vec<Partition>,
-    initial_schema_doc: Option<Document>,
+    initial_schema_doc: Option<Schema>,
     rt_handle: &tokio::runtime::Handle,
     tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
 ) -> Result<Option<Schema>> {
@@ -106,18 +106,19 @@ pub(crate) async fn derive_schema_for_partition(
     db_name: String,
     collection: &Collection<Document>,
     mut partition: Partition,
-    initial_schema_doc: Option<Document>,
+    initial_schema_doc: Option<Schema>,
     tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
     partition_ix: usize,
 ) -> Result<Schema> {
-    let mut schema: Option<Schema> = initial_schema_doc
-        .clone()
-        .map(Schema::try_from)
+    let mut schema = initial_schema_doc.clone();
+    // convert the initial schema doc to a Document
+    let schema_doc = initial_schema_doc
+        .map(bson::Document::try_from)
         .transpose()?;
     let mut ignored_ids = vec![];
     let mut first_stage = Some(generate_partition_match_with_doc(
         &partition,
-        initial_schema_doc,
+        schema_doc,
         &ignored_ids,
     )?);
 

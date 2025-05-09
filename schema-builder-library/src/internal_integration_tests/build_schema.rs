@@ -53,15 +53,11 @@ macro_rules! test_build_schema {
                                 SamplerAction::Querying{ .. }
                                 | SamplerAction::Processing{ .. }
                                 | SamplerAction::Partitioning{ .. }
-                                | SamplerAction::SamplingView => {}
+                                | SamplerAction::SamplingView | SamplerAction::Info {.. } => {}
                                 // Conditionally anticipate this notification.
                                 SamplerAction::UsingInitialSchema => {
                                     assert!(schema_collection.is_some(), "unexpected use of initial schema: {notification}");
                                     actual_num_init_schemas_used += 1;
-                                },
-                                // We should see this notification for each collection.
-                                SamplerAction::Info{ message } => {
-                                    assert!(message.contains("Getting partitions for"))
                                 },
                                 // Fail on warnings and errors. In this test
                                 // environment, neither should be encountered.
@@ -94,6 +90,10 @@ macro_rules! test_build_schema {
                                     schema_res.db_name,
                                     schema_res.coll_or_view_name,
                                 );
+                            }
+                            Some(SchemaResult::InitialSchema(_)) => {
+                                // Initial schemas are not expected in this test.
+                                panic!("unexpected initial schema result");
                             }
                             None => break
                         }
@@ -197,23 +197,12 @@ test_build_schema!(
             },
             namespace_schema: UNIFORM_COLL_SCHEMA.clone(),
         },
-        format!("{NONUNIFORM_DB_NAME}.{VIEW_NAME}") => NamespaceInfoWithSchema {
-            namespace_info: NamespaceInfo {
-                db_name: NONUNIFORM_DB_NAME.to_string(),
-                coll_or_view_name: VIEW_NAME.to_string(),
-                namespace_type: NamespaceType::View,
-            },
-            namespace_schema: NONUNIFORM_VIEW_SCHEMA.clone(),
-        },
     },
     expected_num_init_schemas_used = 0,
-    include = [
-        format!("{UNIFORM_DB_NAME}.{SMALL_COLL_NAME}"),
-        format!("{NONUNIFORM_DB_NAME}.{VIEW_NAME}")
-    ]
-    .iter()
-    .map(|s| glob::Pattern::new(s).unwrap())
-    .collect(),
+    include = [format!("{UNIFORM_DB_NAME}.{SMALL_COLL_NAME}"),]
+        .iter()
+        .map(|s| glob::Pattern::new(s).unwrap())
+        .collect(),
     exclude = vec![],
     schema_collection = None
 );

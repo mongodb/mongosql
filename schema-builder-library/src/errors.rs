@@ -32,6 +32,8 @@ pub enum Error {
     InclusionBracketPatternIsMissingClosingBracket(String),
     #[error("The `{0}` contains the following invalid pattern: `{1}`. All patterns must be in `<database_pattern>.<collection_pattern>` format")]
     IncludeOrExcludeListContainsInvalidPatterns(String, String),
+    #[error("{0}")]
+    ChannelClosed(String),
 }
 
 impl From<mongodb::error::Error> for Error {
