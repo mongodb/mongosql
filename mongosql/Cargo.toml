@@ -33,6 +33,7 @@ edit-distance = "2.1.0"
 usererrordisplay-impl = { path = "../usererrordisplay-impl" }
 derive-new = "0.5.9"
 base64 = { workspace = true }
+mongodb = { workspace = true, features = ["sync"] }
 
 [target.'cfg(unix)'.dev-dependencies]
 criterion = "0.3"
