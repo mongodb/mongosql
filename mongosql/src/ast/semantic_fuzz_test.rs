@@ -430,21 +430,21 @@ mod tests {
                 match op {
                     BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div => {
                         // Ensure numeric operands for arithmetic operations
-                        *binary.left = Box::new(make_numeric_expression());
-                        *binary.right = Box::new(make_numeric_expression());
+                        *binary.left = make_numeric_expression();
+                        *binary.right = make_numeric_expression();
                     },
                     BinaryOp::And | BinaryOp::Or => {
                         // Ensure boolean operands for logical operations
-                        *binary.left = Box::new(make_boolean_expression());
-                        *binary.right = Box::new(make_boolean_expression());
+                        *binary.left = make_boolean_expression();
+                        *binary.right = make_boolean_expression();
                     },
                     BinaryOp::Concat => {
-                        *binary.left = Box::new(make_string_expression());
-                        *binary.right = Box::new(make_string_expression());
+                        *binary.left = make_string_expression();
+                        *binary.right = make_string_expression();
                     },
                     BinaryOp::In | BinaryOp::NotIn => {
-                        *binary.right = Box::new(make_array_expression());
-                        *binary.left = Box::new(make_numeric_expression());
+                        *binary.right = make_array_expression();
+                        *binary.left = make_numeric_expression();
                     },
                     BinaryOp::Comparison(comp_op) => {
                         let left_type = expression_type(&binary.left);
@@ -453,13 +453,13 @@ mod tests {
                         if !are_types_compatible(left_type, right_type) {
                             match comp_op {
                                 ComparisonOp::Eq | ComparisonOp::Neq => {
-                                    *binary.left = Box::new(make_numeric_expression());
-                                    *binary.right = Box::new(make_numeric_expression());
+                                    *binary.left = make_numeric_expression();
+                                    *binary.right = make_numeric_expression();
                                 },
                                 ComparisonOp::Lt | ComparisonOp::Lte | 
                                 ComparisonOp::Gt | ComparisonOp::Gte => {
-                                    *binary.left = Box::new(make_numeric_expression());
-                                    *binary.right = Box::new(make_numeric_expression());
+                                    *binary.left = make_numeric_expression();
+                                    *binary.right = make_numeric_expression();
                                 }
                             }
                         }
@@ -479,10 +479,10 @@ mod tests {
                 
                 match op {
                     UnaryOp::Not => {
-                        *unary.expr = Box::new(make_boolean_expression());
+                        *unary.expr = make_boolean_expression();
                     },
                     UnaryOp::Neg | UnaryOp::Pos => {
-                        *unary.expr = Box::new(make_numeric_expression());
+                        *unary.expr = make_numeric_expression();
                     },
                 }
             },
