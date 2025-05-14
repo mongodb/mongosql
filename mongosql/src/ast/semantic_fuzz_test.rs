@@ -220,16 +220,16 @@ mod tests {
                         1 => DateFunctionName::Diff,
                         _ => DateFunctionName::Trunc,
                     },
-                    part: DatePart::Day,
+                    date_part: DatePart::Day,
                     args: vec![
-                        Box::new(Expression::Identifier(DATE_FIELD.to_string())),
-                        Box::new(Expression::Literal(Literal::Integer(1))),
+                        Expression::Identifier(DATE_FIELD.to_string()),
+                        Expression::Literal(Literal::Integer(1)),
                     ]
                 })
             },
             _ => {
                 Expression::Extract(ExtractExpr {
-                    field: match usize::arbitrary(&mut Gen::new(0)) % 6 {
+                    extract_spec: match usize::arbitrary(&mut Gen::new(0)) % 6 {
                         0 => DatePart::Year,
                         1 => DatePart::Quarter,
                         2 => DatePart::Month,
@@ -681,6 +681,14 @@ mod tests {
                     self.visit_expression_custom(&mut extract.arg);
                 },
                 Expression::Identifier(_) | Expression::Literal(_) => {
+                },
+                Expression::Cast(cast) => {
+                    self.visit_expression_custom(&mut cast.expr);
+                },
+                Expression::Tuple(tuple) => {
+                    for expr in tuple {
+                        self.visit_expression_custom(expr);
+                    }
                 },
             }
             
