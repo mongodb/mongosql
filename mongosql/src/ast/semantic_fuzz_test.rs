@@ -3,6 +3,7 @@ mod tests {
     use crate::{
         ast::{
             definitions::*,
+            definitions::visitor::Visitor,
             pretty_print::PrettyPrint,
         },
         build_catalog_from_catalog_schema,
@@ -94,6 +95,7 @@ mod tests {
         field_type(field_name) == Type::String
     }
 
+    #[allow(dead_code)]
     fn make_query_semantic(query: &mut Query) {
         match query {
             Query::Select(select) => {
@@ -179,6 +181,7 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
     fn make_select_query_semantic(query: &mut SelectQuery) {
         let collection = if bool::arbitrary(&mut Gen::new(0)) {
             ALL_TYPES_COLLECTION
@@ -302,10 +305,8 @@ mod tests {
                 },
                 SelectBody::Values(values) => {
                     for value in values {
-                        if let SelectValuesExpression::Expression(expr) = value {
-                            if let Expression::Identifier(id) = expr {
-                                valid_identifiers.push(Expression::Identifier(id.clone()));
-                            }
+                        if let SelectValuesExpression::Expression(Expression::Identifier(id)) = value {
+                            valid_identifiers.push(Expression::Identifier(id.clone()));
                         }
                     }
                 }
@@ -414,6 +415,7 @@ mod tests {
         })
     }
     
+    #[allow(dead_code)]
     fn make_expression_semantic(expr: &mut Expression) {
         match expr {
             Expression::Identifier(_) => {
@@ -775,18 +777,80 @@ mod tests {
                     },
                     BinaryOp::And | BinaryOp::Or => Type::Boolean,
                     BinaryOp::Comparison(_) => Type::Boolean,
-                    _ => Type::String, // Default for other operations
+                    BinaryOp::In | BinaryOp::NotIn => Type::Boolean,
+                    BinaryOp::Concat => Type::String,
                 }
             },
             Expression::Unary(unary) => {
                 match unary.op {
                     UnaryOp::Not => Type::Boolean,
-                    UnaryOp::Neg => expression_type(&unary.expr),
-                    UnaryOp::Pos => expression_type(&unary.expr),
+                    UnaryOp::Neg | UnaryOp::Pos => expression_type(&unary.expr),
                 }
             },
             Expression::Cast(cast) => cast.to,
-            _ => Type::String, // Default for other expression types
+            Expression::Between(_) => Type::Boolean,
+            Expression::Case(case) => case.else_branch.as_ref()
+                .map_or_else(
+                    || case.when_branch.first().map_or(Type::Null, |wb| expression_type(&wb.then)),
+                    |else_expr| expression_type(else_expr)
+                ),
+            Expression::Function(func) => match func.function {
+                // Aggregation functions
+                FunctionName::Sum | FunctionName::Avg | FunctionName::Min | FunctionName::Max => Type::Double,
+                FunctionName::Count => Type::Int64,
+                FunctionName::AddToSet | FunctionName::AddToArray => Type::Array,
+                FunctionName::First | FunctionName::Last => Type::String, // Depends on the argument type
+                
+                // String functions
+                FunctionName::Substring => Type::String,
+                FunctionName::Lower | FunctionName::Upper => Type::String,
+                FunctionName::LTrim | FunctionName::RTrim => Type::String,
+                FunctionName::Replace => Type::String,
+                
+                // Date functions
+                FunctionName::DateAdd | FunctionName::DateDiff | FunctionName::DateTrunc => Type::Date,
+                FunctionName::CurrentTimestamp => Type::Date,
+                FunctionName::Year | FunctionName::Month | FunctionName::Week => Type::Int32,
+                FunctionName::DayOfWeek | FunctionName::DayOfMonth | FunctionName::DayOfYear => Type::Int32,
+                FunctionName::Hour | FunctionName::Minute | FunctionName::Second | FunctionName::Millisecond => Type::Int32,
+                
+                // Numeric functions
+                FunctionName::Abs | FunctionName::Ceil | FunctionName::Floor | FunctionName::Round => Type::Double,
+                FunctionName::Log | FunctionName::Log10 | FunctionName::Sqrt => Type::Double,
+                FunctionName::Pow => Type::Double,
+                FunctionName::Mod => Type::Int32,
+                
+                // Other functions
+                FunctionName::Coalesce => Type::String, // Depends on arguments
+                FunctionName::NullIf => Type::String,   // Depends on arguments
+                FunctionName::Size => Type::Int32,
+                
+                _ => Type::String, // Default for other functions
+            },
+            Expression::Array(_) => Type::Array,
+            Expression::Document(_) => Type::Document,
+            Expression::Access(access) => {
+                let parent_type = expression_type(&access.expr);
+                if parent_type == Type::Document {
+                    Type::String // Field access from a document, assuming String for simplicity
+                } else if parent_type == Type::Array {
+                    Type::Int32 // Array access assumes numeric index
+                } else {
+                    Type::String // Default case
+                }
+            },
+            Expression::Subquery(_) => Type::Array,
+            Expression::Exists(_) => Type::Boolean,
+            Expression::SubqueryComparison(_) => Type::Boolean,
+            Expression::Subpath(_) => Type::String,
+            Expression::Is(_) => Type::Boolean,
+            Expression::Like(_) => Type::Boolean,
+            Expression::StringConstructor(_) => Type::String,
+            Expression::Tuple(_) => Type::Array,
+            Expression::TypeAssertion(type_assertion) => type_assertion.target_type,
+            Expression::Trim(_) => Type::String,
+            Expression::DateFunction(_) => Type::Date,
+            Expression::Extract(_) => Type::Int32,
         }
     }
     
@@ -804,6 +868,248 @@ mod tests {
         
         
         false
+    }
+    
+    struct SemanticVisitor {
+        target_type: Option<Type>,
+    }
+    
+    impl SemanticVisitor {
+        fn visit_select_query(&mut self, node: SelectQuery) -> SelectQuery {
+            let select_clause = node.select_clause.walk(self);
+
+            let from_clause = Some(Datasource::Collection(CollectionSource {
+                database: Some(TEST_DB.to_string()),
+                collection: ALL_TYPES_COLLECTION.to_string(),
+                alias: None,
+            }));
+
+            let old_target_type = self.target_type;
+            self.target_type = Some(Type::Boolean);
+            let where_clause = node.where_clause.map(|wc| wc.walk(self));
+            self.target_type = old_target_type;
+
+            let group_by_clause = node.group_by_clause.map(|gbc| gbc.walk(self));
+
+            let old_target_type = self.target_type;
+            self.target_type = Some(Type::Boolean);
+            let having_clause = node.having_clause.map(|hc| hc.walk(self));
+            self.target_type = old_target_type;
+
+            let order_by_clause = node.order_by_clause.map(|obc| obc.walk(self));
+
+            let limit = node.limit.map(|_| 10);
+            let offset = node.offset.map(|_| 0);
+
+            SelectQuery {
+                select_clause,
+                from_clause,
+                where_clause,
+                group_by_clause,
+                having_clause,
+                order_by_clause,
+                limit,
+                offset,
+            }
+        }
+        
+        fn determine_child_target_type(&self, node: &Expression) -> Option<Type> {
+            match node {
+                Expression::Binary(binary) => {
+                    match binary.op {
+                        BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div => {
+                            Some(Type::Double)
+                        },
+                        BinaryOp::And | BinaryOp::Or => {
+                            Some(Type::Boolean)
+                        },
+                        BinaryOp::Comparison(_) => {
+                            None
+                        },
+                        BinaryOp::In | BinaryOp::NotIn => {
+                            None
+                        },
+                        BinaryOp::Concat => {
+                            Some(Type::String)
+                        },
+                    }
+                },
+                Expression::Unary(unary) => {
+                    match unary.op {
+                        UnaryOp::Not => Some(Type::Boolean),
+                        UnaryOp::Neg | UnaryOp::Pos => Some(Type::Double),
+                    }
+                },
+                Expression::Function(func) => {
+                    match func.function {
+                        // Aggregation functions
+                        FunctionName::Sum | FunctionName::Avg | FunctionName::Min | FunctionName::Max => Some(Type::Double),
+                        FunctionName::Count => None, // Count can take any type
+                        FunctionName::AddToSet | FunctionName::AddToArray => None, // Can add any type to arrays
+                        
+                        // String functions
+                        FunctionName::Substring | FunctionName::Lower | FunctionName::Upper => Some(Type::String),
+                        FunctionName::LTrim | FunctionName::RTrim => Some(Type::String),
+                        FunctionName::Replace => Some(Type::String),
+                        
+                        // Date functions
+                        FunctionName::DateAdd | FunctionName::DateDiff | FunctionName::DateTrunc => Some(Type::Date),
+                        FunctionName::CurrentTimestamp => Some(Type::Date),
+                        
+                        // Numeric functions
+                        FunctionName::Abs | FunctionName::Ceil | FunctionName::Floor | FunctionName::Round => Some(Type::Double),
+                        FunctionName::Log | FunctionName::Log10 | FunctionName::Sqrt => Some(Type::Double),
+                        FunctionName::Pow => Some(Type::Double),
+                        
+                        // Other functions
+                        FunctionName::Coalesce | FunctionName::NullIf => None,
+                        FunctionName::Size => None,
+                        
+                        _ => None, // Default for other functions
+                    }
+                },
+                Expression::Case(_case) => {
+                    Some(Type::Boolean)
+                },
+                Expression::Between(_) => {
+                    None
+                },
+                Expression::Is(_) | Expression::Like(_) | Expression::Exists(_) => {
+                    None
+                },
+                _ => None, // Default for other expression types
+            }
+        }
+        
+        #[allow(dead_code)]
+        fn visit_expression(&mut self, node: Expression) -> Expression {
+            if self.target_type.is_none() {
+                return node.walk(self);
+            }
+            
+            let node_type = expression_type(&node);
+            let target_type = self.target_type.unwrap();
+            
+            let node = if node_type != target_type && !are_types_compatible(node_type, target_type) {
+                match target_type {
+                    Type::Boolean => make_boolean_expression(),
+                    Type::Int32 | Type::Int64 | Type::Double | Type::Decimal128 => make_numeric_expression(),
+                    Type::String => make_string_expression(),
+                    Type::Array => make_array_expression(),
+                    Type::Date | Type::Datetime | Type::Timestamp => make_date_expression(),
+                    Type::Document => make_object_expression(),
+                    _ => node, // Keep the original node for other types
+                }
+            } else {
+                node
+            };
+            
+            let child_target_type = self.determine_child_target_type(&node);
+            
+            let old_target_type = self.target_type;
+            self.target_type = child_target_type;
+            let new_node = node.walk(self);
+            self.target_type = old_target_type;
+            
+            new_node
+        }
+    }
+    
+    impl visitor::Visitor for SemanticVisitor {
+        fn visit_query(&mut self, node: Query) -> Query {
+            match node {
+                Query::Select(select_query) => {
+                    Query::Select(self.visit_select_query(select_query))
+                },
+                Query::Set(set_query) => {
+                    let old_target_type = self.target_type;
+                    self.target_type = None; // Clear target_type when walking set operations
+                    let walked = Query::Set(set_query.walk(self));
+                    self.target_type = old_target_type;
+                    walked
+                },
+                Query::With(with_query) => {
+                    let old_target_type = self.target_type;
+                    self.target_type = None; // Clear target_type when walking with queries
+                    let walked = Query::With(with_query.walk(self));
+                    self.target_type = old_target_type;
+                    walked
+                },
+            }
+        }
+        
+        #[allow(dead_code)]
+        fn visit_expression(&mut self, node: Expression) -> Expression {
+            let mut expr = node.clone();
+            self.visit_expression_custom(&mut expr);
+            expr
+        }
+        
+        fn visit_sort_key(&mut self, node: SortKey) -> SortKey {
+            match node {
+                SortKey::Positional(_) => {
+                    SortKey::Simple(Expression::Identifier(INT_FIELD.to_string()))
+                },
+                _ => node.walk(self),
+            }
+        }
+    }
+    
+    impl SemanticVisitor {
+        fn visit_expression_custom(&mut self, node: &mut Expression) {
+            if self.target_type.is_none() {
+                return;
+            }
+            
+            let node_type = expression_type(node);
+            let target_type = self.target_type.unwrap();
+            
+            if node_type != target_type && !are_types_compatible(node_type, target_type) {
+                *node = match target_type {
+                    Type::Boolean => make_boolean_expression(),
+                    Type::Int32 | Type::Int64 | Type::Double | Type::Decimal128 => make_numeric_expression(),
+                    Type::String => make_string_expression(),
+                    Type::Array => make_array_expression(),
+                    Type::Date | Type::Datetime | Type::Timestamp => make_date_expression(),
+                    Type::Document => make_object_expression(),
+                    _ => node.clone(), // Keep the original node for other types
+                };
+            }
+            
+            let child_target_type = self.determine_child_target_type(node);
+            
+            let old_target_type = self.target_type;
+            self.target_type = child_target_type;
+            
+            match node {
+                Expression::Binary(bin) => {
+                    self.visit_expression_custom(&mut bin.left);
+                    self.visit_expression_custom(&mut bin.right);
+                },
+                Expression::Unary(un) => {
+                    self.visit_expression_custom(&mut un.expr);
+                },
+                Expression::Function(func) => {
+                    if let FunctionArguments::Args(args) = &mut func.args {
+                        for arg in args {
+                            self.visit_expression_custom(arg);
+                        }
+                    }
+                },
+                Expression::Case(case) => {
+                    for branch in &mut case.when_branch {
+                        self.visit_expression_custom(&mut branch.when);
+                        self.visit_expression_custom(&mut branch.then);
+                    }
+                    if let Some(else_branch) = &mut case.else_branch {
+                        self.visit_expression_custom(else_branch);
+                    }
+                },
+                _ => {}
+            }
+            
+            self.target_type = old_target_type;
+        }
     }
     
     #[allow(dead_code)]
@@ -865,7 +1171,8 @@ mod tests {
                 return TestResult::discard();
             }
             
-            make_query_semantic(&mut query);
+            let mut v = SemanticVisitor { target_type: None };
+            query = v.visit_query(query);
             
             let sql = match query.pretty_print() {
                 Err(_) => return TestResult::discard(),
@@ -915,7 +1222,8 @@ mod tests {
                 return TestResult::discard();
             }
             
-            make_query_semantic(&mut query);
+            let mut v = SemanticVisitor { target_type: None };
+            query = v.visit_query(query);
             
             let client = match get_mongodb_client() {
                 Some(client) => client,
