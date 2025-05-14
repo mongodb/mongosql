@@ -87,7 +87,7 @@ mod tests {
 
     // Generate a numeric expression (Int32, Int64, Double, Decimal128)
     fn make_numeric_expression() -> Expression {
-        match usize::arbitrary(&mut Gen::new(0)) % 8 {
+        match usize::arbitrary(&mut Gen::new(0)) % 9 {
             0 => Expression::Identifier(INT_FIELD.to_string()),
             1 => Expression::Identifier(LONG_FIELD.to_string()),
             2 => Expression::Identifier(DOUBLE_FIELD.to_string()),
@@ -95,48 +95,177 @@ mod tests {
             4 => Expression::Literal(Literal::Integer(42)),
             5 => Expression::Literal(Literal::Integer(-10)),
             6 => Expression::Literal(Literal::Long(1000000)),
-            _ => Expression::Literal(Literal::Double(std::f64::consts::PI)),
+            7 => Expression::Literal(Literal::Double(std::f64::consts::PI)),
+            8 => {
+                let left = make_numeric_expression();
+                let right = make_numeric_expression();
+                let op = match usize::arbitrary(&mut Gen::new(0)) % 4 {
+                    0 => BinaryOp::Add,
+                    1 => BinaryOp::Sub,
+                    2 => BinaryOp::Mul,
+                    _ => BinaryOp::Div,
+                };
+                Expression::Binary(BinaryExpr {
+                    left: Box::new(left),
+                    op,
+                    right: Box::new(right),
+                })
+            }
         }
     }
     
     fn make_boolean_expression() -> Expression {
-        match usize::arbitrary(&mut Gen::new(0)) % 4 {
+        match usize::arbitrary(&mut Gen::new(0)) % 7 {
             0 => Expression::Identifier(BOOL_FIELD.to_string()),
             1 => Expression::Identifier(TRUE_FIELD.to_string()),
             2 => Expression::Identifier(FALSE_FIELD.to_string()),
-            _ => Expression::Literal(Literal::Boolean(bool::arbitrary(&mut Gen::new(0)))),
+            3 => Expression::Literal(Literal::Boolean(bool::arbitrary(&mut Gen::new(0)))),
+            4 => {
+                let left = make_numeric_expression();
+                let right = make_numeric_expression();
+                let comp_op = match usize::arbitrary(&mut Gen::new(0)) % 6 {
+                    0 => ComparisonOp::Eq,
+                    1 => ComparisonOp::Neq,
+                    2 => ComparisonOp::Lt,
+                    3 => ComparisonOp::Lte,
+                    4 => ComparisonOp::Gt,
+                    _ => ComparisonOp::Gte,
+                };
+                Expression::Binary(BinaryExpr {
+                    left: Box::new(left),
+                    op: BinaryOp::Comparison(comp_op),
+                    right: Box::new(right),
+                })
+            },
+            5 => {
+                let left = make_boolean_expression();
+                let right = make_boolean_expression();
+                let op = if bool::arbitrary(&mut Gen::new(0)) {
+                    BinaryOp::And
+                } else {
+                    BinaryOp::Or
+                };
+                Expression::Binary(BinaryExpr {
+                    left: Box::new(left),
+                    op,
+                    right: Box::new(right),
+                })
+            },
+            _ => {
+                let expr = make_boolean_expression();
+                Expression::Unary(UnaryExpr {
+                    op: UnaryOp::Not,
+                    expr: Box::new(expr),
+                })
+            }
         }
     }
     
     fn make_string_expression() -> Expression {
-        match usize::arbitrary(&mut Gen::new(0)) % 3 {
+        match usize::arbitrary(&mut Gen::new(0)) % 5 {
             0 => Expression::Identifier(STRING_FIELD.to_string()),
             1 => Expression::Identifier(EMPTY_STRING_FIELD.to_string()),
-            _ => Expression::Identifier(DESCRIPTION_FIELD.to_string()),
+            2 => Expression::Identifier(DESCRIPTION_FIELD.to_string()),
+            3 => {
+                // String concatenation
+                let left = make_string_expression();
+                let right = make_string_expression();
+                Expression::Binary(BinaryExpr {
+                    left: Box::new(left),
+                    op: BinaryOp::Concat,
+                    right: Box::new(right),
+                })
+            },
+            _ => {
+                // String constructor
+                let parts = vec![
+                    StringConstructorPart::String("Hello ".to_string()),
+                    StringConstructorPart::Expression(Box::new(make_string_expression())),
+                    StringConstructorPart::String("!".to_string()),
+                ];
+                Expression::StringConstructor(StringConstructor { parts })
+            }
         }
     }
     
     fn make_array_expression() -> Expression {
-        match usize::arbitrary(&mut Gen::new(0)) % 3 {
+        match usize::arbitrary(&mut Gen::new(0)) % 5 {
             0 => Expression::Identifier(ARRAY_FIELD.to_string()),
             1 => Expression::Identifier(STRING_ARRAY_FIELD.to_string()),
-            _ => Expression::Identifier(MIXED_ARRAY_FIELD.to_string()),
+            2 => Expression::Identifier(MIXED_ARRAY_FIELD.to_string()),
+            3 => {
+                let mut elements = Vec::new();
+                let size = (usize::arbitrary(&mut Gen::new(0)) % 3) + 1; // 1-3 elements
+                for _ in 0..size {
+                    elements.push(make_numeric_expression());
+                }
+                Expression::Array(elements)
+            },
+            _ => {
+                let mut elements = Vec::new();
+                let size = (usize::arbitrary(&mut Gen::new(0)) % 3) + 1; // 1-3 elements
+                for _ in 0..size {
+                    elements.push(make_string_expression());
+                }
+                Expression::Array(elements)
+            }
         }
     }
     
     fn make_date_expression() -> Expression {
-        match usize::arbitrary(&mut Gen::new(0)) % 3 {
+        match usize::arbitrary(&mut Gen::new(0)) % 5 {
             0 => Expression::Identifier(DATE_FIELD.to_string()),
             1 => Expression::Identifier(TIMESTAMP_FIELD.to_string()),
-            _ => Expression::Identifier(TIME_FIELD.to_string()),
+            2 => Expression::Identifier(TIME_FIELD.to_string()),
+            3 => {
+                // Date function
+                Expression::DateFunction(DateFunction {
+                    function: match usize::arbitrary(&mut Gen::new(0)) % 3 {
+                        0 => DateFunctionName::CurrentDate,
+                        1 => DateFunctionName::CurrentTimestamp,
+                        _ => DateFunctionName::CurrentTime,
+                    }
+                })
+            },
+            _ => {
+                Expression::Extract(ExtractExpr {
+                    extract_spec: match usize::arbitrary(&mut Gen::new(0)) % 7 {
+                        0 => DatePart::Year,
+                        1 => DatePart::Month,
+                        2 => DatePart::Day,
+                        3 => DatePart::Hour,
+                        4 => DatePart::Minute,
+                        5 => DatePart::Second,
+                        _ => DatePart::Millisecond,
+                    },
+                    arg: Box::new(Expression::Identifier(DATE_FIELD.to_string())),
+                })
+            }
         }
     }
     
-    #[allow(dead_code)]
     fn make_object_expression() -> Expression {
-        match usize::arbitrary(&mut Gen::new(0)) % 2 {
+        match usize::arbitrary(&mut Gen::new(0)) % 4 {
             0 => Expression::Identifier(OBJECT_FIELD.to_string()),
-            _ => Expression::Identifier(NESTED_OBJECT_FIELD.to_string()),
+            1 => Expression::Identifier(NESTED_OBJECT_FIELD.to_string()),
+            2 => {
+                let mut fields = BTreeMap::new();
+                fields.insert("id".to_string(), make_numeric_expression());
+                fields.insert("name".to_string(), make_string_expression());
+                fields.insert("active".to_string(), make_boolean_expression());
+                Expression::Document(fields)
+            },
+            _ => {
+                let mut fields = BTreeMap::new();
+                fields.insert("id".to_string(), make_numeric_expression());
+                
+                let mut nested_fields = BTreeMap::new();
+                nested_fields.insert("nested_id".to_string(), make_numeric_expression());
+                nested_fields.insert("nested_name".to_string(), make_string_expression());
+                
+                fields.insert("metadata".to_string(), Expression::Document(nested_fields));
+                Expression::Document(fields)
+            }
         }
     }
     
@@ -392,42 +521,24 @@ mod tests {
                 Expression::Is(_) | Expression::Like(_) | Expression::Exists(_) => {
                     None
                 },
-                _ => None, // Default for other expression types
+                Expression::Array(_) => None,
+                Expression::Document(_) => None,
+                Expression::Access(_) => None,
+                Expression::Subquery(_) => None,
+                Expression::SubqueryComparison(_) => None,
+                Expression::Subpath(_) => None,
+                Expression::StringConstructor(_) => None,
+                Expression::TypeAssertion(_) => None,
+                Expression::Trim(_) => None,
+                Expression::DateFunction(_) => None,
+                Expression::Extract(_) => None,
+                Expression::Identifier(_) => None,
+                Expression::Literal(_) => None,
+                Expression::Tuple(_) => None,
             }
         }
         
-        #[allow(dead_code)]
-        fn visit_expression(&mut self, node: Expression) -> Expression {
-            if self.target_type.is_none() {
-                return node.walk(self);
-            }
-            
-            let node_type = expression_type(&node);
-            let target_type = self.target_type.unwrap();
-            
-            let node = if node_type != target_type && !are_types_compatible(node_type, target_type) {
-                match target_type {
-                    Type::Boolean => make_boolean_expression(),
-                    Type::Int32 | Type::Int64 | Type::Double | Type::Decimal128 => make_numeric_expression(),
-                    Type::String => make_string_expression(),
-                    Type::Array => make_array_expression(),
-                    Type::Date | Type::Datetime | Type::Timestamp => make_date_expression(),
-                    Type::Document => make_object_expression(),
-                    _ => node, // Keep the original node for other types
-                }
-            } else {
-                node
-            };
-            
-            let child_target_type = self.determine_child_target_type(&node);
-            
-            let old_target_type = self.target_type;
-            self.target_type = child_target_type;
-            let new_node = node.walk(self);
-            self.target_type = old_target_type;
-            
-            new_node
-        }
+
     }
     
     impl visitor::Visitor for SemanticVisitor {
@@ -453,7 +564,6 @@ mod tests {
             }
         }
         
-        #[allow(dead_code)]
         fn visit_expression(&mut self, node: Expression) -> Expression {
             let mut expr = node.clone();
             self.visit_expression_custom(&mut expr);
@@ -472,23 +582,25 @@ mod tests {
     
     impl SemanticVisitor {
         fn visit_expression_custom(&mut self, node: &mut Expression) {
-            if self.target_type.is_none() {
+            if let Expression::Tuple(_) = node {
+                *node = make_numeric_expression();
                 return;
             }
             
-            let node_type = expression_type(node);
-            let target_type = self.target_type.unwrap();
-            
-            if node_type != target_type && !are_types_compatible(node_type, target_type) {
-                *node = match target_type {
-                    Type::Boolean => make_boolean_expression(),
-                    Type::Int32 | Type::Int64 | Type::Double | Type::Decimal128 => make_numeric_expression(),
-                    Type::String => make_string_expression(),
-                    Type::Array => make_array_expression(),
-                    Type::Date | Type::Datetime | Type::Timestamp => make_date_expression(),
-                    Type::Document => make_object_expression(),
-                    _ => node.clone(), // Keep the original node for other types
-                };
+            if let Some(target_type) = self.target_type {
+                let node_type = expression_type(node);
+                
+                if node_type != target_type && !are_types_compatible(node_type, target_type) {
+                    *node = match target_type {
+                        Type::Boolean => make_boolean_expression(),
+                        Type::Int32 | Type::Int64 | Type::Double | Type::Decimal128 => make_numeric_expression(),
+                        Type::String => make_string_expression(),
+                        Type::Array => make_array_expression(),
+                        Type::Date | Type::Datetime | Type::Timestamp => make_date_expression(),
+                        Type::Document => make_object_expression(),
+                        _ => node.clone(), // Keep the original node for other types
+                    };
+                }
             }
             
             let child_target_type = self.determine_child_target_type(node);
@@ -520,7 +632,60 @@ mod tests {
                         self.visit_expression_custom(else_branch);
                     }
                 },
-                _ => {}
+                Expression::Array(array) => {
+                    for elem in array {
+                        self.visit_expression_custom(elem);
+                    }
+                },
+                Expression::Document(doc) => {
+                    for (_, value) in doc {
+                        self.visit_expression_custom(value);
+                    }
+                },
+                Expression::Access(access) => {
+                    self.visit_expression_custom(&mut access.expr);
+                },
+                Expression::Subquery(subquery) => {
+                },
+                Expression::Exists(exists) => {
+                },
+                Expression::SubqueryComparison(comp) => {
+                },
+                Expression::Subpath(subpath) => {
+                    self.visit_expression_custom(&mut subpath.expr);
+                },
+                Expression::Is(is_expr) => {
+                    self.visit_expression_custom(&mut is_expr.expr);
+                },
+                Expression::Like(like) => {
+                    self.visit_expression_custom(&mut like.expr);
+                    self.visit_expression_custom(&mut like.pattern);
+                },
+                Expression::StringConstructor(str_constructor) => {
+                    for part in &mut str_constructor.parts {
+                        if let StringConstructorPart::Expression(expr) = part {
+                            self.visit_expression_custom(expr);
+                        }
+                    }
+                },
+                Expression::TypeAssertion(type_assertion) => {
+                    self.visit_expression_custom(&mut type_assertion.expr);
+                },
+                Expression::Between(between) => {
+                    self.visit_expression_custom(&mut between.arg);
+                    self.visit_expression_custom(&mut between.min);
+                    self.visit_expression_custom(&mut between.max);
+                },
+                Expression::Trim(trim) => {
+                    self.visit_expression_custom(&mut trim.arg);
+                },
+                Expression::DateFunction(date_func) => {
+                },
+                Expression::Extract(extract) => {
+                    self.visit_expression_custom(&mut extract.arg);
+                },
+                Expression::Identifier(_) | Expression::Literal(_) => {
+                },
             }
             
             self.target_type = old_target_type;
