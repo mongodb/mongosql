@@ -96,7 +96,7 @@ mod tests {
             5 => Expression::Literal(Literal::Integer(-10)),
             6 => Expression::Literal(Literal::Long(1000000)),
             7 => Expression::Literal(Literal::Double(std::f64::consts::PI)),
-            8 => {
+            _ => {
                 let left = make_numeric_expression();
                 let right = make_numeric_expression();
                 let op = match usize::arbitrary(&mut Gen::new(0)) % 4 {
@@ -177,13 +177,8 @@ mod tests {
                 })
             },
             _ => {
-                // String constructor
-                let parts = vec![
-                    StringConstructorPart::String("Hello ".to_string()),
-                    StringConstructorPart::Expression(Box::new(make_string_expression())),
-                    StringConstructorPart::String("!".to_string()),
-                ];
-                Expression::StringConstructor(StringConstructor { parts })
+                // String constructor - simplified to use String directly
+                Expression::StringConstructor(format!("Hello {}!", STRING_FIELD))
             }
         }
     }
@@ -219,24 +214,29 @@ mod tests {
             2 => Expression::Identifier(TIME_FIELD.to_string()),
             3 => {
                 // Date function
-                Expression::DateFunction(DateFunction {
+                Expression::DateFunction(DateFunctionExpr {
                     function: match usize::arbitrary(&mut Gen::new(0)) % 3 {
-                        0 => DateFunctionName::CurrentDate,
-                        1 => DateFunctionName::CurrentTimestamp,
-                        _ => DateFunctionName::CurrentTime,
-                    }
+                        0 => DateFunctionName::Add,
+                        1 => DateFunctionName::Diff,
+                        _ => DateFunctionName::Trunc,
+                    },
+                    part: DatePart::Day,
+                    args: vec![
+                        Box::new(Expression::Identifier(DATE_FIELD.to_string())),
+                        Box::new(Expression::Literal(Literal::Integer(1))),
+                    ]
                 })
             },
             _ => {
                 Expression::Extract(ExtractExpr {
-                    extract_spec: match usize::arbitrary(&mut Gen::new(0)) % 7 {
+                    field: match usize::arbitrary(&mut Gen::new(0)) % 6 {
                         0 => DatePart::Year,
-                        1 => DatePart::Month,
-                        2 => DatePart::Day,
-                        3 => DatePart::Hour,
-                        4 => DatePart::Minute,
-                        5 => DatePart::Second,
-                        _ => DatePart::Millisecond,
+                        1 => DatePart::Quarter,
+                        2 => DatePart::Month,
+                        3 => DatePart::Week,
+                        4 => DatePart::Day,
+                        5 => DatePart::Hour,
+                        _ => DatePart::Minute,
                     },
                     arg: Box::new(Expression::Identifier(DATE_FIELD.to_string())),
                 })
@@ -249,21 +249,21 @@ mod tests {
             0 => Expression::Identifier(OBJECT_FIELD.to_string()),
             1 => Expression::Identifier(NESTED_OBJECT_FIELD.to_string()),
             2 => {
-                let mut fields = BTreeMap::new();
-                fields.insert("id".to_string(), make_numeric_expression());
-                fields.insert("name".to_string(), make_string_expression());
-                fields.insert("active".to_string(), make_boolean_expression());
+                let mut fields = Vec::new();
+                fields.push(DocumentPair { key: "id".to_string(), value: make_numeric_expression() });
+                fields.push(DocumentPair { key: "name".to_string(), value: make_string_expression() });
+                fields.push(DocumentPair { key: "active".to_string(), value: make_boolean_expression() });
                 Expression::Document(fields)
             },
             _ => {
-                let mut fields = BTreeMap::new();
-                fields.insert("id".to_string(), make_numeric_expression());
+                let mut fields = Vec::new();
+                fields.push(DocumentPair { key: "id".to_string(), value: make_numeric_expression() });
                 
-                let mut nested_fields = BTreeMap::new();
-                nested_fields.insert("nested_id".to_string(), make_numeric_expression());
-                nested_fields.insert("nested_name".to_string(), make_string_expression());
+                let mut nested_fields = Vec::new();
+                nested_fields.push(DocumentPair { key: "nested_id".to_string(), value: make_numeric_expression() });
+                nested_fields.push(DocumentPair { key: "nested_name".to_string(), value: make_string_expression() });
                 
-                fields.insert("metadata".to_string(), Expression::Document(nested_fields));
+                fields.push(DocumentPair { key: "metadata".to_string(), value: Expression::Document(nested_fields) });
                 Expression::Document(fields)
             }
         }
@@ -535,6 +535,7 @@ mod tests {
                 Expression::Identifier(_) => None,
                 Expression::Literal(_) => None,
                 Expression::Tuple(_) => None,
+                Expression::Cast(_) => None,
             }
         }
         
@@ -638,8 +639,8 @@ mod tests {
                     }
                 },
                 Expression::Document(doc) => {
-                    for (_, value) in doc {
-                        self.visit_expression_custom(value);
+                    for pair in doc {
+                        self.visit_expression_custom(&mut pair.value);
                     }
                 },
                 Expression::Access(access) => {
@@ -661,12 +662,7 @@ mod tests {
                     self.visit_expression_custom(&mut like.expr);
                     self.visit_expression_custom(&mut like.pattern);
                 },
-                Expression::StringConstructor(str_constructor) => {
-                    for part in &mut str_constructor.parts {
-                        if let StringConstructorPart::Expression(expr) = part {
-                            self.visit_expression_custom(expr);
-                        }
-                    }
+                Expression::StringConstructor(_) => {
                 },
                 Expression::TypeAssertion(type_assertion) => {
                     self.visit_expression_custom(&mut type_assertion.expr);
