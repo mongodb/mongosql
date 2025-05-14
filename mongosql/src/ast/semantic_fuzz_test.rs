@@ -279,9 +279,52 @@ mod tests {
         }
 
         if let Some(order_by) = &mut query.order_by_clause {
+            let mut valid_identifiers = Vec::new();
+            match &query.select_clause.body {
+                SelectBody::Standard(exprs) => {
+                    for expr in exprs {
+                        match expr {
+                            SelectExpression::Expression(opt_aliased) => {
+                                match opt_aliased {
+                                    OptionallyAliasedExpr::Aliased(aliased) => {
+                                        valid_identifiers.push(Expression::Identifier(aliased.alias.clone()));
+                                    },
+                                    OptionallyAliasedExpr::Unaliased(expr) => {
+                                        if let Expression::Identifier(id) = expr {
+                                            valid_identifiers.push(Expression::Identifier(id.clone()));
+                                        }
+                                    },
+                                }
+                            },
+                            _ => {}, // Skip Star and Substar expressions
+                        }
+                    }
+                },
+                SelectBody::Values(values) => {
+                    for value in values {
+                        if let SelectValuesExpression::Expression(expr) = value {
+                            if let Expression::Identifier(id) = expr {
+                                valid_identifiers.push(Expression::Identifier(id.clone()));
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if valid_identifiers.is_empty() {
+                valid_identifiers.push(Expression::Identifier("_id".to_string()));
+            }
+            
             for sort_spec in &mut order_by.sort_specs {
-                if let SortKey::Simple(expr) = &mut sort_spec.key {
-                    make_expression_semantic(expr);
+                match &mut sort_spec.key {
+                    SortKey::Simple(expr) => {
+                        make_expression_semantic(expr);
+                    },
+                    SortKey::Positional(pos) => {
+                        let idx = (*pos as usize) % valid_identifiers.len();
+                        let identifier = valid_identifiers[idx].clone();
+                        sort_spec.key = SortKey::Simple(identifier);
+                    }
                 }
             }
         }
