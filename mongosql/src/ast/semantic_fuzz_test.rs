@@ -19,8 +19,11 @@ mod tests {
 
     const TEST_DB: &str = "test_db";
     const ALL_TYPES_COLLECTION: &str = "all_types";
+    #[allow(dead_code)]
     const RELATED_DATA_COLLECTION: &str = "related_data";
+    #[allow(dead_code)]
     const NUMERIC_COLLECTION: &str = "numeric_data";
+    #[allow(dead_code)]
     const ARRAY_COLLECTION: &str = "array_data";
 
     const INT_FIELD: &str = "int_field";           // Int32
@@ -249,21 +252,23 @@ mod tests {
             0 => Expression::Identifier(OBJECT_FIELD.to_string()),
             1 => Expression::Identifier(NESTED_OBJECT_FIELD.to_string()),
             2 => {
-                let mut fields = Vec::new();
-                fields.push(DocumentPair { key: "id".to_string(), value: make_numeric_expression() });
-                fields.push(DocumentPair { key: "name".to_string(), value: make_string_expression() });
-                fields.push(DocumentPair { key: "active".to_string(), value: make_boolean_expression() });
+                let fields = vec![
+                    DocumentPair { key: "id".to_string(), value: make_numeric_expression() },
+                    DocumentPair { key: "name".to_string(), value: make_string_expression() },
+                    DocumentPair { key: "active".to_string(), value: make_boolean_expression() }
+                ];
                 Expression::Document(fields)
             },
             _ => {
-                let mut fields = Vec::new();
-                fields.push(DocumentPair { key: "id".to_string(), value: make_numeric_expression() });
+                let nested_fields = vec![
+                    DocumentPair { key: "nested_id".to_string(), value: make_numeric_expression() },
+                    DocumentPair { key: "nested_name".to_string(), value: make_string_expression() }
+                ];
                 
-                let mut nested_fields = Vec::new();
-                nested_fields.push(DocumentPair { key: "nested_id".to_string(), value: make_numeric_expression() });
-                nested_fields.push(DocumentPair { key: "nested_name".to_string(), value: make_string_expression() });
-                
-                fields.push(DocumentPair { key: "metadata".to_string(), value: Expression::Document(nested_fields) });
+                let fields = vec![
+                    DocumentPair { key: "id".to_string(), value: make_numeric_expression() },
+                    DocumentPair { key: "metadata".to_string(), value: Expression::Document(nested_fields) }
+                ];
                 Expression::Document(fields)
             }
         }
@@ -646,11 +651,11 @@ mod tests {
                 Expression::Access(access) => {
                     self.visit_expression_custom(&mut access.expr);
                 },
-                Expression::Subquery(subquery) => {
+                Expression::Subquery(_) => {
                 },
-                Expression::Exists(exists) => {
+                Expression::Exists(_) => {
                 },
-                Expression::SubqueryComparison(comp) => {
+                Expression::SubqueryComparison(_) => {
                 },
                 Expression::Subpath(subpath) => {
                     self.visit_expression_custom(&mut subpath.expr);
@@ -675,7 +680,7 @@ mod tests {
                 Expression::Trim(trim) => {
                     self.visit_expression_custom(&mut trim.arg);
                 },
-                Expression::DateFunction(date_func) => {
+                Expression::DateFunction(_) => {
                 },
                 Expression::Extract(extract) => {
                     self.visit_expression_custom(&mut extract.arg);
