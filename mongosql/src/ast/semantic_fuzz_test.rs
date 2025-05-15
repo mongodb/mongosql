@@ -436,30 +436,34 @@ mod tests {
     impl SemanticVisitor {
         fn visit_select_query(&mut self, node: SelectQuery) -> SelectQuery {
             self.select_fields.clear();
-            
+
             let select_clause = node.select_clause.walk(self);
-            
+
             match &select_clause.body {
                 SelectBody::Standard(exprs) => {
                     for expr in exprs {
                         match expr {
-                            SelectExpression::Expression(OptionallyAliasedExpr::Aliased(aliased)) => {
+                            SelectExpression::Expression(OptionallyAliasedExpr::Aliased(
+                                aliased,
+                            )) => {
                                 self.select_fields.push(aliased.alias.clone());
-                            },
-                            SelectExpression::Expression(OptionallyAliasedExpr::Unaliased(Expression::Identifier(ident))) => {
+                            }
+                            SelectExpression::Expression(OptionallyAliasedExpr::Unaliased(
+                                Expression::Identifier(ident),
+                            )) => {
                                 self.select_fields.push(ident.clone());
-                            },
+                            }
                             _ => {
                                 self.select_fields.push(INT_FIELD.to_string());
                             }
                         }
                     }
-                },
+                }
                 SelectBody::Values(_) => {
                     self.select_fields.push(INT_FIELD.to_string());
                 }
             }
-            
+
             if self.select_fields.is_empty() {
                 self.select_fields.push(INT_FIELD.to_string());
             }
@@ -729,8 +733,6 @@ mod tests {
         }
     }
 
-
-
     fn contains_invalid_select_query(query: &Query) -> bool {
         match query {
             Query::Select(select) => {
@@ -763,7 +765,10 @@ mod tests {
                 return TestResult::discard();
             }
 
-            let mut v = SemanticVisitor { target_type: None, select_fields: Vec::new() };
+            let mut v = SemanticVisitor {
+                target_type: None,
+                select_fields: Vec::new(),
+            };
             query = v.visit_query(query);
 
             let sql = match query.pretty_print() {
@@ -814,7 +819,10 @@ mod tests {
                 return TestResult::discard();
             }
 
-            let mut v = SemanticVisitor { target_type: None, select_fields: Vec::new() };
+            let mut v = SemanticVisitor {
+                target_type: None,
+                select_fields: Vec::new(),
+            };
             query = v.visit_query(query);
 
             let client = match get_mongodb_client() {
