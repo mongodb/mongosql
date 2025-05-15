@@ -78,6 +78,36 @@ mod tests {
         }
     }
 
+    fn get_field_for_type(target_type: Type) -> String {
+        match target_type {
+            Type::Int32 => INT_FIELD.to_string(),
+            Type::Int64 => LONG_FIELD.to_string(),
+            Type::Double => DOUBLE_FIELD.to_string(),
+            Type::Decimal128 => DECIMAL_FIELD.to_string(),
+            Type::String => STRING_FIELD.to_string(),
+            Type::Boolean => BOOL_FIELD.to_string(),
+            Type::Date => DATE_FIELD.to_string(),
+            Type::Timestamp => TIMESTAMP_FIELD.to_string(),
+            Type::Document => OBJECT_FIELD.to_string(),
+            Type::Array => ARRAY_FIELD.to_string(),
+            _ => INT_FIELD.to_string(), // Default to int for other types
+        }
+    }
+
+    fn replace_invalid_expression(target_type: Type) -> Expression {
+        match target_type {
+            Type::Boolean => make_boolean_expression(),
+            Type::Int32 | Type::Int64 | Type::Double | Type::Decimal128 => {
+                make_numeric_expression()
+            }
+            Type::String => make_string_expression(),
+            Type::Array => make_array_expression(),
+            Type::Date | Type::Datetime | Type::Timestamp => make_date_expression(),
+            Type::Document => make_object_expression(),
+            _ => Expression::Identifier(INT_FIELD.to_string()), // Default for other types
+        }
+    }
+
     // Generate a numeric expression (Int32, Int64, Double, Decimal128)
     fn make_numeric_expression() -> Expression {
         match usize::arbitrary(&mut Gen::new(0)) % 9 {
@@ -478,7 +508,36 @@ mod tests {
             let where_clause = node.where_clause.map(|wc| wc.walk(self));
             self.target_type = old_target_type;
 
-            let group_by_clause = node.group_by_clause.map(|gbc| gbc.walk(self));
+            let group_by_clause = node.group_by_clause.map(|gbc| {
+                let keys = gbc.keys.into_iter().map(|key| {
+                    match key {
+                        OptionallyAliasedExpr::Unaliased(expr) => {
+                            let field_name = if let Some(target_type) = self.target_type {
+                                get_field_for_type(target_type)
+                            } else {
+                                INT_FIELD.to_string()
+                            };
+                            OptionallyAliasedExpr::Unaliased(Expression::Identifier(field_name))
+                        },
+                        OptionallyAliasedExpr::Aliased(aliased) => {
+                            let field_name = if let Some(target_type) = self.target_type {
+                                get_field_for_type(target_type)
+                            } else {
+                                INT_FIELD.to_string()
+                            };
+                            OptionallyAliasedExpr::Aliased(AliasedExpr {
+                                expr: Expression::Identifier(field_name),
+                                alias: aliased.alias,
+                            })
+                        }
+                    }
+                }).collect();
+                
+                GroupByClause {
+                    keys,
+                    aggregations: Vec::new(),
+                }
+            });
 
             let old_target_type = self.target_type;
             self.target_type = Some(Type::Boolean);
@@ -619,38 +678,97 @@ mod tests {
                 _ => node.walk(self),
             }
         }
+
+
     }
 
     impl SemanticVisitor {
         fn visit_expression_custom(&mut self, node: &mut Expression) {
-            if let Expression::Tuple(_) = node {
-                *node = make_numeric_expression();
-                return;
-            }
+            match node {
+                Expression::Tuple(_) => {
+                    if let Some(target_type) = self.target_type {
+                        *node = replace_invalid_expression(target_type);
+                    } else {
+                        *node = make_numeric_expression();
+                    }
+                    return;
+                }
+                Expression::Binary(bin) if matches!(bin.op, BinaryOp::In | BinaryOp::NotIn) => {
+                    if let Some(target_type) = self.target_type {
+                        *node = replace_invalid_expression(target_type);
+                    } else {
+                        *node = make_boolean_expression();
+                    }
+                    return;
+                }
+                Expression::Subpath(_) => {
+                    if VALID_SUBPATHS.is_empty() {
+                        if let Some(target_type) = self.target_type {
+                            *node = replace_invalid_expression(target_type);
+                        } else {
+                            *node = make_numeric_expression();
+                        }
+                    } else {
+                        let idx = usize::arbitrary(&mut Gen::new(0)) % VALID_SUBPATHS.len();
+                        *node = Expression::Subpath(VALID_SUBPATHS[idx].clone());
+                    }
+                    return;
+                }
+                Expression::Identifier(ident) => {
+                    if let Some(target_type) = self.target_type {
+                        *ident = get_field_for_type(target_type);
+                    }
+                    return;
+                }
+                // Handle aggregate functions
+                Expression::Function(func) => {
+                    // Check if this is an aggregate function
+                    let is_aggregate = matches!(
+                        func.function,
+                        FunctionName::AddToArray
+                            | FunctionName::AddToSet
+                            | FunctionName::Avg
+                            | FunctionName::Count
+                            | FunctionName::First
+                            | FunctionName::Last
+                            | FunctionName::Max
+                            | FunctionName::MergeDocuments
+                            | FunctionName::Min
+                            | FunctionName::StddevPop
+                            | FunctionName::StddevSamp
+                            | FunctionName::Sum
+                    );
 
-            // if let Expression::Extract(extract) = node {
-            //     if matches!(extract.extract_spec, DatePart::Quarter) {
-            //         *node = make_date_expression();
-            //         return;
-            //     }
-            // }
+                    if is_aggregate {
+                        // Determine appropriate field type for the function
+                        let field_type = match func.function {
+                            FunctionName::Sum
+                            | FunctionName::Avg
+                            | FunctionName::Min
+                            | FunctionName::Max => Type::Double,
+                            FunctionName::Count => Type::Int32,
+                            FunctionName::AddToArray | FunctionName::AddToSet => Type::Array,
+                            FunctionName::First
+                            | FunctionName::Last
+                            | FunctionName::MergeDocuments => Type::String,
+                            FunctionName::StddevPop | FunctionName::StddevSamp => Type::Double,
+                            _ => Type::Int32,
+                        };
+
+                        func.args = FunctionArguments::Args(vec![Expression::Identifier(
+                            get_field_for_type(field_type),
+                        )]);
+                        return;
+                    }
+                }
+                _ => {}
+            }
 
             if let Some(target_type) = self.target_type {
                 let node_type = expression_type(node);
 
                 if node_type != target_type && !are_types_compatible(node_type, target_type) {
-                    *node = match target_type {
-                        Type::Boolean => make_boolean_expression(),
-                        Type::Int32 | Type::Int64 | Type::Double | Type::Decimal128 => {
-                            make_numeric_expression()
-                        }
-                        Type::String => make_string_expression(),
-                        Type::Array => make_array_expression(),
-                        Type::Date | Type::Datetime | Type::Timestamp => make_date_expression(),
-                        Type::Document => make_object_expression(),
-                        _ => node.clone(), // Keep the original node for other types
-                    };
-
+                    *node = replace_invalid_expression(target_type);
                     return;
                 }
             }
@@ -796,6 +914,24 @@ mod tests {
     }
 
     lazy_static! {
+        static ref VALID_SUBPATHS: Vec<SubpathExpr> = vec![
+            SubpathExpr {
+                expr: Box::new(Expression::Identifier(NESTED_OBJECT_FIELD.to_string())),
+                subpath: "nested_int".to_string(),
+            },
+            SubpathExpr {
+                expr: Box::new(Expression::Identifier(NESTED_OBJECT_FIELD.to_string())),
+                subpath: "nested_string".to_string(),
+            },
+            SubpathExpr {
+                expr: Box::new(Expression::Identifier(NESTED_OBJECT_FIELD.to_string())),
+                subpath: "nested_object.deeply_nested".to_string(),
+            },
+            SubpathExpr {
+                expr: Box::new(Expression::Identifier(OBJECT_FIELD.to_string())),
+                subpath: "nested_field".to_string(),
+            },
+        ];
         static ref MONGODB_URI: String = format!(
             "mongodb://localhost:{}",
             std::env::var("MDB_TEST_LOCAL_PORT").unwrap_or_else(|_| "27017".to_string())
