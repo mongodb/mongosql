@@ -627,17 +627,17 @@ mod tests {
                 *node = make_numeric_expression();
                 return;
             }
-            
+
             // if let Expression::Extract(extract) = node {
             //     if matches!(extract.extract_spec, DatePart::Quarter) {
             //         *node = make_date_expression();
             //         return;
             //     }
             // }
-            
+
             if let Some(target_type) = self.target_type {
                 let node_type = expression_type(node);
-                
+
                 if node_type != target_type && !are_types_compatible(node_type, target_type) {
                     *node = match target_type {
                         Type::Boolean => make_boolean_expression(),
@@ -650,15 +650,15 @@ mod tests {
                         Type::Document => make_object_expression(),
                         _ => node.clone(), // Keep the original node for other types
                     };
-                    
+
                     return;
                 }
             }
-            
+
             let child_target_type = self.determine_child_target_type(node);
             let old_target_type = self.target_type;
             self.target_type = child_target_type;
-            
+
             match node {
                 Expression::Binary(bin) => {
                     self.visit_expression_custom(&mut bin.left);
@@ -729,10 +729,9 @@ mod tests {
                 Expression::Cast(cast) => {
                     self.visit_expression_custom(&mut cast.expr);
                 }
-                Expression::Tuple(_) => {
-                }
+                Expression::Tuple(_) => {}
             }
-            
+
             self.target_type = old_target_type;
         }
     }
