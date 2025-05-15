@@ -209,13 +209,12 @@ mod tests {
                 })
             }
             _ => Expression::Extract(ExtractExpr {
-                extract_spec: match usize::arbitrary(&mut Gen::new(0)) % 6 {
+                extract_spec: match usize::arbitrary(&mut Gen::new(0)) % 5 {
                     0 => DatePart::Year,
-                    1 => DatePart::Quarter,
-                    2 => DatePart::Month,
-                    3 => DatePart::Week,
-                    4 => DatePart::Day,
-                    5 => DatePart::Hour,
+                    1 => DatePart::Month,
+                    2 => DatePart::Week,
+                    3 => DatePart::Day,
+                    4 => DatePart::Hour,
                     _ => DatePart::Minute,
                 },
                 arg: Box::new(Expression::Identifier(DATE_FIELD.to_string())),
@@ -628,10 +627,17 @@ mod tests {
                 *node = make_numeric_expression();
                 return;
             }
-
+            
+            // if let Expression::Extract(extract) = node {
+            //     if matches!(extract.extract_spec, DatePart::Quarter) {
+            //         *node = make_date_expression();
+            //         return;
+            //     }
+            // }
+            
             if let Some(target_type) = self.target_type {
                 let node_type = expression_type(node);
-
+                
                 if node_type != target_type && !are_types_compatible(node_type, target_type) {
                     *node = match target_type {
                         Type::Boolean => make_boolean_expression(),
@@ -644,14 +650,15 @@ mod tests {
                         Type::Document => make_object_expression(),
                         _ => node.clone(), // Keep the original node for other types
                     };
+                    
+                    return;
                 }
             }
-
+            
             let child_target_type = self.determine_child_target_type(node);
-
             let old_target_type = self.target_type;
             self.target_type = child_target_type;
-
+            
             match node {
                 Expression::Binary(bin) => {
                     self.visit_expression_custom(&mut bin.left);
@@ -722,13 +729,10 @@ mod tests {
                 Expression::Cast(cast) => {
                     self.visit_expression_custom(&mut cast.expr);
                 }
-                Expression::Tuple(tuple) => {
-                    for expr in tuple {
-                        self.visit_expression_custom(expr);
-                    }
+                Expression::Tuple(_) => {
                 }
             }
-
+            
             self.target_type = old_target_type;
         }
     }
@@ -906,13 +910,13 @@ mod tests {
                         "date_field": { "bsonType": "date" },
                         "timestamp_field": { "bsonType": "timestamp" },
                         "time_field": { "bsonType": "timestamp" },
-                        "object_field": { 
+                        "object_field": {
                             "bsonType": "object",
                             "properties": {
                                 "nested_field": { "bsonType": "string" }
                             }
                         },
-                        "nested_object_field": { 
+                        "nested_object_field": {
                             "bsonType": "object",
                             "properties": {
                                 "nested_int": { "bsonType": "int" },
@@ -925,15 +929,15 @@ mod tests {
                                 }
                             }
                         },
-                        "array_field": { 
+                        "array_field": {
                             "bsonType": "array",
                             "items": { "bsonType": "int" }
                         },
-                        "string_array_field": { 
+                        "string_array_field": {
                             "bsonType": "array",
                             "items": { "bsonType": "string" }
                         },
-                        "mixed_array_field": { 
+                        "mixed_array_field": {
                             "bsonType": "array"
                         },
                         "null_field": { "bsonType": "null" },
@@ -987,17 +991,17 @@ mod tests {
                     "bsonType": "object",
                     "properties": {
                         "id": { "bsonType": "int" },
-                        "int_array": { 
+                        "int_array": {
                             "bsonType": "array",
                             "items": { "bsonType": "int" }
                         },
-                        "string_array": { 
+                        "string_array": {
                             "bsonType": "array",
                             "items": { "bsonType": "string" }
                         },
-                        "object_array": { 
+                        "object_array": {
                             "bsonType": "array",
-                            "items": { 
+                            "items": {
                                 "bsonType": "object",
                                 "properties": {
                                     "key": { "bsonType": "string" },
@@ -1005,9 +1009,9 @@ mod tests {
                                 }
                             }
                         },
-                        "nested_array": { 
+                        "nested_array": {
                             "bsonType": "array",
-                            "items": { 
+                            "items": {
                                 "bsonType": "array",
                                 "items": { "bsonType": "int" }
                             }

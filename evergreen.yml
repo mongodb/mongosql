@@ -966,6 +966,10 @@ tasks:
   - name: test-rust-fuzz
     tags: ["fuzz"]
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 6.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run rust tests"
         retry_on_failure: true
