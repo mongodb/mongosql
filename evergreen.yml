@@ -1427,7 +1427,6 @@ buildvariants:
       - name: compile
       - name: test-pipeline-generate
       - name: test-rust
-      - name: test-rust-fuzz
       - name: test-go
 
   - name: macos-arm64
@@ -1439,7 +1438,6 @@ buildvariants:
       - name: compile
       - name: test-pipeline-generate
       - name: test-rust
-      - name: test-rust-fuzz
       - name: test-go
 
   - name: amazon2-arm64
@@ -1463,7 +1461,6 @@ buildvariants:
       - name: compile
       - name: test-pipeline-generate
       - name: test-rust
-      - name: test-rust-fuzz
       - name: test-go
 
   - name: benchmark
