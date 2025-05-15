@@ -175,9 +175,13 @@ mod tests {
             }
             _ => {
                 let mut elements = Vec::new();
-                let size = (usize::arbitrary(&mut Gen::new(0)) % 3) + 1; // 1-3 elements
-                for _ in 0..size {
-                    elements.push(make_string_expression());
+                let size = (usize::arbitrary(&mut Gen::new(0)) % 4) + 2; // 2-5 elements
+                for i in 0..size {
+                    match i % 3 {
+                        0 => elements.push(make_numeric_expression()),
+                        1 => elements.push(make_string_expression()),
+                        _ => elements.push(make_boolean_expression()),
+                    }
                 }
                 Expression::Array(elements)
             }
