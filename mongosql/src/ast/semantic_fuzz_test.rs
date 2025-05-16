@@ -496,14 +496,7 @@ mod tests {
                             }
                         }
                     }
-                    if self.select_fields.is_empty() {
-                        self.select_fields.push(INT_FIELD.to_string());
-                    }
                 }
-            }
-
-            if self.select_fields.is_empty() {
-                self.select_fields.push(INT_FIELD.to_string());
             }
 
             let from_clause = Some(Datasource::Collection(CollectionSource {
