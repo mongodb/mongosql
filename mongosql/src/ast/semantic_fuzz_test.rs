@@ -73,7 +73,6 @@ mod tests {
         );
     }
 
-    // Generate a numeric expression (Int32, Int64, Double, Decimal128)
     fn make_numeric_expression() -> Expression {
         match usize::arbitrary(&mut Gen::new(0)) % 17 {
             0 => Expression::Identifier(INT_FIELD.to_string()),
@@ -386,6 +385,7 @@ mod tests {
         }
     }
 
+    ///   - Nested documents with metadata containing nested fields
     fn make_object_expression() -> Expression {
         match usize::arbitrary(&mut Gen::new(0)) % 5 {
             0 => Expression::Identifier(OBJECT_FIELD.to_string()),
@@ -450,6 +450,7 @@ mod tests {
         }
     }
 
+    /// - A FROM clause targeting the all_types collection
     fn generate_arbitrary_semantically_valid_query() -> Query {
         let (select_clause, select_fields) = generate_arbitrary_semantically_valid_select_clause();
 
@@ -485,6 +486,7 @@ mod tests {
         })
     }
 
+    /// Returns both the SELECT clause and a vector of field names that can be referenced
     fn generate_arbitrary_semantically_valid_select_clause() -> (SelectClause, Vec<String>) {
         let set_quantifier = SetQuantifier::arbitrary(&mut Gen::new(0));
 
@@ -586,14 +588,106 @@ mod tests {
     }
 
     impl Arbitrary for SemanticallyValidQuery {
+        /// Implements the Arbitrary trait for SemanticallyValidQuery.
+        ///
+        /// This function allows QuickCheck to generate arbitrary semantically valid
+        /// queries for property testing. It delegates to generate_arbitrary_semantically_valid_query
+        /// to create queries that are guaranteed to be both syntactically and semantically valid.
+        ///
+        /// @param _g - QuickCheck generator (unused as we use a fixed seed)
+        /// @return A SemanticallyValidQuery instance containing a valid query
+    /// This function allows QuickCheck to generate arbitrary semantically valid
+    /// queries for property testing. It delegates to generate_arbitrary_semantically_valid_query
+    /// to create queries that are guaranteed to be both syntactically and semantically valid.
+    ///
+    /// @param _g - QuickCheck generator (unused as we use a fixed seed)
+    /// @return A SemanticallyValidQuery instance containing a valid query
         fn arbitrary(_g: &mut Gen) -> Self {
             let query = generate_arbitrary_semantically_valid_query();
             SemanticallyValidQuery { query }
         }
     }
 
+    /// Tests that semantically valid queries can be successfully translated to MongoDB pipelines.
+    ///
+    /// This QuickCheck property test verifies that:
+    /// 1. Arbitrary semantically valid queries can be pretty-printed to SQL strings
+    /// 2. The SQL strings can be successfully translated back to MongoDB pipelines
+    ///
+    /// This test ensures the first property from the requirements: semantically valid
+    /// queries "compile" via the translate_sql function without errors.
+    /// Tests that generated aggregation pipelines can be executed against MongoDB without errors.
+    ///
+    /// This QuickCheck property test verifies that:
+    /// 1. Arbitrary semantically valid queries can be pretty-printed to SQL strings
+    /// 2. The SQL strings can be successfully translated to MongoDB pipelines
+    /// 3. The resulting pipelines can be executed against a MongoDB instance without errors
+    ///
+    /// This test ensures the second property from the requirements: the aggregation
+    /// pipelines from the translations run against mongod without error.
+    /// 
+    /// The test is skipped if MongoDB is unavailable or if translation fails.
+    /// Tests that semantically valid queries can be successfully translated to MongoDB pipelines.
+    ///
+    /// This QuickCheck property test verifies that:
+    /// 1. Arbitrary semantically valid queries can be pretty-printed to SQL strings
+    /// 2. The SQL strings can be successfully translated back to MongoDB pipelines
+    ///
+    /// This test ensures the first property from the requirements: semantically valid
+    /// queries "compile" via the translate_sql function without errors.
+    /// Tests that generated aggregation pipelines can be executed against MongoDB without errors.
+    ///
+    /// This QuickCheck property test verifies that:
+    /// 1. Arbitrary semantically valid queries can be pretty-printed to SQL strings
+    /// 2. The SQL strings can be successfully translated to MongoDB pipelines
+    /// 3. The resulting pipelines can be executed against a MongoDB instance without errors
+    ///
+    /// This test ensures the second property from the requirements: the aggregation
+    /// pipelines from the translations run against mongod without error.
+    /// 
+    /// The test is skipped if MongoDB is unavailable or if translation fails.
     #[test]
     fn prop_semantic_queries_translate() {
+        /// Inner property function for QuickCheck testing.
+        ///
+        /// This function:
+        /// 1. Pretty-prints the query to SQL
+        /// 2. Translates the SQL to a MongoDB pipeline
+        /// 3. Verifies the translation succeeds
+        ///
+        /// @param query - A semantically valid query to test
+        /// @return TestResult - Success if translation succeeds, discarded otherwise
+        /// Inner property function for QuickCheck testing.
+        ///
+        /// This function:
+        /// 1. Connects to MongoDB (skips test if unavailable)
+        /// 2. Pretty-prints the query to SQL
+        /// 3. Translates the SQL to a MongoDB pipeline
+        /// 4. Executes the pipeline against MongoDB
+        /// 5. Verifies execution succeeds
+        ///
+        /// @param query - A semantically valid query to test
+        /// @return TestResult - Success if pipeline executes without error, discarded otherwise
+        /// Inner property function for QuickCheck testing.
+        ///
+        /// This function:
+        /// 1. Pretty-prints the query to SQL
+        /// 2. Translates the SQL to a MongoDB pipeline
+        /// 3. Verifies the translation succeeds
+        ///
+        /// @param query - A semantically valid query to test
+        /// @return TestResult - Success if translation succeeds, discarded otherwise
+        /// Inner property function for QuickCheck testing.
+        ///
+        /// This function:
+        /// 1. Connects to MongoDB (skips test if unavailable)
+        /// 2. Pretty-prints the query to SQL
+        /// 3. Translates the SQL to a MongoDB pipeline
+        /// 4. Executes the pipeline against MongoDB
+        /// 5. Verifies execution succeeds
+        ///
+        /// @param query - A semantically valid query to test
+        /// @return TestResult - Success if pipeline executes without error, discarded otherwise
         fn property(query: SemanticallyValidQuery) -> TestResult {
             let sql = match query.query.pretty_print() {
                 Err(_) => return TestResult::discard(),
@@ -616,12 +710,106 @@ mod tests {
             .quickcheck(property as fn(SemanticallyValidQuery) -> TestResult);
     }
 
+    /// Creates a MongoDB client connection using the configured URI.
+    ///
+    /// This helper function attempts to establish a connection to a MongoDB instance
+    /// using the MONGODB_URI defined in the lazy_static block. It returns None if
+    /// the connection cannot be established, allowing tests to gracefully skip
+    /// when MongoDB is unavailable.
+    ///
+    /// @return Option<Client> - MongoDB client if connection succeeds, None otherwise
+    /// Creates a MongoDB client connection using the configured URI.
+    ///
+    /// This helper function attempts to establish a connection to a MongoDB instance
+    /// using the MONGODB_URI defined in the lazy_static block. It returns None if
+    /// the connection cannot be established, allowing tests to gracefully skip
+    /// when MongoDB is unavailable.
+    ///
+    /// @return Option<Client> - MongoDB client if connection succeeds, None otherwise
     fn get_mongodb_client() -> Option<Client> {
         Client::with_uri_str(&*MONGODB_URI).ok()
     }
 
+    /// Tests that semantically valid queries can be successfully translated to MongoDB pipelines.
+    ///
+    /// This QuickCheck property test verifies that:
+    /// 1. Arbitrary semantically valid queries can be pretty-printed to SQL strings
+    /// 2. The SQL strings can be successfully translated back to MongoDB pipelines
+    ///
+    /// This test ensures the first property from the requirements: semantically valid
+    /// queries "compile" via the translate_sql function without errors.
+    /// Tests that generated aggregation pipelines can be executed against MongoDB without errors.
+    ///
+    /// This QuickCheck property test verifies that:
+    /// 1. Arbitrary semantically valid queries can be pretty-printed to SQL strings
+    /// 2. The SQL strings can be successfully translated to MongoDB pipelines
+    /// 3. The resulting pipelines can be executed against a MongoDB instance without errors
+    ///
+    /// This test ensures the second property from the requirements: the aggregation
+    /// pipelines from the translations run against mongod without error.
+    /// 
+    /// The test is skipped if MongoDB is unavailable or if translation fails.
+    /// Tests that semantically valid queries can be successfully translated to MongoDB pipelines.
+    ///
+    /// This QuickCheck property test verifies that:
+    /// 1. Arbitrary semantically valid queries can be pretty-printed to SQL strings
+    /// 2. The SQL strings can be successfully translated back to MongoDB pipelines
+    ///
+    /// This test ensures the first property from the requirements: semantically valid
+    /// queries "compile" via the translate_sql function without errors.
+    /// Tests that generated aggregation pipelines can be executed against MongoDB without errors.
+    ///
+    /// This QuickCheck property test verifies that:
+    /// 1. Arbitrary semantically valid queries can be pretty-printed to SQL strings
+    /// 2. The SQL strings can be successfully translated to MongoDB pipelines
+    /// 3. The resulting pipelines can be executed against a MongoDB instance without errors
+    ///
+    /// This test ensures the second property from the requirements: the aggregation
+    /// pipelines from the translations run against mongod without error.
+    /// 
+    /// The test is skipped if MongoDB is unavailable or if translation fails.
     #[test]
     fn prop_aggregation_pipelines_run() {
+        /// Inner property function for QuickCheck testing.
+        ///
+        /// This function:
+        /// 1. Pretty-prints the query to SQL
+        /// 2. Translates the SQL to a MongoDB pipeline
+        /// 3. Verifies the translation succeeds
+        ///
+        /// @param query - A semantically valid query to test
+        /// @return TestResult - Success if translation succeeds, discarded otherwise
+        /// Inner property function for QuickCheck testing.
+        ///
+        /// This function:
+        /// 1. Connects to MongoDB (skips test if unavailable)
+        /// 2. Pretty-prints the query to SQL
+        /// 3. Translates the SQL to a MongoDB pipeline
+        /// 4. Executes the pipeline against MongoDB
+        /// 5. Verifies execution succeeds
+        ///
+        /// @param query - A semantically valid query to test
+        /// @return TestResult - Success if pipeline executes without error, discarded otherwise
+        /// Inner property function for QuickCheck testing.
+        ///
+        /// This function:
+        /// 1. Pretty-prints the query to SQL
+        /// 2. Translates the SQL to a MongoDB pipeline
+        /// 3. Verifies the translation succeeds
+        ///
+        /// @param query - A semantically valid query to test
+        /// @return TestResult - Success if translation succeeds, discarded otherwise
+        /// Inner property function for QuickCheck testing.
+        ///
+        /// This function:
+        /// 1. Connects to MongoDB (skips test if unavailable)
+        /// 2. Pretty-prints the query to SQL
+        /// 3. Translates the SQL to a MongoDB pipeline
+        /// 4. Executes the pipeline against MongoDB
+        /// 5. Verifies execution succeeds
+        ///
+        /// @param query - A semantically valid query to test
+        /// @return TestResult - Success if pipeline executes without error, discarded otherwise
         fn property(query: SemanticallyValidQuery) -> TestResult {
             let client = match get_mongodb_client() {
                 Some(client) => client,
