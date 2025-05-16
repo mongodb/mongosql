@@ -466,7 +466,7 @@ mod tests {
         fn visit_select_query(&mut self, node: SelectQuery) -> SelectQuery {
             self.select_fields.clear();
 
-            let select_clause = node.select_clause.walk(self);
+            let select_clause = self.visit_select_clause(node.select_clause);
 
             match &select_clause.body {
                 SelectBody::Standard(exprs) => {
