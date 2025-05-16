@@ -2464,6 +2464,7 @@ dependencies = [
  "lalrpop-util",
  "lazy_static",
  "linked-hash-map",
+ "mongodb",
  "mongosql-datastructures",
  "pprof 0.4.5",
  "quickcheck",
