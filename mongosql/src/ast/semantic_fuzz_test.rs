@@ -736,7 +736,7 @@ mod tests {
                                 }
                             }
                             SelectValuesExpression::Expression(expr) => {
-                                let key = crate::ast::pretty_print_fuzz_test::fuzz_test::arbitrary_identifier(&mut quickcheck::Gen::new(0));
+                                let key = crate::ast::pretty_print_fuzz_test::arbitrary::arbitrary_identifier(&mut quickcheck::Gen::new(0));
                                 doc_exprs.push(DocumentPair {
                                     key,
                                     value: expr.walk(self),
