@@ -1,8 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use crate::ast::pretty_print_fuzz_test::arbitrary::{arbitrary_identifier, arbitrary_string};
+    use crate::ast::pretty_print_fuzz_test::arbitrary::arbitrary_optional;
     use crate::{
-        ast::{definitions::visitor::Visitor, definitions::*, pretty_print::PrettyPrint},
+        ast::{
+            definitions::*,
+            pretty_print::PrettyPrint,
+            pretty_print_fuzz_test::arbitrary::{arbitrary_identifier, arbitrary_string},
+        },
         build_catalog_from_catalog_schema,
         catalog::Catalog,
         json_schema::Schema as JsonSchema,
@@ -42,76 +46,47 @@ mod tests {
 
     const NULL_FIELD: &str = "null_field"; // Null
     const OBJECTID_FIELD: &str = "objectid_field"; // ObjectId
-    const ID_FIELD: &str = "id"; // Int32 (for related_data)
 
-    fn field_type(field_name: &str) -> Type {
-        match field_name {
-            INT_FIELD | NESTED_INT | DEEPLY_NESTED => Type::Int32,
-            LONG_FIELD => Type::Int64,
-            DOUBLE_FIELD => Type::Double,
-            DECIMAL_FIELD => Type::Decimal128,
-
-            STRING_FIELD | NESTED_STRING => Type::String,
-
-            BOOL_FIELD => Type::Boolean,
-
-            DATE_FIELD => Type::Date,
-            TIMESTAMP_FIELD => Type::Timestamp,
-
-            OBJECT_FIELD | NESTED_OBJECT_FIELD | NESTED_OBJECT => Type::Document,
-            ARRAY_FIELD | STRING_ARRAY_FIELD | MIXED_ARRAY_FIELD => Type::Array,
-
-            NULL_FIELD => Type::Null,
-            OBJECTID_FIELD => Type::ObjectId,
-            ID_FIELD => Type::Int32,
-
-            _ => Type::Null,
-        }
-    }
-
-    fn get_field_for_type(target_type: Type) -> String {
-        match target_type {
-            Type::Int32 => INT_FIELD.to_string(),
-            Type::Int64 => LONG_FIELD.to_string(),
-            Type::Double => DOUBLE_FIELD.to_string(),
-            Type::Decimal128 => DECIMAL_FIELD.to_string(),
-            Type::String => STRING_FIELD.to_string(),
-            Type::Boolean => BOOL_FIELD.to_string(),
-            Type::Date => DATE_FIELD.to_string(),
-            Type::Timestamp => TIMESTAMP_FIELD.to_string(),
-            Type::Document => OBJECT_FIELD.to_string(),
-            Type::Array => ARRAY_FIELD.to_string(),
-            Type::ObjectId => OBJECTID_FIELD.to_string(),
-            _ => NULL_FIELD.to_string(), // Default to null for other types
-        }
-    }
-
-    fn replace_invalid_expression(target_type: Type) -> Expression {
-        match target_type {
-            Type::Boolean => make_boolean_expression(),
-            Type::Int32 | Type::Int64 | Type::Double | Type::Decimal128 => {
-                make_numeric_expression()
-            }
-            Type::String => make_string_expression(),
-            Type::Array => make_array_expression(),
-            Type::Date | Type::Datetime => make_date_expression(),
-            Type::Document => make_object_expression(),
-            _ => Expression::Identifier(INT_FIELD.to_string()), // Default for other types
-        }
+    lazy_static! {
+        static ref NESTED_INT_SUBPATH: Expression = Expression::Subpath(SubpathExpr {
+            expr: Box::new(Expression::Identifier(NESTED_OBJECT_FIELD.to_string())),
+            subpath: NESTED_INT.to_string(),
+        });
+        static ref NESTED_STRING_SUBPATH: Expression = Expression::Subpath(SubpathExpr {
+            expr: Box::new(Expression::Identifier(NESTED_OBJECT_FIELD.to_string())),
+            subpath: NESTED_STRING.to_string(),
+        });
+        static ref ALT_NESTED_STRING_SUBPATH: Expression = Expression::Subpath(SubpathExpr {
+            expr: Box::new(Expression::Identifier(OBJECT_FIELD.to_string())),
+            subpath: NESTED_FIELD.to_string(),
+        });
+        static ref DEEPLY_NESTED_INT_SUBPATH: Expression = Expression::Subpath(SubpathExpr {
+            expr: Box::new(Expression::Subpath(SubpathExpr {
+                expr: Box::new(Expression::Identifier(NESTED_OBJECT_FIELD.to_string())),
+                subpath: NESTED_OBJECT.to_string(),
+            })),
+            subpath: DEEPLY_NESTED.to_string(),
+        });
+        static ref MONGODB_URI: String = format!(
+            "mongodb://localhost:{}",
+            std::env::var("MDB_TEST_LOCAL_PORT").unwrap_or_else(|_| "27017".to_string())
+        );
     }
 
     // Generate a numeric expression (Int32, Int64, Double, Decimal128)
     fn make_numeric_expression() -> Expression {
-        match usize::arbitrary(&mut Gen::new(0)) % 12 {
+        match usize::arbitrary(&mut Gen::new(0)) % 17 {
             0 => Expression::Identifier(INT_FIELD.to_string()),
             1 => Expression::Identifier(LONG_FIELD.to_string()),
             2 => Expression::Identifier(DOUBLE_FIELD.to_string()),
             3 => Expression::Identifier(DECIMAL_FIELD.to_string()),
-            4 => Expression::Literal(Literal::Integer(i32::arbitrary(&mut Gen::new(0)))),
-            5 => Expression::Literal(Literal::Integer(-(u16::arbitrary(&mut Gen::new(0)) as i32))),
-            6 => Expression::Literal(Literal::Long(i64::arbitrary(&mut Gen::new(0)))),
-            7 => Expression::Literal(Literal::Double(f64::arbitrary(&mut Gen::new(0)))),
-            8 => {
+            4 => NESTED_INT_SUBPATH.clone(),
+            5 => DEEPLY_NESTED_INT_SUBPATH.clone(),
+            6 => Expression::Literal(Literal::Integer(i32::arbitrary(&mut Gen::new(0)))),
+            7 => Expression::Literal(Literal::Integer(-(u16::arbitrary(&mut Gen::new(0)) as i32))),
+            8 => Expression::Literal(Literal::Long(i64::arbitrary(&mut Gen::new(0)))),
+            9 => Expression::Literal(Literal::Double(f64::arbitrary(&mut Gen::new(0)))),
+            10 => {
                 let arg = make_numeric_expression();
                 let op = if bool::arbitrary(&mut Gen::new(0)) {
                     UnaryOp::Pos
@@ -123,7 +98,7 @@ mod tests {
                     expr: Box::new(arg),
                 })
             }
-            9 => {
+            11 => {
                 let left = make_numeric_expression();
                 let right = make_numeric_expression();
                 let op = match usize::arbitrary(&mut Gen::new(0)) % 4 {
@@ -138,7 +113,7 @@ mod tests {
                     right: Box::new(right),
                 })
             }
-            10 => {
+            12 => {
                 let arg = make_numeric_expression();
                 Expression::Function(FunctionExpr {
                     function: match usize::arbitrary(&mut Gen::new(0)) % 6 {
@@ -153,7 +128,19 @@ mod tests {
                     set_quantifier: None,
                 })
             }
-            _ => Expression::Extract(ExtractExpr {
+            13 => {
+                let arg = make_string_expression();
+                Expression::Function(FunctionExpr {
+                    function: match usize::arbitrary(&mut Gen::new(0)) % 3 {
+                        0 => FunctionName::BitLength,
+                        1 => FunctionName::OctetLength,
+                        _ => FunctionName::CharLength,
+                    },
+                    args: FunctionArguments::Args(vec![arg]),
+                    set_quantifier: None,
+                })
+            }
+            14 => Expression::Extract(ExtractExpr {
                 extract_spec: match usize::arbitrary(&mut Gen::new(0)) % 5 {
                     0 => DatePart::Year,
                     1 => DatePart::Month,
@@ -164,6 +151,67 @@ mod tests {
                 },
                 arg: Box::new(Expression::Identifier(DATE_FIELD.to_string())),
             }),
+            15 => {
+                let arg_name = match usize::arbitrary(&mut Gen::new(0)) % 15 {
+                    0 => INT_FIELD,
+                    1 => LONG_FIELD,
+                    2 => DOUBLE_FIELD,
+                    3 => DECIMAL_FIELD,
+                    4 => STRING_FIELD,
+                    5 => BOOL_FIELD,
+                    6 => DATE_FIELD,
+                    7 => TIMESTAMP_FIELD,
+                    8 => OBJECT_FIELD,
+                    9 => NESTED_OBJECT_FIELD,
+                    10 => ARRAY_FIELD,
+                    11 => STRING_ARRAY_FIELD,
+                    12 => MIXED_ARRAY_FIELD,
+                    13 => NULL_FIELD,
+                    14 => OBJECTID_FIELD,
+                    _ => "star",
+                };
+
+                let args = if arg_name == "star" {
+                    FunctionArguments::Star
+                } else {
+                    FunctionArguments::Args(vec![Expression::Identifier(arg_name.to_string())])
+                };
+
+                Expression::Function(FunctionExpr {
+                    function: FunctionName::Count,
+                    args,
+                    set_quantifier: if bool::arbitrary(&mut Gen::new(0)) {
+                        Some(SetQuantifier::Distinct)
+                    } else {
+                        None
+                    },
+                })
+            }
+            _ => {
+                let arg_name = match usize::arbitrary(&mut Gen::new(0)) % 4 {
+                    0 => INT_FIELD,
+                    1 => LONG_FIELD,
+                    2 => DOUBLE_FIELD,
+                    _ => DECIMAL_FIELD,
+                };
+                let arg = Expression::Identifier(arg_name.to_string());
+                Expression::Function(FunctionExpr {
+                    function: match usize::arbitrary(&mut Gen::new(0)) % 6 {
+                        0 => FunctionName::Avg,
+                        1 => FunctionName::Min,
+                        2 => FunctionName::Max,
+                        3 => FunctionName::StddevPop,
+                        4 => FunctionName::StddevSamp,
+                        _ => FunctionName::Sum,
+                    },
+                    args: FunctionArguments::Args(vec![arg]),
+                    set_quantifier: if bool::arbitrary(&mut Gen::new(0)) {
+                        Some(SetQuantifier::Distinct)
+                    } else {
+                        None
+                    },
+                })
+            }
         }
     }
 
@@ -196,9 +244,34 @@ mod tests {
         }
     }
 
+    fn make_comparison_expression() -> Expression {
+        let (left, right) = match usize::arbitrary(&mut Gen::new(0)) % 3 {
+            0 => (make_numeric_expression(), make_numeric_expression()),
+            1 => (make_string_expression(), make_string_expression()),
+            _ => (make_boolean_expression(), make_boolean_expression()),
+        };
+
+        let comp_op = match usize::arbitrary(&mut Gen::new(0)) % 6 {
+            0 => ComparisonOp::Eq,
+            1 => ComparisonOp::Neq,
+            2 => ComparisonOp::Lt,
+            3 => ComparisonOp::Lte,
+            4 => ComparisonOp::Gt,
+            _ => ComparisonOp::Gte,
+        };
+
+        Expression::Binary(BinaryExpr {
+            left: Box::new(left),
+            op: BinaryOp::Comparison(comp_op),
+            right: Box::new(right),
+        })
+    }
+
     fn make_string_expression() -> Expression {
-        match usize::arbitrary(&mut Gen::new(0)) % 5 {
-            0..=2 => Expression::Identifier(STRING_FIELD.to_string()),
+        match usize::arbitrary(&mut Gen::new(0)) % 8 {
+            0 => Expression::Identifier(STRING_FIELD.to_string()),
+            1 => NESTED_STRING_SUBPATH.clone(),
+            2 => ALT_NESTED_STRING_SUBPATH.clone(),
             3 => {
                 // String concatenation
                 let left = make_string_expression();
@@ -209,6 +282,29 @@ mod tests {
                     right: Box::new(right),
                 })
             }
+            4 => Expression::Function(FunctionExpr {
+                function: if bool::arbitrary(&mut Gen::new(0)) {
+                    FunctionName::Lower
+                } else {
+                    FunctionName::Upper
+                },
+                args: FunctionArguments::Args(vec![make_string_expression()]),
+                set_quantifier: None,
+            }),
+            5 => Expression::Trim(TrimExpr {
+                trim_spec: TrimSpec::arbitrary(&mut Gen::new(0)),
+                trim_chars: Box::new(Expression::StringConstructor(" ".to_string())),
+                arg: Box::new(make_string_expression()),
+            }),
+            6 => Expression::Function(FunctionExpr {
+                function: FunctionName::Substring,
+                args: FunctionArguments::Args(vec![
+                    make_string_expression(),
+                    make_numeric_expression(),
+                    make_numeric_expression(),
+                ]),
+                set_quantifier: None,
+            }),
             _ => {
                 // String constructor - simplified to use String directly
                 Expression::StringConstructor(arbitrary_string(&mut Gen::new(0)))
@@ -217,7 +313,7 @@ mod tests {
     }
 
     fn make_array_expression() -> Expression {
-        match usize::arbitrary(&mut Gen::new(0)) % 5 {
+        match usize::arbitrary(&mut Gen::new(0)) % 6 {
             0 => Expression::Identifier(ARRAY_FIELD.to_string()),
             1 => Expression::Identifier(STRING_ARRAY_FIELD.to_string()),
             2 => Expression::Identifier(MIXED_ARRAY_FIELD.to_string()),
@@ -229,7 +325,7 @@ mod tests {
                 }
                 Expression::Array(elements)
             }
-            _ => {
+            4 => {
                 let mut elements = Vec::new();
                 let size = (usize::arbitrary(&mut Gen::new(0)) % 4) + 2; // 2-5 elements
                 for i in 0..size {
@@ -240,6 +336,27 @@ mod tests {
                     }
                 }
                 Expression::Array(elements)
+            }
+            _ => {
+                let arg_name = match usize::arbitrary(&mut Gen::new(0)) % 4 {
+                    0 => INT_FIELD,
+                    1 => LONG_FIELD,
+                    2 => DOUBLE_FIELD,
+                    _ => DECIMAL_FIELD,
+                };
+                let arg = Expression::Identifier(arg_name.to_string());
+                Expression::Function(FunctionExpr {
+                    function: match usize::arbitrary(&mut Gen::new(0)) % 2 {
+                        0 => FunctionName::AddToArray,
+                        _ => FunctionName::AddToSet,
+                    },
+                    args: FunctionArguments::Args(vec![arg]),
+                    set_quantifier: if bool::arbitrary(&mut Gen::new(0)) {
+                        Some(SetQuantifier::Distinct)
+                    } else {
+                        None
+                    },
+                })
             }
         }
     }
@@ -270,7 +387,7 @@ mod tests {
     }
 
     fn make_object_expression() -> Expression {
-        match usize::arbitrary(&mut Gen::new(0)) % 4 {
+        match usize::arbitrary(&mut Gen::new(0)) % 5 {
             0 => Expression::Identifier(OBJECT_FIELD.to_string()),
             1 => Expression::Identifier(NESTED_OBJECT_FIELD.to_string()),
             2 => {
@@ -290,7 +407,7 @@ mod tests {
                 ];
                 Expression::Document(fields)
             }
-            _ => {
+            3 => {
                 let nested_fields = vec![
                     DocumentPair {
                         key: "nested_id".to_string(),
@@ -314,677 +431,171 @@ mod tests {
                 ];
                 Expression::Document(fields)
             }
+            _ => {
+                let arg_name = match usize::arbitrary(&mut Gen::new(0)) % 2 {
+                    0 => OBJECT_FIELD,
+                    _ => NESTED_OBJECT_FIELD,
+                };
+                let arg = Expression::Identifier(arg_name.to_string());
+                Expression::Function(FunctionExpr {
+                    function: FunctionName::MergeDocuments,
+                    args: FunctionArguments::Args(vec![arg]),
+                    set_quantifier: if bool::arbitrary(&mut Gen::new(0)) {
+                        Some(SetQuantifier::Distinct)
+                    } else {
+                        None
+                    },
+                })
+            }
         }
     }
 
-    fn make_comparison_expression() -> Expression {
-        let (left, right) = match usize::arbitrary(&mut Gen::new(0)) % 3 {
-            0 => (make_numeric_expression(), make_numeric_expression()),
-            1 => (make_string_expression(), make_string_expression()),
-            _ => (make_boolean_expression(), make_boolean_expression()),
-        };
+    fn generate_arbitrary_semantically_valid_query() -> Query {
+        let (select_clause, select_fields) = generate_arbitrary_semantically_valid_select_clause();
 
-        let comp_op = match usize::arbitrary(&mut Gen::new(0)) % 6 {
-            0 => ComparisonOp::Eq,
-            1 => ComparisonOp::Neq,
-            2 => ComparisonOp::Lt,
-            3 => ComparisonOp::Lte,
-            4 => ComparisonOp::Gt,
-            _ => ComparisonOp::Gte,
-        };
+        let from_clause = Some(Datasource::Collection(CollectionSource {
+            database: Some(TEST_DB.to_string()),
+            collection: ALL_TYPES_COLLECTION.to_string(),
+            alias: None,
+        }));
 
-        Expression::Binary(BinaryExpr {
-            left: Box::new(left),
-            op: BinaryOp::Comparison(comp_op),
-            right: Box::new(right),
+        let where_clause = weighted_arbitrary_optional(make_boolean_expression);
+
+        // let group_by_clause =
+        //     weighted_arbitrary_optional(generate_arbitrary_semantically_valid_group_by_clause);
+
+        let having_clause = weighted_arbitrary_optional(make_boolean_expression);
+
+        let order_by_clause = weighted_arbitrary_optional(|| {
+            generate_arbitrary_semantically_valid_order_by_clause(select_fields.clone())
+        });
+
+        let limit = arbitrary_optional(&mut Gen::new(0), |g| 1 + u32::arbitrary(g) % 10);
+        let offset = arbitrary_optional(&mut Gen::new(0), |g| 1 + u32::arbitrary(g) % 10);
+
+        Query::Select(SelectQuery {
+            select_clause,
+            from_clause,
+            where_clause,
+            group_by_clause: None,
+            having_clause,
+            order_by_clause,
+            limit,
+            offset,
         })
     }
 
-    fn expression_type(expr: &Expression) -> Type {
-        match expr {
-            Expression::Identifier(name) => field_type(name),
-            Expression::Literal(lit) => match lit {
-                Literal::Integer(_) => Type::Int32,
-                Literal::Long(_) => Type::Int64,
-                Literal::Double(_) => Type::Double,
-                Literal::Boolean(_) => Type::Boolean,
-                Literal::Null => Type::Null,
-            },
-            Expression::Binary(binary) => match binary.op {
-                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div => {
-                    let left_type = expression_type(&binary.left);
-                    let right_type = expression_type(&binary.right);
+    fn generate_arbitrary_semantically_valid_select_clause() -> (SelectClause, Vec<String>) {
+        let set_quantifier = SetQuantifier::arbitrary(&mut Gen::new(0));
 
-                    if left_type == Type::Decimal128 || right_type == Type::Decimal128 {
-                        Type::Decimal128
-                    } else if left_type == Type::Double || right_type == Type::Double {
-                        Type::Double
-                    } else if left_type == Type::Int64 || right_type == Type::Int64 {
-                        Type::Int64
-                    } else {
-                        Type::Int32
-                    }
-                }
-                BinaryOp::And | BinaryOp::Or => Type::Boolean,
-                BinaryOp::Comparison(_) => Type::Boolean,
-                BinaryOp::In | BinaryOp::NotIn => Type::Boolean,
-                BinaryOp::Concat => Type::String,
-            },
-            Expression::Unary(unary) => match unary.op {
-                UnaryOp::Not => Type::Boolean,
-                UnaryOp::Neg | UnaryOp::Pos => expression_type(&unary.expr),
-            },
-            Expression::Cast(cast) => cast.to,
-            Expression::Between(_) => Type::Boolean,
-            // expression_type only returns one type but Case is polymorphic so this is actually
-            // inaccurate. We tolerate this for now.
-            Expression::Case(case) => case.else_branch.as_ref().map_or_else(
-                || {
-                    case.when_branch
-                        .first()
-                        .map_or(Type::Null, |wb| expression_type(&wb.then))
+        // 20% of the time, return a simple SELECT *
+        if usize::arbitrary(&mut Gen::new(0)) % 10 < 2 {
+            return (
+                SelectClause {
+                    set_quantifier,
+                    body: SelectBody::Standard(vec![SelectExpression::Star]),
                 },
-                |else_expr| expression_type(else_expr),
-            ),
-            Expression::Function(func) => match func.function {
-                // Aggregation functions
-                FunctionName::Sum
-                | FunctionName::Avg
-                | FunctionName::Min
-                | FunctionName::Max
-                | FunctionName::StddevPop
-                | FunctionName::StddevSamp => Type::Double,
-                FunctionName::Count => Type::Int64,
-                FunctionName::AddToSet | FunctionName::AddToArray => Type::Array,
-                FunctionName::MergeDocuments => Type::Document,
-                FunctionName::First | FunctionName::Last => Type::String, // Depends on the argument type
-
-                // String functions
-                FunctionName::Substring => Type::String,
-                FunctionName::Lower | FunctionName::Upper => Type::String,
-                FunctionName::LTrim | FunctionName::RTrim => Type::String,
-                FunctionName::Replace => Type::String,
-
-                // Date functions
-                FunctionName::DateAdd | FunctionName::DateTrunc => Type::Date,
-                FunctionName::CurrentTimestamp => Type::Date,
-                FunctionName::DateDiff => Type::Int64,
-                FunctionName::Year | FunctionName::Month | FunctionName::Week => Type::Int32,
-                FunctionName::DayOfWeek | FunctionName::DayOfMonth | FunctionName::DayOfYear => {
-                    Type::Int32
-                }
-                FunctionName::Hour
-                | FunctionName::Minute
-                | FunctionName::Second
-                | FunctionName::Millisecond => Type::Int32,
-
-                // Numeric functions
-                FunctionName::Abs
-                | FunctionName::Ceil
-                | FunctionName::Floor
-                | FunctionName::Round => Type::Double,
-                FunctionName::Log | FunctionName::Log10 | FunctionName::Sqrt => Type::Double,
-                FunctionName::Pow => Type::Double,
-                FunctionName::Mod => Type::Int32,
-                FunctionName::BitLength | FunctionName::OctetLength | FunctionName::CharLength => {
-                    Type::Int32
-                }
-                FunctionName::Degrees
-                | FunctionName::Radians
-                | FunctionName::Cos
-                | FunctionName::Sin
-                | FunctionName::Tan => Type::Double,
-                FunctionName::Position => Type::Int32,
-
-                // Other functions
-                FunctionName::Coalesce => Type::Null, // Depends on arguments
-                FunctionName::NullIf => Type::Null,   // Depends on arguments
-                FunctionName::Size => Type::Int32,
-                FunctionName::Slice => Type::Array,
-                FunctionName::Split => Type::String,
-            },
-            Expression::Array(_) => Type::Array,
-            Expression::Document(_) => Type::Document,
-            Expression::Access(access) => {
-                let parent_type = expression_type(&access.expr);
-                if parent_type == Type::Document {
-                    Type::String // Field access from a document, assuming String for simplicity
-                } else if parent_type == Type::Array {
-                    Type::Int32 // Array access assumes numeric index
-                } else {
-                    Type::String // Default case
-                }
-            }
-            Expression::Subquery(_) => Type::Array,
-            Expression::Exists(_) => Type::Boolean,
-            Expression::SubqueryComparison(_) => Type::Boolean,
-            Expression::Subpath(subpath) => field_type(&subpath.subpath),
-            Expression::Is(_) => Type::Boolean,
-            Expression::Like(_) => Type::Boolean,
-            Expression::StringConstructor(_) => Type::String,
-            Expression::Tuple(_) => Type::Array,
-            Expression::TypeAssertion(type_assertion) => type_assertion.target_type,
-            Expression::Trim(_) => Type::String,
-            Expression::DateFunction(_) => Type::Date,
-            Expression::Extract(_) => Type::Int32,
-        }
-    }
-
-    fn are_types_compatible(type1: Type, type2: Type) -> bool {
-        if type1 == type2 {
-            return true;
+                vec![],
+            );
         }
 
-        let is_type1_numeric = matches!(
-            type1,
-            Type::Int32 | Type::Int64 | Type::Double | Type::Decimal128
-        );
-        let is_type2_numeric = matches!(
-            type2,
-            Type::Int32 | Type::Int64 | Type::Double | Type::Decimal128
-        );
+        let num_exprs = 1 + usize::arbitrary(&mut Gen::new(0)) % 10;
 
-        if is_type1_numeric && is_type2_numeric {
-            return true;
-        }
+        let mut select_exprs = vec![];
+        let mut select_fields = vec![];
 
-        false
-    }
-
-    struct SemanticVisitor {
-        target_type: Option<Type>,
-        select_fields: Vec<String>,
-    }
-
-    impl SemanticVisitor {
-        fn visit_select_query(&mut self, node: SelectQuery) -> SelectQuery {
-            self.select_fields.clear();
-
-            let select_clause = self.visit_select_clause(node.select_clause);
-
-            match &select_clause.body {
-                SelectBody::Standard(exprs) => {
-                    for expr in exprs {
-                        match expr {
-                            SelectExpression::Expression(OptionallyAliasedExpr::Aliased(
-                                aliased,
-                            )) => {
-                                self.select_fields.push(aliased.alias.clone());
-                            }
-                            SelectExpression::Expression(OptionallyAliasedExpr::Unaliased(
-                                Expression::Identifier(ident),
-                            )) => {
-                                self.select_fields.push(ident.clone());
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-                SelectBody::Values(values) => {
-                    for value in values {
-                        if let SelectValuesExpression::Expression(Expression::Document(doc_pairs)) =
-                            &value
-                        {
-                            for pair in doc_pairs {
-                                self.select_fields.push(pair.key.clone());
-                            }
-                        }
-                    }
-                }
-            }
-
-            let from_clause = Some(Datasource::Collection(CollectionSource {
-                database: Some(TEST_DB.to_string()),
-                collection: ALL_TYPES_COLLECTION.to_string(),
-                alias: None,
-            }));
-
-            let old_target_type = self.target_type;
-            self.target_type = Some(Type::Boolean);
-            let where_clause = node.where_clause.map(|wc| self.visit_expression(wc));
-            self.target_type = old_target_type;
-
-            let group_by_clause = node.group_by_clause.map(|gbc| {
-                let keys = gbc
-                    .keys
-                    .into_iter()
-                    .map(|key| match key {
-                        OptionallyAliasedExpr::Unaliased(_) => {
-                            let field_name = if let Some(target_type) = self.target_type {
-                                get_field_for_type(target_type)
-                            } else {
-                                INT_FIELD.to_string()
-                            };
-                            OptionallyAliasedExpr::Unaliased(Expression::Identifier(field_name))
-                        }
-                        OptionallyAliasedExpr::Aliased(aliased) => {
-                            let field_name = if let Some(target_type) = self.target_type {
-                                get_field_for_type(target_type)
-                            } else {
-                                INT_FIELD.to_string()
-                            };
-                            OptionallyAliasedExpr::Aliased(AliasedExpr {
-                                expr: Expression::Identifier(field_name),
-                                alias: aliased.alias,
-                            })
-                        }
-                    })
-                    .collect();
-
-                GroupByClause {
-                    keys,
-                    aggregations: Vec::new(),
-                }
-            });
-
-            let old_target_type = self.target_type;
-            self.target_type = Some(Type::Boolean);
-            let having_clause = node.having_clause.map(|hc| self.visit_expression(hc));
-            self.target_type = old_target_type;
-
-            let order_by_clause = node.order_by_clause.map(|obc| obc.walk(self));
-
-            let limit = node.limit.map(|_| 10);
-            let offset = node.offset.map(|_| 0);
-
-            SelectQuery {
-                select_clause,
-                from_clause,
-                where_clause,
-                group_by_clause,
-                having_clause,
-                order_by_clause,
-                limit,
-                offset,
-            }
-        }
-
-        fn determine_child_target_type(&self, node: &Expression) -> Option<Type> {
-            match node {
-                Expression::Binary(binary) => match binary.op {
-                    BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div => {
-                        Some(Type::Double)
-                    }
-                    BinaryOp::And | BinaryOp::Or => Some(Type::Boolean),
-                    BinaryOp::Comparison(_) => None,
-                    BinaryOp::In | BinaryOp::NotIn => None,
-                    BinaryOp::Concat => Some(Type::String),
-                },
-                Expression::Unary(unary) => match unary.op {
-                    UnaryOp::Not => Some(Type::Boolean),
-                    UnaryOp::Neg | UnaryOp::Pos => Some(Type::Double),
-                },
-                Expression::Function(func) => {
-                    match func.function {
-                        // Aggregation functions
-                        FunctionName::Sum
-                        | FunctionName::Avg
-                        | FunctionName::Min
-                        | FunctionName::Max => Some(Type::Double),
-                        FunctionName::Count => None, // Count can take any type
-                        FunctionName::AddToSet | FunctionName::AddToArray => None, // Can add any type to arrays
-
-                        // String functions
-                        FunctionName::Substring | FunctionName::Lower | FunctionName::Upper => {
-                            Some(Type::String)
-                        }
-                        FunctionName::LTrim | FunctionName::RTrim => Some(Type::String),
-                        FunctionName::Replace => Some(Type::String),
-
-                        // Date functions
-                        FunctionName::DateAdd
-                        | FunctionName::DateDiff
-                        | FunctionName::DateTrunc => Some(Type::Date),
-                        FunctionName::CurrentTimestamp => Some(Type::Date),
-
-                        // Numeric functions
-                        FunctionName::Abs
-                        | FunctionName::Ceil
-                        | FunctionName::Floor
-                        | FunctionName::Round => Some(Type::Double),
-                        FunctionName::Log | FunctionName::Log10 | FunctionName::Sqrt => {
-                            Some(Type::Double)
-                        }
-                        FunctionName::Pow => Some(Type::Double),
-
-                        // Other functions
-                        FunctionName::Coalesce | FunctionName::NullIf => None,
-                        FunctionName::Size => None,
-
-                        _ => None, // Default for other functions
-                    }
-                }
-                Expression::Case(_case) => Some(Type::Boolean),
-                Expression::Between(_) => None,
-                Expression::Is(_) | Expression::Like(_) | Expression::Exists(_) => None,
-                Expression::Array(_) => None,
-                Expression::Document(_) => None,
-                Expression::Access(_) => None,
-                Expression::Subquery(_) => None,
-                Expression::SubqueryComparison(_) => None,
-                Expression::Subpath(_) => None,
-                Expression::StringConstructor(_) => None,
-                Expression::TypeAssertion(_) => None,
-                Expression::Trim(_) => None,
-                Expression::DateFunction(_) => None,
-                Expression::Extract(_) => None,
-                Expression::Identifier(_) => None,
-                Expression::Literal(_) => None,
-                Expression::Tuple(_) => None,
-                Expression::Cast(_) => None,
-            }
-        }
-    }
-
-    impl visitor::Visitor for SemanticVisitor {
-        fn visit_query(&mut self, node: Query) -> Query {
-            match node {
-                Query::Select(select_query) => Query::Select(self.visit_select_query(select_query)),
-                Query::Set(set_query) => {
-                    let old_target_type = self.target_type;
-                    self.target_type = None; // Clear target_type when walking set operations
-                    let walked = Query::Set(set_query.walk(self));
-                    self.target_type = old_target_type;
-                    walked
-                }
-                Query::With(with_query) => {
-                    let old_target_type = self.target_type;
-                    self.target_type = None; // Clear target_type when walking with queries
-                    let walked = Query::With(with_query.walk(self));
-                    self.target_type = old_target_type;
-                    walked
-                }
-            }
-        }
-
-        fn visit_expression(&mut self, node: Expression) -> Expression {
-            let mut expr = node.clone();
-            self.visit_expression_custom(&mut expr);
-            expr
-        }
-
-        fn visit_sort_key(&mut self, node: SortKey) -> SortKey {
-            if self.select_fields.is_empty() {
-                return SortKey::Simple(Expression::Identifier(INT_FIELD.to_string()));
-            }
-
-            let idx = usize::arbitrary(&mut Gen::new(0)) % self.select_fields.len();
-
-            match node {
-                SortKey::Positional(_) => SortKey::Positional(idx as u32 + 1),
-                SortKey::Simple(_) => {
-                    SortKey::Simple(Expression::Identifier(self.select_fields[idx].clone()))
-                }
-            }
-        }
-
-        fn visit_select_clause(&mut self, node: SelectClause) -> SelectClause {
-            let body = match node.body {
-                SelectBody::Standard(exprs) => {
-                    let mut has_substar = false;
-                    let mut new_exprs = Vec::new();
-                    let mut non_star_exprs = Vec::new();
-
-                    for expr in exprs {
-                        match expr {
-                            SelectExpression::Substar(_) => {
-                                if !has_substar {
-                                    has_substar = true;
-                                    new_exprs.push(SelectExpression::Substar(SubstarExpr {
-                                        datasource: ALL_TYPES_COLLECTION.to_string(),
-                                    }));
-                                }
-                            }
-                            SelectExpression::Star => {}
-                            SelectExpression::Expression(expr) => {
-                                if let OptionallyAliasedExpr::Unaliased(e) = expr {
-                                    let processed_expr = self.visit_expression(e);
-                                    non_star_exprs.push(SelectExpression::Expression(
-                                        OptionallyAliasedExpr::Unaliased(processed_expr),
-                                    ));
-                                } else if let OptionallyAliasedExpr::Aliased(aliased) = expr {
-                                    let processed_expr = self.visit_expression(aliased.expr);
-                                    non_star_exprs.push(SelectExpression::Expression(
-                                        OptionallyAliasedExpr::Aliased(AliasedExpr {
-                                            expr: processed_expr,
-                                            alias: aliased.alias.clone(),
-                                        }),
-                                    ));
-                                }
-                            }
-                        }
-                    }
-
-                    if (usize::arbitrary(&mut Gen::new(0)) % 10) < 2 {
-                        SelectBody::Standard(vec![SelectExpression::Star])
-                    } else if has_substar {
-                        new_exprs.extend(non_star_exprs);
-                        SelectBody::Standard(new_exprs)
-                    } else {
-                        SelectBody::Standard(non_star_exprs)
-                    }
-                }
-                SelectBody::Values(values) => {
-                    let mut has_substar = false;
-                    let mut new_values = Vec::new();
-                    let mut doc_exprs = Vec::new();
-
-                    for value in values {
-                        match value {
-                            SelectValuesExpression::Substar(_) => {
-                                if !has_substar {
-                                    has_substar = true;
-                                    new_values.push(SelectValuesExpression::Substar(SubstarExpr {
-                                        datasource: ALL_TYPES_COLLECTION.to_string(),
-                                    }));
-                                }
-                            }
-                            SelectValuesExpression::Expression(expr) => {
-                                let key = arbitrary_identifier(&mut quickcheck::Gen::new(0));
-                                doc_exprs.push(DocumentPair {
-                                    key,
-                                    value: self.visit_expression(expr),
-                                });
-                            }
-                        }
-                    }
-
-                    if !doc_exprs.is_empty() {
-                        new_values.push(SelectValuesExpression::Expression(Expression::Document(
-                            doc_exprs,
-                        )));
-                    }
-
-                    SelectBody::Values(new_values)
-                }
+        for _ in 0..num_exprs {
+            let expr = match usize::arbitrary(&mut Gen::new(0)) % 6 {
+                0 => make_numeric_expression(),
+                1 => make_boolean_expression(),
+                2 => make_string_expression(),
+                3 => make_array_expression(),
+                4 => make_date_expression(),
+                _ => make_object_expression(),
             };
 
+            let optionally_aliased_expr = if bool::arbitrary(&mut Gen::new(0)) {
+                if let Expression::Identifier(i) = expr.clone() {
+                    select_fields.push(i);
+                }
+                OptionallyAliasedExpr::Unaliased(expr)
+            } else {
+                let alias = arbitrary_identifier(&mut Gen::new(0));
+                select_fields.push(alias.clone());
+                OptionallyAliasedExpr::Aliased(AliasedExpr { expr, alias })
+            };
+
+            select_exprs.push(SelectExpression::Expression(optionally_aliased_expr));
+        }
+
+        (
             SelectClause {
-                set_quantifier: node.set_quantifier,
-                body,
-            }
+                set_quantifier,
+                body: SelectBody::Standard(select_exprs),
+            },
+            select_fields,
+        )
+    }
+
+    #[allow(dead_code)]
+    fn generate_arbitrary_semantically_valid_group_by_clause() -> GroupByClause {
+        // Skipping this for now since GROUP BY changes what fields are available in the SELECT
+        // clause, which is a bit too complicated for this skunkworks project.
+        todo!()
+    }
+
+    fn generate_arbitrary_semantically_valid_order_by_clause(
+        select_fields: Vec<String>,
+    ) -> OrderByClause {
+        let num_sort_specs = ((1 + usize::arbitrary(&mut Gen::new(0)) % select_fields.len()) as f64
+            / 2f64)
+            .ceil() as i32;
+
+        let mut sort_specs = vec![];
+        for _ in 0..num_sort_specs {
+            let idx = usize::arbitrary(&mut Gen::new(0)) % select_fields.len();
+            let key = if bool::arbitrary(&mut Gen::new(0)) {
+                SortKey::Positional(idx as u32)
+            } else {
+                SortKey::Simple(Expression::Identifier(select_fields[idx].clone()))
+            };
+            let direction = SortDirection::arbitrary(&mut Gen::new(0));
+
+            sort_specs.push(SortSpec { key, direction })
+        }
+
+        OrderByClause { sort_specs }
+    }
+
+    /// Return an arbitrary Option<T>, using the provided Fn to
+    /// construct the value if the chosen variant is Some. This
+    /// function is weighted to return Some 3 out of 4 times.
+    pub fn weighted_arbitrary_optional<T, F>(f: F) -> Option<T>
+    where
+        F: Fn() -> T,
+    {
+        match usize::arbitrary(&mut Gen::new(0)) % 4 {
+            0 => None,
+            _ => Some(f()),
         }
     }
 
-    impl SemanticVisitor {
-        fn visit_expression_custom(&mut self, node: &mut Expression) {
-            match node {
-                Expression::Tuple(_) => {
-                    if let Some(target_type) = self.target_type {
-                        *node = replace_invalid_expression(target_type);
-                    } else {
-                        *node = make_numeric_expression();
-                    }
-                    return;
-                }
-                Expression::Binary(bin) if matches!(bin.op, BinaryOp::In | BinaryOp::NotIn) => {
-                    if let Some(target_type) = self.target_type {
-                        *node = replace_invalid_expression(target_type);
-                    } else {
-                        *node = make_boolean_expression();
-                    }
-                    return;
-                }
-                Expression::Subpath(_) => {
-                    let idx = usize::arbitrary(&mut Gen::new(0)) % VALID_SUBPATHS.len();
-                    *node = Expression::Subpath(VALID_SUBPATHS[idx].clone());
-                    return;
-                }
-                Expression::Identifier(ident) => {
-                    if let Some(target_type) = self.target_type {
-                        *ident = get_field_for_type(target_type);
-                    }
-                    return;
-                }
-                // Handle aggregate functions
-                Expression::Function(func) => {
-                    // Check if this is an aggregate function
-                    let is_aggregate = matches!(
-                        func.function,
-                        FunctionName::AddToArray
-                            | FunctionName::AddToSet
-                            | FunctionName::Avg
-                            | FunctionName::Count
-                            | FunctionName::First
-                            | FunctionName::Last
-                            | FunctionName::Max
-                            | FunctionName::MergeDocuments
-                            | FunctionName::Min
-                            | FunctionName::StddevPop
-                            | FunctionName::StddevSamp
-                            | FunctionName::Sum
-                    );
+    #[derive(PartialEq, Debug, Clone)]
+    struct SemanticallyValidQuery {
+        query: Query,
+    }
 
-                    if is_aggregate {
-                        // Determine appropriate field type for the function
-                        let field_type = match func.function {
-                            FunctionName::Sum
-                            | FunctionName::Avg
-                            | FunctionName::Min
-                            | FunctionName::Max => Type::Double,
-                            FunctionName::Count => Type::Int32,
-                            FunctionName::AddToArray | FunctionName::AddToSet => Type::Array,
-                            FunctionName::First
-                            | FunctionName::Last
-                            | FunctionName::MergeDocuments => Type::String,
-                            FunctionName::StddevPop | FunctionName::StddevSamp => Type::Double,
-                            _ => Type::Int32,
-                        };
-
-                        func.args = FunctionArguments::Args(vec![Expression::Identifier(
-                            get_field_for_type(field_type),
-                        )]);
-                        return;
-                    }
-                }
-                _ => {}
-            }
-
-            if let Some(target_type) = self.target_type {
-                let node_type = expression_type(node);
-
-                if node_type != target_type && !are_types_compatible(node_type, target_type) {
-                    *node = replace_invalid_expression(target_type);
-                    return;
-                }
-            }
-
-            let child_target_type = self.determine_child_target_type(node);
-            let old_target_type = self.target_type;
-            self.target_type = child_target_type;
-
-            match node {
-                Expression::Binary(bin) => {
-                    self.visit_expression_custom(&mut bin.left);
-                    self.visit_expression_custom(&mut bin.right);
-                }
-                Expression::Unary(un) => {
-                    self.visit_expression_custom(&mut un.expr);
-                }
-                Expression::Function(func) => {
-                    if let FunctionArguments::Args(args) = &mut func.args {
-                        for arg in args {
-                            self.visit_expression_custom(arg);
-                        }
-                    }
-                }
-                Expression::Case(case) => {
-                    for branch in &mut case.when_branch {
-                        self.visit_expression_custom(&mut branch.when);
-                        self.visit_expression_custom(&mut branch.then);
-                    }
-                    if let Some(else_branch) = &mut case.else_branch {
-                        self.visit_expression_custom(else_branch);
-                    }
-                }
-                Expression::Array(array) => {
-                    for elem in array {
-                        self.visit_expression_custom(elem);
-                    }
-                }
-                Expression::Document(doc) => {
-                    for pair in doc {
-                        self.visit_expression_custom(&mut pair.value);
-                    }
-                }
-                Expression::Access(access) => {
-                    self.visit_expression_custom(&mut access.expr);
-                }
-                Expression::Subquery(_) => {}
-                Expression::Exists(_) => {}
-                Expression::SubqueryComparison(_) => {}
-                Expression::Subpath(subpath) => {
-                    self.visit_expression_custom(&mut subpath.expr);
-                }
-                Expression::Is(is_expr) => {
-                    self.visit_expression_custom(&mut is_expr.expr);
-                }
-                Expression::Like(like) => {
-                    self.visit_expression_custom(&mut like.expr);
-                    self.visit_expression_custom(&mut like.pattern);
-                }
-                Expression::StringConstructor(_) => {}
-                Expression::TypeAssertion(type_assertion) => {
-                    self.visit_expression_custom(&mut type_assertion.expr);
-                }
-                Expression::Between(between) => {
-                    self.visit_expression_custom(&mut between.arg);
-                    self.visit_expression_custom(&mut between.min);
-                    self.visit_expression_custom(&mut between.max);
-                }
-                Expression::Trim(trim) => {
-                    self.visit_expression_custom(&mut trim.arg);
-                }
-                Expression::DateFunction(_) => {}
-                Expression::Extract(extract) => {
-                    self.visit_expression_custom(&mut extract.arg);
-                }
-                Expression::Identifier(_) | Expression::Literal(_) => {}
-                Expression::Cast(cast) => {
-                    self.visit_expression_custom(&mut cast.expr);
-                }
-                Expression::Tuple(_) => {}
-            }
-
-            self.target_type = old_target_type;
+    impl Arbitrary for SemanticallyValidQuery {
+        fn arbitrary(_g: &mut Gen) -> Self {
+            let query = generate_arbitrary_semantically_valid_query();
+            SemanticallyValidQuery { query }
         }
     }
 
     #[test]
     fn prop_semantic_queries_translate() {
-        fn property(mut query: Query) -> TestResult {
-            // Replace With queries for now
-            if matches!(query, Query::With(_)) {
-                query = Query::Select(SelectQuery::arbitrary(&mut Gen::new(0)));
-            }
-
-            let mut v = SemanticVisitor {
-                target_type: None,
-                select_fields: Vec::new(),
-            };
-            query = v.visit_query(query);
-
-            let sql = match query.pretty_print() {
+        fn property(query: SemanticallyValidQuery) -> TestResult {
+            let sql = match query.query.pretty_print() {
                 Err(_) => return TestResult::discard(),
                 Ok(sql) => sql,
             };
@@ -1002,35 +613,7 @@ mod tests {
 
         quickcheck::QuickCheck::new()
             .gen(Gen::new(0))
-            .quickcheck(property as fn(Query) -> TestResult);
-    }
-
-    lazy_static! {
-        static ref VALID_SUBPATHS: Vec<SubpathExpr> = vec![
-            SubpathExpr {
-                expr: Box::new(Expression::Identifier(NESTED_OBJECT_FIELD.to_string())),
-                subpath: NESTED_INT.to_string(),
-            },
-            SubpathExpr {
-                expr: Box::new(Expression::Identifier(NESTED_OBJECT_FIELD.to_string())),
-                subpath: NESTED_STRING.to_string(),
-            },
-            SubpathExpr {
-                expr: Box::new(Expression::Subpath(SubpathExpr {
-                    expr: Box::new(Expression::Identifier(NESTED_OBJECT_FIELD.to_string())),
-                    subpath: NESTED_OBJECT.to_string(),
-                })),
-                subpath: DEEPLY_NESTED.to_string(),
-            },
-            SubpathExpr {
-                expr: Box::new(Expression::Identifier(OBJECT_FIELD.to_string())),
-                subpath: NESTED_FIELD.to_string(),
-            },
-        ];
-        static ref MONGODB_URI: String = format!(
-            "mongodb://localhost:{}",
-            std::env::var("MDB_TEST_LOCAL_PORT").unwrap_or_else(|_| "27017".to_string())
-        );
+            .quickcheck(property as fn(SemanticallyValidQuery) -> TestResult);
     }
 
     fn get_mongodb_client() -> Option<Client> {
@@ -1039,24 +622,13 @@ mod tests {
 
     #[test]
     fn prop_aggregation_pipelines_run() {
-        fn property(mut query: Query) -> TestResult {
-            // Replace With queries for now
-            if matches!(query, Query::With(_)) {
-                query = Query::Select(SelectQuery::arbitrary(&mut Gen::new(0)));
-            }
-
-            let mut v = SemanticVisitor {
-                target_type: None,
-                select_fields: Vec::new(),
-            };
-            query = v.visit_query(query);
-
+        fn property(query: SemanticallyValidQuery) -> TestResult {
             let client = match get_mongodb_client() {
                 Some(client) => client,
                 None => return TestResult::discard(), // Skip if no MongoDB connection
             };
 
-            let sql = match query.pretty_print() {
+            let sql = match query.query.pretty_print() {
                 Err(_) => return TestResult::discard(),
                 Ok(sql) => sql,
             };
@@ -1103,7 +675,7 @@ mod tests {
 
         quickcheck::QuickCheck::new()
             .gen(Gen::new(0))
-            .quickcheck(property as fn(Query) -> TestResult);
+            .quickcheck(property as fn(SemanticallyValidQuery) -> TestResult);
     }
 
     lazy_static! {
