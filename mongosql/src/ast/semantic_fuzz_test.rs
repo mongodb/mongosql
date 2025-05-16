@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use crate::ast::pretty_print_fuzz_test::arbitrary::{arbitrary_identifier, arbitrary_string};
     use crate::{
         ast::{definitions::visitor::Visitor, definitions::*, pretty_print::PrettyPrint},
         build_catalog_from_catalog_schema,
@@ -20,23 +21,21 @@ mod tests {
     const LONG_FIELD: &str = "long_field"; // Int64
     const DOUBLE_FIELD: &str = "double_field"; // Double
     const DECIMAL_FIELD: &str = "decimal_field"; // Decimal128
-    const NEGATIVE_INT_FIELD: &str = "neg_int_field"; // Int32 (negative)
-    const ZERO_INT_FIELD: &str = "zero_int_field"; // Int32 (zero)
 
     const STRING_FIELD: &str = "string_field"; // String
-    const EMPTY_STRING_FIELD: &str = "empty_string_field"; // String (empty)
-    const DESCRIPTION_FIELD: &str = "description"; // String
 
     const BOOL_FIELD: &str = "bool_field"; // Boolean
-    const TRUE_FIELD: &str = "true_field"; // Boolean (true)
-    const FALSE_FIELD: &str = "false_field"; // Boolean (false)
 
     const DATE_FIELD: &str = "date_field"; // Date
     const TIMESTAMP_FIELD: &str = "timestamp_field"; // Timestamp
-    const TIME_FIELD: &str = "time_field"; // Time
 
     const OBJECT_FIELD: &str = "object_field"; // Document
+    const NESTED_FIELD: &str = "nested_field"; // Nested string field
     const NESTED_OBJECT_FIELD: &str = "nested_object_field"; // Document with nested fields
+    const NESTED_INT: &str = "nested_int"; // Nested int
+    const NESTED_STRING: &str = "nested_string"; // Nested string
+    const NESTED_OBJECT: &str = "nested_object"; // Nested object
+    const DEEPLY_NESTED: &str = "deeply_nested"; // Deeply nested int field
     const ARRAY_FIELD: &str = "array_field"; // Array of Int32
     const STRING_ARRAY_FIELD: &str = "string_array_field"; // Array of String
     const MIXED_ARRAY_FIELD: &str = "mixed_array_field"; // Array of mixed types
@@ -44,31 +43,29 @@ mod tests {
     const NULL_FIELD: &str = "null_field"; // Null
     const OBJECTID_FIELD: &str = "objectid_field"; // ObjectId
     const ID_FIELD: &str = "id"; // Int32 (for related_data)
-    const ALL_TYPES_ID_FIELD: &str = "all_types_id"; // Int32 (foreign key)
 
     fn field_type(field_name: &str) -> Type {
         match field_name {
-            INT_FIELD | NEGATIVE_INT_FIELD | ZERO_INT_FIELD => Type::Int32,
+            INT_FIELD | NESTED_INT | DEEPLY_NESTED => Type::Int32,
             LONG_FIELD => Type::Int64,
             DOUBLE_FIELD => Type::Double,
             DECIMAL_FIELD => Type::Decimal128,
 
-            STRING_FIELD | EMPTY_STRING_FIELD | DESCRIPTION_FIELD => Type::String,
+            STRING_FIELD | NESTED_STRING => Type::String,
 
-            BOOL_FIELD | TRUE_FIELD | FALSE_FIELD => Type::Boolean,
+            BOOL_FIELD => Type::Boolean,
 
             DATE_FIELD => Type::Date,
             TIMESTAMP_FIELD => Type::Timestamp,
-            TIME_FIELD => Type::Time,
 
-            OBJECT_FIELD | NESTED_OBJECT_FIELD => Type::Document,
+            OBJECT_FIELD | NESTED_OBJECT_FIELD | NESTED_OBJECT => Type::Document,
             ARRAY_FIELD | STRING_ARRAY_FIELD | MIXED_ARRAY_FIELD => Type::Array,
 
             NULL_FIELD => Type::Null,
             OBJECTID_FIELD => Type::ObjectId,
-            ID_FIELD | ALL_TYPES_ID_FIELD => Type::Int32,
+            ID_FIELD => Type::Int32,
 
-            _ => Type::String,
+            _ => Type::Null,
         }
     }
 
@@ -84,7 +81,8 @@ mod tests {
             Type::Timestamp => TIMESTAMP_FIELD.to_string(),
             Type::Document => OBJECT_FIELD.to_string(),
             Type::Array => ARRAY_FIELD.to_string(),
-            _ => INT_FIELD.to_string(), // Default to int for other types
+            Type::ObjectId => OBJECTID_FIELD.to_string(),
+            _ => NULL_FIELD.to_string(), // Default to null for other types
         }
     }
 
@@ -96,7 +94,7 @@ mod tests {
             }
             Type::String => make_string_expression(),
             Type::Array => make_array_expression(),
-            Type::Date | Type::Datetime | Type::Timestamp => make_date_expression(),
+            Type::Date | Type::Datetime => make_date_expression(),
             Type::Document => make_object_expression(),
             _ => Expression::Identifier(INT_FIELD.to_string()), // Default for other types
         }
@@ -104,16 +102,28 @@ mod tests {
 
     // Generate a numeric expression (Int32, Int64, Double, Decimal128)
     fn make_numeric_expression() -> Expression {
-        match usize::arbitrary(&mut Gen::new(0)) % 9 {
+        match usize::arbitrary(&mut Gen::new(0)) % 12 {
             0 => Expression::Identifier(INT_FIELD.to_string()),
             1 => Expression::Identifier(LONG_FIELD.to_string()),
             2 => Expression::Identifier(DOUBLE_FIELD.to_string()),
             3 => Expression::Identifier(DECIMAL_FIELD.to_string()),
-            4 => Expression::Literal(Literal::Integer(42)),
-            5 => Expression::Literal(Literal::Integer(-10)),
-            6 => Expression::Literal(Literal::Long(1000000)),
-            7 => Expression::Literal(Literal::Double(std::f64::consts::PI)),
-            _ => {
+            4 => Expression::Literal(Literal::Integer(i32::arbitrary(&mut Gen::new(0)))),
+            5 => Expression::Literal(Literal::Integer(-(u16::arbitrary(&mut Gen::new(0)) as i32))),
+            6 => Expression::Literal(Literal::Long(i64::arbitrary(&mut Gen::new(0)))),
+            7 => Expression::Literal(Literal::Double(f64::arbitrary(&mut Gen::new(0)))),
+            8 => {
+                let arg = make_numeric_expression();
+                let op = if bool::arbitrary(&mut Gen::new(0)) {
+                    UnaryOp::Pos
+                } else {
+                    UnaryOp::Neg
+                };
+                Expression::Unary(UnaryExpr {
+                    op,
+                    expr: Box::new(arg),
+                })
+            }
+            9 => {
                 let left = make_numeric_expression();
                 let right = make_numeric_expression();
                 let op = match usize::arbitrary(&mut Gen::new(0)) % 4 {
@@ -128,17 +138,41 @@ mod tests {
                     right: Box::new(right),
                 })
             }
+            10 => {
+                let arg = make_numeric_expression();
+                Expression::Function(FunctionExpr {
+                    function: match usize::arbitrary(&mut Gen::new(0)) % 6 {
+                        0 => FunctionName::Abs,
+                        1 => FunctionName::Ceil,
+                        2 => FunctionName::Floor,
+                        3 => FunctionName::Round,
+                        4 => FunctionName::Sqrt,
+                        _ => FunctionName::Log10,
+                    },
+                    args: FunctionArguments::Args(vec![arg]),
+                    set_quantifier: None,
+                })
+            }
+            _ => Expression::Extract(ExtractExpr {
+                extract_spec: match usize::arbitrary(&mut Gen::new(0)) % 5 {
+                    0 => DatePart::Year,
+                    1 => DatePart::Month,
+                    2 => DatePart::Week,
+                    3 => DatePart::Day,
+                    4 => DatePart::Hour,
+                    _ => DatePart::Minute,
+                },
+                arg: Box::new(Expression::Identifier(DATE_FIELD.to_string())),
+            }),
         }
     }
 
     fn make_boolean_expression() -> Expression {
-        match usize::arbitrary(&mut Gen::new(0)) % 7 {
-            0 => Expression::Identifier(BOOL_FIELD.to_string()),
-            1 => Expression::Identifier(TRUE_FIELD.to_string()),
-            2 => Expression::Identifier(FALSE_FIELD.to_string()),
-            3 => Expression::Literal(Literal::Boolean(bool::arbitrary(&mut Gen::new(0)))),
-            4 => make_comparison_expression(),
-            5 => {
+        match usize::arbitrary(&mut Gen::new(0)) % 10 {
+            0..=4 => Expression::Identifier(BOOL_FIELD.to_string()),
+            5 | 6 => Expression::Literal(Literal::Boolean(bool::arbitrary(&mut Gen::new(0)))),
+            7 => make_comparison_expression(),
+            8 => {
                 let left = make_boolean_expression();
                 let right = make_boolean_expression();
                 let op = if bool::arbitrary(&mut Gen::new(0)) {
@@ -164,9 +198,7 @@ mod tests {
 
     fn make_string_expression() -> Expression {
         match usize::arbitrary(&mut Gen::new(0)) % 5 {
-            0 => Expression::Identifier(STRING_FIELD.to_string()),
-            1 => Expression::Identifier(EMPTY_STRING_FIELD.to_string()),
-            2 => Expression::Identifier(DESCRIPTION_FIELD.to_string()),
+            0..=2 => Expression::Identifier(STRING_FIELD.to_string()),
             3 => {
                 // String concatenation
                 let left = make_string_expression();
@@ -179,7 +211,7 @@ mod tests {
             }
             _ => {
                 // String constructor - simplified to use String directly
-                Expression::StringConstructor(format!("Hello {}!", STRING_FIELD))
+                Expression::StringConstructor(arbitrary_string(&mut Gen::new(0)))
             }
         }
     }
@@ -214,35 +246,26 @@ mod tests {
 
     fn make_date_expression() -> Expression {
         match usize::arbitrary(&mut Gen::new(0)) % 5 {
-            0 => Expression::Identifier(DATE_FIELD.to_string()),
-            1 => Expression::Identifier(TIMESTAMP_FIELD.to_string()),
-            2 => Expression::Identifier(TIME_FIELD.to_string()),
+            0..=2 => Expression::Identifier(DATE_FIELD.to_string()),
             3 => {
-                // Date function
+                // DATEADD function
                 Expression::DateFunction(DateFunctionExpr {
-                    function: match usize::arbitrary(&mut Gen::new(0)) % 3 {
-                        0 => DateFunctionName::Add,
-                        1 => DateFunctionName::Diff,
-                        _ => DateFunctionName::Trunc,
-                    },
+                    function: DateFunctionName::Add,
                     date_part: DatePart::Day,
                     args: vec![
-                        Expression::Identifier(DATE_FIELD.to_string()),
                         Expression::Literal(Literal::Integer(1)),
+                        Expression::Identifier(DATE_FIELD.to_string()),
                     ],
                 })
             }
-            _ => Expression::Extract(ExtractExpr {
-                extract_spec: match usize::arbitrary(&mut Gen::new(0)) % 5 {
-                    0 => DatePart::Year,
-                    1 => DatePart::Month,
-                    2 => DatePart::Week,
-                    3 => DatePart::Day,
-                    4 => DatePart::Hour,
-                    _ => DatePart::Minute,
-                },
-                arg: Box::new(Expression::Identifier(DATE_FIELD.to_string())),
-            }),
+            _ => {
+                // DATETRUNC function
+                Expression::DateFunction(DateFunctionExpr {
+                    function: DateFunctionName::Trunc,
+                    date_part: DatePart::Year,
+                    args: vec![Expression::Identifier(DATE_FIELD.to_string())],
+                })
+            }
         }
     }
 
@@ -295,8 +318,11 @@ mod tests {
     }
 
     fn make_comparison_expression() -> Expression {
-        let left = make_numeric_expression();
-        let right = make_numeric_expression();
+        let (left, right) = match usize::arbitrary(&mut Gen::new(0)) % 3 {
+            0 => (make_numeric_expression(), make_numeric_expression()),
+            1 => (make_string_expression(), make_string_expression()),
+            _ => (make_boolean_expression(), make_boolean_expression()),
+        };
 
         let comp_op = match usize::arbitrary(&mut Gen::new(0)) % 6 {
             0 => ComparisonOp::Eq,
@@ -350,6 +376,8 @@ mod tests {
             },
             Expression::Cast(cast) => cast.to,
             Expression::Between(_) => Type::Boolean,
+            // expression_type only returns one type but Case is polymorphic so this is actually
+            // inaccurate. We tolerate this for now.
             Expression::Case(case) => case.else_branch.as_ref().map_or_else(
                 || {
                     case.when_branch
@@ -360,11 +388,15 @@ mod tests {
             ),
             Expression::Function(func) => match func.function {
                 // Aggregation functions
-                FunctionName::Sum | FunctionName::Avg | FunctionName::Min | FunctionName::Max => {
-                    Type::Double
-                }
+                FunctionName::Sum
+                | FunctionName::Avg
+                | FunctionName::Min
+                | FunctionName::Max
+                | FunctionName::StddevPop
+                | FunctionName::StddevSamp => Type::Double,
                 FunctionName::Count => Type::Int64,
                 FunctionName::AddToSet | FunctionName::AddToArray => Type::Array,
+                FunctionName::MergeDocuments => Type::Document,
                 FunctionName::First | FunctionName::Last => Type::String, // Depends on the argument type
 
                 // String functions
@@ -374,10 +406,9 @@ mod tests {
                 FunctionName::Replace => Type::String,
 
                 // Date functions
-                FunctionName::DateAdd | FunctionName::DateDiff | FunctionName::DateTrunc => {
-                    Type::Date
-                }
+                FunctionName::DateAdd | FunctionName::DateTrunc => Type::Date,
                 FunctionName::CurrentTimestamp => Type::Date,
+                FunctionName::DateDiff => Type::Int64,
                 FunctionName::Year | FunctionName::Month | FunctionName::Week => Type::Int32,
                 FunctionName::DayOfWeek | FunctionName::DayOfMonth | FunctionName::DayOfYear => {
                     Type::Int32
@@ -395,13 +426,22 @@ mod tests {
                 FunctionName::Log | FunctionName::Log10 | FunctionName::Sqrt => Type::Double,
                 FunctionName::Pow => Type::Double,
                 FunctionName::Mod => Type::Int32,
+                FunctionName::BitLength | FunctionName::OctetLength | FunctionName::CharLength => {
+                    Type::Int32
+                }
+                FunctionName::Degrees
+                | FunctionName::Radians
+                | FunctionName::Cos
+                | FunctionName::Sin
+                | FunctionName::Tan => Type::Double,
+                FunctionName::Position => Type::Int32,
 
                 // Other functions
-                FunctionName::Coalesce => Type::String, // Depends on arguments
-                FunctionName::NullIf => Type::String,   // Depends on arguments
+                FunctionName::Coalesce => Type::Null, // Depends on arguments
+                FunctionName::NullIf => Type::Null,   // Depends on arguments
                 FunctionName::Size => Type::Int32,
-
-                _ => Type::String, // Default for other functions
+                FunctionName::Slice => Type::Array,
+                FunctionName::Split => Type::String,
             },
             Expression::Array(_) => Type::Array,
             Expression::Document(_) => Type::Document,
@@ -418,7 +458,7 @@ mod tests {
             Expression::Subquery(_) => Type::Array,
             Expression::Exists(_) => Type::Boolean,
             Expression::SubqueryComparison(_) => Type::Boolean,
-            Expression::Subpath(_) => Type::String,
+            Expression::Subpath(subpath) => field_type(&subpath.subpath),
             Expression::Is(_) => Type::Boolean,
             Expression::Like(_) => Type::Boolean,
             Expression::StringConstructor(_) => Type::String,
@@ -740,7 +780,7 @@ mod tests {
                                 }
                             }
                             SelectValuesExpression::Expression(expr) => {
-                                let key = crate::ast::pretty_print_fuzz_test::arbitrary::arbitrary_identifier(&mut quickcheck::Gen::new(0));
+                                let key = arbitrary_identifier(&mut quickcheck::Gen::new(0));
                                 doc_exprs.push(DocumentPair {
                                     key,
                                     value: self.visit_expression(expr),
@@ -933,6 +973,7 @@ mod tests {
     #[test]
     fn prop_semantic_queries_translate() {
         fn property(mut query: Query) -> TestResult {
+            // Replace With queries for now
             if matches!(query, Query::With(_)) {
                 query = Query::Select(SelectQuery::arbitrary(&mut Gen::new(0)));
             }
@@ -968,22 +1009,22 @@ mod tests {
         static ref VALID_SUBPATHS: Vec<SubpathExpr> = vec![
             SubpathExpr {
                 expr: Box::new(Expression::Identifier(NESTED_OBJECT_FIELD.to_string())),
-                subpath: "nested_int".to_string(),
+                subpath: NESTED_INT.to_string(),
             },
             SubpathExpr {
                 expr: Box::new(Expression::Identifier(NESTED_OBJECT_FIELD.to_string())),
-                subpath: "nested_string".to_string(),
+                subpath: NESTED_STRING.to_string(),
             },
             SubpathExpr {
                 expr: Box::new(Expression::Subpath(SubpathExpr {
                     expr: Box::new(Expression::Identifier(NESTED_OBJECT_FIELD.to_string())),
-                    subpath: "nested_object".to_string(),
+                    subpath: NESTED_OBJECT.to_string(),
                 })),
-                subpath: "deeply_nested".to_string(),
+                subpath: DEEPLY_NESTED.to_string(),
             },
             SubpathExpr {
                 expr: Box::new(Expression::Identifier(OBJECT_FIELD.to_string())),
-                subpath: "nested_field".to_string(),
+                subpath: NESTED_FIELD.to_string(),
             },
         ];
         static ref MONGODB_URI: String = format!(
@@ -998,16 +1039,8 @@ mod tests {
 
     #[test]
     fn prop_aggregation_pipelines_run() {
-        // Skip test if MongoDB connection fails
-        let _client = match get_mongodb_client() {
-            Some(client) => client,
-            None => {
-                println!("Skipping test: MongoDB connection failed");
-                return;
-            }
-        };
-
         fn property(mut query: Query) -> TestResult {
+            // Replace With queries for now
             if matches!(query, Query::With(_)) {
                 query = Query::Select(SelectQuery::arbitrary(&mut Gen::new(0)));
             }
@@ -1092,13 +1125,9 @@ mod tests {
                         "neg_int_field": { "bsonType": "int" },
                         "zero_int_field": { "bsonType": "int" },
                         "string_field": { "bsonType": "string" },
-                        "empty_string_field": { "bsonType": "string" },
                         "bool_field": { "bsonType": "bool" },
-                        "true_field": { "bsonType": "bool" },
-                        "false_field": { "bsonType": "bool" },
                         "date_field": { "bsonType": "date" },
                         "timestamp_field": { "bsonType": "timestamp" },
-                        "time_field": { "bsonType": "timestamp" },
                         "object_field": {
                             "bsonType": "object",
                             "properties": {
@@ -1128,6 +1157,12 @@ mod tests {
                         },
                         "mixed_array_field": {
                             "bsonType": "array"
+                            "items": {
+                                "anyOf": [
+                                    { "bsonType": "string" },
+                                    { "bsonType": "int" }
+                                ]
+                            }
                         },
                         "null_field": { "bsonType": "null" },
                         "objectid_field": { "bsonType": "objectId" }
