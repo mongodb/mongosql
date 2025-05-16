@@ -15,12 +15,6 @@ mod tests {
 
     const TEST_DB: &str = "test_db";
     const ALL_TYPES_COLLECTION: &str = "all_types";
-    #[allow(dead_code)]
-    const RELATED_DATA_COLLECTION: &str = "related_data";
-    #[allow(dead_code)]
-    const NUMERIC_COLLECTION: &str = "numeric_data";
-    #[allow(dead_code)]
-    const ARRAY_COLLECTION: &str = "array_data";
 
     const INT_FIELD: &str = "int_field"; // Int32
     const LONG_FIELD: &str = "long_field"; // Int64
@@ -1137,80 +1131,6 @@ mod tests {
                         },
                         "null_field": { "bsonType": "null" },
                         "objectid_field": { "bsonType": "objectId" }
-                    },
-                    "additionalProperties": false
-                }"#,
-                )
-                .unwrap(),
-            );
-
-            db_schema.insert(
-                "related_data".to_string(),
-                serde_json::from_str(
-                    r#"{
-                    "bsonType": "object",
-                    "properties": {
-                        "id": { "bsonType": "int" },
-                        "all_types_id": { "bsonType": "int" },
-                        "description": { "bsonType": "string" }
-                    },
-                    "additionalProperties": false
-                }"#,
-                )
-                .unwrap(),
-            );
-
-            db_schema.insert(
-                "numeric_data".to_string(),
-                serde_json::from_str(
-                    r#"{
-                    "bsonType": "object",
-                    "properties": {
-                        "id": { "bsonType": "int" },
-                        "int_value": { "bsonType": "int" },
-                        "long_value": { "bsonType": "long" },
-                        "double_value": { "bsonType": "double" },
-                        "decimal_value": { "bsonType": "decimal" },
-                        "calculated_field": { "bsonType": "double" }
-                    },
-                    "additionalProperties": false
-                }"#,
-                )
-                .unwrap(),
-            );
-
-            db_schema.insert(
-                "array_data".to_string(),
-                serde_json::from_str(
-                    r#"{
-                    "bsonType": "object",
-                    "properties": {
-                        "id": { "bsonType": "int" },
-                        "int_array": {
-                            "bsonType": "array",
-                            "items": { "bsonType": "int" }
-                        },
-                        "string_array": {
-                            "bsonType": "array",
-                            "items": { "bsonType": "string" }
-                        },
-                        "object_array": {
-                            "bsonType": "array",
-                            "items": {
-                                "bsonType": "object",
-                                "properties": {
-                                    "key": { "bsonType": "string" },
-                                    "value": { "bsonType": "int" }
-                                }
-                            }
-                        },
-                        "nested_array": {
-                            "bsonType": "array",
-                            "items": {
-                                "bsonType": "array",
-                                "items": { "bsonType": "int" }
-                            }
-                        }
                     },
                     "additionalProperties": false
                 }"#,
