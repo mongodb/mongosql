@@ -680,6 +680,60 @@ mod tests {
                 _ => node.walk(self),
             }
         }
+
+        fn visit_select_clause(&mut self, node: SelectClause) -> SelectClause {
+            let body = match node.body {
+                SelectBody::Standard(exprs) => {
+                    let mut has_substar = false;
+                    let mut new_exprs = Vec::new();
+
+                    for expr in exprs {
+                        match expr {
+                            SelectExpression::Substar(_) => {
+                                if !has_substar {
+                                    has_substar = true;
+                                    new_exprs.push(SelectExpression::Substar(SubstarExpr {
+                                        datasource: ALL_TYPES_COLLECTION.to_string(),
+                                    }));
+                                }
+                            }
+                            _ => {
+                                new_exprs.push(expr.walk(self));
+                            }
+                        }
+                    }
+
+                    SelectBody::Standard(new_exprs)
+                }
+                SelectBody::Values(values) => {
+                    let mut has_substar = false;
+                    let mut new_values = Vec::new();
+
+                    for value in values {
+                        match value {
+                            SelectValuesExpression::Substar(_) => {
+                                if !has_substar {
+                                    has_substar = true;
+                                    new_values.push(SelectValuesExpression::Substar(SubstarExpr {
+                                        datasource: ALL_TYPES_COLLECTION.to_string(),
+                                    }));
+                                }
+                            }
+                            _ => {
+                                new_values.push(value.walk(self));
+                            }
+                        }
+                    }
+
+                    SelectBody::Values(new_values)
+                }
+            };
+
+            SelectClause {
+                set_quantifier: node.set_quantifier,
+                body,
+            }
+        }
     }
 
     impl SemanticVisitor {
