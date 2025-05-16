@@ -668,16 +668,17 @@ mod tests {
         }
 
         fn visit_sort_key(&mut self, node: SortKey) -> SortKey {
+            if self.select_fields.is_empty() {
+                return SortKey::Simple(Expression::Identifier(INT_FIELD.to_string()));
+            }
+
+            let idx = usize::arbitrary(&mut Gen::new(0)) % self.select_fields.len();
+
             match node {
-                SortKey::Positional(_) => {
-                    if !self.select_fields.is_empty() {
-                        let idx = usize::arbitrary(&mut Gen::new(0)) % self.select_fields.len();
-                        SortKey::Simple(Expression::Identifier(self.select_fields[idx].clone()))
-                    } else {
-                        SortKey::Simple(Expression::Identifier(INT_FIELD.to_string()))
-                    }
+                SortKey::Positional(_) => SortKey::Positional(idx as u32 + 1),
+                SortKey::Simple(_) => {
+                    SortKey::Simple(Expression::Identifier(self.select_fields[idx].clone()))
                 }
-                _ => node.walk(self),
             }
         }
 
