@@ -509,8 +509,10 @@ mod tests {
             self.target_type = old_target_type;
 
             let group_by_clause = node.group_by_clause.map(|gbc| {
-                let keys = gbc.keys.into_iter().map(|key| {
-                    match key {
+                let keys = gbc
+                    .keys
+                    .into_iter()
+                    .map(|key| match key {
                         OptionallyAliasedExpr::Unaliased(expr) => {
                             let field_name = if let Some(target_type) = self.target_type {
                                 get_field_for_type(target_type)
@@ -518,7 +520,7 @@ mod tests {
                                 INT_FIELD.to_string()
                             };
                             OptionallyAliasedExpr::Unaliased(Expression::Identifier(field_name))
-                        },
+                        }
                         OptionallyAliasedExpr::Aliased(aliased) => {
                             let field_name = if let Some(target_type) = self.target_type {
                                 get_field_for_type(target_type)
@@ -530,9 +532,9 @@ mod tests {
                                 alias: aliased.alias,
                             })
                         }
-                    }
-                }).collect();
-                
+                    })
+                    .collect();
+
                 GroupByClause {
                     keys,
                     aggregations: Vec::new(),
@@ -678,8 +680,6 @@ mod tests {
                 _ => node.walk(self),
             }
         }
-
-
     }
 
     impl SemanticVisitor {
