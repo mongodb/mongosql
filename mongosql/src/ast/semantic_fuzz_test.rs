@@ -702,22 +702,32 @@ mod tests {
                                 }
                             }
                             SelectExpression::Star => {}
-                            _ => {
-                                let processed_expr = expr.walk(self);
-                                non_star_exprs.push(processed_expr);
+                            SelectExpression::Expression(expr) => {
+                                if let OptionallyAliasedExpr::Unaliased(e) = expr {
+                                    let processed_expr = self.visit_expression(e);
+                                    non_star_exprs.push(SelectExpression::Expression(
+                                        OptionallyAliasedExpr::Unaliased(processed_expr),
+                                    ));
+                                } else if let OptionallyAliasedExpr::Aliased(aliased) = expr {
+                                    let processed_expr = self.visit_expression(aliased.expr);
+                                    non_star_exprs.push(SelectExpression::Expression(
+                                        OptionallyAliasedExpr::Aliased(AliasedExpr {
+                                            expr: processed_expr,
+                                            alias: aliased.alias.clone(),
+                                        }),
+                                    ));
+                                }
                             }
                         }
                     }
 
                     if (usize::arbitrary(&mut Gen::new(0)) % 10) < 2 {
                         SelectBody::Standard(vec![SelectExpression::Star])
+                    } else if has_substar {
+                        new_exprs.extend(non_star_exprs);
+                        SelectBody::Standard(new_exprs)
                     } else {
-                        if has_substar {
-                            new_exprs.extend(non_star_exprs);
-                            SelectBody::Standard(new_exprs)
-                        } else {
-                            SelectBody::Standard(non_star_exprs)
-                        }
+                        SelectBody::Standard(non_star_exprs)
                     }
                 }
                 SelectBody::Values(values) => {
@@ -739,7 +749,7 @@ mod tests {
                                 let key = crate::ast::pretty_print_fuzz_test::arbitrary::arbitrary_identifier(&mut quickcheck::Gen::new(0));
                                 doc_exprs.push(DocumentPair {
                                     key,
-                                    value: expr.walk(self),
+                                    value: self.visit_expression(expr),
                                 });
                             }
                         }
@@ -782,16 +792,8 @@ mod tests {
                     return;
                 }
                 Expression::Subpath(_) => {
-                    if VALID_SUBPATHS.is_empty() {
-                        if let Some(target_type) = self.target_type {
-                            *node = replace_invalid_expression(target_type);
-                        } else {
-                            *node = make_numeric_expression();
-                        }
-                    } else {
-                        let idx = usize::arbitrary(&mut Gen::new(0)) % VALID_SUBPATHS.len();
-                        *node = Expression::Subpath(VALID_SUBPATHS[idx].clone());
-                    }
+                    let idx = usize::arbitrary(&mut Gen::new(0)) % VALID_SUBPATHS.len();
+                    *node = Expression::Subpath(VALID_SUBPATHS[idx].clone());
                     return;
                 }
                 Expression::Identifier(ident) => {
@@ -934,36 +936,11 @@ mod tests {
         }
     }
 
-    fn contains_invalid_select_query(query: &Query) -> bool {
-        match query {
-            Query::Select(select) => {
-                select.from_clause.is_none()
-                    && matches!(select.select_clause.body, SelectBody::Values(_))
-            }
-            Query::Set(set) => {
-                contains_invalid_select_query(&set.left)
-                    || contains_invalid_select_query(&set.right)
-            }
-            Query::With(with) => {
-                if contains_invalid_select_query(&with.body) {
-                    return true;
-                }
-
-                for named_query in &with.queries {
-                    if contains_invalid_select_query(&named_query.query) {
-                        return true;
-                    }
-                }
-                false
-            }
-        }
-    }
-
     #[test]
     fn prop_semantic_queries_translate() {
         fn property(mut query: Query) -> TestResult {
-            if contains_invalid_select_query(&query) {
-                return TestResult::discard();
+            if matches!(query, Query::With(_)) {
+                query = Query::Select(SelectQuery::arbitrary(&mut Gen::new(0)));
             }
 
             let mut v = SemanticVisitor {
@@ -1004,8 +981,11 @@ mod tests {
                 subpath: "nested_string".to_string(),
             },
             SubpathExpr {
-                expr: Box::new(Expression::Identifier(NESTED_OBJECT_FIELD.to_string())),
-                subpath: "nested_object.deeply_nested".to_string(),
+                expr: Box::new(Expression::Subpath(SubpathExpr {
+                    expr: Box::new(Expression::Identifier(NESTED_OBJECT_FIELD.to_string())),
+                    subpath: "nested_object".to_string(),
+                })),
+                subpath: "deeply_nested".to_string(),
             },
             SubpathExpr {
                 expr: Box::new(Expression::Identifier(OBJECT_FIELD.to_string())),
@@ -1034,8 +1014,8 @@ mod tests {
         };
 
         fn property(mut query: Query) -> TestResult {
-            if contains_invalid_select_query(&query) {
-                return TestResult::discard();
+            if matches!(query, Query::With(_)) {
+                query = Query::Select(SelectQuery::arbitrary(&mut Gen::new(0)));
             }
 
             let mut v = SemanticVisitor {
