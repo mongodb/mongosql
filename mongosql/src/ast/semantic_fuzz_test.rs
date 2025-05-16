@@ -513,7 +513,7 @@ mod tests {
                     .keys
                     .into_iter()
                     .map(|key| match key {
-                        OptionallyAliasedExpr::Unaliased(expr) => {
+                        OptionallyAliasedExpr::Unaliased(_) => {
                             let field_name = if let Some(target_type) = self.target_type {
                                 get_field_for_type(target_type)
                             } else {
