@@ -685,7 +685,9 @@ mod tests {
             let body = match node.body {
                 SelectBody::Standard(exprs) => {
                     let mut has_substar = false;
+                    let mut has_star = false;
                     let mut new_exprs = Vec::new();
+                    let mut non_star_exprs = Vec::new();
 
                     for expr in exprs {
                         match expr {
@@ -697,13 +699,26 @@ mod tests {
                                     }));
                                 }
                             }
+                            SelectExpression::Star => {
+                                has_star = true;
+                            }
                             _ => {
-                                new_exprs.push(expr.walk(self));
+                                let processed_expr = expr.walk(self);
+                                non_star_exprs.push(processed_expr);
                             }
                         }
                     }
 
-                    SelectBody::Standard(new_exprs)
+                    if has_star || (usize::arbitrary(&mut Gen::new(0)) % 10) < 2 {
+                        SelectBody::Standard(vec![SelectExpression::Star])
+                    } else {
+                        if has_substar {
+                            new_exprs.extend(non_star_exprs);
+                            SelectBody::Standard(new_exprs)
+                        } else {
+                            SelectBody::Standard(non_star_exprs)
+                        }
+                    }
                 }
                 SelectBody::Values(values) => {
                     let mut has_substar = false;
