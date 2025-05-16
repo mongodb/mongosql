@@ -505,7 +505,7 @@ mod tests {
 
             let old_target_type = self.target_type;
             self.target_type = Some(Type::Boolean);
-            let where_clause = node.where_clause.map(|wc| wc.walk(self));
+            let where_clause = node.where_clause.map(|wc| self.visit_expression(wc));
             self.target_type = old_target_type;
 
             let group_by_clause = node.group_by_clause.map(|gbc| {
@@ -543,7 +543,7 @@ mod tests {
 
             let old_target_type = self.target_type;
             self.target_type = Some(Type::Boolean);
-            let having_clause = node.having_clause.map(|hc| hc.walk(self));
+            let having_clause = node.having_clause.map(|hc| self.visit_expression(hc));
             self.target_type = old_target_type;
 
             let order_by_clause = node.order_by_clause.map(|obc| obc.walk(self));
