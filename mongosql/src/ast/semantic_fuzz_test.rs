@@ -764,7 +764,7 @@ mod tests {
                             "items": { "bsonType": "string" }
                         },
                         "mixed_array_field": {
-                            "bsonType": "array"
+                            "bsonType": "array",
                             "items": {
                                 "anyOf": [
                                     { "bsonType": "string" },
