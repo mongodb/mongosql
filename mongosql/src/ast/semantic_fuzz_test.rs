@@ -482,9 +482,7 @@ mod tests {
                             )) => {
                                 self.select_fields.push(ident.clone());
                             }
-                            _ => {
-                                self.select_fields.push(INT_FIELD.to_string());
-                            }
+                            _ => {}
                         }
                     }
                 }
