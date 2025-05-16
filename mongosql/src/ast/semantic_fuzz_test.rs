@@ -486,8 +486,19 @@ mod tests {
                         }
                     }
                 }
-                SelectBody::Values(_) => {
-                    self.select_fields.push(INT_FIELD.to_string());
+                SelectBody::Values(values) => {
+                    for value in values {
+                        if let SelectValuesExpression::Expression(Expression::Document(doc_pairs)) =
+                            &value
+                        {
+                            for pair in doc_pairs {
+                                self.select_fields.push(pair.key.clone());
+                            }
+                        }
+                    }
+                    if self.select_fields.is_empty() {
+                        self.select_fields.push(INT_FIELD.to_string());
+                    }
                 }
             }
 
@@ -719,6 +730,7 @@ mod tests {
                 SelectBody::Values(values) => {
                     let mut has_substar = false;
                     let mut new_values = Vec::new();
+                    let mut doc_exprs = Vec::new();
 
                     for value in values {
                         match value {
@@ -730,10 +742,20 @@ mod tests {
                                     }));
                                 }
                             }
-                            _ => {
-                                new_values.push(value.walk(self));
+                            SelectValuesExpression::Expression(expr) => {
+                                let key = crate::ast::pretty_print_fuzz_test::fuzz_test::arbitrary_identifier(&mut quickcheck::Gen::new(0));
+                                doc_exprs.push(DocumentPair {
+                                    key,
+                                    value: expr.walk(self),
+                                });
                             }
                         }
+                    }
+
+                    if !doc_exprs.is_empty() {
+                        new_values.push(SelectValuesExpression::Expression(Expression::Document(
+                            doc_exprs,
+                        )));
                     }
 
                     SelectBody::Values(new_values)
