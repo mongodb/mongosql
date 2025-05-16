@@ -684,7 +684,6 @@ mod tests {
             let body = match node.body {
                 SelectBody::Standard(exprs) => {
                     let mut has_substar = false;
-                    let mut has_star = false;
                     let mut new_exprs = Vec::new();
                     let mut non_star_exprs = Vec::new();
 
@@ -698,9 +697,7 @@ mod tests {
                                     }));
                                 }
                             }
-                            SelectExpression::Star => {
-                                has_star = true;
-                            }
+                            SelectExpression::Star => {}
                             _ => {
                                 let processed_expr = expr.walk(self);
                                 non_star_exprs.push(processed_expr);
@@ -708,7 +705,7 @@ mod tests {
                         }
                     }
 
-                    if has_star || (usize::arbitrary(&mut Gen::new(0)) % 10) < 2 {
+                    if (usize::arbitrary(&mut Gen::new(0)) % 10) < 2 {
                         SelectBody::Standard(vec![SelectExpression::Star])
                     } else {
                         if has_substar {
