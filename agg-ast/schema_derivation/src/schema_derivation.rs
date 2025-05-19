@@ -145,7 +145,7 @@ impl DeriveSchema for Stage {
             });
             paths.into_iter().for_each(|path| {
                 if let Some(field_schema) =
-                    get_schema_for_path_mut(&mut state.result_set_schema, path.clone())
+                    get_schema_for_path(state.result_set_schema.clone(), path.clone())
                 {
                     insert_required_key_into_document(
                         &mut required_doc,
@@ -905,6 +905,58 @@ impl DeriveSchema for Stage {
             let mut nullish = preserve_null_and_empty_arrays;
             state.result_set_schema = promote_missing(&state.result_set_schema);
             if let Some(path) = path.clone() {
+                // if preserve_null_and_empty_arrays is not true, we walk the path of the
+                // unwound field and remove any non-documents schemas. That is, if any of
+                // the subpaths are anyofs, any type that is not a document does not lead
+                // to the unwound field, so it will be filtered out.
+                if !nullish {
+                    for index in 0..path.len() - 1 {
+                        let vec_path = path[0..index + 1].to_vec();
+                        if let Some(s) =
+                            get_schema_for_path_mut(&mut state.result_set_schema, vec_path)
+                        {
+                            if let Schema::AnyOf(ao) = s {
+                                *s = ao
+                                    .iter()
+                                    .find_map(|x| {
+                                        if matches!(x, Schema::Document(_)) {
+                                            Some(x.clone())
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .unwrap_or(Schema::Missing);
+                            }
+                        }
+                    }
+                // if preserve null and empty arrays is false, any type along the path is fine and will be preserved.
+                // the safest way to handle this, for now, is to remove the key, modify it, and union it back in.
+                // We should be able to do this in place once mutating anyofs is possible.
+                } else if let Some(schema) =
+                    get_schema_for_path(state.result_set_schema.clone(), path.clone())
+                {
+                    let unwound_schema = match schema {
+                        Schema::Array(a) => *a,
+                        Schema::AnyOf(ao) => Schema::AnyOf(
+                            ao.into_iter()
+                                .map(|s| match s {
+                                    Schema::Array(a) => *a,
+                                    schema => schema,
+                                })
+                                .collect(),
+                        ),
+                        schema => schema,
+                    };
+                    remove_field(&mut state.result_set_schema, path.clone());
+                    let mut required_doc = Schema::Document(Document::empty());
+                    insert_required_key_into_document(
+                        &mut required_doc,
+                        unwound_schema,
+                        path.clone(),
+                        true,
+                    );
+                    state.result_set_schema = state.result_set_schema.union(&required_doc);
+                }
                 if let Some(s) = get_schema_for_path_mut(&mut state.result_set_schema, path.clone())
                 {
                     // the schema of the field being unwound goes from type Array[X] to type X
@@ -1167,8 +1219,8 @@ impl DeriveSchema for Expression {
                                     // CURRENT is equivalent to ROOT, if it has not been rebound
                                     // The reason we do this is because a field reference
                                     // `$<field>` is equivalent to `$$CURRENT.<field>.
-                                    Ok(get_schema_for_path_mut(
-                                        &mut state.result_set_schema,
+                                    Ok(get_schema_for_path(
+                                        state.result_set_schema.clone(),
                                         path[1..].to_vec(),
                                     )
                                     .unwrap()
