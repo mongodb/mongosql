@@ -30,7 +30,6 @@ macro_rules! test_serde_expr {
 
             let input = $input;
             let e: TestExpr = serde_yaml::from_str(&input).unwrap();
-
             assert_eq!($expected, e.expr, "failed to deserialize");
 
             // test roundtrip by serializing to string and then deserializing

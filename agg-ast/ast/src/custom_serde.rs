@@ -1332,6 +1332,23 @@ impl<'de> Deserialize<'de> for Convert {
     }
 }
 
+fn get_field_setter_name(document: &mut LinkedHashMap<String, Expression>) -> Option<String> {
+    match document.remove("field") {
+        Some(Expression::Literal(LiteralValue::String(s))) => Some(s),
+        Some(Expression::UntaggedOperator(UntaggedOperator {
+            op: UntaggedOperatorName::Literal,
+            args: a,
+        })) => {
+            if let Some(Expression::Literal(LiteralValue::String(s))) = a.first() {
+                return Some(s.clone());
+            } else {
+                return None;
+            }
+        }
+        _ => return None,
+    }
+}
+
 impl<'de> Deserialize<'de> for SetField {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -1340,20 +1357,8 @@ impl<'de> Deserialize<'de> for SetField {
         let expression = Expression::deserialize(deserializer)?;
         match expression {
             Expression::Document(mut d) => {
-                let field = match d.remove("field") {
-                    Some(Expression::Literal(LiteralValue::String(s))) => s,
-                    Some(Expression::UntaggedOperator(UntaggedOperator {
-                        op: UntaggedOperatorName::Literal,
-                        args: a,
-                    })) => {
-                        if let Some(Expression::Literal(LiteralValue::String(s))) = a.first() {
-                            s.clone()
-                        } else {
-                            return Err(serde_err::custom("field to setField must be a string"));
-                        }
-                    }
-                    _ => return Err(serde_err::custom("field to setField must be a string")),
-                };
+                let field = get_field_setter_name(&mut d)
+                    .ok_or(serde_err::custom("field to setField must be a string"))?;
                 let input = d.remove("input");
                 let value = d.remove("value");
                 match (input, value) {
@@ -1380,20 +1385,8 @@ impl<'de> Deserialize<'de> for GetField {
         let expression = Expression::deserialize(deserializer)?;
         match expression {
             Expression::Document(mut d) => {
-                let field = match d.remove("field") {
-                    Some(Expression::Literal(LiteralValue::String(s))) => s,
-                    Some(Expression::UntaggedOperator(UntaggedOperator {
-                        op: UntaggedOperatorName::Literal,
-                        args: a,
-                    })) => {
-                        if let Some(Expression::Literal(LiteralValue::String(s))) = a.first() {
-                            s.clone()
-                        } else {
-                            return Err(serde_err::custom("field to getField must be a string"));
-                        }
-                    }
-                    _ => return Err(serde_err::custom("field to getField must be a string")),
-                };
+                let field = get_field_setter_name(&mut d)
+                    .ok_or(serde_err::custom("field to setField must be a string"))?;
                 let input = d.remove("input");
                 if let Some(input) = input {
                     Ok(GetField {
@@ -1419,20 +1412,8 @@ impl<'de> Deserialize<'de> for UnsetField {
         let expression = Expression::deserialize(deserializer)?;
         match expression {
             Expression::Document(mut d) => {
-                let field = match d.remove("field") {
-                    Some(Expression::Literal(LiteralValue::String(s))) => s,
-                    Some(Expression::UntaggedOperator(UntaggedOperator {
-                        op: UntaggedOperatorName::Literal,
-                        args: a,
-                    })) => {
-                        if let Some(Expression::Literal(LiteralValue::String(s))) = a.first() {
-                            s.clone()
-                        } else {
-                            return Err(serde_err::custom("field to unsetField must be a string"));
-                        }
-                    }
-                    _ => return Err(serde_err::custom("field to unsetField must be a string")),
-                };
+                let field = get_field_setter_name(&mut d)
+                    .ok_or(serde_err::custom("field to setField must be a string"))?;
                 let input = d.remove("input");
                 if let Some(input) = input {
                     Ok(UnsetField {
@@ -1455,47 +1436,37 @@ impl<'de> Deserialize<'de> for TopBottomN {
     where
         D: Deserializer<'de>,
     {
+        macro_rules! verify_n {
+            ($n:expr) => {
+                match $n {
+                    Some(Expression::Literal(LiteralValue::Int32(n))) => Ok(*n as i64),
+                    Some(Expression::Literal(LiteralValue::Int64(n))) => Ok(*n),
+                    Some(Expression::Literal(LiteralValue::Double(n))) => Ok(*n as i64),
+                    Some(Expression::Literal(LiteralValue::Decimal128(n))) => {
+                        match n.to_string().parse::<i64>() {
+                            Ok(n) => Ok(n),
+                            Err(_) => Err(serde_err::custom(
+                                "invalid decimal literal value for n in top/bottomN operator",
+                            )),
+                        }
+                    }
+                    _ => return Err(serde_err::custom("n to top/bottomN must be an numeric")),
+                }
+            };
+        }
+
         let expression = Expression::deserialize(deserializer)?;
         match expression {
             Expression::Document(mut d) => {
                 let sort_by = d.remove("sortBy");
                 let output = d.remove("output");
                 let n = match d.remove("n") {
-                    Some(Expression::Literal(LiteralValue::Int32(n))) => n as i64,
-                    Some(Expression::Literal(LiteralValue::Int64(n))) => n,
-                    Some(Expression::Literal(LiteralValue::Double(n))) => n as i64,
-                    Some(Expression::Literal(LiteralValue::Decimal128(n))) => {
-                        match n.to_string().parse::<i64>() {
-                            Ok(n) => n,
-                            Err(_) => {
-                                return Err(serde_err::custom(
-                                    "invalid decimal literal value for n in top/bottomN operator",
-                                ));
-                            }
-                        }
-                    }
+                    l @ Some(Expression::Literal(_)) => verify_n!(l.as_ref())?,
                     Some(Expression::UntaggedOperator(UntaggedOperator {
                         op: UntaggedOperatorName::Literal,
                         args: a,
-                    })) => match a.first() {
-                        Some(Expression::Literal(LiteralValue::Int32(n))) => *n as i64,
-                        Some(Expression::Literal(LiteralValue::Int64(n))) => *n,
-                        Some(Expression::Literal(LiteralValue::Double(n))) => *n as i64,
-                        Some(Expression::Literal(LiteralValue::Decimal128(n))) => {
-                            match n.to_string().parse::<i64>() {
-                                Ok(n) => n,
-                                Err(_) => {
-                                    return Err(serde_err::custom(
-                                        "invalid decimal literal value for n in top/bottomN operator",
-                                    ));
-                                }
-                            }
-                        }
-                        _ => {
-                            return Err(serde_err::custom("n to top/bottomN must be an numeric"));
-                        }
-                    },
-                    _ => return Err(serde_err::custom("n to top/bottomN must be an numeric")),
+                    })) => verify_n!(a.first())?,
+                    _ => return Err(serde_err::custom("n to top/bottomN must be specified")),
                 };
                 match (sort_by, output) {
                     (Some(sort_by), Some(output)) => Ok(TopBottomN {

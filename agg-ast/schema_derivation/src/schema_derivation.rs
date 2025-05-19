@@ -12,10 +12,12 @@ use agg_ast::definitions::{
 };
 use linked_hash_map::LinkedHashMap;
 use mongosql::{
-    json_schema, map, schema::{
+    map,
+    schema::{
         Atomic, Document, Satisfaction, Schema, ANY_DOCUMENT, DATE_OR_NULLISH, EMPTY_DOCUMENT,
         INTEGRAL, NULLISH, NULLISH_OR_UNDEFINED, NUMERIC, NUMERIC_OR_NULLISH,
-    }, set
+    },
+    set,
 };
 use std::{
     collections::{BTreeMap, BTreeSet},
