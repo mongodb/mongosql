@@ -1340,12 +1340,12 @@ fn get_field_setter_name(document: &mut LinkedHashMap<String, Expression>) -> Op
             args: a,
         })) => {
             if let Some(Expression::Literal(LiteralValue::String(s))) = a.first() {
-                return Some(s.clone());
+                Some(s.clone())
             } else {
-                return None;
+                None
             }
         }
-        _ => return None,
+        _ => None,
     }
 }
 
