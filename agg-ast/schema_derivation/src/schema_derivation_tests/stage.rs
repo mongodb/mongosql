@@ -1385,6 +1385,29 @@ mod project {
         })
     );
     test_derive_stage_schema!(
+        project_simple_assignment,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                "foo".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
+            },
+            required: set!("_id".to_string(), "foo".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{"$project": {"foo": "$foo" }}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
+                "foo".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
+            },
+            required: set!(
+                "_id".to_string(),
+                "foo".to_string(),
+            ),
+            ..Default::default()
+        })
+    );
+    test_derive_stage_schema!(
         project_non_required_key,
         expected = Ok(Schema::Document(Document {
             keys: map! {
