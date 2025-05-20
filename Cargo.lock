@@ -4079,7 +4079,7 @@ dependencies = [
 [[package]]
 name = "test-generator"
 version = "0.1.0"
-source = "git+https://github.com/10gen/sql-engines-common-test-infra.git?branch=main#5516dcdf320994d178e06c99ea01fc11b1ec94f7"
+source = "git+https://github.com/10gen/sql-engines-common-test-infra.git?branch=main#5f6f1dabef1474d35256225ec1b1937b5ffefb20"
 dependencies = [
  "serde",
  "serde_yaml",
