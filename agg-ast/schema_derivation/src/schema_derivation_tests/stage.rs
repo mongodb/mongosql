@@ -1385,7 +1385,7 @@ mod project {
         })
     );
     test_derive_stage_schema!(
-        project_simple_assignment,
+        project_simple_array_assignment,
         expected = Ok(Schema::Document(Document {
             keys: map! {
                 "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
@@ -1400,10 +1400,7 @@ mod project {
                 "_id".to_string() => Schema::Atomic(Atomic::ObjectId),
                 "foo".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
             },
-            required: set!(
-                "_id".to_string(),
-                "foo".to_string(),
-            ),
+            required: set!("_id".to_string(), "foo".to_string(),),
             ..Default::default()
         })
     );

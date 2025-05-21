@@ -543,67 +543,71 @@ impl DeriveSchema for Stage {
                         }
                     }
                 }
-                match schema {
-                    // if the current node is an Array, any child schemas will have to come from nested documents in this array.
-                    // evaluate the inner type of the array for any nested fields, then wrap the resulting schema in an Array
-                    Schema::Array(a) => {
-                        let inner_schema =
-                            get_schema_for_project_node(node, Some(a.as_ref()), state);
-                        schemas.insert(Schema::Array(Box::new(inner_schema)));
-                    }
-                    // similarly, anyofs can be part of a nested path if any of schemas are documents (or arrays of documents).
-                    // we evaulate each subtype to verify if it contains any of the children nodes
-                    Schema::AnyOf(ao) => {
-                        ao.iter().for_each(|ao_schema| {
-                            let schema = get_schema_for_project_node(node, Some(ao_schema), state);
-                            if schema != Schema::Unsat {
-                                schemas.insert(schema);
-                            }
-                        });
-                    }
-                    // if we want to get a nested path from an Any, we will treat it as a document with
-                    // additional properties true or an array of documents with additional properties true.
-                    // We should also include missing, as this path won't be required.
-                    Schema::Any => {
-                        let document_schema = get_schema_for_project_node(
-                            node,
-                            Some(&Schema::Document(Document::any())),
-                            state,
-                        );
-                        schemas.insert(Schema::Missing);
-                        schemas.insert(document_schema.clone());
-                        schemas.insert(Schema::Array(Box::new(document_schema)));
-                    }
-                    // documents are where we actually evaluate the children schemas to see if their paths are present in the document.
-                    // we iterate through each child, and build a document from the resulting key-schema pairs.
-                    d @ Schema::Document(_) => {
-                        let d = promote_missing(d);
-                        let mut path_document = Schema::Document(Document::empty());
-                        for (child_field, child_node) in node.children_nodes.iter() {
-                            let mut parent_schema = d.get_key(child_field);
-                            if parent_schema.is_none()
-                                && matches!(
-                                    d,
-                                    Schema::Document(Document {
-                                        additional_properties: true,
-                                        ..
-                                    })
-                                )
-                            {
-                                parent_schema = Some(&Schema::Any);
-                            }
-                            let child_schema =
-                                get_schema_for_project_node(child_node, parent_schema, state);
-                            insert_required_key_into_document(
-                                &mut path_document,
-                                child_schema,
-                                vec![child_field.clone()],
-                                true,
-                            );
+                // only recurse on the schema if there are subnodes, ie, this node is part of a nested path.
+                if !node.children_nodes.is_empty() {
+                    match schema {
+                        // if the current node is an Array, any child schemas will have to come from nested documents in this array.
+                        // evaluate the inner type of the array for any nested fields, then wrap the resulting schema in an Array
+                        Schema::Array(a) => {
+                            let inner_schema =
+                                get_schema_for_project_node(node, Some(a.as_ref()), state);
+                            schemas.insert(Schema::Array(Box::new(inner_schema)));
                         }
-                        schemas.insert(path_document);
+                        // similarly, anyofs can be part of a nested path if any of schemas are documents (or arrays of documents).
+                        // we evaulate each subtype to verify if it contains any of the children nodes
+                        Schema::AnyOf(ao) => {
+                            ao.iter().for_each(|ao_schema| {
+                                let schema =
+                                    get_schema_for_project_node(node, Some(ao_schema), state);
+                                if schema != Schema::Unsat {
+                                    schemas.insert(schema);
+                                }
+                            });
+                        }
+                        // if we want to get a nested path from an Any, we will treat it as a document with
+                        // additional properties true or an array of documents with additional properties true.
+                        // We should also include missing, as this path won't be required.
+                        Schema::Any => {
+                            let document_schema = get_schema_for_project_node(
+                                node,
+                                Some(&Schema::Document(Document::any())),
+                                state,
+                            );
+                            schemas.insert(Schema::Missing);
+                            schemas.insert(document_schema.clone());
+                            schemas.insert(Schema::Array(Box::new(document_schema)));
+                        }
+                        // documents are where we actually evaluate the children schemas to see if their paths are present in the document.
+                        // we iterate through each child, and build a document from the resulting key-schema pairs.
+                        d @ Schema::Document(_) => {
+                            let d = promote_missing(d);
+                            let mut path_document = Schema::Document(Document::empty());
+                            for (child_field, child_node) in node.children_nodes.iter() {
+                                let mut parent_schema = d.get_key(child_field);
+                                if parent_schema.is_none()
+                                    && matches!(
+                                        d,
+                                        Schema::Document(Document {
+                                            additional_properties: true,
+                                            ..
+                                        })
+                                    )
+                                {
+                                    parent_schema = Some(&Schema::Any);
+                                }
+                                let child_schema =
+                                    get_schema_for_project_node(child_node, parent_schema, state);
+                                insert_required_key_into_document(
+                                    &mut path_document,
+                                    child_schema,
+                                    vec![child_field.clone()],
+                                    true,
+                                );
+                            }
+                            schemas.insert(path_document);
+                        }
+                        _ => {}
                     }
-                    _ => {}
                 }
                 Schema::simplify(&Schema::AnyOf(schemas))
             // assignments are often new fields, so we don't require a parent schema to evaluate
