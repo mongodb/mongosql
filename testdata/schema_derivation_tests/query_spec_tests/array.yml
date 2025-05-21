@@ -1,19 +1,13 @@
-catalog_schema:
-  {
-    'foo': {
-      'bar': {
-        'bsonType': "object",
-        'required': [ 'd', 'i' ],
-        'additionalProperties': false,
-        'properties': {
-          'd': {
-            'bsonType': "double"
-          },
-          'i': {
-            'bsonType': "int"
-          },
-        }
-      }
-    }
-  }
-
+dataset:
+  - db: "scehma_derivation_spec_query_array"
+    collection:
+      name: "bar"
+    schema:
+      bsonType: "object"
+      required: [ "d", "i" ]
+      additionalProperties: false
+      properties:
+        d:
+          bsonType: "double"
+        i:
+          bsonType: "int"

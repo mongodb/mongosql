@@ -13,19 +13,20 @@ pub enum SchemaDerivationYamlTestFile {
     Single(SchemaDerivationTest),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SpecQuerySchemaDerivationTestFile {
     pub catalog_schema: Option<BTreeMap<String, BTreeMap<String, mongosql::json_schema::Schema>>>,
     pub tests: Vec<SchemaDerivationTest>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SchemaDerivationTest {
     pub description: Option<String>,
     pub skip_reason: Option<String>,
     pub catalog_schema_file: Option<String>,
     pub current_db: Option<String>,
     pub current_collection: Option<String>,
+    pub catalog_dbs: Option<Vec<String>>,
     pub pipeline: Vec<Stage>,
     pub result_set_schema: json_schema::Schema,
 }
