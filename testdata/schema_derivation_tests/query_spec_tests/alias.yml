@@ -1,7 +1,8 @@
 dataset:
-  - db: "schema_derivation_spec_query_alias"
+  - db: "schema_derivation_alias"
     collection:
       name: "foo"
+      docs: []
     schema:
       bsonType: "object"
       additionalProperties: true

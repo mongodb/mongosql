@@ -1,6 +1,6 @@
 tests:
 - description: correctness test for string concatentation
-  current_db: foo
+  current_db: schema_derivation_operators_strings
   current_collection: concat
   pipeline: [
     {

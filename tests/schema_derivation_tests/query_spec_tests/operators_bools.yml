@@ -1,6 +1,6 @@
 tests:
 - description: NOT correctness test
-  current_db: foo
+  current_db: schema_derivation_operators_bools
   current_collection: unary
   pipeline: [
     {
@@ -96,7 +96,7 @@ tests:
     "bsonType": "object"
   }
 - description: AND correctness test
-  current_db: foo
+  current_db: schema_derivation_operators_bools
   current_collection: binary
   pipeline: [
     {
@@ -241,7 +241,7 @@ tests:
     "bsonType": "object"
   }
 - description: OR correctness test
-  current_db: foo
+  current_db: schema_derivation_operators_bools
   current_collection: binary
   pipeline: [
     {

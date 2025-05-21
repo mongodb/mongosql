@@ -1,353 +1,426 @@
-variables:
-  numericTypes: &numericTypes
-  - {bsonType: int}
-  - {bsonType: long}
-  - {bsonType: double}
-  - {bsonType: decimal}
-  - {bsonType: !!str "null"}
+dataset:
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "nullif"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v1:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        v2:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
 
-catalog_schema:
-  {
-    "foo": {
-      "nullif": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "v1": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "v2": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      'twoArgCoalesce': {
-        'bsonType': 'object',
-        'additionalProperties': true
-      },
-      'multiArgCoalesce': {
-        'bsonType': 'object',
-        'additionalProperties': true
-      },
-      "size": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "a": {
-            "anyOf": [
-              { "bsonType": "array" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "length": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "s": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "comment": {
-            "bsonType": "string"
-          }
-        }
-      },
-      "nullAndMissing": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "d": {
-            "anyOf": [
-              { "bsonType": "date" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "substring": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "str": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "start": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "length": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "fold": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "s": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "trim": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "substr": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "str": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "position": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "s1": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "s2": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "abs": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "v": { "anyOf": *numericTypes }
-        }
-      },
-      "ceilAndFloor": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "v": { "anyOf": *numericTypes }
-        }
-      },
-      "log": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "v": { "anyOf": *numericTypes },
-          "base": { "anyOf": *numericTypes }
-        }
-      },
-      "mod": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "v": { "anyOf": *numericTypes },
-          "divisor": { "anyOf": *numericTypes }
-        }
-      },
-      "pow": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "v": { "anyOf": *numericTypes },
-          "exponent": { "anyOf": *numericTypes }
-        }
-      },
-      "radians": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "degrees": { "anyOf": *numericTypes }
-        }
-      },
-      "round": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "v": { "anyOf": *numericTypes },
-          "place": { "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": "long" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "sqrt": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "v": { "anyOf": *numericTypes }
-        }
-      },
-      "trigonometry": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "radians": { "anyOf": *numericTypes }
-        }
-      },
-      "split": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "str": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "delim": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "tokenNum": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "dates": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "date1": {
-            "bsonType": "date"
-          },
-          "date2": {
-            "bsonType": "date"
-          },
-          "interval": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": "long" }
-            ]
-          }
-        },
-        "additionalProperties": false,
-      },
-      "datepart": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "date1": {
-            "bsonType": "date"
-          },
-        },
-        "additionalProperties": false,
-      }
-    }
-  }
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "twoArgCoalesce"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "multiArgCoalesce"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "size"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "array"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "position"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        s1:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        s2:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "length"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        s:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        comment:
+          bsonType: "string"
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "nullAndMissing"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        d:
+          anyOf:
+            - bsonType: "date"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "substring"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        str:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        start:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+        length:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "fold"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        s:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "trim"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        substr:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        str:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "abs"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "ceilAndFloor"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "log"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        base:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "mod"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        divisor:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "pow"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        exponent:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "radians"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        degrees:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "round"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        place:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "sqrt"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "trigonometry"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        radians:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "split"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        str:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        delim:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        tokenNum:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+
+    # The date function tests use timestamps as opposed to date strings. The date
+    # string to timestamp conversions are provided below for better readability.
+    # { $toLong: new Date("2022-06-02T03:55:13Z") } => 1654142113000
+    # { $toLong: new Date("2024-08-10T05:58:19Z") } => 1723269499000
+    # { $toLong: new Date("2019-03-01T02:35:08Z") } => 1551407708000
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "dates"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "date1", "date2", "interval" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        date1:
+          bsonType: "date"
+        date2:
+          bsonType: "date"
+        interval:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+
+  - db: "schema_derivation_scalar_functions"
+    collection:
+      name: "datepart"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "date1" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        date1:
+          bsonType: "date"

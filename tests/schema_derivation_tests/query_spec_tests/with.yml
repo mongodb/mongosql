@@ -1,6 +1,6 @@
 tests:
 - description: WITH clause simple query
-  current_db: mydb
+  current_db: schema_derivation_with
   current_collection: biz
   pipeline: [
     {
@@ -44,7 +44,7 @@ tests:
     "bsonType": "object"
   }
 - description: WITH clause join query
-  current_db: mydb
+  current_db: schema_derivation_with
   current_collection: biz
   pipeline: [
     {
@@ -156,7 +156,7 @@ tests:
     "bsonType": "object"
   }
 - description: WITH clause multiple derived with a join
-  current_db: mydb
+  current_db: schema_derivation_with
   current_collection: biz
   pipeline: [
     {
@@ -299,7 +299,7 @@ tests:
     "bsonType": "object"
   }
 - description: WITH clause filters
-  current_db: mydb
+  current_db: schema_derivation_with
   current_collection: biz
   pipeline: [
     {

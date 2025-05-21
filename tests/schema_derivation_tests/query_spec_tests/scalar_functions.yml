@@ -1,6 +1,6 @@
 tests:
 - description: NULLIF correctness test
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: nullif
   pipeline: [
     {
@@ -108,7 +108,7 @@ tests:
     "bsonType": "object"
   }
 - description: COALESCE(v1, v2) correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: twoArgCoalesce
   pipeline: [
     {
@@ -206,7 +206,7 @@ tests:
     "bsonType": "object"
   }
 - description: COALESCE(v1, ..., vn) correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: multiArgCoalesce
   pipeline: [
     {
@@ -371,7 +371,7 @@ tests:
   }
 
 - description: SIZE correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: size
   pipeline: [
     {
@@ -470,7 +470,7 @@ tests:
     "bsonType": "object"
   }
 - description: POSITION correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: position
   pipeline: [
     {
@@ -591,7 +591,7 @@ tests:
     "bsonType": "object"
   }
 - description: CHAR_LENGTH correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: length
   pipeline: [
     {
@@ -693,7 +693,7 @@ tests:
   }
 
 - description: OCTET_LENGTH correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: length
   pipeline: [
     {
@@ -794,7 +794,7 @@ tests:
   }
 
 - description: BIT_LENGTH correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: length
   pipeline: [
     {
@@ -902,7 +902,7 @@ tests:
   }
 
 - description: EXTRACT FROM NULL and MISSING correctness test
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: nullAndMissing
   pipeline: [
     {
@@ -962,7 +962,7 @@ tests:
     "bsonType": "object"
   }
 - description: REPLACE correctness test
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: fold
   pipeline: [
     {
@@ -1042,7 +1042,7 @@ tests:
     "bsonType": "object"
   }
 - description: UPPER correctness test
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: fold
   pipeline: [
     {
@@ -1138,7 +1138,7 @@ tests:
     "bsonType": "object"
   }
 - description: LOWER correctness test
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: fold
   pipeline: [
     {
@@ -1234,7 +1234,7 @@ tests:
     "bsonType": "object"
   }
 - description: TRIM(BOTH substr FROM str) correctness test
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: trim
   pipeline: [
     {
@@ -1320,7 +1320,7 @@ tests:
     "bsonType": "object"
   }
 - description: TRIM(LEADING substr FROM str) correctness test
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: trim
   pipeline: [
     {
@@ -1406,7 +1406,7 @@ tests:
     "bsonType": "object"
   }
 - description: TRIM(TRAILING substr FROM str) correctness test
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: trim
   pipeline: [
     {
@@ -1492,7 +1492,7 @@ tests:
     "bsonType": "object"
   }
 - description: CURRENT_TIMESTAMP(p) correctness test
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   pipeline: [
     {
       "$documents": [
@@ -1597,7 +1597,7 @@ tests:
   }
 
 - description: Multiple CURRENT_TIMESTAMPs are equal across a query
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   pipeline: [
     {
       "$documents": [
@@ -1662,7 +1662,7 @@ tests:
   }
 
 - description: ABS correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: abs
   pipeline: [
     {
@@ -1754,7 +1754,7 @@ tests:
     "bsonType": "object"
   }
 - description: CEIL correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: ceilAndFloor
   pipeline: [
     {
@@ -1846,7 +1846,7 @@ tests:
     "bsonType": "object"
   }
 - description: COS correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: trigonometry
   pipeline: [
     {
@@ -1959,7 +1959,7 @@ tests:
     "bsonType": "object"
   }
 - description: DEGREES correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: trigonometry
   pipeline: [
     {
@@ -2045,7 +2045,7 @@ tests:
     "bsonType": "object"
   }
 - description: FLOOR correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: ceilAndFloor
   pipeline: [
     {
@@ -2137,7 +2137,7 @@ tests:
     "bsonType": "object"
   }
 - description: LOG correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: log
   pipeline: [
     {
@@ -2306,7 +2306,7 @@ tests:
     "bsonType": "object"
   }
 - description: MOD correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: mod
   pipeline: [
     {
@@ -2442,7 +2442,7 @@ tests:
     "bsonType": "object"
   }
 - description: POW correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: pow
   pipeline: [
     {
@@ -2555,7 +2555,7 @@ tests:
     "bsonType": "object"
   }
 - description: RADIANS correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: radians
   pipeline: [
     {
@@ -2641,7 +2641,7 @@ tests:
     "bsonType": "object"
   }
 - description: ROUND correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: round
   pipeline: [
     {
@@ -2798,7 +2798,7 @@ tests:
     "bsonType": "object"
   }
 - description: SIN correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: trigonometry
   pipeline: [
       {
@@ -2911,7 +2911,7 @@ tests:
     "bsonType": "object"
   }
 - description: SQRT correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: sqrt
   pipeline: [
     {
@@ -3034,7 +3034,7 @@ tests:
     "bsonType": "object"
   }
 - description: TAN correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: trigonometry
   pipeline: [
     {
@@ -3147,7 +3147,7 @@ tests:
     "bsonType": "object"
   }
 - description: SPLIT correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: split
   pipeline: [
     {
@@ -3350,7 +3350,7 @@ tests:
     "bsonType": "object"
   }
 - description: YEAR correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: dates
   pipeline: [
     {
@@ -3462,7 +3462,7 @@ tests:
     "bsonType": "object"
   }
 - description: MONTH correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: dates
   pipeline: [
     {
@@ -3574,7 +3574,7 @@ tests:
     "bsonType": "object"
   }
 - description: DAY correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: dates
   pipeline: [
     {
@@ -3686,7 +3686,7 @@ tests:
     "bsonType": "object"
   }
 - description: HOUR correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: dates
   pipeline: [
     {
@@ -3798,7 +3798,7 @@ tests:
     "bsonType": "object"
   }
 - description: MINUTE correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: dates
   pipeline: [
     {
@@ -3910,7 +3910,7 @@ tests:
     "bsonType": "object"
   }
 - description: SECOND correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: dates
   pipeline: [
     {
@@ -4022,7 +4022,7 @@ tests:
     "bsonType": "object"
   }
 - description: MILLISECOND correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: dates
   pipeline: [
     {
@@ -4134,7 +4134,7 @@ tests:
     "bsonType": "object"
   }
 - description: QUARTER correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: dates
   pipeline: [
     {
@@ -4237,7 +4237,7 @@ tests:
     "bsonType": "object"
   }
 - description: WEEK correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: dates
   pipeline: [
     {
@@ -4349,7 +4349,7 @@ tests:
     "bsonType": "object"
   }
 - description: DAY_OF_YEAR correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: datepart
   pipeline: [
     {
@@ -4406,7 +4406,7 @@ tests:
   }
 
 - description: ISO_WEEK correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: datepart
   pipeline: [
     {
@@ -4464,7 +4464,7 @@ tests:
   }
 
 - description: ISO_WEEKDAY correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: datepart
   pipeline: [
     {
@@ -4522,7 +4522,7 @@ tests:
   }
 
 - description: DAYOFWEEK correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: datepart
   pipeline: [
     {
@@ -4578,7 +4578,7 @@ tests:
     "bsonType": "object"
   }
 - description: DATEDIFF startOfWeek correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: dates
   pipeline: [
     {
@@ -4657,7 +4657,7 @@ tests:
     "bsonType": "object"
   }
 - description: TIMESTAMPDIFF startOfWeek correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: dates
   pipeline: [
     {
@@ -4736,7 +4736,7 @@ tests:
     "bsonType": "object"
   }
 - description: DATETRUNC startOfWeek correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: datepart
   pipeline: [
     {
@@ -4813,7 +4813,7 @@ tests:
     "bsonType": "object"
   }
 - description: TIMESTAMPTRUNC startOfWeek correctness tests
-  current_db: foo
+  current_db: schema_derivation_scalar_functions
   current_collection: datepart
   pipeline: [
     {

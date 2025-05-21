@@ -1,6 +1,6 @@
 tests:
 - description: uncorrelated scalar subquery expression correctness test
-  current_db: foo
+  current_db: schema_derivation_subquery
   current_collection: employees
   pipeline: [
     {
@@ -110,7 +110,7 @@ tests:
     "bsonType": "object"
   }
 - description: correlated scalar subquery correctness test
-  current_db: foo
+  current_db: schema_derivation_subquery
   current_collection: employees_w_schema
   pipeline: [
     {
@@ -225,7 +225,7 @@ tests:
     "bsonType": "object"
   }
 - description: cardinality of 1 should be inferrable from array datasource
-  current_db: foo
+  current_db: schema_derivation_subquery
   current_collection: department
   pipeline: [
     {
@@ -335,7 +335,7 @@ tests:
     "bsonType": "object"
   }
 - description: cardinality of 1 should be inferrable from group by constant
-  current_db: foo
+  current_db: schema_derivation_subquery
   current_collection: employees
   pipeline: [
     {
@@ -459,7 +459,7 @@ tests:
   }
 - description: nested subquery should be able to access field from its grandparent
     query correctness test
-  current_db: foo
+  current_db: schema_derivation_subquery
   current_collection: department_w_schema
   pipeline: [
     {
@@ -634,7 +634,7 @@ tests:
   }
 - description: allow select star if we can statically prove the degree is equal to
     one
-  current_db: foo
+  current_db: schema_derivation_subquery
   current_collection: employees
   pipeline: [
     {
@@ -732,7 +732,7 @@ tests:
   }
 - description: allow select substar if we can statically prove the degree is equal
     to one
-  current_db: foo
+  current_db: schema_derivation_subquery
   current_collection: employees
   pipeline: [
     {
@@ -835,7 +835,7 @@ tests:
     "bsonType": "object"
   }
 - description: subquery selecting potentially missing field from collection
-  current_db: foo
+  current_db: schema_derivation_subquery
   current_collection: department_w_schema
   pipeline: [
     {

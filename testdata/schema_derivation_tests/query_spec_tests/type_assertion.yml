@@ -1,26 +1,25 @@
-catalog_schema:
-  {
-    "foo": {
-      "bar": {
-        "bsonType": "object",
-        "additionalProperties": true
-      },
-      "bar_schema": {
-        "bsonType": "object",
-        "required": [ '_id', 'v1' ],
-        "additionalProperties": false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "v1": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": "int" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-        }
-      }
-    }
-  }
+dataset:
+  - db: "schema_derivation_type_assertion"
+    collection:
+      name: "bar"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_type_assertion"
+    collection:
+      name: "bar_schema"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "v1" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v1:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: "int"
+            - bsonType: !!str "null"

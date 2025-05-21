@@ -1,44 +1,57 @@
-catalog_schema:
-  {
-    "mydb":
-      {
-        "bar":
-          {
-            "bsonType": "object",
-            "required": ["_id", "foo"],
-            "additionalProperties": false,
-            "properties":
-              { "_id": { "bsonType": "int" }, "foo": { "bsonType": "int" } },
-          },
-        "bar2":
-          {
-            "bsonType": "object",
-            "required": ["_id", "foo"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "foo": { "bsonType": "int" },
-                "baz": { "bsonType": "int" },
-              },
-          },
-        "coll":
-          {
-            "bsonType": "object",
-            "required": ["_id", "bar", "car"],
-            "additionalProperties": false,
-            "properties":
-              { "bar": { "bsonType": "int" }, "car": { "bsonType": "int" } },
-          },
-      },
-    "db2":
-      {
-        "foo":
-          {
-            "bsonType": "object",
-            "required": ["_id", "x"],
-            "additionalProperties": false,
-            "properties": { "x": { "bsonType": "int" } },
-          },
-      },
-  }
+dataset:
+  - db: "schema_derivation_join"
+    collection:
+      name: "bar"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "foo" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        foo:
+          bsonType: "int"
+
+  - db: "schema_derivation_join"
+    collection:
+      name: "bar2"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "foo" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        foo:
+          bsonType: "int"
+        baz:
+          bsonType: "int"
+
+  - db: "schema_derivation_join"
+    collection:
+      name: "coll"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "bar", "car" ]
+      additionalProperties: false
+      properties:
+        bar:
+          bsonType: "int"
+        car:
+          bsonType: "int"
+
+  - db: "schema_derivation_join_db2"
+    collection:
+      name: "foo"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "x" ]
+      additionalProperties: false
+      properties:
+        x:
+          bsonType: "int"
+        

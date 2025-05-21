@@ -1,123 +1,150 @@
-catalog_schema:
-  {
-    'test': {
-      'foo': {
-        'bsonType': "object",
-        'required': ["_id", "arr"],
-        'additionalProperties': false,
-        'properties': {
-          '_id': { 'bsonType': "int" },
-          'arr': { 'bsonType': "array" }
-        }
-      },
-      'bar': {
-        'bsonType': "object",
-        'additionalProperties': true
-      },
-      'nested': {
-        'bsonType': "object",
-        'required': ["_id", "a", "z"],
-        'additionalProperties': false,
-        'properties': {
-          '_id': { 'bsonType': "int" },
-          'a': {
-            'bsonType': "object",
-            'required': ["b", "y"],
-            'additionalProperties': false,
-            'properties': {
-              'b': {
-                'bsonType': "object",
-                'required': ["c", "x"],
-                'additionalProperties': false,
-                'properties': {
-                  'c': { 'bsonType': "array" },
-                  'x': { 'bsonType': "int" }
-                }
-              },
-              'y': { 'bsonType': "int" }
-            }
-          },
-          'z': { 'bsonType': "int" }
-        }
-      },
-      'two_d': {
-        'bsonType': "object",
-        'additionalProperties': true
-      },
-      'non_arrays': {
-        'bsonType': "object",
-        'required': ["_id", "arr", "comment"],
-        'additionalProperties': false,
-        'properties': {
-          '_id': { 'bsonType': "int" },
-          'arr': {
-            "anyOf": [
-              { "bsonType": "array" },
-              { "bsonType": "string" },
-              { "bsonType": "object" }
-            ]
-          },
-          'comment': { 'bsonType': "string" }
-        }
-      },
-      'empty_null_and_missing': {
-        'bsonType': "object",
-        'required': ["_id", "comment"],
-        'additionalProperties': false,
-        'properties': {
-          '_id': { 'bsonType': "int" },
-          'arr': {
-            "anyOf": [
-              { "bsonType": "array" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          'comment': { 'bsonType': "string" }
-        }
-      },
-      'index_conflict': {
-        'bsonType': "object",
-        'additionalProperties': true
-      },
-     'compound': {
-       "bsonType": "object",
-       "properties": {
-         "g": {
-           "bsonType": "array",
-           "items": {
-             "anyOf": [
-               {
-                 "bsonType":"array",
-                 "items": {
-                   "bsonType":"object",
-                   "properties": {
-                     "h": { "bsonType":"int" },
-                     "i": {"bsonType":"int" },
-                     "g": {"bsonType": "array", "items": { "bsonType":"int" } }
-                   },
-                   "additionalProperties":false }
-               },
-               {
-                 "bsonType":"object",
-                 "properties": {
-                   "g":{ "bsonType":"array","items":{"bsonType":"int"}}},
-                 "required":["g"],
-                 "additionalProperties":false
-               }
-           ]
-         }
-       },
-       "a": {
-         "bsonType": "array",
-         "items": { "bsonType": "int" }
-       },
-       "b": {
-         "bsonType": "array",
-         "items": { "bsonType": "int" }
-       },
-       "_id":{"bsonType":"int"}},
-       "required":["_id","a", "b", "g"],
-       "additionalProperties":false
-     }
-   }
-  }
+dataset:
+  - db: "schema_derivation_from_unwind"
+    collection:
+      name: "foo"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "arr" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        arr:
+          bsonType: "array"
+
+  - db: "schema_derivation_from_unwind"
+    collection:
+      name: "bar"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_from_unwind"
+    collection:
+      name: "nested"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "z" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "object"
+          required: [ "b", "y" ]
+          additionalProperties: false
+          properties:
+            b:
+              bsonType: "object"
+              required: [ "c", "x" ]
+              additionalProperties: false
+              properties:
+                c:
+                  bsonType: "array"
+                x:
+                  bsonType: "int"
+            y:
+              bsonType: "int"
+        z:
+          bsonType: "int"
+
+  - db: "schema_derivation_from_unwind"
+    collection:
+      name: "two_d"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_from_unwind"
+    collection:
+      name: "non_arrays"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "arr", "comment" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        arr:
+          anyOf:
+            - bsonType: "array"
+            - bsonType: "string"
+            - bsonType: "object"
+        comment:
+          bsonType: "string"
+
+  - db: "schema_derivation_from_unwind"
+    collection:
+      name: "empty_null_and_missing"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "comment" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        arr:
+          anyOf:
+            - bsonType: "array"
+            - bsonType: !!str "null"
+        comment:
+          bsonType: "string"
+
+  - db: "schema_derivation_from_unwind"
+    collection:
+      name: "index_conflict"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_from_unwind"
+    collection:
+      name: "compound"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "g" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "array"
+          items:
+            bsonType: "int"
+        b:
+          bsonType: "array"
+          items:
+            bsonType: "int"
+        g:
+          bsonType: "array"
+          items:
+            anyOf:
+              - bsonType: "array"
+                items:
+                  bsonType: "object"
+                  additionalProperties: false
+                  properties:
+                    h:
+                      bsonType: "int"
+                    i:
+                      bsonType: "int"
+                    g:
+                      bsonType: "array"
+                      items:
+                        bsonType: "int"
+              - bsonType: "object"
+                required: [ "g" ]
+                additionalProperties: false
+                properties:
+                  g:
+                    bsonType: "array"
+                    items:
+                      bsonType: "int"

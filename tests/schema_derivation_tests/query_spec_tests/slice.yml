@@ -1,6 +1,6 @@
 tests:
 - description: SLICE without start argument correctness test
-  current_db: foo
+  current_db: schema_derivation_slice
   current_collection: no_start
   pipeline: [
     {
@@ -92,7 +92,7 @@ tests:
     "bsonType": "object"
   }
 - description: SLICE with start argument correctness test
-  current_db: foo
+  current_db: schema_derivation_slice
   current_collection: start
   pipeline: [
     {

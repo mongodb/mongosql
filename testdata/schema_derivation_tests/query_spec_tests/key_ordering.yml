@@ -1,13 +1,16 @@
-catalog_schema:
-  {
-    'mydb': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'bar': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
+dataset:
+  - db: "schema_derivation_key_ordering"
+    collection:
+      name: "foo"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_key_ordering"
+    collection:
+      name: "bar"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true

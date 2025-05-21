@@ -1,6 +1,6 @@
 tests:
 - description: Null literal
-  current_db: test
+  current_db: schema_derivation_literal
   pipeline: [
     {
       "$documents": [
@@ -74,7 +74,7 @@ tests:
     "bsonType": "object"
   }
 - description: Boolean literals
-  current_db: test
+  current_db: schema_derivation_literal
   pipeline: [
     {
       "$documents": [
@@ -169,7 +169,7 @@ tests:
     "bsonType": "object"
   }
 - description: String literals
-  current_db: test
+  current_db: schema_derivation_literal
   pipeline: [
     {
       "$documents": [
@@ -243,7 +243,7 @@ tests:
     "bsonType": "object"
   }
 - description: Unsigned integer literals
-  current_db: test
+  current_db: schema_derivation_literal
   pipeline: [
     {
       "$documents": [
@@ -331,7 +331,7 @@ tests:
     "bsonType": "object"
   }
 - description: Signed integer literals
-  current_db: test
+  current_db: schema_derivation_literal
   skip_reason: SQL-2752 improve $literal ergonomics
   pipeline: [
     {
@@ -441,7 +441,7 @@ tests:
     "bsonType": "object"
   }
 - description: Date escape literal
-  current_db: test
+  current_db: schema_derivation_literal
   pipeline: [
     {
       "$documents": [

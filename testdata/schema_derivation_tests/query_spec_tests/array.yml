@@ -1,7 +1,8 @@
 dataset:
-  - db: "scehma_derivation_spec_query_array"
+  - db: "schema_derivation_array"
     collection:
       name: "bar"
+      docs: []
     schema:
       bsonType: "object"
       required: [ "d", "i" ]

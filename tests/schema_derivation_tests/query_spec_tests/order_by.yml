@@ -1,6 +1,6 @@
 tests:
 - description: ascending-sort correctness test
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: foo
   pipeline: [
     {
@@ -58,7 +58,7 @@ tests:
     "bsonType": "object"
   }
 - description: descending-sort correctness test
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: foo
   pipeline: [
     {
@@ -116,7 +116,7 @@ tests:
     "bsonType": "object"
   }
 - description: multiple-sort-key correctness test
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: foo
   pipeline: [
     {
@@ -180,7 +180,7 @@ tests:
     "bsonType": "object"
   }
 - description: missing sorts before null
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: nullAndNonNull
   pipeline: [
     {
@@ -219,7 +219,7 @@ tests:
     "bsonType": "object"
   }
 - description: null sorts before non-null values
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: nullAndNonNull
   pipeline: [
     {
@@ -285,7 +285,7 @@ tests:
   }
 - description: column references in sort keys can be qualified with table name after
     select star
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: bar
   pipeline: [
     {
@@ -339,7 +339,7 @@ tests:
   }
 - description: column references in sort keys can be qualified with table name after
     select substar
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: bar
   pipeline: [
     {
@@ -399,7 +399,7 @@ tests:
   }
 - description: column references in sort keys can be compound identifiers referencing
     document subfields
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: bar
   pipeline: [
     {
@@ -467,7 +467,7 @@ tests:
   }
 - description: column references in sort keys can be compound identifiers referencing
     document subfields and be qualified with table name
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: bar
   pipeline: [
     {
@@ -521,7 +521,7 @@ tests:
   }
 - description: allow qualified order by fields in ORDER BY because some BI tools require
     this even though it is not correct SQL92
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: bar
   pipeline: [
     {
@@ -595,7 +595,7 @@ tests:
 
 - description: allowing ordering by column not in Select still supports ordering by
     computed column
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: baz
   pipeline: [
     {
@@ -686,7 +686,7 @@ tests:
     "bsonType": "object"
   }
 - description: allow ordering by column not in Select
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: baz
   pipeline: [
     {
@@ -757,7 +757,7 @@ tests:
   }
 - description: ordering by column in select list that shadows column from data sources
     still works
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: baz
   pipeline: [
     {
@@ -819,7 +819,7 @@ tests:
     "bsonType": "object"
   }
 - description: ordering by column not in Select in join works when qualified
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: baz
   pipeline: [
     {
@@ -943,7 +943,7 @@ tests:
     "bsonType": "object"
   }
 - description: allow ordering by column not in Select even with group by
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: baz
   pipeline: [
     {
@@ -1045,7 +1045,7 @@ tests:
     "bsonType": "object"
   }
 - description: Sorting by column from RHS of LEFT JOIN orders the entire result set
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: local
   pipeline: [
     {
@@ -1130,7 +1130,7 @@ tests:
     "bsonType": "object"
   }
 - description: Sorting by column from RHS of INNER JOIN orders the entire result set
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: local
   pipeline: [
     {
@@ -1206,7 +1206,7 @@ tests:
     "bsonType": "object"
   }
 - description: ensure ORDER BY does not introduce extraneous columns
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: car
   pipeline: [
     {

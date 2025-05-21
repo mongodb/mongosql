@@ -1,58 +1,78 @@
-catalog_schema:
-  {
-    "db": {
-      "foo": {
-        "bsonType": "object",
-        "required": ["_id", "a", "b"],
-        "additionalProperties": false,
-        "properties": {
-          "_id": { "bsonType": "int" },
-          "a":   { "bsonType": "int" },
-          "b":   { "bsonType": "int" },
-          "c":   { "bsonType": "bool" },
-          "d":   { "bsonType": "string" },
-          "e":   { "bsonType": "null" }
-        }
-      },
-      "bar": {
-        "bsonType": "object",
-        "required": [ "_id", "a", "b" ],
-        "additionalProperties": false,
-        "properties": {
-          "_id": { "bsonType": "int" },
-          "a": { "bsonType": "int" },
-          "b": { "bsonType": "int" },
-          "c": { "bsonType": "int" }
-        }
-      },
-      "documents": {
-        "bsonType": "object",
-        "required": ["_id", "doc"],
-        "additionalProperties": false,
-        "properties": {
-          "_id": { "bsonType": "int" },
-          "doc": {
-            "bsonType": "object",
-            "required": ["a", "b"],
-            "properties": {
-              "a": { "bsonType": "int" },
-              "b": { "bsonType": "int" },
-              "c": { "bsonType": "int" }
-            }
-          }
-        }
-      },
-      "arrays": {
-        "bsonType": "object",
-        "required": ["_id", "arr"],
-        "additionalProperties": false,
-        "properties": {
-          "_id": { "bsonType": "int" },
-          "arr": {
-            "bsonType": "array",
-            "items": { "bsonType": "int" }
-          }
-        }
-      }
-    }
-  }
+dataset:
+  - db: "schema_derivation_distinct"
+    collection:
+      name: "foo"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"
+        c:
+          bsonType: "bool"
+        d:
+          bsonType: "string"
+        e:
+          bsonType: "null"
+
+  - db: "schema_derivation_distinct"
+    collection:
+      name: "bar"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"
+        c:
+          bsonType: "int"
+
+  - db: "schema_derivation_distinct"
+    collection:
+      name: "documents"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "doc" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        doc:
+          bsonType: "object"
+          required: [ "a", "b" ]
+          properties:
+            a:
+              bsonType: "int"
+            b:
+              bsonType: "int"
+            c:
+              bsonType: "int"
+
+  - db: "schema_derivation_distinct"
+    collection:
+      name: "arrays"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "arr" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        arr:
+          bsonType: "array"
+          items:
+            bsonType: "int"

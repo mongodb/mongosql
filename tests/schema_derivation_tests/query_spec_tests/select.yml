@@ -1,6 +1,6 @@
 tests:
 - description: simple star correctness test
-  current_db: mydb
+  current_db: schema_derivation_select
   current_collection: foo
   pipeline: [
     {
@@ -38,7 +38,7 @@ tests:
     "bsonType": "object"
   }
 - description: simple document correctness test
-  current_db: mydb
+  current_db: schema_derivation_select
   current_collection: foo
   pipeline: [
     {
@@ -95,7 +95,7 @@ tests:
     "bsonType": "object"
   }
 - description: simple sub-star correctness test
-  current_db: mydb
+  current_db: schema_derivation_select
   current_collection: foo
   pipeline: [
     {
@@ -139,7 +139,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for mixed sub-star and document
-  current_db: mydb
+  current_db: schema_derivation_select
   current_collection: foo
   pipeline: [
     {
@@ -212,7 +212,7 @@ tests:
     "bsonType": "object"
   }
 - description: SELECT VALUES may create unmaterializable binding tuples
-  current_db: mydb
+  current_db: schema_derivation_select
   current_collection: foo
   pipeline: [
     {

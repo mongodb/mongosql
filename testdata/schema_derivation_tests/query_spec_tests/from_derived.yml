@@ -1,13 +1,17 @@
-catalog_schema:
-  {
-    'test': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'bar': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
+dataset:
+  - db: "schema_derivation_from_derived"
+    collection:
+      name: "foo"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_from_derived"
+    collection:
+      name: "bar"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+    

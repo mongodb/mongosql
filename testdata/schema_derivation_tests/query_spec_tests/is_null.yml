@@ -1,17 +1,30 @@
-catalog_schema:
-  db:
-      null_and_missing:
-          bsonType: 'object'
-          additionalProperties: false
-          required: ['_id']
-          properties:
-              '_id': {'bsonType': 'int'}
-              x: {'anyOf': [{'bsonType': 'bool'}, {'bsonType': 'null'}]}
+dataset:
+  - db: "schema_derivation_is_null"
+    collection:
+      name: "null_and_missing"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        x:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: "null"
 
-      missing:
-          bsonType: 'object'
-          additionalProperties: false
-          required: ['_id']
-          properties:
-              '_id': {'bsonType': 'int'}
-              x: {'bsonType': 'bool'}
+  - db: "schema_derivation_is_null"
+    collection:
+      name: "missing"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        x:
+          bsonType: "bool"

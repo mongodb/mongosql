@@ -1,6 +1,6 @@
 tests:
 - description: reference collection in current db by fully qualified name
-  current_db: mydb
+  current_db: schema_derivation_from_collection
   current_collection: foo
   pipeline: [
     {
@@ -34,7 +34,7 @@ tests:
     "bsonType": "object"
   }
 - description: reference collection in current db by unqualified name
-  current_db: mydb
+  current_db: schema_derivation_from_collection
   current_collection: foo
   pipeline: [
     {
@@ -68,7 +68,7 @@ tests:
     "bsonType": "object"
   }
 - description: reference collection in other db by fully qualified name
-  current_db: otherdb
+  current_db: schema_derivation_from_collection_otherdb
   current_collection: foo
   pipeline: [
     {

@@ -1,6 +1,6 @@
 tests:
 - description: correctness test for lt for numeric types
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: numbers
   pipeline: [
     {
@@ -139,7 +139,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for lte for numeric types
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: numbers
   pipeline: [
     {
@@ -278,7 +278,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for neq for numeric types
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: numbers
   pipeline: [
     {
@@ -417,7 +417,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for eq for numeric types
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: numbers
   pipeline: [
     {
@@ -556,7 +556,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for gt for numeric types
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: numbers
   pipeline: [
     {
@@ -695,7 +695,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for gte for numeric types
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: numbers
   pipeline: [
     {
@@ -834,7 +834,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for lt for NaN
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: nan
   pipeline: [
     {
@@ -901,7 +901,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for lte for NaN
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: nan
   pipeline: [
     {
@@ -968,7 +968,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for eq for NaN
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: nan
   pipeline: [
     {
@@ -1035,7 +1035,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for gt for NaN
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: nan
   pipeline: [
     {
@@ -1102,7 +1102,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for gte for NaN
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: nan
   pipeline: [
     {
@@ -1169,7 +1169,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for lt for strings
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: strings
   pipeline: [
     {
@@ -1290,7 +1290,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for lte for strings
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: strings
   pipeline: [
     {
@@ -1411,7 +1411,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for neq for strings
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: strings
   pipeline: [
     {
@@ -1532,7 +1532,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for eq for strings
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: strings
   pipeline: [
     {
@@ -1653,7 +1653,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for gt for strings
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: strings
   pipeline: [
     {
@@ -1774,7 +1774,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for gte for strings
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: strings
   pipeline: [
     {
@@ -1895,7 +1895,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for lt for bools
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: bools
   pipeline: [
     {
@@ -2016,7 +2016,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for lte for bools
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: bools
   pipeline: [
     {
@@ -2137,7 +2137,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for neq for bools
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: bools
   pipeline: [
     {
@@ -2258,7 +2258,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for eq for bools
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: bools
   pipeline: [
     {
@@ -2379,7 +2379,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for gt for bools
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: bools
   pipeline: [
     {
@@ -2500,7 +2500,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for gte for bools
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: bools
   pipeline: [
     {
@@ -2621,7 +2621,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for lt for dates
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: dates
   pipeline: [
     {
@@ -2742,7 +2742,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for lte for dates
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: dates
   pipeline: [
     {
@@ -2863,7 +2863,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for neq for dates
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: dates
   pipeline: [
     {
@@ -2984,7 +2984,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for eq for dates
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: dates
   pipeline: [
     {
@@ -3105,7 +3105,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for gt for dates
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: dates
   pipeline: [
     {
@@ -3226,7 +3226,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for gte for dates
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: dates
   pipeline: [
     {
@@ -3347,7 +3347,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for lt for null and missing
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: nullAndMissing
   pipeline: [
     {
@@ -3447,7 +3447,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for lte for null and missing
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: nullAndMissing
   pipeline: [
     {
@@ -3547,7 +3547,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for neq for null and missing
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: nullAndMissing
   pipeline: [
     {
@@ -3647,7 +3647,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for eq for null and missing
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: nullAndMissing
   pipeline: [
     {
@@ -3747,7 +3747,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for gt for null and missing
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: nullAndMissing
   pipeline: [
     {
@@ -3847,7 +3847,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for gte for null and missing
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: nullAndMissing
   pipeline: [
     {
@@ -3947,7 +3947,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for lt for documents
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: documents
   pipeline: [
     {
@@ -4100,7 +4100,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for lte for documents
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: documents
   pipeline: [
     {
@@ -4253,7 +4253,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for neq for documents
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: documents
   pipeline: [
     {
@@ -4406,7 +4406,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for eq for documents
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: documents
   pipeline: [
     {
@@ -4578,7 +4578,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for gt for documents
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: documents
   pipeline: [
     {
@@ -4731,7 +4731,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for gte for documents
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: documents
   pipeline: [
     {
@@ -4884,7 +4884,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for lt for arrays
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: arrays
   pipeline: [
     {
@@ -5016,7 +5016,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for lte for arrays
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: arrays
   pipeline: [
     {
@@ -5148,7 +5148,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for neq for arrays
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: arrays
   pipeline: [
     {
@@ -5280,7 +5280,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for eq for arrays
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: arrays
   pipeline: [
     {
@@ -5412,7 +5412,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for gt for arrays
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: arrays
   pipeline: [
     {
@@ -5544,7 +5544,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for gte for arrays
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: arrays
   pipeline: [
     {
@@ -5676,7 +5676,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for BETWEEN for numeric types
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: betweenNumeric
   pipeline: [
     {
@@ -5931,7 +5931,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for BETWEEN for strings
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: betweenStrings
   pipeline: [
     {
@@ -6174,7 +6174,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for BETWEEN for dates
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: betweenDates
   pipeline: [
     {
@@ -6417,7 +6417,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for BETWEEN for documents
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: betweenDocuments
   pipeline: [
     {
@@ -6709,7 +6709,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for BETWEEN for arrays
-  current_db: foo
+  current_db: schema_derivation_operators_comparison
   current_collection: betweenArrays
   pipeline: [
     {

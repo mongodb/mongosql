@@ -1,7 +1,9 @@
-catalog_schema:
-  {
-    'foo': {
-      'bar': {
+dataset:
+  - db: "schema_derivation_document"
+    collection:
+      name: "bar"
+      docs: []
+    schema: {
         'bsonType': "object",
         'required': [ '_id' ],
         'additionalProperties': false,
@@ -27,5 +29,3 @@ catalog_schema:
           },
         }
       }
-    }
-  }

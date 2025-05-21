@@ -1,350 +1,310 @@
-catalog_schema:
-  {
-    "foo": {
-      "numbers": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "a": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": "long" },
-              { "bsonType": "double" },
-              { "bsonType": "decimal" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "b": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": "long" },
-              { "bsonType": "double" },
-              { "bsonType": "decimal" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "nan": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-           "a": {
-              "bsonType": "decimal" ,
-          },
-          "b": {
-               "bsonType": "decimal" ,
-          }
-        }
-      },
-      "strings": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "a": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "b": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "bools": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "a": {
-            "anyOf": [
-              { "bsonType": "bool" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "b": {
-            "anyOf": [
-              { "bsonType": "bool" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "dates": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "a": {
-            "anyOf": [
-              { "bsonType": "date" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "b": {
-            "anyOf": [
-              { "bsonType": "date" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "nullAndMissing": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "a": {
-            "bsonType": !!str "null"
-          },
-          "b": {
-            "bsonType": !!str "null"
-          }
-        }
-      },
-      "documents": {
-        "bsonType": "object",
-        "required": [ "_id" ],
-        "additionalProperties": false,
-        "properties": {
-          "_id": { "bsonType": "int" },
-          "comment": { "bsonType": "string" },
-          "a": {
-            "anyOf": [
-              { "bsonType": !!str "null" },
-              {
-                "bsonType": "object",
-                "additionalProperties": true,
-              }
-            ]
-          },
-          "b": {
-            "anyOf": [
-              { "bsonType": !!str "null" },
-              {
-                "bsonType": "object",
-                "additionalProperties": true,
-              }
-            ]
-          }
-        }
-      },
-      "arrays": {
-        "bsonType": "object",
-        "required": [ "_id" ],
-        "additionalProperties": false,
-        "properties": {
-          "_id": { "bsonType": "int" },
-          "comment": { "bsonType": "string" },
-          "a": {
-            "anyOf": [
-              { "bsonType": !!str "null" },
-              {
-                "bsonType": "array",
-                "items": { "bsonType": "int" },
-              }
-            ]
-          },
-          "b": {
-            "anyOf": [
-              { "bsonType": !!str "null" },
-              {
-                "bsonType": "array",
-                "items": { "bsonType": "int" },
-              }
-            ]
-          }
-        }
-      },
-      "betweenNumeric": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "a": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": "long" },
-              { "bsonType": "double" },
-              { "bsonType": "decimal" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "b": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": "long" },
-              { "bsonType": "double" },
-              { "bsonType": "decimal" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "c": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": "long" },
-              { "bsonType": "double" },
-              { "bsonType": "decimal" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "betweenStrings": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "a": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "b": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "c": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "betweenDates": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "a": {
-            "anyOf": [
-              { "bsonType": "date" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "b": {
-            "anyOf": [
-              { "bsonType": "date" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "c": {
-            "anyOf": [
-              { "bsonType": "date" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "betweenDocuments": {
-        "bsonType": "object",
-        "required": [ "_id" ],
-        "additionalProperties": false,
-        "properties": {
-          "_id": { "bsonType": "int" },
-          "comment": { "bsonType": "string" },
-          "a": {
-            "anyOf": [
-              { "bsonType": !!str "null" },
-              {
-                "bsonType": "object",
-                "additionalProperties": true,
-              }
-            ]
-          },
-          "b": {
-            "anyOf": [
-              { "bsonType": !!str "null" },
-              {
-                "bsonType": "object",
-                "additionalProperties": true,
-              }
-            ]
-          },
-          "c": {
-            "anyOf": [
-              { "bsonType": !!str "null" },
-              {
-                "bsonType": "object",
-                "additionalProperties": true,
-              }
-            ]
-          }
-        }
-      },
-      "betweenArrays": {
-        "bsonType": "object",
-        "required": [ "_id" ],
-        "additionalProperties": false,
-        "properties": {
-          "_id": { "bsonType": "int" },
-          "comment": { "bsonType": "string" },
-          "a": {
-            "anyOf": [
-              { "bsonType": !!str "null" },
-              {
-                "bsonType": "array",
-                "items": { "bsonType": "int" },
-              }
-            ]
-          },
-          "b": {
-            "anyOf": [
-              { "bsonType": !!str "null" },
-              {
-                "bsonType": "array",
-                "items": { "bsonType": "int" },
-              }
-            ]
-          },
-          "c": {
-            "anyOf": [
-              { "bsonType": !!str "null" },
-              {
-                "bsonType": "array",
-                "items": { "bsonType": "int" },
-              }
-            ]
-          }
-        }
-      },
-    }
-  }
+dataset:
+  - db: "schema_derivation_operators_comparison"
+    collection:
+      name: "numbers"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_operators_comparison"
+    collection:
+      name: "nan"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "decimal"
+        b:
+          bsonType: "decimal"
+
+  - db: "schema_derivation_operators_comparison"
+    collection:
+      name: "strings"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_operators_comparison"
+    collection:
+      name: "bools"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_operators_comparison"
+    collection:
+      name: "dates"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "date"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "date"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_operators_comparison"
+    collection:
+      name: "nullAndMissing"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: !!str "null"
+        b:
+          bsonType: !!str "null"
+
+  - db: "schema_derivation_operators_comparison"
+    collection:
+      name: "documents"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "object"
+              additionalProperties: true
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "object"
+              additionalProperties: true
+            - bsonType: !!str "null"
+        comment:
+          bsonType: "string"
+
+  - db: "schema_derivation_operators_comparison"
+    collection:
+      name: "arrays"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "array"
+              items:
+                bsonType: "int"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "array"
+              items:
+                bsonType: "int"
+            - bsonType: !!str "null"
+        comment:
+          bsonType: "string"
+
+  - db: "schema_derivation_operators_comparison"
+    collection:
+      name: "betweenNumeric"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        c:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_operators_comparison"
+    collection:
+      name: "betweenStrings"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        c:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_operators_comparison"
+    collection:
+      name: "betweenDates"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "date"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "date"
+            - bsonType: !!str "null"
+        c:
+          anyOf:
+            - bsonType: "date"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_operators_comparison"
+    collection:
+      name: "betweenDocuments"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        comment:
+          bsonType: "string"
+        a:
+          anyOf:
+            - bsonType: "object"
+              additionalProperties: true
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "object"
+              additionalProperties: true
+            - bsonType: !!str "null"
+        c:
+          anyOf:
+            - bsonType: "object"
+              additionalProperties: true
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_operators_comparison"
+    collection:
+      name: "betweenArrays"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        comment:
+          bsonType: "string"
+        a:
+          anyOf:
+            - bsonType: "array"
+              items:
+                bsonType: "int"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "array"
+              items:
+                bsonType: "int"
+            - bsonType: !!str "null"
+        c:
+          anyOf:
+            - bsonType: "array"
+              items:
+                bsonType: "int"
+            - bsonType: !!str "null"

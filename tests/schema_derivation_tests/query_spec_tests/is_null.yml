@@ -1,6 +1,6 @@
 tests:
 - description: IS NULL covers missing fields
-  current_db: db
+  current_db: schema_derivation_is_null
   current_collection: null_and_missing
   pipeline: [
     {
@@ -40,7 +40,7 @@ tests:
     "bsonType": "object"
   }
 - description: IS NOT NULL covers missing fields
-  current_db: db
+  current_db: schema_derivation_is_null
   current_collection: null_and_missing
   pipeline: [
     {
@@ -110,7 +110,7 @@ tests:
     "bsonType": "object"
   }
 - description: IS NULL covers missing fields without null schema
-  current_db: db
+  current_db: schema_derivation_is_null
   current_collection: missing
   pipeline: [
     {

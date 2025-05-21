@@ -1,6 +1,6 @@
 tests:
 - description: GROUP BY with empty input outputs empty
-  current_db: test
+  current_db: schema_derivation_group_by
   pipeline: [
     {
       "$documents": []

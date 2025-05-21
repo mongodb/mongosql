@@ -1,6 +1,6 @@
 tests:
 - description: Unary plus correctness tests
-  current_db: foo
+  current_db: schema_derivation_operators_arithmetic
   current_collection: unary
   pipeline: [
     {
@@ -85,7 +85,7 @@ tests:
     "bsonType": "object"
   }
 - description: Unary minus correctness tests
-  current_db: foo
+  current_db: schema_derivation_operators_arithmetic
   current_collection: unary
   pipeline: [
     {
@@ -160,9 +160,6 @@ tests:
                 "bsonType": "null"
               }, 
               {
-                "bsonType": "int"
-              }, 
-              {
                 "bsonType": "long"
               }, 
               {
@@ -180,7 +177,7 @@ tests:
     "bsonType": "object"
   }
 - description: Addition correctness tests
-  current_db: foo
+  current_db: schema_derivation_operators_arithmetic
   current_collection: binary
   pipeline: [
     {
@@ -293,7 +290,7 @@ tests:
     "bsonType": "object"
   }
 - description: Subtraction correctness tests
-  current_db: foo
+  current_db: schema_derivation_operators_arithmetic
   current_collection: binary
   pipeline: [
     {
@@ -406,7 +403,7 @@ tests:
     "bsonType": "object"
   }
 - description: Multiplication correctness tests
-  current_db: foo
+  current_db: schema_derivation_operators_arithmetic
   current_collection: binary
   pipeline: [
     {
@@ -519,7 +516,7 @@ tests:
     "bsonType": "object"
   }
 - description: Division correctness tests
-  current_db: foo
+  current_db: schema_derivation_operators_arithmetic
   current_collection: binary
   pipeline: [
     {
@@ -641,7 +638,7 @@ tests:
     "bsonType": "object"
   }
 - description: Division by zero results in NULL
-  current_db: foo
+  current_db: schema_derivation_operators_arithmetic
   current_collection: unary
   pipeline: [
     {
@@ -715,7 +712,7 @@ tests:
     "bsonType": "object"
   }
 - description: Long and integer division with non-integer results truncated
-  current_db: foo
+  current_db: schema_derivation_operators_arithmetic
   current_collection: integer_division
   pipeline: [
     {

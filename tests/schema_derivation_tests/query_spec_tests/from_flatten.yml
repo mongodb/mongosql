@@ -1,6 +1,6 @@
 tests:
 - description: basic correctness test
-  current_db: mydb
+  current_db: schema_derivation_from_flatten
   current_collection: foo
   pipeline: [
     {
@@ -43,7 +43,7 @@ tests:
     "bsonType": "object"
   }
 - description: datasource argument can optionally include an alias
-  current_db: mydb
+  current_db: schema_derivation_from_flatten
   current_collection: foo
   pipeline: [
     {
@@ -86,7 +86,7 @@ tests:
     "bsonType": "object"
   }
 - description: basic correctness test for user-specified separator
-  current_db: mydb
+  current_db: schema_derivation_from_flatten
   current_collection: foo
   pipeline: [
     {
@@ -129,7 +129,7 @@ tests:
     "bsonType": "object"
   }
 - description: user-specified separator with length less than one is allowed
-  current_db: mydb
+  current_db: schema_derivation_from_flatten
   current_collection: foo
   pipeline: [
     {
@@ -172,7 +172,7 @@ tests:
     "bsonType": "object"
   }
 - description: user-specified separator with length greater than one is allowed
-  current_db: mydb
+  current_db: schema_derivation_from_flatten
   current_collection: foo
   pipeline: [
     {
@@ -215,7 +215,7 @@ tests:
     "bsonType": "object"
   }
 - description: a user-specified depth greater than max nesting depth causes all documents to be flattened
-  current_db: mydb
+  current_db: schema_derivation_from_flatten
   current_collection: foo
   pipeline: [
     {
@@ -258,7 +258,7 @@ tests:
     "bsonType": "object"
   }
 - description: a user-specified depth less than max nesting depth causes more deeply nested documents to remain unflattened
-  current_db: mydb
+  current_db: schema_derivation_from_flatten
   current_collection: foo
   pipeline: [
     {
@@ -310,7 +310,7 @@ tests:
     "bsonType": "object"
   }
 - description: flatten polymorphic objects with just null or missing polymorphism
-  current_db: mydb
+  current_db: schema_derivation_from_flatten
   current_collection: nullableDoc
   pipeline: [
     {
@@ -352,7 +352,7 @@ tests:
     "bsonType": "object"
   }
 - description: FLATTENing a FLATTENed datasource is allowed
-  current_db: mydb
+  current_db: schema_derivation_from_flatten
   current_collection: foo
   pipeline: [
     {

@@ -1,42 +1,35 @@
-catalog_schema:
-  {
-    "foo":
-      {
-        "bar":
-          {
-            "bsonType": "object",
-            "additionalProperties": true,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a":
-                  {
-                    "bsonType": "object",
-                    "additionalProperties": true,
-                    "properties":
-                      {
-                        "b": { "bsonType": "int" },
-                        "b.c": { "bsonType": "int" },
-                      },
-                  },
-                "a.b": { "bsonType": "int" },
-                "$a.b": { "bsonType": "int" },
-                "$a.$b":
-                  {
-                    "bsonType": "object",
-                    "additionalProperties": true,
-                    "properties":
-                      {
-                        "$c":
-                          {
-                            "bsonType": "object",
-                            "additionalProperties": true,
-                            "properties": { "d": { "bsonType": "int" } },
-                          },
-                        "$c.d": { "bsonType": "int" },
-                      },
-                  },
-              },
-          },
-      },
-  }
+dataset:
+  - db: "schema_derivation_identifier"
+    collection:
+      name: "bar"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "object"
+          additionalProperties: true
+          properties:
+            b:
+              bsonType: "int"
+            "b.c":
+              bsonType: "int"
+        "a.b":
+          bsonType: "int"
+        "$a.b":
+          bsonType: "int"
+        "$a.$b":
+          bsonType: "object"
+          additionalProperties: true
+          properties:
+            "$c":
+              bsonType: "object"
+              additionalProperties: true
+              properties:
+                d:
+                  bsonType: "int"
+            "$c.d":
+              bsonType: "int"

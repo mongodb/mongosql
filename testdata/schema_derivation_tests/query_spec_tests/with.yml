@@ -1,34 +1,46 @@
-catalog_schema:
-  {
-    "mydb":
-      {
-        "biz":
-          {
-            "bsonType": "object",
-            "required": ["_id", "foo"],
-            "additionalProperties": false,
-            "properties":
-              { "_id": { "bsonType": "int" }, "foo": { "bsonType": "int" } },
-          },
-        "bar":
-          {
-            "bsonType": "object",
-            "required": ["_id", "foo"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "foo": { "bsonType": "int" },
-                "baz": { "bsonType": "int" },
-              },
-          },
-        "baz":
-          {
-            "bsonType": "object",
-            "required": ["bar", "car"],
-            "additionalProperties": false,
-            "properties":
-              { "_id": { "bsonType": "int" }, "bar": { "bsonType": "int" }, "car": { "bsonType": "int" } },
-          },
-      },
-  }
+dataset:
+  - db: "schema_derivation_with"
+    collection:
+      name: "biz"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "foo" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        foo:
+          bsonType: "int"
+
+  - db: "schema_derivation_with"
+    collection:
+      name: "bar"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "foo" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        foo:
+          bsonType: "int"
+        baz:
+          bsonType: "int"
+
+  - db: "schema_derivation_with"
+    collection:
+      name: "baz"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "bar", "car" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        bar:
+          bsonType: "int"
+        car:
+          bsonType: "int"

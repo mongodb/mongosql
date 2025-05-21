@@ -1,6 +1,6 @@
 tests:
 - description: Simple CASE expression - No WHEN comparison evaluates to TRUE, return ELSE result
-  current_db: foo
+  current_db: schema_derivation_operators_control_flow
   current_collection: bar
   pipeline: [
     {
@@ -321,7 +321,7 @@ tests:
     "bsonType": "object"
   }
 - description: Searched CASE expression - No WHEN condition evaluates to TRUE, return ELSE result
-  current_db: foo
+  current_db: schema_derivation_operators_control_flow
   current_collection: bar
   pipeline: [
     {
@@ -457,7 +457,7 @@ tests:
     "bsonType": "object"
   }
 - description: Searched CASE expression - One WHEN condition evaluates to TRUE, return corresponding THEN result
-  current_db: foo
+  current_db: schema_derivation_operators_control_flow
   pipeline: [
     {
       "$documents": [
@@ -554,7 +554,7 @@ tests:
     "bsonType": "object"
   }
 - description: Searched CASE expression - Multiple WHEN conditions evaluates to TRUE, return first corresponding THEN result
-  current_db: foo
+  current_db: schema_derivation_operators_control_flow
   pipeline: [
     {
       "$documents": [

@@ -1,9 +1,8 @@
-catalog_schema:
-  {
-    'test': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
+dataset:
+  - db: "schema_derivation_from_array"
+    collection:
+      name: "foo"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true

@@ -1,6 +1,6 @@
 tests:
 - description: parentheses correctness tests
-  current_db: foo
+  current_db: schema_derivation_parentheses
   current_collection: ternary
   pipeline: [
     {

@@ -1,6 +1,6 @@
 tests:
 - description: Normal non-missing reference
-  current_db: foo
+  current_db: schema_derivation_null_and_missing
   current_collection: bar
   pipeline: [
     {
@@ -52,7 +52,7 @@ tests:
     "bsonType": "object"
   }
 - description: NULL vs MISSING in direct field ref
-  current_db: foo
+  current_db: schema_derivation_null_and_missing
   current_collection: bar
   pipeline: [
     {
@@ -101,7 +101,7 @@ tests:
     "bsonType": "object"
   }
 - description: Normal field access
-  current_db: foo
+  current_db: schema_derivation_null_and_missing
   current_collection: bar
   pipeline: [
     {
@@ -153,7 +153,7 @@ tests:
     "bsonType": "object"
   }
 - description: Scalar vs missing field ref
-  current_db: foo
+  current_db: schema_derivation_null_and_missing
   current_collection: bar
   pipeline: [
     {
@@ -202,7 +202,7 @@ tests:
     "bsonType": "object"
   }
 - description: Scalar vs missing field ref- the field ref is upgraded to NULL because of plus sign
-  current_db: foo
+  current_db: schema_derivation_null_and_missing
   current_collection: bar
   pipeline: [
     {
@@ -275,7 +275,7 @@ tests:
     "bsonType": "object"
   }
 - description: MISSING upgraded to NULL due to plus sign
-  current_db: foo
+  current_db: schema_derivation_null_and_missing
   current_collection: bar
   pipeline: [
     {
@@ -340,7 +340,7 @@ tests:
     "bsonType": "object"
   }
 - description: MISSING fields in arrays are upgrade to NULLS
-  current_db: foo
+  current_db: schema_derivation_null_and_missing
   current_collection: bar
   pipeline: [
     {

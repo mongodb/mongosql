@@ -1,6 +1,6 @@
 tests:
 - description: compound collection references are fully qualified
-  current_db: foo
+  current_db: schema_derivation_scopes
   current_collection: coll
   pipeline: [
     {
@@ -38,7 +38,7 @@ tests:
     "bsonType": "object"
   }
 - description: equivalent qualified and unqualified references to the same field
-  current_db: foo
+  current_db: schema_derivation_scopes
   current_collection: coll
   pipeline: [
     {
@@ -95,7 +95,7 @@ tests:
     "bsonType": "object"
   }
 - description: compound field references prefer qualified names to field references
-  current_db: foo
+  current_db: schema_derivation_scopes
   current_collection: nested
   pipeline: [
     {
@@ -141,7 +141,7 @@ tests:
   }
 - description: compound field reference is treated as unqualified if no datasource
     name matches first identifier
-  current_db: foo
+  current_db: schema_derivation_scopes
   current_collection: nested
   pipeline: [
     {
@@ -193,7 +193,7 @@ tests:
     "bsonType": "object"
   }
 - description: field references never resolve to the catalog environment
-  current_db: foo
+  current_db: schema_derivation_scopes
   current_collection: coll
   pipeline: [
     {
@@ -238,7 +238,7 @@ tests:
     "bsonType": "object"
   }
 - description: qualified reference is not ambiguous with multiple datasources
-  current_db: foo
+  current_db: schema_derivation_scopes
   current_collection: coll
   pipeline: [
     {
@@ -324,7 +324,7 @@ tests:
   }
 - description: unqualified references are not ambiguous when there are multiple datasources
     with schema that disambiguates
-  current_db: foo
+  current_db: schema_derivation_scopes
   current_collection: schema_coll
   pipeline: [
     {
@@ -409,7 +409,7 @@ tests:
     "bsonType": "object"
   }
 - description: unqualified collection reference refers to current database
-  current_db: foo2
+  current_db: schema_derivation_scopes2
   current_collection: coll
   pipeline: [
     {
@@ -447,7 +447,7 @@ tests:
     "bsonType": "object"
   }
 - description: c.a refers to a in baz.a in the subquery and bar.a in the outer query
-  current_db: foo
+  current_db: schema_derivation_scopes
   current_collection: bar
   pipeline: [
     {
@@ -630,7 +630,7 @@ tests:
   }
 - description: if an unqualified reference CANNOT be from subquery's datasource and
     MUST be from outer query's datasource, use outer query's datasource
-  current_db: foo
+  current_db: schema_derivation_scopes
   current_collection: schema_coll
   pipeline: [
     {
@@ -731,7 +731,7 @@ tests:
   }
 - description: if an unqualified reference CANNOT be from subquery's datasource and
     MAY be from outer query's datasource, use outer query's datasource
-  current_db: foo
+  current_db: schema_derivation_scopes
   current_collection: coll
   pipeline: [
     {
@@ -832,7 +832,7 @@ tests:
   }
 - description: if an unqualified reference MAY be from subquery's datasource and CANNOT
     be from outer query's datasource, use subquery's datasource
-  current_db: foo
+  current_db: schema_derivation_scopes
   current_collection: schema_foo
   pipeline: [
     {
@@ -926,7 +926,7 @@ tests:
   }
 - description: if an unqualified reference MUST be from subquery's datasource and
     MUST be from outer query's datasource, the highest scope number is chosen
-  current_db: foo
+  current_db: schema_derivation_scopes
   current_collection: schema_coll
   pipeline: [
     {
@@ -1027,7 +1027,7 @@ tests:
   }
 - description: if an unqualified reference MUST be from subquery's datasource and
     MAY be from outer query's datasource, use subquery's datasource
-  current_db: foo
+  current_db: schema_derivation_scopes
   current_collection: coll
   pipeline: [
     {
@@ -1128,7 +1128,7 @@ tests:
   }
 - description: if an unqualified reference MUST be from subquery's datasource and
     CANNOT be from outer query's datasource, use subquery's datasource
-  current_db: foo
+  current_db: schema_derivation_scopes
   current_collection: schema_foo
   pipeline: [
     {

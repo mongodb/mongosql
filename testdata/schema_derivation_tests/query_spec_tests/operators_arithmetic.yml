@@ -1,80 +1,69 @@
-catalog_schema:
-  {
-    "foo": {
-      "unary": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "a": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": "long" },
-              { "bsonType": "double" },
-              { "bsonType": "decimal" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "binary": {
-        "bsonType": "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "a": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": "long" },
-              { "bsonType": "double" },
-              { "bsonType": "decimal" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "b": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": "long" },
-              { "bsonType": "double" },
-              { "bsonType": "decimal" },
-              { "bsonType": !!str "null" }
-            ]
-          }
-        }
-      },
-      "integer_division": {
-        "bsonType": "object",
-        "required": ["_id", "a", "b", "c", "d"],
-        "additionalProperties": false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "a": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": "long" },
-            ]
-          },
-          "b": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": "long" },
-            ]
-          },
-          "c": {
-            "bsonType": "int"
-          },
-          "d": {
-            "bsonType": "int"
-          },
-        }
-      }
-    }
-  }
+dataset:
+  - db: "schema_derivation_operators_arithmetic"
+    collection:
+      name: "unary"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_operators_arithmetic"
+    collection:
+      name: "binary"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "double"
+            - bsonType: "decimal"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_operators_arithmetic"
+    collection:
+      name: "integer_division"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "c", "d" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+        b:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "long"
+        c:
+          bsonType: "int"
+        d:
+          bsonType: "int"

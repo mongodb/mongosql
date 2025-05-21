@@ -65,7 +65,7 @@ tests:
     "bsonType": "object"
   }
 - description: Can use different alias for same collection
-  current_db: schema_derivation_spec_query_alias
+  current_db: schema_derivation_alias
   current_collection: "foo"
   pipeline: [
     {
@@ -160,7 +160,7 @@ tests:
   }
 - description: Can use duplicate aliases on both sides of UNION
   current_collection: "foo"
-  current_db: schema_derivation_spec_query_alias
+  current_db: schema_derivation_alias
   pipeline: [
     {
       "$project": {
@@ -238,7 +238,7 @@ tests:
     "bsonType": "object"
   }
 - description: _id is a valid alias for datasources
-  current_db: schema_derivation_spec_query_alias
+  current_db: schema_derivation_alias
   pipeline: [
     {
       "$documents": [

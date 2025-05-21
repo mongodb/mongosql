@@ -1,24 +1,18 @@
-catalog_schema:
-  {
-    "foo": {
-      "bar": {
-        "bsonType": "object",
-        'required': [ 'a', 'b', 'c' ],
-        'additionalProperties': false,
-        "properties": {
-          "a": {
-            "bsonType": "int"
-          },
-          "b": {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          "c": {
-            "bsonType": "int"
-          },
-        }
-      }
-    }
-  }
+dataset:
+  - db: "schema_derivation_operators_control_flow"
+    collection:
+      name: "bar"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "a", "b", "c" ]
+      additionalProperties: false
+      properties:
+        a:
+          bsonType: "int"
+        b:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+        c:
+          bsonType: "int"

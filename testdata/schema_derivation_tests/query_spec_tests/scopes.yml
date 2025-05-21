@@ -1,52 +1,72 @@
-catalog_schema:
-  {
-    'foo': {
-      'coll': {
-        'bsonType': 'object',
-        'additionalProperties': true
-      },
-      'nested': {
-        'bsonType': 'object',
-        'additionalProperties': true
-      },
-      'bar': {
-        'bsonType': 'object',
-        'properties': {a: {bsonType: 'int'}},
-        'additionalProperties': true
-      },
-      'baz': {
-        'bsonType': 'object',
-        'properties': {a: {bsonType: 'int'}},
-        'additionalProperties': true
-      },
-      'schema_coll': {
-        'bsonType': "object",
-        'required': [ 'bar', 'car' ],
-        'additionalProperties': false,
-        'properties': {
-          'bar': {
-            'bsonType': "int"
-          },
-          'car': {
-            'bsonType': "int"
-          }
-        }
-      },
-      'schema_foo': {
-        'bsonType': "object",
-        'required': [ 'baz' ],
-        'additionalProperties': false,
-        'properties': {
-          'baz': {
-            'bsonType': "int"
-          }
-        }
-      }
-    },
-    'foo2': {
-      'coll': {
-        'bsonType': 'object',
-        'additionalProperties': true
-      },
-    }
-  }
+dataset:
+  - db: "schema_derivation_scopes"
+    collection:
+      name: "coll"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_scopes"
+    collection:
+      name: "schema_coll"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "bar", "car" ]
+      additionalProperties: false
+      properties:
+        bar:
+          bsonType: "int"
+        car:
+          bsonType: "int"
+
+  - db: "schema_derivation_scopes"
+    collection:
+      name: "schema_foo"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "baz" ]
+      additionalProperties: false
+      properties:
+        baz:
+          bsonType: "int"
+
+  - db: "schema_derivation_scopes"
+    collection:
+      name: "nested"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_scopes"
+    collection:
+      name: "bar"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+      properties:
+        a:
+          bsonType: "int"
+
+  - db: "schema_derivation_scopes"
+    collection:
+      name: "baz"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+      properties:
+        a:
+          bsonType: "int"
+
+  - db: "schema_derivation_scopes_2"
+    collection:
+      name: "coll"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true

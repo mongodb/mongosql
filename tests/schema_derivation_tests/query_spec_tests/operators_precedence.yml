@@ -11,7 +11,7 @@ tests:
   #
   #   a AND (b OR c)
 - description: AND binds tighter than OR
-  current_db: db
+  current_db: schema_derivation_operators_precedence
   current_collection: and_or_tier
   pipeline: [
     {
@@ -103,7 +103,7 @@ tests:
     "bsonType": "object"
   }
 - description: NOT binds tighter than AND
-  current_db: db
+  current_db: schema_derivation_operators_precedence
   current_collection: not_and_tier
   pipeline: [
     {
@@ -349,7 +349,7 @@ tests:
     "bsonType": "object"
   }
 - description: IS binds tighter than NOT
-  current_db: db
+  current_db: schema_derivation_operators_precedence
   pipeline: [
     {
       "$documents": [
@@ -500,7 +500,7 @@ tests:
   # the "core syntax". Here, though, we leave IN in the query intentionally to
   # show precedence behavior.
 - description: BETWEEN binds tighter than IN
-  current_db: db
+  current_db: schema_derivation_operators_precedence
   pipeline: [
     {
       "$documents": [
@@ -646,7 +646,7 @@ tests:
     "bsonType": "object"
   }
 - description: '|| binds tighter than comparison ops'
-  current_db: db
+  current_db: schema_derivation_operators_precedence
   pipeline: [
     {
       "$documents": [
@@ -737,7 +737,7 @@ tests:
     "bsonType": "object"
   }
 - description: mul/div bind tighter than add/sub
-  current_db: db
+  current_db: schema_derivation_operators_precedence
   current_collection: mul_add_tier
   pipeline: [
     {
@@ -829,7 +829,7 @@ tests:
     "bsonType": "object"
   }
 - description: unary ops bind tighter than mul/div
-  current_db: db
+  current_db: schema_derivation_operators_precedence
   skip_reason: SQL-2752 improve $literal ergonomics
   pipeline: [
     {
@@ -932,7 +932,7 @@ tests:
     "bsonType": "object"
   }
 - description: subpath op binds tighter than type ops
-  current_db: db
+  current_db: schema_derivation_operators_precedence
   current_collection: subpath_type_tier
   pipeline: [
     {

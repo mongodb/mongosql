@@ -1,13 +1,16 @@
-catalog_schema:
-  {
-    'foo': {
-      'no_start': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'start': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
+dataset:
+  - db: "schema_derivation_slice"
+    collection:
+      name: "no_start"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_slice"
+    collection:
+      name: "start"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true

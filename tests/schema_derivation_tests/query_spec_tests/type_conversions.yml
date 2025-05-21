@@ -1,6 +1,6 @@
 tests:
 - description: Cast DOUBLE to BOOL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: doubles
   pipeline: [
     {
@@ -68,7 +68,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast STRING to BOOL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: strings
   pipeline: [
     {
@@ -136,7 +136,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast DOCUMENT to BOOL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: documents
   type_compare: true
   pipeline: [
@@ -214,7 +214,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast ARRAY to BOOL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: arrays
   pipeline: [
     {
@@ -285,7 +285,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast OBJECTID to BOOL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: objectIDs
   pipeline: [
     {
@@ -353,7 +353,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast BOOL to BOOL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: bools
   pipeline: [
     {
@@ -421,7 +421,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast BSON_DATE to BOOL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: dates
   pipeline: [
     {
@@ -491,7 +491,7 @@ tests:
 
 - description: Cast NULL and MISSING to BOOL, returns NULL by default and ON NULL
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: nullAndMissing
   pipeline: [
     {
@@ -574,7 +574,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast INT to BOOL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: ints
   pipeline: [
     {
@@ -642,7 +642,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast LONG to BOOL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: longs
   pipeline: [
     {
@@ -710,7 +710,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast DECIMAL to BOOL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: decimals
   pipeline: [
     {
@@ -778,7 +778,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast invalid source types to BOOL returns True
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: invalidSourceTypes
   pipeline: [
     {
@@ -853,7 +853,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast DOUBLE to INT, out of range numbers are invalid and return NULL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: doubles
   pipeline: [
     {
@@ -929,7 +929,7 @@ tests:
   }
 - description: Cast STRING to INT, non-numbers, non-ints, and out of range numbers
     are invalid and return NULL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: strings
   pipeline: [
     {
@@ -1005,7 +1005,7 @@ tests:
   }
 - description: Cast DOCUMENT to INT is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: documents
   pipeline: [
     {
@@ -1099,7 +1099,7 @@ tests:
   }
 - description: Cast ARRAY to INT is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: arrays
   pipeline: [
     {
@@ -1187,7 +1187,7 @@ tests:
   }
 - description: Cast OBJECTID to INT is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: objectIDs
   pipeline: [
     {
@@ -1271,7 +1271,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast BOOL to INT
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: bools
   pipeline: [
     {
@@ -1340,7 +1340,7 @@ tests:
   }
 - description: Cast BSON_DATE to INT is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: dates
   pipeline: [
     {
@@ -1426,7 +1426,7 @@ tests:
 
 - description: Cast NULL and MISSING to INT, returns NULL by default and ON NULL when
     set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: nullAndMissing
   pipeline: [
     {
@@ -1509,7 +1509,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast INT to INT
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: ints
   pipeline: [
     {
@@ -1577,7 +1577,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast LONG to INT, out of range numbers are invalid and return NULL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: longs
   pipeline: [
     {
@@ -1652,7 +1652,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast DECIMAL to INT, out of range numbers are invalid and return NULL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: decimals
   pipeline: [
     {
@@ -1727,7 +1727,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast invalid source types to INT
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: invalidSourceTypes
   pipeline: [
     {
@@ -1795,7 +1795,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast DOUBLE to DECIMAL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: doubles
   pipeline: [
     {
@@ -1863,7 +1863,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast STRING to DECIMAL, non-numbers return NULL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: strings
   pipeline: [
     {
@@ -1939,7 +1939,7 @@ tests:
   }
 - description: Cast DOCUMENT to DECIMAL is invalid, returns NULL by default and ON
     ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: documents
   pipeline: [
     {
@@ -2033,7 +2033,7 @@ tests:
   }
 - description: Cast ARRAY to DECIMAL is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: arrays
   pipeline: [
     {
@@ -2121,7 +2121,7 @@ tests:
   }
 - description: Cast OBJECTID to DECIMAL is invalid, returns NULL by default and ON
     ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: objectIDs
   pipeline: [
     {
@@ -2205,7 +2205,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast BOOL to DECIMAL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: bools
   pipeline: [
     {
@@ -2273,7 +2273,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast BSON_DATE to DECIMAL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: dates
   pipeline: [
     {
@@ -2343,7 +2343,7 @@ tests:
 
 - description: Cast NULL and MISSING to DECIMAL, returns NULL by default and ON NULL
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: nullAndMissing
   pipeline: [
     {
@@ -2426,7 +2426,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast INT to DECIMAL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: ints
   pipeline: [
     {
@@ -2494,7 +2494,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast LONG to DECIMAL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: longs
   pipeline: [
     {
@@ -2562,7 +2562,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast DECIMAL to DECIMAL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: decimals
   pipeline: [
     {
@@ -2630,7 +2630,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast invalid source types to DECIMAL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: invalidSourceTypes
   pipeline: [
     {
@@ -2698,7 +2698,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast DOUBLE to DOUBLE
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: doubles
   pipeline: [
     {
@@ -2767,7 +2767,7 @@ tests:
   }
 - description: Cast STRING to DOUBLE, non-numbers and out of range numbers are invalid
     and return NULL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: strings
   pipeline: [
     {
@@ -2843,7 +2843,7 @@ tests:
   }
 - description: Cast DOCUMENT to DOUBLE is invalid, returns NULL by default and ON
     ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: documents
   pipeline: [
     {
@@ -2937,7 +2937,7 @@ tests:
   }
 - description: Cast ARRAY to DOUBLE is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: arrays
   pipeline: [
     {
@@ -3025,7 +3025,7 @@ tests:
   }
 - description: Cast OBJECTID to DOUBLE is invalid, returns NULL by default and ON
     ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: objectIDs
   pipeline: [
     {
@@ -3109,7 +3109,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast BOOL to DOUBLE
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: bools
   pipeline: [
     {
@@ -3177,7 +3177,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast BSON_DATE to DOUBLE
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: dates
   pipeline: [
     {
@@ -3247,7 +3247,7 @@ tests:
 
 - description: Cast NULL and MISSING to DOUBLE, returns NULL by default and ON NULL
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: nullAndMissing
   pipeline: [
     {
@@ -3330,7 +3330,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast INT to DOUBLE
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: ints
   pipeline: [
     {
@@ -3398,7 +3398,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast LONG to DOUBLE
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: longs
   pipeline: [
     {
@@ -3467,7 +3467,7 @@ tests:
   }
 - description: Cast DECIMAL to DOUBLE, out of range numbers are invalid and return
     NULL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: decimals
   pipeline: [
     {
@@ -3542,7 +3542,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast invalid source types to DOUBLE
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: invalidSourceTypes
   pipeline: [
     {
@@ -3610,7 +3610,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast DOUBLE to LONG
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: doubles
   pipeline: [
     {
@@ -3679,7 +3679,7 @@ tests:
   }
 - description: Cast STRING to LONG, non-numbers, non-ints, and out of range numbers
     are invalid and return NULL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: strings
   pipeline: [
     {
@@ -3755,7 +3755,7 @@ tests:
   }
 - description: Cast DOCUMENT to LONG is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: documents
   pipeline: [
     {
@@ -3849,7 +3849,7 @@ tests:
   }
 - description: Cast ARRAY to LONG is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: arrays
   pipeline: [
     {
@@ -3937,7 +3937,7 @@ tests:
   }
 - description: Cast OBJECTID to LONG is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: objectIDs
   pipeline: [
     {
@@ -4021,7 +4021,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast BOOL to LONG
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: bools
   pipeline: [
     {
@@ -4089,7 +4089,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast BSON_DATE to LONG
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: dates
   pipeline: [
     {
@@ -4160,7 +4160,7 @@ tests:
 
 - description: Cast NULL and MISSING to LONG, returns NULL by default and ON NULL
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: nullAndMissing
   pipeline: [
     {
@@ -4243,7 +4243,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast INT to LONG
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: ints
   pipeline: [
     {
@@ -4311,7 +4311,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast LONG to LONG
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: longs
   pipeline: [
     {
@@ -4379,7 +4379,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast DECIMAL to LONG, out of range numbers are invalid and return NULL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: decimals
   pipeline: [
     {
@@ -4454,7 +4454,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast invalid source types to LONG
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: invalidSourceTypes
   pipeline: [
     {
@@ -4522,7 +4522,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast DOUBLE to BSON_DATE
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: doubles
   pipeline: [
     {
@@ -4592,7 +4592,7 @@ tests:
   }
 
 - description: Cast STRING to BSON_DATE, non-dates are invalid and return NULL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: strings
   pipeline: [
     {
@@ -4670,7 +4670,7 @@ tests:
 
 - description: Cast DOCUMENT to BSON_DATE is invalid, returns NULL by default and
     ON ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: documents
   pipeline: [
     {
@@ -4766,7 +4766,7 @@ tests:
 
 - description: Cast ARRAY to BSON_DATE is invalid, returns NULL by default and ON
     ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: arrays
   pipeline: [
     {
@@ -4854,7 +4854,7 @@ tests:
   }
 
 - description: Cast OBJECTID to BSON_DATE
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: objectIDs
   pipeline: [
     {
@@ -4924,7 +4924,7 @@ tests:
 
 - description: Cast BOOL to BSON_DATE is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: bools
   pipeline: [
     {
@@ -5010,7 +5010,7 @@ tests:
   }
 
 - description: Cast BSON_DATE to BSON_DATE
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: dates
   pipeline: [
     {
@@ -5081,7 +5081,7 @@ tests:
 
 - description: Cast NULL and MISSING to BSON_DATE, returns NULL by default and ON
     NULL when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: nullAndMissing
   pipeline: [
     {
@@ -5167,7 +5167,7 @@ tests:
 
 - description: Cast INT to BSON_DATE is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: ints
   pipeline: [
     {
@@ -5252,7 +5252,7 @@ tests:
   }
 
 - description: Cast LONG to BSON_DATE
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: longs
   pipeline: [
     {
@@ -5322,7 +5322,7 @@ tests:
 
 - description: Cast DECIMAL to BSON_DATE, out of range numbers are invalid and return
     NULL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: decimals
   pipeline: [
     {
@@ -5399,7 +5399,7 @@ tests:
   }
 
 - description: Cast invalid source types to BSON_DATE
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: invalidSourceTypes
   pipeline: [
     {
@@ -5477,7 +5477,7 @@ tests:
 
 - description: Cast DOUBLE to OBJECTID is invalid, returns NULL by default and ON
     ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: doubles
   pipeline: [
     {
@@ -5561,7 +5561,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast STRING to OBJECTID, non-objectIDs are invalid and return NULL
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: strings
   pipeline: [
     {
@@ -5637,7 +5637,7 @@ tests:
   }
 - description: Cast DOCUMENT to OBJECTID is invalid, returns NULL by default and ON
     ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: documents
   pipeline: [
     {
@@ -5731,7 +5731,7 @@ tests:
   }
 - description: Cast ARRAY to OBJECTID is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: arrays
   pipeline: [
     {
@@ -5818,7 +5818,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast OBJECTID to OBJECTID
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: objectIDs
   pipeline: [
     {
@@ -5887,7 +5887,7 @@ tests:
   }
 - description: Cast BOOL to OBJECTID is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: bools
   pipeline: [
     {
@@ -5972,7 +5972,7 @@ tests:
   }
 - description: Cast BSON_DATE to OBJECTID is invalid, returns NULL by default and
     ON ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: dates
   pipeline: [
     {
@@ -6058,7 +6058,7 @@ tests:
 
 - description: Cast NULL and MISSING to OBJECTID, returns NULL by default and ON NULL
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: nullAndMissing
   pipeline: [
     {
@@ -6142,7 +6142,7 @@ tests:
   }
 - description: Cast INT to OBJECTID is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: ints
   pipeline: [
     {
@@ -6227,7 +6227,7 @@ tests:
   }
 - description: Cast LONG to OBJECTID is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: longs
   pipeline: [
     {
@@ -6312,7 +6312,7 @@ tests:
   }
 - description: Cast DECIMAL to OBJECTID is invalid, returns NULL by default and ON
     ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: decimals
   pipeline: [
     {
@@ -6396,7 +6396,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast invalid source types to OBJECTID
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: invalidSourceTypes
   pipeline: [
     {
@@ -6464,7 +6464,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast DOUBLE to STRING
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: doubles
   pipeline: [
     {
@@ -6546,7 +6546,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast STRING to STRING
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: strings
   pipeline: [
     {
@@ -6628,7 +6628,7 @@ tests:
   }
 - description: Cast DOCUMENT to STRING is invalid, returns NULL by default and ON
     ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: documents
   pipeline: [
     {
@@ -6748,7 +6748,7 @@ tests:
   }
 - description: Cast ARRAY to STRING is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: arrays
   pipeline: [
     {
@@ -6861,7 +6861,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast OBJECTID to STRING
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: objectIDs
   pipeline: [
     {
@@ -6942,7 +6942,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast BOOL to STRING
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: bools
   pipeline: [
     {
@@ -7023,7 +7023,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast BSON_DATE to STRING
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: dates
   pipeline: [
     {
@@ -7106,7 +7106,7 @@ tests:
 
 - description: Cast NULL and MISSING to STRING, returns NULL by default and ON NULL
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: nullAndMissing
   pipeline: [
     {
@@ -7215,7 +7215,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast INT to STRING
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: ints
   pipeline: [
     {
@@ -7296,7 +7296,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast LONG to STRING
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: longs
   pipeline: [
     {
@@ -7377,7 +7377,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast DECIMAL to STRING
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: decimals
   pipeline: [
     {
@@ -7459,7 +7459,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast invalid source types to STRING
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: invalidSourceTypes
   pipeline: [
     {
@@ -7540,7 +7540,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast BINDATA to STRING
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   pipeline: [
     {
       "$project": {
@@ -7621,7 +7621,7 @@ tests:
   }
 - description: Cast DOUBLE to DOCUMENT is invalid, returns NULL by default and ON
     ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: doubles
   pipeline: [
     {
@@ -7770,7 +7770,7 @@ tests:
   }
 - description: Cast STRING to DOCUMENT is invalid, returns NULL by default and ON
     ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: strings
   pipeline: [
     {
@@ -7918,7 +7918,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast DOCUMENT to DOCUMENT
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: documents
   pipeline: [
     {
@@ -8037,7 +8037,7 @@ tests:
   }
 - description: Cast ARRAY to DOCUMENT is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: arrays
   pipeline: [
     {
@@ -8189,7 +8189,7 @@ tests:
   }
 - description: Cast OBJECTID to DOCUMENT is invalid, returns NULL by default and ON
     ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: objectIDs
   pipeline: [
     {
@@ -8338,7 +8338,7 @@ tests:
   }
 - description: Cast BOOL to DOCUMENT is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: bools
   pipeline: [
     {
@@ -8487,7 +8487,7 @@ tests:
   }
 - description: Cast BSON_DATE to DOCUMENT is invalid, returns NULL by default and
     ON ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: dates
   pipeline: [
     {
@@ -8638,7 +8638,7 @@ tests:
 
 - description: Cast NULL and MISSING to DOCUMENT, returns NULL by default and ON NULL
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: nullAndMissing
   pipeline: [
     {
@@ -8786,7 +8786,7 @@ tests:
   }
 - description: Cast INT to DOCUMENT is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: ints
   pipeline: [
     {
@@ -8935,7 +8935,7 @@ tests:
   }
 - description: Cast LONG to DOCUMENT is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: longs
   pipeline: [
     {
@@ -9084,7 +9084,7 @@ tests:
   }
 - description: Cast DECIMAL to DOCUMENT is invalid, returns NULL by default and ON
     ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: decimals
   pipeline: [
     {
@@ -9232,7 +9232,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast invalid source types to DOCUMENT
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: invalidSourceTypes
   pipeline: [
     {
@@ -9333,7 +9333,7 @@ tests:
   }
 - description: Cast DOUBLE to ARRAY is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: doubles
   pipeline: [
     {
@@ -9482,7 +9482,7 @@ tests:
   }
 - description: Cast STRING to ARRAY is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: strings
   pipeline: [
     {
@@ -9631,7 +9631,7 @@ tests:
   }
 - description: Cast DOCUMENT to ARRAY is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: documents
   pipeline: [
     {
@@ -9788,7 +9788,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast ARRAY to ARRAY
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: arrays
   pipeline: [
     {
@@ -9894,7 +9894,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast OBJECTID to ARRAY is invalid, returns NULL by default and ON ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: objectIDs
   pipeline: [
     {
@@ -10042,7 +10042,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast BOOL to ARRAY is invalid, returns NULL by default and ON ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: bools
   pipeline: [
     {
@@ -10190,7 +10190,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast BSON_DATE to ARRAY is invalid, returns NULL by default and ON ERROR when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: dates
   pipeline: [
     {
@@ -10340,7 +10340,7 @@ tests:
 
 - description: Cast NULL and MISSING to ARRAY, returns NULL by default and ON NULL
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: nullAndMissing
   pipeline: [
     {
@@ -10488,7 +10488,7 @@ tests:
   }
 - description: Cast INT to ARRAY is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: ints
   pipeline: [
     {
@@ -10637,7 +10637,7 @@ tests:
   }
 - description: Cast LONG to ARRAY is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: longs
   pipeline: [
     {
@@ -10786,7 +10786,7 @@ tests:
   }
 - description: Cast DECIMAL to ARRAY is invalid, returns NULL by default and ON ERROR
     when set
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: decimals
   pipeline: [
     {
@@ -10934,7 +10934,7 @@ tests:
     "bsonType": "object"
   }
 - description: Cast invalid source types to ARRAY
-  current_db: foo
+  current_db: schema_derivation_type_conversions
   current_collection: invalidSourceTypes
   pipeline: [
     {

@@ -1,37 +1,32 @@
-catalog_schema:
-  {
-    'foo': {
-      'bar': {
-        'bsonType': "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'v': {
-            'anyOf': [
-              { 'bsonType': "int" },
-              { 'bsonType': "null" }
-            ]
-          }
-        },
-      },
-      'target': {
-        'bsonType': "object",
-        'required': [ '_id', 'a' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'a': {
-            'anyOf': [
-              { 'bsonType': "int" },
-              { 'bsonType': "null" }
-            ]
-          }
-        },
-      }
-    }
-  }
+dataset:
+  - db: "schema_derivation_table_subquery_expressions"
+    collection:
+      name: "bar"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_table_subquery_expressions"
+    collection:
+      name: "target"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
