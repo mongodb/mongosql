@@ -1,0 +1,16 @@
+catalog_schema:
+  {
+    'foo': {
+      'ternary': {
+        'bsonType': "object",
+        'required': [ '_id', 'a', 'b', 'c' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a': { 'bsonType': "int" },
+          'b': { 'bsonType': "int" },
+          'c': { 'bsonType': "int" },
+        }
+      },
+    }
+  }

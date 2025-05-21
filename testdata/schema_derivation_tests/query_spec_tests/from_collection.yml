@@ -1,0 +1,15 @@
+catalog_schema:
+  {
+    'mydb': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    },
+    'otherdb': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }

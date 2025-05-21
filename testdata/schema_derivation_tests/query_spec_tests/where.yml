@@ -1,0 +1,67 @@
+catalog_schema:
+    {
+        "foo": {
+            "bar": {
+              "bsonType": "object",
+              "required": [ "_id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": { "bsonType": "bool" }
+              }
+            },
+            "baz": {
+              "bsonType": "object",
+              "required": [ "_id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": { "bsonType": "bool" }
+              }
+            },
+            "biz": {
+              "bsonType": "object",
+              "required": [ "_id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": { "bsonType": "array", "items": { "bsonType": "int" } }
+              }
+            },
+            "nested": {
+              "bsonType": "object",
+              "required": [ "_id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": {
+                  "bsonType": "object",
+                  "required": [ "bar" ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "bar": { "bsonType": "array", "items": { "bsonType": "int" } }
+                  }
+                }
+              }
+            },
+            "items": {
+              "bsonType": "object",
+              "required": [ "_id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": {
+                  "bsonType": "array",
+                  "items": {
+                    "bsonType": "object",
+                    "required": [ "bar" ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "bar": { "bsonType": "int" }
+                    }
+                  }
+                }
+              }
+            }
+        }
+    }

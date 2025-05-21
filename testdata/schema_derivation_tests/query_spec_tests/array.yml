@@ -1,0 +1,19 @@
+catalog_schema:
+  {
+    'foo': {
+      'bar': {
+        'bsonType': "object",
+        'required': [ 'd', 'i' ],
+        'additionalProperties': false,
+        'properties': {
+          'd': {
+            'bsonType': "double"
+          },
+          'i': {
+            'bsonType': "int"
+          },
+        }
+      }
+    }
+  }
+

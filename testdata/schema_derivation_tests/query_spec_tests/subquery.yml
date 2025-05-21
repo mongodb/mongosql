@@ -1,0 +1,73 @@
+catalog_schema:
+  {
+    'foo': {
+      'employees': {
+        'bsonType': "object",
+        'required': [ '_id', 'name', 'salary', 'department_id' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'name': {
+            'bsonType': "string"
+          },
+          'salary': {
+            'bsonType': "int"
+          },
+          'department_id': {
+            'bsonType': "int"
+          }
+        }
+      },
+      'department': {
+        'bsonType': "object",
+        'required': [ '_id', 'name' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'name': {
+            'bsonType': "string"
+          }
+        }
+      },
+      'employees_w_schema': {
+        'bsonType': "object",
+        'required': [ '_id', 'name', 'salary', 'department_id' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'name': {
+            'bsonType': "string"
+          },
+          'salary': {
+            'bsonType': "int"
+          },
+          'department_id': {
+            'bsonType': "int"
+          }
+        }
+      },
+      'department_w_schema': {
+        'bsonType': "object",
+        'required': [ '_id', 'name' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'name': {
+            'bsonType': "string"
+          }
+        }
+      },
+      'baz': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      }
+    }
+  }

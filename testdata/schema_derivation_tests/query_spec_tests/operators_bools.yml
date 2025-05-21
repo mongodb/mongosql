@@ -1,0 +1,43 @@
+catalog_schema:
+  {
+    "foo": {
+      "unary": {
+        "bsonType": "object",
+        'required': [ '_id' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "bool" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "binary": {
+        "bsonType": "object",
+        'required': [ '_id' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "bool" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "bool" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      }
+    }
+  }

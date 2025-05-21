@@ -1,0 +1,13 @@
+catalog_schema:
+  {
+    'foo': {
+      'no_start': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'start': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }

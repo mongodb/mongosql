@@ -1,0 +1,13 @@
+catalog_schema:
+  {
+    'mydb': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'bar': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }

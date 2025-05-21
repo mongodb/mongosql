@@ -1,0 +1,37 @@
+catalog_schema:
+  {
+    'foo': {
+      'bar': {
+        'bsonType': "object",
+        'required': [ '_id' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'v': {
+            'anyOf': [
+              { 'bsonType': "int" },
+              { 'bsonType': "null" }
+            ]
+          }
+        },
+      },
+      'target': {
+        'bsonType': "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'a': {
+            'anyOf': [
+              { 'bsonType': "int" },
+              { 'bsonType': "null" }
+            ]
+          }
+        },
+      }
+    }
+  }

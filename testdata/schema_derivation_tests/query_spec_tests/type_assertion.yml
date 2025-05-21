@@ -1,0 +1,26 @@
+catalog_schema:
+  {
+    "foo": {
+      "bar": {
+        "bsonType": "object",
+        "additionalProperties": true
+      },
+      "bar_schema": {
+        "bsonType": "object",
+        "required": [ '_id', 'v1' ],
+        "additionalProperties": false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v1": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": "int" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+        }
+      }
+    }
+  }

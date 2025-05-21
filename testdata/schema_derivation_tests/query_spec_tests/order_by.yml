@@ -1,0 +1,90 @@
+catalog_schema:
+  {
+    'mydb': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
+      'bar': {
+        'bsonType': 'object',
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': 'int'
+          },
+          'a': {
+            'bsonType': 'int'
+          },
+          'b': {
+            'bsonType': 'object',
+            'properties': {
+              'c': {
+                'bsonType': 'int'
+              }
+            }
+          },
+        }
+      },
+      'nullAndMissing': {
+        'bsonType': "object",
+        'required': [ 'a' ],
+        'additionalProperties': false,
+        'properties': {
+          'a': {
+            'bsonType': !!str "null"
+          },
+        }
+      },
+      'nullAndNonNull': {
+        'bsonType': 'object',
+        'additionalProperies': true
+      },
+      "baz":
+        {
+          "bsonType": "object",
+          "required": [ "_id", "a", "b", "coll" ],
+          "additionalProperties": false,
+          "properties":
+            {
+              "_id": { "bsonType": "int" },
+              "a": { "bsonType": "int" },
+              "b": { "bsonType": "int" },
+              "coll": { "bsonType": "string" },
+            },
+        },
+      "local":
+        {
+          "bsonType": "object",
+          "required": [ "_id" ],
+          "additionalProperties": false,
+          "properties":
+            {
+              "_id": { "bsonType": "int" },
+            },
+        },
+      "foreign":
+        {
+          "bsonType": "object",
+          "required": [ "_id", "l_id", "x" ],
+          "additionalProperties": false,
+          "properties":
+            {
+              "_id": { "bsonType": "int" },
+              "l_id": { "bsonType": "int" },
+              "x": { "bsonType": "int" },
+            },
+        },
+      "car":
+        {
+          "bsonType": "object",
+          "required": [ "_id", "s" ],
+          "additionalProperties": false,
+          "properties":
+            {
+              "_id": { "bsonType": "int" },
+              "s": { "bsonType": "string" },
+            },
+        },
+    }
+  }

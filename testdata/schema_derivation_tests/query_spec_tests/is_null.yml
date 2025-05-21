@@ -1,0 +1,17 @@
+catalog_schema:
+  db:
+      null_and_missing:
+          bsonType: 'object'
+          additionalProperties: false
+          required: ['_id']
+          properties:
+              '_id': {'bsonType': 'int'}
+              x: {'anyOf': [{'bsonType': 'bool'}, {'bsonType': 'null'}]}
+
+      missing:
+          bsonType: 'object'
+          additionalProperties: false
+          required: ['_id']
+          properties:
+              '_id': {'bsonType': 'int'}
+              x: {'bsonType': 'bool'}
