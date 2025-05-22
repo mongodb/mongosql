@@ -2,13 +2,12 @@ use agg_ast::definitions::Stage;
 use mongodb::bson::doc;
 use mongosql::json_schema;
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, fs, io::Read, path::PathBuf};
+use std::{fs, io::Read, path::PathBuf};
 
 use super::Error;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SchemaDerivationYamlTestFile {
-    pub catalog_schema: Option<BTreeMap<String, BTreeMap<String, mongosql::json_schema::Schema>>>,
     pub tests: Vec<SchemaDerivationTest>,
 }
 
