@@ -1,3 +1,4 @@
+
 #[cfg(feature = "{feature}")]
 #[test]
 // tests with an if statement and a return inside are intended to end early
@@ -12,12 +13,13 @@ pub fn {name}() {{
     let default_db = "test".to_string();
 
     let db = test
+        .options
         .current_db
         .as_ref()
         .unwrap_or_else(|| &default_db)
         .to_owned();
 
-    let exclude_namespaces_option = if let Some(true) = test.exclude_namespaces {{
+    let exclude_namespaces_option = if let Some(true) = test.options.exclude_namespaces {{
         ExcludeNamespacesOption::ExcludeNamespaces
     }} else {{
         ExcludeNamespacesOption::IncludeNamespaces
@@ -27,16 +29,17 @@ pub fn {name}() {{
             exclude_namespaces_option,
             mongosql::SchemaCheckingMode::Strict,
         );
-    opts.allow_order_by_missing_columns = {allow_order_by_missing};
+    opts.allow_order_by_missing_columns = test.options.allow_order_by_missing.unwrap_or(true);
+
     let translation = mongosql::translate_sql(
         db.as_str(),
-        test.query.as_str(),
+        test.input.as_str(),
         &catalog,
         opts,
     )
     .map_err(Error::Translation);
 
-    if let Some(should_compile) = test.should_compile {{
+    if let Some(should_compile) = test.options.should_compile {{
         assert_eq!(
             should_compile,
             translation.is_ok(),
@@ -46,7 +49,7 @@ pub fn {name}() {{
         return;
     }}
 
-    if let Some(parse_error) = test.parse_error.clone() {{
+    if let Some(parse_error) = test.expectations.parse_error.clone() {{
         assert!(
             translation
                 .as_ref()
@@ -61,7 +64,7 @@ pub fn {name}() {{
         );
         return;
     }}
-    if let Some(algebrize_error) = test.algebrize_error.clone() {{
+    if let Some(algebrize_error) = test.expectations.algebrize_error.clone() {{
         assert!(
             translation
                 .as_ref()
@@ -79,9 +82,9 @@ pub fn {name}() {{
 
     let result = run_query(&client, translation.unwrap()).unwrap();
 
-    let type_compare = test.type_compare.unwrap_or(false);
+    let type_compare = test.options.type_compare.unwrap_or(false);
 
-    if let Some(expected_results) = test.result.clone() {{
+    if let Some(expected_results) = test.expectations.result.clone() {{
         assert_eq!(
             expected_results.len(),
             result.len(),
@@ -91,7 +94,7 @@ pub fn {name}() {{
             result
         );
 
-        if test.ordered.unwrap_or(false) {{
+        if test.options.ordered.unwrap_or(false) {{
             for (index, (expected, actual)) in expected_results.iter().zip(result.iter()).enumerate() {{
                 assert!(
                     // because NaN != NaN, we have to use custom comparison functions

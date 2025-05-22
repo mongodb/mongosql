@@ -6,9 +6,6 @@ use std::{
 };
 
 // tests we handle
-const QUERY_TEST: &str = "query_tests";
-const E2E_TEST: &str = "e2e_tests";
-const ERROR_TEST: &str = "errors";
 const SCHEMA_DERIVATION_TESTS: &str = "schema_derivation_tests";
 
 // tests we don't handle
@@ -49,12 +46,6 @@ fn normalize_path(entry: &DirEntry) -> String {
 /// ProcessorType is an enum that represents the type of test file being processed
 #[derive(Debug, PartialEq)]
 pub enum ProcessorType {
-    // query tests
-    Query,
-    // e2e tests
-    E2E,
-    // error tests
-    Error,
     // schema derivation tests
     SchemaDerivation,
     // unhandled test types
@@ -65,13 +56,7 @@ pub enum ProcessorType {
 
 impl From<&Cow<'_, str>> for ProcessorType {
     fn from(s: &Cow<'_, str>) -> Self {
-        if s.contains(QUERY_TEST) {
-            Self::Query
-        } else if s.contains(E2E_TEST) {
-            Self::E2E
-        } else if s.contains(ERROR_TEST) {
-            Self::Error
-        } else if s.contains(REWRITE_TEST)
+        if s.contains(REWRITE_TEST)
             || s.contains(TYPE_CONSTRAINT_TESTS)
             || s.contains(CORRECTNESS_CATALOG)
         {
@@ -113,9 +98,6 @@ impl TestProcessor {
 impl Processor {
     fn process(&mut self) {
         match self.processor_type {
-            ProcessorType::Query | ProcessorType::E2E | ProcessorType::Error => {
-                self.process_query();
-            }
             ProcessorType::SchemaDerivation => {
                 self.process_schema_derivation();
             }
@@ -126,61 +108,6 @@ impl Processor {
 
     fn write_mod_entry(&mut self) {
         writeln!(self.mod_file, "pub mod {};", self.path).unwrap();
-    }
-
-    fn process_query(&mut self) {
-        self.write_mod_entry();
-        let mut write_file = write_test_file(&self.file_name, &self.out_dir);
-        self.write_query_header(&write_file);
-        let test_file = crate::parse_query_yaml_file(self.entry.path()).unwrap();
-        for (index, test) in test_file.tests.iter().enumerate() {
-            if test.skip_reason.is_some() {
-                write!(
-                    write_file,
-                    include_str!("../templates/ignore_body_template"),
-                    name = sanitize_description(&test.description),
-                    ignore_reason = test.skip_reason.as_ref().unwrap(),
-                    feature = if self.processor_type == ProcessorType::Query {
-                        "query"
-                    } else if self.processor_type == ProcessorType::E2E {
-                        "e2e"
-                    } else {
-                        "error"
-                    },
-                )
-                .unwrap();
-                continue;
-            }
-
-            // if this is an error test that has a catalog error, the test is expect
-            // to panic, so we use a different template
-            if let Some(catalog_error) = test.catalog_error.as_ref() {
-                let catalog_error = format!("{:?}", catalog_error);
-                write!(
-                    write_file,
-                    include_str!("../templates/error_test_with_panic_body_template"),
-                    name = sanitize_description(&test.description),
-                    expected_panic = catalog_error,
-                )
-                .unwrap();
-            } else {
-                write!(
-                    write_file,
-                    include_str!("../templates/query_test_body_template"),
-                    name = sanitize_description(&test.description),
-                    index = index,
-                    feature = if self.processor_type == ProcessorType::Query {
-                        "query"
-                    } else if self.processor_type == ProcessorType::E2E {
-                        "e2e"
-                    } else {
-                        "error"
-                    },
-                    allow_order_by_missing = test.allow_order_by_missing.unwrap_or(true),
-                )
-                .unwrap();
-            }
-        }
     }
 
     fn process_schema_derivation(&mut self) {
@@ -212,21 +139,6 @@ impl Processor {
             )
             .unwrap();
         }
-    }
-
-    #[allow(clippy::format_in_format_args)]
-    // we want the debug version of the canonicalized path to play nicely
-    // with the template
-    fn write_query_header(&self, mut file: &File) {
-        write!(
-            file,
-            include_str!("../templates/query_test_header_template"),
-            path = format!(
-                "{:?}",
-                self.entry.path().canonicalize().unwrap().to_string_lossy()
-            ),
-        )
-        .unwrap();
     }
 
     #[allow(clippy::format_in_format_args)]

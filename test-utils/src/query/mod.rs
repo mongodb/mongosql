@@ -6,22 +6,11 @@ use mongodb::{
 };
 use mongosql::Translation;
 use serde::{Deserialize, Serialize};
-use sql_engines_common_test_infra::{TestGenerator, YamlTestCase};
-use std::fs::File;
-use std::{collections::HashSet, fs, io::Read, path::PathBuf};
-
-/// load_query_test_files loads the YAML files in the provided `dir` into a Vec
-/// of QueryYamlTestFile structs.
-pub fn load_query_test_files(dir: PathBuf) -> Result<Vec<QueryYamlTestFile>, Error> {
-    let entries = fs::read_dir(dir).map_err(Error::InvalidDirectory)?;
-
-    entries
-        .map(|entry| match entry {
-            Ok(de) => parse_query_yaml_file(de.path()),
-            Err(e) => Err(Error::InvalidFilePath(e)),
-        })
-        .collect::<Result<Vec<QueryYamlTestFile>, Error>>()
-}
+use sql_engines_common_test_infra::{
+    parse_yaml_test_file, sanitize_description, Error as cti_err, TestGenerator, YamlTestCase,
+    YamlTestFile,
+};
+use std::{collections::HashSet, fs::File, path::PathBuf};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryTestExpectations {
@@ -53,7 +42,20 @@ impl TestGenerator for QueryTestGenerator {
         generated_test_file: &mut File,
         canonicalized_path: String,
     ) -> sql_engines_common_test_infra::Result<()> {
-        todo!()
+        write!(
+            generated_test_file,
+            include_str!("../templates/query_test_header_template"),
+            path = canonicalized_path,
+        )
+        .map_err(|e| {
+            cti_err::Io(
+                format!(
+                    "failed to write {} test header for '{canonicalized_path}'",
+                    self.feature
+                ),
+                e,
+            )
+        })
     }
 
     fn generate_test_file_body(
@@ -61,42 +63,40 @@ impl TestGenerator for QueryTestGenerator {
         generated_test_file: &mut File,
         original_path: PathBuf,
     ) -> sql_engines_common_test_infra::Result<()> {
-        todo!()
+        let parsed_test_file: YamlTestFile<QueryTestCase> = parse_yaml_test_file(original_path)?;
+
+        for (index, test_case) in parsed_test_file.tests.iter().enumerate() {
+            let sanitized_test_name = sanitize_description(&test_case.description);
+            let res = if let Some(skip_reason) = test_case.skip_reason.as_ref() {
+                write!(
+                    generated_test_file,
+                    include_str!("../templates/ignore_body_template"),
+                    feature = self.feature,
+                    ignore_reason = skip_reason,
+                    name = sanitized_test_name,
+                )
+            } else {
+                write!(
+                    generated_test_file,
+                    include_str!("../templates/query_test_body_template"),
+                    feature = self.feature,
+                    name = sanitized_test_name,
+                    index = index,
+                )
+            };
+            res.map_err(|e| {
+                cti_err::Io(
+                    format!(
+                        "failed to write {} test body for test '{}'",
+                        self.feature, test_case.description
+                    ),
+                    e,
+                )
+            })?;
+        }
+
+        Ok(())
     }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct QueryYamlTestFile {
-    pub tests: Vec<QueryTest>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct QueryTest {
-    pub description: String,
-    pub skip_reason: Option<String>,
-    pub query: String,
-    pub current_db: Option<String>,
-    pub catalog_dbs: Option<Vec<String>>,
-    pub exclude_namespaces: Option<bool>,
-    pub should_compile: Option<bool>,
-    pub result: Option<Vec<Document>>,
-    pub parse_error: Option<String>,
-    pub algebrize_error: Option<String>,
-    pub catalog_error: Option<String>,
-    pub allow_order_by_missing: Option<bool>,
-    pub ordered: Option<bool>,
-    pub type_compare: Option<bool>,
-}
-
-/// parse_query_yaml_file parses a YAML file into a QueryYamlTestFile struct.
-pub fn parse_query_yaml_file(path: PathBuf) -> Result<QueryYamlTestFile, Error> {
-    let mut f = fs::File::open(&path).map_err(Error::InvalidFile)?;
-    let mut contents = String::new();
-    f.read_to_string(&mut contents)
-        .map_err(Error::CannotReadFileToString)?;
-    let yaml: QueryYamlTestFile = serde_yaml::from_str(&contents)
-        .map_err(|e| Error::CannotDeserializeYaml((format!("in file: {:?}: ", path), e)))?;
-    Ok(yaml)
 }
 
 /*

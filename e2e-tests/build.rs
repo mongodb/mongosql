@@ -19,8 +19,6 @@ fn main() {
 }
 
 // TODO:
-//   - add YamlTestCase type aliases, TestGenerator impls, and a TestGeneratorFactory impl for the
-//     various test types supported here (specifically only index, errors, e2e, and spec/query)
 //   - migrate schema_derivation tests to use legacy code path
 
 // tests we handle
