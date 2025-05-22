@@ -6,12 +6,10 @@
 // for example, if a test should not compile, there's no point in checking
 // if the results are correct as there won't be any
 pub fn {name}() {{
-    use test_utils::*;
     let (client, test_file, catalog) = initialize_test();
     let test = test_file.tests.get({index}).unwrap();
 
     let default_db = "test".to_string();
-
     let db = test
         .options
         .current_db

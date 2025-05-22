@@ -15,29 +15,27 @@ use mongosql::{{
     schema::{{Document, Schema, Satisfaction}},
     Translation,
 }};
-use std::{{collections::BTreeMap, fs, io::Read, path::PathBuf, string::ToString}};
-
-use std::sync::Once;
-
-use test_utils::{{Error, MONGODB_URI, get_schema_map_for_dbs, parse_schema_derivation_yaml_file, SchemaDerivationTest, SchemaDerivationYamlTestFile}};
+use sql_engines_common_test_infra::{{parse_yaml_test_file, YamlTestFile}};
+use std::{{collections::BTreeMap, fs, io::Read, path::PathBuf, string::ToString, sync::Once}};
+use test_utils::*;
 
 static INIT: Once = Once::new();
 
-pub fn initialize_test() -> (&'static SchemaDerivationYamlTestFile, &'static BTreeMap<String, BTreeMap<String, json_schema::Schema>>) {{
-    static mut TEST_FILE: Option<SchemaDerivationYamlTestFile> = None;
+pub fn initialize_test() -> (&'static YamlTestFile<SchemaDerivationTestCase>, &'static BTreeMap<String, BTreeMap<String, json_schema::Schema>>) {{
+    static mut TEST_FILE: Option<YamlTestFile<SchemaDerivationTestCase>> = None;
     static mut CATALOG: Option<BTreeMap<String, BTreeMap<String, json_schema::Schema>>> = None;
 
     INIT.call_once(|| {{
         unsafe {{
             let client: Client = Client::with_uri_str(MONGODB_URI.clone()).map_err(Error::CannotCreateMongoDBClient).unwrap();
-            let test_file = parse_schema_derivation_yaml_file(PathBuf::from({path})).unwrap();
-            let db_names = test_file.tests.iter().flat_map(|t| {{
+            let test_file = parse_yaml_test_file("{path}").unwrap();
+            let db_names = test_file.tests.iter().flat_map(|t: &SchemaDerivationTestCase| {{
                 let mut db_names = vec![];
-                if let Some(current_db) = t.current_db.as_ref() {{
+                if let Some(current_db) = t.options.current_db.as_ref() {{
                     db_names.push(current_db.clone())
                 }}
 
-                if let Some(catalog_dbs) = t.catalog_dbs.as_ref() {{
+                if let Some(catalog_dbs) = t.options.catalog_dbs.as_ref() {{
                     db_names.append(&mut catalog_dbs.clone())
                 }}
 

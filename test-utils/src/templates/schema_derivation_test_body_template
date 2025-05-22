@@ -1,16 +1,13 @@
+
 #[cfg(feature = "schema_derivation")]
 #[test]
-// tests with an if statement and a return inside are intended to end early
-// before other cases are tested
-// for example, if a test should not compile, there's no point in checking
-// if the results are correct as there won't be any
 pub fn {name}() {{
-    use test_utils::*;
     let (test_file, json_schema_catalog) = initialize_test();
     let test = test_file.tests.get({index}).unwrap();
 
     let default_db = "test".to_string();
     let db = test
+        .options
         .current_db
         .as_ref()
         .unwrap_or_else(|| &default_db)
@@ -33,7 +30,7 @@ pub fn {name}() {{
         accumulator_stage: false,
     }};
 
-    let derived_schema = derive_schema_for_pipeline(test.pipeline.to_owned(), test.current_collection.clone(), &mut result_set_state);
-    let result_set_schema = Schema::try_from(test.result_set_schema.to_owned()).map_err(|e| e.to_string()).unwrap();
+    let derived_schema = derive_schema_for_pipeline(test.input.to_owned(), test.options.current_collection.clone(), &mut result_set_state);
+    let result_set_schema = Schema::try_from(test.expectations.result_set_schema.to_owned()).map_err(|e| e.to_string()).unwrap();
     assert!(result_set_schema.satisfies(&derived_schema.clone().unwrap()) == Satisfaction::Must);
 }}
