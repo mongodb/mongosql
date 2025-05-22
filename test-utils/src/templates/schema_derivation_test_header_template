@@ -17,7 +17,7 @@ use mongosql::{{
 }};
 use sql_engines_common_test_infra::{{parse_yaml_test_file, YamlTestFile}};
 use std::{{collections::BTreeMap, fs, io::Read, path::PathBuf, string::ToString, sync::Once}};
-use test_utils::*;
+use test_utils::{{Error, MONGODB_URI, get_schema_map_for_dbs, SchemaDerivationTestCase}};
 
 static INIT: Once = Once::new();
 
