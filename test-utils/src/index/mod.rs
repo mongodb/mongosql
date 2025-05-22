@@ -3,13 +3,14 @@ use super::Error;
 use mongodb::{
     bson::{self, doc, Bson, Document},
     sync::Client,
-    IndexModel,
 };
 use mongosql::Translation;
 use serde::{Deserialize, Serialize};
-use sql_engines_common_test_infra::{TestGenerator, YamlTestCase};
-use std::fs::File;
-use std::{collections::BTreeMap, fs, io::Read, path::PathBuf};
+use sql_engines_common_test_infra::{
+    parse_yaml_test_file, sanitize_description, Error as cti_err, TestGenerator, YamlTestCase,
+    YamlTestFile,
+};
+use std::{fs::File, io::Read, path::PathBuf};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IndexUsageTestExpectations {
@@ -32,7 +33,17 @@ impl TestGenerator for IndexUsageTestGenerator {
         generated_test_file: &mut File,
         canonicalized_path: String,
     ) -> sql_engines_common_test_infra::Result<()> {
-        todo!()
+        write!(
+            generated_test_file,
+            include_str!("../templates/index_usage_test_header_template"),
+            path = canonicalized_path,
+        )
+        .map_err(|e| {
+            cti_err::Io(
+                format!("failed to write index test header for '{canonicalized_path}'"),
+                e,
+            )
+        })
     }
 
     fn generate_test_file_body(
@@ -40,22 +51,40 @@ impl TestGenerator for IndexUsageTestGenerator {
         generated_test_file: &mut File,
         original_path: PathBuf,
     ) -> sql_engines_common_test_infra::Result<()> {
-        todo!()
+        let parsed_test_file: YamlTestFile<IndexUsageTestCase> =
+            parse_yaml_test_file(original_path)?;
+
+        for (index, test_case) in parsed_test_file.tests.iter().enumerate() {
+            let sanitized_test_name = sanitize_description(&test_case.description);
+            let res = if let Some(skip_reason) = test_case.skip_reason.as_ref() {
+                write!(
+                    generated_test_file,
+                    include_str!("../templates/ignore_body_template"),
+                    feature = "index",
+                    ignore_reason = skip_reason,
+                    name = sanitized_test_name,
+                )
+            } else {
+                write!(
+                    generated_test_file,
+                    include_str!("../templates/index_usage_test_body_template"),
+                    name = sanitized_test_name,
+                    index = index,
+                )
+            };
+            res.map_err(|e| {
+                cti_err::Io(
+                    format!(
+                        "failed to write index test body for test '{}'",
+                        test_case.description
+                    ),
+                    e,
+                )
+            })?;
+        }
+
+        Ok(())
     }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct IndexUsageYamlTestFile {
-    pub tests: Vec<IndexUsageTest>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct IndexUsageTest {
-    pub description: String,
-    pub skip_reason: Option<String>,
-    pub current_db: String,
-    pub query: String,
-    pub expected_utilization: IndexUtilization,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -122,52 +151,6 @@ pub struct ExplainStage {
 pub struct CursorStage {
     pub query_planner: QueryPlanner,
     // omitting unused fields
-}
-
-/// load_index_test_files loads the YAML files in the provided `dir` into a Vec
-/// of IndexUsageYamlTestFile structs.
-pub fn load_index_test_files(dir: PathBuf) -> Result<Vec<IndexUsageYamlTestFile>, Error> {
-    let entries = fs::read_dir(dir).map_err(Error::InvalidDirectory)?;
-
-    entries
-        .map(|entry| match entry {
-            Ok(de) => parse_index_usage_yaml_file(de.path()),
-            Err(e) => Err(Error::InvalidFilePath(e)),
-        })
-        .collect::<Result<Vec<IndexUsageYamlTestFile>, Error>>()
-}
-
-/// parse_index_usage_yaml_file parses a YAML file at the provided `path` into
-/// an IndexUsageYamlTestFile struct.
-pub fn parse_index_usage_yaml_file(path: PathBuf) -> Result<IndexUsageYamlTestFile, Error> {
-    let mut f = fs::File::open(&path).map_err(Error::InvalidFile)?;
-    let mut contents = String::new();
-    f.read_to_string(&mut contents)
-        .map_err(Error::CannotReadFileToString)?;
-    let yaml: IndexUsageYamlTestFile = serde_yaml::from_str(&contents)
-        .map_err(|e| Error::CannotDeserializeYaml((format!("in file: {:?}", path), e)))?;
-    Ok(yaml)
-}
-
-/// create_indexes creates all provided indexes on the mongodb instance.
-pub fn create_indexes(
-    client: &Client,
-    indexes: BTreeMap<String, BTreeMap<String, Vec<IndexModel>>>,
-) -> Result<(), Error> {
-    for (db, coll_indexes) in indexes {
-        let client_db = client.database(db.as_str());
-
-        for (coll, indexes) in coll_indexes {
-            let client_coll = client_db.collection::<Bson>(coll.as_str());
-
-            client_coll
-                .create_indexes(indexes)
-                .run()
-                .map_err(|e| Error::MongoDBCreateIndexes(db.clone(), coll, e))?;
-        }
-    }
-
-    Ok(())
 }
 
 /// run_explain_aggregate runs the provided translation's pipeline against the

@@ -8,7 +8,6 @@ use std::{
 // tests we handle
 const QUERY_TEST: &str = "query_tests";
 const E2E_TEST: &str = "e2e_tests";
-const INDEX_TEST: &str = "index_usage_tests";
 const ERROR_TEST: &str = "errors";
 const SCHEMA_DERIVATION_TESTS: &str = "schema_derivation_tests";
 
@@ -56,8 +55,6 @@ pub enum ProcessorType {
     E2E,
     // error tests
     Error,
-    // index usage tests
-    Index,
     // schema derivation tests
     SchemaDerivation,
     // unhandled test types
@@ -68,9 +65,7 @@ pub enum ProcessorType {
 
 impl From<&Cow<'_, str>> for ProcessorType {
     fn from(s: &Cow<'_, str>) -> Self {
-        if s.contains(INDEX_TEST) {
-            Self::Index
-        } else if s.contains(QUERY_TEST) {
+        if s.contains(QUERY_TEST) {
             Self::Query
         } else if s.contains(E2E_TEST) {
             Self::E2E
@@ -121,9 +116,6 @@ impl Processor {
             ProcessorType::Query | ProcessorType::E2E | ProcessorType::Error => {
                 self.process_query();
             }
-            ProcessorType::Index => {
-                self.process_index();
-            }
             ProcessorType::SchemaDerivation => {
                 self.process_schema_derivation();
             }
@@ -136,36 +128,6 @@ impl Processor {
         writeln!(self.mod_file, "pub mod {};", self.path).unwrap();
     }
 
-    fn process_index(&mut self) {
-        self.write_mod_entry();
-        let mut write_file = write_test_file(&self.file_name, &self.out_dir);
-        self.write_index_header(&write_file);
-        let test_file = crate::parse_index_usage_yaml_file(self.entry.path()).unwrap();
-        for (index, test) in test_file.tests.iter().enumerate() {
-            if test.skip_reason.is_some() {
-                write!(
-                    write_file,
-                    include_str!("./templates/ignore_body_template"),
-                    name = sanitize_description(&test.description),
-                    ignore_reason = test.skip_reason.as_ref().unwrap(),
-                    feature = "index",
-                )
-                .unwrap();
-                continue;
-            }
-            write!(
-                write_file,
-                include_str!("./templates/index_usage_test_body_template"),
-                name = sanitize_description(&test.description),
-                current_db = test.current_db,
-                query = test.query,
-                description = test.description,
-                index = index,
-            )
-            .unwrap();
-        }
-    }
-
     fn process_query(&mut self) {
         self.write_mod_entry();
         let mut write_file = write_test_file(&self.file_name, &self.out_dir);
@@ -175,7 +137,7 @@ impl Processor {
             if test.skip_reason.is_some() {
                 write!(
                     write_file,
-                    include_str!("./templates/ignore_body_template"),
+                    include_str!("../templates/ignore_body_template"),
                     name = sanitize_description(&test.description),
                     ignore_reason = test.skip_reason.as_ref().unwrap(),
                     feature = if self.processor_type == ProcessorType::Query {
@@ -196,7 +158,7 @@ impl Processor {
                 let catalog_error = format!("{:?}", catalog_error);
                 write!(
                     write_file,
-                    include_str!("./templates/error_test_with_panic_body_template"),
+                    include_str!("../templates/error_test_with_panic_body_template"),
                     name = sanitize_description(&test.description),
                     expected_panic = catalog_error,
                 )
@@ -204,7 +166,7 @@ impl Processor {
             } else {
                 write!(
                     write_file,
-                    include_str!("./templates/query_test_body_template"),
+                    include_str!("../templates/query_test_body_template"),
                     name = sanitize_description(&test.description),
                     index = index,
                     feature = if self.processor_type == ProcessorType::Query {
@@ -258,7 +220,7 @@ impl Processor {
     fn write_query_header(&self, mut file: &File) {
         write!(
             file,
-            include_str!("./templates/query_test_header_template"),
+            include_str!("../templates/query_test_header_template"),
             path = format!(
                 "{:?}",
                 self.entry.path().canonicalize().unwrap().to_string_lossy()
@@ -273,22 +235,7 @@ impl Processor {
     fn write_schema_derivation_header(&self, mut file: &File) {
         write!(
             file,
-            include_str!("./templates/schema_derivation_test_header_template"),
-            path = format!(
-                "{:?}",
-                self.entry.path().canonicalize().unwrap().to_string_lossy()
-            ),
-        )
-        .unwrap();
-    }
-
-    #[allow(clippy::format_in_format_args)]
-    // we want the debug version of the canonicalized path to play nicely
-    // with the template
-    fn write_index_header(&self, mut file: &File) {
-        write!(
-            file,
-            include_str!("./templates/index_usage_test_header_template"),
+            include_str!("../templates/schema_derivation_test_header_template"),
             path = format!(
                 "{:?}",
                 self.entry.path().canonicalize().unwrap().to_string_lossy()

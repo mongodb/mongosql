@@ -1,9 +1,4 @@
-use sql_engines_common_test_infra::{
-    generate_tests, parse_yaml_test_file, Error, TestGenerator, TestGeneratorFactory, YamlTestCase,
-    YamlTestFile,
-};
-use std::fs::File;
-use std::path::PathBuf;
+use sql_engines_common_test_infra::{generate_tests, Error, TestGenerator, TestGeneratorFactory};
 use test_utils::{IndexUsageTestGenerator, QueryTestGenerator};
 
 const GENERATED_DIRECTORY: &str = "src/generated";
@@ -26,7 +21,6 @@ fn main() {
 // TODO:
 //   - add YamlTestCase type aliases, TestGenerator impls, and a TestGeneratorFactory impl for the
 //     various test types supported here (specifically only index, errors, e2e, and spec/query)
-//   - update main to simply call out to generate_tests
 //   - migrate schema_derivation tests to use legacy code path
 
 // tests we handle
