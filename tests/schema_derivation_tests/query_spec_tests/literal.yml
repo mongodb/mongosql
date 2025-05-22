@@ -332,7 +332,7 @@ tests:
   }
 - description: Signed integer literals
   current_db: test
-  skip_reason: "negative integer literals deserialize as long"
+  skip_reason: "SQL-2838: negative integer literals deserialize as long"
   pipeline: [
     {
       "$documents": [

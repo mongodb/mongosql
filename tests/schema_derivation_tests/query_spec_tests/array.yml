@@ -20,7 +20,7 @@ catalog_schema:
 tests:
   - description: SELECT empty array literal
     current_db: test
-    skip_reason: "cannot reprsent Array(unsat) in JSON schema"
+    skip_reason: "SQL-2837: cannot reprsent Array(unsat) in JSON schema"
     pipeline: [
       {
         "$documents": [

@@ -883,7 +883,7 @@ tests:
   }
 - description: unary ops bind tighter than mul/div
   current_db: db
-  skip_reason: "negative integer literals deserialize as long"
+  skip_reason: "SQL-2838: negative integer literals deserialize as long"
   pipeline: [
     {
       "$documents": [
