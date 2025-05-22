@@ -10,7 +10,7 @@ use sql_engines_common_test_infra::{
     parse_yaml_test_file, sanitize_description, Error as cti_err, TestGenerator, YamlTestCase,
     YamlTestFile,
 };
-use std::{collections::HashSet, fs::File, path::PathBuf};
+use std::{collections::HashSet, fs::File, io::Write, path::PathBuf};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryTestExpectations {

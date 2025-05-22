@@ -12,6 +12,7 @@ mongodb = { workspace = true }
 mongosql = { path = "../mongosql" }
 schema_derivation = { path = "../agg-ast/schema_derivation" }
 serde_yaml = { workspace = true }
+sql-engines-common-test-infra = { git = "https://github.com/10gen/sql-engines-common-test-infra.git", branch = "main", package = "test-generator" }
 test-utils = { path = "../test-utils" }
 
 [build-dependencies]

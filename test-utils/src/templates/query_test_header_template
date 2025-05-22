@@ -1,6 +1,6 @@
 #![cfg_attr(rustfmt, rustfmt_skip)]
 #![allow(clippy::all)]
-#![allow(non_snake_case, dead_code, unused_variables, unused_imports)]
+#![allow(non_snake_case, dead_code, static_mut_refs, unused_variables, unused_imports)]
 
 use mongodb::{{
     bson::{{Bson, Document}},
@@ -17,16 +17,16 @@ use test_utils::*;
 
 static INIT: Once = Once::new();
 
-pub fn initialize_test() -> (&'static Client, &'static QueryYamlTestFile, &'static Catalog) {{
+pub fn initialize_test() -> (&'static Client, &'static YamlTestFile<QueryTestCase>, &'static Catalog) {{
     static mut CLIENT: Option<Client> = None;
-    static mut TEST_FILE: Option<YamlTestFile<QueryTestCase> = None;
+    static mut TEST_FILE: Option<YamlTestFile<QueryTestCase>> = None;
     static mut CATALOG: Option<Catalog> = None;
 
     INIT.call_once(|| {{
         unsafe {{
             CLIENT = Some(Client::with_uri_str(MONGODB_URI.clone()).map_err(Error::CannotCreateMongoDBClient).unwrap());
-            let test_file = parse_query_yaml_file("{path}").unwrap();
-            let db_names = test_file.tests.iter().flat_map(|t| {{
+            let test_file = parse_yaml_test_file("{path}").unwrap();
+            let db_names = test_file.tests.iter().flat_map(|t: &QueryTestCase| {{
                 let mut db_names = vec![];
                 if let Some(current_db) = t.options.current_db.as_ref() {{
                     db_names.push(current_db.clone())

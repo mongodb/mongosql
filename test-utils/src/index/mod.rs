@@ -10,7 +10,7 @@ use sql_engines_common_test_infra::{
     parse_yaml_test_file, sanitize_description, Error as cti_err, TestGenerator, YamlTestCase,
     YamlTestFile,
 };
-use std::{fs::File, io::Read, path::PathBuf};
+use std::{fs::File, io::Write, path::PathBuf};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IndexUsageTestExpectations {
@@ -23,7 +23,7 @@ pub struct IndexUsageTestOptions {
 }
 
 pub type IndexUsageTestCase =
-    YamlTestCase<String, IndexUsageTestOptions, IndexUsageTestExpectations>;
+    YamlTestCase<String, IndexUsageTestExpectations, IndexUsageTestOptions>;
 
 pub struct IndexUsageTestGenerator;
 

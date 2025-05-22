@@ -6,8 +6,8 @@ pub fn {name}() {{
     let test = test_file.tests.get({index}).unwrap();
 
     let translation = mongosql::translate_sql(
-        test.options.current_db,
-        test.input,
+        test.options.current_db.as_str(),
+        test.input.as_str(),
         &catalog,
         SqlOptions::new(
             ExcludeNamespacesOption::IncludeNamespaces,
