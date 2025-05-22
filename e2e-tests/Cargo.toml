@@ -14,8 +14,9 @@ mongodb = { workspace = true }
 bson = { workspace = true }
 
 [build-dependencies]
-test-utils = { path = "../test-utils" }
+serde = { workspace = true }
 sql-engines-common-test-infra = { git = "https://github.com/10gen/sql-engines-common-test-infra.git", branch = "main", package = "test-generator" }
+test-utils = { path = "../test-utils" }
 
 [features]
 index = ["generated"]

@@ -48,8 +48,6 @@ pub struct QueryTestGenerator {
 }
 
 impl TestGenerator for QueryTestGenerator {
-    type YamlTestCase = QueryTestCase;
-
     fn generate_test_file_header(
         &self,
         generated_test_file: &mut File,
@@ -58,11 +56,10 @@ impl TestGenerator for QueryTestGenerator {
         todo!()
     }
 
-    fn generate_test_case(
+    fn generate_test_file_body(
         &self,
         generated_test_file: &mut File,
-        index: usize,
-        test_case: &Self::YamlTestCase,
+        original_path: PathBuf,
     ) -> sql_engines_common_test_infra::Result<()> {
         todo!()
     }

@@ -1126,6 +1126,7 @@ dependencies = [
  "mongodb",
  "mongosql",
  "schema_derivation",
+ "serde",
  "test-generator",
  "test-utils",
 ]
@@ -4079,7 +4080,7 @@ dependencies = [
 [[package]]
 name = "test-generator"
 version = "0.1.0"
-source = "git+https://github.com/10gen/sql-engines-common-test-infra.git?branch=main#5f6f1dabef1474d35256225ec1b1937b5ffefb20"
+source = "git+https://github.com/10gen/sql-engines-common-test-infra.git?branch=main#0a1c7d70bcb5d4ec97cc923913459acb38860dd7"
 dependencies = [
  "serde",
  "serde_yaml",
