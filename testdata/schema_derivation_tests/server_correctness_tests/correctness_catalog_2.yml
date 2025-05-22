@@ -1,6 +1,9 @@
-{
-  'test': {
-    'small_fuzzer_coll': {
+dataset:
+  - db: 'server_correctness_tests_2'
+    collection:
+      name: 'small_fuzzer_coll'
+      docs: []
+    schema: {
       "bsonType": "object",
       "properties": {
         "geoLegacy": {
@@ -796,8 +799,13 @@
       },
       "required": ["_id", "array", "bool", "date", "num", "str"],
       "additionalProperties": false
-    },
-    'fuzzer_coll': {
+    }
+
+  - db: 'server_correctness_tests_2'
+    collection:
+      name: 'fuzzer_coll'
+      docs: []
+    schema: {
       "bsonType": "object",
       "properties": {
         "obj": {
@@ -6877,5 +6885,3 @@
       "required": ["_id"],
       "additionalProperties": false
     }
-  }
-}

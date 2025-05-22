@@ -1,62 +1,63 @@
-catalog_schema_file: correctness_catalog_1.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline: [ { "$setWindowFields" : { "sortBy" : { "num" : 1 }, "output" : { "obj.obj.obj.obj.obj.num" : { "$expMovingAvg" : { "input" : { "$sqrt" : { "$abs" : {"$numberDecimal": "-828.0987983519944"} } }, "N" : {"$numberLong": "5"} } } } } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 50 }, {"$project": {"obj.obj.obj.obj.obj.num": 1, "_id": 0}} ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "obj": {
-        "bsonType": "object",
-        "properties": {
-          "obj": {
-            "bsonType": "object",
-            "properties": {
-              "obj": {
-                "bsonType": "object",
-                "properties": {
-                  "obj": {
-                    "bsonType": "object",
-                    "properties": {
-                      "obj": {
-                        "bsonType": "object",
-                        "properties": {
-                          "num": {
-                            "bsonType": "decimal"
-                          }
-                        },
-                        "required": [
-                          "num"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "required": [
-                      "obj"
-                    ],
-                    "additionalProperties": false
-                  }
-                },
-                "required": [
-                  "obj"
-                ],
-                "additionalProperties": false
-              }
-            },
-            "required": [
-              "obj"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "required": [
-          "obj"
-        ],
-        "additionalProperties": false
-      }
-    },
-    "required": [
-      "obj"
-    ],
-    "additionalProperties": false
-  }
+tests:
+- description: correcntess_test_1_66
+  current_db: server_correctness_tests
+  current_collection: fuzzer_coll
+  pipeline: [ { "$setWindowFields" : { "sortBy" : { "num" : 1 }, "output" : { "obj.obj.obj.obj.obj.num" : { "$expMovingAvg" : { "input" : { "$sqrt" : { "$abs" : {"$numberDecimal": "-828.0987983519944"} } }, "N" : {"$numberLong": "5"} } } } } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 50 }, {"$project": {"obj.obj.obj.obj.obj.num": 1, "_id": 0}} ]
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
+        "obj": {
+          "bsonType": "object",
+          "properties": {
+            "obj": {
+              "bsonType": "object",
+              "properties": {
+                "obj": {
+                  "bsonType": "object",
+                  "properties": {
+                    "obj": {
+                      "bsonType": "object",
+                      "properties": {
+                        "obj": {
+                          "bsonType": "object",
+                          "properties": {
+                            "num": {
+                              "bsonType": "decimal"
+                            }
+                          },
+                          "required": [
+                            "num"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "obj"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "obj"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "obj"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "obj"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "obj"
+      ],
+      "additionalProperties": false
+    }

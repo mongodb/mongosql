@@ -1,70 +1,71 @@
-catalog_schema_file: correctness_catalog_1.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline: [ { "$sort" : { "geoLegacy" : 1, "obj.obj.date" : -1, "_id" : 1 } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$facet" : { "array" : [ { "$sort" : { "_id" : 1 } }, { "$bucket" : { "groupBy" : { "$dateFromString" : { "dateString" : "2019-04-10T04:07:34.564Z", "format" : "%Y-%m-%dT%H:%M:%S.%LZ", "onNull" : { "$max" : [ {"$date": "0001-01-01T00:00:00Z"}, { "$toDate" : { "$toDouble" : { "$regexMatch" : { "input" : "Computer Chips", "regex" : /Fantastic|View|EXE/ } } } } ] } } }, "boundaries" : [ {"$date": "0001-01-01T00:00:00Z"}, {"$date": "0001-01-01T00:00:00Z"}, {"$date": "0001-01-01T00:00:00Z"}, {"$date": "0001-01-01T00:00:00Z"}, {"$date": "0001-01-01T00:00:00Z"}, {"$date": "0001-01-01T00:00:00Z"}, {"$date": "0001-01-01T00:00:00Z"}, {"$date": "0001-01-01T00:00:00Z"}, {"$date": "0001-01-01T00:00:00Z"} ], "default" : {"$date": "0001-01-01T00:00:00Z"}, "output" : { "array" : { "$push" : { "$mergeObjects" : [ { "date" : {"$date": "0001-01-01T00:00:00Z"}, "str" : "Checking Account Intelligent Cotton Chicken", "num" : {"$numberLong": "0"} }, { "array" : [ true, { "obj" : { "num" : 23671, "date" : {"$date": "2019-07-26T04:52:39.136Z"}, "str" : "Frozen River" }, "str" : "withdrawal Coordinator Concrete" } ], "str" : "Checking Account Beauty Massachusetts" }, { "$unsetField" : { "field" : "obj.obj", "input" : { "obj" : { "date" : {"$date": "2019-07-12T00:29:58.321Z"} } } } }, { "date" : {"$date": "2019-11-29T23:56:17.120Z"}, "num" : -3.14159265 } ] } } } } } ] } } ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "array": {
-        "bsonType": "array",
-        "items": {
-          "bsonType": "object",
-          "properties": {
-            "array": {
-              "bsonType": "array",
-              "items": {
-                "bsonType": "object",
-                "properties": {
-                  "array": {
-                    "bsonType": "array",
-                    "items": {
-                      "anyOf": [
-                        { "bsonType": "bool" },
-                        {
-                          "bsonType": "object",
-                          "properties": {
-                            "obj": {
-                              "bsonType": "object",
-                              "properties": {
-                                "num": { "bsonType": "int" },
-                                "str": { "bsonType": "string" },
-                                "date": { "bsonType": "date" }
+tests:
+- description: correcntess_test_1_62
+  current_db: server_correctness_tests
+  current_collection: fuzzer_coll
+  pipeline: [ { "$sort" : { "geoLegacy" : 1, "obj.obj.date" : -1, "_id" : 1 } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$facet" : { "array" : [ { "$sort" : { "_id" : 1 } }, { "$bucket" : { "groupBy" : { "$dateFromString" : { "dateString" : "2019-04-10T04:07:34.564Z", "format" : "%Y-%m-%dT%H:%M:%S.%LZ", "onNull" : { "$max" : [ {"$date": "0001-01-01T00:00:00Z"}, { "$toDate" : { "$toDouble" : { "$regexMatch" : { "input" : "Computer Chips", "regex" : /Fantastic|View|EXE/ } } } } ] } } }, "boundaries" : [ {"$date": "0001-01-01T00:00:00Z"}, {"$date": "0001-01-01T00:00:00Z"}, {"$date": "0001-01-01T00:00:00Z"}, {"$date": "0001-01-01T00:00:00Z"}, {"$date": "0001-01-01T00:00:00Z"}, {"$date": "0001-01-01T00:00:00Z"}, {"$date": "0001-01-01T00:00:00Z"}, {"$date": "0001-01-01T00:00:00Z"}, {"$date": "0001-01-01T00:00:00Z"} ], "default" : {"$date": "0001-01-01T00:00:00Z"}, "output" : { "array" : { "$push" : { "$mergeObjects" : [ { "date" : {"$date": "0001-01-01T00:00:00Z"}, "str" : "Checking Account Intelligent Cotton Chicken", "num" : {"$numberLong": "0"} }, { "array" : [ true, { "obj" : { "num" : 23671, "date" : {"$date": "2019-07-26T04:52:39.136Z"}, "str" : "Frozen River" }, "str" : "withdrawal Coordinator Concrete" } ], "str" : "Checking Account Beauty Massachusetts" }, { "$unsetField" : { "field" : "obj.obj", "input" : { "obj" : { "date" : {"$date": "2019-07-12T00:29:58.321Z"} } } } }, { "date" : {"$date": "2019-11-29T23:56:17.120Z"}, "num" : -3.14159265 } ] } } } } } ] } } ]
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
+        "array": {
+          "bsonType": "array",
+          "items": {
+            "bsonType": "object",
+            "properties": {
+              "array": {
+                "bsonType": "array",
+                "items": {
+                  "bsonType": "object",
+                  "properties": {
+                    "array": {
+                      "bsonType": "array",
+                      "items": {
+                        "anyOf": [
+                          { "bsonType": "bool" },
+                          {
+                            "bsonType": "object",
+                            "properties": {
+                              "obj": {
+                                "bsonType": "object",
+                                "properties": {
+                                  "num": { "bsonType": "int" },
+                                  "str": { "bsonType": "string" },
+                                  "date": { "bsonType": "date" }
+                                },
+                                "required": ["date", "num", "str"],
+                                "additionalProperties": false
                               },
-                              "required": ["date", "num", "str"],
-                              "additionalProperties": false
+                              "str": { "bsonType": "string" }
                             },
-                            "str": { "bsonType": "string" }
-                          },
-                          "required": ["obj", "str"],
-                          "additionalProperties": false
-                        }
-                      ]
+                            "required": ["obj", "str"],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    },
+                    "date": { "bsonType": "date" },
+                    "num": { "bsonType": "double" },
+                    "str": { "bsonType": "string" },
+                    "obj": {
+                      "bsonType": "object",
+                      "properties": {
+                        "date": { "bsonType": "date" }
+                      },
+                      "required": ["date"],
+                      "additionalProperties": false
                     }
                   },
-                  "date": { "bsonType": "date" },
-                  "num": { "bsonType": "double" },
-                  "str": { "bsonType": "string" },
-                  "obj": {
-                    "bsonType": "object",
-                    "properties": {
-                      "date": { "bsonType": "date" }
-                    },
-                    "required": ["date"],
-                    "additionalProperties": false
-                  }
-                },
-                "required": ["array", "date", "num", "obj", "str"],
-                "additionalProperties": false
-              }
+                  "required": ["array", "date", "num", "obj", "str"],
+                  "additionalProperties": false
+                }
+              },
+              "_id": { "bsonType": "date" }
             },
-            "_id": { "bsonType": "date" }
-          },
-          "required": ["_id", "array"],
-          "additionalProperties": false
+            "required": ["_id", "array"],
+            "additionalProperties": false
+          }
         }
-      }
-    },
-    "required": ["array"],
-    "additionalProperties": false
-  }
+      },
+      "required": ["array"],
+      "additionalProperties": false
+    }

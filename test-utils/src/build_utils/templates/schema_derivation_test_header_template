@@ -30,12 +30,8 @@ pub fn initialize_test() -> (&'static SchemaDerivationYamlTestFile, &'static BTr
     INIT.call_once(|| {{
         unsafe {{
             let client: Client = Client::with_uri_str(MONGODB_URI.clone()).map_err(Error::CannotCreateMongoDBClient).unwrap();
-            TEST_FILE = Some(parse_schema_derivation_yaml_file(PathBuf::from({path})).unwrap());
-            let tests: &Vec<SchemaDerivationTest> = match TEST_FILE.as_ref().unwrap() {{
-                SchemaDerivationYamlTestFile::Single(query_correctness_test) => &vec![query_correctness_test.clone()],
-                SchemaDerivationYamlTestFile::Multiple(spec_query_test) => {{ &spec_query_test.tests }}
-            }};
-            let db_names = tests.iter().flat_map(|t| {{
+            let test_file = parse_schema_derivation_yaml_file(PathBuf::from({path})).unwrap();
+            let db_names = test_file.tests.iter().flat_map(|t| {{
                 let mut db_names = vec![];
                 if let Some(current_db) = t.current_db.as_ref() {{
                     db_names.push(current_db.clone())
@@ -48,6 +44,7 @@ pub fn initialize_test() -> (&'static SchemaDerivationYamlTestFile, &'static BTr
                 db_names
             }}).collect();
             let catalog = get_schema_map_for_dbs(&client, db_names);
+            TEST_FILE = Some(test_file);
             CATALOG = Some(catalog);
         }}
     }});

@@ -1,39 +1,40 @@
-catalog_schema_file: correctness_catalog_2.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline:  [ { "$match" : { "$and" : [ { "$or" : [ { "$or" : [ { "$and" : [ { "obj.bool" : { "$ne" : false } } ] } ] }, { "obj.obj.date" : { "$ne" : {"$date": {"$numberLong": "1564352712418"}}} }, { "bool" : { "$not" : { "$lt" : true } } }, { "str" : { "$lt" : "withdrawal" } }, { "obj.obj.obj.obj.obj.num" : { "$lt" : 0 } } ] } ] } }, { "$count" : "num" }, { "$setWindowFields" : { "partitionBy" : { "$regexFind" : { "input" : { "$substrBytes" : [ "$obj.obj.obj.str", 7, 4 ] }, "regex" : "Money Market Account|(?:Concret|invoic)e|Refined|Sports", "options" : "" } }, "sortBy" : { "date" : 1 }, "output" : { "num" : { "$covarianceSamp" : [ { "$stdDevPop" : [ "$count", "$num" ] }, { "$bitXor" : [ 94309 ] } ] }, "obj.obj.date" : { "$top" : { "output" : "$obj.obj.date", "sortBy" : { "num" : 1, "_id" : 1 } } } } } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 50 } ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "obj": {
-        "bsonType": "object",
-        "properties": {
-          "obj": {
-            "bsonType": "object",
-            "properties": {
-              "date": {
-                "bsonType": "null"
-              }
-            },
-            "required": [
-              "date"
-            ],
-            "additionalProperties": false
-          }
+tests:
+- description: correcntess_test_2_33
+  current_db: server_correctness_tests_2
+  current_collection: fuzzer_coll
+  pipeline:  [ { "$match" : { "$and" : [ { "$or" : [ { "$or" : [ { "$and" : [ { "obj.bool" : { "$ne" : false } } ] } ] }, { "obj.obj.date" : { "$ne" : {"$date": {"$numberLong": "1564352712418"}}} }, { "bool" : { "$not" : { "$lt" : true } } }, { "str" : { "$lt" : "withdrawal" } }, { "obj.obj.obj.obj.obj.num" : { "$lt" : 0 } } ] } ] } }, { "$count" : "num" }, { "$setWindowFields" : { "partitionBy" : { "$regexFind" : { "input" : { "$substrBytes" : [ "$obj.obj.obj.str", 7, 4 ] }, "regex" : "Money Market Account|(?:Concret|invoic)e|Refined|Sports", "options" : "" } }, "sortBy" : { "date" : 1 }, "output" : { "num" : { "$covarianceSamp" : [ { "$stdDevPop" : [ "$count", "$num" ] }, { "$bitXor" : [ 94309 ] } ] }, "obj.obj.date" : { "$top" : { "output" : "$obj.obj.date", "sortBy" : { "num" : 1, "_id" : 1 } } } } } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 50 } ]
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
+        "obj": {
+          "bsonType": "object",
+          "properties": {
+            "obj": {
+              "bsonType": "object",
+              "properties": {
+                "date": {
+                  "bsonType": "null"
+                }
+              },
+              "required": [
+                "date"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "obj"
+          ],
+          "additionalProperties": false
         },
-        "required": [
-          "obj"
-        ],
-        "additionalProperties": false
+        "num": {
+          "bsonType": "null"
+        }
       },
-      "num": {
-        "bsonType": "null"
-      }
-    },
-    "required": [
-      "num",
-      "obj"
-    ],
-    "additionalProperties": false
-  }
+      "required": [
+        "num",
+        "obj"
+      ],
+      "additionalProperties": false
+    }

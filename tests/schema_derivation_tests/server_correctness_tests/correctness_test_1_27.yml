@@ -1,18 +1,19 @@
-catalog_schema_file: correctness_catalog_1.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline: [ { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$map" : { "input" : [ "$obj.str", { "$toUpper" : { "$ltrim" : { "input" : "$obj.str", "chars" : "$str" } } }, "compressing", { "$toLower" : { "$toString" : { "$regexMatch" : { "input" : "project", "regex" : /(?:superstructur|innovat)e|Plaza|Baby|Rue/, "options" : "" } } } } ], "as" : "roger", "in" : { "$substrCP" : [ "Cambridgeshire Louisiana", 11, 14 ] } } } } ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
+tests:
+- description: correcntess_test_1_27
+  current_db: server_correctness_tests
+  current_collection: fuzzer_coll
+  pipeline: [ { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$map" : { "input" : [ "$obj.str", { "$toUpper" : { "$ltrim" : { "input" : "$obj.str", "chars" : "$str" } } }, "compressing", { "$toLower" : { "$toString" : { "$regexMatch" : { "input" : "project", "regex" : /(?:superstructur|innovat)e|Plaza|Baby|Rue/, "options" : "" } } } } ], "as" : "roger", "in" : { "$substrCP" : [ "Cambridgeshire Louisiana", 11, 14 ] } } } } ]
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
 
-      "_id": {
-        "bsonType": "array",
-        "items": { "bsonType": "string" }
+        "_id": {
+          "bsonType": "array",
+          "items": { "bsonType": "string" }
+        },
+        "count": { "bsonType": "int" }
       },
-      "count": { "bsonType": "int" }
-    },
-    "required": ["_id", "count"],
-    "additionalProperties": false
-  }
+      "required": ["_id", "count"],
+      "additionalProperties": false
+    }

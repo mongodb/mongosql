@@ -6,15 +6,8 @@ use std::{collections::BTreeMap, fs, io::Read, path::PathBuf};
 
 use super::Error;
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum SchemaDerivationYamlTestFile {
-    Multiple(SpecQuerySchemaDerivationTestFile),
-    Single(SchemaDerivationTest),
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SpecQuerySchemaDerivationTestFile {
+pub struct SchemaDerivationYamlTestFile {
     pub catalog_schema: Option<BTreeMap<String, BTreeMap<String, mongosql::json_schema::Schema>>>,
     pub tests: Vec<SchemaDerivationTest>,
 }
@@ -23,7 +16,6 @@ pub struct SpecQuerySchemaDerivationTestFile {
 pub struct SchemaDerivationTest {
     pub description: Option<String>,
     pub skip_reason: Option<String>,
-    pub catalog_schema_file: Option<String>,
     pub current_db: Option<String>,
     pub current_collection: Option<String>,
     pub catalog_dbs: Option<Vec<String>>,

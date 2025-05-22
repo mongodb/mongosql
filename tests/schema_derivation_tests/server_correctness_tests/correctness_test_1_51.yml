@@ -1,24 +1,25 @@
-catalog_schema_file: correctness_catalog_1.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline: [ { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$map" : { "input" : [ "$num", "$obj.obj.obj.obj.obj.num", -1, {"$numberDecimal": "300.68933707402016"} ], "as" : "lizzie", "in" : { "$ceil" : "$$lizzie" } } } } ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "count": { "bsonType": "int" },
-      "_id": {
-        "bsonType": "array",
-        "items": {
-          "anyOf": [
-            { "bsonType": "null" },
-            { "bsonType": "int" },
-            { "bsonType": "double" },
-            { "bsonType": "decimal" }
-          ]
+tests:
+- description: correcntess_test_1_51
+  current_db: server_correctness_tests
+  current_collection: fuzzer_coll
+  pipeline: [ { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$map" : { "input" : [ "$num", "$obj.obj.obj.obj.obj.num", -1, {"$numberDecimal": "300.68933707402016"} ], "as" : "lizzie", "in" : { "$ceil" : "$$lizzie" } } } } ]
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
+        "count": { "bsonType": "int" },
+        "_id": {
+          "bsonType": "array",
+          "items": {
+            "anyOf": [
+              { "bsonType": "null" },
+              { "bsonType": "int" },
+              { "bsonType": "double" },
+              { "bsonType": "decimal" }
+            ]
+          }
         }
-      }
-    },
-    "required": ["_id", "count"],
-    "additionalProperties": false
-  }
+      },
+      "required": ["_id", "count"],
+      "additionalProperties": false
+    }

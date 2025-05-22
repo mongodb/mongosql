@@ -1,69 +1,70 @@
-catalog_schema_file: correctness_catalog_2.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline: [ { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : { "$let" : { "vars" : { "liam" : { "$unsetField" : { "field" : "obj.obj.obj.obj.obj.array", "input" : { "$ifNull" : [ "$obj.obj.obj.obj.obj.obj", {  } ] } } }, "mona" : { "$unsetField" : { "field" : "obj.obj.obj.obj.str", "input" : { "array" : [ "methodical", {"$numberDecimal": "573.6648862061647"}, [ false, { "num" : {"$numberDecimal": "9.999999999999999999999999999999999E+6144"} } ], "Agent 24/7 withdrawal" ] } } }, "layla" : { "$hour" : { "date" : ISODate("2019-12-24T02:44:44.992Z"), "timezone" : "Africa/Blantyre" } }, "eleanora" : { "$firstN" : { "n" : { "$ifNull" : [ 17, 1 ] }, "input" : { "$ifNull" : [ [ "$obj.obj.obj.obj.obj.num" ], [ ] ] } } }, "nicola" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$dateTrunc" : { "date" : ObjectId("507f191e810c19729de860ea"), "unit" : "second", "binSize" : {"$numberLong": "2127175208"}, "timezone" : "Africa/Khartoum" } } ] } }, "in" : { "$setField" : { "field" : "obj.obj.obj.obj.num", "input" : { "$ifNull" : [ "$obj.obj.obj.obj.obj", {  } ] }, "value" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$dateFromParts" : { "year" : {"$numberLong": "18"}, "month" : 0 } } ] } } } } } } } ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "_id": {
-        "bsonType": "object",
-        "properties": {
-          "str": {
-            "bsonType": "string"
-          },
-          "_id": {
-            "bsonType": "int"
-          },
-          "geoJson": {
-            "bsonType": "object",
-            "properties": {
-              "coordinates": {
-                "bsonType": "array",
-                "items": {
-                  "bsonType": "double"
+tests:
+- description: correcntess_test_2_8
+  current_db: server_correctness_tests_2
+  current_collection: fuzzer_coll
+  pipeline: [ { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : { "$let" : { "vars" : { "liam" : { "$unsetField" : { "field" : "obj.obj.obj.obj.obj.array", "input" : { "$ifNull" : [ "$obj.obj.obj.obj.obj.obj", {  } ] } } }, "mona" : { "$unsetField" : { "field" : "obj.obj.obj.obj.str", "input" : { "array" : [ "methodical", {"$numberDecimal": "573.6648862061647"}, [ false, { "num" : {"$numberDecimal": "9.999999999999999999999999999999999E+6144"} } ], "Agent 24/7 withdrawal" ] } } }, "layla" : { "$hour" : { "date" : ISODate("2019-12-24T02:44:44.992Z"), "timezone" : "Africa/Blantyre" } }, "eleanora" : { "$firstN" : { "n" : { "$ifNull" : [ 17, 1 ] }, "input" : { "$ifNull" : [ [ "$obj.obj.obj.obj.obj.num" ], [ ] ] } } }, "nicola" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$dateTrunc" : { "date" : ObjectId("507f191e810c19729de860ea"), "unit" : "second", "binSize" : {"$numberLong": "2127175208"}, "timezone" : "Africa/Khartoum" } } ] } }, "in" : { "$setField" : { "field" : "obj.obj.obj.obj.num", "input" : { "$ifNull" : [ "$obj.obj.obj.obj.obj", {  } ] }, "value" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$dateFromParts" : { "year" : {"$numberLong": "18"}, "month" : 0 } } ] } } } } } } } ]
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
+        "_id": {
+          "bsonType": "object",
+          "properties": {
+            "str": {
+              "bsonType": "string"
+            },
+            "_id": {
+              "bsonType": "int"
+            },
+            "geoJson": {
+              "bsonType": "object",
+              "properties": {
+                "coordinates": {
+                  "bsonType": "array",
+                  "items": {
+                    "bsonType": "double"
+                  }
+                },
+                "type": {
+                  "bsonType": "string"
                 }
               },
-              "type": {
-                "bsonType": "string"
-              }
+              "required": [
+                "coordinates",
+                "type"
+              ],
+              "additionalProperties": false
             },
-            "required": [
-              "coordinates",
-              "type"
-            ],
-            "additionalProperties": false
+            "date": {
+              "bsonType": "date"
+            },
+            "num": {
+              "bsonType": "long"
+            },
+            "obj.obj.obj.obj.num": {
+              "anyOf": [
+                { "bsonType": "date" },
+                { "bsonType": "string" },
+              ]
+            },
+            "obj": {
+              "bsonType": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "bool": {
+              "bsonType": "null"
+            }
           },
-          "date": {
-            "bsonType": "date"
-          },
-          "num": {
-            "bsonType": "long"
-          },
-          "obj.obj.obj.obj.num": {
-            "anyOf": [
-              { "bsonType": "date" },
-              { "bsonType": "string" },
-            ]
-          },
-          "obj": {
-            "bsonType": "object",
-            "properties": {},
-            "additionalProperties": false
-          },
-          "bool": {
-            "bsonType": "null"
-          }
-        },
-        "required": [
-          "obj.obj.obj.obj.num"
-        ],
-        "additionalProperties": false
-      }
-    },
-    "required": [
-      "_id",
-      "_id"
-    ],
-    "additionalProperties": false
-  }
+          "required": [
+            "obj.obj.obj.obj.num"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "_id",
+        "_id"
+      ],
+      "additionalProperties": false
+    }
