@@ -6,6 +6,7 @@ tests:
   result_set_schema:
     {
       "bsonType": "object",
+      "required": ["num", "obj"],
       "properties": {
         "num": {
           "anyOf": [
@@ -15,9 +16,11 @@ tests:
         },
         "obj": {
           "bsonType": "object",
+          "required": ["obj"],
           "properties": {
             "obj": {
               "bsonType": "object",
+              "required": ["str"],
               "properties": {
                 "str": {
                   "anyOf": [

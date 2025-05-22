@@ -19,7 +19,6 @@ tests:
                 ]
               },
               "str": { "bsonType": "string" },
-              "_id": { "bsonType": "int" }
             },
             "required": ["str"],
             "additionalProperties": false
