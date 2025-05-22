@@ -1413,7 +1413,7 @@ impl<'de> Deserialize<'de> for UnsetField {
         match expression {
             Expression::Document(mut d) => {
                 let field = get_field_setter_name(&mut d)
-                    .ok_or(serde_err::custom("field to setField must be a string"))?;
+                    .ok_or(serde_err::custom("field to unsetField must be a string"))?;
                 let input = d.remove("input");
                 if let Some(input) = input {
                     Ok(UnsetField {
