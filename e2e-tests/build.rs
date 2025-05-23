@@ -22,8 +22,8 @@ fn main() {
 const E2E_TEST: &str = "e2e_tests";
 const ERROR_TEST: &str = "errors";
 const INDEX_TEST: &str = "index_usage_tests";
-const SCHEMA_DERIVATION_TESTS: &str = "schema_derivation_tests";
 const QUERY_TEST: &str = "query_tests";
+const SCHEMA_DERIVATION_TESTS: &str = "schema_derivation_tests";
 
 // tests we don't handle
 const REWRITE_TEST: &str = "rewrite_tests";
@@ -46,12 +46,12 @@ impl TestGeneratorFactory for MongoSqlTestGeneratorFactory {
             }))
         } else if path.contains(INDEX_TEST) {
             Ok(Box::new(IndexUsageTestGenerator))
-        } else if path.contains(SCHEMA_DERIVATION_TESTS) {
-            Ok(Box::new(SchemaDerivationTestGenerator))
         } else if path.contains(QUERY_TEST) {
             Ok(Box::new(QueryTestGenerator {
                 feature: "query".to_string(),
             }))
+        } else if path.contains(SCHEMA_DERIVATION_TESTS) {
+            Ok(Box::new(SchemaDerivationTestGenerator))
         } else if path.contains(REWRITE_TEST) || path.contains(TYPE_CONSTRAINT_TESTS) {
             Err(Error::UnhandledTestType(path))
         } else {
