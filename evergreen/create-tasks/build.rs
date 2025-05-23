@@ -49,7 +49,7 @@ static TEST_TYPES: &[(&str, &str, &str, &str)] = &[
     (
         "schema-derivation",
         "../testdata/schema_derivation_tests",
-        "run schema derivation tests tests",
+        "run schema derivation tests",
         "--features=schema_derivation --package=e2e-tests -- --test-threads=1",
     ),
 ];
