@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)]
 use crate::{
     array_element_schema_or_error, get_schema_for_path, get_schema_for_path_mut,
     insert_required_key_into_document, promote_missing, remove_field, schema_difference,
@@ -178,6 +179,10 @@ impl DeriveSchema for Stage {
                             // field namespace - field schema. We collect in such a way that we can get the error from any derivation.
                             let doc_fields = document
                                 .into_iter()
+                                .filter(|(field, expr)| {
+                                    !(*field == "$literal"
+                                        && *expr == &Expression::Document(map!()))
+                                })
                                 .map(|(field, expr)| {
                                     let field_schema = expr.derive_schema(state)?;
                                     Ok((field.clone(), field_schema))

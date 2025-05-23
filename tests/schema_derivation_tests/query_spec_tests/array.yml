@@ -1,7 +1,7 @@
 tests:
   - description: SELECT empty array literal
-    current_db: schema_derivation_array
-    skip_reason: SQL-2752 improve $literal ergonomics
+    current_db: schema_derivation_from_array
+    skip_reason: "SQL-2837: cannot reprsent Array(unsat) in JSON schema"
     pipeline: [
       {
         "$documents": [
@@ -52,7 +52,8 @@ tests:
           ], 
           "properties": {
             "_1": {
-              "bsonType": "array"
+              "bsonType": "array",
+              "numItems": 0
             }
           }, 
           "bsonType": "object"

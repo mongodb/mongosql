@@ -143,6 +143,7 @@ pub struct Unwind {
     pub is_prefiltered: bool,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(PartialEq, Debug, Clone)]
 pub enum MqlStage {
     EquiJoin(EquiJoin),

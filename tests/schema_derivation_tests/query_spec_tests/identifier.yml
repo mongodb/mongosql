@@ -178,7 +178,6 @@ tests:
 - description: Delimited identifier with a $
   current_db: foo
   current_collection: bar
-  skip_reason: SQL-2752 improve $literal ergonomics
   pipeline: [
     {
       "$project": {
@@ -237,7 +236,6 @@ tests:
 - description: Nested delimited identifiers containing $ and .
   current_db: foo
   current_collection: bar
-  skip_reason: SQL-2752 improve $literal ergonomics
   pipeline: [
     {
       "$project": {
@@ -303,7 +301,6 @@ tests:
 - description: Mixed identifiers containing $ and .
   current_db: foo
   current_collection: bar
-  skip_reason: SQL-2752 improve $literal ergonomics
   pipeline: [
     {
       "$project": {

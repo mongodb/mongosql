@@ -830,7 +830,7 @@ tests:
   }
 - description: unary ops bind tighter than mul/div
   current_db: schema_derivation_operators_precedence
-  skip_reason: SQL-2752 improve $literal ergonomics
+  skip_reason: "SQL-2838: negative integer literals deserialize as long"
   pipeline: [
     {
       "$documents": [
