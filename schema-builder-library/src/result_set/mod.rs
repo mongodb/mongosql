@@ -1,7 +1,8 @@
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use crate::{NamespaceInfoWithSchema, Result, SchemaResult};
 use actor::{ResultSetActor, ResultSetActorHandle, SchemaResultSender};
+use agg_ast::Namespace;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tracing::error;
 pub mod actor;
@@ -40,10 +41,18 @@ impl ResultSet {
     }
 
     /// Get a specific schema by database and collection/view name
-    pub async fn get_schema(
+    pub async fn get_schema_for_database(
         &self,
         db_name: String,
     ) -> Result<Option<HashMap<String, NamespaceInfoWithSchema>>> {
         helpers::get_schema(&self.actor_handle, db_name).await
+    }
+
+    /// Get schemas for specific collections in a database
+    pub async fn get_schemas_for_namespaces(
+        &self,
+        namespaces: BTreeSet<Namespace>,
+    ) -> Result<Option<HashMap<String, NamespaceInfoWithSchema>>> {
+        helpers::get_schemas_for_namespaces(&self.actor_handle, namespaces).await
     }
 }

@@ -3,15 +3,16 @@
  * and how we operate with them.
  */
 use crate::{
-    consts::DISALLOWED_COLLECTION_NAMES, derive_schema_for_partitions, derive_schema_for_view,
-    get_partitions, notify, result_set::ResultSet, Error, NamespaceInfo, NamespaceInfoWithSchema,
+    derive_schema_for_partitions, derive_schema_for_view, get_partitions, notify, notify_info,
+    notify_warning, result_set::ResultSet, Error, NamespaceInfo, NamespaceInfoWithSchema,
     NamespaceType, Result, SamplerAction, SamplerNotification, SchemaResult,
 };
+mod patterns;
 use agg_ast::Namespace;
 use futures::TryStreamExt;
 use mongodb::{
     bson::{self, doc, Document},
-    Cursor, Database,
+    Database,
 };
 use schema_derivation::{derive_schema_for_pipeline, ResultSetState};
 use serde::{Deserialize, Serialize};
@@ -19,7 +20,7 @@ use std::{
     collections::{BTreeMap, HashMap},
     sync::{Arc, LazyLock, OnceLock},
 };
-use tokio::task::JoinHandle;
+use tokio::{sync::mpsc::UnboundedSender, task::JoinHandle};
 use tracing::{info, instrument};
 
 #[cfg(test)]
@@ -155,7 +156,7 @@ impl CollectionInfo {
                         return;
                     }
 
-                    let initial_schema = match result_set.get_schema(db_name.to_string()).await {
+                    let initial_schema = match result_set.get_schema_for_database(db_name.to_string()).await {
                         Ok(Some(schemas)) => schemas
                             .get(&collection_name)
                             .map(|schema| schema.namespace_schema.clone()),
@@ -337,191 +338,112 @@ impl CollectionInfo {
                         },
                     );
 
-                    // Get the catalog for the view the database is in
-                    // and use it for schema derivation
-                    match result_set.get_schema(db.name().to_string()).await {
-                        Err(e) => {
-                            notify!(
-                                tx_notifications,
-                                SamplerNotification {
-                                    db: db.name().to_string(),
-                                    collection_or_view: view_doc.name.clone(),
-                                    action: SamplerAction::Warning {
-                                        message: format!(
-                                            "Failed to get schema for underlying collection {} backing the view {}: {}.\n Falling
-                                            back to sampling.",
-                                            view_doc.options.view_on, view_doc.name, e
-                                        )
-                                    }
-                                }
-                            );
 
-                            // Fall back to the old sampling method if we can't get the schema
-                            match derive_schema_for_view(&view_doc, &db, tx_notifications.clone())
-                                .await
-                            {
-                                None => notify!(
-                                    tx_notifications,
-                                    SamplerNotification {
-                                        db: db.name().to_string(),
-                                        collection_or_view: view_doc.name.clone(),
-                                        action: SamplerAction::Warning {
-                                            message: "no schema derived, view may be empty"
-                                                .to_string()
-                                        }
-                                    }
-                                ),
-                                Some(schema) => {
-                                    let _ = tx_schemata.send(SchemaResult::FullSchema(
-                                        NamespaceInfoWithSchema {
-                                            namespace_info,
-                                            namespace_schema: schema,
-                                        },
-                                    ));
-                                }
+                    if let Ok(pipeline) = view_doc
+                        .options
+                        .pipeline
+                        .iter()
+                        .map(|doc| bson::from_document(doc.clone()))
+                        .try_fold(Vec::new(), |mut acc, doc| match doc {
+                            Ok(stage) => {
+                                acc.push(stage);
+                                Ok(acc)
                             }
-                        }
-                        Ok(None) => {
-                            notify!(
-                                tx_notifications,
-                                SamplerNotification {
-                                    db: db.name().to_string(),
-                                    collection_or_view: view_doc.name.clone(),
-                                    action: SamplerAction::Warning {
-                                        message: format!(
-                                            "No schema found for underlying collection {} for view {}",
-                                            view_doc.options.view_on, view_doc.name
-                                        )
-                                    }
-                                }
-                            );
+                            Err(e) => Err(e),
+                        }) {
 
-                            // Fall back to the old sampling method if no schema exists
-                            match derive_schema_for_view(&view_doc, &db, tx_notifications.clone())
-                                .await
-                            {
-                                None => notify!(
+                        // Get the catalog for the view the database is in
+                        // and use it for schema derivation
+                        let namespaces = schema_derivation::get_namespaces_for_pipeline(pipeline.clone(), db.name().to_string(), Some(view_doc.options.view_on.clone()));
+
+                        match result_set.get_schemas_for_namespaces(namespaces).await {
+                            Err(e) => {
+                                notify_warning!(
                                     tx_notifications,
-                                    SamplerNotification {
-                                        db: db.name().to_string(),
-                                        collection_or_view: view_doc.name.clone(),
-                                        action: SamplerAction::Warning {
-                                            message: "no schema derived, view may be empty"
-                                                .to_string()
-                                        }
-                                    }
-                                ),
-                                Some(schema) => {
-                                    let _ = tx_schemata.send(SchemaResult::FullSchema(
-                                        NamespaceInfoWithSchema {
-                                            namespace_info,
-                                            namespace_schema: schema,
-                                        },
-                                    ));
-                                }
-                            }
-                        }
-                        Ok(Some(collection_info_with_schema)) => {
-                            // Use the catalog and the pipeline to derive the view schema
-                            let catalog = collection_info_with_schema.iter().fold(
-                                BTreeMap::new(),
-                                |mut acc, (key, value)| {
-                                    acc.insert(
-                                        Namespace::new(db.name().to_string(), key.clone()),
-                                        value.namespace_schema.clone(),
-                                    );
-                                    acc
-                                },
-                            );
-                            let mut state = ResultSetState::new(&catalog, db.name().to_string());
-
-                            let Ok(pipeline) = view_doc
-                                .options
-                                .pipeline
-                                .iter()
-                                .map(|doc| bson::from_document(doc.clone()))
-                                .try_fold(Vec::new(), |mut acc, doc| match doc {
-                                    Ok(stage) => {
-                                        acc.push(stage);
-                                        Ok(acc)
-                                    }
-                                    Err(e) => Err(e),
-                                })
-                            else {
-                                unimplemented!();
-                            };
-
-                            match derive_schema_for_pipeline(
-                                pipeline,
-                                Some(view_doc.options.view_on.clone()),
-                                &mut state,
-                            ) {
-                                Ok(schema) => {
-                                    notify!(
-                                        &tx_notifications,
-                                        SamplerNotification {
-                                            db: db.name().to_string(),
-                                            collection_or_view: view_doc.name.clone(),
-                                            action: SamplerAction::Info {
-                                                message: "Successfully derived schema for view"
-                                                    .to_string()
-                                            },
-                                        },
-                                    );
-
-                                    let _ = tx_schemata.send(SchemaResult::FullSchema(
-                                        NamespaceInfoWithSchema {
-                                            namespace_info,
-                                            namespace_schema: schema,
-                                        },
-                                    ));
-                                }
-                                Err(e) => {
-                                    notify!(
-                                        &tx_notifications,
-                                        SamplerNotification {
-                                            db: db.name().to_string(),
-                                            collection_or_view: view_doc.name.clone(),
-                                            action: SamplerAction::Warning {
-                                                message: format!(
-                                                    "Failed to derive schema from pipeline: {}",
-                                                    e
-                                                )
-                                            },
-                                        },
-                                    );
-
-                                    // Fall back to the old sampling method if pipeline processing fails
-                                    match derive_schema_for_view(
-                                        &view_doc,
-                                        &db,
-                                        tx_notifications.clone(),
+                                    db.name(),
+                                    view_doc.name,
+                                    format!(
+                                        "Failed to get schema for underlying collection {} backing the view {}: {}.\n Falling
+                                        back to sampling.",
+                                        view_doc.options.view_on, view_doc.name, e
                                     )
-                                    .await
-                                    {
-                                        None => notify!(
-                                            tx_notifications,
-                                            SamplerNotification {
-                                                db: db.name().to_string(),
-                                                collection_or_view: view_doc.name.clone(),
-                                                action: SamplerAction::Warning {
-                                                    message: "no schema derived, view may be empty"
-                                                        .to_string()
-                                                }
+                                );
+
+                                // Fall back to the old sampling method if we can't get the schema
+                                fallback_view_task(
+                                    &view_doc,
+                                    &db,
+                                    tx_notifications.clone(),
+                                    tx_schemata.clone(),
+                                    namespace_info,
+                                    format!(
+                                        "Failed to get schema for underlying collection {} backing the view {}: {}.\n Falling back to sampling.",
+                                        view_doc.options.view_on, view_doc.name, e
+                                    )
+                                ).await;
+                            }
+                            Ok(None) => {
+
+                                // Fall back to the old sampling method if no schema exists
+                                fallback_view_task(&view_doc, &db, tx_notifications.clone(), tx_schemata.clone(), namespace_info, format!(
+                                        "No schema found for underlying collection {} backing the view {}.\n Falling back to sampling.",
+                                        view_doc.options.view_on, view_doc.name
+                                    )).await;
+                            }
+                            Ok(Some(collection_info_with_schema)) => {
+                                // Use the catalog and the pipeline to derive the view schema
+                                let catalog = collection_info_with_schema.iter().fold(
+                                    BTreeMap::new(),
+                                    |mut acc, (key, value)| {
+                                        acc.insert(
+                                            Namespace::new(db.name().to_string(), key.clone()),
+                                            value.namespace_schema.clone(),
+                                        );
+                                        acc
+                                    },
+                                );
+                                let mut state = ResultSetState::new(&catalog, db.name().to_string());
+
+
+                                        match derive_schema_for_pipeline(
+                                            pipeline,
+                                            Some(view_doc.options.view_on.clone()),
+                                            &mut state,
+                                        ) {
+                                            Ok(schema) => {
+                                                notify_info!(
+                                                    &tx_notifications,
+                                                    db.name(),
+                                                    view_doc.name,
+                                                    format!("Successfully derived schema for view")
+                                                );
+
+                                                let _ = tx_schemata.send(SchemaResult::FullSchema(
+                                                    NamespaceInfoWithSchema {
+                                                        namespace_info,
+                                                        namespace_schema: schema,
+                                                    },
+                                                ));
                                             }
-                                        ),
-                                        Some(schema) => {
-                                            let _ = tx_schemata.send(SchemaResult::FullSchema(
-                                                NamespaceInfoWithSchema {
-                                                    namespace_info,
-                                                    namespace_schema: schema,
-                                                },
-                                            ));
+                                            Err(e) => {
+                                                fallback_view_task(&view_doc, &db, tx_notifications.clone(), tx_schemata.clone(), namespace_info, format!(
+                                                        "Failed to derive schema from pipeline: {}.\n Falling back to sampling.",
+                                                        e
+                                                    )).await;
+                                            }
                                         }
-                                    }
-                                }
+
                             }
                         }
+                    } else {
+                        fallback_view_task(
+                            &view_doc,
+                            &db,
+                            tx_notifications.clone(),
+                            tx_schemata.clone(),
+                            namespace_info,
+                            "Unable to parse view pipeline, falling back to sampling".to_string(),
+                        ).await;
                     }
 
                     drop(tx_notifications);
@@ -530,212 +452,36 @@ impl CollectionInfo {
             })
             .collect()
     }
+}
 
-    /// process_inclusion filters an input collectiondoc by the include_list and
-    /// exclude_list.
-    /// First, it filters the input collection_list by the include_list, retaining
-    /// items that are in the include_list.
-    /// Second, it filters the collection_list by the exclude_list, removing items
-    /// that are in the exclude_list.
-    /// Lastly, it filters out any collections that are in the disallowed list.
-    ///
-    /// Glob syntax is supported, i.e. mydb.* will match all collections in mydb.
-    #[instrument(level = "trace")]
-    fn should_consider(
-        database: &str,
-        collection_or_view: &CollectionDoc,
-        include_list: &[glob::Pattern],
-        exclude_list: &[glob::Pattern],
-    ) -> Result<bool> {
-        let allow_dunderscore_namespace =
-            Self::should_allow_dunderscore_namespace(database, collection_or_view, include_list)?;
-
-        Ok((include_list.is_empty()
-            || include_list.iter().any(|pattern| {
-                pattern.matches(&format!("{database}.{}", collection_or_view.name.as_str()))
-            }))
-            && (!exclude_list.iter().any(|pattern| {
-                pattern.matches(&format!("{database}.{}", collection_or_view.name.as_str()))
-            }))
-            && (!(EXCLUDE_DUNDERSCORE_PATTERN.matches(database)
-                || EXCLUDE_DUNDERSCORE_PATTERN.matches(collection_or_view.name.as_str()))
-                || allow_dunderscore_namespace)
-            && (!DISALLOWED_COLLECTION_NAMES.contains(&collection_or_view.name.as_str())))
-    }
-
-    /// Since we automatically exclude DBs and collections that start with dunderscores,
-    /// this function is used to determine if a dunderscore namespace should be included.
-    /// If a non-dunderscore namespace is passed to this function, nothing is done, and
-    /// `false` is returned.
-    #[instrument(level = "trace")]
-    fn should_allow_dunderscore_namespace(
-        database: &str,
-        collection_or_view: &CollectionDoc,
-        include_list: &[glob::Pattern],
-    ) -> Result<bool> {
-        let db_starts_with_dunderscore = database.starts_with("__");
-        let coll_starts_with_dunderscore = collection_or_view.name.as_str().starts_with("__");
-
-        // If the DB or collection starts with dunderscores, check if we should include it.
-        if db_starts_with_dunderscore || coll_starts_with_dunderscore {
-            // Since our test cases have different `include_lists`, we can't use the static OnceLock for testing.
-            let include_list_in_db_and_coll_pairs = if cfg!(test) {
-                &include_list
-                    .iter()
-                    .map(|pattern| {
-                        let pattern_as_str = pattern.as_str();
-                        let (db, collection) = pattern_as_str.split_once(".")
-                            .unwrap_or_else(|| unreachable!("Internal Error: The pattern `{pattern_as_str}` is not in the format `<database_pattern>.<collection_pattern>`. However, this should have been caught earlier."));
-                        (db.to_string(), collection.to_string())
-                    })
-                    .collect::<Vec<(String, String)>>()
-            } else {
-                INCLUDE_LIST_IN_DB_AND_COLL_PAIRS.get_or_init(|| {
-                    include_list
-                        .iter()
-                        .map(|pattern| {
-                            let pattern_as_str = pattern.as_str();
-                            let (db, collection) = pattern_as_str.split_once(".")
-                                .unwrap_or_else(|| unreachable!("Internal Error: The pattern `{pattern_as_str}` is not in the format `<database_pattern>.<collection_pattern>`. However, this should have been caught earlier."));
-                            (db.to_string(), collection.to_string())
-                        })
-                        .collect::<Vec<(String, String)>>()
-                })
-            };
-
-            let mut allow_dunderscore_namespace = false;
-
-            for (db_pat, coll_pat) in include_list_in_db_and_coll_pairs {
-                let mut allow_db = false;
-                let mut allow_coll = false;
-
-                if db_starts_with_dunderscore {
-                    allow_db = Self::pattern_allows_dunderscore_name(db_pat, database)?;
-                }
-                if coll_starts_with_dunderscore {
-                    allow_coll = Self::pattern_allows_dunderscore_name(
-                        coll_pat,
-                        collection_or_view.name.as_str(),
-                    )?;
-                }
-
-                // The below boolean logic works by checking our three possible cases: (1) only the collection starts with dunderscores,
-                // (2) only the DB starts with dunderscores, or (3) both start with dunderscores. Additionally, we only check the conditions
-                // from each case that are necessary (e.g., if only the DB starts with dunderscores, only the DB must be checked that it matches a
-                // dunderscore inclusion pattern).
-                allow_dunderscore_namespace = allow_dunderscore_namespace
-                    || ((allow_db && db_starts_with_dunderscore && !coll_starts_with_dunderscore)
-                        || (allow_coll
-                            && coll_starts_with_dunderscore
-                            && !db_starts_with_dunderscore)
-                        || (allow_coll
-                            && coll_starts_with_dunderscore
-                            && allow_db
-                            && db_starts_with_dunderscore));
-            }
-
-            Ok(allow_dunderscore_namespace)
-        } else {
-            // If neither the DB or collection are prefixed with a dunderscore, there's no reason to check if we need
-            // to include this namespace because it won't be automatically excluded, so we return `false`.
-            Ok(false)
+/// Fallback function for processing views that don't have a schema in the catalog,
+/// or for view that we weren't able to derive a schema for.
+async fn fallback_view_task(
+    view_doc: &CollectionDoc,
+    db: &Database,
+    tx_notifications: UnboundedSender<SamplerNotification>,
+    tx_schemata: UnboundedSender<SchemaResult>,
+    namespace_info: NamespaceInfo,
+    reason: String,
+) {
+    notify_warning!(
+        tx_notifications,
+        db.name(),
+        view_doc.name,
+        reason.to_string()
+    );
+    match derive_schema_for_view(view_doc, db, tx_notifications.clone()).await {
+        None => notify_warning!(
+            tx_notifications,
+            db.name(),
+            view_doc.name,
+            "No schema derived, view may be empty".to_string()
+        ),
+        Some(schema) => {
+            let _ = tx_schemata.send(SchemaResult::FullSchema(NamespaceInfoWithSchema {
+                namespace_info,
+                namespace_schema: schema,
+            }));
         }
-    }
-
-    /// This is a helper function for `should_allow_dunderscore_namespace`. This function checks
-    /// if the passed `pattern_as_str` allows for the inclusion of the passed dunderscore-prefixed `name`.
-    ///
-    /// It works by first checking if the `pattern_as_str` fits this format:
-    /// `<[<range_including_underscore>] or '_'><[<range_including_underscore>] or '_'><name or wildcard>`
-    /// and then checks if it matches the provided `name`. In other words, first this functions checks
-    /// if the provided pattern allows for _any_ dunderscore-prefixed name, and then it checks if
-    /// it allows for the provided `name`.
-    #[instrument(level = "trace")]
-    fn pattern_allows_dunderscore_name(pattern_as_str: &str, name: &str) -> Result<bool> {
-        // Proof: The only way in glob syntax to explicitly include characters is by using the character itself
-        // or by using brackets with the character included in the brackets. Therefore, to disallow implicit inclusion
-        // of dunderscore-prefixed names and allow for explicit inclusion of them, we want to ignore every
-        // possible case except four:
-        //
-        //  (1) pattern starts with `__`, (2) pattern starts with `_[...]`,
-        //  (3) pattern starts with `[...]_`, or (4) pattern starts with `[...][...]`.
-        //
-        // Furthermore, once we have identified one of these cases, we only know that it's possible
-        // that our pattern matches our dunderscore `name`, so we then have to check if our pattern actually
-        // matches our dunderscore `name`. Therefore, if our pattern fits one of the above cases
-        // and matches our `name`, the pattern allows for `name`.
-
-        // Checks cases (1) and (2)
-        if pattern_as_str.starts_with("__")
-            || (pattern_as_str.starts_with("_[") && !pattern_as_str.starts_with("_[!"))
-        {
-            let pattern = glob::Pattern::new(pattern_as_str).map_err(Error::GlobPatternError)?;
-            return Ok(pattern.matches(name));
-        }
-        // Checks cases (3) and (4)
-        else if pattern_as_str.starts_with("[") && !pattern_as_str.starts_with("[!") {
-            // According to glob syntax, to include `]` as a possible character, you must put it right after the initial `[`,
-            // so if we encounter `[]`, this means the user has chosen to include the `]` in the brackets as a possible character.
-            // If this is the case, we need to find the next `]` because that is the one the concludes the list of characters to include.
-            let close_bracket_index =
-                if let Some(stripped_slice) = pattern_as_str.strip_prefix("[]") {
-                    // Omit first `[]` from slice and then use the `find()` function.
-                    stripped_slice.find("]").ok_or(
-                        Error::InclusionBracketPatternIsMissingClosingBracket(
-                            pattern_as_str.to_string(),
-                        ),
-                    )? + 2 // Add two to the result because we subtracted two from the length by stripping the first two characters.
-                } else {
-                    pattern_as_str.find("]").ok_or(
-                        Error::InclusionBracketPatternIsMissingClosingBracket(
-                            pattern_as_str.to_string(),
-                        ),
-                    )?
-                };
-
-            let slice_excluding_first_inclusion_brackets =
-                &pattern_as_str[(close_bracket_index + 1)..];
-
-            // Make sure we are only including cases `[...]_` and `[...][...]`.
-            if !(slice_excluding_first_inclusion_brackets.starts_with("*")
-                || slice_excluding_first_inclusion_brackets.starts_with("?")
-                || slice_excluding_first_inclusion_brackets.starts_with("[!"))
-            {
-                let pattern =
-                    glob::Pattern::new(pattern_as_str).map_err(Error::GlobPatternError)?;
-                return Ok(pattern.matches(name));
-            }
-        }
-        // If none of the above logic returns `true`, then `pattern_as_str` does not allow for the inclusion of `name`,
-        // so we return `false`.
-        Ok(false)
-    }
-
-    #[instrument(level = "trace")]
-    async fn separate_views_from_collections(
-        database: &str,
-        include_list: &[glob::Pattern],
-        exclude_list: &[glob::Pattern],
-        mut collection_doc: Cursor<Document>,
-    ) -> Result<CollectionInfo> {
-        let mut collection_info = CollectionInfo::default();
-        while let Some(collection_doc) = collection_doc.try_next().await? {
-            if let Ok(collection_doc) = bson::from_bson(bson::Bson::Document(collection_doc)) {
-                if CollectionInfo::should_consider(
-                    database,
-                    &collection_doc,
-                    include_list,
-                    exclude_list,
-                )? {
-                    if collection_doc.type_ == "view" {
-                        collection_info.views.push(collection_doc);
-                    } else {
-                        collection_info.collections.push(collection_doc);
-                    }
-                }
-            }
-        }
-
-        Ok(collection_info)
     }
 }

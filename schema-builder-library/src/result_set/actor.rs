@@ -1,5 +1,6 @@
 use crate::{NamespaceInfoWithSchema, Result, SchemaResult};
-use std::collections::HashMap;
+use agg_ast::Namespace;
+use std::collections::{BTreeSet, HashMap};
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot,
@@ -9,10 +10,18 @@ use tracing::{debug, instrument};
 /// Messages that can be sent to the ResultSetActor
 #[derive(Debug)]
 pub enum ResultSetActorMessage {
+    /// Add a schema result to the catalog
     AddSchema(SchemaResult),
 
-    GetSchema {
+    /// Get the schema for a specific database
+    GetSchemaForDB {
         db_name: String,
+        respond_to: oneshot::Sender<Option<HashMap<String, NamespaceInfoWithSchema>>>,
+    },
+
+    /// Get the schema for specific collections in a database
+    GetSchemaForNamespaces {
+        namespaces: BTreeSet<Namespace>,
         respond_to: oneshot::Sender<Option<HashMap<String, NamespaceInfoWithSchema>>>,
     },
 }
@@ -47,8 +56,28 @@ impl ResultSetActor {
     }
 
     /// Get a schema for a database
-    fn get_schema(&self, db_name: &str) -> Option<&HashMap<String, NamespaceInfoWithSchema>> {
+    fn get_schema_for_db(
+        &self,
+        db_name: &str,
+    ) -> Option<&HashMap<String, NamespaceInfoWithSchema>> {
         self.catalog.get(db_name)
+    }
+
+    /// Get schema for a database with a filter for specific collections/views
+    fn get_schema_for_namespaces(
+        &self,
+        namespaces: BTreeSet<Namespace>,
+    ) -> Option<HashMap<String, NamespaceInfoWithSchema>> {
+        namespaces
+            .iter()
+            .filter_map(|namespace| {
+                self.catalog
+                    .get(&namespace.database)
+                    .and_then(|db_catalog| db_catalog.get(&namespace.collection))
+                    .map(|schema| (namespace.collection.clone(), schema.clone()))
+            })
+            .collect::<HashMap<_, _>>()
+            .into()
     }
 
     /// Process a schema result
@@ -115,11 +144,18 @@ impl ResultSetActor {
                     }
                     self.process_schema_result(schema_result);
                 }
-                ResultSetActorMessage::GetSchema {
+                ResultSetActorMessage::GetSchemaForDB {
                     db_name,
                     respond_to,
                 } => {
-                    let schema = self.get_schema(&db_name).cloned();
+                    let schema = self.get_schema_for_db(&db_name).cloned();
+                    let _ = respond_to.send(schema);
+                }
+                ResultSetActorMessage::GetSchemaForNamespaces {
+                    namespaces,
+                    respond_to,
+                } => {
+                    let schema = self.get_schema_for_namespaces(namespaces);
                     let _ = respond_to.send(schema);
                 }
             }

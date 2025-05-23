@@ -82,7 +82,7 @@ async fn empty_collection() {
     let actual_res = get_size_counts(&coll).await;
     match actual_res {
         Err(Error::NoCollectionStats(_)) => {} // expect the NoCollectionStats errors
-        Err(err) => assert!(false, "unexpected error: {err:?}"),
-        Ok(actual) => assert!(false, "expected error but got: {actual:?}"),
+        Err(err) => panic!("unexpected error: {err:?}"),
+        Ok(actual) => panic!("expected error but got: {actual:?}"),
     }
 }

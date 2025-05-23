@@ -25,6 +25,48 @@ macro_rules! notify {
     }};
 }
 
+#[macro_export]
+macro_rules! notify_error {
+    ($channel:expr, $db:expr, $coll:expr, $message:expr $(,)?) => {{
+        let notification = SamplerNotification {
+            db: $db.to_string(),
+            collection_or_view: $coll.to_string(),
+            action: SamplerAction::Error {
+                message: $message.to_string(),
+            },
+        };
+        notify!($channel, notification);
+    }};
+}
+
+#[macro_export]
+macro_rules! notify_warning {
+    ($channel:expr, $db:expr, $coll:expr, $message:expr $(,)?) => {{
+        let notification = SamplerNotification {
+            db: $db.to_string(),
+            collection_or_view: $coll.to_string(),
+            action: SamplerAction::Warning {
+                message: $message.to_string(),
+            },
+        };
+        notify!($channel, notification);
+    }};
+}
+
+#[macro_export]
+macro_rules! notify_info {
+    ($channel:expr, $db:expr, $coll:expr, $message:expr $(,)?) => {{
+        let notification = SamplerNotification {
+            db: $db.to_string(),
+            collection_or_view: $coll.to_string(),
+            action: SamplerAction::Info {
+                message: $message.to_string(),
+            },
+        };
+        notify!($channel, notification);
+    }};
+}
+
 #[derive(Debug, Clone)]
 pub enum SamplerAction {
     Querying { partition: u16 },
