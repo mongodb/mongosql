@@ -1,97 +1,6 @@
-catalog_schema:
-  {
-    'mydb': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true
-      },
-      'bar': {
-        'bsonType': 'object',
-        'required': [ '_id', 'a', 'b' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': 'int'
-          },
-          'a': {
-            'bsonType': 'int'
-          },
-          'b': {
-            'bsonType': 'object',
-            'properties': {
-              'c': {
-                'bsonType': 'int'
-              }
-            }
-          },
-        }
-      },
-      'nullAndMissing': {
-        'bsonType': "object",
-        'required': [ 'a' ],
-        'additionalProperties': false,
-        'properties': {
-          'a': {
-            'bsonType': !!str "null"
-          },
-        }
-      },
-      'nullAndNonNull': {
-        'bsonType': 'object',
-        'additionalProperies': true
-      },
-      "baz":
-        {
-          "bsonType": "object",
-          "required": [ "_id", "a", "b", "coll" ],
-          "additionalProperties": false,
-          "properties":
-            {
-              "_id": { "bsonType": "int" },
-              "a": { "bsonType": "int" },
-              "b": { "bsonType": "int" },
-              "coll": { "bsonType": "string" },
-            },
-        },
-      "local":
-        {
-          "bsonType": "object",
-          "required": [ "_id" ],
-          "additionalProperties": false,
-          "properties":
-            {
-              "_id": { "bsonType": "int" },
-            },
-        },
-      "foreign":
-        {
-          "bsonType": "object",
-          "required": [ "_id", "l_id", "x" ],
-          "additionalProperties": false,
-          "properties":
-            {
-              "_id": { "bsonType": "int" },
-              "l_id": { "bsonType": "int" },
-              "x": { "bsonType": "int" },
-            },
-        },
-      "car":
-        {
-          "bsonType": "object",
-          "required": [ "_id", "s" ],
-          "additionalProperties": false,
-          "properties":
-            {
-              "_id": { "bsonType": "int" },
-              "s": { "bsonType": "string" },
-            },
-        },
-    }
-  }
-
 tests:
 - description: ascending-sort correctness test
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: foo
   pipeline: [
     {
@@ -149,7 +58,7 @@ tests:
     "bsonType": "object"
   }
 - description: descending-sort correctness test
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: foo
   pipeline: [
     {
@@ -207,7 +116,7 @@ tests:
     "bsonType": "object"
   }
 - description: multiple-sort-key correctness test
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: foo
   pipeline: [
     {
@@ -271,7 +180,7 @@ tests:
     "bsonType": "object"
   }
 - description: missing sorts before null
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: nullAndNonNull
   pipeline: [
     {
@@ -310,7 +219,7 @@ tests:
     "bsonType": "object"
   }
 - description: null sorts before non-null values
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: nullAndNonNull
   pipeline: [
     {
@@ -376,7 +285,7 @@ tests:
   }
 - description: column references in sort keys can be qualified with table name after
     select star
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: bar
   pipeline: [
     {
@@ -430,7 +339,7 @@ tests:
   }
 - description: column references in sort keys can be qualified with table name after
     select substar
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: bar
   pipeline: [
     {
@@ -490,7 +399,7 @@ tests:
   }
 - description: column references in sort keys can be compound identifiers referencing
     document subfields
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: bar
   pipeline: [
     {
@@ -558,7 +467,7 @@ tests:
   }
 - description: column references in sort keys can be compound identifiers referencing
     document subfields and be qualified with table name
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: bar
   pipeline: [
     {
@@ -612,7 +521,7 @@ tests:
   }
 - description: allow qualified order by fields in ORDER BY because some BI tools require
     this even though it is not correct SQL92
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: bar
   pipeline: [
     {
@@ -686,7 +595,7 @@ tests:
 
 - description: allowing ordering by column not in Select still supports ordering by
     computed column
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: baz
   pipeline: [
     {
@@ -777,7 +686,7 @@ tests:
     "bsonType": "object"
   }
 - description: allow ordering by column not in Select
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: baz
   pipeline: [
     {
@@ -848,7 +757,7 @@ tests:
   }
 - description: ordering by column in select list that shadows column from data sources
     still works
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: baz
   pipeline: [
     {
@@ -910,7 +819,7 @@ tests:
     "bsonType": "object"
   }
 - description: ordering by column not in Select in join works when qualified
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: baz
   pipeline: [
     {
@@ -1034,7 +943,7 @@ tests:
     "bsonType": "object"
   }
 - description: allow ordering by column not in Select even with group by
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: baz
   pipeline: [
     {
@@ -1136,7 +1045,7 @@ tests:
     "bsonType": "object"
   }
 - description: Sorting by column from RHS of LEFT JOIN orders the entire result set
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: local
   pipeline: [
     {
@@ -1221,7 +1130,7 @@ tests:
     "bsonType": "object"
   }
 - description: Sorting by column from RHS of INNER JOIN orders the entire result set
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: local
   pipeline: [
     {
@@ -1297,7 +1206,7 @@ tests:
     "bsonType": "object"
   }
 - description: ensure ORDER BY does not introduce extraneous columns
-  current_db: mydb
+  current_db: schema_derivation_order_by
   current_collection: car
   pipeline: [
     {

@@ -1,25 +1,6 @@
-catalog_schema:
-  {
-    'foo': {
-      'bar': {
-        'bsonType': "object",
-        'required': [ 'd', 'i' ],
-        'additionalProperties': false,
-        'properties': {
-          'd': {
-            'bsonType': "double"
-          },
-          'i': {
-            'bsonType': "int"
-          },
-        }
-      }
-    }
-  }
-
 tests:
   - description: SELECT empty array literal
-    current_db: test
+    current_db: schema_derivation_from_array
     skip_reason: "SQL-2837: cannot reprsent Array(unsat) in JSON schema"
     pipeline: [
       {
@@ -82,7 +63,7 @@ tests:
     }
   
   - description: SELECT non-empty array literal
-    current_db: test
+    current_db: schema_derivation_array
     pipeline: [
       {
         "$documents": [

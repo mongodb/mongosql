@@ -1,0 +1,114 @@
+dataset:
+  - db: "schema_derivation_from_flatten"
+    collection:
+      name: "foo"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "object"
+          required: [ "b" ]
+          additionalProperties: false
+          properties:
+            b:
+              bsonType: "object"
+              required: [ "c" ]
+              additionalProperties: false
+              properties:
+                c:
+                  bsonType: "int"
+
+  - db: "schema_derivation_from_flatten"
+    collection:
+      name: "docOrInt"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "object"
+              required: [ "b" ]
+              additionalProperties: false
+              properties:
+                b:
+                  bsonType: "int"
+
+  - db: "schema_derivation_from_flatten"
+    collection:
+      name: "nullableDoc"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "null"
+            - bsonType: "object"
+              required: [ "b" ]
+              additionalProperties: false
+              properties:
+                b:
+                  bsonType: "int"
+
+  - db: "schema_derivation_from_flatten"
+    collection:
+      name: "mustCollide"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "object"
+          required: [ "b" ]
+          additionalProperties: false
+          properties:
+            b:
+              bsonType: "int"
+        a_b:
+          bsonType: "int"
+
+  - db: "schema_derivation_from_flatten"
+    collection:
+      name: "mayCollide"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: true
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "object"
+          required: [ "b" ]
+          additionalProperties: false
+          properties:
+            b:
+              bsonType: "int"
+
+  - db: "schema_derivation_from_flatten"
+    collection:
+      name: "noSchemaInfo"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true

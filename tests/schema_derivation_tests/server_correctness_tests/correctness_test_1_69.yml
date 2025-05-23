@@ -1,51 +1,52 @@
-catalog_schema_file: correctness_catalog_1.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline: [ { "$match" : { "$or" : [ { "obj.obj.num" : { "$ne" : 10 } }, { "$expr" : "$$ROOT" }, { "obj.obj.obj.obj.obj.any" : { "$not" : { "$nin" : [ "digital", { "str" : "online SSL" }, [ {"$numberDecimal": "557.5614620154854"}, -1 ] ] } } } ] } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$unionWith" : { "coll" : "fuzzer_coll", "pipeline" : [ { "$sort" : { "_id" : 1 } }, { "$limit" : 17 } ] } }, {$project: {"obj.obj.num": 1, "obj.obj.obj.obj.obj.any": 1, _id: 0}} ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "obj": {
-        "bsonType": "object",
-        "properties": {
-          "obj": {
-            "bsonType": "object",
-            "properties": {
-              "num": {
-                "anyOf": [
-                  {
-                    "bsonType": "int"
-                  },
-                  {
-                    "bsonType": "long"
-                  }
-                ]
-              },
-              "obj": {
-                "bsonType": "object",
-                "properties": {
-                  "obj": {
-                    "bsonType": "object",
-                    "properties": {
-                      "obj": {
-                        "bsonType": "object",
-                        "properties": {},
-                        "additionalProperties": false
-                      }
+tests:
+- description: correcntess_test_1_69
+  current_db: server_correctness_tests
+  current_collection: fuzzer_coll
+  pipeline: [ { "$match" : { "$or" : [ { "obj.obj.num" : { "$ne" : 10 } }, { "$expr" : "$$ROOT" }, { "obj.obj.obj.obj.obj.any" : { "$not" : { "$nin" : [ "digital", { "str" : "online SSL" }, [ {"$numberDecimal": "557.5614620154854"}, -1 ] ] } } } ] } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$unionWith" : { "coll" : "fuzzer_coll", "pipeline" : [ { "$sort" : { "_id" : 1 } }, { "$limit" : 17 } ] } }, {$project: {"obj.obj.num": 1, "obj.obj.obj.obj.obj.any": 1, _id: 0}} ]
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
+        "obj": {
+          "bsonType": "object",
+          "properties": {
+            "obj": {
+              "bsonType": "object",
+              "properties": {
+                "num": {
+                  "anyOf": [
+                    {
+                      "bsonType": "int"
                     },
-                    "additionalProperties": false
-                  }
+                    {
+                      "bsonType": "long"
+                    }
+                  ]
                 },
-                "additionalProperties": false
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        "additionalProperties": false
-      }
-    },
-    "required": [],
-    "additionalProperties": false
-  }
+                "obj": {
+                  "bsonType": "object",
+                  "properties": {
+                    "obj": {
+                      "bsonType": "object",
+                      "properties": {
+                        "obj": {
+                          "bsonType": "object",
+                          "properties": {},
+                          "additionalProperties": false
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }

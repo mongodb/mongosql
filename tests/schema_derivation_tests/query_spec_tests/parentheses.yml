@@ -1,23 +1,6 @@
-catalog_schema:
-  {
-    'foo': {
-      'ternary': {
-        'bsonType': "object",
-        'required': [ '_id', 'a', 'b', 'c' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': { 'bsonType': "int" },
-          'a': { 'bsonType': "int" },
-          'b': { 'bsonType': "int" },
-          'c': { 'bsonType': "int" },
-        }
-      },
-    }
-  }
-
 tests:
 - description: parentheses correctness tests
-  current_db: foo
+  current_db: schema_derivation_parentheses
   current_collection: ternary
   pipeline: [
     {

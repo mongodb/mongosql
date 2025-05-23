@@ -1,20 +1,6 @@
-catalog_schema:
-  {
-    'mydb': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'bar': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
-
 tests:
 - description: document literal key ordering is not guaranteed to be preserved
-  current_db: mydb
+  current_db: schema_derivation_key_ordering
   current_collection: foo
   pipeline: [
     {
@@ -71,7 +57,7 @@ tests:
     "bsonType": "object"
   }
 - description: key ordering from docs in collections is not guaranteed to be preserved
-  current_db: mydb
+  current_db: schema_derivation_key_ordering
   current_collection: foo
   pipeline: [
     {
@@ -105,7 +91,7 @@ tests:
     "bsonType": "object"
   }
 - description: subdocument key ordering is not guaranteed to be preserved
-  current_db: mydb
+  current_db: schema_derivation_key_ordering
   current_collection: bar
   pipeline: [
     {

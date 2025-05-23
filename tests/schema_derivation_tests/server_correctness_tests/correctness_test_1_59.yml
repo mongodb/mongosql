@@ -1,47 +1,48 @@
-catalog_schema_file: correctness_catalog_1.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline: [ { "$sort" : { "_id" : 1 } }, { "$limit" : 19 }, { "$replaceWith" : { "$min" : [ { "array" : [ { "date" : ISODate("2019-12-05T18:22:47.282Z") } ], "str" : "integrated neural-net Garden" }, { "k" : "Savings Account", "v" : { "$ifNull" : [ { "$minute" : { "date" : "$obj.obj.obj.obj.date", "timezone" : "Indian/Kerguelen" } }, null ] } }, { "k" : "Awesome Wooden Ball Course redefine", "v" : { "$ifNull" : [ "$obj.obj.obj.obj.obj.num", null ] } }, { "obj" : {  }, "str" : "Soft hack interface" } ] } } ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "k": {
-        "bsonType": "string"
-      },
-      "v": {
-        "anyOf": [
-          {
-            "bsonType": "null"
-          },
-          {
-            "bsonType": "int"
-          }
-        ]
-      },
-      "obj": {
-        "bsonType": "object",
-        "properties": {},
-        "additionalProperties": false
-      },
-      "str": {
-        "bsonType": "string"
-      },
-      "array": {
-        "bsonType": "array",
-        "items": {
-          "bsonType": "object",
-          "properties": {
-            "date": {
-              "bsonType": "string"
+tests:
+- description: correcntess_test_1_59
+  current_db: server_correctness_tests
+  current_collection: fuzzer_coll
+  pipeline: [ { "$sort" : { "_id" : 1 } }, { "$limit" : 19 }, { "$replaceWith" : { "$min" : [ { "array" : [ { "date" : ISODate("2019-12-05T18:22:47.282Z") } ], "str" : "integrated neural-net Garden" }, { "k" : "Savings Account", "v" : { "$ifNull" : [ { "$minute" : { "date" : "$obj.obj.obj.obj.date", "timezone" : "Indian/Kerguelen" } }, null ] } }, { "k" : "Awesome Wooden Ball Course redefine", "v" : { "$ifNull" : [ "$obj.obj.obj.obj.obj.num", null ] } }, { "obj" : {  }, "str" : "Soft hack interface" } ] } } ]
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
+        "k": {
+          "bsonType": "string"
+        },
+        "v": {
+          "anyOf": [
+            {
+              "bsonType": "null"
+            },
+            {
+              "bsonType": "int"
             }
-          },
-          "required": [
-            "date"
-          ],
+          ]
+        },
+        "obj": {
+          "bsonType": "object",
+          "properties": {},
           "additionalProperties": false
+        },
+        "str": {
+          "bsonType": "string"
+        },
+        "array": {
+          "bsonType": "array",
+          "items": {
+            "bsonType": "object",
+            "properties": {
+              "date": {
+                "bsonType": "string"
+              }
+            },
+            "required": [
+              "date"
+            ],
+            "additionalProperties": false
+          }
         }
-      }
-    },
-    "additionalProperties": false
-  }
+      },
+      "additionalProperties": false
+    }

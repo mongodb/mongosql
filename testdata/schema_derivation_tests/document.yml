@@ -1,0 +1,31 @@
+dataset:
+  - db: "schema_derivation_document"
+    collection:
+      name: "bar"
+      docs: []
+    schema: {
+        'bsonType': "object",
+        'required': [ '_id' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'a': {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "null" },
+              { 
+                "bsonType": "object" ,
+                required: [ 'b' ],
+                additionalProperties: false,
+                properties: {
+                  'b': {
+                    'bsonType': "int"
+                  }
+                }
+              }
+            ]
+          },
+        }
+      }

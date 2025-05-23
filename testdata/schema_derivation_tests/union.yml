@@ -1,0 +1,16 @@
+dataset:
+  - db: "schema_derivation_union"
+    collection:
+      name: "foo"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_union"
+    collection:
+      name: "bar"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true

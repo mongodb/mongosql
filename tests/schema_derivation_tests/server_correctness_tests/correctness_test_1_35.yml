@@ -1,29 +1,30 @@
-catalog_schema_file: correctness_catalog_1.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline: [ { "$match" : { "$or" : [ { "any" : { "$type" : "decimal" } }, { "obj.num" : { "$lte" : 314.15 } } ] } }, { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : "$geoJson" } } ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "_id": {
-        "anyOf": [
-          { "bsonType": "null" },
-          {
-            "bsonType": "object",
-            "properties": {
-              "type": { "bsonType": "string" },
-              "coordinates": {
-                "bsonType": "array",
-                "items": { "bsonType": "double" }
-              }
-            },
-            "required": ["coordinates", "type"],
-            "additionalProperties": false
-          }
-        ]
+tests:
+- description: correcntess_test_1_35
+  current_db: server_correctness_tests
+  current_collection: fuzzer_coll
+  pipeline: [ { "$match" : { "$or" : [ { "any" : { "$type" : "decimal" } }, { "obj.num" : { "$lte" : 314.15 } } ] } }, { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : "$geoJson" } } ]
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
+        "_id": {
+          "anyOf": [
+            { "bsonType": "null" },
+            {
+              "bsonType": "object",
+              "properties": {
+                "type": { "bsonType": "string" },
+                "coordinates": {
+                  "bsonType": "array",
+                  "items": { "bsonType": "double" }
+                }
+              },
+              "required": ["coordinates", "type"],
+              "additionalProperties": false
+            }
+          ]
+        },
       },
-    },
-    "required": ["_id"],
-    "additionalProperties": false
-  }
+      "required": ["_id"],
+      "additionalProperties": false
+    }

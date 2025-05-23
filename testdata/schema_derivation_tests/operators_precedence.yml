@@ -1,0 +1,62 @@
+dataset:
+  - db: "schema_derivation_schema_derivation_operators_precedence"
+    collection:
+      name: "and_or_tier"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "c" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "bool"
+        b:
+          bsonType: "bool"
+        c:
+          bsonType: "bool"
+
+  - db: "schema_derivation_operators_precedence"
+    collection:
+      name: "not_and_tier"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "bool"
+        b:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_operators_precedence"
+    collection:
+      name: "mul_add_tier"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "c" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"
+        c:
+          bsonType: "int"
+
+  - db: "schema_derivation_operators_precedence"
+    collection:
+      name: "subpath_type_tier"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true

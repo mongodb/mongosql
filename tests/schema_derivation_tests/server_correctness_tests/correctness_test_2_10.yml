@@ -1,58 +1,59 @@
-catalog_schema_file: correctness_catalog_2.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline: [ { "$count" : "num" }, { "$sort" : { "_id" : 1 } }, { "$bucket" : { "groupBy" : { "$let" : { "vars" : { "brad" : "$$ROOT", "kenneth" : { "$and" : "$obj.obj.array" }, "donnell" : { "$regexFindAll" : { "input" : { "$rtrim" : { "input" : "Nevada", "chars" : "$obj.str" } }, "regex" : /^connecting|executive|Plastic/ } }, "marilie" : { "$range" : [ {"$numberLong": "15"}, 1, 18 ] } }, "in" : { "$gte" : [ { "$stdDevPop" : [ { "$subtract" : [ ISODate("2019-09-01T01:50:40.261Z"), 25921 ] }, "$num", {"$numberLong": "11851"}, "$count", {"$numberDecimal": "-990.1870209826432"} ] }, { "$unsetField" : { "field" : "obj.date", "input" : { "k" : "bandwidth", "v" : { "$ifNull" : [ { "$trim" : { "input" : { "$rtrim" : { "input" : "Iraqi Dinar" } }, "chars" : "$obj.obj.obj.str" } }, null ] } } } } ] } } }, "boundaries" : [ false, true ], "default" : "pixel USB", "output" : { "array" : { "$minN" : { "n" : {"$numberLong": "9"}, "input" : { "$dateToParts" : { "date" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$dateAdd" : { "startDate" : ISODate("2019-06-18T13:12:46.674Z"), "unit" : "day", "amount" : { "$toInt" : { "$stdDevPop" : [ "$count", {"$numberLong": "0"}, "$num", {"$numberDecimal": "573.8277568867329"} ] } }, "timezone" : "Australia/Lord_Howe" } } ] } } } } }, "num" : { "$max" : "$obj.obj.obj.num" } } } }, { "$unwind" : { "path" : "$array", "preserveNullAndEmptyArrays" : true } } ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "array": {
-        "bsonType": "object",
-        "properties": {
-          "day": {
-            "bsonType": "int"
+tests:
+- description: correcntess_test_2_10
+  current_db: server_correctness_tests_2
+  current_collection: fuzzer_coll
+  pipeline: [ { "$count" : "num" }, { "$sort" : { "_id" : 1 } }, { "$bucket" : { "groupBy" : { "$let" : { "vars" : { "brad" : "$$ROOT", "kenneth" : { "$and" : "$obj.obj.array" }, "donnell" : { "$regexFindAll" : { "input" : { "$rtrim" : { "input" : "Nevada", "chars" : "$obj.str" } }, "regex" : /^connecting|executive|Plastic/ } }, "marilie" : { "$range" : [ {"$numberLong": "15"}, 1, 18 ] } }, "in" : { "$gte" : [ { "$stdDevPop" : [ { "$subtract" : [ ISODate("2019-09-01T01:50:40.261Z"), 25921 ] }, "$num", {"$numberLong": "11851"}, "$count", {"$numberDecimal": "-990.1870209826432"} ] }, { "$unsetField" : { "field" : "obj.date", "input" : { "k" : "bandwidth", "v" : { "$ifNull" : [ { "$trim" : { "input" : { "$rtrim" : { "input" : "Iraqi Dinar" } }, "chars" : "$obj.obj.obj.str" } }, null ] } } } } ] } } }, "boundaries" : [ false, true ], "default" : "pixel USB", "output" : { "array" : { "$minN" : { "n" : {"$numberLong": "9"}, "input" : { "$dateToParts" : { "date" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$dateAdd" : { "startDate" : ISODate("2019-06-18T13:12:46.674Z"), "unit" : "day", "amount" : { "$toInt" : { "$stdDevPop" : [ "$count", {"$numberLong": "0"}, "$num", {"$numberDecimal": "573.8277568867329"} ] } }, "timezone" : "Australia/Lord_Howe" } } ] } } } } }, "num" : { "$max" : "$obj.obj.obj.num" } } } }, { "$unwind" : { "path" : "$array", "preserveNullAndEmptyArrays" : true } } ]
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
+        "array": {
+          "bsonType": "object",
+          "properties": {
+            "day": {
+              "bsonType": "int"
+            },
+            "month": {
+              "bsonType": "int"
+            },
+            "millisecond": {
+              "bsonType": "int"
+            },
+            "second": {
+              "bsonType": "int"
+            },
+            "year": {
+              "bsonType": "int"
+            },
+            "hour": {
+              "bsonType": "int"
+            },
+            "minute": {
+              "bsonType": "int"
+            }
           },
-          "month": {
-            "bsonType": "int"
-          },
-          "millisecond": {
-            "bsonType": "int"
-          },
-          "second": {
-            "bsonType": "int"
-          },
-          "year": {
-            "bsonType": "int"
-          },
-          "hour": {
-            "bsonType": "int"
-          },
-          "minute": {
-            "bsonType": "int"
-          }
+          "required": [
+            "day",
+            "hour",
+            "millisecond",
+            "minute",
+            "month",
+            "second",
+            "year"
+          ],
+          "additionalProperties": false
         },
-        "required": [
-          "day",
-          "hour",
-          "millisecond",
-          "minute",
-          "month",
-          "second",
-          "year"
-        ],
-        "additionalProperties": false
+        "_id": {
+          "bsonType": "bool"
+        },
+        "num": {
+          "bsonType": "null"
+        }
       },
-      "_id": {
-        "bsonType": "bool"
-      },
-      "num": {
-        "bsonType": "null"
-      }
-    },
-    "required": [
-      "_id",
-      "array",
-      "num"
-    ],
-    "additionalProperties": false
-  }
+      "required": [
+        "_id",
+        "array",
+        "num"
+      ],
+      "additionalProperties": false
+    }

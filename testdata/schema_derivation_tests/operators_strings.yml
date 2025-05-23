@@ -1,0 +1,74 @@
+dataset:
+  - db: "schema_derivation_operators_strings"
+    collection:
+      name: "concat"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "s1" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        s1:
+          bsonType: "string"
+        s2:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_operators_strings"
+    collection:
+      name: "nullAndMissing"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        s:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        p:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_operators_strings"
+    collection:
+      name: "like"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "s", "p" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        s:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        p:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_operators_strings"
+    collection:
+      name: "escape"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "s", "p" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        s:
+          bsonType: "string"
+        p:
+          bsonType: "string"

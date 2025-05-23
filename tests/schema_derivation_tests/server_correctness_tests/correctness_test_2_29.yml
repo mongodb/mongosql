@@ -1,94 +1,95 @@
-catalog_schema_file: correctness_catalog_2.yml
-current_db: test
-current_collection: fuzzer_coll
-skip_reason: "Use of function()"
-pipeline:  [ { "$sort" : { "_id" : 1 } }, { "$bucketAuto" : { "groupBy" : { "$max" : [ {"$date": {"$numberLong": "1564352712418"}}, { "$dateSubtract" : { "startDate" : {"$date": {"$numberLong": "1564352712418"}}, "unit" : "minute", "amount" : { "$toInt" : { "$toInt" : { "$bitNot" : [ 20368 ] } } } } } ] }, "buckets" : 14, "output" : { "date" : { "$top" : { "output" : { "$min" : [ {"$date": {"$numberLong": "1564352712418"}}, { "$max" : [ {"$date": {"$numberLong": "1564352712418"}}, { "$dateAdd" : { "startDate" : {"$oid": "507f191e810c19729de860ea"}, "unit" : "year", "amount" : { "$toInt" : { "$strLenBytes" : { "$ifNull" : [ "Jordan", "" ] } } }, "timezone" : "Atlantic/Bermuda" } } ] }, {"$date": {"$numberLong": "1564352712418"}}, { "$max" : [ {"$date": {"$numberLong": "1564352712418"}}, { "$toDate" : { "$let" : { "vars" : { "maggie" : { "$max" : [ { "$ifNull" : [ "$obj.obj.obj.obj.obj.obj", {  } ] }, { "$ifNull" : [ "$obj.obj.obj.obj", {  } ] } ] } }, "in" : { "$max" : [ {"$date": {"$numberLong": "1564352712418"}}, { "$dateFromParts" : { "year" : 2, "month" : 18, "day" : 8, "hour" : 11, "minute" : 1, "second" : 18, "millisecond" : { "$toInt" : { "$dayOfMonth" : ISODate("2019-08-18T21:54:11.404Z") } } } } ] } } } } ] } ] }, "sortBy" : { "obj.array" : -1, "_id" : 1 } } }, "array" : { "$accumulator" : { "init" : "function() { return []; }", "accumulate" : "function(state, input) { state.push(input); return state.sort(); }", "accumulateArgs" : [ { "$objectToArray" : { "array" : [ [ false, {"$regex": "/Customizable/"} ], ISODate("2019-12-08T10:59:30.277Z"), ISODate("2019-09-07T22:39:18.262Z") ], "obj" : { "str" : "RAM" } } } ], "merge" : "function(state1, state2) { return state1.concat(state2).sort(); }", "lang" : "js" } } } } } ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "_id": {
-        "bsonType": "object",
-        "properties": {
-          "max": {
-            "bsonType": "date"
+tests:
+- description: correcntess_test_2_29
+  current_db: server_correctness_tests_2
+  current_collection: fuzzer_coll
+  skip_reason: "Use of function()"
+  pipeline:  [ { "$sort" : { "_id" : 1 } }, { "$bucketAuto" : { "groupBy" : { "$max" : [ {"$date": {"$numberLong": "1564352712418"}}, { "$dateSubtract" : { "startDate" : {"$date": {"$numberLong": "1564352712418"}}, "unit" : "minute", "amount" : { "$toInt" : { "$toInt" : { "$bitNot" : [ 20368 ] } } } } } ] }, "buckets" : 14, "output" : { "date" : { "$top" : { "output" : { "$min" : [ {"$date": {"$numberLong": "1564352712418"}}, { "$max" : [ {"$date": {"$numberLong": "1564352712418"}}, { "$dateAdd" : { "startDate" : {"$oid": "507f191e810c19729de860ea"}, "unit" : "year", "amount" : { "$toInt" : { "$strLenBytes" : { "$ifNull" : [ "Jordan", "" ] } } }, "timezone" : "Atlantic/Bermuda" } } ] }, {"$date": {"$numberLong": "1564352712418"}}, { "$max" : [ {"$date": {"$numberLong": "1564352712418"}}, { "$toDate" : { "$let" : { "vars" : { "maggie" : { "$max" : [ { "$ifNull" : [ "$obj.obj.obj.obj.obj.obj", {  } ] }, { "$ifNull" : [ "$obj.obj.obj.obj", {  } ] } ] } }, "in" : { "$max" : [ {"$date": {"$numberLong": "1564352712418"}}, { "$dateFromParts" : { "year" : 2, "month" : 18, "day" : 8, "hour" : 11, "minute" : 1, "second" : 18, "millisecond" : { "$toInt" : { "$dayOfMonth" : ISODate("2019-08-18T21:54:11.404Z") } } } } ] } } } } ] } ] }, "sortBy" : { "obj.array" : -1, "_id" : 1 } } }, "array" : { "$accumulator" : { "init" : "function() { return []; }", "accumulate" : "function(state, input) { state.push(input); return state.sort(); }", "accumulateArgs" : [ { "$objectToArray" : { "array" : [ [ false, {"$regex": "/Customizable/"} ], ISODate("2019-12-08T10:59:30.277Z"), ISODate("2019-09-07T22:39:18.262Z") ], "obj" : { "str" : "RAM" } } } ], "merge" : "function(state1, state2) { return state1.concat(state2).sort(); }", "lang" : "js" } } } } } ]
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
+        "_id": {
+          "bsonType": "object",
+          "properties": {
+            "max": {
+              "bsonType": "date"
+            },
+            "min": {
+              "bsonType": "date"
+            }
           },
-          "min": {
-            "bsonType": "date"
-          }
+          "required": [
+            "max",
+            "min"
+          ],
+          "additionalProperties": false
         },
-        "required": [
-          "max",
-          "min"
-        ],
-        "additionalProperties": false
-      },
-      "array": {
-        "bsonType": "array",
-        "items": {
+        "array": {
           "bsonType": "array",
           "items": {
-            "bsonType": "object",
-            "properties": {
-              "v": {
-                "anyOf": [
-                  {
-                    "bsonType": "array",
-                    "items": {
-                      "anyOf": [
-                        {
-                          "bsonType": "date"
-                        },
-                        {
-                          "bsonType": "array",
-                          "items": {
-                            "anyOf": [
-                              {
-                                "bsonType": "bool"
-                              },
-                              {
-                                "bsonType": "regex"
-                              }
-                            ]
+            "bsonType": "array",
+            "items": {
+              "bsonType": "object",
+              "properties": {
+                "v": {
+                  "anyOf": [
+                    {
+                      "bsonType": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "bsonType": "date"
+                          },
+                          {
+                            "bsonType": "array",
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "bsonType": "bool"
+                                },
+                                {
+                                  "bsonType": "regex"
+                                }
+                              ]
+                            }
                           }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "bsonType": "object",
-                    "properties": {
-                      "str": {
-                        "bsonType": "string"
+                        ]
                       }
                     },
-                    "required": [
-                      "str"
-                    ],
-                    "additionalProperties": false
-                  }
-                ]
+                    {
+                      "bsonType": "object",
+                      "properties": {
+                        "str": {
+                          "bsonType": "string"
+                        }
+                      },
+                      "required": [
+                        "str"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "k": {
+                  "bsonType": "string"
+                }
               },
-              "k": {
-                "bsonType": "string"
-              }
-            },
-            "required": [
-              "k",
-              "v"
-            ],
-            "additionalProperties": false
+              "required": [
+                "k",
+                "v"
+              ],
+              "additionalProperties": false
+            }
           }
-        }
+        },
+        "date": {
+          "bsonType": "date"
+        },
       },
-      "date": {
-        "bsonType": "date"
-      },
-    },
-    "required": [
-      "_id",
-      "array",
-      "date"
-    ],
-    "additionalProperties": false
-  }
+      "required": [
+        "_id",
+        "array",
+        "date"
+      ],
+      "additionalProperties": false
+    }

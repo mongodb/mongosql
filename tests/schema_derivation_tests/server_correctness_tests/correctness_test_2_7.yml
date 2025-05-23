@@ -1,97 +1,98 @@
-catalog_schema_file: correctness_catalog_2.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline:  [ { "$match" : { "$and" : [ { "$expr" : { "$dateToParts" : { "date" : "$obj.obj.date", "timezone" : "America/Santo_Domingo" } } } ] } }, { "$addFields" : {  } }, { "$match" : { "$or" : [ { "obj.obj.obj.obj.array" : { "$size" : 8 } }, { "obj.obj.obj.date" : { "$lte" : {"$date": {"$numberLong": "1564352712418"}} } }, { "obj.obj.obj.obj.obj.str" : { "$gt" : "navigating metrics override" } }, { "obj.obj.obj.obj.obj.date" : { "$lt" : {"$date": {"$numberLong": "1575850259066"}} } } ] } }, { "$project" : { "obj.obj.array" : { "$map" : { "input" : [ -314159265359, {"$numberLong": "314159265358979393"}, "$obj.obj.obj.obj.num", "$count" ], "as" : "ignacio", "in" : { "$round" : [ "$obj.obj.obj.num", 17 ] } } }, "bool" : 1, "obj.obj.obj.obj.array" : { "$maxN" : { "n" : 13, "input" : { "$ifNull" : [ [ "$obj.obj.num", "$num" ], [ ] ] } } } } } ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "bool": {
-        "anyOf": [
-          {
-            "bsonType": "null"
-          },
-          {
-            "bsonType": "bool"
-          }
-        ]
-      },
-      "_id": {
-        "bsonType": "int"
-      },
-      "obj": {
-        "bsonType": "object",
-        "properties": {
-          "obj": {
-            "bsonType": "object",
-            "properties": {
-              "array": {
-                "bsonType": "array",
-                "items": {
-                  "anyOf": [
-                    {
-                      "bsonType": "null"
-                    },
-                    {
-                      "bsonType": "int"
-                    },
-                    {
-                      "bsonType": "double"
-                    },
-                    {
-                      "bsonType": "decimal"
-                    }
-                  ]
-                }
-              },
-              "obj": {
-                "bsonType": "object",
-                "properties": {
-                  "obj": {
-                    "bsonType": "object",
-                    "properties": {
-                      "array": {
-                        "bsonType": "array",
-                        "items": {
-                          "anyOf": [
-                            {
-                              "bsonType": "int"
-                            },
-                            {
-                              "bsonType": "decimal"
-                            }
-                          ]
-                        }
+tests:
+- description: correcntess_test_2_7
+  current_db: server_correctness_tests_2
+  current_collection: fuzzer_coll
+  pipeline:  [ { "$match" : { "$and" : [ { "$expr" : { "$dateToParts" : { "date" : "$obj.obj.date", "timezone" : "America/Santo_Domingo" } } } ] } }, { "$addFields" : {  } }, { "$match" : { "$or" : [ { "obj.obj.obj.obj.array" : { "$size" : 8 } }, { "obj.obj.obj.date" : { "$lte" : {"$date": {"$numberLong": "1564352712418"}} } }, { "obj.obj.obj.obj.obj.str" : { "$gt" : "navigating metrics override" } }, { "obj.obj.obj.obj.obj.date" : { "$lt" : {"$date": {"$numberLong": "1575850259066"}} } } ] } }, { "$project" : { "obj.obj.array" : { "$map" : { "input" : [ -314159265359, {"$numberLong": "314159265358979393"}, "$obj.obj.obj.obj.num", "$count" ], "as" : "ignacio", "in" : { "$round" : [ "$obj.obj.obj.num", 17 ] } } }, "bool" : 1, "obj.obj.obj.obj.array" : { "$maxN" : { "n" : 13, "input" : { "$ifNull" : [ [ "$obj.obj.num", "$num" ], [ ] ] } } } } } ]
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
+        "bool": {
+          "anyOf": [
+            {
+              "bsonType": "null"
+            },
+            {
+              "bsonType": "bool"
+            }
+          ]
+        },
+        "_id": {
+          "bsonType": "int"
+        },
+        "obj": {
+          "bsonType": "object",
+          "properties": {
+            "obj": {
+              "bsonType": "object",
+              "properties": {
+                "array": {
+                  "bsonType": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "bsonType": "null"
+                      },
+                      {
+                        "bsonType": "int"
+                      },
+                      {
+                        "bsonType": "double"
+                      },
+                      {
+                        "bsonType": "decimal"
                       }
-                    },
-                    "required": [
-                      "array"
-                    ],
-                    "additionalProperties": false
+                    ]
                   }
                 },
-                "required": [
-                  "obj"
-                ],
-                "additionalProperties": false
-              }
-            },
-            "required": [
-              "array",
-              "obj"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "required": [
-          "obj"
-        ],
-        "additionalProperties": false
-      }
-    },
-    "required": [
-      "_id",
-      "obj"
-    ],
-    "additionalProperties": false
-  }
+                "obj": {
+                  "bsonType": "object",
+                  "properties": {
+                    "obj": {
+                      "bsonType": "object",
+                      "properties": {
+                        "array": {
+                          "bsonType": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "bsonType": "int"
+                              },
+                              {
+                                "bsonType": "decimal"
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "array"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "obj"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "array",
+                "obj"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "obj"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "_id",
+        "obj"
+      ],
+      "additionalProperties": false
+    }

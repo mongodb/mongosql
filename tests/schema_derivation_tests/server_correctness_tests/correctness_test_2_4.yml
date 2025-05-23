@@ -1,38 +1,39 @@
-catalog_schema_file: correctness_catalog_2.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline:  [ { "$redact" : { "$cond" : { "if" : { "$gt" : [ { "$min" : [ { "date" : ISODate("2019-04-09T19:06:51.491Z") }, { "array" : [ {"$numberDecimal": "550.2110421899401"}, ISODate("2019-03-14T04:51:37.908Z"), { "date" : ISODate("2019-10-10T18:19:03.440Z") } ] }, { "k" : "Technician Ergonomic Bedfordshire", "v" : { "$ifNull" : [ false, null ] } }, { "obj" : { "str" : "Unbranded Cotton Shirt", "date" : ISODate("2019-09-06T15:43:52.063Z") }, "str" : "auxiliary Fresh embrace", "array" : [ ISODate("2019-06-30T15:54:27.084Z"), [ false, { "str" : "JBOD", "obj" : { "num" : 48295 } } ], [ ], {"$numberLong": "314159265358979383"}, ISODate("2019-06-22T03:17:30.138Z"), ISODate("2019-05-21T06:34:04.404Z") ] }, { "$ifNull" : [ "$obj.obj.obj", {  } ] } ] }, { "$max" : [ { "$ifNull" : [ "$obj.obj", {  } ] } ] } ] }, "then" : "$$DESCEND", "else" : "$$PRUNE" } } }, { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$switch" : { "branches" : [ { "case" : { "$and" : [ {"$numberDecimal": "-11.411836420423924"}, {"$numberDecimal": "9.999999999999999999999999999999999E+6144"}, false, {"$numberDecimal": "-417.1861222522426"} ] }, "then" : { "$cond" : { "if" : { "$setEquals" : [ { "$ifNull" : [ [ "$obj.obj.obj.obj.num" ], [ ] ] }, { "$ifNull" : [ [ { "$replaceOne" : { "input" : { "$substr" : [ "$obj.obj.obj.obj.str", {"$numberLong": "2"}, {"$numberLong": "13"} ] }, "find" : "Books navigating firewall", "replacement" : "quantifying zero tolerance" } }, "Avon", { "$substrCP" : [ { "$toString" : { "$regexMatch" : { "input" : "$obj.obj.obj.obj.str", "regex" : /Berkshire|implement|Engineer|empower|Analyst/ } } }, 11, 8 ] }, "$str" ], [ ] ] }, { "$ifNull" : [ [ ], [ ] ] }, { "$ifNull" : [ "$obj.obj.obj.obj.obj.array", [ ] ] }, { "$ifNull" : [ [ "$obj.date", { "$rtrim" : { "input" : "$obj.str", "chars" : "$obj.obj.str" } }, "$obj.obj.obj.num", true ], [ ] ] }, { "$ifNull" : [ [ "$obj.obj.num" ], [ ] ] }, { "$ifNull" : [ [ { "date" : ISODate("2019-05-24T01:29:05.667Z"), "str" : "Personal Loan Account Cotton", "num" : 79128 }, [ true ], /hacking|Sleek/, "Credit Card Account", ISODate("2019-05-17T10:06:03.283Z") ], [ ] ] } ] }, "then" : { "$regexFind" : { "input" : "$obj.str", "regex" : "transmit|Avon", "options" : "" } }, "else" : { "$hour" : { "date" : ISODate("2019-08-05T10:35:30.915Z"), "timezone" : "Africa/Johannesburg" } } } } }, { "case" : { "$not" : [ { "$max" : [ { "$ifNull" : [ "$obj.obj.obj.obj.obj.obj", {  } ] }, { "obj" : { "str" : "Chips", "array" : [ /^Checking Account|Tactics|Steel/, ISODate("2019-06-22T01:02:14.993Z"), ISODate("2019-05-17T13:48:38.869Z"), "platforms", ISODate("2019-11-16T18:34:20.493Z") ] }, "str" : "circuit De-engineered tan" } ] } ] }, "then" : { "$convert" : { "input" : { "$lte" : [ { "$minN" : { "n" : 1, "input" : { "$ifNull" : [ [ ISODate("2019-10-15T12:53:34.311Z"), { "$substrBytes" : [ { "$substrCP" : [ { "$let" : { "vars" : { "eriberto" : { "$regexFind" : { "input" : "$obj.str", "regex" : /West Virginia|bypassing|1080p/, "options" : "" } }, "anastasia" : { "$toString" : { "$toUpper" : { "$trim" : { "input" : "$obj.obj.obj.obj.str", "chars" : "$obj.obj.obj.str" } } } } }, "in" : { "$min" : [ "$obj.obj.str", "Bypass Stand-alone", "$str" ] } } }, {"$numberLong": "18"}, 13 ] }, {"$numberLong": "14"}, 5 ] }, ISODate("2019-09-04T18:21:47.407Z"), false, false, "$num" ], [ ] ] } } }, { "$mergeObjects" : [ { "$ifNull" : [ "$obj.obj.obj", {  } ] }, { "k" : "Colombian Peso Unidad de Valor Real reboot Incredible Steel Fish", "v" : { "$ifNull" : [ { "$trim" : { "input" : "$obj.str", "chars" : "methodology" } }, null ] } }, { "$ifNull" : [ "$obj.obj.obj.obj.obj", {  } ] }, { "$min" : [ { "$ifNull" : [ "$obj.obj.obj.obj", {  } ] } ] }, { "array" : [ "Shores", [ ] ] } ] } ] }, "to" : 10, "onNull" : { "$sortArray" : { "input" : { "$setDifference" : [ [ { "$toLower" : "mission-critical" }, "$num" ], [ true, ISODate("2019-06-05T10:07:28.360Z") ] ] }, "sortBy" : 1 } } } } }, { "case" : { "$and" : "$obj.obj.array" }, "then" : { "$anyElementTrue" : [ { "$ifNull" : [ [ "$obj.obj.obj.num", "$obj.obj.obj.num", "$obj.obj.obj.obj.obj.num" ], [ ] ] } ] } } ], "default" : { "$min" : [ [ { "$abs" : {"$numberDecimal": "-Infinity"} }, true ], [ "$obj.obj.obj.obj.obj.str", "$obj.obj.obj.obj.obj.str", "Refined Gibraltar Pound Focused", "$obj.obj.obj.obj.str" ], "$obj.obj.obj.obj.array", [ { "obj" : { "num" : {"$numberLong": "11166"} }, "date" : ISODate("2019-05-11T10:25:40.605Z") }, false, true, ISODate("2019-12-10T05:15:03.121Z") ] ] } } } } ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "_id": {
-        "anyOf": [
-          {
-            "bsonType": "bool"
-          },
-          {
-            "bsonType": "array",
-            "items": {
-              "anyOf": [
-                {
-                  "bsonType": "null"
-                },
-                {
-                  "bsonType": "string"
-                }
-              ]
+tests:
+- description: correcntess_test_2_4
+  current_db: server_correctness_tests_2
+  current_collection: fuzzer_coll
+  pipeline:  [ { "$redact" : { "$cond" : { "if" : { "$gt" : [ { "$min" : [ { "date" : ISODate("2019-04-09T19:06:51.491Z") }, { "array" : [ {"$numberDecimal": "550.2110421899401"}, ISODate("2019-03-14T04:51:37.908Z"), { "date" : ISODate("2019-10-10T18:19:03.440Z") } ] }, { "k" : "Technician Ergonomic Bedfordshire", "v" : { "$ifNull" : [ false, null ] } }, { "obj" : { "str" : "Unbranded Cotton Shirt", "date" : ISODate("2019-09-06T15:43:52.063Z") }, "str" : "auxiliary Fresh embrace", "array" : [ ISODate("2019-06-30T15:54:27.084Z"), [ false, { "str" : "JBOD", "obj" : { "num" : 48295 } } ], [ ], {"$numberLong": "314159265358979383"}, ISODate("2019-06-22T03:17:30.138Z"), ISODate("2019-05-21T06:34:04.404Z") ] }, { "$ifNull" : [ "$obj.obj.obj", {  } ] } ] }, { "$max" : [ { "$ifNull" : [ "$obj.obj", {  } ] } ] } ] }, "then" : "$$DESCEND", "else" : "$$PRUNE" } } }, { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$switch" : { "branches" : [ { "case" : { "$and" : [ {"$numberDecimal": "-11.411836420423924"}, {"$numberDecimal": "9.999999999999999999999999999999999E+6144"}, false, {"$numberDecimal": "-417.1861222522426"} ] }, "then" : { "$cond" : { "if" : { "$setEquals" : [ { "$ifNull" : [ [ "$obj.obj.obj.obj.num" ], [ ] ] }, { "$ifNull" : [ [ { "$replaceOne" : { "input" : { "$substr" : [ "$obj.obj.obj.obj.str", {"$numberLong": "2"}, {"$numberLong": "13"} ] }, "find" : "Books navigating firewall", "replacement" : "quantifying zero tolerance" } }, "Avon", { "$substrCP" : [ { "$toString" : { "$regexMatch" : { "input" : "$obj.obj.obj.obj.str", "regex" : /Berkshire|implement|Engineer|empower|Analyst/ } } }, 11, 8 ] }, "$str" ], [ ] ] }, { "$ifNull" : [ [ ], [ ] ] }, { "$ifNull" : [ "$obj.obj.obj.obj.obj.array", [ ] ] }, { "$ifNull" : [ [ "$obj.date", { "$rtrim" : { "input" : "$obj.str", "chars" : "$obj.obj.str" } }, "$obj.obj.obj.num", true ], [ ] ] }, { "$ifNull" : [ [ "$obj.obj.num" ], [ ] ] }, { "$ifNull" : [ [ { "date" : ISODate("2019-05-24T01:29:05.667Z"), "str" : "Personal Loan Account Cotton", "num" : 79128 }, [ true ], /hacking|Sleek/, "Credit Card Account", ISODate("2019-05-17T10:06:03.283Z") ], [ ] ] } ] }, "then" : { "$regexFind" : { "input" : "$obj.str", "regex" : "transmit|Avon", "options" : "" } }, "else" : { "$hour" : { "date" : ISODate("2019-08-05T10:35:30.915Z"), "timezone" : "Africa/Johannesburg" } } } } }, { "case" : { "$not" : [ { "$max" : [ { "$ifNull" : [ "$obj.obj.obj.obj.obj.obj", {  } ] }, { "obj" : { "str" : "Chips", "array" : [ /^Checking Account|Tactics|Steel/, ISODate("2019-06-22T01:02:14.993Z"), ISODate("2019-05-17T13:48:38.869Z"), "platforms", ISODate("2019-11-16T18:34:20.493Z") ] }, "str" : "circuit De-engineered tan" } ] } ] }, "then" : { "$convert" : { "input" : { "$lte" : [ { "$minN" : { "n" : 1, "input" : { "$ifNull" : [ [ ISODate("2019-10-15T12:53:34.311Z"), { "$substrBytes" : [ { "$substrCP" : [ { "$let" : { "vars" : { "eriberto" : { "$regexFind" : { "input" : "$obj.str", "regex" : /West Virginia|bypassing|1080p/, "options" : "" } }, "anastasia" : { "$toString" : { "$toUpper" : { "$trim" : { "input" : "$obj.obj.obj.obj.str", "chars" : "$obj.obj.obj.str" } } } } }, "in" : { "$min" : [ "$obj.obj.str", "Bypass Stand-alone", "$str" ] } } }, {"$numberLong": "18"}, 13 ] }, {"$numberLong": "14"}, 5 ] }, ISODate("2019-09-04T18:21:47.407Z"), false, false, "$num" ], [ ] ] } } }, { "$mergeObjects" : [ { "$ifNull" : [ "$obj.obj.obj", {  } ] }, { "k" : "Colombian Peso Unidad de Valor Real reboot Incredible Steel Fish", "v" : { "$ifNull" : [ { "$trim" : { "input" : "$obj.str", "chars" : "methodology" } }, null ] } }, { "$ifNull" : [ "$obj.obj.obj.obj.obj", {  } ] }, { "$min" : [ { "$ifNull" : [ "$obj.obj.obj.obj", {  } ] } ] }, { "array" : [ "Shores", [ ] ] } ] } ] }, "to" : 10, "onNull" : { "$sortArray" : { "input" : { "$setDifference" : [ [ { "$toLower" : "mission-critical" }, "$num" ], [ true, ISODate("2019-06-05T10:07:28.360Z") ] ] }, "sortBy" : 1 } } } } }, { "case" : { "$and" : "$obj.obj.array" }, "then" : { "$anyElementTrue" : [ { "$ifNull" : [ [ "$obj.obj.obj.num", "$obj.obj.obj.num", "$obj.obj.obj.obj.obj.num" ], [ ] ] } ] } } ], "default" : { "$min" : [ [ { "$abs" : {"$numberDecimal": "-Infinity"} }, true ], [ "$obj.obj.obj.obj.obj.str", "$obj.obj.obj.obj.obj.str", "Refined Gibraltar Pound Focused", "$obj.obj.obj.obj.str" ], "$obj.obj.obj.obj.array", [ { "obj" : { "num" : {"$numberLong": "11166"} }, "date" : ISODate("2019-05-11T10:25:40.605Z") }, false, true, ISODate("2019-12-10T05:15:03.121Z") ] ] } } } } ]
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
+        "_id": {
+          "anyOf": [
+            {
+              "bsonType": "bool"
+            },
+            {
+              "bsonType": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "bsonType": "null"
+                  },
+                  {
+                    "bsonType": "string"
+                  }
+                ]
+              }
             }
-          }
-        ]
+          ]
+        },
+        "count": {
+          "bsonType": "int"
+        }
       },
-      "count": {
-        "bsonType": "int"
-      }
-    },
-    "required": [
-      "_id",
-      "count"
-    ],
-    "additionalProperties": false
-  }
+      "required": [
+        "_id",
+        "count"
+      ],
+      "additionalProperties": false
+    }

@@ -1,23 +1,24 @@
-catalog_schema_file: correctness_catalog_1.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline: [ { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$max" : [ { "k" : "Ways", "v" : { "$ifNull" : [ { "$rtrim" : { "input" : "heuristic incubate", "chars" : "$obj.obj.obj.obj.obj.str" } }, null ] } } ] } } ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "count": { "bsonType": "int" },
+tests:
+- description: correcntess_test_1_11
+  current_db: server_correctness_tests
+  current_collection: fuzzer_coll
+  pipeline: [ { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$max" : [ { "k" : "Ways", "v" : { "$ifNull" : [ { "$rtrim" : { "input" : "heuristic incubate", "chars" : "$obj.obj.obj.obj.obj.str" } }, null ] } } ] } } ]
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
+        "count": { "bsonType": "int" },
 
-      "_id": {
-        "bsonType": "object",
-        "properties": {
-          "k": { "bsonType": "string" },
-          "v": { "bsonType": "null" }
-        },
-        "required": ["k", "v"],
-        "additionalProperties": false
-      }
-    },
-    "required": ["_id", "count"],
-    "additionalProperties": false
-  }
+        "_id": {
+          "bsonType": "object",
+          "properties": {
+            "k": { "bsonType": "string" },
+            "v": { "bsonType": "null" }
+          },
+          "required": ["k", "v"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["_id", "count"],
+      "additionalProperties": false
+    }

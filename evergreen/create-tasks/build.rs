@@ -46,6 +46,12 @@ static TEST_TYPES: &[(&str, &str, &str, &str)] = &[
         "run rust error tests",
         "--features=error --package=e2e-tests -- --test-threads=1",
     ),
+    (
+        "schema-derivation",
+        "../testdata/schema_derivation_tests",
+        "run schema derivation tests",
+        "--features=schema_derivation --package=e2e-tests -- --test-threads=1",
+    ),
 ];
 
 fn main() {

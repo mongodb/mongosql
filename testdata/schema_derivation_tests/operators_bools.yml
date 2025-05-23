@@ -1,0 +1,36 @@
+dataset:
+  - db: "schema_derivation_operators_bools"
+    collection:
+      name: "unary"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_operators_bools"
+    collection:
+      name: "binary"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: !!str "null"

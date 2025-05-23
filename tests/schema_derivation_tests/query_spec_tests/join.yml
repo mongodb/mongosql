@@ -1,51 +1,6 @@
-catalog_schema:
-  {
-    "mydb":
-      {
-        "bar":
-          {
-            "bsonType": "object",
-            "required": ["_id", "foo"],
-            "additionalProperties": false,
-            "properties":
-              { "_id": { "bsonType": "int" }, "foo": { "bsonType": "int" } },
-          },
-        "bar2":
-          {
-            "bsonType": "object",
-            "required": ["_id", "foo"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "foo": { "bsonType": "int" },
-                "baz": { "bsonType": "int" },
-              },
-          },
-        "coll":
-          {
-            "bsonType": "object",
-            "required": ["_id", "bar", "car"],
-            "additionalProperties": false,
-            "properties":
-              { "bar": { "bsonType": "int" }, "car": { "bsonType": "int" } },
-          },
-      },
-    "db2":
-      {
-        "foo":
-          {
-            "bsonType": "object",
-            "required": ["_id", "x"],
-            "additionalProperties": false,
-            "properties": { "x": { "bsonType": "int" } },
-          },
-      },
-  }
-
 tests:
 - description: cross join correctness test
-  current_db: mydb
+  current_db: schema_derivation_join
   current_collection: bar
   pipeline: [
     {
@@ -132,7 +87,7 @@ tests:
     "bsonType": "object"
   }
 - description: inner join correctness test
-  current_db: mydb
+  current_db: schema_derivation_join
   current_collection: bar
   pipeline: [
     {
@@ -199,7 +154,7 @@ tests:
     "bsonType": "object"
   }
 - description: left join correctness test
-  current_db: mydb
+  current_db: schema_derivation_join
   current_collection: bar2
   pipeline: [
     {
@@ -266,7 +221,7 @@ tests:
     "bsonType": "object"
   }
 - description: right join correctness test
-  current_db: mydb
+  current_db: schema_derivation_join
   current_collection: bar
   pipeline: [
     {
@@ -334,7 +289,7 @@ tests:
     "bsonType": "object"
   }
 - description: join predicates can contain complex expressions
-  current_db: mydb
+  current_db: schema_derivation_join
   current_collection: bar
   pipeline: [
     {
@@ -453,7 +408,7 @@ tests:
     "bsonType": "object"
   }
 - description: join predicates can reference columns by table-qualified names
-  current_db: mydb
+  current_db: schema_derivation_join
   current_collection: bar
   pipeline: [
     {
@@ -520,7 +475,7 @@ tests:
     "bsonType": "object"
   }
 - description: join predicates can reference columns by unambiguous unqualified names
-  current_db: mydb
+  current_db: schema_derivation_join
   current_collection: bar
   pipeline: [
     {
@@ -587,7 +542,7 @@ tests:
     "bsonType": "object"
   }
 - description: joins are left-associative
-  current_db: mydb
+  current_db: schema_derivation_join
   current_collection: bar
   pipeline: [
     {
@@ -700,7 +655,7 @@ tests:
     "bsonType": "object"
   }
 - description: join left and right datasources can be referenced by alias
-  current_db: mydb
+  current_db: schema_derivation_join
   current_collection: bar
   pipeline: [
     {
@@ -795,7 +750,7 @@ tests:
   }
 
 - description: left join with static value comparison to rhs field in ON clause still results in left hand side doc when condition fails
-  current_db: mydb
+  current_db: schema_derivation_join
   current_collection: bar
   pipeline: [
     {
@@ -1024,7 +979,7 @@ tests:
     "bsonType": "object"
   }
 - description: left join followed by WHERE with static comparison on rhs value filters out left hand side docs that do not match the WHERE
-  current_db: mydb
+  current_db: schema_derivation_join
   current_collection: bar
   pipeline: [
     {
@@ -1128,7 +1083,7 @@ tests:
     "bsonType": "object"
   }
 - description: match filter in left join correctness test
-  current_db: mydb
+  current_db: schema_derivation_join
   current_collection: bar
   pipeline: [
     {
@@ -1215,7 +1170,7 @@ tests:
     "bsonType": "object"
   }
 - description: filter in lateral join correctness test
-  current_db: mydb
+  current_db: schema_derivation_join
   current_collection: bar
   pipeline: [
     {
@@ -1464,7 +1419,7 @@ tests:
     "bsonType": "object"
   }
 - description: match filter in lateral join correctness test
-  current_db: mydb
+  current_db: schema_derivation_join
   current_collection: bar
   pipeline: [
     {

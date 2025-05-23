@@ -1,15 +1,16 @@
-catalog_schema_file: correctness_catalog_1.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline: [ { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$convert" : { "input" : { "$sqrt" : { "$abs" : 2147483647 } }, "to" : 2, "onError" : { "$max" : [ [ "Brand Investment Account", "Kansas Operations", {"$numberLong": "55074"}, [ /artificial intelligence|orchestration|dynamic|index|Fresh/ ], { "array" : [ {  }, [ "Checking Account Books", true, false, "National Chicken" ] ], "obj" : { "array" : [ "blue", 0, false, ISODate("2019-12-22T16:42:06.686Z") ] } } ], [ /invoice/, {"$numberLong": "-314159265358979323"}, true, ISODate("2019-08-19T23:36:47.307Z"), /Accountability|Incredible|Nuevo Sol|transmit|Cheese/, {"$numberLong": "314159265358979373"} ], [ [ "Sleek web-enabled", { "array" : [ ] }, 2 ], {"$numberDecimal": "0"}, ISODate("2019-06-23T14:11:53.988Z"), 10 ], [ "$obj.obj.obj.num", "$obj.num" ], "$obj.obj.array" ] } } } } ]    
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "_id": { "bsonType": "string" },
+tests:
+- description: correcntess_test_1_39
+  current_db: server_correctness_tests
+  current_collection: fuzzer_coll
+  pipeline: [ { "$sort" : { "_id" : 1 } }, { "$sortByCount" : { "$convert" : { "input" : { "$sqrt" : { "$abs" : 2147483647 } }, "to" : 2, "onError" : { "$max" : [ [ "Brand Investment Account", "Kansas Operations", {"$numberLong": "55074"}, [ /artificial intelligence|orchestration|dynamic|index|Fresh/ ], { "array" : [ {  }, [ "Checking Account Books", true, false, "National Chicken" ] ], "obj" : { "array" : [ "blue", 0, false, ISODate("2019-12-22T16:42:06.686Z") ] } } ], [ /invoice/, {"$numberLong": "-314159265358979323"}, true, ISODate("2019-08-19T23:36:47.307Z"), /Accountability|Incredible|Nuevo Sol|transmit|Cheese/, {"$numberLong": "314159265358979373"} ], [ [ "Sleek web-enabled", { "array" : [ ] }, 2 ], {"$numberDecimal": "0"}, ISODate("2019-06-23T14:11:53.988Z"), 10 ], [ "$obj.obj.obj.num", "$obj.num" ], "$obj.obj.array" ] } } } } ]    
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
+        "_id": { "bsonType": "string" },
 
-      "count": { "bsonType": "int" }
-    },
-    "required": ["_id", "count"],
-    "additionalProperties": false
-  }
+        "count": { "bsonType": "int" }
+      },
+      "required": ["_id", "count"],
+      "additionalProperties": false
+    }

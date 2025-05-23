@@ -1,0 +1,18 @@
+dataset:
+  - db: "schema_derivation_parentheses"
+    collection:
+      name: "ternary"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "c" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"
+        c:
+          bsonType: "int"

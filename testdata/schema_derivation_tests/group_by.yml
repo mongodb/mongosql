@@ -1,0 +1,187 @@
+dataset:
+  - db: "schema_derivation_group_by"
+    collection:
+      name: "bar"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "c" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"
+        c:
+          bsonType: "int"
+
+  - db: "schema_derivation_group_by"
+    collection:
+      name: "multi"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "c" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+        c:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_group_by"
+    collection:
+      name: "nullAndMissing"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        n:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+
+  - db: "schema_derivation_group_by"
+    collection:
+      name: "baz"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "object"
+          required: [ "a", "b" ]
+          additionalProperties: false
+          properties:
+            a:
+              anyOf:
+                - bsonType: "int"
+                - bsonType: !!str "null"
+            b:
+              anyOf:
+                - bsonType: "int"
+                - bsonType: !!str "null"
+
+  - db: "schema_derivation_group_by"
+    collection:
+      name: "baz2"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "doc" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        doc:
+          bsonType: "object"
+          required: []
+          properties:
+            a:
+              bsonType: "string"
+            b:
+              bsonType: "string"
+
+  - db: "schema_derivation_group_by"
+    collection:
+      name: "numerics"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "double"
+            - bsonType: "decimal"
+
+  - db: "schema_derivation_group_by"
+    collection:
+      name: "dupes"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+
+  - db: "schema_derivation_group_by"
+    collection:
+      name: "arr"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        arr:
+          bsonType: "array"
+
+  - db: "schema_derivation_group_by"
+    collection:
+      name: "docs"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        d:
+          anyOf:
+            - bsonType: !!str "null"
+            - bsonType: "object"
+              required: []
+              additionalProperties: false
+              properties:
+                a:
+                  anyOf:
+                    - bsonType: "int"
+                    - bsonType: !!str "null"
+
+  - db: "schema_derivation_group_by"
+    collection:
+      name: "poly"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: "string"

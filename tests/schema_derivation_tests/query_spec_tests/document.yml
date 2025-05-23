@@ -1,38 +1,6 @@
-catalog_schema:
-  {
-    'foo': {
-      'bar': {
-        'bsonType': "object",
-        'required': [ '_id' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'a': {
-            "anyOf": [
-              { "bsonType": "int" },
-              { "bsonType": "null" },
-              { 
-                "bsonType": "object" ,
-                required: [ 'b' ],
-                additionalProperties: false,
-                properties: {
-                  'b': {
-                    'bsonType': "int"
-                  }
-                }
-              }
-            ]
-          },
-        }
-      }
-    }
-  }
-
 tests:
 - description: SELECT empty document literal
-  current_db: test
+  current_db: schema_derivation_document
   pipeline: [
     {
       "$documents": [
@@ -94,7 +62,7 @@ tests:
     "bsonType": "object"
   }
 - description: SELECT VALUE empty document literal
-  current_db: test
+  current_db: schema_derivation_document
   pipeline: [
     {
       "$documents": [
@@ -145,7 +113,7 @@ tests:
     "bsonType": "object"
   }
 - description: SELECT non-empty document literals
-  current_db: test
+  current_db: schema_derivation_document
   pipeline: [
     {
       "$documents": [
@@ -241,7 +209,7 @@ tests:
     "bsonType": "object"
   }
 - description: SELECT VALUE non-empty document literal
-  current_db: test
+  current_db: schema_derivation_document
   pipeline: [
     {
       "$documents": [
@@ -315,7 +283,7 @@ tests:
     "bsonType": "object"
   }
 - description: Dot notation field access from literal document
-  current_db: test
+  current_db: schema_derivation_document
   pipeline: [
     {
       "$documents": [
@@ -375,7 +343,7 @@ tests:
     "bsonType": "object"
   }
 - description: Dot notation one-level field access
-  current_db: test
+  current_db: schema_derivation_document
   pipeline: [
     {
       "$documents": [
@@ -437,7 +405,7 @@ tests:
     "bsonType": "object"
   }
 - description: Dot notation multi-level field access
-  current_db: test
+  current_db: schema_derivation_document
   pipeline: [
     {
       "$documents": [
@@ -501,7 +469,7 @@ tests:
     "bsonType": "object"
   }
 - description: Dot notation field access from expression that evaluates to non-document at runtime
-  current_db: foo
+  current_db: schema_derivation_document
   current_collection: bar
   pipeline: [
     {
@@ -580,7 +548,7 @@ tests:
     "bsonType": "object"
   }
 - description: Dot notation SELECT field called star
-  current_db: test
+  current_db: schema_derivation_document
   pipeline: [
     {
       "$documents": [
@@ -648,7 +616,7 @@ tests:
     "bsonType": "object"
   }
 - description: Bracket notation field access from literal document
-  current_db: test
+  current_db: schema_derivation_document
   pipeline: [
     {
       "$documents": [
@@ -708,7 +676,7 @@ tests:
     "bsonType": "object"
   }
 - description: Bracket notation one-level field access
-  current_db: test
+  current_db: schema_derivation_document
   pipeline: [
     {
       "$documents": [
@@ -770,7 +738,7 @@ tests:
     "bsonType": "object"
   }
 - description: Bracket notation multi-level field access
-  current_db: test
+  current_db: schema_derivation_document
   pipeline: [
     {
       "$documents": [
@@ -834,7 +802,7 @@ tests:
     "bsonType": "object"
   }
 - description: Bracket notation SELECT field called star
-  current_db: test
+  current_db: schema_derivation_document
   pipeline: [
     {
       "$documents": [
@@ -903,7 +871,7 @@ tests:
   }
 
 - description: Mixed notation field access
-  current_db: test
+  current_db: schema_derivation_document
   pipeline: [
     {
       "$documents": [

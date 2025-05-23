@@ -1,41 +1,6 @@
-catalog_schema:
-  {
-    "mydb":
-      {
-        "biz":
-          {
-            "bsonType": "object",
-            "required": ["_id", "foo"],
-            "additionalProperties": false,
-            "properties":
-              { "_id": { "bsonType": "int" }, "foo": { "bsonType": "int" } },
-          },
-        "bar":
-          {
-            "bsonType": "object",
-            "required": ["_id", "foo"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "foo": { "bsonType": "int" },
-                "baz": { "bsonType": "int" },
-              },
-          },
-        "baz":
-          {
-            "bsonType": "object",
-            "required": ["bar", "car"],
-            "additionalProperties": false,
-            "properties":
-              { "_id": { "bsonType": "int" }, "bar": { "bsonType": "int" }, "car": { "bsonType": "int" } },
-          },
-      },
-  }
-
 tests:
 - description: WITH clause simple query
-  current_db: mydb
+  current_db: schema_derivation_with
   current_collection: biz
   pipeline: [
     {
@@ -79,7 +44,7 @@ tests:
     "bsonType": "object"
   }
 - description: WITH clause join query
-  current_db: mydb
+  current_db: schema_derivation_with
   current_collection: biz
   pipeline: [
     {
@@ -191,7 +156,7 @@ tests:
     "bsonType": "object"
   }
 - description: WITH clause multiple derived with a join
-  current_db: mydb
+  current_db: schema_derivation_with
   current_collection: biz
   pipeline: [
     {
@@ -334,7 +299,7 @@ tests:
     "bsonType": "object"
   }
 - description: WITH clause filters
-  current_db: mydb
+  current_db: schema_derivation_with
   current_collection: biz
   pipeline: [
     {

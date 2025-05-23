@@ -1,20 +1,6 @@
-catalog_schema:
-  {
-    'test': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      },
-      'bar': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
-
 tests:
 - description: both unqualified and qualified references to derived table datasource fields are allowed
-  current_db: test
+  current_db: schema_derivation_from_derived
   pipeline: [
     {
       "$documents": [
@@ -97,7 +83,7 @@ tests:
     "bsonType": "object"
   }
 - description: there is no ambiguity with one schema-less datasource in a derived table
-  current_db: test
+  current_db: schema_derivation_from_derived
   current_collection: foo
   pipeline: [
     {
@@ -143,7 +129,7 @@ tests:
     "bsonType": "object"
   }
 - description: derived table merges namespaces under alias namespace
-  current_db: test
+  current_db: schema_derivation_from_derived
   pipeline: [
     {
       "$documents": [

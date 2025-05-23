@@ -75,6 +75,24 @@ tasks:
           cargo_test_flags: --features=error --package=e2e-tests -- --test-threads=1
     
 
+  - name: test-schema-derivation_6.0-standalone
+    tags: [6.0, standalone]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 6.0
+          TOPOLOGY: server
+      - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/schema_derivation_tests"
+      - func: "run rust tests"
+        vars:
+          description: run schema derivation tests
+          cargo_test_flags: --features=schema_derivation --package=e2e-tests -- --test-threads=1
+    
+
   - name: test-spec-query_7.0-standalone
     tags: [7.0, standalone]
     commands:
@@ -145,6 +163,24 @@ tasks:
         vars:
           description: run rust error tests
           cargo_test_flags: --features=error --package=e2e-tests -- --test-threads=1
+    
+
+  - name: test-schema-derivation_7.0-standalone
+    tags: [7.0, standalone]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 7.0
+          TOPOLOGY: server
+      - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/schema_derivation_tests"
+      - func: "run rust tests"
+        vars:
+          description: run schema derivation tests
+          cargo_test_flags: --features=schema_derivation --package=e2e-tests -- --test-threads=1
     
 
   - name: test-spec-query_8.0-standalone
@@ -219,6 +255,24 @@ tasks:
           cargo_test_flags: --features=error --package=e2e-tests -- --test-threads=1
     
 
+  - name: test-schema-derivation_8.0-standalone
+    tags: [8.0, standalone]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 8.0
+          TOPOLOGY: server
+      - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/schema_derivation_tests"
+      - func: "run rust tests"
+        vars:
+          description: run schema derivation tests
+          cargo_test_flags: --features=schema_derivation --package=e2e-tests -- --test-threads=1
+    
+
   - name: test-spec-query_rapid-standalone
     tags: [rapid, standalone]
     commands:
@@ -291,6 +345,24 @@ tasks:
           cargo_test_flags: --features=error --package=e2e-tests -- --test-threads=1
     
 
+  - name: test-schema-derivation_rapid-standalone
+    tags: [rapid, standalone]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: rapid
+          TOPOLOGY: server
+      - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/schema_derivation_tests"
+      - func: "run rust tests"
+        vars:
+          description: run schema derivation tests
+          cargo_test_flags: --features=schema_derivation --package=e2e-tests -- --test-threads=1
+    
+
   - name: test-spec-query_latest-standalone
     tags: [latest, standalone]
     commands:
@@ -361,4 +433,22 @@ tasks:
         vars:
           description: run rust error tests
           cargo_test_flags: --features=error --package=e2e-tests -- --test-threads=1
+    
+
+  - name: test-schema-derivation_latest-standalone
+    tags: [latest, standalone]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: latest
+          TOPOLOGY: server
+      - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/schema_derivation_tests"
+      - func: "run rust tests"
+        vars:
+          description: run schema derivation tests
+          cargo_test_flags: --features=schema_derivation --package=e2e-tests -- --test-threads=1
     

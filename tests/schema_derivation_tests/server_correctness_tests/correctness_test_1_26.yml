@@ -1,30 +1,30 @@
-catalog_schema_file: correctness_catalog_1.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline: [ { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$facet" : { "array" : [ { "$redact" : { "$cond" : { "if" : { "$anyElementTrue" : [ { "$ifNull" : [ [ /^Yemeni Rial|Pants/, { "array" : [ ], "date" : ISODate("2019-06-29T10:03:17.609Z"), "obj" : { "num" : 96020 }, "str" : "backing up National Rubber" }, ISODate("2019-10-10T19:35:21.878Z") ], [ ] ] } ] }, "then" : "$$KEEP", "else" : "$$DESCEND" } } } ] } }, {$project: {"array.str": 1, "array.bool": 1}} ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "array": {
-        "bsonType": "array",
-        "items": {
-          "bsonType": "object",
-          "properties": {
-            "bool": {
-              "anyOf": [
-                { "bsonType": "null" },
-                { "bsonType": "bool" }
-              ]
+tests:
+- description: correcntess_test_1_26
+  current_db: server_correctness_tests
+  current_collection: fuzzer_coll
+  pipeline: [ { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$facet" : { "array" : [ { "$redact" : { "$cond" : { "if" : { "$anyElementTrue" : [ { "$ifNull" : [ [ /^Yemeni Rial|Pants/, { "array" : [ ], "date" : ISODate("2019-06-29T10:03:17.609Z"), "obj" : { "num" : 96020 }, "str" : "backing up National Rubber" }, ISODate("2019-10-10T19:35:21.878Z") ], [ ] ] } ] }, "then" : "$$KEEP", "else" : "$$DESCEND" } } } ] } }, {$project: {"array.str": 1, "array.bool": 1}} ]
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
+        "array": {
+          "bsonType": "array",
+          "items": {
+            "bsonType": "object",
+            "properties": {
+              "bool": {
+                "anyOf": [
+                  { "bsonType": "null" },
+                  { "bsonType": "bool" }
+                ]
+              },
+              "str": { "bsonType": "string" },
             },
-            "str": { "bsonType": "string" },
-            "_id": { "bsonType": "int" }
-          },
-          "required": ["str"],
-          "additionalProperties": false
-        }
+            "required": ["str"],
+            "additionalProperties": false
+          }
+        },
       },
-    },
-    "required": ["array"],
-    "additionalProperties": false
-  }
+      "required": ["array"],
+      "additionalProperties": false
+    }

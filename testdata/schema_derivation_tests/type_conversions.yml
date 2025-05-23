@@ -1,0 +1,104 @@
+dataset:
+  - db: "schema_derivation_type_conversions"
+    collection:
+      name: "doubles"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_type_conversions"
+    collection:
+      name: "strings"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_type_conversions"
+    collection:
+      name: "documents"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_type_conversions"
+    collection:
+      name: "arrays"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_type_conversions"
+    collection:
+      name: "bindatum"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_type_conversions"
+    collection:
+      name: "objectIDs"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_type_conversions"
+    collection:
+      name: "bools"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_type_conversions"
+    collection:
+      name: "dates"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_type_conversions"
+    collection:
+      name: "nullAndMissing"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_type_conversions"
+    collection:
+      name: "ints"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_type_conversions"
+    collection:
+      name: "longs"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_type_conversions"
+    collection:
+      name: "decimals"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_type_conversions"
+    collection:
+      name: "invalidSourceTypes"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true

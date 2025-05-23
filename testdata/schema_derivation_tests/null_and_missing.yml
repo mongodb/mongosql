@@ -1,0 +1,25 @@
+dataset:
+  - db: "schema_derivation_null_and_missing"
+    collection:
+      name: "bar"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "c" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: !!str "null"
+        c:
+          bsonType: "object"
+          required: [ "d" ]
+          additionalProperties: true
+          properties:
+            d:
+              bsonType: "string"
+            e:
+              bsonType: "int"

@@ -3,31 +3,22 @@ use agg_ast::definitions::Stage;
 use mongodb::bson::doc;
 use mongosql::json_schema;
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, fs, io::Read, path::PathBuf};
+use std::{fs, io::Read, path::PathBuf};
 
 use super::Error;
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-#[allow(clippy::large_enum_variant)]
-pub enum SchemaDerivationYamlTestFile {
-    Multiple(SpecQuerySchemaDerivationTestFile),
-    Single(SchemaDerivationTest),
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SpecQuerySchemaDerivationTestFile {
-    pub catalog_schema: Option<BTreeMap<String, BTreeMap<String, mongosql::json_schema::Schema>>>,
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SchemaDerivationYamlTestFile {
     pub tests: Vec<SchemaDerivationTest>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SchemaDerivationTest {
     pub description: Option<String>,
     pub skip_reason: Option<String>,
-    pub catalog_schema_file: Option<String>,
     pub current_db: Option<String>,
     pub current_collection: Option<String>,
+    pub catalog_dbs: Option<Vec<String>>,
     pub pipeline: Vec<Stage>,
     pub result_set_schema: json_schema::Schema,
 }

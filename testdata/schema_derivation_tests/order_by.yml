@@ -1,0 +1,95 @@
+dataset:
+  - db: "schema_derivation_order_by"
+    collection:
+      name: "foo"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_order_by"
+    collection:
+      name: "bar"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "object"
+          properties:
+            c:
+              bsonType: "int"
+
+  - db: "schema_derivation_order_by"
+    collection:
+      name: "nullAndNonNull"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_order_by"
+    collection:
+      name: "baz"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b", "coll" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+        b:
+          bsonType: "int"
+        coll:
+          bsonType: "string"
+
+  - db: "schema_derivation_order_by"
+    collection:
+      name: "local"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+
+  - db: "schema_derivation_order_by"
+    collection:
+      name: "foreign"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "l_id", "x" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        l_id:
+          bsonType: "int"
+        x:
+          bsonType: "int"
+
+  - db: "schema_derivation_order_by"
+    collection:
+      name: "car"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "s" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        s:
+          bsonType: "string"

@@ -1,0 +1,16 @@
+dataset:
+  - db: "schema_derivation_slice"
+    collection:
+      name: "no_start"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_slice"
+    collection:
+      name: "start"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true

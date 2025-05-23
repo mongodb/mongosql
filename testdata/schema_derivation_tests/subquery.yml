@@ -1,0 +1,72 @@
+dataset:
+  - db: "schema_derivation_subquery"
+    collection:
+      name: "employees"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "name", "salary", "department_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        name:
+          bsonType: "string"
+        salary:
+          bsonType: "int"
+        department_id:
+          bsonType: "int"
+
+  - db: "schema_derivation_subquery"
+    collection:
+      name: "department"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "name" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        name:
+          bsonType: "string"
+
+  - db: "schema_derivation_subquery"
+    collection:
+      name: "employees_w_schema"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "name", "salary", "department_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        name:
+          bsonType: "string"
+        salary:
+          bsonType: "int"
+        department_id:
+          bsonType: "int"
+
+  - db: "schema_derivation_subquery"
+    collection:
+      name: "department_w_schema"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "name" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        name:
+          bsonType: "string"
+
+  - db: "schema_derivation_subquery"
+    collection:
+      name: "baz"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true

@@ -1,110 +1,111 @@
-catalog_schema_file: correctness_catalog_2.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline:  [ { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$facet" : { "array" : [ { "$project" : { "obj.obj.obj.obj.obj.str" : { "$replaceOne" : { "input" : "$obj.obj.obj.str", "find" : "paradigms", "replacement" : "$obj.str" } }, "obj.obj.obj.obj.bool" : 1, "obj.obj.obj.obj.array" : { "$split" : [ "engineer", { "$replaceAll" : { "input" : { "$reduce" : { "input" : [ "$obj.obj.obj.str", "$str", "deposit Borders Checking Account" ], "initialValue" : { "$let" : { "vars" : { "hector" : { "$or" : "$obj.array" }, "calista" : "$$ROOT" }, "in" : { "$ltrim" : { "input" : "$str" } } } }, "in" : { "$toLower" : { "$substrBytes" : [ "$obj.str", 11, {"$numberLong": "20"} ] } } } }, "find" : "$obj.obj.obj.obj.obj.str", "replacement" : { "$rtrim" : { "input" : "$obj.str" } } } } ] }, "obj.obj.obj.obj.str" : 1 } } ] } } ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "array": {
-        "bsonType": "array",
-        "items": {
-          "bsonType": "object",
-          "properties": {
-            "obj": {
-              "bsonType": "object",
-              "properties": {
-                "obj": {
-                  "bsonType": "object",
-                  "properties": {
-                    "obj": {
-                      "bsonType": "object",
-                      "properties": {
-                        "obj": {
-                          "bsonType": "object",
-                          "properties": {
-                            "array": {
-                              "anyOf": [
-                                {
-                                  "bsonType": "null"
-                                },
-                                {
-                                  "bsonType": "array",
-                                  "items": {
-                                    "bsonType": "string"
-                                  }
-                                }
-                              ]
-                            },
-                            "bool": {
-                              "anyOf": [
-                                {
-                                  "bsonType": "null"
-                                },
-                                {
-                                  "bsonType": "bool"
-                                }
-                              ]
-                            },
-                            "obj": {
-                              "bsonType": "object",
-                              "properties": {
-                                "str": {
-                                  "anyOf": [
-                                    {
-                                      "bsonType": "null"
-                                    },
-                                    {
+tests:
+- description: correcntess_test_2_24
+  current_db: server_correctness_tests_2
+  current_collection: fuzzer_coll
+  pipeline:  [ { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$facet" : { "array" : [ { "$project" : { "obj.obj.obj.obj.obj.str" : { "$replaceOne" : { "input" : "$obj.obj.obj.str", "find" : "paradigms", "replacement" : "$obj.str" } }, "obj.obj.obj.obj.bool" : 1, "obj.obj.obj.obj.array" : { "$split" : [ "engineer", { "$replaceAll" : { "input" : { "$reduce" : { "input" : [ "$obj.obj.obj.str", "$str", "deposit Borders Checking Account" ], "initialValue" : { "$let" : { "vars" : { "hector" : { "$or" : "$obj.array" }, "calista" : "$$ROOT" }, "in" : { "$ltrim" : { "input" : "$str" } } } }, "in" : { "$toLower" : { "$substrBytes" : [ "$obj.str", 11, {"$numberLong": "20"} ] } } } }, "find" : "$obj.obj.obj.obj.obj.str", "replacement" : { "$rtrim" : { "input" : "$obj.str" } } } } ] }, "obj.obj.obj.obj.str" : 1 } } ] } } ]
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
+        "array": {
+          "bsonType": "array",
+          "items": {
+            "bsonType": "object",
+            "properties": {
+              "obj": {
+                "bsonType": "object",
+                "properties": {
+                  "obj": {
+                    "bsonType": "object",
+                    "properties": {
+                      "obj": {
+                        "bsonType": "object",
+                        "properties": {
+                          "obj": {
+                            "bsonType": "object",
+                            "properties": {
+                              "array": {
+                                "anyOf": [
+                                  {
+                                    "bsonType": "null"
+                                  },
+                                  {
+                                    "bsonType": "array",
+                                    "items": {
                                       "bsonType": "string"
                                     }
-                                  ]
-                                }
+                                  }
+                                ]
                               },
-                              "required": [
-                                "str"
-                              ],
-                              "additionalProperties": false
+                              "bool": {
+                                "anyOf": [
+                                  {
+                                    "bsonType": "null"
+                                  },
+                                  {
+                                    "bsonType": "bool"
+                                  }
+                                ]
+                              },
+                              "obj": {
+                                "bsonType": "object",
+                                "properties": {
+                                  "str": {
+                                    "anyOf": [
+                                      {
+                                        "bsonType": "null"
+                                      },
+                                      {
+                                        "bsonType": "string"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "str"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "str": { "bsonType": "string" },
                             },
-                            "str": { "bsonType": "string" },
-                          },
-                          "required": [
-                            "array",
-                            "obj"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "required": [
-                        "obj"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "obj"
-                  ],
-                  "additionalProperties": false
-                }
+                            "required": [
+                              "array",
+                              "obj"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "obj"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "obj"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "obj"
+                ],
+                "additionalProperties": false
               },
-              "required": [
-                "obj"
-              ],
-              "additionalProperties": false
+              "_id": {
+                "bsonType": "int"
+              }
             },
-            "_id": {
-              "bsonType": "int"
-            }
-          },
-          "required": [
-            "_id",
-            "obj"
-          ],
-          "additionalProperties": false
+            "required": [
+              "_id",
+              "obj"
+            ],
+            "additionalProperties": false
+          }
         }
-      }
-    },
-    "required": [
-      "array"
-    ],
-    "additionalProperties": false
-  }
+      },
+      "required": [
+        "array"
+      ],
+      "additionalProperties": false
+    }

@@ -78,9 +78,12 @@ impl From<mongosql::schema::Error> for Error {
 
 const SQL_SCHEMAS_COLLECTION: &str = "__sql_schemas";
 
-/// get_catalog_for_dbs builds a Catalog from the schemas stored in mongod for
-/// the provided list of databases.
-pub fn get_catalog_for_dbs(client: &Client, db_names: Vec<String>) -> Catalog {
+// helper function for get_catalog_for_dbs; split this way because schema derivation
+// tests need the underlying schema, not the catalog.
+pub fn get_schema_map_for_dbs(
+    client: &Client,
+    db_names: Vec<String>,
+) -> BTreeMap<String, BTreeMap<String, json_schema::Schema>> {
     let mut catalog_schema: BTreeMap<String, BTreeMap<String, json_schema::Schema>> = map! {};
 
     for db_name in db_names {
@@ -115,7 +118,13 @@ pub fn get_catalog_for_dbs(client: &Client, db_names: Vec<String>) -> Catalog {
 
         catalog_schema.insert(db_name, db_catalog_schema);
     }
+    catalog_schema
+}
 
+/// get_catalog_for_dbs builds a Catalog from the schemas stored in mongod for
+/// the provided list of databases.
+pub fn get_catalog_for_dbs(client: &Client, db_names: Vec<String>) -> Catalog {
+    let catalog_schema = get_schema_map_for_dbs(client, db_names);
     build_catalog_from_catalog_schema(catalog_schema).expect("failed to build catalog")
 }
 

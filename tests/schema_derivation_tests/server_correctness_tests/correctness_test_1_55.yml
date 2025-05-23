@@ -1,51 +1,52 @@
-catalog_schema_file: correctness_catalog_1.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline: [ { "$setWindowFields" : { "partitionBy" : { "$month" : { "date" : "$obj.obj.obj.obj.date", "timezone" : "Pacific/Easter" } }, "sortBy" : { "date" : 1 }, "output" : { "obj.obj.obj.num" : { "$avg" : "$num" } } } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 50 }, {$project: {"obj.obj.obj.num": 1, "_id": 0}} ]
-result_set_schema:
-  {
-      "bsonType": "object",
-      "properties": {
-        "obj": {
-          "bsonType": "object",
-          "properties": {
-            "obj": {
-              "bsonType": "object",
-              "properties": {
-                "obj": {
-                  "bsonType": "object",
-                  "properties": {
-                    "num": {
-                      "anyOf": [
-                        {
-                          "bsonType": "double"
-                        },
-                        {
-                          "bsonType": "decimal"
-                        }
-                      ]
-                    }
-                  },
-                  "required": [
-                    "num"
-                  ],
-                  "additionalProperties": false
-                }
-              },
-              "required": [
-                "obj"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "required": [
-            "obj"
-          ],
-          "additionalProperties": false
-        }
-      },
-      "required": [
-        "obj"
-      ],
-      "additionalProperties": false
-    }
+tests:
+- description: correcntess_test_1_55
+  current_db: server_correctness_tests
+  current_collection: fuzzer_coll
+  pipeline: [ { "$setWindowFields" : { "partitionBy" : { "$month" : { "date" : "$obj.obj.obj.obj.date", "timezone" : "Pacific/Easter" } }, "sortBy" : { "date" : 1 }, "output" : { "obj.obj.obj.num" : { "$avg" : "$num" } } } }, { "$sort" : { "_id" : 1 } }, { "$limit" : 50 }, {$project: {"obj.obj.obj.num": 1, "_id": 0}} ]
+  result_set_schema:
+    {
+        "bsonType": "object",
+        "properties": {
+          "obj": {
+            "bsonType": "object",
+            "properties": {
+              "obj": {
+                "bsonType": "object",
+                "properties": {
+                  "obj": {
+                    "bsonType": "object",
+                    "properties": {
+                      "num": {
+                        "anyOf": [
+                          {
+                            "bsonType": "double"
+                          },
+                          {
+                            "bsonType": "decimal"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "num"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "obj"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "obj"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "obj"
+        ],
+        "additionalProperties": false
+      }

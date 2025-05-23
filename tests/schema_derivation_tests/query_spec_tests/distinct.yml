@@ -1,65 +1,6 @@
-catalog_schema:
-  {
-    "db": {
-      "foo": {
-        "bsonType": "object",
-        "required": ["_id", "a", "b"],
-        "additionalProperties": false,
-        "properties": {
-          "_id": { "bsonType": "int" },
-          "a":   { "bsonType": "int" },
-          "b":   { "bsonType": "int" },
-          "c":   { "bsonType": "bool" },
-          "d":   { "bsonType": "string" },
-          "e":   { "bsonType": "null" }
-        }
-      },
-      "bar": {
-        "bsonType": "object",
-        "required": [ "_id", "a", "b" ],
-        "additionalProperties": false,
-        "properties": {
-          "_id": { "bsonType": "int" },
-          "a": { "bsonType": "int" },
-          "b": { "bsonType": "int" },
-          "c": { "bsonType": "int" }
-        }
-      },
-      "documents": {
-        "bsonType": "object",
-        "required": ["_id", "doc"],
-        "additionalProperties": false,
-        "properties": {
-          "_id": { "bsonType": "int" },
-          "doc": {
-            "bsonType": "object",
-            "required": ["a", "b"],
-            "properties": {
-              "a": { "bsonType": "int" },
-              "b": { "bsonType": "int" },
-              "c": { "bsonType": "int" }
-            }
-          }
-        }
-      },
-      "arrays": {
-        "bsonType": "object",
-        "required": ["_id", "arr"],
-        "additionalProperties": false,
-        "properties": {
-          "_id": { "bsonType": "int" },
-          "arr": {
-            "bsonType": "array",
-            "items": { "bsonType": "int" }
-          }
-        }
-      }
-    }
-  }
-
 tests:
 - description: SELECT DISTINCT * ensures unique rows for entire document
-  current_db: "db"
+  current_db: "schema_derivation_distinct"
   current_collection: "foo"
   pipeline: [
     {
@@ -127,7 +68,7 @@ tests:
     "bsonType": "object"
   }
 - description: SELECT DISTINCT in nested subquery omitting _id selects unique rows
-  current_db: "db"
+  current_db: "schema_derivation_distinct"
   current_collection: "foo"
   pipeline: [
     {
@@ -210,7 +151,7 @@ tests:
   }
 
 - description: SELECT DISTINCT * on joined tables unique rows for entire document
-  current_db: "db"
+  current_db: "schema_derivation_distinct"
   current_collection: "foo"
   pipeline: [
     {
@@ -317,7 +258,7 @@ tests:
     "bsonType": "object"
   }
 - description: SELECT DISTINCT specific columns from joined tables
-  current_db: "db"
+  current_db: "schema_derivation_distinct"
   current_collection: "foo"
   pipeline: [
     {
@@ -408,7 +349,7 @@ tests:
     "bsonType": "object"
   }
 - description: SELECT DISTINCT columns ensures we see unique values
-  current_db: "db"
+  current_db: "schema_derivation_distinct"
   current_collection: "foo"
   pipeline: [
     {
@@ -486,7 +427,7 @@ tests:
     "bsonType": "object"
   }
 - description: SELECT DISTINCT columns with alias
-  current_db: "db"
+  current_db: "schema_derivation_distinct"
   current_collection: "foo"
   pipeline: [
     {
@@ -564,7 +505,7 @@ tests:
     "bsonType": "object"
   }
 - description: SELECT DISTINCT document column of repeated documents
-  current_db: "db"
+  current_db: "schema_derivation_distinct"
   current_collection: "documents"
   pipeline: [
     {
@@ -653,7 +594,7 @@ tests:
     "bsonType": "object"
   }
 - description: SELECT DISTINCT arr checking deduplication of repeated arrays
-  current_db: "db"
+  current_db: "schema_derivation_distinct"
   current_collection: "arrays"
   pipeline: [
     {
@@ -729,7 +670,7 @@ tests:
     "bsonType": "object"
   }
 - description: SELECT DISTINCT with ORDER BY
-  current_db: "db"
+  current_db: "schema_derivation_distinct"
   current_collection: "foo"
   pipeline: [
     {
@@ -808,7 +749,7 @@ tests:
     "bsonType": "object"
   }
 - description: basic UNION distinct correctness test
-  current_db: "db"
+  current_db: "schema_derivation_distinct"
   current_collection: "foo"
   pipeline: [
     {
@@ -903,7 +844,7 @@ tests:
   }
 - description: duplicates are still removed when collections with different schema
     are unioned
-  current_db: "db"
+  current_db: "schema_derivation_distinct"
   current_collection: "foo"
   pipeline: [
     {
@@ -1001,7 +942,7 @@ tests:
     "bsonType": "object"
   }
 - description: UNION is left associative
-  current_db: "db"
+  current_db: "schema_derivation_distinct"
   current_collection: "foo"
   pipeline: [
     {
@@ -1116,7 +1057,7 @@ tests:
     "bsonType": "object"
   }
 - description: UNION distinct with select * in both queries
-  current_db: "db"
+  current_db: "schema_derivation_distinct"
   current_collection: "foo"
   pipeline: [
     {
@@ -1241,7 +1182,7 @@ tests:
     "bsonType": "object"
   }
 - description: UNION distinct with same value order
-  current_db: "db"
+  current_db: "schema_derivation_distinct"
   current_collection: "foo"
   pipeline: [
     {
@@ -1341,7 +1282,7 @@ tests:
     "bsonType": "object"
   }
 - description: UNION distinct with mixed value order
-  current_db: "db"
+  current_db: "schema_derivation_distinct"
   current_collection: "foo"
   pipeline: [
     {
@@ -1441,7 +1382,7 @@ tests:
     "bsonType": "object"
   }
 - description: UNION distinct with mixed star and values select list
-  current_db: "db"
+  current_db: "schema_derivation_distinct"
   current_collection: "foo"
   pipeline: [
     {
@@ -1564,7 +1505,7 @@ tests:
     "bsonType": "object"
   }
 - description: UNION distinct with join
-  current_db: "db"
+  current_db: "schema_derivation_distinct"
   current_collection: "foo"
   pipeline: [
     {

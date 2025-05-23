@@ -1,33 +1,6 @@
-catalog_schema:
-  {
-    "foo": {
-      "bar": {
-        "bsonType": "object",
-        "additionalProperties": true
-      },
-      "bar_schema": {
-        "bsonType": "object",
-        "required": [ '_id', 'v1' ],
-        "additionalProperties": false,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "v1": {
-            "anyOf": [
-              { "bsonType": "string" },
-              { "bsonType": "int" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-        }
-      }
-    }
-  }
-
 tests:
 - description: correctness test for type assertion in schema mode
-  current_db: foo
+  current_db: schema_derivation_type_assertion
   current_collection: bar_schema
   pipeline: [
         {
@@ -90,7 +63,7 @@ tests:
   }
 - description: correctness test for type assertion in schema-less mode, target type
     can be any
-  current_db: foo
+  current_db: schema_derivation_type_assertion
   current_collection: bar
   pipeline: [
     {

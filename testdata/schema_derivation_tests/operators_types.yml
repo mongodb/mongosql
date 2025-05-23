@@ -1,0 +1,8 @@
+dataset:
+  - db: "schema_derivation_operators_types"
+    collection:
+      name: "bar"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true

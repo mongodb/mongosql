@@ -1,16 +1,6 @@
-catalog_schema:
-  {
-    'foo': {
-      'bar': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
-
 tests:
 - description: Correctness test for IS DOUBLE
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -78,7 +68,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS STRING
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -146,7 +136,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS DOCUMENT
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -214,7 +204,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS ARRAY
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -275,7 +265,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS BINDATA
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -343,7 +333,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS UNDEFINED
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -411,7 +401,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS OBJECTID
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -479,7 +469,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS BOOL
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -547,7 +537,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS BSON_DATE
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar  
   pipeline: [
     {
@@ -617,7 +607,7 @@ tests:
   }
 
 - description: Correctness test for IS NULL
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -685,7 +675,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS MISSING
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -753,7 +743,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS REGEX
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -821,7 +811,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS DBPOINTER
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -889,7 +879,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS JAVASCRIPT
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -957,7 +947,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS SYMBOL
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -1025,7 +1015,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS JAVASCRIPTWITHSCOPE
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -1093,7 +1083,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS INT
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -1161,7 +1151,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS BSON_TIMESTAMP
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -1230,7 +1220,7 @@ tests:
   }
 
 - description: Correctness test for IS LONG
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -1298,7 +1288,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS DECIMAL
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -1366,7 +1356,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS MINKEY
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -1434,7 +1424,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS MAXKEY
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {
@@ -1502,7 +1492,7 @@ tests:
     "bsonType": "object"
   }
 - description: Correctness test for IS NUMBER
-  current_db: foo
+  current_db: schema_derivation_operators_types
   current_collection: bar
   pipeline: [
     {

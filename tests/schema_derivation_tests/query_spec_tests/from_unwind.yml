@@ -1,130 +1,6 @@
-catalog_schema:
-  {
-    'test': {
-      'foo': {
-        'bsonType': "object",
-        'required': ["_id", "arr"],
-        'additionalProperties': false,
-        'properties': {
-          '_id': { 'bsonType': "int" },
-          'arr': { 'bsonType': "array" }
-        }
-      },
-      'bar': {
-        'bsonType': "object",
-        'additionalProperties': true
-      },
-      'nested': {
-        'bsonType': "object",
-        'required': ["_id", "a", "z"],
-        'additionalProperties': false,
-        'properties': {
-          '_id': { 'bsonType': "int" },
-          'a': {
-            'bsonType': "object",
-            'required': ["b", "y"],
-            'additionalProperties': false,
-            'properties': {
-              'b': {
-                'bsonType': "object",
-                'required': ["c", "x"],
-                'additionalProperties': false,
-                'properties': {
-                  'c': { 'bsonType': "array" },
-                  'x': { 'bsonType': "int" }
-                }
-              },
-              'y': { 'bsonType': "int" }
-            }
-          },
-          'z': { 'bsonType': "int" }
-        }
-      },
-      'two_d': {
-        'bsonType': "object",
-        'additionalProperties': true
-      },
-      'non_arrays': {
-        'bsonType': "object",
-        'required': ["_id", "arr", "comment"],
-        'additionalProperties': false,
-        'properties': {
-          '_id': { 'bsonType': "int" },
-          'arr': {
-            "anyOf": [
-              { "bsonType": "array" },
-              { "bsonType": "string" },
-              { "bsonType": "object" }
-            ]
-          },
-          'comment': { 'bsonType': "string" }
-        }
-      },
-      'empty_null_and_missing': {
-        'bsonType': "object",
-        'required': ["_id", "comment"],
-        'additionalProperties': false,
-        'properties': {
-          '_id': { 'bsonType': "int" },
-          'arr': {
-            "anyOf": [
-              { "bsonType": "array" },
-              { "bsonType": !!str "null" }
-            ]
-          },
-          'comment': { 'bsonType': "string" }
-        }
-      },
-      'index_conflict': {
-        'bsonType': "object",
-        'additionalProperties': true
-      },
-     'compound': {
-       "bsonType": "object",
-       "properties": {
-         "g": {
-           "bsonType": "array",
-           "items": {
-             "anyOf": [
-               {
-                 "bsonType":"array",
-                 "items": {
-                   "bsonType":"object",
-                   "properties": {
-                     "h": { "bsonType":"int" },
-                     "i": {"bsonType":"int" },
-                     "g": {"bsonType": "array", "items": { "bsonType":"int" } }
-                   },
-                   "additionalProperties":false }
-               },
-               {
-                 "bsonType":"object",
-                 "properties": {
-                   "g":{ "bsonType":"array","items":{"bsonType":"int"}}},
-                 "required":["g"],
-                 "additionalProperties":false
-               }
-           ]
-         }
-       },
-       "a": {
-         "bsonType": "array",
-         "items": { "bsonType": "int" }
-       },
-       "b": {
-         "bsonType": "array",
-         "items": { "bsonType": "int" }
-       },
-       "_id":{"bsonType":"int"}},
-       "required":["_id","a", "b", "g"],
-       "additionalProperties":false
-     }
-   }
-  }
-
 tests:
 - description: basic correctness test
-  current_db: test
+  current_db: schema_derivation_from_unwind
   current_collection: foo
   pipeline: [
     {
@@ -163,7 +39,7 @@ tests:
     "bsonType": "object"
   }
 - description: basic correctness test for explicitly aliased datasource
-  current_db: test
+  current_db: schema_derivation_from_unwind
   current_collection: foo
   pipeline: [
     {
@@ -202,7 +78,7 @@ tests:
     "bsonType": "object"
   }
 - description: basic correctness test for index option
-  current_db: test
+  current_db: schema_derivation_from_unwind
   current_collection: foo
   pipeline: [
     {
@@ -246,7 +122,7 @@ tests:
     "bsonType": "object"
   }
 - description: there are no type constraints on the field referenced by PATH, and non-array fields are not unwound
-  current_db: test
+  current_db: schema_derivation_from_unwind
   current_collection: non_arrays
   pipeline: [
     {
@@ -323,7 +199,7 @@ tests:
     "bsonType": "object"
   }
 - description: unwinding a nested array puts the unwound value at the same nested path
-  current_db: test
+  current_db: schema_derivation_from_unwind
   current_collection: nested
   pipeline: [
     {
@@ -397,7 +273,7 @@ tests:
     "bsonType": "object"
   }
 - description: unwind datasources can be unwound
-  current_db: test
+  current_db: schema_derivation_from_unwind
   current_collection: two_d
   pipeline: [
     {
@@ -441,7 +317,7 @@ tests:
     "bsonType": "object"
   }
 - description: join datasources can be unwound, unwound field is nested under correct namespace (left)
-  current_db: test
+  current_db: schema_derivation_from_unwind
   current_collection: foo
   pipeline: [
     {
@@ -532,7 +408,7 @@ tests:
     "bsonType": "object"
   }
 - description: join datasources can be unwound, unwound field is nested under correct namespace (right)
-  current_db: test
+  current_db: schema_derivation_from_unwind
   current_collection: foo
   pipeline: [
     {
@@ -623,7 +499,7 @@ tests:
     "bsonType": "object"
   }
 - description: documents containing empty array, null, or missing values are omitted if OUTER => false (default)
-  current_db: test
+  current_db: schema_derivation_from_unwind
   current_collection: empty_null_and_missing
   pipeline: [
     {
@@ -671,7 +547,7 @@ tests:
     "bsonType": "object"
   }
 - description: documents containing empty array, null, or missing values are retained if OUTER => true
-  current_db: test
+  current_db: schema_derivation_from_unwind
   current_collection: empty_null_and_missing
   pipeline: [
     {
@@ -733,7 +609,7 @@ tests:
     "bsonType": "object"
   }
 - description: compound paths allow simple unwinds
-  current_db: test
+  current_db: schema_derivation_from_unwind
   current_collection: compound
   pipeline: [
     {
@@ -790,7 +666,7 @@ tests:
     "bsonType": "object"
   }
 - description: compound paths allow sibling unwinds
-  current_db: test
+  current_db: schema_derivation_from_unwind
   current_collection: compound
   pipeline: [
     {
@@ -857,7 +733,7 @@ tests:
     "bsonType": "object"
   }
 - description: compound path resolves nested paths
-  current_db: test
+  current_db: schema_derivation_from_unwind
   current_collection: compound
   pipeline: [
     {
@@ -929,7 +805,7 @@ tests:
     required: ['']
     additionalProperties: false
 - description: compound path resolves nested and sibling paths
-  current_db: test
+  current_db: schema_derivation_from_unwind
   current_collection: compound
   pipeline: [
     {
@@ -1006,7 +882,7 @@ tests:
     "bsonType": "object"
   }
 - description: compound path can handle multiple compound paths
-  current_db: test
+  current_db: schema_derivation_from_unwind
   current_collection: compound
   pipeline: [
     {
@@ -1088,7 +964,7 @@ tests:
     "bsonType": "object"
   }
 - description: compound path works with existing unwind
-  current_db: test
+  current_db: schema_derivation_from_unwind
   current_collection: compound
   pipeline: [
     {

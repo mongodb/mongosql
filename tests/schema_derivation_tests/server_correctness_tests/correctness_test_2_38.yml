@@ -1,20 +1,21 @@
-catalog_schema_file: correctness_catalog_2.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline:  [ { "$documents" : { "$map" : { "input" : [ { "$substrCP" : [ "$obj.obj.str", 10, 18 ] }, "$obj.obj.obj.obj.obj.str", "cross-platform Corporate", { "$substrCP" : [ "$obj.obj.str", 19, {"$numberLong": "20"} ] }, { "$max" : [ { "$substr" : [ "$str", 14, {"$numberLong": "10"} ] }, "Bedfordshire Tuna", "$str" ] } ], "as" : "zachariah", "in" : { "$min" : [ { "$regexFind" : { "input" : "Sudan open architecture", "regex" : /Checking Account|International|(?:schema|Hill)s|parse/, "options" : "" } }, { "$ifNull" : [ "$obj", {  } ] }, { "$arrayToObject" : [ [ { "k" : "productize Operations Global", "v" : { "$ifNull" : [ {"$numberLong": "10769"}, null ] } } ] ] }, { "$arrayToObject" : [ [ [ "generate Streets", { "$ifNull" : [ true, null ] } ] ] ] } ] } } } }, { "$addFields" : { "_id" : "$$ROOT" } }, { "$sort" : { "_id" : 1 } }, { "$sort" : { "obj.obj.obj.obj.obj.geoJson" : -1, "obj.obj.obj.obj.obj.num" : -1, "str" : 1, "_id" : 1 } }, { "$sort" : { "_id" : 1 } }, { "$bucket" : { "groupBy" : { "$ltrim" : { "input" : "$obj.obj.obj.str" } }, "boundaries" : [ "Baby primary", "East Caribbean Dollar Concrete", "Iraq wireless withdrawal", "Michigan", "Mississippi integrated South Africa", "Plastic morph", "Walks invoice National", "integrated portals yellow" ], "default" : false, "output" : { "array" : { "$bottomN" : { "n" : 7, "output" : { "$let" : { "vars" : { "kevon" : { "$eq" : [ { "$regexFind" : { "input" : { "$toLower" : "Granite" }, "regex" : /override/ } }, { "$setField" : { "field" : "Avon", "input" : { "k" : "eyeballs", "v" : { "$ifNull" : [ {"$numberDecimal": "-Infinity"}, null ] } }, "value" : { "$zip" : { "inputs" : [ { "$ifNull" : [ [ "$num" ], [ ] ] }, { "$ifNull" : [ [ { "obj" : { "array" : [ ISODate("2019-06-15T09:42:21.878Z"), "Regional Games", ISODate("2019-07-18T20:19:24.248Z"), 51013 ], "obj" : {  } } }, ISODate("2019-07-25T01:51:54.180Z"), false, /Frozen|lime/, [ ISODate("2019-01-27T05:48:26.948Z"), { "date" : ISODate("2019-02-02T12:32:55.392Z") }, ISODate("2019-10-05T12:08:06.369Z"), "Investment Account" ] ], [ ] ] }, { "$ifNull" : [ [ {"$numberLong": "-9223372036854775808"}, { "num" : 56245 }, false ], [ ] ] }, { "$ifNull" : [ [ "$obj.obj.obj.obj.obj.num", "$str", false, 38296 ], [ ] ] } ] } } } } ] }, "richmond" : { "$year" : ISODate("2019-09-23T14:58:02.066Z") }, "alanna" : { "$minN" : { "n" : 12, "input" : { "$ifNull" : [ [ "$obj.obj.obj.obj.num", "$obj.num" ], [ ] ] } } } }, "in" : { "$lastN" : { "n" : 15, "input" : { "$ifNull" : [ [ "$obj.obj.obj.obj.num" ], [ ] ] } } } } }, "sortBy" : { "obj.obj.obj.obj.obj.geoJson" : -1, "num" : 1, "obj.obj.obj" : -1, "obj.obj.geoJson" : 1, "obj.obj.bool" : 1, "_id" : 1 } } }, "date" : { "$first" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$dateSubtract" : { "startDate" : ObjectId("507f191e810c19729de860ea"), "unit" : "week", "amount" : { "$toInt" : { "$max" : [ "$obj.obj.obj.obj.num" ] } } } } ] } } } } }, { "$replaceRoot" : { "newRoot" : { "k" : "Ergonomic Steel Computer", "v" : { "$ifNull" : [ {"$numberLong": "314159265358979373"}, null ] } } } } ]
-result_set_schema: {
-  "additionalProperties": false, 
-  "required": [
-    "k", 
-    "v"
-  ], 
-  "properties": {
-    "k": {
-      "bsonType": "string"
+tests:
+- description: correcntess_test_2_38
+  current_db: server_correctness_tests_2
+  current_collection: fuzzer_coll
+  pipeline:  [ { "$documents" : { "$map" : { "input" : [ { "$substrCP" : [ "$obj.obj.str", 10, 18 ] }, "$obj.obj.obj.obj.obj.str", "cross-platform Corporate", { "$substrCP" : [ "$obj.obj.str", 19, {"$numberLong": "20"} ] }, { "$max" : [ { "$substr" : [ "$str", 14, {"$numberLong": "10"} ] }, "Bedfordshire Tuna", "$str" ] } ], "as" : "zachariah", "in" : { "$min" : [ { "$regexFind" : { "input" : "Sudan open architecture", "regex" : /Checking Account|International|(?:schema|Hill)s|parse/, "options" : "" } }, { "$ifNull" : [ "$obj", {  } ] }, { "$arrayToObject" : [ [ { "k" : "productize Operations Global", "v" : { "$ifNull" : [ {"$numberLong": "10769"}, null ] } } ] ] }, { "$arrayToObject" : [ [ [ "generate Streets", { "$ifNull" : [ true, null ] } ] ] ] } ] } } } }, { "$addFields" : { "_id" : "$$ROOT" } }, { "$sort" : { "_id" : 1 } }, { "$sort" : { "obj.obj.obj.obj.obj.geoJson" : -1, "obj.obj.obj.obj.obj.num" : -1, "str" : 1, "_id" : 1 } }, { "$sort" : { "_id" : 1 } }, { "$bucket" : { "groupBy" : { "$ltrim" : { "input" : "$obj.obj.obj.str" } }, "boundaries" : [ "Baby primary", "East Caribbean Dollar Concrete", "Iraq wireless withdrawal", "Michigan", "Mississippi integrated South Africa", "Plastic morph", "Walks invoice National", "integrated portals yellow" ], "default" : false, "output" : { "array" : { "$bottomN" : { "n" : 7, "output" : { "$let" : { "vars" : { "kevon" : { "$eq" : [ { "$regexFind" : { "input" : { "$toLower" : "Granite" }, "regex" : /override/ } }, { "$setField" : { "field" : "Avon", "input" : { "k" : "eyeballs", "v" : { "$ifNull" : [ {"$numberDecimal": "-Infinity"}, null ] } }, "value" : { "$zip" : { "inputs" : [ { "$ifNull" : [ [ "$num" ], [ ] ] }, { "$ifNull" : [ [ { "obj" : { "array" : [ ISODate("2019-06-15T09:42:21.878Z"), "Regional Games", ISODate("2019-07-18T20:19:24.248Z"), 51013 ], "obj" : {  } } }, ISODate("2019-07-25T01:51:54.180Z"), false, /Frozen|lime/, [ ISODate("2019-01-27T05:48:26.948Z"), { "date" : ISODate("2019-02-02T12:32:55.392Z") }, ISODate("2019-10-05T12:08:06.369Z"), "Investment Account" ] ], [ ] ] }, { "$ifNull" : [ [ {"$numberLong": "-9223372036854775808"}, { "num" : 56245 }, false ], [ ] ] }, { "$ifNull" : [ [ "$obj.obj.obj.obj.obj.num", "$str", false, 38296 ], [ ] ] } ] } } } } ] }, "richmond" : { "$year" : ISODate("2019-09-23T14:58:02.066Z") }, "alanna" : { "$minN" : { "n" : 12, "input" : { "$ifNull" : [ [ "$obj.obj.obj.obj.num", "$obj.num" ], [ ] ] } } } }, "in" : { "$lastN" : { "n" : 15, "input" : { "$ifNull" : [ [ "$obj.obj.obj.obj.num" ], [ ] ] } } } } }, "sortBy" : { "obj.obj.obj.obj.obj.geoJson" : -1, "num" : 1, "obj.obj.obj" : -1, "obj.obj.geoJson" : 1, "obj.obj.bool" : 1, "_id" : 1 } } }, "date" : { "$first" : { "$max" : [ ISODate("0001-01-01T00:00:00Z"), { "$dateSubtract" : { "startDate" : ObjectId("507f191e810c19729de860ea"), "unit" : "week", "amount" : { "$toInt" : { "$max" : [ "$obj.obj.obj.obj.num" ] } } } } ] } } } } }, { "$replaceRoot" : { "newRoot" : { "k" : "Ergonomic Steel Computer", "v" : { "$ifNull" : [ {"$numberLong": "314159265358979373"}, null ] } } } } ]
+  result_set_schema: {
+    "additionalProperties": false, 
+    "required": [
+      "k", 
+      "v"
+    ], 
+    "properties": {
+      "k": {
+        "bsonType": "string"
+      }, 
+      "v": {
+        "bsonType": "long"
+      }
     }, 
-    "v": {
-      "bsonType": "long"
-    }
-  }, 
-  "bsonType": "object"
-}
+    "bsonType": "object"
+  }

@@ -1,38 +1,39 @@
-catalog_schema_file: correctness_catalog_2.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline: [ { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$lookup" : { "from" : "fuzzer_coll", "let" : { "reed" : { "$range" : [ 1, 20, 19 ] }, "quincy" : { "$setIsSubset" : [ { "$ifNull" : [ [ "$obj.obj.date", true, "Buckinghamshire matrix", 10, false ], [ ] ] }, [ "$obj.obj.obj.obj.obj.num", "$obj.obj.obj.obj.num" ] ] } }, "pipeline" : [ { "$sort" : { "_id" : 1 } }, { "$limit" : 14 }, { "$sort" : { "_id" : 1 } }, { "$limit" : 10 } ], "as" : "array" } }, {"$project": {"array.str": 1}} ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "_id": {
-        "bsonType": "int"
-      },
-      "array": {
-        "bsonType": "array",
-        "items": {
-          "bsonType": "object",
-          "properties": {
-            "str": {
-              "anyOf": [
-                {
-                  "bsonType": "null"
-                },
-                {
-                  "bsonType": "string"
-                }
-              ]
+tests:
+- description: correcntess_test_2_27
+  current_db: server_correctness_tests_2
+  current_collection: fuzzer_coll
+  pipeline: [ { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$lookup" : { "from" : "fuzzer_coll", "let" : { "reed" : { "$range" : [ 1, 20, 19 ] }, "quincy" : { "$setIsSubset" : [ { "$ifNull" : [ [ "$obj.obj.date", true, "Buckinghamshire matrix", 10, false ], [ ] ] }, [ "$obj.obj.obj.obj.obj.num", "$obj.obj.obj.obj.num" ] ] } }, "pipeline" : [ { "$sort" : { "_id" : 1 } }, { "$limit" : 14 }, { "$sort" : { "_id" : 1 } }, { "$limit" : 10 } ], "as" : "array" } }, {"$project": {"array.str": 1}} ]
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
+        "_id": {
+          "bsonType": "int"
+        },
+        "array": {
+          "bsonType": "array",
+          "items": {
+            "bsonType": "object",
+            "properties": {
+              "str": {
+                "anyOf": [
+                  {
+                    "bsonType": "null"
+                  },
+                  {
+                    "bsonType": "string"
+                  }
+                ]
+              },
             },
-          },
-          "required": [],
-          "additionalProperties": false
+            "required": [],
+            "additionalProperties": false
+          }
         }
-      }
-    },
-    "required": [
-      "_id",
-      "array"
-    ],
-    "additionalProperties": false
-  }
+      },
+      "required": [
+        "_id",
+        "array"
+      ],
+      "additionalProperties": false
+    }

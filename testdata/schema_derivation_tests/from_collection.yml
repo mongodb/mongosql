@@ -1,0 +1,16 @@
+dataset:
+  - db: "schema_derivation_from_collection"
+    collection:
+      name: "foo"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true
+
+  - db: "schema_derivation_from_collection_other"
+    collection:
+      name: "foo"
+      docs: []
+    schema:
+      bsonType: "object"
+      additionalProperties: true

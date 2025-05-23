@@ -1,29 +1,6 @@
-catalog_schema:
-  {
-    "foo":
-      {
-        "bar":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a"],
-            "additionalProperties": false,
-            "properties":
-              { "_id": { "bsonType": "int" }, "a": { "bsonType": "int" } },
-          },
-        "baz":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a"],
-            "additionalProperties": false,
-            "properties":
-              { "_id": { "bsonType": "int" }, "a": { "bsonType": "int" } },
-          },
-      },
-  }
-
 tests:
 - description: Simple select with limit clause
-  current_db: foo
+  current_db: schema_derivation_limit_offset
   current_collection: bar
   pipeline: [
     {
@@ -65,7 +42,7 @@ tests:
     "bsonType": "object"
   }
 - description: Simple select with offset clause
-  current_db: foo
+  current_db: schema_derivation_limit_offset
   current_collection: bar
   pipeline: [
     {
@@ -107,7 +84,7 @@ tests:
     "bsonType": "object"
   }
 - description: Select with limit and offset
-  current_db: foo
+  current_db: schema_derivation_limit_offset
   current_collection: bar
   pipeline: [
     {
@@ -152,7 +129,7 @@ tests:
     "bsonType": "object"
   }
 - description: Limit in subquery
-  current_db: foo
+  current_db: schema_derivation_limit_offset
   current_collection: bar
   pipeline: [
     {
@@ -248,7 +225,7 @@ tests:
     "bsonType": "object"
   }
 - description: Offset in subquery
-  current_db: foo
+  current_db: schema_derivation_limit_offset
   current_collection: bar
   pipeline: [
     {
@@ -344,7 +321,7 @@ tests:
     "bsonType": "object"
   }
 - description: Limit and offset in subquery
-  current_db: foo
+  current_db: schema_derivation_limit_offset
   current_collection: bar
   pipeline: [
     {

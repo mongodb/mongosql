@@ -1,0 +1,86 @@
+dataset:
+  - db: "schema_derivation_where"
+    collection:
+      name: "bar"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "foo" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        foo:
+          bsonType: "bool"
+
+  - db: "schema_derivation_where"
+    collection:
+      name: "baz"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "foo" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        foo:
+          bsonType: "bool"
+
+  - db: "schema_derivation_where"
+    collection:
+      name: "biz"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "foo" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        foo:
+          bsonType: "array"
+          items:
+            bsonType: "int"
+
+  - db: "schema_derivation_where"
+    collection:
+      name: "nested"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "foo" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        foo:
+          bsonType: "object"
+          required: [ "bar" ]
+          additionalProperties: false
+          properties:
+            bar:
+              bsonType: "array"
+              items:
+                bsonType: "int"
+
+  - db: "schema_derivation_where"
+    collection:
+      name: "items"
+      docs: []
+    schema:
+      bsonType: "object"
+      required: [ "_id", "foo" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        foo:
+          bsonType: "array"
+          items:
+            bsonType: "object"
+            required: [ "bar" ]
+            additionalProperties: false
+            properties:
+              bar:
+                bsonType: "int"

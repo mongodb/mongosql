@@ -1,24 +1,25 @@
-catalog_schema_file: correctness_catalog_1.yml
-current_db: test
-current_collection: fuzzer_coll
-pipeline: [ { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$facet" : { "array" : [ { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : "$obj.obj.obj.obj.date", "date" : { "$last" : "$obj.obj.date" } } } ] } } ]
-result_set_schema:
-  {
-    "bsonType": "object",
-    "properties": {
-      "array": {
-        "bsonType": "array",
-        "items": {
-          "bsonType": "object",
-          "properties": {
-            "_id": { "bsonType": "null" },
-            "date": { "bsonType": "null" }
-          },
-          "required": ["_id", "date"],
-          "additionalProperties": false
-        }
+tests:
+- description: correcntess_test_1_24
+  current_db: server_correctness_tests
+  current_collection: fuzzer_coll
+  pipeline: [ { "$sort" : { "_id" : 1 } }, { "$limit" : 10 }, { "$facet" : { "array" : [ { "$sort" : { "_id" : 1 } }, { "$group" : { "_id" : "$obj.obj.obj.obj.date", "date" : { "$last" : "$obj.obj.date" } } } ] } } ]
+  result_set_schema:
+    {
+      "bsonType": "object",
+      "properties": {
+        "array": {
+          "bsonType": "array",
+          "items": {
+            "bsonType": "object",
+            "properties": {
+              "_id": { "bsonType": "null" },
+              "date": { "bsonType": "null" }
+            },
+            "required": ["_id", "date"],
+            "additionalProperties": false
+          }
+        },
       },
-    },
-    "required": ["array"],
-    "additionalProperties": false
-  }
+      "required": ["array"],
+      "additionalProperties": false
+    }

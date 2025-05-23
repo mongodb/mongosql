@@ -1,211 +1,6 @@
-catalog_schema:
-  {
-    "foo":
-      {
-        "bar":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a", "b", "c"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a": { "bsonType": "int" },
-                "b": { "bsonType": "int" },
-                "c": { "bsonType": "int" },
-              },
-          },
-        "multi":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a", "b", "c"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a":
-                  {
-                    "anyOf":
-                      [
-                        { "bsonType": "int" },
-                        { "bsonType": !!str "null" },
-                      ]
-                  },
-                "b":
-                  {
-                    "anyOf":
-                      [
-                        { "bsonType": "int" },
-                        { "bsonType": !!str "null" },
-                      ]
-                  },
-                "c":
-                  {
-                    "anyOf":
-                      [
-                        { "bsonType": "int" },
-                        { "bsonType": !!str "null" },
-                      ]
-                  },
-              },
-          },
-        "nullAndMissing":
-          {
-            "bsonType": "object",
-            "required": ["_id"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "n":
-                  {
-                    "anyOf":
-                      [{ "bsonType": "int" }, { "bsonType": !!str "null" }],
-                  },
-              },
-          },
-        "baz":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a":
-                  {
-                    "bsonType": "object",
-                    "required": ["a", "b"],
-                    "additionalProperties": false,
-                    "properties":
-                      {
-                        "a":
-                          {
-                            "anyOf":
-                              [
-                                { "bsonType": "int" },
-                                { "bsonType": !!str "null" },
-                              ],
-                          },
-                        "b":
-                          {
-                            "anyOf":
-                              [
-                                { "bsonType": "int" },
-                                { "bsonType": !!str "null" },
-                              ],
-                          },
-                      },
-                  },
-              },
-          },
-        "baz2":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a", "doc"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a": { "bsonType": "int" },
-                "doc":
-                  {
-                    "bsonType": "object",
-                    "required": [],
-                    "properties":
-                      {
-                        "a": { "bsonType": "string" },
-                        "b": { "bsonType": "string" },
-                      },
-                  },
-              },
-          },
-        "numerics":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a"],
-            "additionalProperties": false,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a":
-                  {
-                    "anyOf":
-                      [
-                        { "bsonType": "int" },
-                        { "bsonType": "double" },
-                        { "bsonType": "decimal" },
-                      ],
-                  },
-              },
-          },
-        "dupes":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a"],
-            "additionalProperties": false,
-            "properties":
-              { "_id": { "bsonType": "int" }, "a": { "bsonType": "int" } },
-          },
-        "arr":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a"],
-            "additionalProperties": false,
-            "properties": { "a": { "bsonType": "array" } },
-          },
-        "docs":
-          {
-            "bsonType": "object",
-            "required": ["_id"],
-            "additionalProperties": false,
-            "properties": {
-              "_id": { "bsonType": "int" },
-              "d":
-                {
-                  "anyOf":
-                    [
-                      { "bsonType": !!str "null" },
-                      {
-                        "bsonType": "object",
-                        required: [ ],
-                        additionalProperties: false,
-                        properties:
-                          {
-                            "a":
-                              {
-                                "anyOf":
-                                  [
-                                    { "bsonType": "int" },
-                                    { "bsonType": !!str "null" }
-                                  ]
-                              }
-                          }
-                      }
-                    ]
-                }
-            },
-          },
-        "poly":
-          {
-            "bsonType": "object",
-            "required": ["_id", "a"],
-            "additionalProperties": false,
-            "properties": {
-              "a": {
-                "anyOf": [
-                  { "bsonType": "bool" },
-                  { "bsonType": "string" },
-                ]
-              }
-            },
-          },
-      },
-  }
-
 tests:
 - description: GROUP BY with empty input outputs empty
-  current_db: test
+  current_db: schema_derivation_group_by
   pipeline: [
     {
       "$documents": []
@@ -273,7 +68,7 @@ tests:
   }
 
 - description: GROUP BY NULL creates only one group
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -334,7 +129,7 @@ tests:
     "bsonType": "object"
   }
 - description: GROUP BY 1 creates only one group
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -395,7 +190,7 @@ tests:
     "bsonType": "object"
   }
 - description: GROUP BY hello creates only one group
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -456,7 +251,7 @@ tests:
     "bsonType": "object"
   }
 - description: GROUP BY MISSING converts MISSING to NULL; NULL is not DISTINCT from NULL, but is distinct from non-null values
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: nullAndMissing
   pipeline: [
     {
@@ -522,7 +317,7 @@ tests:
     "bsonType": "object"
   }
 - description: GROUP BY keys may be table-qualified
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: baz
   pipeline: [
     {
@@ -588,7 +383,7 @@ tests:
     "bsonType": "object"
   }
 - description: qualified top-level field reference keys can be referenced by qualified name
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -655,7 +450,7 @@ tests:
     "bsonType": "object"
   }
 - description: qualified top-level field reference keys can be referenced by unqualified name
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -722,7 +517,7 @@ tests:
     "bsonType": "object"
   }
 - description: unqualified top-level field reference keys can be referenced by qualified name
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -789,7 +584,7 @@ tests:
     "bsonType": "object"
   }
 - description: unqualified top-level field reference keys can be referenced by unqualified name
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -856,7 +651,7 @@ tests:
     "bsonType": "object"
   }
 - description: GROUP BY arbitrary expression
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -922,7 +717,7 @@ tests:
     "bsonType": "object"
   }
 - description: single DISTINCT aggregation function correctness test
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -1001,7 +796,7 @@ tests:
     "bsonType": "object"
   }
 - description: correctness test for DISTINCT and non-DISTINCT aggregation over same field
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -1089,7 +884,7 @@ tests:
     "bsonType": "object"
   }
 - description: multi-DISTINCT aggregation function correctness test
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -1208,7 +1003,7 @@ tests:
     "bsonType": "object"
   }
 - description: multi-item group key correctness test
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: multi
   pipeline: [
     {
@@ -1295,7 +1090,7 @@ tests:
     "bsonType": "object"
   }
 - description: multi-item group key with HAVING correctness test
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: multi
   pipeline: [
     {
@@ -1448,7 +1243,7 @@ tests:
     "bsonType": "object"
   }
 - description: HAVING without GROUP BY works as a WHERE clause but happens after the WHERE clause
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -1514,7 +1309,7 @@ tests:
     "bsonType": "object"
   }
 - description: ADD_TO_ARRAY correctness test
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -1603,7 +1398,7 @@ tests:
   }
 
 - description: ADD_TO_ARRAY DISTINCT correctness test (equivalent to ADD_TO_SET)
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -1691,7 +1486,7 @@ tests:
   }
 
 - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in DECIMAL)
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: numerics
   pipeline: [
     {
@@ -1777,7 +1572,7 @@ tests:
   }
 
 - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in INT)
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: numerics
   pipeline: [
     {
@@ -1863,7 +1658,7 @@ tests:
   }
 
 - description: ADD_TO_SET correctness test
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: baz
   pipeline: [
     {
@@ -1968,7 +1763,7 @@ tests:
   }
 
 - description: AVG correctness test
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: baz
   pipeline: [
     {
@@ -2049,7 +1844,7 @@ tests:
     "bsonType": "object"
   }
 - description: COUNT single column correctness test -- ignores nullish values
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: multi
   pipeline: [
     {
@@ -2149,7 +1944,7 @@ tests:
     "bsonType": "object"
   }
 - description: COUNT distinct single column correctness test -- ignores nullish values
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: multi
   pipeline: [
     {
@@ -2255,7 +2050,7 @@ tests:
     "bsonType": "object"
   }
 - description: COUNT single document column -- only counts values with at least one non-nullish field
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: dpcs
   pipeline: [
     {
@@ -2388,7 +2183,7 @@ tests:
     "bsonType": "object"
   }
 - description: COUNT multi column correctness test -- only counts rows with at least one non-nullish value
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: multi
   pipeline: [
     {
@@ -2515,7 +2310,7 @@ tests:
     "bsonType": "object"
   }
 - description: COUNT distinct multi column correctness test -- only counts rows with at least one non-nullish value
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: multi
   pipeline: [
     {
@@ -2651,7 +2446,7 @@ tests:
     "bsonType": "object"
   }
 - description: COUNT(*) correctness test unconditionally count rows
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: multi
   pipeline: [
     {
@@ -2742,7 +2537,7 @@ tests:
     "bsonType": "object"
   }
 - description: COUNT(DISTINCT *) correctness test unconditionally count distinct rows
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: multi
   pipeline: [
     {
@@ -2841,7 +2636,7 @@ tests:
     "bsonType": "object"
   }
 - description: COUNT(MISSING) and COUNT(NULL) skip MISSING and NULL values
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: baz
   pipeline: [
     {
@@ -2951,7 +2746,7 @@ tests:
     "bsonType": "object"
   }
 - description: FIRST correctness test
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -3039,7 +2834,7 @@ tests:
     "bsonType": "object"
   }
 - description: LAST correctness test
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -3128,7 +2923,7 @@ tests:
   }
 
 - description: MAX correctness test
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -3195,7 +2990,7 @@ tests:
     "bsonType": "object"
   }
 - description: MERGE_DOCUMENTS correctness test
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: baz2
   pipeline: [
     {
@@ -3297,7 +3092,7 @@ tests:
   }
 
 - description: MIN correctness test
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -3364,7 +3159,7 @@ tests:
     "bsonType": "object"
   }
 - description: STDDEV_POP correctness test
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -3433,7 +3228,7 @@ tests:
   }
 
 - description: STDDEV_SAMP correctness test
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {
@@ -3508,7 +3303,7 @@ tests:
     "additionalProperties": false
   }
 - description: SUM correctness test
-  current_db: foo
+  current_db: schema_derivation_group_by
   current_collection: bar
   pipeline: [
     {

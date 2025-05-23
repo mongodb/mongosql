@@ -1,49 +1,6 @@
-catalog_schema:
-  {
-    "foo":
-      {
-        "bar":
-          {
-            "bsonType": "object",
-            "additionalProperties": true,
-            "properties":
-              {
-                "_id": { "bsonType": "int" },
-                "a":
-                  {
-                    "bsonType": "object",
-                    "additionalProperties": true,
-                    "properties":
-                      {
-                        "b": { "bsonType": "int" },
-                        "b.c": { "bsonType": "int" },
-                      },
-                  },
-                "a.b": { "bsonType": "int" },
-                "$a.b": { "bsonType": "int" },
-                "$a.$b":
-                  {
-                    "bsonType": "object",
-                    "additionalProperties": true,
-                    "properties":
-                      {
-                        "$c":
-                          {
-                            "bsonType": "object",
-                            "additionalProperties": true,
-                            "properties": { "d": { "bsonType": "int" } },
-                          },
-                        "$c.d": { "bsonType": "int" },
-                      },
-                  },
-              },
-          },
-      },
-  }
-
 tests:
 - description: Undelimited identifier containing a . character is a compound identifier
-  current_db: test
+  current_db: schema_derivation_identifier
   pipeline: [
     {
       "$documents": [
@@ -686,7 +643,7 @@ tests:
   }
 
 - description: Delimited identifier starting with digit is an identifier
-  current_db: test
+  current_db: schema_derivation_identifier
   pipeline: [
     {
       "$documents": [
@@ -746,7 +703,7 @@ tests:
     "bsonType": "object"
   }
 - description: Backtick delimited identifiers containing delimiter characters
-  current_db: test
+  current_db: schema_derivation_identifier
   pipeline: [
     {
       "$documents": [
@@ -822,7 +779,7 @@ tests:
     "bsonType": "object"
   }
 - description: Double quote delimited identifiers containing delimiter characters
-  current_db: test
+  current_db: schema_derivation_identifier
   pipeline: [
     {
       "$documents": [
@@ -898,7 +855,7 @@ tests:
     "bsonType": "object"
   }
 - description: Regular and delimited identifiers
-  current_db: test
+  current_db: schema_derivation_identifier
   pipeline: [
     {
       "$documents": [
@@ -974,7 +931,7 @@ tests:
     "bsonType": "object"
   }
 - description: Delimited identifier with non-ASCII characters
-  current_db: test
+  current_db: schema_derivation_identifier
   pipeline: [
     {
       "$documents": [
@@ -1034,7 +991,7 @@ tests:
     "bsonType": "object"
   }
 - description: Compound identifier with more than 3 parts
-  current_db: test
+  current_db: schema_derivation_identifier
   pipeline: [
     {
       "$documents": [
@@ -1100,7 +1057,7 @@ tests:
     "bsonType": "object"
   }
 - description: Case-sensitive identifiers
-  current_db: test
+  current_db: schema_derivation_identifier
   pipeline: [
     {
       "$documents": [

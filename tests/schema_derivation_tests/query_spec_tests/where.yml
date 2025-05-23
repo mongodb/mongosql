@@ -1,75 +1,6 @@
-catalog_schema:
-    {
-        "foo": {
-            "bar": {
-              "bsonType": "object",
-              "required": [ "_id", "foo" ],
-              "additionalProperties": false,
-              "properties": {
-                "_id": { "bsonType": "int" },
-                "foo": { "bsonType": "bool" }
-              }
-            },
-            "baz": {
-              "bsonType": "object",
-              "required": [ "_id", "foo" ],
-              "additionalProperties": false,
-              "properties": {
-                "_id": { "bsonType": "int" },
-                "foo": { "bsonType": "bool" }
-              }
-            },
-            "biz": {
-              "bsonType": "object",
-              "required": [ "_id", "foo" ],
-              "additionalProperties": false,
-              "properties": {
-                "_id": { "bsonType": "int" },
-                "foo": { "bsonType": "array", "items": { "bsonType": "int" } }
-              }
-            },
-            "nested": {
-              "bsonType": "object",
-              "required": [ "_id", "foo" ],
-              "additionalProperties": false,
-              "properties": {
-                "_id": { "bsonType": "int" },
-                "foo": {
-                  "bsonType": "object",
-                  "required": [ "bar" ],
-                  "additionalProperties": false,
-                  "properties": {
-                    "bar": { "bsonType": "array", "items": { "bsonType": "int" } }
-                  }
-                }
-              }
-            },
-            "items": {
-              "bsonType": "object",
-              "required": [ "_id", "foo" ],
-              "additionalProperties": false,
-              "properties": {
-                "_id": { "bsonType": "int" },
-                "foo": {
-                  "bsonType": "array",
-                  "items": {
-                    "bsonType": "object",
-                    "required": [ "bar" ],
-                    "additionalProperties": false,
-                    "properties": {
-                      "bar": { "bsonType": "int" }
-                    }
-                  }
-                }
-              }
-            }
-        }
-    }
-
-
 tests:
 - description: WHERE with BOOLEAN returning expression
-  current_db: test
+  current_db: schema_derivation_where
   pipeline: [
     {
       "$documents": [
@@ -129,7 +60,7 @@ tests:
     "bsonType": "object"
   }
 - description: WHERE with CAST to BOOLEAN
-  current_db: test
+  current_db: schema_derivation_where
   pipeline: [
     {
       "$documents": [
@@ -198,7 +129,7 @@ tests:
     "bsonType": "object"
   }
 - description: WHERE with CASE that must return BOOLEAN
-  current_db: test
+  current_db: schema_derivation_where
   pipeline: [
     {
       "$documents": [
@@ -269,7 +200,7 @@ tests:
     "bsonType": "object"
   }
 - description: WHERE after unwind returns expected results
-  current_db: test
+  current_db: schema_derivation_where
   current_collection: foo
   pipeline: [
     {

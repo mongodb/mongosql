@@ -1,80 +1,6 @@
-catalog_schema:
-  {
-    'foo': {
-      'employees': {
-        'bsonType': "object",
-        'required': [ '_id', 'name', 'salary', 'department_id' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'name': {
-            'bsonType': "string"
-          },
-          'salary': {
-            'bsonType': "int"
-          },
-          'department_id': {
-            'bsonType': "int"
-          }
-        }
-      },
-      'department': {
-        'bsonType': "object",
-        'required': [ '_id', 'name' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'name': {
-            'bsonType': "string"
-          }
-        }
-      },
-      'employees_w_schema': {
-        'bsonType': "object",
-        'required': [ '_id', 'name', 'salary', 'department_id' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'name': {
-            'bsonType': "string"
-          },
-          'salary': {
-            'bsonType': "int"
-          },
-          'department_id': {
-            'bsonType': "int"
-          }
-        }
-      },
-      'department_w_schema': {
-        'bsonType': "object",
-        'required': [ '_id', 'name' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'name': {
-            'bsonType': "string"
-          }
-        }
-      },
-      'baz': {
-        'bsonType': 'object',
-        'additionalProperties': true
-      }
-    }
-  }
-
 tests:
 - description: uncorrelated scalar subquery expression correctness test
-  current_db: foo
+  current_db: schema_derivation_subquery
   current_collection: employees
   pipeline: [
     {
@@ -184,7 +110,7 @@ tests:
     "bsonType": "object"
   }
 - description: correlated scalar subquery correctness test
-  current_db: foo
+  current_db: schema_derivation_subquery
   current_collection: employees_w_schema
   pipeline: [
     {
@@ -299,7 +225,7 @@ tests:
     "bsonType": "object"
   }
 - description: cardinality of 1 should be inferrable from array datasource
-  current_db: foo
+  current_db: schema_derivation_subquery
   current_collection: department
   pipeline: [
     {
@@ -409,7 +335,7 @@ tests:
     "bsonType": "object"
   }
 - description: cardinality of 1 should be inferrable from group by constant
-  current_db: foo
+  current_db: schema_derivation_subquery
   current_collection: employees
   pipeline: [
     {
@@ -533,7 +459,7 @@ tests:
   }
 - description: nested subquery should be able to access field from its grandparent
     query correctness test
-  current_db: foo
+  current_db: schema_derivation_subquery
   current_collection: department_w_schema
   pipeline: [
     {
@@ -708,7 +634,7 @@ tests:
   }
 - description: allow select star if we can statically prove the degree is equal to
     one
-  current_db: foo
+  current_db: schema_derivation_subquery
   current_collection: employees
   pipeline: [
     {
@@ -806,7 +732,7 @@ tests:
   }
 - description: allow select substar if we can statically prove the degree is equal
     to one
-  current_db: foo
+  current_db: schema_derivation_subquery
   current_collection: employees
   pipeline: [
     {
@@ -909,7 +835,7 @@ tests:
     "bsonType": "object"
   }
 - description: subquery selecting potentially missing field from collection
-  current_db: foo
+  current_db: schema_derivation_subquery
   current_collection: department_w_schema
   pipeline: [
     {

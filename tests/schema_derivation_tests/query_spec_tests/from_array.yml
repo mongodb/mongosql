@@ -1,16 +1,6 @@
-catalog_schema:
-  {
-    'test': {
-      'foo': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-      }
-    }
-  }
-
 tests:
 - description: basic array datasource correctness test
-  current_db: test
+  current_db: schema_derivation_from_array
   pipeline: [
     {
       "$documents": [
@@ -55,7 +45,7 @@ tests:
     "bsonType": "object"
   }
 - description: unqualified reference to field from array datasource
-  current_db: test
+  current_db: schema_derivation_from_array
   pipeline: [
     {
       "$documents": [
@@ -118,7 +108,7 @@ tests:
     "bsonType": "object"
   }
 - description: qualified reference to field from array datasource
-  current_db: test
+  current_db: schema_derivation_from_array
   pipeline: [
     {
       "$documents": [
@@ -181,7 +171,7 @@ tests:
     "bsonType": "object"
   }
 - description: empty array datasource is allowed
-  current_db: test
+  current_db: schema_derivation_from_array
   pipeline: [
     {
       "$documents": []
@@ -205,7 +195,7 @@ tests:
   }
 
 - description: array datasource with single empty document is allowed
-  current_db: test
+  current_db: schema_derivation_from_array
   pipeline: [
     {
       "$documents": [

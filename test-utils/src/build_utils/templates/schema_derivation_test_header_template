@@ -2,27 +2,55 @@
 #![allow(clippy::all)]
 #![allow(non_snake_case, dead_code, unused_variables, unused_imports)]
 
+use mongodb::{{
+    bson::Bson,
+    sync::Client,
+}};
 use schema_derivation::{{ResultSetState, derive_schema_for_pipeline}};
 use agg_ast::Namespace;
 use mongosql::{{
+    catalog::Catalog,
     json_schema,
-    schema::{{Document, Satisfaction, Schema}},
+    options::{{ExcludeNamespacesOption, SqlOptions}},
+    schema::{{Document, Schema, Satisfaction}},
+    Translation,
 }};
-use std::{{collections::BTreeMap, fs, path::PathBuf, sync::Once}};
-use test_utils::{{parse_schema_derivation_yaml_file, SchemaDerivationYamlTestFile}};
+use std::{{collections::BTreeMap, fs, io::Read, path::PathBuf, string::ToString}};
+
+use std::sync::Once;
+
+use test_utils::{{Error, MONGODB_URI, get_schema_map_for_dbs, parse_schema_derivation_yaml_file, SchemaDerivationTest, SchemaDerivationYamlTestFile}};
 
 static INIT: Once = Once::new();
 
-pub fn initialize_test() -> &'static SchemaDerivationYamlTestFile {{
+pub fn initialize_test() -> (&'static SchemaDerivationYamlTestFile, &'static BTreeMap<String, BTreeMap<String, json_schema::Schema>>) {{
     static mut TEST_FILE: Option<SchemaDerivationYamlTestFile> = None;
+    static mut CATALOG: Option<BTreeMap<String, BTreeMap<String, json_schema::Schema>>> = None;
 
     INIT.call_once(|| {{
         unsafe {{
-            TEST_FILE = Some(parse_schema_derivation_yaml_file(PathBuf::from({path})).unwrap());
+            let client: Client = Client::with_uri_str(MONGODB_URI.clone()).map_err(Error::CannotCreateMongoDBClient).unwrap();
+            let test_file = parse_schema_derivation_yaml_file(PathBuf::from({path})).unwrap();
+            let db_names = test_file.tests.iter().flat_map(|t| {{
+                let mut db_names = vec![];
+                if let Some(current_db) = t.current_db.as_ref() {{
+                    db_names.push(current_db.clone())
+                }}
+
+                if let Some(catalog_dbs) = t.catalog_dbs.as_ref() {{
+                    db_names.append(&mut catalog_dbs.clone())
+                }}
+
+                db_names
+            }}).collect();
+            let catalog = get_schema_map_for_dbs(&client, db_names);
+            TEST_FILE = Some(test_file);
+            CATALOG = Some(catalog);
         }}
     }});
 
     unsafe {{
-        TEST_FILE.as_ref().unwrap()
+        (TEST_FILE.as_ref().unwrap(),
+        CATALOG.as_ref().unwrap())
     }}
 }}

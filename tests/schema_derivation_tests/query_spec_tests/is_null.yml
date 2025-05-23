@@ -1,24 +1,6 @@
-catalog_schema:
-  db:
-      null_and_missing:
-          bsonType: 'object'
-          additionalProperties: false
-          required: ['_id']
-          properties:
-              '_id': {'bsonType': 'int'}
-              x: {'anyOf': [{'bsonType': 'bool'}, {'bsonType': 'null'}]}
-
-      missing:
-          bsonType: 'object'
-          additionalProperties: false
-          required: ['_id']
-          properties:
-              '_id': {'bsonType': 'int'}
-              x: {'bsonType': 'bool'}
-
 tests:
 - description: IS NULL covers missing fields
-  current_db: db
+  current_db: schema_derivation_is_null
   current_collection: null_and_missing
   pipeline: [
     {
@@ -58,7 +40,7 @@ tests:
     "bsonType": "object"
   }
 - description: IS NOT NULL covers missing fields
-  current_db: db
+  current_db: schema_derivation_is_null
   current_collection: null_and_missing
   pipeline: [
     {
@@ -128,7 +110,7 @@ tests:
     "bsonType": "object"
   }
 - description: IS NULL covers missing fields without null schema
-  current_db: db
+  current_db: schema_derivation_is_null
   current_collection: missing
   pipeline: [
     {
