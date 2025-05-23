@@ -1,6 +1,6 @@
 #![cfg_attr(rustfmt, rustfmt_skip)]
 #![allow(clippy::all)]
-#![allow(non_snake_case, dead_code, unused_variables, unused_imports)]
+#![allow(non_snake_case, dead_code, static_mut_refs, unused_variables, unused_imports)]
 
 use mongodb::{{
     bson::Bson,
