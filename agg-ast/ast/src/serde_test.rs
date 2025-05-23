@@ -30,7 +30,6 @@ macro_rules! test_serde_expr {
 
             let input = $input;
             let e: TestExpr = serde_yaml::from_str(&input).unwrap();
-
             assert_eq!($expected, e.expr, "failed to deserialize");
 
             // test roundtrip by serializing to string and then deserializing
@@ -2212,14 +2211,13 @@ mod expression_test {
     mod tagged_operators {
         use crate::{
             definitions::{
-                Accumulator, Bottom, BottomN, Convert, DateAdd, DateDiff, DateExpression,
-                DateFromParts, DateFromString, DateSubtract, DateToParts, DateToString, DateTrunc,
-                Documents, Expression, Filter, Function, GetField, Let, Like, LiteralValue, Map,
-                Median, NArrayOp, Percentile, ProjectItem, ProjectStage, Reduce, Ref,
-                RegexAggExpression, Replace, SetField, SortArray, SortArraySpec, SqlConvert,
-                SqlDivide, Stage, Subquery, SubqueryComparison, SubqueryExists, Switch, SwitchCase,
-                TaggedOperator, Top, TopN, Trim, UnsetField, UntaggedOperator,
-                UntaggedOperatorName, Zip,
+                Accumulator, Bottom, Convert, DateAdd, DateDiff, DateExpression, DateFromParts,
+                DateFromString, DateSubtract, DateToParts, DateToString, DateTrunc, Documents,
+                Expression, Filter, Function, GetField, Let, Like, LiteralValue, Map, Median,
+                NArrayOp, Percentile, ProjectItem, ProjectStage, Reduce, Ref, RegexAggExpression,
+                Replace, SetField, SortArray, SortArraySpec, SqlConvert, SqlDivide, Stage,
+                Subquery, SubqueryComparison, SubqueryExists, Switch, SwitchCase, TaggedOperator,
+                Top, TopBottomN, Trim, UnsetField, UntaggedOperator, UntaggedOperatorName, Zip,
             },
             map,
         };
@@ -2311,6 +2309,17 @@ mod expression_test {
         );
 
         test_serde_expr!(
+            get_field_literal,
+            expected = Expression::TaggedOperator(TaggedOperator::GetField(GetField {
+                field: "x".to_string(),
+                input: Box::new(Expression::Document(map! {
+                    "x".to_string() => Expression::Literal(LiteralValue::Int32(1))
+                }))
+            })),
+            input = r#"expr: {"$getField": {"field": {"$literal": "x"}, "input": {"x": 1}}}"#
+        );
+
+        test_serde_expr!(
             set_field,
             expected = Expression::TaggedOperator(TaggedOperator::SetField(SetField {
                 field: "x".to_string(),
@@ -2323,6 +2332,18 @@ mod expression_test {
         );
 
         test_serde_expr!(
+            set_field_literal,
+            expected = Expression::TaggedOperator(TaggedOperator::SetField(SetField {
+                field: "x".to_string(),
+                input: Box::new(Expression::Document(map! {
+                    "x".to_string() => Expression::Literal(LiteralValue::Int32(1))
+                })),
+                value: Box::new(Expression::Literal(LiteralValue::String("new".to_string())))
+            })),
+            input = r#"expr: {"$setField": {"field": {"$literal": "x"}, "input": {"x": 1}, "value": "new"}}"#
+        );
+
+        test_serde_expr!(
             unset_field,
             expected = Expression::TaggedOperator(TaggedOperator::UnsetField(UnsetField {
                 field: "x".to_string(),
@@ -2331,6 +2352,17 @@ mod expression_test {
                 }))
             })),
             input = r#"expr: {"$unsetField": {"field": "x", "input": {"x": 1}}}"#
+        );
+
+        test_serde_expr!(
+            unset_field_literal,
+            expected = Expression::TaggedOperator(TaggedOperator::UnsetField(UnsetField {
+                field: "x".to_string(),
+                input: Box::new(Expression::Document(map! {
+                    "x".to_string() => Expression::Literal(LiteralValue::Int32(1))
+                }))
+            })),
+            input = r#"expr: {"$unsetField": {"field": {"$literal": "x"}, "input": {"x": 1}}}"#
         );
 
         test_serde_expr!(
@@ -2402,6 +2434,21 @@ mod expression_test {
             input = r#"expr: {"$convert": {
                                 "input": "1",
                                 "to": "int"
+            }}"#
+        );
+
+        test_serde_expr!(
+            convert_literal_to_type,
+            expected = Expression::TaggedOperator(TaggedOperator::Convert(Convert {
+                input: Box::new(Expression::Literal(LiteralValue::String("1".to_string()))),
+                to: Box::new(Expression::Literal(LiteralValue::String("int".to_string()))),
+                format: None,
+                on_null: None,
+                on_error: None,
+            })),
+            input = r#"expr: {"$convert": {
+                                "input": "1",
+                                "to": {"$literal": "int"}
             }}"#
         );
 
@@ -2719,7 +2766,7 @@ mod expression_test {
 
         test_serde_expr!(
             bottom_n,
-            expected = Expression::TaggedOperator(TaggedOperator::BottomN(BottomN {
+            expected = Expression::TaggedOperator(TaggedOperator::BottomN(TopBottomN {
                 output: Box::new(Expression::Array(vec![
                     Expression::Ref(Ref::FieldRef("playerId".to_string())),
                     Expression::Ref(Ref::FieldRef("score".to_string()))
@@ -2823,7 +2870,7 @@ mod expression_test {
 
         test_serde_expr!(
             top_n,
-            expected = Expression::TaggedOperator(TaggedOperator::TopN(TopN {
+            expected = Expression::TaggedOperator(TaggedOperator::TopN(TopBottomN {
                 output: Box::new(Expression::Array(vec![
                     Expression::Ref(Ref::FieldRef("playerId".to_string())),
                     Expression::Ref(Ref::FieldRef("score".to_string()))
@@ -3682,6 +3729,24 @@ mod expression_test {
                 ))]
             }),
             input = r#"expr: {"$literal": "$a.b"}"#
+        );
+
+        test_serde_expr!(
+            literal_empty_doc,
+            expected = Expression::UntaggedOperator(UntaggedOperator {
+                op: UntaggedOperatorName::Literal,
+                args: vec![Expression::Document(map!())]
+            }),
+            input = r#"expr: {"$literal": {}}"#
+        );
+
+        test_serde_expr!(
+            literal_empty_array,
+            expected = Expression::UntaggedOperator(UntaggedOperator {
+                op: UntaggedOperatorName::Literal,
+                args: vec![]
+            }),
+            input = r#"expr: {"$literal": []}"#
         );
 
         test_serde_expr!(

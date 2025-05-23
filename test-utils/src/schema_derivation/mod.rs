@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)]
 use agg_ast::definitions::Stage;
 use mongodb::bson::doc;
 use mongosql::json_schema;
@@ -8,6 +9,7 @@ use super::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
+#[allow(clippy::large_enum_variant)]
 pub enum SchemaDerivationYamlTestFile {
     Multiple(SpecQuerySchemaDerivationTestFile),
     Single(SchemaDerivationTest),
