@@ -52,10 +52,7 @@ impl TestGeneratorFactory for MongoSqlTestGeneratorFactory {
             Ok(Box::new(QueryTestGenerator {
                 feature: "query".to_string(),
             }))
-        } else if path.contains(REWRITE_TEST)
-            || path.contains(SCHEMA_DERIVATION_TESTS)
-            || path.contains(TYPE_CONSTRAINT_TESTS)
-        {
+        } else if path.contains(REWRITE_TEST) || path.contains(TYPE_CONSTRAINT_TESTS) {
             Err(Error::UnhandledTestType(path))
         } else {
             Err(Error::UnknownTestType(path))
