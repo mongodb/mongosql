@@ -64,7 +64,7 @@ tests:
     "bsonType": "object"
   }
 - description: Delimited identifier containing a .
-  current_db: foo
+  current_db: schema_derivation_identifier
   current_collection: bar
   pipeline: [
     {
@@ -120,7 +120,7 @@ tests:
   }
 
 - description: Nested delimited identifier containing a .
-  current_db: foo
+  current_db: schema_derivation_identifier
   current_collection: bar
   pipeline: [
     {
@@ -176,7 +176,7 @@ tests:
   }
 
 - description: Delimited identifier with a $
-  current_db: foo
+  current_db: schema_derivation_identifier
   current_collection: bar
   pipeline: [
     {
@@ -234,7 +234,7 @@ tests:
   }
 
 - description: Nested delimited identifiers containing $ and .
-  current_db: foo
+  current_db: schema_derivation_identifier
   current_collection: bar
   pipeline: [
     {
@@ -299,7 +299,7 @@ tests:
   }
 
 - description: Mixed identifiers containing $ and .
-  current_db: foo
+  current_db: schema_derivation_identifier
   current_collection: bar
   pipeline: [
     {
@@ -368,7 +368,7 @@ tests:
   }
 
 - description: Delimited identifier containing an empty string
-  current_db: foo
+  current_db: schema_derivation_identifier
   current_collection: bar
   pipeline: [
     {
@@ -422,7 +422,7 @@ tests:
     "bsonType": "object"
   }
 - description: Unaliased use of field reference expression with $ and .
-  current_db: foo
+  current_db: schema_derivation_identifier
   current_collection: bar
   pipeline: [
     {
@@ -519,7 +519,7 @@ tests:
   }
 
 - description: Unaliased use of nested field reference expressions with $ and .
-  current_db: foo
+  current_db: schema_derivation_identifier
   current_collection: bar
   pipeline: [
     {

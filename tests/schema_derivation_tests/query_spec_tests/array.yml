@@ -1,6 +1,6 @@
 tests:
   - description: SELECT empty array literal
-    current_db: schema_derivation_from_array
+    current_db: schema_derivation_array
     skip_reason: "SQL-2837: cannot reprsent Array(unsat) in JSON schema"
     pipeline: [
       {

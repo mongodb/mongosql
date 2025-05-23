@@ -40,7 +40,7 @@ tests:
       }
     }
   ]
-  current_db: test
+  current_db: schema_derivation_alias
   result_set_schema: {
     "additionalProperties": false, 
     "required": [""], 

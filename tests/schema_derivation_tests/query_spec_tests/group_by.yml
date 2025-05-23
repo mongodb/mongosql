@@ -2051,7 +2051,7 @@ tests:
   }
 - description: COUNT single document column -- only counts values with at least one non-nullish field
   current_db: schema_derivation_group_by
-  current_collection: dpcs
+  current_collection: docs
   pipeline: [
     {
       "$group": {
