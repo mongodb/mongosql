@@ -1126,7 +1126,6 @@ dependencies = [
  "mongodb",
  "mongosql",
  "schema_derivation",
- "serde_yaml",
  "test-utils",
 ]
 
