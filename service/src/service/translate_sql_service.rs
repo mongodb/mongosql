@@ -301,7 +301,6 @@ impl TranslatorService for TranslateSqlService {
 }
 
 impl TranslateSqlService {
-    #[allow(clippy::result_large_err)]
     fn build_sql_options(&self, req: &TranslateSqlRequest) -> Result<SqlOptions, Status> {
         let exclude_namespaces =
             translator::ExcludeNamespacesOption::try_from(req.exclude_namespaces)

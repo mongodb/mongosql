@@ -16,7 +16,6 @@ macro_rules! multimap {
 
 visitgen::generate_visitors! {
 
-#[allow(clippy::large_enum_variant)]
 #[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum Query {
     Select(SelectQuery),

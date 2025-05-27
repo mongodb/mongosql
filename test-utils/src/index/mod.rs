@@ -1,4 +1,3 @@
-#![allow(clippy::result_large_err)]
 use super::Error;
 use mongodb::{
     bson::{self, doc, Bson, Document},

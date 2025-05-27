@@ -541,7 +541,6 @@ impl Stage {
         (visitor.datasource_uses, ret)
     }
 
-    #[allow(clippy::result_large_err)]
     pub fn substitute(self, theta: HashMap<Key, Expression>) -> Result<Self, Self> {
         let mut visitor = SubstituteVisitor {
             theta,
