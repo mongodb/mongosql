@@ -117,7 +117,7 @@ tests:
     "bsonType": "object"
   }
 - description: Simple CASE expression - One WHEN comparison evaluates to TRUE, return corresponding THEN result
-  current_db: test
+  current_db: schema_derivation_operators_control_flow
   pipeline: [
     {
       "$documents": [
@@ -219,7 +219,7 @@ tests:
     "bsonType": "object"
   }
 - description: Simple CASE expression - Multiple WHEN comparison evaluates to TRUE, return first corresponding THEN result
-  current_db: test
+  current_db: schema_derivation_operators_control_flow
   pipeline: [
     {
       "$documents": [
