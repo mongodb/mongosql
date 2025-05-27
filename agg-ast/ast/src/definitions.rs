@@ -1160,7 +1160,7 @@ impl TryFrom<&str> for UntaggedOperatorName {
 
     fn try_from(value: &str) -> Result<Self, String> {
         serde_json::from_str(value)
-            .map_err(|e| format!("Failed to deserialize operator name: {}", e))
+            .map_err(|e| format!("Failed to deserialize operator name: {e}"))
     }
 }
 
