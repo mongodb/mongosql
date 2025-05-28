@@ -1906,7 +1906,7 @@ impl DeriveSchema for TaggedOperator {
             | TaggedOperator::SqlDivide(_)
             | TaggedOperator::Subquery(_)
             | TaggedOperator::SubqueryComparison(_)
-            | TaggedOperator::SubqueryExists(_) => Err(Error::InvalidTaggedOperator(self.clone())),
+            | TaggedOperator::SubqueryExists(_) => Err(Error::InvalidTaggedOperator(Box::new(self.clone()))),
         }
     }
 }
