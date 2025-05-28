@@ -219,7 +219,7 @@ impl TranslatorService for TranslateSqlService {
             Err(e) => {
                 interceptor.record_error(&e);
                 add_event(&mut span, &format!("Error building SQL options: {}", e));
-                return Err(e);
+                return Err(*e);
             }
         };
 
@@ -301,7 +301,7 @@ impl TranslatorService for TranslateSqlService {
 }
 
 impl TranslateSqlService {
-    fn build_sql_options(&self, req: &TranslateSqlRequest) -> Result<SqlOptions, Status> {
+    fn build_sql_options(&self, req: &TranslateSqlRequest) -> Result<SqlOptions, Box<Status>> {
         let exclude_namespaces =
             translator::ExcludeNamespacesOption::try_from(req.exclude_namespaces)
                 .map_err(|_| Status::invalid_argument("Invalid exclude_namespaces option"))?;

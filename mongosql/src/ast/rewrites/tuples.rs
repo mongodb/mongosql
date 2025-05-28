@@ -109,7 +109,7 @@ impl InTupleRewriteVisitor {
         }));
 
         // Assemble `select_clause` and `from_clause` into a query AST.
-        let subquery = Query::Select(SelectQuery {
+        let subquery = Query::Select(Box::new(SelectQuery {
             select_clause,
             from_clause,
             where_clause: None,
@@ -118,7 +118,7 @@ impl InTupleRewriteVisitor {
             order_by_clause: None,
             limit: None,
             offset: None,
-        });
+        }));
 
         Expression::Binary(BinaryExpr {
             left: Box::new(lhs),

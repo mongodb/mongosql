@@ -183,9 +183,9 @@ impl ExplainResult {
                             return Ok(stage.cursor.unwrap().query_planner);
                         }
                     }
-                    Err(Error::MissingQueryPlanner(self.clone()))
+                    Err(Error::MissingQueryPlanner(Box::new(self.clone())))
                 }
-                None => Err(Error::MissingQueryPlanner(self.clone())),
+                None => Err(Error::MissingQueryPlanner(Box::new(self.clone()))),
             },
         }
     }

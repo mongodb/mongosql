@@ -62,7 +62,7 @@ pub enum Error {
     #[error("invalid root stage: {0}")]
     InvalidRootStage(String),
     #[error("no queryPlanner found: {0:?}")]
-    MissingQueryPlanner(ExplainResult),
+    MissingQueryPlanner(Box<ExplainResult>),
     #[error("general mongodb error: {0:?}")]
     MongoDBErr(mongodb::error::Error),
 }

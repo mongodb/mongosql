@@ -176,10 +176,10 @@ impl Stage {
             ),
             Stage::MqlIntrinsic(MqlStage::MatchFilter(n)) => (
                 vec![*n.source],
-                Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+                Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
                     source: Box::new(Stage::Sentinel),
-                    ..n
-                })),
+                    ..*n
+                }))),
             ),
         }
     }
@@ -245,10 +245,10 @@ impl Stage {
                 }))
             }
             Stage::MqlIntrinsic(MqlStage::MatchFilter(s)) => {
-                Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+                Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
                     source: sources.swap_remove(0).into(),
-                    ..s
-                }))
+                    ..*s
+                })))
             }
             Stage::Sentinel => unreachable!(),
         }

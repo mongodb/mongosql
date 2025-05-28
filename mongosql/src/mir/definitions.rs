@@ -147,7 +147,7 @@ pub struct Unwind {
 pub enum MqlStage {
     EquiJoin(EquiJoin),
     LateralJoin(LateralJoin),
-    MatchFilter(MatchFilter),
+    MatchFilter(Box<MatchFilter>),
 }
 
 #[derive(PartialEq, Debug, Clone)]

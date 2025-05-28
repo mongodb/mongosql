@@ -41,7 +41,7 @@ pub enum Error {
     #[error("Cannot derive schema for unsupported operator: {0:?}")]
     InvalidTaggedOperator(agg_ast::definitions::TaggedOperator),
     #[error("Cannot derive schema for unsupported stage: {0:?}")]
-    InvalidStage(agg_ast::definitions::Stage),
+    InvalidStage(Box<agg_ast::definitions::Stage>),
     #[error("Unknown reference in current context: {0}")]
     UnknownReference(String),
     #[error("Not enough arguments for expression: {0}")]

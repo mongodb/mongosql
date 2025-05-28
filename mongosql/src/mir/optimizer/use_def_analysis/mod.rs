@@ -148,17 +148,13 @@ impl Visitor for SingleStageFieldUseVisitor {
                     cache,
                 })
             }
-            Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
-                source,
-                condition,
-                cache,
-            })) => {
-                let condition = self.visit_match_query(condition);
-                Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
-                    source,
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(m)) => {
+                let condition = self.visit_match_query(m.condition);
+                Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
+                    source: m.source,
                     condition,
-                    cache,
-                }))
+                    cache: m.cache,
+                })))
             }
             Stage::Sort(Sort {
                 source,
@@ -320,17 +316,13 @@ impl Visitor for SingleStageDatasourceUseVisitor {
                     cache,
                 })
             }
-            Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
-                source,
-                condition,
-                cache,
-            })) => {
-                let condition = self.visit_match_query(condition);
-                Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
-                    source,
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(m)) => {
+                let condition = self.visit_match_query(m.condition);
+                Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
+                    source: m.source,
                     condition,
-                    cache,
-                }))
+                    cache: m.cache,
+                })))
             }
             Stage::Sort(Sort {
                 source,

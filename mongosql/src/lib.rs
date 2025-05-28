@@ -150,14 +150,7 @@ pub fn get_namespaces(
 // Parses both distinct and non-distinct SelectQuery
 pub fn get_select_order(ast: &ast::Query) -> Option<ast::SelectBody> {
     match ast {
-        ast::Query::Select(ast::SelectQuery {
-            select_clause:
-                ast::SelectClause {
-                    set_quantifier: _,
-                    body: b,
-                },
-            ..
-        }) => Some(b.clone()),
+        ast::Query::Select(s) => Some(s.select_clause.body.clone()),
         _ => None,
     }
 }

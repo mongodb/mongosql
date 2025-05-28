@@ -194,7 +194,7 @@ mod select {
     validate_ast!(
         ident,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -208,13 +208,13 @@ mod select {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "SELECT foo",
     );
     validate_ast!(
         delimited_quote,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -228,13 +228,13 @@ mod select {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = r#"SELECT "foo""#,
     );
     validate_ast!(
         delimited_backtick,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -248,13 +248,13 @@ mod select {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "select `foo`",
     );
     validate_ast!(
         delimited_ident_plus,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -268,13 +268,13 @@ mod select {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "SELECT `1 + 2`",
     );
     validate_ast!(
         delimited_escaped_backtick_ast,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -288,13 +288,13 @@ mod select {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "SELECT `fo``o`````",
     );
     validate_ast!(
         delimited_escaped_quote_ast,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -310,13 +310,13 @@ mod select {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = r#"SELECT "fo""o""""""#,
     );
     validate_ast!(
         backtick_delimiter_escaped_quote,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -332,13 +332,13 @@ mod select {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = r#"SELECT `fo""o`"#,
     );
     validate_ast!(
         quote_delimiter_escaped_backtick,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -352,7 +352,7 @@ mod select {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = r#"SELECT "fo``o""#,
     );
 }
@@ -380,7 +380,7 @@ mod query {
         method = parse_query,
         expected = Query::Set(SetQuery {
             left: Box::new(Query::Set(SetQuery {
-                left: Box::new(Query::Select(SelectQuery {
+                left: Box::new(Query::Select(Box::new(SelectQuery {
                     select_clause: SelectClause {
                         set_quantifier: SetQuantifier::All,
                         body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -396,9 +396,9 @@ mod query {
                     order_by_clause: None,
                     limit: None,
                     offset: None,
-                })),
+                }))),
                 op: SetOperator::Union,
-                right: Box::new(Query::Select(SelectQuery {
+                right: Box::new(Query::Select(Box::new(SelectQuery {
                     select_clause: SelectClause {
                         set_quantifier: SetQuantifier::All,
                         body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -414,10 +414,10 @@ mod query {
                     order_by_clause: None,
                     limit: None,
                     offset: None,
-                }))
+                })))
             })),
             op: SetOperator::UnionAll,
-            right: Box::new(Query::Select(SelectQuery {
+            right: Box::new(Query::Select(Box::new(SelectQuery {
                 select_clause: SelectClause {
                     set_quantifier: SetQuantifier::All,
                     body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -431,7 +431,7 @@ mod query {
                 order_by_clause: None,
                 limit: None,
                 offset: None,
-            }))
+            })))
         }),
         input = "select a union select b union all select c",
     );
@@ -1029,7 +1029,7 @@ mod group_by {
     validate_ast!(
         aggregate_distinct_with_alias,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -1056,7 +1056,7 @@ mod group_by {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "select * group by a, b aggregate sum(distinct b) as c",
     );
 }
@@ -1079,7 +1079,7 @@ mod having {
     validate_ast!(
         with_aggregation_distinct_and_group_by,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -1104,7 +1104,7 @@ mod having {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "select * group by a having sum(distinct a) > 0",
     );
 }
@@ -1144,7 +1144,7 @@ mod order_by {
     validate_ast!(
         default_direction,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -1161,7 +1161,7 @@ mod order_by {
             }),
             limit: None,
             offset: None,
-        }),
+        })),
         input = "select * order by a",
     );
 }
@@ -1214,7 +1214,7 @@ mod limit_offset {
     validate_ast!(
         limit_one_value,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -1226,14 +1226,14 @@ mod limit_offset {
             order_by_clause: None,
             limit: Some(42_u32),
             offset: None,
-        }),
+        })),
         input = "select * limit 42",
     );
 
     validate_ast!(
         limit_two_values,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -1245,14 +1245,14 @@ mod limit_offset {
             order_by_clause: None,
             limit: Some(42_u32),
             offset: Some(24_u32),
-        }),
+        })),
         input = "select * limit 42, 24",
     );
 
     validate_ast!(
         limit_with_offset,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -1264,7 +1264,7 @@ mod limit_offset {
             order_by_clause: None,
             limit: Some(42_u32),
             offset: Some(24_u32),
-        }),
+        })),
         input = "select * limit 42 offset 24",
     );
 }
@@ -1330,7 +1330,7 @@ mod fetch_first {
     validate_ast!(
         no_offset,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -1342,14 +1342,14 @@ mod fetch_first {
             order_by_clause: None,
             limit: Some(42_u32),
             offset: None,
-        }),
+        })),
         input = "select * fetch first 42 rows only",
     );
 
     validate_ast!(
         offset,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -1361,14 +1361,14 @@ mod fetch_first {
             order_by_clause: None,
             limit: Some(42_u32),
             offset: Some(24_u32),
-        }),
+        })),
         input = "select * fetch first 42 rows only offset 24",
     );
 
     validate_ast!(
         synonyms,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -1380,7 +1380,7 @@ mod fetch_first {
             order_by_clause: None,
             limit: Some(42_u32),
             offset: Some(24_u32),
-        }),
+        })),
         input = "select * fetch next 42 row only offset 24",
     );
 
@@ -2176,7 +2176,7 @@ mod from {
     validate_ast!(
         comma_join_is_cross_join,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -2201,13 +2201,13 @@ mod from {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "SELECT * FROM foo, bar",
     );
     validate_ast!(
         cross_join_is_cross_join,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -2232,13 +2232,13 @@ mod from {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "SELECT * FROM foo CROSS JOIN bar",
     );
     validate_ast!(
         join_is_cross_join,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -2263,13 +2263,13 @@ mod from {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "SELECT * FROM foo JOIN bar",
     );
     validate_ast!(
         left_join_is_left_join,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -2294,13 +2294,13 @@ mod from {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "SELECT * FROM foo LEFT JOIN bar",
     );
     validate_ast!(
         right_join_is_right_join,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -2325,13 +2325,13 @@ mod from {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "SELECT * FROM foo RIGHT JOIN bar",
     );
     validate_ast!(
         join_is_left_associative,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -2365,7 +2365,7 @@ mod from {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "SELECT * FROM foo JOIN bar JOIN car",
     );
 
@@ -2439,7 +2439,7 @@ mod where_test {
     validate_ast!(
         ast,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -2455,7 +2455,7 @@ mod where_test {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "SELECT * WHERE a >= 2",
     );
 }
@@ -2956,7 +2956,7 @@ mod subquery {
             expr: Box::new(Expression::Identifier("x".to_string())),
             op: ComparisonOp::Neq,
             quantifier: SubqueryQuantifier::Any,
-            subquery: Box::new(Query::Select(SelectQuery {
+            subquery: Box::new(Query::Select(Box::new(SelectQuery {
                 select_clause: SelectClause {
                     set_quantifier: SetQuantifier::All,
                     body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -2970,7 +2970,7 @@ mod subquery {
                 order_by_clause: None,
                 limit: None,
                 offset: None
-            }))
+            })))
         }),
         input = "x <> SOME (SELECT a)",
     );
@@ -2981,7 +2981,7 @@ mod subquery {
         expected = Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Identifier("x".to_string())),
             op: BinaryOp::In,
-            right: Box::new(Expression::Subquery(Box::new(Query::Select(SelectQuery {
+            right: Box::new(Expression::Subquery(Box::new(Query::Select(Box::new(SelectQuery {
                 select_clause: SelectClause {
                     set_quantifier: SetQuantifier::All,
                     body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -2995,7 +2995,7 @@ mod subquery {
                 order_by_clause: None,
                 limit: None,
                 offset: None
-            }))))
+            })))))
         }),
         input = "x IN (SELECT a)",
     );
@@ -3006,7 +3006,7 @@ mod subquery {
         expected = Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Identifier("x".to_string())),
             op: BinaryOp::NotIn,
-            right: Box::new(Expression::Subquery(Box::new(Query::Select(SelectQuery {
+            right: Box::new(Expression::Subquery(Box::new(Query::Select(Box::new(SelectQuery {
                 select_clause: SelectClause {
                     set_quantifier: SetQuantifier::All,
                     body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -3020,7 +3020,7 @@ mod subquery {
                 order_by_clause: None,
                 limit: None,
                 offset: None
-            }))))
+            })))))
         }),
         input = "x NOT IN (SELECT a)",
     );
@@ -3179,7 +3179,7 @@ mod comments {
     validate_ast!(
         standard_ast,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -3193,14 +3193,14 @@ mod comments {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "SELECT foo -- This is a standard comment",
     );
 
     validate_ast!(
         ast,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -3214,7 +3214,7 @@ mod comments {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "-- This is a standard single line comment
     SELECT foo",
     );
@@ -3222,7 +3222,7 @@ mod comments {
     validate_ast!(
         inline_ast,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -3236,14 +3236,14 @@ mod comments {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "SELECT /* This is an inline comment */ foo",
     );
 
     validate_ast!(
         multiline_ast,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -3257,7 +3257,7 @@ mod comments {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "/* This is a multiline comment
     This is a multiline comment */
     SELECT foo",
@@ -3266,7 +3266,7 @@ mod comments {
     validate_ast!(
         inline_multiline_ast,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -3280,7 +3280,7 @@ mod comments {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "SELECT /* This is an inline
     comment */ foo",
     );
@@ -3288,7 +3288,7 @@ mod comments {
     validate_ast!(
         multiline_nesting_ast,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -3302,7 +3302,7 @@ mod comments {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "/* This is a multiline comment
     * with nesting: /* nested block comment */
     */
@@ -3410,7 +3410,7 @@ mod flatten {
     validate_ast!(
         duplicate_options,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -3433,7 +3433,7 @@ mod flatten {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "SELECT * FROM FLATTEN(foo WITH depth => 1, separator => '%', depth => 2)",
     );
 }
@@ -3549,7 +3549,7 @@ mod unwind {
     validate_ast!(
         duplicate_options,
         method = parse_query,
-        expected = Query::Select(SelectQuery {
+        expected = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -3580,7 +3580,7 @@ mod unwind {
             order_by_clause: None,
             limit: None,
             offset: None,
-        }),
+        })),
         input = "SELECT * FROM UNWIND(foo WITH PATH => arr, INDEX => i, INDEX => idx, PATH => a, OUTER => false)",
     );
 }

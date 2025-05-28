@@ -315,7 +315,7 @@ mod test_get_select_order {
     test_get_select_order!(
         select_body_standard_is_some,
         expected = Some(ast::SelectBody::Standard(vec![])),
-        input = &ast::Query::Select(ast::SelectQuery {
+        input = &ast::Query::Select(Box::new(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
                 body: ast::SelectBody::Standard(vec![]),
@@ -327,13 +327,13 @@ mod test_get_select_order {
             having_clause: None,
             limit: None,
             offset: None
-        })
+        }))
     );
 
     test_get_select_order!(
         select_distinct_is_some,
         expected = Some(ast::SelectBody::Standard(vec![])),
-        input = &ast::Query::Select(ast::SelectQuery {
+        input = &ast::Query::Select(Box::new(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::Distinct,
                 body: ast::SelectBody::Standard(vec![]),
@@ -345,7 +345,7 @@ mod test_get_select_order {
             having_clause: None,
             limit: None,
             offset: None
-        })
+        }))
     );
 }
 

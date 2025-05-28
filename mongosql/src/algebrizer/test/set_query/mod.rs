@@ -84,7 +84,7 @@ test_algebrize!(
         cache: SchemaCache::new()
     })),
     input = ast::SetQuery {
-        left: Box::new(ast::Query::Select(ast::SelectQuery {
+        left: Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
                 body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -107,9 +107,9 @@ test_algebrize!(
             order_by_clause: None,
             limit: None,
             offset: None,
-        })),
+        }))),
         op: ast::SetOperator::Union,
-        right: Box::new(ast::Query::Select(ast::SelectQuery {
+        right: Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
                 body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -132,7 +132,7 @@ test_algebrize!(
             order_by_clause: None,
             limit: None,
             offset: None,
-        })),
+        }))),
     },
     env = map! {
         ("foo", 0u16).into() => Schema::Document(Document {
