@@ -632,7 +632,7 @@ impl StageMovementVisitor<'_> {
                                 true,
                             )
                         }
-                        Err(original) => (original, false),
+                        Err(original) => (*original, false),
                     }
                 }
             }

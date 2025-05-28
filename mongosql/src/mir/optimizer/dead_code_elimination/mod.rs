@@ -100,7 +100,7 @@ impl Visitor for DeadCodeEliminationVisitor {
                                 }
                                 // It is possible for substitution to fail if the Group clause
                                 // contains Subqueries. This will be very rare.
-                                Err(n) => n,
+                                Err(n) => *n,
                                 _ => unreachable!(),
                             }
                         } else {

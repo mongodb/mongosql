@@ -109,7 +109,7 @@ macro_rules! test_substitute {
             let theta = $theta;
             // if None is expected, we convert that to Err(input.clone()
             // it keeps the test cases smaller
-            let expected = $expected.ok_or(input.clone());
+            let expected = $expected.ok_or(Box::new(input.clone()));
             let actual = input.substitute(theta);
             assert_eq!(expected, actual);
         }
