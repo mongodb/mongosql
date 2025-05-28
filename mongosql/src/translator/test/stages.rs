@@ -1229,16 +1229,17 @@ mod mql_intrinsic {
                     })),
                 }
             ))),
-            input = mir::Stage::MqlIntrinsic(mir::MqlStage::MatchFilter(Box::new(mir::MatchFilter {
-                source: util::mir_project_collection(None, "foo", Some("f"), None),
-                condition: mir::MatchQuery::Comparison(mir::MatchLanguageComparison {
-                    function: mir::MatchLanguageComparisonOp::Lt,
-                    input: Some(util::mir_field_path("f", vec!["a"])),
-                    arg: mir::LiteralValue::Integer(1),
+            input =
+                mir::Stage::MqlIntrinsic(mir::MqlStage::MatchFilter(Box::new(mir::MatchFilter {
+                    source: util::mir_project_collection(None, "foo", Some("f"), None),
+                    condition: mir::MatchQuery::Comparison(mir::MatchLanguageComparison {
+                        function: mir::MatchLanguageComparisonOp::Lt,
+                        input: Some(util::mir_field_path("f", vec!["a"])),
+                        arg: mir::LiteralValue::Integer(1),
+                        cache: mir::schema::SchemaCache::new(),
+                    }),
                     cache: mir::schema::SchemaCache::new(),
-                }),
-                cache: mir::schema::SchemaCache::new(),
-            })))
+                })))
         );
 
         test_translate_stage!(
@@ -1249,13 +1250,14 @@ mod mql_intrinsic {
                     expr: Box::new(air::MatchQuery::False),
                 }
             ))),
-            input = mir::Stage::MqlIntrinsic(mir::MqlStage::MatchFilter(Box::new(mir::MatchFilter {
-                source: util::mir_project_collection(None, "foo", Some("f"), None),
-                condition: mir::MatchQuery::False(mir::MatchFalse {
+            input =
+                mir::Stage::MqlIntrinsic(mir::MqlStage::MatchFilter(Box::new(mir::MatchFilter {
+                    source: util::mir_project_collection(None, "foo", Some("f"), None),
+                    condition: mir::MatchQuery::False(mir::MatchFalse {
+                        cache: mir::schema::SchemaCache::new(),
+                    }),
                     cache: mir::schema::SchemaCache::new(),
-                }),
-                cache: mir::schema::SchemaCache::new(),
-            })))
+                })))
         );
     }
 }

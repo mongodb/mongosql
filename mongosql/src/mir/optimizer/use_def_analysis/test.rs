@@ -810,16 +810,18 @@ mod substitute {
 
     test_substitute!(
         match_filter_succeeds_two_levels,
-        expected = Some(Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
-            source: mir_collection("foo", "bar"),
-            condition: MatchQuery::Comparison(MatchLanguageComparison {
-                function: MatchLanguageComparisonOp::Eq,
-                input: Some(mir_field_path("y", vec!["a"])),
-                arg: Integer(42),
+        expected = Some(Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(
+            MatchFilter {
+                source: mir_collection("foo", "bar"),
+                condition: MatchQuery::Comparison(MatchLanguageComparison {
+                    function: MatchLanguageComparisonOp::Eq,
+                    input: Some(mir_field_path("y", vec!["a"])),
+                    arg: Integer(42),
+                    cache: SchemaCache::new(),
+                }),
                 cache: SchemaCache::new(),
-            }),
-            cache: SchemaCache::new(),
-        })))),
+            }
+        )))),
         stage = Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
             source: mir_collection("foo", "bar"),
             condition: MatchQuery::Comparison(MatchLanguageComparison {

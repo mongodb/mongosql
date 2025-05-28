@@ -2981,21 +2981,25 @@ mod subquery {
         expected = Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Identifier("x".to_string())),
             op: BinaryOp::In,
-            right: Box::new(Expression::Subquery(Box::new(Query::Select(Box::new(SelectQuery {
-                select_clause: SelectClause {
-                    set_quantifier: SetQuantifier::All,
-                    body: SelectBody::Standard(vec![SelectExpression::Expression(
-                        OptionallyAliasedExpr::Unaliased(Expression::Identifier("a".to_string()),)
-                    )])
-                },
-                from_clause: None,
-                where_clause: None,
-                group_by_clause: None,
-                having_clause: None,
-                order_by_clause: None,
-                limit: None,
-                offset: None
-            })))))
+            right: Box::new(Expression::Subquery(Box::new(Query::Select(Box::new(
+                SelectQuery {
+                    select_clause: SelectClause {
+                        set_quantifier: SetQuantifier::All,
+                        body: SelectBody::Standard(vec![SelectExpression::Expression(
+                            OptionallyAliasedExpr::Unaliased(Expression::Identifier(
+                                "a".to_string()
+                            ),)
+                        )])
+                    },
+                    from_clause: None,
+                    where_clause: None,
+                    group_by_clause: None,
+                    having_clause: None,
+                    order_by_clause: None,
+                    limit: None,
+                    offset: None
+                }
+            )))))
         }),
         input = "x IN (SELECT a)",
     );
@@ -3006,21 +3010,25 @@ mod subquery {
         expected = Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Identifier("x".to_string())),
             op: BinaryOp::NotIn,
-            right: Box::new(Expression::Subquery(Box::new(Query::Select(Box::new(SelectQuery {
-                select_clause: SelectClause {
-                    set_quantifier: SetQuantifier::All,
-                    body: SelectBody::Standard(vec![SelectExpression::Expression(
-                        OptionallyAliasedExpr::Unaliased(Expression::Identifier("a".to_string()),)
-                    )])
-                },
-                from_clause: None,
-                where_clause: None,
-                group_by_clause: None,
-                having_clause: None,
-                order_by_clause: None,
-                limit: None,
-                offset: None
-            })))))
+            right: Box::new(Expression::Subquery(Box::new(Query::Select(Box::new(
+                SelectQuery {
+                    select_clause: SelectClause {
+                        set_quantifier: SetQuantifier::All,
+                        body: SelectBody::Standard(vec![SelectExpression::Expression(
+                            OptionallyAliasedExpr::Unaliased(Expression::Identifier(
+                                "a".to_string()
+                            ),)
+                        )])
+                    },
+                    from_clause: None,
+                    where_clause: None,
+                    group_by_clause: None,
+                    having_clause: None,
+                    order_by_clause: None,
+                    limit: None,
+                    offset: None
+                }
+            )))))
         }),
         input = "x NOT IN (SELECT a)",
     );
