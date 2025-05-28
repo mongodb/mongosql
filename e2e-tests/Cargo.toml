@@ -24,3 +24,6 @@ error = ["generated"]
 schema_derivation = ["generated"]
 all = ["index", "query", "e2e", "error", "schema_derivation"]
 generated = []
+
+[package.metadata.cargo-machete]
+ignored = ["mongosql", "schema_derivation", "agg-ast", "test-utils", "mongodb", "bson"]
