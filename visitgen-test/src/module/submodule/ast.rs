@@ -18,12 +18,11 @@ impl fmt::Display for Atom {
     }
 }
 
-#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 pub enum Expression {
     Atom(Atom),
     Atoms(Vec<Atom>),
-    Tree(Tree),
+    Tree(Box<Tree>),
     Plus(Plus),
     Literal(String),
     Null,

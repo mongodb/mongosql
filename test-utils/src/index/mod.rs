@@ -1,4 +1,3 @@
-#![allow(clippy::result_large_err)]
 use super::Error;
 use mongodb::{
     bson::{self, doc, Bson, Document},
@@ -184,9 +183,9 @@ impl ExplainResult {
                             return Ok(stage.cursor.unwrap().query_planner);
                         }
                     }
-                    Err(Error::MissingQueryPlanner(self.clone()))
+                    Err(Error::MissingQueryPlanner(Box::new(self.clone())))
                 }
-                None => Err(Error::MissingQueryPlanner(self.clone())),
+                None => Err(Error::MissingQueryPlanner(Box::new(self.clone()))),
             },
         }
     }

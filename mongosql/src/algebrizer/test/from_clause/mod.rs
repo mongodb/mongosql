@@ -529,7 +529,7 @@ test_algebrize!(
         cache: SchemaCache::new(),
     })),
     input = Some(ast::Datasource::Derived(ast::DerivedSource {
-        query: Box::new(ast::Query::Select(ast::SelectQuery {
+        query: Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
                 body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star]),
@@ -547,7 +547,7 @@ test_algebrize!(
             order_by_clause: None,
             limit: None,
             offset: None,
-        })),
+        }))),
         alias: "d".into(),
     })),
 );
@@ -603,7 +603,7 @@ test_algebrize!(
         cache: SchemaCache::new(),
     })),
     input = Some(ast::Datasource::Derived(ast::DerivedSource {
-        query: Box::new(ast::Query::Select(ast::SelectQuery {
+        query: Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
                 body: ast::SelectBody::Values(vec![
@@ -628,7 +628,7 @@ test_algebrize!(
             order_by_clause: None,
             limit: None,
             offset: None,
-        })),
+        }))),
         alias: "d".into(),
     })),
 );
@@ -695,7 +695,7 @@ test_algebrize!(
         cache: SchemaCache::new(),
     })),
     input = Some(ast::Datasource::Derived(ast::DerivedSource {
-        query: Box::new(ast::Query::Select(ast::SelectQuery {
+        query: Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
                 body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star,]),
@@ -726,7 +726,7 @@ test_algebrize!(
             order_by_clause: None,
             limit: None,
             offset: None,
-        })),
+        }))),
         alias: "d".into(),
     })),
 );
@@ -840,7 +840,7 @@ test_algebrize!(
     )),
     expected_error_code = 3016,
     input = Some(ast::Datasource::Derived(ast::DerivedSource {
-        query: Box::new(ast::Query::Select(ast::SelectQuery {
+        query: Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
                 body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star,]),
@@ -871,7 +871,7 @@ test_algebrize!(
             order_by_clause: None,
             limit: None,
             offset: None,
-        })),
+        }))),
         alias: "d".into(),
     })),
 );

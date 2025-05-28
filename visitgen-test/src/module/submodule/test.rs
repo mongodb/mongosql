@@ -152,7 +152,7 @@ fn create_test_tree() -> ast::Expression {
         right: Box::new(Expression::Null),
     }));
 
-    let r = Box::new(Expression::Tree(Tree {
+    let r = Box::new(Expression::Tree(Box::new(Tree {
         branch_b1: Box::new("b1".to_string()),
         branch_b2: Box::new(Expression::Atom(Atom {
             name: "a3".to_string(),
@@ -310,7 +310,7 @@ fn create_test_tree() -> ast::Expression {
             );
             m
         },
-    }));
+    })));
 
     Expression::Plus(Plus { left: l, right: r })
 }

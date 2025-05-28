@@ -158,7 +158,7 @@ mod arbitrary {
     fn arbitrary_non_with_query(g: &mut Gen) -> Query {
         let rng = &(0..Query::VARIANT_COUNT - 1).collect::<Vec<_>>();
         match g.choose(rng).unwrap() {
-            0 => Query::Select(SelectQuery::arbitrary(g)),
+            0 => Query::Select(Box::new(SelectQuery::arbitrary(g))),
             1 => Query::Set(SetQuery::arbitrary(g)),
             _ => panic!("missing Query variant(s)"),
         }
@@ -167,15 +167,15 @@ mod arbitrary {
     impl Arbitrary for Query {
         fn arbitrary(g: &mut Gen) -> Self {
             if g.size() >= MAX_NEST {
-                return Self::Select(SelectQuery::arbitrary(g));
+                return Self::Select(Box::new(SelectQuery::arbitrary(g)));
             }
 
             let nested_g = &mut nested_gen(g);
             let rng = &(0..Self::VARIANT_COUNT).collect::<Vec<_>>();
             match g.choose(rng).unwrap() {
-                0 => Self::Select(SelectQuery::arbitrary(nested_g)),
+                0 => Self::Select(Box::new(SelectQuery::arbitrary(nested_g))),
                 1 => Self::Set(SetQuery::arbitrary(nested_g)),
-                2 => Self::With(WithQuery::arbitrary(nested_g)),
+                2 => Self::With(Box::new(WithQuery::arbitrary(nested_g))),
                 _ => panic!("missing Query variant(s)"),
             }
         }
@@ -273,7 +273,7 @@ mod arbitrary {
                 op: SetOperator::arbitrary(g),
                 // Only generate Select queries for the RHS
                 // because the parser always produces left-deep Set Queries.
-                right: Box::new(Query::Select(SelectQuery::arbitrary(g))),
+                right: Box::new(Query::Select(Box::new(SelectQuery::arbitrary(g)))),
             }
         }
 

@@ -340,7 +340,7 @@ impl MqlTranslator {
         match mir_mql_intrinsic {
             mir::MqlStage::EquiJoin(ej) => self.translate_equijoin(ej),
             mir::MqlStage::LateralJoin(lj) => self.translate_lateral_join(lj),
-            mir::MqlStage::MatchFilter(mf) => self.translate_match_filter(mf),
+            mir::MqlStage::MatchFilter(mf) => self.translate_match_filter(*mf),
         }
     }
 

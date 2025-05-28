@@ -84,7 +84,7 @@ test_prefilter! {
     eq_path,
     expected = Stage::Filter(Filter {
                 source: Stage::Unwind(Unwind {
-                    source: Stage::MqlIntrinsic(MqlStage::MatchFilter( MatchFilter {
+                    source: Stage::MqlIntrinsic(MqlStage::MatchFilter( Box::new(MatchFilter {
                         source: Stage::Sentinel.into(),
                         condition: MatchQuery::ElemMatch(
                             ElemMatch {
@@ -99,7 +99,7 @@ test_prefilter! {
                                 cache: SchemaCache::new(),
                             }),
                             cache: SchemaCache::new(),
-                    })).into(),
+                    }))).into(),
                     path: mir_field_path("foo", vec!["bar"]),
                     index: Some("idx".to_string()),
                     outer: false,
@@ -162,7 +162,7 @@ test_prefilter! {
     between_path,
     expected = Stage::Filter(Filter {
                 source: Stage::Unwind(Unwind {
-                    source: Stage::MqlIntrinsic(MqlStage::MatchFilter( MatchFilter {
+                    source: Stage::MqlIntrinsic(MqlStage::MatchFilter( Box::new(MatchFilter {
                         source: Stage::Sentinel.into(),
                         condition: MatchQuery::ElemMatch(
                             ElemMatch {
@@ -192,7 +192,7 @@ test_prefilter! {
                                 cache: SchemaCache::new(),
                             }),
                             cache: SchemaCache::new(),
-                    })).into(),
+                    }))).into(),
                     path: mir_field_path("foo", vec!["bar"]),
                     index: Some("idx".to_string()),
                     outer: false,

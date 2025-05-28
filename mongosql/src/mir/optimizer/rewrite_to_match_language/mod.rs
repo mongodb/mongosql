@@ -152,11 +152,11 @@ impl Visitor for MatchLanguageRewriterVisitor {
                 // rewritten condition.
                 Self::rewrite_condition(f.condition.clone()).map_or(node, |condition| {
                     self.changed = true;
-                    Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+                    Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
                         source: f.source,
                         condition,
                         cache: SchemaCache::new(),
-                    }))
+                    })))
                 })
             }
             _ => node,

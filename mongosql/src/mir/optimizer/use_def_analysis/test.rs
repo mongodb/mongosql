@@ -109,7 +109,7 @@ macro_rules! test_substitute {
             let theta = $theta;
             // if None is expected, we convert that to Err(input.clone()
             // it keeps the test cases smaller
-            let expected = $expected.ok_or(input.clone());
+            let expected = $expected.ok_or(Box::new(input.clone()));
             let actual = input.substitute(theta);
             assert_eq!(expected, actual);
         }
@@ -316,7 +316,7 @@ mod field_uses {
             };
             expected
         }),
-        input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+        input = Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
             source: mir_collection("foo", "bar"),
             condition: MatchQuery::Logical(MatchLanguageLogical {
                 op: MatchLanguageLogicalOp::Or,
@@ -337,7 +337,7 @@ mod field_uses {
                 cache: SchemaCache::new(),
             }),
             cache: SchemaCache::new(),
-        })),
+        }))),
     );
 
     test_field_uses!(
@@ -352,7 +352,7 @@ mod field_uses {
             };
             expected
         }),
-        input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+        input = Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
             source: mir_collection("foo", "bar"),
             condition: MatchQuery::Logical(MatchLanguageLogical {
                 op: MatchLanguageLogicalOp::Or,
@@ -373,7 +373,7 @@ mod field_uses {
                 cache: SchemaCache::new(),
             }),
             cache: SchemaCache::new(),
-        })),
+        }))),
     );
 
     test_field_uses!(
@@ -810,17 +810,19 @@ mod substitute {
 
     test_substitute!(
         match_filter_succeeds_two_levels,
-        expected = Some(Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
-            source: mir_collection("foo", "bar"),
-            condition: MatchQuery::Comparison(MatchLanguageComparison {
-                function: MatchLanguageComparisonOp::Eq,
-                input: Some(mir_field_path("y", vec!["a"])),
-                arg: Integer(42),
+        expected = Some(Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(
+            MatchFilter {
+                source: mir_collection("foo", "bar"),
+                condition: MatchQuery::Comparison(MatchLanguageComparison {
+                    function: MatchLanguageComparisonOp::Eq,
+                    input: Some(mir_field_path("y", vec!["a"])),
+                    arg: Integer(42),
+                    cache: SchemaCache::new(),
+                }),
                 cache: SchemaCache::new(),
-            }),
-            cache: SchemaCache::new(),
-        }))),
-        stage = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+            }
+        )))),
+        stage = Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
             source: mir_collection("foo", "bar"),
             condition: MatchQuery::Comparison(MatchLanguageComparison {
                 function: MatchLanguageComparisonOp::Eq,
@@ -829,7 +831,7 @@ mod substitute {
                 cache: SchemaCache::new(),
             }),
             cache: SchemaCache::new(),
-        })),
+        }))),
         theta = map! {
             Key::named("x",0) => mir::Expression::Document(unchecked_unique_linked_hash_map! {
                 "a".to_string() => *mir_field_access("y", "a", true),

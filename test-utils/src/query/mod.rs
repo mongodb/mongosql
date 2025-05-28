@@ -1,4 +1,3 @@
-#![allow(clippy::result_large_err)]
 use mongodb::{
     bson::{doc, Bson, Decimal128, Document},
     sync::Client,

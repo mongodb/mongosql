@@ -126,7 +126,7 @@ macro_rules! test_subpath_fields_ast {
 
 macro_rules! build_select_query {
     ($body:expr) => {
-        Query::Select(SelectQuery {
+        Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: $body,
@@ -138,7 +138,7 @@ macro_rules! build_select_query {
             having_clause: None,
             limit: None,
             offset: None,
-        })
+        }))
     };
 }
 
@@ -179,7 +179,7 @@ mod subpath_field_tests {
     test_subpath_fields_ast!(
         complex_nested_subpaths,
         expected = vec![vec!["a", "b"], vec!["c", "d"], vec!["e", "f"]],
-        input = Query::Select(SelectQuery {
+        input = Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -219,6 +219,6 @@ mod subpath_field_tests {
             having_clause: None,
             limit: None,
             offset: None
-        }),
+        })),
     );
 }

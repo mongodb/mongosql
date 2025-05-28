@@ -213,7 +213,7 @@ lazy_static! {
         collection: "foo".into(),
         alias: Some("foo".into()),
     });
-    static ref AST_QUERY_FOO: ast::Query = ast::Query::Select(ast::SelectQuery {
+    static ref AST_QUERY_FOO: ast::Query = ast::Query::Select(Box::new(ast::SelectQuery {
         select_clause: ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star]),
@@ -225,13 +225,13 @@ lazy_static! {
         order_by_clause: None,
         limit: None,
         offset: None,
-    });
+    }));
     static ref AST_SOURCE_BAR: Datasource = Datasource::Collection(CollectionSource {
         database: Some("test".into()),
         collection: "bar".into(),
         alias: Some("bar".into()),
     });
-    static ref AST_QUERY_BAR: ast::Query = ast::Query::Select(ast::SelectQuery {
+    static ref AST_QUERY_BAR: ast::Query = ast::Query::Select(Box::new(ast::SelectQuery {
         select_clause: ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star]),
@@ -243,5 +243,5 @@ lazy_static! {
         order_by_clause: None,
         limit: None,
         offset: None,
-    });
+    }));
 }

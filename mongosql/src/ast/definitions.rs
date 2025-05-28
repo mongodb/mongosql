@@ -16,13 +16,12 @@ macro_rules! multimap {
 
 visitgen::generate_visitors! {
 
-#[allow(clippy::large_enum_variant)]
 #[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum Query {
-    Select(SelectQuery),
+    Select(Box<SelectQuery>),
     Set(SetQuery),
     // We won't actually parse into WITH QUERIES inside of WITH QUERIES, but the ast technically supports it.
-    With(WithQuery),
+    With(Box<WithQuery>),
 }
 
 #[derive(PartialEq, Debug, Clone)]
