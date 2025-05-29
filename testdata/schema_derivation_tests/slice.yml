@@ -5,7 +5,20 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        arr:
+          anyOf:
+            - bsonType: "array"
+            - bsonType: "null"
+        len:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "null"
+
 
   - db: "schema_derivation_slice"
     collection:
@@ -13,4 +26,20 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        arr:
+          anyOf:
+            - bsonType: "array"
+            - bsonType: "null"
+        len:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "null"
+        start:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: "null"

@@ -19,7 +19,13 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "arr" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        arr:
+          bsonType: "array"
 
   - db: "schema_derivation_from_unwind"
     collection:
@@ -102,7 +108,15 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "arr" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        arr:
+          bsonType: "array"
+        i:
+          bsonType: "int"
 
   - db: "schema_derivation_from_unwind"
     collection:

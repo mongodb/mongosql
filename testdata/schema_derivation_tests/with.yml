@@ -35,7 +35,7 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      required: [ "bar", "car" ]
+      required: [ "_id", "bar", "car" ]
       additionalProperties: false
       properties:
         _id:
