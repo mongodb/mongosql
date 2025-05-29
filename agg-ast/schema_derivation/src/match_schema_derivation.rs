@@ -1,4 +1,3 @@
-#![allow(clippy::result_large_err)]
 use crate::{
     array_element_schema_or_error, get_or_create_schema_for_path_mut, maybe_any_of,
     negative_normalize::{NegativeNormalize, DECIMAL_ZERO},

@@ -142,11 +142,11 @@ fn generate_prefilter(
                     return (source, false);
                 };
             return (
-                Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+                Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
                     source,
                     condition: generate_between_elem_match_query(field, lower_bound, upper_bound),
                     cache: SchemaCache::new(),
-                }))
+                })))
                 .into(),
                 true,
             );
@@ -162,11 +162,11 @@ fn generate_prefilter(
             return (source, false);
         };
         return (
-            Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
                 source,
                 condition: generate_comparison_elem_match_query(function, field, lit),
                 cache: SchemaCache::new(),
-            }))
+            })))
             .into(),
             true,
         );

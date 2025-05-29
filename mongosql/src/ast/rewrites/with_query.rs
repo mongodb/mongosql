@@ -69,14 +69,14 @@ struct WithQueryVisitor;
 impl Visitor for WithQueryVisitor {
     fn visit_query(&mut self, query: ast::Query) -> ast::Query {
         match query {
-            ast::Query::With(ast::WithQuery { queries, body }) => {
+            ast::Query::With(w) => {
                 let mut theta = BTreeMap::new();
-                for query in queries {
+                for query in w.queries {
                     let ast::NamedQuery { name, query } = query;
                     let query = CollectionReplaceVisitor { theta: &theta }.visit_query(query);
                     theta.insert(name, query);
                 }
-                CollectionReplaceVisitor { theta: &theta }.visit_query(*body)
+                CollectionReplaceVisitor { theta: &theta }.visit_query(*w.body)
             }
             // we currently only allow WITH queries at the top level, so we don't need to walk
             _ => query,
