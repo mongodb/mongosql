@@ -5,4 +5,10 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
