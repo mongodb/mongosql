@@ -201,7 +201,7 @@ tests:
   }
 - description: WHERE after unwind returns expected results
   current_db: schema_derivation_where
-  current_collection: foo
+  current_collection: biz
   pipeline: [
     {
       "$match": {
@@ -260,7 +260,7 @@ tests:
     "bsonType": "object"
   }
 - description: WHERE after FLATTEN UNWIND returns expected results
-  current_db: foo
+  current_db: schema_derivation_where
   current_collection: nested
   pipeline: [
     {
@@ -320,7 +320,7 @@ tests:
     "bsonType": "object"
   }
 - description: WHERE after FLATTEN UNWIND an array of objects returns expected results
-  current_db: foo
+  current_db: schema_derivation_where
   current_collection: items
   pipeline: [
     {

@@ -1,4 +1,3 @@
-#![allow(clippy::result_large_err)]
 use agg_ast::definitions::Stage;
 use mongodb::bson::doc;
 use mongosql::json_schema;

@@ -148,17 +148,13 @@ impl Visitor for SingleStageFieldUseVisitor {
                     cache,
                 })
             }
-            Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
-                source,
-                condition,
-                cache,
-            })) => {
-                let condition = self.visit_match_query(condition);
-                Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
-                    source,
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(m)) => {
+                let condition = self.visit_match_query(m.condition);
+                Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
+                    source: m.source,
                     condition,
-                    cache,
-                }))
+                    cache: m.cache,
+                })))
             }
             Stage::Sort(Sort {
                 source,
@@ -320,17 +316,13 @@ impl Visitor for SingleStageDatasourceUseVisitor {
                     cache,
                 })
             }
-            Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
-                source,
-                condition,
-                cache,
-            })) => {
-                let condition = self.visit_match_query(condition);
-                Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
-                    source,
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(m)) => {
+                let condition = self.visit_match_query(m.condition);
+                Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
+                    source: m.source,
                     condition,
-                    cache,
-                }))
+                    cache: m.cache,
+                })))
             }
             Stage::Sort(Sort {
                 source,
@@ -541,8 +533,7 @@ impl Stage {
         (visitor.datasource_uses, ret)
     }
 
-    #[allow(clippy::result_large_err)]
-    pub fn substitute(self, theta: HashMap<Key, Expression>) -> Result<Self, Self> {
+    pub fn substitute(self, theta: HashMap<Key, Expression>) -> Result<Self, Box<Self>> {
         let mut visitor = SubstituteVisitor {
             theta,
             failed: false,
@@ -558,7 +549,7 @@ impl Stage {
             Stage::Filter(mut f) => {
                 let subbed = visitor.visit_expression(f.condition.clone());
                 if visitor.failed {
-                    return Err(Stage::Filter(f));
+                    return Err(Box::new(Stage::Filter(f)));
                 }
                 f.condition = subbed;
                 Ok(Stage::Filter(f))
@@ -566,7 +557,7 @@ impl Stage {
             Stage::MqlIntrinsic(MqlStage::MatchFilter(mut f)) => {
                 let subbed = visitor.visit_match_query(f.condition.clone());
                 if visitor.failed {
-                    return Err(Stage::MqlIntrinsic(MqlStage::MatchFilter(f)));
+                    return Err(Box::new(Stage::MqlIntrinsic(MqlStage::MatchFilter(f))));
                 }
                 f.condition = subbed;
                 Ok(Stage::MqlIntrinsic(MqlStage::MatchFilter(f)))
@@ -577,7 +568,7 @@ impl Stage {
                 for spec in cloned_specs.into_iter() {
                     let subbed = visitor.visit_sort_specification(spec);
                     if visitor.failed {
-                        return Err(Stage::Sort(s));
+                        return Err(Box::new(Stage::Sort(s)));
                     }
                     subbed_specs.push(subbed);
                 }
@@ -590,7 +581,7 @@ impl Stage {
                 for key in cloned_keys.into_iter() {
                     let subbed = visitor.visit_optionally_aliased_expr(key);
                     if visitor.failed {
-                        return Err(Stage::Group(g));
+                        return Err(Box::new(Stage::Group(g)));
                     }
                     subbed_keys.push(subbed);
                 }
@@ -599,7 +590,7 @@ impl Stage {
                 for aggregation in cloned_aggregations.into_iter() {
                     let subbed = visitor.visit_aliased_aggregation(aggregation);
                     if visitor.failed {
-                        return Err(Stage::Group(g));
+                        return Err(Box::new(Stage::Group(g)));
                     }
                     subbed_aggregations.push(subbed);
                 }

@@ -50,7 +50,7 @@ test_algebrize!(
         },
         cache: SchemaCache::new(),
     })).into())),
-    input = ast::Expression::Exists(Box::new(ast::Query::Select(ast::SelectQuery {
+    input = ast::Expression::Exists(Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
         select_clause: ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -66,7 +66,7 @@ test_algebrize!(
         order_by_clause: None,
         limit: None,
         offset: None,
-    },))),
+    },)))),
 );
 test_algebrize!(
     correlated_exists,
@@ -86,7 +86,7 @@ test_algebrize!(
         },
         cache: SchemaCache::new(),
     })).into())),
-    input = ast::Expression::Exists(Box::new(ast::Query::Select(ast::SelectQuery {
+    input = ast::Expression::Exists(Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
         select_clause: ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -102,7 +102,7 @@ test_algebrize!(
         order_by_clause: None,
         limit: None,
         offset: None,
-    },))),
+    },)))),
     env = map! {
         ("foo", 1u16).into() => Schema::Document( Document {
             keys: map! {
@@ -137,7 +137,7 @@ test_algebrize!(
         },
         cache: SchemaCache::new(),
     })).into())),
-    input = ast::Expression::Exists(Box::new(ast::Query::Select(ast::SelectQuery {
+    input = ast::Expression::Exists(Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
         select_clause: ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star])
@@ -159,7 +159,7 @@ test_algebrize!(
         order_by_clause: None,
         limit: None,
         offset: None,
-    },))),
+    },)))),
 );
 test_algebrize!(
     exists_degree_gt_1,
@@ -186,7 +186,7 @@ test_algebrize!(
         }))
         .into(),
     )),
-    input = ast::Expression::Exists(Box::new(ast::Query::Select(ast::SelectQuery {
+    input = ast::Expression::Exists(Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
         select_clause: ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star])
@@ -204,7 +204,7 @@ test_algebrize!(
         order_by_clause: None,
         limit: None,
         offset: None,
-    },))),
+    },)))),
 );
 test_algebrize!(
     uncorrelated_subquery_expr,
@@ -232,7 +232,7 @@ test_algebrize!(
         })),
         is_nullable: false,
     })),
-    input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
+    input = ast::Expression::Subquery(Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
         select_clause: ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -248,7 +248,7 @@ test_algebrize!(
         order_by_clause: None,
         limit: None,
         offset: None,
-    },))),
+    },)))),
 );
 test_algebrize!(
     correlated_subquery_expr,
@@ -276,7 +276,7 @@ test_algebrize!(
         })),
         is_nullable: false,
     })),
-    input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
+    input = ast::Expression::Subquery(Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
         select_clause: ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -292,7 +292,7 @@ test_algebrize!(
         order_by_clause: None,
         limit: None,
         offset: None,
-    },))),
+    },)))),
     env = map! {
         ("foo", 1u16).into() => Schema::Document( Document {
             keys: map! {
@@ -310,7 +310,7 @@ test_algebrize!(
     in_implicit_type_conversion_context = false,
     expected = Err(Error::InvalidSubqueryDegree),
     expected_error_code = 3022,
-    input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
+    input = ast::Expression::Subquery(Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
         select_clause: ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star])
@@ -325,7 +325,7 @@ test_algebrize!(
         order_by_clause: None,
         limit: None,
         offset: None,
-    },))),
+    },)))),
 );
 test_algebrize!(
     substar_degree_eq_1,
@@ -347,7 +347,7 @@ test_algebrize!(
         })),
         is_nullable: false,
     })),
-    input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
+    input = ast::Expression::Subquery(Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
         select_clause: ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Substar(
@@ -363,7 +363,7 @@ test_algebrize!(
         order_by_clause: None,
         limit: None,
         offset: None,
-    },))),
+    },)))),
 );
 test_algebrize!(
     select_values_degree_gt_1,
@@ -371,7 +371,7 @@ test_algebrize!(
     in_implicit_type_conversion_context = false,
     expected = Err(Error::InvalidSubqueryDegree),
     expected_error_code = 3022,
-    input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
+    input = ast::Expression::Subquery(Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
         select_clause: ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -398,7 +398,7 @@ test_algebrize!(
         order_by_clause: None,
         limit: None,
         offset: None,
-    },))),
+    },)))),
 );
 test_algebrize!(
     star_degree_eq_1,
@@ -413,7 +413,7 @@ test_algebrize!(
         subquery: Box::new(mir_array(1u16)),
         is_nullable: false,
     })),
-    input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
+    input = ast::Expression::Subquery(Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
         select_clause: ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star])
@@ -425,7 +425,7 @@ test_algebrize!(
         order_by_clause: None,
         limit: None,
         offset: None,
-    },))),
+    },)))),
 );
 test_algebrize!(
     select_star_degree_gt_1,
@@ -433,7 +433,7 @@ test_algebrize!(
     in_implicit_type_conversion_context = false,
     expected = Err(Error::InvalidSubqueryDegree),
     expected_error_code = 3022,
-    input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
+    input = ast::Expression::Subquery(Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
         select_clause: ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star])
@@ -451,7 +451,7 @@ test_algebrize!(
         order_by_clause: None,
         limit: None,
         offset: None,
-    },))),
+    },)))),
 );
 test_algebrize!(
     substar_degree_gt_1,
@@ -459,7 +459,7 @@ test_algebrize!(
     in_implicit_type_conversion_context = false,
     expected = Err(Error::InvalidSubqueryDegree),
     expected_error_code = 3022,
-    input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
+    input = ast::Expression::Subquery(Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
         select_clause: ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Substar(
@@ -481,7 +481,7 @@ test_algebrize!(
         order_by_clause: None,
         limit: None,
         offset: None,
-    },))),
+    },)))),
 );
 test_algebrize!(
     uncorrelated_subquery_comparison_all,
@@ -521,7 +521,7 @@ test_algebrize!(
         expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(5))),
         op: ast::ComparisonOp::Eq,
         quantifier: ast::SubqueryQuantifier::All,
-        subquery: Box::new(ast::Query::Select(ast::SelectQuery {
+        subquery: Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
                 body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -537,7 +537,7 @@ test_algebrize!(
             order_by_clause: None,
             limit: None,
             offset: None,
-        },))
+        },)))
     }),
 );
 test_algebrize!(
@@ -576,7 +576,7 @@ test_algebrize!(
         expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(5))),
         op: ast::ComparisonOp::Eq,
         quantifier: ast::SubqueryQuantifier::Any,
-        subquery: Box::new(ast::Query::Select(ast::SelectQuery {
+        subquery: Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
                 body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -592,7 +592,7 @@ test_algebrize!(
             order_by_clause: None,
             limit: None,
             offset: None,
-        },))
+        },)))
     }),
 );
 test_algebrize!(
@@ -633,7 +633,7 @@ test_algebrize!(
         )),
         op: ast::ComparisonOp::Eq,
         quantifier: ast::SubqueryQuantifier::Any,
-        subquery: Box::new(ast::Query::Select(ast::SelectQuery {
+        subquery: Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
                 body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -649,7 +649,7 @@ test_algebrize!(
             order_by_clause: None,
             limit: None,
             offset: None,
-        },))
+        },)))
     }),
 );
 test_algebrize!(
@@ -704,7 +704,7 @@ test_algebrize!(
         expr: Box::new(ast::Expression::StringConstructor("{\"$numberInt\": \"5\"}".to_string())),
         op: ast::ComparisonOp::Eq,
         quantifier: ast::SubqueryQuantifier::Any,
-        subquery: Box::new(ast::Query::Select(ast::SelectQuery {
+        subquery: Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
                 body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -725,7 +725,7 @@ test_algebrize!(
             order_by_clause: None,
             limit: None,
             offset: None,
-        },))
+        },)))
     }),
 );
 test_algebrize!(
@@ -768,7 +768,7 @@ test_algebrize!(
         expr: Box::new(ast::Expression::Identifier("b".into())),
         op: ast::ComparisonOp::Eq,
         quantifier: ast::SubqueryQuantifier::All,
-        subquery: Box::new(ast::Query::Select(ast::SelectQuery {
+        subquery: Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
                 body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -784,7 +784,7 @@ test_algebrize!(
             order_by_clause: None,
             limit: None,
             offset: None,
-        },))
+        },)))
     }),
     env = map! {
         ("foo", 1u16).into() => Schema::Document( Document {
@@ -812,7 +812,7 @@ test_algebrize!(
         expr: Box::new(ast::Expression::Identifier("a".into())),
         op: ast::ComparisonOp::Eq,
         quantifier: ast::SubqueryQuantifier::All,
-        subquery: Box::new(ast::Query::Select(ast::SelectQuery {
+        subquery: Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
                 body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -828,7 +828,7 @@ test_algebrize!(
             order_by_clause: None,
             limit: None,
             offset: None,
-        },))
+        },)))
     }),
 );
 test_algebrize!(
@@ -872,7 +872,7 @@ test_algebrize!(
         })),
         is_nullable: true,
     })),
-    input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
+    input = ast::Expression::Subquery(Box::new(ast::Query::Select(Box::new(ast::SelectQuery {
         select_clause: ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -895,6 +895,6 @@ test_algebrize!(
         order_by_clause: None,
         limit: Some(1),
         offset: None,
-    }))),
+    })))),
     catalog = catalog(vec![("test", "bar")]),
 );

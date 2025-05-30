@@ -15,14 +15,14 @@ pub Query: Query = {
 
 SimpleQuery: Query = {
   SetQuery => Query::Set(<>),
-  SelectQuery => Query::Select(<>),
+  SelectQuery => Query::Select(Box::new(<>)),
 }
 
 WithQuery: Query = {
-  WITH <t:CommaPlus<NamedQuery>> LEFT_PAREN <q:SimpleQuery> RIGHT_PAREN => Query::With(WithQuery {
+  WITH <t:CommaPlus<NamedQuery>> LEFT_PAREN <q:SimpleQuery> RIGHT_PAREN => Query::With(Box::new(WithQuery {
     queries: t,
     body: Box::new(q),
-  })
+  }))
 }
 
 NamedQuery: NamedQuery = {
@@ -33,7 +33,7 @@ NamedQuery: NamedQuery = {
 }
 
 SetQuery: SetQuery = {
-  <q:SimpleQuery> <o:SetOperator> <s:SelectQuery>  => SetQuery{left:Box::new(q), op:o, right:Box::new(Query::Select(s))},
+  <q:SimpleQuery> <o:SetOperator> <s:SelectQuery>  => SetQuery{left:Box::new(q), op:o, right:Box::new(Query::Select(Box::new(s)))},
 }
 
 SelectQuery: SelectQuery = {

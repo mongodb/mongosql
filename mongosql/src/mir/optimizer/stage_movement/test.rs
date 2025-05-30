@@ -524,7 +524,7 @@ test_move_stage!(
     move_match_filter_above_project_when_substitutable_complex_expression_is_used,
     expected = Stage::Project(Project {
         is_add_fields: false,
-        source: Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+        source: Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
             source: mir_collection("foo", "bar"),
             condition: MatchQuery::Comparison(MatchLanguageComparison {
                 function: MatchLanguageComparisonOp::Eq,
@@ -533,7 +533,7 @@ test_move_stage!(
                 cache: SchemaCache::new(),
             }),
             cache: SchemaCache::new(),
-        }))
+        })))
         .into(),
         expression: BindingTuple(map! {
             Key::bot(0u16) => mir::Expression::Document(
@@ -545,7 +545,7 @@ test_move_stage!(
         cache: SchemaCache::new(),
     }),
     expected_changed = true,
-    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
         source: Stage::Project(Project {
             is_add_fields: false,
             source: mir_collection("foo", "bar"),
@@ -566,7 +566,7 @@ test_move_stage!(
             cache: SchemaCache::new(),
         }),
         cache: SchemaCache::new(),
-    })),
+    }))),
 );
 
 test_move_stage!(
@@ -1539,23 +1539,25 @@ test_move_stage!(
     move_match_filter_above_equijoin,
     expected = Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
         join_type: JoinType::Inner,
-        source: Box::new(Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
-            source: mir_collection("foo", "bar"),
-            condition: MatchQuery::Comparison(MatchLanguageComparison {
-                function: MatchLanguageComparisonOp::Eq,
-                input: Some(mir_field_path("bar", vec!["y"])),
-                arg: LiteralValue::Integer(43),
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(
+            MatchFilter {
+                source: mir_collection("foo", "bar"),
+                condition: MatchQuery::Comparison(MatchLanguageComparison {
+                    function: MatchLanguageComparisonOp::Eq,
+                    input: Some(mir_field_path("bar", vec!["y"])),
+                    arg: LiteralValue::Integer(43),
+                    cache: SchemaCache::new(),
+                }),
                 cache: SchemaCache::new(),
-            }),
-            cache: SchemaCache::new(),
-        }))),
+            }
+        )))),
         from: mir_collection("foo", "bar2"),
         local_field: Box::new(mir_field_path("bar", vec!["date0"])),
         foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
         cache: SchemaCache::new(),
     })),
     expected_changed = true,
-    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
         source: Box::new(Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: mir_collection("foo", "bar"),
@@ -1571,12 +1573,12 @@ test_move_stage!(
             cache: SchemaCache::new(),
         }),
         cache: SchemaCache::new(),
-    })),
+    }))),
 );
 
 test_move_stage_no_op!(
     cannot_move_match_filter_above_right_side_of_equijoin,
-    Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+    Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
         source: Box::new(Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: mir_collection("foo", "bar"),
@@ -1592,7 +1594,7 @@ test_move_stage_no_op!(
             cache: SchemaCache::new(),
         }),
         cache: SchemaCache::new(),
-    }))
+    })))
 );
 
 test_move_stage!(
@@ -1800,21 +1802,23 @@ test_move_stage!(
     move_match_filter_above_lateral_inner_join_if_only_left_datasource_is_used,
     expected = Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
         join_type: JoinType::Inner,
-        source: Box::new(Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
-            source: mir_collection("foo", "bar"),
-            condition: MatchQuery::Comparison(MatchLanguageComparison {
-                function: MatchLanguageComparisonOp::Eq,
-                input: Some(mir_field_path("bar", vec!["y"])),
-                arg: LiteralValue::Integer(43),
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(
+            MatchFilter {
+                source: mir_collection("foo", "bar"),
+                condition: MatchQuery::Comparison(MatchLanguageComparison {
+                    function: MatchLanguageComparisonOp::Eq,
+                    input: Some(mir_field_path("bar", vec!["y"])),
+                    arg: LiteralValue::Integer(43),
+                    cache: SchemaCache::new(),
+                }),
                 cache: SchemaCache::new(),
-            }),
-            cache: SchemaCache::new(),
-        }))),
+            }
+        )))),
         subquery: mir_collection("foo", "bar2"),
         cache: SchemaCache::new(),
     })),
     expected_changed = true,
-    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
         source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Inner,
             source: mir_collection("foo", "bar"),
@@ -1828,7 +1832,7 @@ test_move_stage!(
             cache: SchemaCache::new(),
         }),
         cache: SchemaCache::new(),
-    })),
+    }))),
 );
 
 test_move_stage!(
@@ -1836,20 +1840,22 @@ test_move_stage!(
     expected = Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
         join_type: JoinType::Inner,
         source: mir_collection("foo", "bar"),
-        subquery: Box::new(Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
-            source: mir_collection("foo", "bar2"),
-            condition: MatchQuery::Comparison(MatchLanguageComparison {
-                function: MatchLanguageComparisonOp::Eq,
-                input: Some(mir_field_path("bar2", vec!["x", "a", "b"])),
-                arg: LiteralValue::Integer(101),
+        subquery: Box::new(Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(
+            MatchFilter {
+                source: mir_collection("foo", "bar2"),
+                condition: MatchQuery::Comparison(MatchLanguageComparison {
+                    function: MatchLanguageComparisonOp::Eq,
+                    input: Some(mir_field_path("bar2", vec!["x", "a", "b"])),
+                    arg: LiteralValue::Integer(101),
+                    cache: SchemaCache::new(),
+                }),
                 cache: SchemaCache::new(),
-            }),
-            cache: SchemaCache::new(),
-        }))),
+            }
+        )))),
         cache: SchemaCache::new(),
     })),
     expected_changed = true,
-    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
         source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Inner,
             source: mir_collection("foo", "bar"),
@@ -1863,7 +1869,7 @@ test_move_stage!(
             cache: SchemaCache::new(),
         }),
         cache: SchemaCache::new(),
-    })),
+    }))),
 );
 
 test_move_stage!(
@@ -1871,32 +1877,34 @@ test_move_stage!(
     expected = Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
         join_type: JoinType::Inner,
         source: mir_collection("foo", "bar"),
-        subquery: Box::new(Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
-            source: mir_collection("foo", "bar2"),
-            condition: MatchQuery::Logical(MatchLanguageLogical {
-                op: MatchLanguageLogicalOp::And,
-                args: vec![
-                    MatchQuery::Comparison(MatchLanguageComparison {
-                        function: MatchLanguageComparisonOp::Gt,
-                        input: Some(mir_field_path("bar2", vec!["x", "a", "b"])),
-                        arg: LiteralValue::Integer(24),
-                        cache: SchemaCache::new(),
-                    }),
-                    MatchQuery::Comparison(MatchLanguageComparison {
-                        function: MatchLanguageComparisonOp::Gt,
-                        input: Some(mir_field_path("bar", vec!["y"])),
-                        arg: LiteralValue::Integer(25),
-                        cache: SchemaCache::new(),
-                    }),
-                ],
+        subquery: Box::new(Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(
+            MatchFilter {
+                source: mir_collection("foo", "bar2"),
+                condition: MatchQuery::Logical(MatchLanguageLogical {
+                    op: MatchLanguageLogicalOp::And,
+                    args: vec![
+                        MatchQuery::Comparison(MatchLanguageComparison {
+                            function: MatchLanguageComparisonOp::Gt,
+                            input: Some(mir_field_path("bar2", vec!["x", "a", "b"])),
+                            arg: LiteralValue::Integer(24),
+                            cache: SchemaCache::new(),
+                        }),
+                        MatchQuery::Comparison(MatchLanguageComparison {
+                            function: MatchLanguageComparisonOp::Gt,
+                            input: Some(mir_field_path("bar", vec!["y"])),
+                            arg: LiteralValue::Integer(25),
+                            cache: SchemaCache::new(),
+                        }),
+                    ],
+                    cache: SchemaCache::new(),
+                }),
                 cache: SchemaCache::new(),
-            }),
-            cache: SchemaCache::new(),
-        }))),
+            }
+        )))),
         cache: SchemaCache::new(),
     })),
     expected_changed = true,
-    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
         source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Inner,
             source: mir_collection("foo", "bar"),
@@ -1922,7 +1930,7 @@ test_move_stage!(
             cache: SchemaCache::new(),
         }),
         cache: SchemaCache::new(),
-    })),
+    }))),
 );
 
 test_move_stage!(
@@ -2040,21 +2048,23 @@ test_move_stage!(
     move_match_filter_above_lateral_left_join_if_only_left_datasource_is_used,
     expected = Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
         join_type: JoinType::Left,
-        source: Box::new(Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
-            source: mir_collection("foo", "bar"),
-            condition: MatchQuery::Comparison(MatchLanguageComparison {
-                function: MatchLanguageComparisonOp::Eq,
-                input: Some(mir_field_path("bar", vec!["y"])),
-                arg: LiteralValue::Integer(43),
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(
+            MatchFilter {
+                source: mir_collection("foo", "bar"),
+                condition: MatchQuery::Comparison(MatchLanguageComparison {
+                    function: MatchLanguageComparisonOp::Eq,
+                    input: Some(mir_field_path("bar", vec!["y"])),
+                    arg: LiteralValue::Integer(43),
+                    cache: SchemaCache::new(),
+                }),
                 cache: SchemaCache::new(),
-            }),
-            cache: SchemaCache::new(),
-        }))),
+            }
+        )))),
         subquery: mir_collection("foo", "bar2"),
         cache: SchemaCache::new(),
     })),
     expected_changed = true,
-    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
         source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Left,
             source: mir_collection("foo", "bar"),
@@ -2068,12 +2078,12 @@ test_move_stage!(
             cache: SchemaCache::new(),
         }),
         cache: SchemaCache::new(),
-    })),
+    }))),
 );
 
 test_move_stage!(
     cannot_move_match_filter_into_lateral_left_join_if_right_datasource_is_used,
-    expected = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+    expected = Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
         source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Left,
             source: mir_collection("foo", "bar"),
@@ -2087,9 +2097,9 @@ test_move_stage!(
             cache: SchemaCache::new(),
         }),
         cache: SchemaCache::new(),
-    })),
+    }))),
     expected_changed = false,
-    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
         source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Left,
             source: mir_collection("foo", "bar"),
@@ -2103,12 +2113,12 @@ test_move_stage!(
             cache: SchemaCache::new(),
         }),
         cache: SchemaCache::new(),
-    })),
+    }))),
 );
 
 test_move_stage!(
     cannot_move_match_filter_into_lateral_left_join_subquery_if_both_datasources_are_used,
-    expected = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+    expected = Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
         source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Left,
             source: mir_collection("foo", "bar"),
@@ -2134,9 +2144,9 @@ test_move_stage!(
             cache: SchemaCache::new(),
         }),
         cache: SchemaCache::new(),
-    })),
+    }))),
     expected_changed = false,
-    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(MatchFilter {
+    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
         source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Left,
             source: mir_collection("foo", "bar"),
@@ -2162,7 +2172,7 @@ test_move_stage!(
             cache: SchemaCache::new(),
         }),
         cache: SchemaCache::new(),
-    })),
+    }))),
 );
 
 test_move_stage!(

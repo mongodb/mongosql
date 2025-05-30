@@ -1,4 +1,3 @@
-#![allow(clippy::result_large_err)]
 use crate::{
     array_element_schema_or_error, get_schema_for_path, get_schema_for_path_mut,
     insert_required_key_into_document, promote_missing, remove_field, schema_difference,
@@ -1079,12 +1078,12 @@ impl DeriveSchema for Stage {
             }
             Stage::Densify(d) => densify_derive_schema(d, state),
             Stage::Documents(d) => documents_derive_schema(d, state),
-            e @ Stage::EquiJoin(_) => Err(Error::InvalidStage(e.clone())),
+            e @ Stage::EquiJoin(_) => Err(Error::InvalidStage(Box::new(e.clone()))),
             Stage::Facet(f) => facet_derive_schema(f, state),
             Stage::Fill(f) => fill_derive_schema(f, state),
             Stage::GraphLookup(g) => graph_lookup_derive_schema(g, state),
             Stage::Group(g) => group_derive_schema(g, state),
-            j @ Stage::Join(_) => Err(Error::InvalidStage(j.clone())),
+            j @ Stage::Join(_) => Err(Error::InvalidStage(Box::new(j.clone()))),
             Stage::Limit(_) => Ok(state.result_set_schema.to_owned()),
             Stage::Lookup(l) => lookup_derive_schema(l, state),
             Stage::Match(ref m) => m.derive_schema(state),
@@ -1104,7 +1103,7 @@ impl DeriveSchema for Stage {
             Stage::Unwind(u) => unwind_derive_schema(u, state),
             // the following stages are not derivable, because they rely on udnerlying index information, which we do not have by
             // default given the schemas and aggregation pipelines
-            Stage::GeoNear(_) => Err(Error::InvalidStage(self.clone())),
+            Stage::GeoNear(_) => Err(Error::InvalidStage(Box::new(self.clone()))),
         }
     }
 }
@@ -1907,7 +1906,9 @@ impl DeriveSchema for TaggedOperator {
             | TaggedOperator::SqlDivide(_)
             | TaggedOperator::Subquery(_)
             | TaggedOperator::SubqueryComparison(_)
-            | TaggedOperator::SubqueryExists(_) => Err(Error::InvalidTaggedOperator(self.clone())),
+            | TaggedOperator::SubqueryExists(_) => {
+                Err(Error::InvalidTaggedOperator(Box::new(self.clone())))
+            }
         }
     }
 }

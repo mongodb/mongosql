@@ -60,7 +60,7 @@ pub enum Error {
     #[error("invalid root stage: {0}")]
     InvalidRootStage(String),
     #[error("no queryPlanner found: {0:?}")]
-    MissingQueryPlanner(ExplainResult),
+    MissingQueryPlanner(Box<ExplainResult>),
     #[error("general mongodb error: {0:?}")]
     MongoDBErr(mongodb::error::Error),
 }
@@ -128,7 +128,6 @@ pub fn get_catalog_for_dbs(client: &Client, db_names: Vec<String>) -> Catalog {
 
 /// load_catalog_data drops any existing catalog data and then inserts the
 /// provided catalog data into the mongodb instance.
-#[allow(clippy::result_large_err)]
 pub fn load_catalog_data(
     client: &Client,
     catalog_data: BTreeMap<String, BTreeMap<String, Vec<Bson>>>,
@@ -152,7 +151,6 @@ pub fn load_catalog_data(
 }
 
 /// drop_catalog_data drops all dbs in the provided list.
-#[allow(clippy::result_large_err)]
 pub fn drop_catalog_data<T: Into<String>>(
     client: &Client,
     catalog_dbs: Vec<T>,
