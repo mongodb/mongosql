@@ -22,8 +22,11 @@ the code.
 There are several types of tests for the Rust code: unit tests, fuzz tests, index usage tests, e2e
 tests, and spec tests. Each of these test types can be run in isolation. Fuzz tests should always
 exist in (sub)modules named `fuzz_test`, so this common name is used as a filter for running the
-tests. The index usage, e2e, and spec tests are ignored by default via the `#[ignore]` directive,
-but can be run by specifying this directive after `cargo test`.
+tests. All integration tests require a running mongod with data loaded into it. Integration tests
+include: e2e, error, index_usage, spec/query, and schema_derivation tests. The tests are specified
+in the `tests` directory, and their data is specified in the `testdata` directory. To load the data,
+use the [sql-engines-common-test-infra](https://github.com/10gen/sql-engines-common-test-infra)
+`data-loader` tool. See `cargo run --bin data-loader -- --help` in that repo for more details.
 
 The [Rust handbook](https://doc.rust-lang.org/cargo/commands/cargo-test.html) has full guidelines
 on how to use `cargo test`. Below are suggested ways of running the different sets of tests.
@@ -45,27 +48,33 @@ Fuzz tests for pretty-printing.
 Index-usage assertion tests. These tests specify queries and expected index utilization.
 Requires a running mongod.
 
-`cargo test --features=index,generated --package=e2e-tests -- --test-threads=1` from the main directory
+`cargo test --features=index --package=e2e-tests` from the main directory
 
 ### e2e testing
 
 End-to-end query tests that do not exist in the spec. These tests specify queries and expected
 result sets and execute against an actual database. Requires a running mongod.
 
-`cargo test --features=e2e,generated --package=e2e-tests -- --test-threads=1` from the main directory
+`cargo test --features=e2e --package=e2e-tests` from the main directory
 
 ### errors testing
 
 error tests are e2e tests for our errors. These tests specify a SQL query and have an expected
 error that they should cause. Requires a running mongod.
 
-`cargo test --features=error,generated --package=e2e-tests -- --test-threads=1` from the main directory
+`cargo test --features=error --package=e2e-tests` from the main directory
 
 ### Spec query testing
 
 The query spec tests that specify language behavior. Requires a running mongod.
 
-`cargo test --features=query,generated --package=e2e-tests -- --test-threads=1` from the main directory
+`cargo test --features=query --package=e2e-tests` from the main directory
+
+### Schema derivation testing
+
+The schema derivation tests assert result set schema using schema derivation. Requires a running mongod.
+
+`cargo test --features=schema_derivation --package=e2e-tests` from the main directory
 
 ### Evergreen testing
 

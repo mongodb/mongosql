@@ -6,14 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+agg-ast = { path = "../agg-ast/ast" }
+bson = { workspace = true }
+mongodb = { workspace = true }
 mongosql = { path = "../mongosql" }
 schema_derivation = { path = "../agg-ast/schema_derivation" }
-agg-ast = { path = "../agg-ast/ast" }
+sql-engines-common-test-infra = { git = "https://github.com/10gen/sql-engines-common-test-infra.git", branch = "main", package = "test-generator" }
 test-utils = { path = "../test-utils" }
-mongodb = { workspace = true }
-bson = { workspace = true }
 
 [build-dependencies]
+serde = { workspace = true }
+sql-engines-common-test-infra = { git = "https://github.com/10gen/sql-engines-common-test-infra.git", branch = "main", package = "test-generator" }
 test-utils = { path = "../test-utils" }
 
 [features]
@@ -24,6 +27,3 @@ error = ["generated"]
 schema_derivation = ["generated"]
 all = ["index", "query", "e2e", "error", "schema_derivation"]
 generated = []
-
-[package.metadata.cargo-machete]
-ignored = ["mongosql", "schema_derivation", "agg-ast", "test-utils", "mongodb", "bson"]

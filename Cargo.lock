@@ -1126,6 +1126,8 @@ dependencies = [
  "mongodb",
  "mongosql",
  "schema_derivation",
+ "serde",
+ "test-generator",
  "test-utils",
 ]
 
@@ -4076,6 +4078,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "test-generator"
+version = "0.1.0"
+source = "git+https://github.com/10gen/sql-engines-common-test-infra.git?branch=main#930a020fe9e542a1ed8a53707c2613fc5dcbf59e"
+dependencies = [
+ "serde",
+ "serde_yaml",
+ "thiserror 2.0.12",
+]
+
+[[package]]
 name = "test-utils"
 version = "0.1.0"
 dependencies = [
@@ -4087,6 +4099,7 @@ dependencies = [
  "serde",
  "serde_stacker",
  "serde_yaml",
+ "test-generator",
  "thiserror 2.0.12",
 ]
 
