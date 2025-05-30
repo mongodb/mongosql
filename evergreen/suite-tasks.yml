@@ -18,7 +18,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run spec query tests
-          cargo_test_flags: --features=query --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=query --package=e2e-tests
     
 
   - name: test-index-usage_6.0-standalone
@@ -36,7 +36,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run index usage tests
-          cargo_test_flags: --features=index --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=index --package=e2e-tests
     
 
   - name: test-rust-e2e_6.0-standalone
@@ -54,7 +54,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run rust e2e tests
-          cargo_test_flags: --features=e2e --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=e2e --package=e2e-tests
     
 
   - name: test-rust-errors_6.0-standalone
@@ -72,7 +72,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run rust error tests
-          cargo_test_flags: --features=error --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=error --package=e2e-tests
     
 
   - name: test-schema-derivation_6.0-standalone
@@ -90,7 +90,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run schema derivation tests
-          cargo_test_flags: --features=schema_derivation --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=schema_derivation --package=e2e-tests
     
 
   - name: test-spec-query_7.0-standalone
@@ -108,7 +108,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run spec query tests
-          cargo_test_flags: --features=query --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=query --package=e2e-tests
     
 
   - name: test-index-usage_7.0-standalone
@@ -126,7 +126,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run index usage tests
-          cargo_test_flags: --features=index --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=index --package=e2e-tests
     
 
   - name: test-rust-e2e_7.0-standalone
@@ -144,7 +144,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run rust e2e tests
-          cargo_test_flags: --features=e2e --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=e2e --package=e2e-tests
     
 
   - name: test-rust-errors_7.0-standalone
@@ -162,7 +162,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run rust error tests
-          cargo_test_flags: --features=error --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=error --package=e2e-tests
     
 
   - name: test-schema-derivation_7.0-standalone
@@ -180,7 +180,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run schema derivation tests
-          cargo_test_flags: --features=schema_derivation --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=schema_derivation --package=e2e-tests
     
 
   - name: test-spec-query_8.0-standalone
@@ -198,7 +198,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run spec query tests
-          cargo_test_flags: --features=query --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=query --package=e2e-tests
     
 
   - name: test-index-usage_8.0-standalone
@@ -216,7 +216,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run index usage tests
-          cargo_test_flags: --features=index --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=index --package=e2e-tests
     
 
   - name: test-rust-e2e_8.0-standalone
@@ -234,7 +234,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run rust e2e tests
-          cargo_test_flags: --features=e2e --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=e2e --package=e2e-tests
     
 
   - name: test-rust-errors_8.0-standalone
@@ -252,7 +252,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run rust error tests
-          cargo_test_flags: --features=error --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=error --package=e2e-tests
     
 
   - name: test-schema-derivation_8.0-standalone
@@ -270,7 +270,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run schema derivation tests
-          cargo_test_flags: --features=schema_derivation --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=schema_derivation --package=e2e-tests
     
 
   - name: test-spec-query_rapid-standalone
@@ -288,7 +288,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run spec query tests
-          cargo_test_flags: --features=query --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=query --package=e2e-tests
     
 
   - name: test-index-usage_rapid-standalone
@@ -306,7 +306,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run index usage tests
-          cargo_test_flags: --features=index --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=index --package=e2e-tests
     
 
   - name: test-rust-e2e_rapid-standalone
@@ -324,7 +324,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run rust e2e tests
-          cargo_test_flags: --features=e2e --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=e2e --package=e2e-tests
     
 
   - name: test-rust-errors_rapid-standalone
@@ -342,7 +342,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run rust error tests
-          cargo_test_flags: --features=error --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=error --package=e2e-tests
     
 
   - name: test-schema-derivation_rapid-standalone
@@ -360,7 +360,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run schema derivation tests
-          cargo_test_flags: --features=schema_derivation --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=schema_derivation --package=e2e-tests
     
 
   - name: test-spec-query_latest-standalone
@@ -378,7 +378,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run spec query tests
-          cargo_test_flags: --features=query --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=query --package=e2e-tests
     
 
   - name: test-index-usage_latest-standalone
@@ -396,7 +396,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run index usage tests
-          cargo_test_flags: --features=index --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=index --package=e2e-tests
     
 
   - name: test-rust-e2e_latest-standalone
@@ -414,7 +414,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run rust e2e tests
-          cargo_test_flags: --features=e2e --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=e2e --package=e2e-tests
     
 
   - name: test-rust-errors_latest-standalone
@@ -432,7 +432,7 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run rust error tests
-          cargo_test_flags: --features=error --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=error --package=e2e-tests
     
 
   - name: test-schema-derivation_latest-standalone
@@ -450,5 +450,5 @@ tasks:
       - func: "run rust tests"
         vars:
           description: run schema derivation tests
-          cargo_test_flags: --features=schema_derivation --package=e2e-tests -- --test-threads=1
+          cargo_test_flags: --features=schema_derivation --package=e2e-tests
     

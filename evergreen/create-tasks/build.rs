@@ -26,31 +26,31 @@ static TEST_TYPES: &[(&str, &str, &str, &str)] = &[
         "spec-query",
         "../testdata/spec_tests/query_tests",
         "run spec query tests",
-        "--features=query --package=e2e-tests -- --test-threads=1",
+        "--features=query --package=e2e-tests",
     ),
     (
         "index-usage",
         "../testdata/index_usage",
         "run index usage tests",
-        "--features=index --package=e2e-tests -- --test-threads=1",
+        "--features=index --package=e2e-tests",
     ),
     (
         "rust-e2e",
         "../testdata/e2e_tests",
         "run rust e2e tests",
-        "--features=e2e --package=e2e-tests -- --test-threads=1",
+        "--features=e2e --package=e2e-tests",
     ),
     (
         "rust-errors",
         "../testdata/errors",
         "run rust error tests",
-        "--features=error --package=e2e-tests -- --test-threads=1",
+        "--features=error --package=e2e-tests",
     ),
     (
         "schema-derivation",
         "../testdata/schema_derivation_tests",
         "run schema derivation tests",
-        "--features=schema_derivation --package=e2e-tests -- --test-threads=1",
+        "--features=schema_derivation --package=e2e-tests",
     ),
 ];
 
