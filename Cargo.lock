@@ -1127,7 +1127,6 @@ dependencies = [
  "mongosql",
  "schema_derivation",
  "serde",
- "serde_yaml",
  "test-generator",
  "test-utils",
 ]
