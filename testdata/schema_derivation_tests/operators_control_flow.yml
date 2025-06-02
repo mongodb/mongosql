@@ -5,9 +5,11 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      required: [ "a", "b", "c" ]
+      required: [ "_id", "a", "b", "c" ]
       additionalProperties: false
       properties:
+        _id:
+          bsonType: "int"
         a:
           bsonType: "int"
         b:

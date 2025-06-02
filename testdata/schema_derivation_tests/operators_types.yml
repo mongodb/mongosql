@@ -6,3 +6,9 @@ dataset:
     schema:
       bsonType: "object"
       additionalProperties: true
+      required: [ "_id", "type" ]
+      properties:
+        _id:
+          bsonType: "int"
+        type:
+          bsonType: "string"

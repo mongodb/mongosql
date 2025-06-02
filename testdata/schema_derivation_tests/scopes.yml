@@ -13,9 +13,11 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      required: [ "bar", "car" ]
+      required: [ "_id", "bar", "car" ]
       additionalProperties: false
       properties:
+        _id:
+          bsonType: "int"
         bar:
           bsonType: "int"
         car:
@@ -27,9 +29,11 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      required: [ "baz" ]
+      required: [ "_id", "baz" ]
       additionalProperties: false
       properties:
+        _id:
+          bsonType: "int"
         baz:
           bsonType: "int"
 

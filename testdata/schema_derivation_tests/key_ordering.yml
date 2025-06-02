@@ -5,7 +5,14 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+
 
   - db: "schema_derivation_key_ordering"
     collection:
@@ -13,4 +20,17 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "sub" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        sub:
+          bsonType: "object"
+          required: [ "a", "b" ]
+          additionalProperties: false
+          properties:
+            a:
+              bsonType: "int"
+            b:
+              bsonType: "int"

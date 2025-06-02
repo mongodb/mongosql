@@ -5,7 +5,14 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+
 
   - db: "schema_derivation_from_collection_other"
     collection:
@@ -13,4 +20,11 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "b" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        b:
+          bsonType: "int"
+

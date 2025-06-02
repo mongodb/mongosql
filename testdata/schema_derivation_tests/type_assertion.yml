@@ -5,7 +5,16 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "v1" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v1:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: "int"
+            - bsonType: !!str "null"
 
   - db: "schema_derivation_type_assertion"
     collection:

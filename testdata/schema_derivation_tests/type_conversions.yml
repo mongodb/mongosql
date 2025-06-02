@@ -5,7 +5,13 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "v" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          bsonType: "double"
 
   - db: "schema_derivation_type_conversions"
     collection:
@@ -13,7 +19,13 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "v" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          bsonType: "string"
 
   - db: "schema_derivation_type_conversions"
     collection:
@@ -21,7 +33,18 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "v" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          bsonType: "object"
+          properties:
+            a:
+              bsonType: "int"
+            b:
+              bsonType: "int"
 
   - db: "schema_derivation_type_conversions"
     collection:
@@ -29,7 +52,13 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "v" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          bsonType: "array"
 
   - db: "schema_derivation_type_conversions"
     collection:
@@ -37,7 +66,13 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "v" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          bsonType: "binData"
 
   - db: "schema_derivation_type_conversions"
     collection:
@@ -45,7 +80,13 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "v" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          bsonType: "objectId"
 
   - db: "schema_derivation_type_conversions"
     collection:
@@ -53,7 +94,13 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "v" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          bsonType: "bool"
 
   - db: "schema_derivation_type_conversions"
     collection:
@@ -61,7 +108,13 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "v" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          bsonType: "date"
 
   - db: "schema_derivation_type_conversions"
     collection:
@@ -69,7 +122,13 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          bsonType: "null"
 
   - db: "schema_derivation_type_conversions"
     collection:
@@ -77,7 +136,13 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "v" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          bsonType: "int"
 
   - db: "schema_derivation_type_conversions"
     collection:
@@ -85,7 +150,13 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "v" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          bsonType: "long"
 
   - db: "schema_derivation_type_conversions"
     collection:
@@ -93,7 +164,13 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "v" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          bsonType: "decimal"
 
   - db: "schema_derivation_type_conversions"
     collection:
@@ -101,4 +178,24 @@ dataset:
       docs: []
     schema:
       bsonType: "object"
-      additionalProperties: true
+      required: [ "_id", "v", "type" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        v:
+          anyOf:
+            - bsonType: "double"
+            - bsonType: "string"
+            - bsonType: "object"
+            - bsonType: "array"
+            - bsonType: "binData"
+            - bsonType: "objectId"
+            - bsonType: "bool"
+            - bsonType: "date"
+            - bsonType: "null"
+            - bsonType: "int"
+            - bsonType: "long"
+            - bsonType: "decimal"
+        type:
+          bsonType: "string"
