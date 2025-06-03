@@ -1,13 +1,13 @@
+
 #[cfg(feature = "index")]
 #[test]
 pub fn {name}() {{
-    use test_utils::*;
     let (client, test_file, catalog) = initialize_test();
     let test = test_file.tests.get({index}).unwrap();
 
     let translation = mongosql::translate_sql(
-        "{current_db}",
-        "{query}",
+        test.options.current_db.as_str(),
+        test.input.as_str(),
         &catalog,
         SqlOptions::new(
             ExcludeNamespacesOption::IncludeNamespaces,
@@ -32,9 +32,9 @@ pub fn {name}() {{
 
     for actual_index_utilization in actual_index_utilizations {{
         assert_eq!(
-            test.expected_utilization, actual_index_utilization,
+            test.expectations.expected_utilization, actual_index_utilization,
             "{{}}: unexpected index utilization",
-            "{description}"
+            test.description,
         );
     }}
 }}
