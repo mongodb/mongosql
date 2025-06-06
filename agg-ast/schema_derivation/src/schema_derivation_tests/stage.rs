@@ -166,6 +166,44 @@ mod add_fields {
         })
     );
 
+    // this test is technically imprecise -- in this query, b will always be a string, since it will
+    // overwrite. but given the implementation details, we currently only show that b could be either the
+    // original or new type. See inline comment for more details.
+    test_derive_stage_schema!(
+        add_fields_document_unions_with_existing_fields,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::AnyOf(set!(
+                            Schema::Atomic(Atomic::String),
+                            Schema::Atomic(Atomic::Integer),
+                        )),
+                        "c".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set!("b".to_string()),
+                    ..Default::default()
+                }),
+            },
+            required: set!("a".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{ "$addFields": { "a": {"b": "string", "c": "gray" }}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "b".to_string() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set!("b".to_string()),
+                    ..Default::default()
+                })
+            },
+            required: set!("a".to_string(), "b".to_string()),
+            ..Default::default()
+        })
+    );
+
     test_derive_stage_schema!(
         add_fields_overwrite_fields,
         expected = Ok(Schema::Document(Document {
