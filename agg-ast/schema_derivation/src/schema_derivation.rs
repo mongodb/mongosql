@@ -360,12 +360,48 @@ impl DeriveSchema for Stage {
                     .split(".")
                     .map(|s| s.to_string())
                     .collect::<Vec<String>>();
-                insert_required_key_into_document(
-                    &mut state.result_set_schema,
-                    expr_schema,
-                    path,
-                    true,
-                );
+                // if the field already exists and is a document, and the field we are adding is
+                // also a document, we want the union of their two fields (rather than overwriting
+                // the existing field with the new one).
+                if let Some(field_schema) =
+                    get_schema_for_path(state.result_set_schema.clone(), path.clone())
+                {
+                    if field_schema.satisfies(&Schema::Document(Document::any()))
+                        != Satisfaction::Not
+                        && expr_schema.satisfies(&Schema::Document(Document::any()))
+                            != Satisfaction::Not
+                    {
+                        let mut schema_doc = Schema::Document(Document::empty());
+                        insert_required_key_into_document(
+                            &mut schema_doc,
+                            expr_schema.clone(),
+                            path,
+                            true,
+                        );
+                        // union is technically imprecise for existing fields -- if the nested
+                        // field is in both documents, the original field will be overwritten;
+                        // however, the path to the field can be arbirarily deep (and contain anyofs),
+                        // which makes precision difficult to achieve. Additionally, unioning will limit
+                        // precision when it comes to the required fields. This could be an area for future
+                        // precision improvements.
+                        state.result_set_schema =
+                            state.result_set_schema.clone().document_union(schema_doc);
+                    } else {
+                        insert_required_key_into_document(
+                            &mut state.result_set_schema,
+                            expr_schema,
+                            path,
+                            true,
+                        );
+                    }
+                } else {
+                    insert_required_key_into_document(
+                        &mut state.result_set_schema,
+                        expr_schema,
+                        path,
+                        true,
+                    );
+                }
             }
             Ok(Schema::simplify(&state.result_set_schema).to_owned())
         }

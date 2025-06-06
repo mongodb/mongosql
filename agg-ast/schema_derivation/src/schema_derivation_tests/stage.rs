@@ -8,6 +8,8 @@ use mongosql::{
 use std::collections::BTreeMap;
 
 mod add_fields {
+    use serde_json::map;
+
     use super::*;
 
     test_derive_stage_schema!(
@@ -97,6 +99,70 @@ mod add_fields {
                 "type".to_string() => Schema::Atomic(Atomic::String),
             },
             required: set!("specs".to_string(), "type".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        add_fields_document_to_embedded_document_doesnt_overwrite,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "specs".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "doors".to_string() => Schema::Atomic(Atomic::Integer),
+                        "wheels".to_string() => Schema::Atomic(Atomic::Integer),
+                        "fuel_type".to_string() => Schema::Atomic(Atomic::String),
+                        "color".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    ..Default::default()
+                }),
+                "type".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("specs".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{ "$addFields": { "specs": {"fuel_type": "string", "color": "gray" }}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "specs".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "doors".to_string() => Schema::Atomic(Atomic::Integer),
+                        "wheels".to_string() => Schema::Atomic(Atomic::Integer)
+                    },
+                    required: set!("doors".to_string(), "wheels".to_string()),
+                    ..Default::default()
+                }),
+                "type".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("specs".to_string(), "type".to_string()),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        add_fields_document_overwrites_non_embedded_document,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Document(Document {
+                    keys: map! {
+                        "c".to_string() => Schema::Atomic(Atomic::String),
+                        "d".to_string() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set!("c".to_string(), "d".to_string()),
+                    ..Default::default()
+                }),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("a".to_string(), "b".to_string()),
+            ..Default::default()
+        })),
+        input = r#"{ "$addFields": { "a": {"c": "string", "d": "gray" }}}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::Integer),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+            },
+            required: set!("a".to_string(), "b".to_string()),
             ..Default::default()
         })
     );
