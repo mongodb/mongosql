@@ -362,7 +362,11 @@ impl DeriveSchema for Stage {
                     .collect::<Vec<String>>();
                 // if the field already exists and is a document, and the field we are adding is
                 // also a document, we want the union of their two fields (rather than overwriting
-                // the existing field with the new one).
+                // the existing field with the new one). For example,
+                // db.aggregate([{$documents: [{a: {b: {c: 1}}}]}, {$addFields: {a: {d: 2}}}])
+                // [
+                //   { a: { b: { c: 1 }, d: 2 } }
+                // ]
                 if let Some(field_schema) =
                     get_schema_for_path(state.result_set_schema.clone(), path.clone())
                 {
