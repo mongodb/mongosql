@@ -8,7 +8,6 @@ use mongosql::{
 use std::collections::BTreeMap;
 
 mod add_fields {
-    use serde_json::map;
 
     use super::*;
 
