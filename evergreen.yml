@@ -48,7 +48,6 @@ pre:
   - func: "fetch source"
   - func: "create expansions"
   - func: "prepare resources"
-  - func: "prepare common-test-infra github token usage"
 
 post:
   - func: "stop mongo-orchestration"
@@ -75,21 +74,6 @@ functions:
     - command: expansions.update
       params:
         file: mongosql-rs/expansions.yml
-
-  "prepare common-test-infra github token usage":
-    - command: github.generate_token
-      params:
-        owner: 10gen
-        repo: sql-engines-common-test-infra
-        expansion_name: common_test_infra_github_token
-    - command: subprocess.exec
-      params:
-        working_dir: mongosql-rs
-        binary: bash
-        include_expansions_in_env:
-          - common_test_infra_github_token
-        args:
-          - ./evergreen/setup-common-test-infra-git-config.sh
 
   "check gofmt":
     - command: shell.exec
