@@ -13,7 +13,7 @@ mongosql = { path = "../mongosql" }
 serde = { workspace = true, features = ["derive"] }
 serde_stacker = { workspace = true }
 serde_yaml = { workspace = true }
-sql-engines-common-test-infra = { git = "https://github.com/10gen/sql-engines-common-test-infra.git", branch = "main", package = "test-generator" }
+sql-engines-common-test-infra = { git = "https://github.com/mongodb/sql-engines-common-test-infra.git", branch = "main", package = "test-generator" }
 thiserror = { workspace = true }
 
 [dependencies.mongodb]

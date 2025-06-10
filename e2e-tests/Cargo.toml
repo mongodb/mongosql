@@ -11,12 +11,12 @@ bson = { workspace = true }
 mongodb = { workspace = true }
 mongosql = { path = "../mongosql" }
 schema_derivation = { path = "../agg-ast/schema_derivation" }
-sql-engines-common-test-infra = { git = "https://github.com/10gen/sql-engines-common-test-infra.git", branch = "main", package = "test-generator" }
+sql-engines-common-test-infra = { git = "https://github.com/mongodb/sql-engines-common-test-infra.git", branch = "main", package = "test-generator" }
 test-utils = { path = "../test-utils" }
 
 [build-dependencies]
 serde = { workspace = true }
-sql-engines-common-test-infra = { git = "https://github.com/10gen/sql-engines-common-test-infra.git", branch = "main", package = "test-generator" }
+sql-engines-common-test-infra = { git = "https://github.com/mongodb/sql-engines-common-test-infra.git", branch = "main", package = "test-generator" }
 test-utils = { path = "../test-utils" }
 
 [features]

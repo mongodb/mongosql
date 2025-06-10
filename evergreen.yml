@@ -29,7 +29,7 @@ timeout:
 
 modules:
   - name: sql-engines-common-test-infra
-    owner: 10gen
+    owner: mongodb
     repo: sql-engines-common-test-infra
     branch: main
     auto_update: true
