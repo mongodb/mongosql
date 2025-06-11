@@ -34,7 +34,7 @@ such as documents, schema, view pipeline, and/or indexes are needed.
 ## Updating sql-engines-common-test-infra
 
 This test generation build script depends on the
-[sql-engines-common-test-infra](https://github.com/10gen/sql-engines-common-test-infra)
+[sql-engines-common-test-infra](https://github.com/mongodb/sql-engines-common-test-infra)
 repository's `test-generator` crate. If you need to use updated features from that
 crate, run `cargo update test-generator` to update the `Cargo.lock` file to use the
 latest commit. Note you likely need to set `CARGO_NET_GIT_FETCH_WITH_CLI=true` for this

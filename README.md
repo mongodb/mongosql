@@ -25,7 +25,7 @@ exist in (sub)modules named `fuzz_test`, so this common name is used as a filter
 tests. All integration tests require a running mongod with data loaded into it. Integration tests
 include: e2e, error, index_usage, spec/query, and schema_derivation tests. The tests are specified
 in the `tests` directory, and their data is specified in the `testdata` directory. To load the data,
-use the [sql-engines-common-test-infra](https://github.com/10gen/sql-engines-common-test-infra)
+use the [sql-engines-common-test-infra](https://github.com/mongodb/sql-engines-common-test-infra)
 `data-loader` tool. See `cargo run --bin data-loader -- --help` in that repo for more details.
 
 The [Rust handbook](https://doc.rust-lang.org/cargo/commands/cargo-test.html) has full guidelines
