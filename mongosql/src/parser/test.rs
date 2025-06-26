@@ -374,6 +374,21 @@ mod query {
         expected = true,
         input = "SELECT a UNION ALL SELECT b UNION ALL SELECT c"
     );
+    parsable!(
+        newline_in_select,
+        expected = true,
+        input = "SELECT a\nUNION\nSELECT b"
+    );
+    parsable!(
+        newline_in_select_with_limit,
+        expected = true,
+        input = "SELECT *\nFROM readings\nLIMIT 10"
+    );
+    parsable!(
+        newline_and_carriage_return_in_select_with_limit,
+        expected = true,
+        input = "SELECT *\n\rFROM readings\n\rLIMIT 10"
+    );
 
     validate_ast!(
         union_is_left_associative,
