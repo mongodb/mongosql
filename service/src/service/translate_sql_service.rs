@@ -76,8 +76,7 @@ impl TranslatorService for PanicHandlingTranslateSqlService {
                     panic_message
                 );
                 Err(Status::internal(format!(
-                    "{}: {}",
-                    INTERNAL_SERVER_ERROR, panic_message
+                    "{INTERNAL_SERVER_ERROR}: {panic_message}",
                 )))
             })
     }
@@ -91,10 +90,9 @@ impl TranslatorService for PanicHandlingTranslateSqlService {
             Err(panic_info) => {
                 SERVER_PANICS_TOTAL.inc();
                 let panic_message = extract_panic_message(&panic_info);
-                error!("Panic occurred while getting namespaces: {}", panic_message);
+                error!("Panic occurred while getting namespaces: {panic_message}");
                 Err(Status::internal(format!(
-                    "{}: {}",
-                    INTERNAL_SERVER_ERROR, panic_message
+                    "{INTERNAL_SERVER_ERROR}: {panic_message}",
                 )))
             }
         }
@@ -187,7 +185,7 @@ impl TranslatorService for TranslateSqlService {
 
         if req.schema_catalog.is_empty() {
             let error_message = "schema_catalog is empty";
-            add_event(&mut span, &format!("Error: {}", error_message));
+            add_event(&mut span, &format!("Error: {error_message}"));
             let status = Status::invalid_argument(error_message);
             interceptor.record_error(&status);
             warn!("Invalid argument: {}", status.message());
@@ -206,7 +204,7 @@ impl TranslatorService for TranslateSqlService {
         let catalog = match catalog::build_catalog_from_bytes(&req.schema_catalog) {
             Ok(cat) => cat,
             Err(e) => {
-                let error_message = format!("Error building catalog: {}", e);
+                let error_message = format!("Error building catalog: {e}");
                 add_event(&mut span, &error_message);
                 let status = Status::internal(error_message);
                 interceptor.record_error(&status);
@@ -218,7 +216,7 @@ impl TranslatorService for TranslateSqlService {
             Ok(opts) => opts,
             Err(e) => {
                 interceptor.record_error(&e);
-                add_event(&mut span, &format!("Error building SQL options: {}", e));
+                add_event(&mut span, &format!("Error building SQL options: {e}"));
                 return Err(*e);
             }
         };
@@ -226,7 +224,7 @@ impl TranslatorService for TranslateSqlService {
         let response = match mongosql::translate_sql(&req.db, &req.query, &catalog, options) {
             Ok(translation) => Self::create_translate_sql_response(translation),
             Err(e) => {
-                let error_message = format!("Error translating SQL: {}", e);
+                let error_message = format!("Error translating SQL: {e}");
                 add_event(&mut span, &error_message);
                 let status = Status::invalid_argument(error_message);
                 interceptor.record_error(&status);
@@ -272,12 +270,9 @@ impl TranslatorService for TranslateSqlService {
             Ok(ns) => ns,
             Err(e) => {
                 let error_msg = e.to_string();
-                add_event(
-                    &mut span,
-                    &format!("Error getting namespaces: {}", error_msg),
-                );
+                add_event(&mut span, &format!("Error getting namespaces: {error_msg}"));
                 let error = Error::GetNamespacesError(error_msg.clone());
-                let status = Status::internal(format!("Failed to get namespaces: {}", error_msg));
+                let status = Status::internal(format!("Failed to get namespaces: {error_msg}"));
                 interceptor.record_error(&status);
                 return Err(error.into());
             }

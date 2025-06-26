@@ -21,6 +21,7 @@ use std::{
     cmp::min,
     collections::{BTreeMap, BTreeSet},
     hash::{Hash, Hasher},
+    slice::from_ref,
 };
 
 mod errors;
@@ -152,7 +153,7 @@ impl<'a> SchemaInferenceState<'a> {
         }
     }
 
-    pub fn with_merged_schema_env(&self, env: SchemaEnvironment) -> SchemaInferenceState {
+    pub fn with_merged_schema_env(&self, env: SchemaEnvironment) -> SchemaInferenceState<'_> {
         SchemaInferenceState {
             env: env.with_merged_mappings(self.env.clone()),
             catalog: self.catalog,
@@ -161,7 +162,7 @@ impl<'a> SchemaInferenceState<'a> {
         }
     }
 
-    pub fn subquery_state(&self) -> SchemaInferenceState {
+    pub fn subquery_state(&self) -> SchemaInferenceState<'_> {
         SchemaInferenceState {
             scope_level: self.scope_level + 1,
             env: self.env.clone(),
@@ -361,9 +362,9 @@ impl CachedSchema for Stage {
                                         r.key.clone(),
                                         schema_binding_doc(f.field.clone(), group_key_schema),
                                     ),
-                                     _ => panic!("group key at position {0} is an unaliased field access with no datasource reference", index),
+                                     _ => panic!("group key at position {index} is an unaliased field access with no datasource reference"),
                                 },
-                                _ => panic!("group key at position {0} is an unaliased non-field access expression", index),
+                                _ => panic!("group key at position {index} is an unaliased non-field access expression"),
                             },
                         };
 
@@ -888,8 +889,8 @@ impl AggregationFunction {
             Avg | StddevPop | StddevSamp => {
                 self.schema_check_fixed_args(
                     state,
-                    &[arg_schema.clone()],
-                    &[NUMERIC_OR_NULLISH.clone()],
+                    from_ref(&arg_schema),
+                    from_ref(&NUMERIC_OR_NULLISH),
                 )?;
                 // we cannot use get_arithmetic_schema for Avg, StddevPop, StddevSamp
                 // because they never return Long or Integer results, even for Long
@@ -935,8 +936,8 @@ impl AggregationFunction {
             MergeDocuments => {
                 self.schema_check_fixed_args(
                     state,
-                    &[arg_schema.clone()],
-                    &[ANY_DOCUMENT.clone()],
+                    from_ref(&arg_schema),
+                    from_ref(&ANY_DOCUMENT),
                 )?;
                 arg_schema
             }
@@ -1671,7 +1672,7 @@ impl ScalarFunction {
             Not => self.propagate_fixed_null_arguments(
                 state,
                 arg_schemas,
-                &[BOOLEAN_OR_NULLISH.clone()],
+                from_ref(&BOOLEAN_OR_NULLISH),
                 Schema::Atomic(Atomic::Boolean),
             ),
             And | Or => self.propagate_variadic_null_arguments(
@@ -1703,7 +1704,7 @@ impl ScalarFunction {
             Size => self.propagate_fixed_null_arguments(
                 state,
                 arg_schemas,
-                &[ANY_ARRAY_OR_NULLISH.clone()],
+                from_ref(&ANY_ARRAY_OR_NULLISH),
                 Schema::Atomic(Atomic::Integer),
             ),
             // Numeric value scalar functions.
@@ -1716,14 +1717,14 @@ impl ScalarFunction {
             CharLength | OctetLength | BitLength => self.propagate_fixed_null_arguments(
                 state,
                 arg_schemas,
-                &[STRING_OR_NULLISH.clone()],
+                from_ref(&STRING_OR_NULLISH),
                 Schema::Atomic(Atomic::Integer),
             ),
             Year | Month | Day | Hour | Minute | Second | Millisecond | Week | IsoWeek
             | IsoWeekday | DayOfWeek | DayOfYear => self.propagate_fixed_null_arguments(
                 state,
                 arg_schemas,
-                &[DATE_OR_NULLISH.clone()],
+                from_ref(&DATE_OR_NULLISH),
                 Schema::Atomic(Atomic::Integer),
             ),
             // String value scalar functions.
@@ -1754,7 +1755,7 @@ impl ScalarFunction {
             Upper | Lower => self.propagate_fixed_null_arguments(
                 state,
                 arg_schemas,
-                &[STRING_OR_NULLISH.clone()],
+                from_ref(&STRING_OR_NULLISH),
                 Schema::Atomic(Atomic::String),
             ),
             LTrim | RTrim | BTrim => self.propagate_fixed_null_arguments(

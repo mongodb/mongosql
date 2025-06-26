@@ -1871,7 +1871,7 @@ impl DeriveSchema for TaggedOperator {
                     Expression::Array(a) => a,
                     exp => {
                         return Err(Error::InvalidExpressionForField(
-                            format!("{:?}", exp),
+                            format!("{exp:?}"),
                             "inputs",
                         ))
                     }

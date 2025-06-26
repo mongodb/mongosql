@@ -75,7 +75,7 @@ pub fn get_tracer() -> impl Tracer {
 pub fn start_span(name: String, kind: SpanKind, parent_cx: &opentelemetry::Context) -> impl Span {
     let tracer = get_tracer();
     tracer
-        .span_builder(format!("{}.{}", SQL_SERVICE_NAME, name))
+        .span_builder(format!("{SQL_SERVICE_NAME}.{name}"))
         .with_kind(kind)
         .start_with_context(&tracer, parent_cx)
 }

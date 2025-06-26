@@ -38,6 +38,6 @@ pub fn parse_catalog_json_file(path: std::path::PathBuf) -> Result<CatalogJsonFi
     f.read_to_string(&mut contents)
         .map_err(Error::CannotReadFileToString)?;
     let json: CatalogJsonFile = serde_json::from_str(&contents)
-        .map_err(|e| Error::CannotDeserializeJson(format!("in file: {:?}", path), e))?;
+        .map_err(|e| Error::CannotDeserializeJson(format!("in file: {path:?}"), e))?;
     Ok(json)
 }

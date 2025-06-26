@@ -44,7 +44,7 @@ fn parse_catalog_json_file(path: PathBuf) -> Result<CatalogJsonFile, Error> {
     f.read_to_string(&mut contents)
         .map_err(Error::CannotReadFileToString)?;
     let json: CatalogJsonFile = serde_json::from_str(&contents)
-        .map_err(|e| Error::CannotDeserializeJson((format!("in file: {:?}: ", path), e)))?;
+        .map_err(|e| Error::CannotDeserializeJson((format!("in file: {path:?}: "), e)))?;
     Ok(json)
 }
 
@@ -53,7 +53,7 @@ fn parse_catalog_json_file(path: PathBuf) -> Result<CatalogJsonFile, Error> {
 pub fn load_query_and_catalog(query_name: &str) -> Result<(Query, Catalog), Error> {
     let base_dir = env!("CARGO_MANIFEST_DIR");
 
-    let query_path = format!("{}/src/config_loader/queries/{}.yml", base_dir, query_name);
+    let query_path = format!("{base_dir}/src/config_loader/queries/{query_name}.yml");
     let mut file =
         fs::File::open::<PathBuf>(query_path.clone().into()).map_err(Error::InvalidFile)?;
     let mut contents = String::new();
@@ -61,9 +61,9 @@ pub fn load_query_and_catalog(query_name: &str) -> Result<(Query, Catalog), Erro
         .map_err(Error::CannotReadFileToString)?;
 
     let query: Query = serde_yaml::from_str(&contents)
-        .map_err(|e| Error::CannotDeserializeYaml((format!("in file: {:?}: ", query_path), e)))?;
+        .map_err(|e| Error::CannotDeserializeYaml((format!("in file: {query_name:?}: "), e)))?;
 
-    let catalogs_dir = format!("{}/src/config_loader/catalogs/{}.json", base_dir, query.db);
+    let catalogs_dir = format!("{base_dir}/src/config_loader/catalogs/{}.json", query.db);
     let catalog = load_catalog(&catalogs_dir).unwrap();
 
     Ok((query, catalog))

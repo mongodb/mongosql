@@ -226,7 +226,7 @@ pub(crate) fn air_documents_stage(array: Vec<air::Expression>) -> Box<air::Stage
 
 #[cfg(test)]
 pub(crate) fn air_variable_from_root(rest: &str) -> air::Expression {
-    let full_path = format!("{}.{}", ROOT_NAME, rest);
+    let full_path = format!("{ROOT_NAME}.{rest}");
     air::Expression::Variable(full_path.into())
 }
 

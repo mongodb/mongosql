@@ -101,15 +101,11 @@ impl UserError for Error {
                         Ok(suggested_fields) => {
                             if suggested_fields.is_empty() {
                                 Some(format!(
-                                    "Field `{}` in the `{}` clause at the {} scope level not found.",
-                                    field, clause_type, scope_level
+                                    "Field `{field}` in the `{clause_type}` clause at the {scope_level} scope level not found.",
                                 ))
                             } else {
                                 Some(format!(
-                                    "Field `{}` not found in the `{}` clause at the {} scope level. Did you mean: {}",
-                                    field,
-                                    clause_type,
-                                    scope_level,
+                                    "Field `{field}` not found in the `{clause_type}` clause at the {scope_level} scope level. Did you mean: {}",
                                     suggested_fields
                                         .iter()
                                         .map(|x| x.to_string())
@@ -122,14 +118,12 @@ impl UserError for Error {
                     }
                 } else {
                     Some(format!(
-                        "Field `{}` of the `{}` clause at the {} scope level not found.",
-                        field, clause_type, scope_level
+                        "Field `{field}` of the `{clause_type}` clause at the {scope_level} scope level not found.",
                     ))
                 }
             }
             Error::AmbiguousField(field, clause_type, scope_level) => Some(format!(
-                "Field `{}` in the `{}` clause at the {} scope level exists in multiple datasources and is ambiguous. Please qualify.",
-                field, clause_type, scope_level
+                "Field `{field}` in the `{clause_type}` clause at the {scope_level} scope level exists in multiple datasources and is ambiguous. Please qualify.",
             )),
             Error::StarInNonCount => None,
             Error::AggregationInPlaceOfScalar(_) => None,
@@ -147,8 +141,7 @@ impl UserError for Error {
                 overlapping_keys.sort();
 
                 Some(format!(
-                    "Derived datasource `{}` has the following overlapping keys: {}",
-                    derived_name,
+                    "Derived datasource `{derived_name}` has the following overlapping keys: {}",
                     overlapping_keys
                         .iter()
                         .map(|x| x.to_string())
@@ -180,32 +173,32 @@ impl UserError for Error {
         match self{
             Error::NonStarStandardSelectBody => "standard SELECT expressions can only contain *".to_string(),
             Error::ArrayDatasourceMustBeLiteral => "array datasource must be constant".to_string(),
-            Error::NoSuchDatasource(datasource_name) => format!("no such datasource: {0:?}", datasource_name),
-            Error::FieldNotFound(field, _, clause_type, scope_level) => format!("field `{}` in the `{}` clause at the {} scope level cannot be resolved to any datasource", field, clause_type, scope_level),
-            Error::AmbiguousField(field, clause_type, scope_level) => format!("ambiguous field `{}` in the `{}` clause at the {} scope level", field, clause_type, scope_level),
+            Error::NoSuchDatasource(datasource_name) => format!("no such datasource: {datasource_name:?}"),
+            Error::FieldNotFound(field, _, clause_type, scope_level) => format!(
+                "field `{field}` in the `{clause_type}` clause at the {scope_level} scope level cannot be resolved to any datasource"),
+            Error::AmbiguousField(field, clause_type, scope_level) => format!(
+                "ambiguous field `{field}` in the `{clause_type}` clause at the {scope_level} scope level"),
             Error::StarInNonCount => "* argument only valid in COUNT function".to_string(),
-            Error::AggregationInPlaceOfScalar(func) => format!("aggregation function {0} used in scalar position", func),
-            Error::ScalarInPlaceOfAggregation(func) => format!("scalar function {0} used in aggregation position", func),
-            Error::NonAggregationInPlaceOfAggregation(pos) => format!("non-aggregation expression found in GROUP BY aggregation function list at position {0}", pos),
+            Error::AggregationInPlaceOfScalar(func) => format!("aggregation function {func} used in scalar position"),
+            Error::ScalarInPlaceOfAggregation(func) => format!("scalar function {func} used in aggregation position"),
+            Error::NonAggregationInPlaceOfAggregation(pos) => format!("non-aggregation expression found in GROUP BY aggregation function list at position {pos}"),
             Error::AggregationFunctionMustHaveOneArgument => "aggregation functions must have exactly one argument".to_string(),
             Error::DistinctScalarFunction => "scalar functions don't support DISTINCT".to_string(),
             Error::DerivedDatasourceOverlappingKeys(s1, s2, derived_name, sat) => format!("derived source {derived_name} {sat:?} have overlapping keys between schemata {s1:?} and {s2:?}"),
             Error::SchemaChecking(error) => error.technical_message(),
             Error::NoOuterJoinCondition => "OUTER JOINs must specify a JOIN condition".to_string(),
-            Error::DuplicateKey(key) => format!("cannot create schema environment with duplicate key: {0:?}", key),
+            Error::DuplicateKey(key) => format!("cannot create schema environment with duplicate key: {key:?}"),
             Error::InvalidSubqueryDegree => "subquery expressions must have a degree of 1".to_string(),
-            Error::DuplicateDocumentKey(key) => format!("found duplicate document key {0:?}", key),
-            Error::DuplicateFlattenOption(flatten_opt) => format!("found duplicate FLATTEN option {0:?}", flatten_opt),
-            Error::CannotEnumerateAllFieldPaths(schema) => format!("cannot exhaustively enumerate all field paths in schema {0:?}", schema),
-            Error::PolymorphicObjectSchema(field) => format!("cannot flatten field {0:?} since it has a polymorphic object schema", field),
-            Error::DuplicateUnwindOption(unwind_opt) => format!("found duplicate UNWIND option {0:?}", unwind_opt),
+            Error::DuplicateDocumentKey(key) => format!("found duplicate document key {key:?}"),
+            Error::DuplicateFlattenOption(flatten_opt) => format!("found duplicate FLATTEN option {flatten_opt:?}"),
+            Error::CannotEnumerateAllFieldPaths(schema) => format!("cannot exhaustively enumerate all field paths in schema {schema:?}"),
+            Error::PolymorphicObjectSchema(field) => format!("cannot flatten field {field:?} since it has a polymorphic object schema"),
+            Error::DuplicateUnwindOption(unwind_opt) => format!("found duplicate UNWIND option {unwind_opt:?}"),
             Error::NoUnwindPath => "UNWIND must specify a PATH option".to_string(),
             Error::InvalidUnwindPath => "UNWIND PATH option must be an identifier".to_string(),
-            Error::InvalidCast(ast_type) => format!("invalid CAST target type '{0:?}'", ast_type),
+            Error::InvalidCast(ast_type) => format!("invalid CAST target type '{ast_type:?}'"),
             Error::InvalidSortKey(e) =>
-                format!("sort key field path must be a pure field path with no expressions in this context. found {0:?}",
-                    e
-                ),
+                format!("sort key field path must be a pure field path with no expressions in this context. found {e:?}"),
         }
     }
 }

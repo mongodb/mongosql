@@ -21,7 +21,7 @@ fn profile(query_name: &str) {
     match query_and_catalog {
         Ok((query, catalog)) => {
             if let Some(skip_reason) = query.skip_reason {
-                println!("skipping {}: {}", query_name, skip_reason);
+                println!("skipping {query_name}: {skip_reason}");
                 return;
             }
 
@@ -38,7 +38,7 @@ fn profile(query_name: &str) {
             let _ = res;
         }
         Err(e) => {
-            println!("Encountered Error: {}", e);
+            println!("Encountered Error: {e}");
             std::process::exit(1);
         }
     }

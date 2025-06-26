@@ -67,9 +67,9 @@ fn modify_pipeline_value(value: &mut Value) {
                             // if the pipeline is running in genny, we need a special date format.
                             // Otherwise, use ISODate and generate a valid aggregation pipeline.
                             *value = if cfg!(feature = "genny") {
-                                Value::String(format!("{{ ^Date: \"{}\" }}", date))
+                                Value::String(format!("{{ ^Date: \"{date}\" }}"))
                             } else {
-                                Value::String(format!("ISODate(\"{}\")", date))
+                                Value::String(format!("ISODate(\"{date}\")"))
                             };
                             return;
                         }

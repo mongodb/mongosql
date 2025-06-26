@@ -188,8 +188,8 @@ impl MqlTranslator {
         let namespaces = self
             .mapping_registry
             .get_registry()
-            .iter()
-            .map(|(_, v)| match v.ref_type {
+            .values()
+            .map(|v| match v.ref_type {
                 MqlReferenceType::FieldRef => air::Expression::FieldRef(v.name.clone().into()),
                 MqlReferenceType::Variable => air::Expression::Variable(v.name.clone().into()),
             })

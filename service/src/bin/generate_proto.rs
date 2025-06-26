@@ -24,8 +24,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &[proto_dir.to_str().unwrap()],
         )?;
 
-    println!("Generated descriptor set: {:?}", descriptor_path);
-    println!("Generated Rust files in: {:?}", src_dir);
+    println!("Generated descriptor set: {descriptor_path:?}");
+    println!("Generated Rust files in: {src_dir:?}");
 
     Ok(())
 }

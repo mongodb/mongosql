@@ -199,7 +199,7 @@ impl Command {
 
         let driver_version = match Version::parse(driver_version_command_option) {
             Ok(version) => version,
-            Err(_) => return Err(format!("Invalid `driver_version`: \"{}\". The `driver_version` must be a valid SemVer version (https://semver.org/).", driver_version_command_option).into())
+            Err(_) => return Err(format!("Invalid `driver_version`: \"{driver_version_command_option}\". The `driver_version` must be a valid SemVer version (https://semver.org/).").into())
         };
 
         // *** Dev versions ***

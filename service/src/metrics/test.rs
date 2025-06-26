@@ -71,7 +71,7 @@ fn test_error_interceptor() {
     let metrics_output = String::from_utf8(buffer).unwrap();
 
     // Check the error counts
-    println!("{:?}", metrics_output);
+    println!("{metrics_output:?}");
     assert!(metrics_output
         .contains("grpc_errors_total{code=\"Some requested entity was not found\"} 2"));
     assert!(metrics_output.contains("grpc_errors_total{code=\"Internal error\"} 1"));
