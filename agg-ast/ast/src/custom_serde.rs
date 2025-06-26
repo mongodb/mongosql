@@ -155,8 +155,7 @@ impl ser::Serialize for MatchArrayQuery {
                 }
                 _ => {
                     return Err(ser::Error::custom(format_args!(
-                        "expected Bson::Document during serialization of MatchArrayQuery items, found {:?}",
-                        serialized
+                        "expected Bson::Document during serialization of MatchArrayQuery items, found {serialized:?}"
                     )));
                 }
             }
@@ -180,8 +179,7 @@ impl<'de> de::Visitor<'de> for MatchNotVisitor {
         if let Some(len) = access.size_hint() {
             if len != 1 {
                 return Err(de::Error::custom(format_args!(
-                    "invalid map length: {}, expected exactly 1 key-value pair in $not context",
-                    len
+                    "invalid map length: {len}, expected exactly 1 key-value pair in $not context"
                 )));
             }
         } else {
@@ -203,8 +201,7 @@ impl<'de> de::Visitor<'de> for MatchNotVisitor {
                 let (op, value) = get_single_entry(&doc).unwrap();
                 if op != "$not" {
                     return Err(de::Error::custom(format_args!(
-                        "invalid key: {}, expected $not in $not expression context",
-                        op
+                        "invalid key: {op}, expected $not in $not expression context",
                     )));
                 }
                 // check if we have an $elemMatch
@@ -224,8 +221,7 @@ impl<'de> de::Visitor<'de> for MatchNotVisitor {
                 Ok(MatchNot { field, expr })
             }
             _ => Err(de::Error::custom(format_args!(
-                "expected a map in MatchNot context, found {:?}",
-                value
+                "expected a map in MatchNot context, found {value:?}",
             ))),
         }
     }
@@ -285,8 +281,7 @@ impl<'de> de::Visitor<'de> for MatchElementVisitor {
         if let Some(len) = access.size_hint() {
             if len != 1 {
                 return Err(de::Error::custom(format_args!(
-                    "invalid map length: {}, expected exactly 1 key-value pair in MatchElement expression context",
-                    len
+                    "invalid map length: {len}, expected exactly 1 key-value pair in MatchElement expression context",
                 )));
             }
         } else {
@@ -308,8 +303,7 @@ impl<'de> de::Visitor<'de> for MatchElementVisitor {
                 let (op, value) = get_single_entry(&doc).unwrap();
                 if op != "$elemMatch" {
                     return Err(de::Error::custom(format_args!(
-                        "invalid key: {}, expected $elemMatch in $elemMatch expression context",
-                        op
+                        "invalid key: {op}, expected $elemMatch in $elemMatch expression context",
                     )));
                 }
                 let query: MatchArrayExpression =
@@ -317,8 +311,7 @@ impl<'de> de::Visitor<'de> for MatchElementVisitor {
                 Ok(MatchElement { field, query })
             }
             _ => Err(de::Error::custom(format_args!(
-                "expected a map in MatchElement context, found {:?}",
-                value
+                "expected a map in MatchElement context, found {value:?}",
             ))),
         }
     }
@@ -368,8 +361,7 @@ impl<'de> de::Visitor<'de> for MatchRegexVisitor {
         if let Some(len) = access.size_hint() {
             if len != 1 {
                 return Err(de::Error::custom(format_args!(
-                    "invalid map length: {}, expected exactly 1 key-value pair in MatchRegex expression context",
-                    len
+                    "invalid map length: {len}, expected exactly 1 key-value pair in MatchRegex expression context",
                 )));
             }
         } else {
@@ -392,14 +384,12 @@ impl<'de> de::Visitor<'de> for MatchRegexVisitor {
                     Ok(ret)
                 } else {
                     Err(de::Error::custom(format_args!(
-                        "expected $regex key in MatchRegex context, found {:?}",
-                        doc
+                        "expected $regex key in MatchRegex context, found {doc:?}",
                     )))
                 }
             }
             _ => Err(de::Error::custom(format_args!(
-                "expected a map in MatchRegex context, found {:?}",
-                value
+                "expected a map in MatchRegex context, found {value:?}",
             ))),
         }
     }
@@ -456,8 +446,7 @@ impl<'de> de::Visitor<'de> for MatchFieldVisitor {
         if let Some(len) = access.size_hint() {
             if len != 1 {
                 return Err(de::Error::custom(format_args!(
-                    "invalid map length: {}, expected exactly 1 key-value pair in MatchField expression context",
-                    len
+                    "invalid map length: {len}, expected exactly 1 key-value pair in MatchField expression context",
                 )));
             }
         } else {
@@ -587,8 +576,7 @@ impl ser::Serialize for MatchStage {
                 }
                 _ => {
                     return Err(ser::Error::custom(format_args!(
-                        "expected Bson::Document during serialization of MatchStage items, found {:?}",
-                        serialized
+                        "expected Bson::Document during serialization of MatchStage items, found {serialized:?}",
                     )));
                 }
             }

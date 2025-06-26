@@ -279,7 +279,7 @@ impl<'a> Algebrizer<'a> {
         }
     }
 
-    pub fn schema_inference_state(&self) -> SchemaInferenceState {
+    pub fn schema_inference_state(&self) -> SchemaInferenceState<'_> {
         SchemaInferenceState {
             env: self.schema_env.clone(),
             catalog: self.catalog,
@@ -391,7 +391,7 @@ impl<'a> Algebrizer<'a> {
                     .enumerate()
                     .map(|(i, key)| {
                         OptionallyAliasedExpr::Aliased(AliasedExpr {
-                            alias: format!("__groupKey{}", i),
+                            alias: format!("__groupKey{i}"),
                             expr: Expression::Reference(ReferenceExpr { key: key.clone() }),
                         })
                     })
@@ -414,7 +414,7 @@ impl<'a> Algebrizer<'a> {
                             expr: Box::new(Expression::Reference(ReferenceExpr {
                                 key: Key::bot(self.scope_level),
                             })),
-                            field: format!("__groupKey{}", i),
+                            field: format!("__groupKey{i}"),
                             // Setting is_nullable to true because the result set coming into the
                             // UNION clause could be empty.
                             is_nullable: true,
@@ -569,7 +569,7 @@ impl<'a> Algebrizer<'a> {
         let mut project_expressions = BindingTuple::new();
 
         for (counter, key) in datasources.iter().enumerate() {
-            let group_alias = format!("__groupKey{}", counter);
+            let group_alias = format!("__groupKey{counter}");
 
             group_keys.push(OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: group_alias.clone(),

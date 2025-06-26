@@ -141,8 +141,7 @@ fn get_options(
     if !found_index && global_index.is_some() {
         if let Some(global_index) = global_index {
             ret.push(UnwindOption::Index(format!(
-                "{}_{}",
-                index_prefix, global_index
+                "{index_prefix}_{global_index}",
             )));
         }
     }

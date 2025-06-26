@@ -57,7 +57,7 @@ fn parse_addr(
 ) -> Result<SocketAddr, AddrParseError> {
     let host = get_env_var(host_env, "0.0.0.0");
     let port = get_env_var(port_env, port_default);
-    format!("{}:{}", host, port).parse()
+    format!("{host}:{port}").parse()
 }
 
 #[tokio::main]

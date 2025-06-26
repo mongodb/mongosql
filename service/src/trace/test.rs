@@ -43,7 +43,7 @@ async fn test_start_span_and_events() {
     assert_eq!(spans.len(), 1, "Expected one exported span");
 
     let test_span = &spans[0];
-    let expected_span_name = format!("{}.{}", SQL_SERVICE_NAME, span_name);
+    let expected_span_name = format!("{SQL_SERVICE_NAME}.{span_name}");
     assert_eq!(test_span.name, expected_span_name, "Span name should match");
 
     // Check that events were added
@@ -69,8 +69,8 @@ async fn test_init_tracer_provider_without_endpoint_var() {
     env::remove_var(COLLECTOR_ENDPOINT);
     let provider = init_tracer_provider().expect("Failed to initialize tracer provider");
 
-    assert!(format!("{:?}", provider).contains("SimpleSpanProcessor"));
-    assert!(format!("{:?}", provider).contains(SQL_SERVICE_NAME));
+    assert!(format!("{provider:?}").contains("SimpleSpanProcessor"));
+    assert!(format!("{provider:?}").contains(SQL_SERVICE_NAME));
     global::shutdown_tracer_provider();
 }
 
@@ -81,7 +81,7 @@ async fn test_init_tracer_provider_with_endpoint_var() {
     env::set_var(COLLECTOR_ENDPOINT, "http://non-existent-endpoint:4317");
     let provider = init_tracer_provider().expect("Failed to initialize tracer provider");
 
-    assert!(format!("{:?}", provider).contains("BatchSpanProcessor"));
-    assert!(format!("{:?}", provider).contains(SQL_SERVICE_NAME));
+    assert!(format!("{provider:?}").contains("BatchSpanProcessor"));
+    assert!(format!("{provider:?}").contains(SQL_SERVICE_NAME));
     global::shutdown_tracer_provider();
 }

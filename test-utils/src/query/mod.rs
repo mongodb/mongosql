@@ -193,7 +193,7 @@ fn double_from_decimal128(d: &Decimal128) -> f64 {
         let new_precision = if new_precision < 0 { 0 } else { new_precision };
         new_decimal.truncate(new_precision as usize);
 
-        format!("{}.{}", whole, new_decimal)
+        format!("{whole}.{new_decimal}")
     };
 
     let s = d.to_string();
@@ -210,7 +210,7 @@ fn double_from_decimal128(d: &Decimal128) -> f64 {
             let mantissa = parts.next().unwrap();
             let exponent = parts.next().unwrap();
             let new_mantissa = truncate_decimal_string(mantissa, 15);
-            let new_double_str = format!("{}{}{}", new_mantissa, splitter, exponent);
+            let new_double_str = format!("{new_mantissa}{splitter}{exponent}");
             new_double_str
         } else {
             truncate_decimal_string(&s, 15)
@@ -231,7 +231,7 @@ fn numeric_to_double(b: &Bson) -> f64 {
         // because many important features for comparison are missing from Decimal128 in the bson
         // crate. So we convert to double here, truncating extra precision.
         Bson::Decimal128(d) => double_from_decimal128(d),
-        _ => panic!("Expected numeric value, got {:?}", b),
+        _ => panic!("Expected numeric value, got {b:?}"),
     }
 }
 

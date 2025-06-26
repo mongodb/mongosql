@@ -30,8 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             run_get_namespaces(&mut client).await?;
         }
         _ => println!(
-            "Invalid operation. Use '{}', '{}', or no argument to run both.",
-            TRANSLATE_SQL_OP, GET_NAMESPACES_OP
+            "Invalid operation. Use '{TRANSLATE_SQL_OP}', '{GET_NAMESPACES_OP}', or no argument to run both.",
         ),
     }
     Ok(())

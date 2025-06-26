@@ -90,8 +90,7 @@ mod user_schema_error {
                 Error::FieldConflictInNonNamespacedResult(_, schemas) => {
                     format!(
                         "Cannot return non-namespaced result set due to field name \
-                             conflict(s), schema {:?}",
-                        schemas
+                             conflict(s), schema {schemas:?}",
                     )
                 }
                 Error::UnsupportedBsonType(t) => format!("Deprecated BSON type {t}"),
@@ -402,7 +401,7 @@ impl Display for Schema {
                             if let AnyOf(_) = anyof_contents {
                                 write!(f, "polymorphic type")
                             } else {
-                                write!(f, "nullable {}", anyof_contents)
+                                write!(f, "nullable {anyof_contents}")
                             }
                         }
                         _ => unreachable!(),

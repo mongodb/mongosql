@@ -508,7 +508,7 @@ mod check_driver_version_tests {
 
         let actual = command.run();
 
-        assert!(actual.is_err(), "expected error, got {:?}", actual);
+        assert!(actual.is_err(), "expected error, got {actual:?}");
 
         if let Err(error) = actual {
             let message = error.to_string();

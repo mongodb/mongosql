@@ -191,18 +191,18 @@ impl UserError for Error {
 
     fn technical_message(&self) -> String {
         match self {
-            Error::DatasourceNotFoundInSchemaEnv(datasource) => format!("datasource {0:?} not found in schema environment", datasource),
+            Error::DatasourceNotFoundInSchemaEnv(datasource) => format!("datasource {datasource:?} not found in schema environment"),
             Error::IncorrectArgumentCount {name, required, found} => format!("incorrect argument count for {name}: required {required}, found {found}"),
             Error::SchemaChecking {name, required, found } => format!("schema checking failed for {name}: required {required:?}, found {found:?}"),
-            Error::AggregationArgumentMustBeSelfComparable(aggs, schema) => format!("cannot have {0:?} aggregations over the schema: {1:?} as it is not comparable to itself", aggs, schema),
-            Error::InvalidComparison(func, s1, s2) => format!("invalid comparison for {0}: {1:?} cannot be compared to {2:?}", func, s1, s2),
-            Error::CannotMergeObjects(s1, s2, sat) => format!("cannot merge objects {0:?} and {1:?} as they {2:?} have overlapping keys", s1, s2, sat),
-            Error::AccessMissingField(field, _) => format!("cannot access field {0} because it does not exist", field),
+            Error::AggregationArgumentMustBeSelfComparable(aggs, schema) => format!("cannot have {aggs:?} aggregations over the schema: {schema:?} as it is not comparable to itself"),
+            Error::InvalidComparison(func, s1, s2) => format!("invalid comparison for {func}: {s1:?} cannot be compared to {s2:?}"),
+            Error::CannotMergeObjects(s1, s2, sat) => format!("cannot merge objects {s1:?} and {s2:?} as they {sat:?} have overlapping keys"),
+            Error::AccessMissingField(field, _) => format!("cannot access field {field} because it does not exist"),
             Error::InvalidSubqueryCardinality => "cardinality of the subquery's result set may be greater than 1".to_string(),
-            Error::SortKeyNotSelfComparable(pos, schema) => format!("sort key at position {0} is not statically comparable to itself because it has the schema {1:?}", pos, schema),
-            Error::GroupKeyNotSelfComparable(pos, schema) => format!("group key at position {0} is not statically comparable to itself because it has the schema {1:?}", pos, schema),
-            Error::UnwindIndexNameConflict(name) => format!("UNWIND INDEX name '{0}' conflicts with existing field name", name),
-            Error::CollectionNotFound(database, coll) => format!("unknown collection '{1}' in database '{0}'", database, coll),
+            Error::SortKeyNotSelfComparable(pos, schema) => format!("sort key at position {pos} is not statically comparable to itself because it has the schema {schema:?}"),
+            Error::GroupKeyNotSelfComparable(pos, schema) => format!("group key at position {pos} is not statically comparable to itself because it has the schema {schema:?}"),
+            Error::UnwindIndexNameConflict(name) => format!("UNWIND INDEX name '{name}' conflicts with existing field name"),
+            Error::CollectionNotFound(database, coll) => format!("unknown collection '{coll}' in database '{database}'"),
             Error::InvalidBinaryDataType => "Binary data with subtype 3 found in schema".to_string(),
         }
     }
