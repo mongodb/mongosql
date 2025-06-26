@@ -77,11 +77,9 @@ impl From<LalrpopError<'_>> for Error {
             lalrpop_util::ParseError::InvalidToken { location } => {
                 Self::Lalrpop(format!("InvalidToken at {location}"))
             }
-            lalrpop_util::ParseError::UnrecognizedEof { location, expected } => {
-                Self::Lalrpop(format!(
-                    "UnrecognizedEOF at {location} with expected {expected:?}",
-                ))
-            }
+            lalrpop_util::ParseError::UnrecognizedEof { location, expected } => Self::Lalrpop(
+                format!("UnrecognizedEOF at {location} with expected {expected:?}",),
+            ),
             lalrpop_util::ParseError::ExtraToken { token } => Self::Lalrpop(format!(
                 "ExtraToken at {} with token {:?}",
                 token.0, token.1

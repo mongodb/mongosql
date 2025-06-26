@@ -270,10 +270,7 @@ impl TranslatorService for TranslateSqlService {
             Ok(ns) => ns,
             Err(e) => {
                 let error_msg = e.to_string();
-                add_event(
-                    &mut span,
-                    &format!("Error getting namespaces: {error_msg}"),
-                );
+                add_event(&mut span, &format!("Error getting namespaces: {error_msg}"));
                 let error = Error::GetNamespacesError(error_msg.clone());
                 let status = Status::internal(format!("Failed to get namespaces: {error_msg}"));
                 interceptor.record_error(&status);
