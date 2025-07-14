@@ -90,20 +90,20 @@ impl Display for SamplerAction {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             SamplerAction::Querying { partition } => {
-                write!(f, "Querying partition {}", partition)
+                write!(f, "Querying partition {partition}")
             }
             SamplerAction::Processing { partition } => {
-                write!(f, "Processing partition {}", partition)
+                write!(f, "Processing partition {partition}")
             }
             SamplerAction::Partitioning { partitions } => {
-                write!(f, "Partitioning into {} parts", partitions)
+                write!(f, "Partitioning into {partitions} parts")
             }
             SamplerAction::UsingInitialSchema => {
                 write!(f, "Using initial schema")
             }
-            SamplerAction::Warning { message } => write!(f, "Warning: {}", message),
-            SamplerAction::Error { message } => write!(f, "Error: {}", message),
-            SamplerAction::Info { message } => write!(f, "Info: {}", message),
+            SamplerAction::Warning { message } => write!(f, "Warning: {message}"),
+            SamplerAction::Error { message } => write!(f, "Error: {message}"),
+            SamplerAction::Info { message } => write!(f, "Info: {message}"),
             SamplerAction::SamplingView => write!(f, "Sampling view "),
         }
     }

@@ -427,8 +427,7 @@ impl CollectionInfo {
                                             }
                                             Err(e) => {
                                                 fallback_view_task(&view_doc, &db, tx_notifications.clone(), tx_schemata.clone(), namespace_info, format!(
-                                                        "Failed to derive schema from pipeline: {}.\n Falling back to sampling.",
-                                                        e
+                                                        "Failed to derive schema from pipeline: {e}.\n Falling back to sampling."
                                                     )).await;
                                             }
                                         }
