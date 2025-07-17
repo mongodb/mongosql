@@ -32,6 +32,8 @@
 #[cfg(test)]
 mod test;
 
+use mongosql_datastructures::binding_tuple::BindingTuple;
+
 use crate::{
     mir::{
         binding_tuple::Key, optimizer::util::insert_field_path_and_all_ancestors, visitor::Visitor,
@@ -339,31 +341,19 @@ impl Visitor for SingleStageDatasourceUseVisitor {
                     cache,
                 })
             }
-            Stage::Group(Group {
-                source,
-                keys,
-                aggregations,
-                scope,
-                cache,
-            }) => {
-                let keys = keys
-                    .into_iter()
-                    .map(|k| self.visit_optionally_aliased_expr(k))
-                    .collect();
-                let aggregations = aggregations
-                    .into_iter()
-                    .map(|a| self.visit_aliased_aggregation(a))
-                    .collect();
-                Stage::Group(Group {
-                    source,
-                    keys,
-                    aggregations,
-                    scope,
-                    cache,
-                })
-            }
+            Stage::Group(g) => Stage::Group(self.visit_group(g)),
             _ => unimplemented!(),
         }
+    }
+
+    fn visit_group(&mut self, node: Group) -> Group {
+        node.keys.iter().cloned().for_each(|k| {
+            self.visit_optionally_aliased_expr(k);
+        });
+        node.aggregations.iter().cloned().for_each(|a| {
+            self.visit_aliased_aggregation(a);
+        });
+        node
     }
 
     fn visit_reference_expr(&mut self, node: ReferenceExpr) -> ReferenceExpr {
@@ -516,6 +506,75 @@ impl Expression {
     }
 }
 
+impl Project {
+    pub fn datasource_uses(self) -> (HashSet<Key>, Project) {
+        let mut visitor = SingleStageDatasourceUseVisitor::default();
+        let ret = visitor.visit_project(self);
+        (visitor.datasource_uses, ret)
+    }
+
+    pub fn substitute(mut self, theta: HashMap<Key, Expression>) -> Result<Self, Box<Self>> {
+        let mut visitor = SubstituteVisitor {
+            theta,
+            failed: false,
+        };
+        let mut subbed_keys = BindingTuple::default();
+        let mut failed = false;
+        for (ref key, ref expr) in self.expression.iter().map(|(k, e)| (k.clone(), e.clone())) {
+            let subbed = visitor.visit_expression(expr.clone());
+            if visitor.failed {
+                failed = true;
+                break;
+            }
+            subbed_keys.insert(key.clone(), subbed);
+        }
+        // This is not pretty, but it's the only way I could figure out to minimize cloning that
+        // would not make the borrow checker sad. Attempting to return where the break is results
+        // in borrow issues.
+        if failed {
+            return Err(self.into());
+        }
+        self.expression = subbed_keys;
+        Ok(self)
+    }
+}
+
+impl Group {
+    pub fn datasource_uses(self) -> (HashSet<Key>, Group) {
+        let mut visitor = SingleStageDatasourceUseVisitor::default();
+        let ret = visitor.visit_group(self);
+        (visitor.datasource_uses, ret)
+    }
+
+    pub fn substitute(mut self, theta: HashMap<Key, Expression>) -> Result<Self, Box<Self>> {
+        let mut visitor = SubstituteVisitor {
+            theta,
+            failed: false,
+        };
+        let cloned_keys = self.keys.clone();
+        let mut subbed_keys = Vec::new();
+        for key in cloned_keys.into_iter() {
+            let subbed = visitor.visit_optionally_aliased_expr(key);
+            if visitor.failed {
+                return Err(self.into());
+            }
+            subbed_keys.push(subbed);
+        }
+        let cloned_aggregations = self.aggregations.clone();
+        let mut subbed_aggregations = Vec::new();
+        for aggregation in cloned_aggregations.into_iter() {
+            let subbed = visitor.visit_aliased_aggregation(aggregation);
+            if visitor.failed {
+                return Err(self.into());
+            }
+            subbed_aggregations.push(subbed);
+        }
+        self.keys = subbed_keys;
+        self.aggregations = subbed_aggregations;
+        Ok(self)
+    }
+}
+
 impl Stage {
     // We compute field_uses so that we can easily check if any opaque_field_defines are used by a stage.
     // We do not care about normal defines which can be substituted.
@@ -575,29 +634,14 @@ impl Stage {
                 s.specs = subbed_specs;
                 Ok(Stage::Sort(s))
             }
-            Stage::Group(mut g) => {
-                let cloned_keys = g.keys.clone();
-                let mut subbed_keys = Vec::new();
-                for key in cloned_keys.into_iter() {
-                    let subbed = visitor.visit_optionally_aliased_expr(key);
-                    if visitor.failed {
-                        return Err(Box::new(Stage::Group(g)));
-                    }
-                    subbed_keys.push(subbed);
-                }
-                let cloned_aggregations = g.aggregations.clone();
-                let mut subbed_aggregations = Vec::new();
-                for aggregation in cloned_aggregations.into_iter() {
-                    let subbed = visitor.visit_aliased_aggregation(aggregation);
-                    if visitor.failed {
-                        return Err(Box::new(Stage::Group(g)));
-                    }
-                    subbed_aggregations.push(subbed);
-                }
-                g.keys = subbed_keys;
-                g.aggregations = subbed_aggregations;
-                Ok(Stage::Group(g))
-            }
+            Stage::Group(g) => Ok(Stage::Group(
+                g.substitute(visitor.theta)
+                    .map_err(|g| Box::new(Stage::Group(*g)))?,
+            )),
+            Stage::Project(p) => Ok(Stage::Project(
+                p.substitute(visitor.theta)
+                    .map_err(|p| Box::new(Stage::Project(*p)))?,
+            )),
             // We could add no-ops for Limit and Offset, but it's better to just not call
             // substitute while we move them!
             _ => unimplemented!(),
