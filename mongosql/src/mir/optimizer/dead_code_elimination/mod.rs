@@ -107,14 +107,14 @@ impl DeadCodeEliminationVisitor {
                 }
                 // It is possible for substitution to fail if the Group clause
                 // contains Subqueries. This will be very rare.
-                Err(g) => Stage::Group(g),
+                Err(g) => Stage::Group(*g),
             }
         } else {
             // If the Group uses Keys that are not defined by the Project source,
             // do not perform the substitution or eliminate the Project.
             Stage::Group(og)
         }
-     }
+    }
 
     fn project_deadcode_elimination(&mut self, mut p: Project) -> Stage {
         // If this stage is an AddFields, we skip it for this early limited optimization
@@ -122,10 +122,17 @@ impl DeadCodeEliminationVisitor {
             return Stage::Project(p);
         }
         // If a Project is preceeded by an AddFields, we can merge them.
-        if !matches!(*p.source, Stage::Project(Project { is_add_fields: true, .. })) {
+        if !matches!(
+            *p.source,
+            Stage::Project(Project {
+                is_add_fields: true,
+                ..
+            })
+        ) {
             return Stage::Project(p);
         }
-        let Stage::Project(source_p) = *std::mem::replace(&mut p.source, Box::new(Stage::Sentinel)) else {
+        let Stage::Project(source_p) = *std::mem::replace(&mut p.source, Box::new(Stage::Sentinel))
+        else {
             unreachable!(); // We already checked this
         };
         let mut failed = false;

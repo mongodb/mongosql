@@ -347,14 +347,12 @@ impl Visitor for SingleStageDatasourceUseVisitor {
     }
 
     fn visit_group(&mut self, node: Group) -> Group {
-        node.keys
-            .iter()
-            .cloned()
-            .for_each(|k| {self.visit_optionally_aliased_expr(k);});
-        node.aggregations
-            .iter()
-            .cloned()
-            .for_each(|a| {self.visit_aliased_aggregation(a);});
+        node.keys.iter().cloned().for_each(|k| {
+            self.visit_optionally_aliased_expr(k);
+        });
+        node.aggregations.iter().cloned().for_each(|a| {
+            self.visit_aliased_aggregation(a);
+        });
         node
     }
 
@@ -515,7 +513,7 @@ impl Project {
         (visitor.datasource_uses, ret)
     }
 
-    pub fn substitute(mut self, theta: HashMap<Key, Expression>) -> Result<Self, Self> {
+    pub fn substitute(mut self, theta: HashMap<Key, Expression>) -> Result<Self, Box<Self>> {
         let mut visitor = SubstituteVisitor {
             theta,
             failed: false,
@@ -534,7 +532,7 @@ impl Project {
         // would not make the borrow checker sad. Attempting to return where the break is results
         // in borrow issues.
         if failed {
-            return Err(self);
+            return Err(self.into());
         }
         self.expression = subbed_keys;
         Ok(self)
@@ -548,7 +546,7 @@ impl Group {
         (visitor.datasource_uses, ret)
     }
 
-    pub fn substitute(mut self, theta: HashMap<Key, Expression>) -> Result<Self, Self> {
+    pub fn substitute(mut self, theta: HashMap<Key, Expression>) -> Result<Self, Box<Self>> {
         let mut visitor = SubstituteVisitor {
             theta,
             failed: false,
@@ -558,7 +556,7 @@ impl Group {
         for key in cloned_keys.into_iter() {
             let subbed = visitor.visit_optionally_aliased_expr(key);
             if visitor.failed {
-                return Err(self);
+                return Err(self.into());
             }
             subbed_keys.push(subbed);
         }
@@ -567,7 +565,7 @@ impl Group {
         for aggregation in cloned_aggregations.into_iter() {
             let subbed = visitor.visit_aliased_aggregation(aggregation);
             if visitor.failed {
-                return Err(self);
+                return Err(self.into());
             }
             subbed_aggregations.push(subbed);
         }
@@ -636,12 +634,14 @@ impl Stage {
                 s.specs = subbed_specs;
                 Ok(Stage::Sort(s))
             }
-            Stage::Group(g) => {
-                Ok(Stage::Group(g.substitute(visitor.theta).map_err(|g| Box::new(Stage::Group(g)))?))
-            }
-            Stage::Project(p) => {
-                Ok(Stage::Project(p.substitute(visitor.theta).map_err(|p| Box::new(Stage::Project(p)))?))
-            }
+            Stage::Group(g) => Ok(Stage::Group(
+                g.substitute(visitor.theta)
+                    .map_err(|g| Box::new(Stage::Group(*g)))?,
+            )),
+            Stage::Project(p) => Ok(Stage::Project(
+                p.substitute(visitor.theta)
+                    .map_err(|p| Box::new(Stage::Project(*p)))?,
+            )),
             // We could add no-ops for Limit and Offset, but it's better to just not call
             // substitute while we move them!
             _ => unimplemented!(),
