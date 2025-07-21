@@ -320,3 +320,104 @@ test_dead_code_elimination_no_op!(
         cache: SchemaCache::new(),
     })
 );
+
+test_dead_code_elimination_no_op!(
+    cannot_eliminate_non_project_source_for_project,
+    Stage::Project(Project {
+        is_add_fields: false,
+        source: Box::new(Stage::Filter(Filter {
+            source: mir_collection("db", "bar"),
+            condition: Expression::Literal(LiteralValue::Boolean(true),),
+            cache: SchemaCache::new(),
+        })),
+        expression: map! {
+            ("foo", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
+        },
+        cache: SchemaCache::new(),
+    })
+);
+
+test_dead_code_elimination_no_op!(
+    cannot_eliminate_non_add_fields_source_for_project,
+    Stage::Project(Project {
+        is_add_fields: false,
+        source: Box::new(Stage::Project(Project {
+            is_add_fields: false,
+            source: mir_collection("db", "bar"),
+            expression: map! {
+                ("foo", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
+            },
+            cache: SchemaCache::new(),
+        })),
+        expression: map! {
+            ("foo", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
+        },
+        cache: SchemaCache::new(),
+    })
+);
+
+test_dead_code_elimination_no_op!(
+    cannot_eliminate_any_source_for_add_fields,
+    Stage::Project(Project {
+        is_add_fields: true,
+        source: Box::new(Stage::Project(Project {
+            is_add_fields: true,
+            source: mir_collection("db", "bar"),
+            expression: map! {
+                ("foo", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
+            },
+            cache: SchemaCache::new(),
+        })),
+        expression: map! {
+            ("foo", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
+        },
+        cache: SchemaCache::new(),
+    })
+);
+
+test_dead_code_elimination_no_op!(
+    cannot_eliminate_if_project_and_add_fields_define_different_fields,
+    Stage::Project(Project {
+        is_add_fields: false,
+        source: Box::new(Stage::Project(Project {
+            is_add_fields: true,
+            source: mir_collection("db", "bar"),
+            expression: map! {
+                ("foo", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
+            },
+            cache: SchemaCache::new(),
+        })),
+        expression: map! {
+            ("foo2", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
+        },
+        cache: SchemaCache::new(),
+    })
+);
+
+test_dead_code_elimination!(
+    remove_add_fields_before_project_that_defines_same_fields,
+    expected = Stage::Project(Project {
+        is_add_fields: false,
+        source: mir_collection("db", "bar"),
+        expression: map! {
+            ("foo", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
+        },
+        cache: SchemaCache::new(),
+    }),
+    expected_changed = true,
+    input = Stage::Project(Project {
+        is_add_fields: false,
+        source: Box::new(Stage::Project(Project {
+            is_add_fields: true,
+            source: mir_collection("db", "bar"),
+            expression: map! {
+                ("foo", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
+            },
+            cache: SchemaCache::new(),
+        })),
+        expression: map! {
+            ("foo", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
+        },
+        cache: SchemaCache::new(),
+    })
+);
