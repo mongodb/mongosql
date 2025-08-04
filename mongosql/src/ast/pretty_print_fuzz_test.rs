@@ -70,7 +70,7 @@ Reparsed AST:
     }
 }
 
-mod arbitrary {
+pub mod arbitrary {
     use crate::ast::definitions::*;
     use quickcheck::{Arbitrary, Gen};
     use rand::{rng, Rng};
@@ -106,13 +106,13 @@ mod arbitrary {
     /// Return an arbitrary String without null characters.
     ///
     /// These Strings can be used for aliases, identifiers, or literals.
-    fn arbitrary_string(_: &mut Gen) -> String {
+    pub fn arbitrary_string(_: &mut Gen) -> String {
         arbitrary_string_with_max_len(rand_len(1, 20) as usize)
     }
 
     /// Return an arbitrary Option<T>, using the provided Fn to
     /// construct the value if the chosen variant is Some.
-    fn arbitrary_optional<T, F>(g: &mut Gen, f: F) -> Option<T>
+    pub fn arbitrary_optional<T, F>(g: &mut Gen, f: F) -> Option<T>
     where
         F: Fn(&mut Gen) -> T,
     {
@@ -127,7 +127,7 @@ mod arbitrary {
     /// it just uses arbitrary_string, but this allows us to fine tune
     /// easily if we decide to use different rules for identifiers from
     /// strings.
-    fn arbitrary_identifier(g: &mut Gen) -> String {
+    pub fn arbitrary_identifier(g: &mut Gen) -> String {
         arbitrary_string(g)
     }
 
