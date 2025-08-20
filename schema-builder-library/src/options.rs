@@ -7,7 +7,7 @@ pub struct BuilderOptions {
     pub include_list: Vec<glob::Pattern>,
     /// The namespaces to exclude
     pub exclude_list: Vec<glob::Pattern>,
-    /// The name of the schema collection
+    /// The name of the schema collection where schemas are persisted
     pub schema_collection: Option<String>,
     /// Whether to perform a dry run, i.e. no analysis and no writing to the database
     pub dry_run: bool,

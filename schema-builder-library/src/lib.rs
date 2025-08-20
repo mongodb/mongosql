@@ -30,6 +30,9 @@ pub use errors::Error;
 mod notifications;
 pub use notifications::{SamplerAction, SamplerNotification};
 
+/// Re-export of mongosql Schema type for convenience
+pub type MongoSqlSchema = Schema;
+
 pub mod options;
 use options::BuilderOptions;
 
