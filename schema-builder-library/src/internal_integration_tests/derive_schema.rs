@@ -35,6 +35,7 @@ mod for_partitions {
                     None,
                     &tokio::runtime::Handle::current(),
                     tx_notifications.clone(),
+                    std::sync::Arc::new(tokio::sync::Semaphore::new(10)),
                 )
                 .await
                 {

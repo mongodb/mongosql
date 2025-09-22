@@ -226,6 +226,7 @@ async fn process_databases(options: BuilderOptions, databases: Vec<String>) {
     // immediately returns a JoinHandle.
     let span = span!(Level::DEBUG, "database_tasks", databases = ?databases);
     let _enter = span.enter();
+    let task_semaphore = options.task_semaphore.clone();
     let db_tasks = databases.into_iter().map(|db_name| {
         // To avoid passing a reference to the mongodb::Client around, we
         // create a mongodb::Database before spawning the db-schema task.
@@ -238,8 +239,10 @@ async fn process_databases(options: BuilderOptions, databases: Vec<String>) {
         let include_list = options.include_list.clone();
         let exclude_list = options.exclude_list.clone();
 
+        let task_semaphore = task_semaphore.clone();
         // Spawn the db task.
         tokio::runtime::Handle::current().spawn(async move {
+            let task_semaphore = task_semaphore.clone();
             // To start computing the schema for all collections and views
             // in a database, we need to wait for list_collections to finish.
             let collection_info =
@@ -271,6 +274,7 @@ async fn process_databases(options: BuilderOptions, databases: Vec<String>) {
                         &tx_notifications,
                         &result_tx,
                         &result_set,
+                        task_semaphore.clone(),
                     )
                     .await;
 
@@ -282,6 +286,7 @@ async fn process_databases(options: BuilderOptions, databases: Vec<String>) {
                         &tx_notifications,
                         &result_tx,
                         &result_set,
+                        task_semaphore.clone(),
                     )
                     .await;
                 }
@@ -400,6 +405,7 @@ async fn process_collection_tasks(
     tx_notifications: &UnboundedSender<SamplerNotification>,
     result_tx: &UnboundedSender<SchemaResult>,
     result_set: &Arc<ResultSet>,
+    task_semaphore: Arc<tokio::sync::Semaphore>,
 ) {
     // Process collections and wait for them to complete
     let coll_tasks = collection_info.process_collections(
@@ -408,6 +414,7 @@ async fn process_collection_tasks(
         tx_notifications.clone(),
         result_tx.clone(), // Send to ResultSet
         result_set.clone(),
+        task_semaphore.clone(),
     );
 
     // Wait for all collections to finish before processing views
@@ -437,6 +444,7 @@ async fn process_view_tasks(
     tx_notifications: &UnboundedSender<SamplerNotification>,
     result_tx: &UnboundedSender<SchemaResult>,
     result_set: &Arc<ResultSet>,
+    task_semaphore: Arc<tokio::sync::Semaphore>,
 ) {
     // Process views using the schema catalog
     let view_tasks = collection_info.process_views_with_catalog(
@@ -445,6 +453,7 @@ async fn process_view_tasks(
         tx_notifications.clone(),
         result_tx.clone(), // Send to ResultSet
         result_set.clone(),
+        task_semaphore.clone(),
     );
 
     future::join_all(view_tasks)

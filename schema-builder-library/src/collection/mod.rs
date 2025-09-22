@@ -127,6 +127,7 @@ impl CollectionInfo {
         tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
         tx_schemata: tokio::sync::mpsc::UnboundedSender<SchemaResult>,
         result_set: Arc<ResultSet>,
+        task_semaphore: Arc<tokio::sync::Semaphore>,
     ) -> Vec<JoinHandle<()>> {
         self.collections
             .as_slice()
@@ -140,6 +141,7 @@ impl CollectionInfo {
 
                 info!(name: "processing collection", collection = ?collection_doc);
 
+                let task_semaphore = task_semaphore.clone();
                 // Spawn the collection task.
                 tokio::runtime::Handle::current().spawn(async move {
                     let db_name = db.name();
@@ -231,6 +233,7 @@ impl CollectionInfo {
                                 initial_schema,
                                 &tokio::runtime::Handle::current(),
                                 tx_notifications.clone(),
+                                task_semaphore.clone(),
                             )
                             .await
                             {
@@ -300,6 +303,7 @@ impl CollectionInfo {
         tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
         tx_schemata: tokio::sync::mpsc::UnboundedSender<SchemaResult>,
         result_set: Arc<ResultSet>,
+        task_semaphore: Arc<tokio::sync::Semaphore>,
     ) -> Vec<JoinHandle<()>> {
         self.views
             .as_slice()
@@ -313,7 +317,11 @@ impl CollectionInfo {
 
                 info!(name: "processing view with catalog", view = ?view_doc);
 
+                let task_semaphore = task_semaphore.clone();
                 tokio::runtime::Handle::current().spawn(async move {
+                    // Acquire a permit from the semaphore to limit concurrency
+                    #[allow(clippy::unwrap_used)]
+                    let _permit = task_semaphore.acquire().await.unwrap();
                     let namespace_info = NamespaceInfo {
                         db_name: db.name().to_string(),
                         coll_or_view_name: view_doc.name.clone(),

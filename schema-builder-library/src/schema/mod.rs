@@ -40,13 +40,18 @@ pub(crate) async fn derive_schema_for_partitions(
     initial_schema_doc: Option<Schema>,
     rt_handle: &tokio::runtime::Handle,
     tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
+    task_semaphore: std::sync::Arc<tokio::sync::Semaphore>,
 ) -> Result<Option<Schema>> {
     let partition_tasks = col_parts.into_iter().enumerate().map(|(ix, partition)| {
         let db_name = db_name.clone();
         let tx_notifications = tx_notifications.clone();
         let collection = collection.clone();
         let initial_schema_doc = initial_schema_doc.clone();
+        let task_semaphore = task_semaphore.clone();
         rt_handle.spawn(async move {
+            // Acquire a permit from the semaphore to limit concurrency
+            #[allow(clippy::unwrap_used)]
+            let _permit = task_semaphore.acquire().await.unwrap();
             let schema_res = derive_schema_for_partition(
                 db_name.clone(),
                 &collection,

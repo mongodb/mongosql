@@ -34,6 +34,7 @@ macro_rules! test_build_schema {
                 client,
                 tx_notifications,
                 tx_schemata,
+                task_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(10)),
             };
 
             // Call build_schema in a separate thread.
