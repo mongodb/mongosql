@@ -10,7 +10,7 @@ use sql_engines_common_test_infra::{
     parse_yaml_test_file, sanitize_description, Error as cti_err, TestGenerator, YamlTestCase,
     YamlTestFile,
 };
-use std::{collections::HashSet, fs::File, io::Write, path::PathBuf};
+use std::{collections::HashSet, fs::File, io::Write, path::PathBuf, env};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryTestExpectations {
@@ -28,6 +28,8 @@ pub struct QueryTestOptions {
     pub allow_order_by_missing: Option<bool>,
     pub ordered: Option<bool>,
     pub type_compare: Option<bool>,
+    pub min_server_version: Option<String>,
+    pub max_server_version: Option<String>,
 }
 
 pub type QueryTestCase = YamlTestCase<String, QueryTestExpectations, QueryTestOptions>;
@@ -36,7 +38,32 @@ pub struct QueryTestGenerator {
     pub feature: String,
 }
 
+fn check_test_version(
+    test_case: &QueryTestCase,
+    server_version: &Option<String>,
+) -> bool {
+    if server_version == &Some("latest".to_string()) {
+        return !test_case.options.max_server_version.is_some();
+    }
+    if let Some(min_version) = test_case.options.min_server_version.as_ref() {
+        if let Some(server_version) = server_version.as_ref() {
+            if server_version < min_version {
+                return false;
+            }
+        }
+    }
+    if let Some(max_version) = test_case.options.max_server_version.as_ref() {
+        if let Some(server_version) = server_version.as_ref() {
+            if server_version > max_version {
+                return false;
+            }
+        }
+    }
+    true
+}
+
 impl TestGenerator for QueryTestGenerator {
+
     fn generate_test_file_header(
         &self,
         generated_test_file: &mut File,
@@ -64,6 +91,7 @@ impl TestGenerator for QueryTestGenerator {
         original_path: PathBuf,
     ) -> sql_engines_common_test_infra::Result<()> {
         let parsed_test_file: YamlTestFile<QueryTestCase> = parse_yaml_test_file(original_path)?;
+        let server_version = env::var("MONGODB_VERSION").ok();
 
         for (index, test_case) in parsed_test_file.tests.iter().enumerate() {
             let sanitized_test_name = sanitize_description(&test_case.description);
@@ -73,6 +101,14 @@ impl TestGenerator for QueryTestGenerator {
                     include_str!("../templates/ignore_body_template"),
                     feature = self.feature,
                     ignore_reason = skip_reason,
+                    name = sanitized_test_name,
+                )
+            } else if check_test_version(test_case, &server_version) == false {
+                write!(
+                    generated_test_file,
+                    include_str!("../templates/ignore_body_template"),
+                    feature = self.feature,
+                    ignore_reason = "server version does not meet test requirements",
                     name = sanitized_test_name,
                 )
             } else {

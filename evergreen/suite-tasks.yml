@@ -19,6 +19,7 @@ tasks:
         vars:
           description: run spec query tests
           cargo_test_flags: --features=query --package=e2e-tests
+          mongodb_version: 6.0
     
 
   - name: test-index-usage_6.0-standalone
@@ -37,6 +38,7 @@ tasks:
         vars:
           description: run index usage tests
           cargo_test_flags: --features=index --package=e2e-tests
+          mongodb_version: 6.0
     
 
   - name: test-rust-e2e_6.0-standalone
@@ -55,6 +57,7 @@ tasks:
         vars:
           description: run rust e2e tests
           cargo_test_flags: --features=e2e --package=e2e-tests
+          mongodb_version: 6.0
     
 
   - name: test-rust-errors_6.0-standalone
@@ -73,6 +76,7 @@ tasks:
         vars:
           description: run rust error tests
           cargo_test_flags: --features=error --package=e2e-tests
+          mongodb_version: 6.0
     
 
   - name: test-schema-derivation_6.0-standalone
@@ -91,6 +95,7 @@ tasks:
         vars:
           description: run schema derivation tests
           cargo_test_flags: --features=schema_derivation --package=e2e-tests
+          mongodb_version: 6.0
     
 
   - name: test-spec-query_7.0-standalone
@@ -109,6 +114,7 @@ tasks:
         vars:
           description: run spec query tests
           cargo_test_flags: --features=query --package=e2e-tests
+          mongodb_version: 7.0
     
 
   - name: test-index-usage_7.0-standalone
@@ -127,6 +133,7 @@ tasks:
         vars:
           description: run index usage tests
           cargo_test_flags: --features=index --package=e2e-tests
+          mongodb_version: 7.0
     
 
   - name: test-rust-e2e_7.0-standalone
@@ -145,6 +152,7 @@ tasks:
         vars:
           description: run rust e2e tests
           cargo_test_flags: --features=e2e --package=e2e-tests
+          mongodb_version: 7.0
     
 
   - name: test-rust-errors_7.0-standalone
@@ -163,6 +171,7 @@ tasks:
         vars:
           description: run rust error tests
           cargo_test_flags: --features=error --package=e2e-tests
+          mongodb_version: 7.0
     
 
   - name: test-schema-derivation_7.0-standalone
@@ -181,6 +190,7 @@ tasks:
         vars:
           description: run schema derivation tests
           cargo_test_flags: --features=schema_derivation --package=e2e-tests
+          mongodb_version: 7.0
     
 
   - name: test-spec-query_8.0-standalone
@@ -199,6 +209,7 @@ tasks:
         vars:
           description: run spec query tests
           cargo_test_flags: --features=query --package=e2e-tests
+          mongodb_version: 8.0
     
 
   - name: test-index-usage_8.0-standalone
@@ -217,6 +228,7 @@ tasks:
         vars:
           description: run index usage tests
           cargo_test_flags: --features=index --package=e2e-tests
+          mongodb_version: 8.0
     
 
   - name: test-rust-e2e_8.0-standalone
@@ -235,6 +247,7 @@ tasks:
         vars:
           description: run rust e2e tests
           cargo_test_flags: --features=e2e --package=e2e-tests
+          mongodb_version: 8.0
     
 
   - name: test-rust-errors_8.0-standalone
@@ -253,6 +266,7 @@ tasks:
         vars:
           description: run rust error tests
           cargo_test_flags: --features=error --package=e2e-tests
+          mongodb_version: 8.0
     
 
   - name: test-schema-derivation_8.0-standalone
@@ -271,6 +285,7 @@ tasks:
         vars:
           description: run schema derivation tests
           cargo_test_flags: --features=schema_derivation --package=e2e-tests
+          mongodb_version: 8.0
     
 
   - name: test-spec-query_rapid-standalone
@@ -289,6 +304,7 @@ tasks:
         vars:
           description: run spec query tests
           cargo_test_flags: --features=query --package=e2e-tests
+          mongodb_version: rapid
     
 
   - name: test-index-usage_rapid-standalone
@@ -307,6 +323,7 @@ tasks:
         vars:
           description: run index usage tests
           cargo_test_flags: --features=index --package=e2e-tests
+          mongodb_version: rapid
     
 
   - name: test-rust-e2e_rapid-standalone
@@ -325,6 +342,7 @@ tasks:
         vars:
           description: run rust e2e tests
           cargo_test_flags: --features=e2e --package=e2e-tests
+          mongodb_version: rapid
     
 
   - name: test-rust-errors_rapid-standalone
@@ -343,6 +361,7 @@ tasks:
         vars:
           description: run rust error tests
           cargo_test_flags: --features=error --package=e2e-tests
+          mongodb_version: rapid
     
 
   - name: test-schema-derivation_rapid-standalone
@@ -361,6 +380,7 @@ tasks:
         vars:
           description: run schema derivation tests
           cargo_test_flags: --features=schema_derivation --package=e2e-tests
+          mongodb_version: rapid
     
 
   - name: test-spec-query_latest-standalone
@@ -379,6 +399,7 @@ tasks:
         vars:
           description: run spec query tests
           cargo_test_flags: --features=query --package=e2e-tests
+          mongodb_version: latest
     
 
   - name: test-index-usage_latest-standalone
@@ -397,6 +418,7 @@ tasks:
         vars:
           description: run index usage tests
           cargo_test_flags: --features=index --package=e2e-tests
+          mongodb_version: latest
     
 
   - name: test-rust-e2e_latest-standalone
@@ -415,6 +437,7 @@ tasks:
         vars:
           description: run rust e2e tests
           cargo_test_flags: --features=e2e --package=e2e-tests
+          mongodb_version: latest
     
 
   - name: test-rust-errors_latest-standalone
@@ -433,6 +456,7 @@ tasks:
         vars:
           description: run rust error tests
           cargo_test_flags: --features=error --package=e2e-tests
+          mongodb_version: latest
     
 
   - name: test-schema-derivation_latest-standalone
@@ -451,4 +475,5 @@ tasks:
         vars:
           description: run schema derivation tests
           cargo_test_flags: --features=schema_derivation --package=e2e-tests
+          mongodb_version: latest
     

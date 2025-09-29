@@ -889,6 +889,7 @@ tests:
       - {'': {'v': '5ab9cbfa31c2ab715d42129e', 'asString': '5ab9cbfa31c2ab715d42129e'}}
 
   - description: Cast DOCUMENT to STRING is invalid, returns NULL by default and ON ERROR when set
+    max_server_version: "8.2"
     current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asStringDefault': CAST(v AS STRING), 'asStringOnError': CAST(v AS STRING, 'null' ON ERROR)} FROM documents AS documents"
     result:
@@ -896,6 +897,7 @@ tests:
       - {'': {'v': {'a': 1, 'b': 2}, 'asStringDefault': null, 'asStringOnError': !!str 'null'}}
 
   - description: Cast ARRAY to STRING is invalid, returns NULL by default and ON ERROR when set
+    max_server_version: "8.2"
     current_db: spec_query_type_conversions
     query: "SELECT VALUE {'v': v, 'asStringDefault': CAST(v AS STRING), 'asStringOnError': CAST(v AS STRING, 'null' ON ERROR)} FROM arrays AS arrays"
     result:
