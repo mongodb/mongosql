@@ -965,7 +965,8 @@ tests:
       - {'': {'v': {'$numberDecimal': '1.8976931348623157E308'}, 'asString': '1.8976931348623157E+308'}}
       - {'': {'v': {'$numberDecimal': '-1.8976931348623157E308'}, 'asString': '-1.8976931348623157E+308'}}
 
-  - description: Cast invalid source types to STRING
+  - description: Cast invalid source types to STRING server versions lt 8.3
+    max_server_version: "8.2"
     current_db: spec_query_type_conversions
     query: "SELECT VALUE {'type': type, 'asString': CAST(v AS STRING)} FROM invalidSourceTypes AS invalidSourceTypes"
     result:
@@ -982,6 +983,24 @@ tests:
       - {'': {'type': 'timestamp', 'asString': null}}
       - {'': {'type': 'minKey', 'asString': null}}
       - {'': {'type': 'maxKey', 'asString': null}}
+
+    # in mongodb 8.3.0, many of the previously unsupported casts to string became valid. This test
+    # maintains checking binData and undefined as invalid, while verifying the other types are now valid conversions.
+  - description: Cast invalid source types to STRING server versions gte 8.3
+    min_server_version: "8.3"
+    current_db: spec_query_type_conversions
+    query: "SELECT VALUE {'type': type, 'asString': CAST(v AS STRING)} FROM invalidSourceTypes AS invalidSourceTypes"
+    result:
+      - {'': {'type': 'binData', 'asString': null}}
+      - {'': {'type': 'undefined', 'asString': null}}
+      - {'': {'type': 'dbPointer', 'asString': "DBRef(\"foo\", 57e193d7a9cc81b4027498b5)"}}
+      - {'': {'type': 'regex', 'asString': "/foo*/ix"}}
+      - {'': {'type': 'javascript', 'asString': "function() {}"}}
+      - {'': {'type': 'symbol', 'asString': "symbol"}}
+      - {'': {'type': 'javascriptWithScope', 'asString': "CodeWScope(\"function() {}\", {})"}}
+      - {'': {'type': 'timestamp', 'asString': "Timestamp(42, 1)"}}
+      - {'': {'type': 'minKey', 'asString': "MinKey"}}
+      - {'': {'type': 'maxKey', 'asString': "MaxKey"}}
 
     # This was added in SQL-2001 to demonstrate parity in our handling of casting binData to string for MongoDB 8.0,
     # and older version of MongoDB. This test should be modified as part of SQL-2314 to include the format option,

@@ -165,3 +165,37 @@ pub fn drop_catalog_data<T: Into<String>>(
     }
     Ok(())
 }
+
+/// check_server_version_for_test verifies that the server version is valid if the test specifies min or max server versions.
+fn check_server_version_for_test(
+    min_server_version: &Option<String>,
+    max_server_version: &Option<String>,
+    server_version: &Option<String>,
+) -> bool {
+    // max server version implies there is some version above which the test should not run; hence
+    // if the server version is "latest" we skip the test.
+    if server_version == &Some("latest".to_string()) {
+        return !max_server_version.is_some();
+    }
+    // rapid can be a moving target, so for now, we will skip tests that have version constraints on rapid
+    if server_version == &Some("rapid".to_string()) {
+        return max_server_version.is_some() && min_server_version.is_some();
+    }
+    // if the min server version is specified, check that the server version is >= min
+    if let Some(min_version) = min_server_version.as_ref() {
+        if let Some(server_version) = server_version.as_ref() {
+            if server_version < min_version {
+                return false;
+            }
+        }
+    }
+    // if the max server version is specified, check that the server version is <= max
+    if let Some(max_version) = max_server_version.as_ref() {
+        if let Some(server_version) = server_version.as_ref() {
+            if server_version > max_version {
+                return false;
+            }
+        }
+    }
+    true
+}
