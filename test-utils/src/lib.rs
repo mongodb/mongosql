@@ -179,8 +179,23 @@ fn check_server_version_for_test(
     }
     // rapid can be a moving target, so for now, we will skip tests that have version constraints on rapid
     if server_version == &Some("rapid".to_string()) {
-        return max_server_version.is_some() && min_server_version.is_some();
+        return max_server_version.is_none() && min_server_version.is_none();
     }
+
+    // convert versions from Option<String> to Option<f32> for comparison
+    let min_server_version = min_server_version.as_ref().map(|v| {
+        v.parse::<f32>()
+            .expect("expected min server version to be numeric")
+    });
+    let max_server_version = max_server_version.as_ref().map(|v| {
+        v.parse::<f32>()
+            .expect("expected max server version to be numeric")
+    });
+    let server_version = server_version.as_ref().map(|v| {
+        v.parse::<f32>()
+            .expect("expected server version to be numeric")
+    });
+
     // if the min server version is specified, check that the server version is >= min
     if let Some(min_version) = min_server_version.as_ref() {
         if let Some(server_version) = server_version.as_ref() {
