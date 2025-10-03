@@ -78,12 +78,11 @@ impl TestGenerator for QueryTestGenerator {
                     ignore_reason = skip_reason,
                     name = sanitized_test_name,
                 )
-            } else if check_server_version_for_test(
+            } else if !check_server_version_for_test(
                 &test_case.options.min_server_version,
                 &test_case.options.max_server_version,
                 &server_version,
-            ) == false
-            {
+            ) {
                 write!(
                     generated_test_file,
                     include_str!("../templates/ignore_body_template"),
