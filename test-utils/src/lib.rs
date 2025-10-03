@@ -182,19 +182,27 @@ fn check_server_version_for_test(
         return max_server_version.is_none() && min_server_version.is_none();
     }
 
-    // convert versions from Option<String> to Option<f32> for comparison
-    let min_server_version = min_server_version.as_ref().map(|v| {
-        v.parse::<f32>()
-            .expect("expected min server version to be numeric")
-    });
-    let max_server_version = max_server_version.as_ref().map(|v| {
-        v.parse::<f32>()
-            .expect("expected max server version to be numeric")
-    });
-    let server_version = server_version.as_ref().map(|v| {
-        v.parse::<f32>()
-            .expect("expected server version to be numeric")
-    });
+    macro_rules! parse_server_version {
+        ($version_name:expr) => {{
+            $version_name
+                .as_ref()
+                .map(|v| {
+                    if v.as_str() == "" {
+                        None
+                    } else {
+                        Some(v.parse::<f32>().expect(&format!(
+                            "expected {} to be numeric",
+                            stringify!($version_name)
+                        )))
+                    }
+                })
+                .flatten()
+        }};
+    }
+
+    let min_server_version = parse_server_version!(min_server_version);
+    let max_server_version = parse_server_version!(max_server_version);
+    let server_version = parse_server_version!(server_version);
 
     // if the min server version is specified, check that the server version is >= min
     if let Some(min_version) = min_server_version.as_ref() {
