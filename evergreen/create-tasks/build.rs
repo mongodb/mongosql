@@ -72,6 +72,7 @@ fn main() {
         vars:
           description: {{description}}
           cargo_test_flags: {{flags}}
+          mongodb_version: {{version}}
     "#;
 
     let mut file = write_evergreen_test_file(FILE_NAME);
