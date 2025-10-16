@@ -101,7 +101,7 @@ impl ErrorInterceptor {
     pub fn record_error(&self, status: &Status) {
         debug!(
             "Recording gRPC error metric: code={}, message='{}'",
-            status.code().to_string(),
+            status.code(),
             status.message()
         );
         self.error_counter
