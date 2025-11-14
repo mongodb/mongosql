@@ -78,6 +78,8 @@ pub enum Stage {
     Sample(Sample),
     #[serde(rename = "$unionWith")]
     UnionWith(UnionWith),
+    #[serde(rename = "$rankFusion")]
+    RankFusion(RankFusion),
 
     // Search stages
     #[serde(rename = "$graphLookup")]
@@ -619,6 +621,30 @@ pub struct Bucket {
     pub boundaries: Vec<Bson>,
     pub default: Option<Bson>,
     pub output: Option<LinkedHashMap<String, Expression>>,
+}
+
+// https://www.mongodb.com/docs/manual/reference/operator/aggregation/rankFusion/
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RankFusion {
+    pub input: RankFusionPipeline,
+    pub combination: Option<RankFusionCombination>,
+    pub score_details: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct RankFusionPipeline {
+    pub pipelines: LinkedHashMap<String, Vec<Stage>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct RankFusionCombination {
+    pub combinations: Option<RankFusionCombinationWeights>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct RankFusionCombinationWeights {
+    pub weights: Option<LinkedHashMap<String, i64>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -1783,6 +1809,7 @@ impl Stage {
             Stage::GeoNear(_) => "$geoNear",
             Stage::Sample(_) => "$sample",
             Stage::UnionWith(_) => "$unionWith",
+            Stage::RankFusion(_) => "$rankFusion",
             Stage::GraphLookup(_) => "$graphLookup",
             Stage::AtlasSearchStage(_) => "<Atlas search stage>",
         }

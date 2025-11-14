@@ -1605,6 +1605,29 @@ mod stage_test {
             }}"#
         );
     }
+    mod rank_fusion {
+        use crate::definitions::{
+            RankFusion, RankFusionPipeline,
+            Stage,
+        };
+
+        use linked_hash_map::LinkedHashMap;
+
+        test_serde_stage!(
+            rank_fusion_empty_pipelines,
+            expected = Stage::RankFusion(RankFusion {
+                input: RankFusionPipeline {
+                    pipelines: LinkedHashMap::new(),
+                },
+                combination: None,
+                score_details: true
+            }),
+            input = r#"stage: {"$rankFusion": {
+               "input": { "pipelines": { searchOne: []}},
+                "scoreDetails": true,
+            }}"#
+        );
+    }
 
     mod densify {
         use crate::definitions::{Densify, DensifyRange, DensifyRangeBounds, Stage};
