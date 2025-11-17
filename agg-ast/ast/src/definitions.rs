@@ -624,6 +624,12 @@ pub struct Bucket {
 }
 
 // https://www.mongodb.com/docs/manual/reference/operator/aggregation/rankFusion/
+
+/**
+
+
+
+*/
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RankFusion {
@@ -639,12 +645,8 @@ pub struct RankFusionPipeline {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RankFusionCombination {
-    pub combinations: Option<RankFusionCombinationWeights>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct RankFusionCombinationWeights {
-    pub weights: Option<LinkedHashMap<String, i64>>,
+    // TODO: Should weights be f64, or possibly an expression?
+    pub weights: LinkedHashMap<String, f64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

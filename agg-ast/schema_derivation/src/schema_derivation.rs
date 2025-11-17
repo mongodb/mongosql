@@ -7,8 +7,9 @@ use crate::{
 use agg_ast::definitions::{
     AtlasSearchStage, Bucket, BucketAuto, ConciseSubqueryLookup, Densify, Documents,
     EqualityLookup, Expression, Fill, FillOutput, GraphLookup, Group, LiteralValue, Lookup,
-    LookupFrom, Namespace, ProjectItem, ProjectStage, Ref, SetWindowFields, Stage, SubqueryLookup,
-    TaggedOperator, UnionWith, Unset, UntaggedOperator, UntaggedOperatorName, Unwind,
+    LookupFrom, Namespace, ProjectItem, ProjectStage, RankFusion, Ref, SetWindowFields, Stage,
+    SubqueryLookup, TaggedOperator, UnionWith, Unset, UntaggedOperator, UntaggedOperatorName,
+    Unwind,
 };
 use linked_hash_map::LinkedHashMap;
 use mongosql::{
@@ -1128,6 +1129,7 @@ impl DeriveSchema for Stage {
             Stage::Lookup(l) => lookup_derive_schema(l, state),
             Stage::Match(ref m) => m.derive_schema(state),
             Stage::Project(p) => project_derive_schema(p, state),
+            Stage::RankFusion(rf) => Ok(state.result_set_schema.to_owned()),
             Stage::Redact(_) => Ok(state.result_set_schema.to_owned()),
             Stage::ReplaceWith(r) => r
                 .to_owned()

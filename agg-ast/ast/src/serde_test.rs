@@ -1606,18 +1606,55 @@ mod stage_test {
         );
     }
     mod rank_fusion {
-        use crate::definitions::{
-            RankFusion, RankFusionPipeline,
-            Stage,
-        };
 
+        use crate::definitions::AtlasSearchStage::{Search, VectorSearch};
+        use crate::definitions::Expression::Literal;
+        use crate::definitions::{
+            AtlasSearchStage, Expression, LiteralValue, RankFusion, RankFusionCombination,
+            RankFusionPipeline, Stage,
+        };
+        use crate::map;
         use linked_hash_map::LinkedHashMap;
+
+        pub fn empty_rankfusion_pipeline() -> LinkedHashMap<String, Vec<Stage>> {
+            let mut pipelines: LinkedHashMap<String, Vec<Stage>> = LinkedHashMap::new();
+
+            pipelines.insert("searchOne".to_string(), Vec::new());
+            pipelines
+        }
+
+        pub fn single_rankfusion_pipeline() -> LinkedHashMap<String, Vec<Stage>> {
+            let mut pipelines: LinkedHashMap<String, Vec<Stage>> = LinkedHashMap::new();
+            let mut search_one_pipeline: Vec<Stage> = Vec::new();
+
+            /**
+            {
+               "$vectorSearch": {
+                  "index": "<INDEX_NAME>",
+                  "path": "<FIELD_NAME>",
+                  "queryVector": <QUERY_EMBEDDINGS>,
+                  "numCandidates": 500,
+                  "
+            */
+            let vector_search_stage: AtlasSearchStage = VectorSearch(Box::new(
+                Expression::Document(map! {
+                    "index".to_string() => Expression::Literal(LiteralValue::String("movie_collection_index".to_string())),
+                    "path".to_string() => Expression::Literal(LiteralValue::String("title".to_string())),
+                    "queryVector".to_string() => Expression::Array(vec![Expression::Literal(LiteralValue::Double(10.6)), Expression::Literal(LiteralValue::Double(60.5))]),
+                    "numCandidates".to_string() => Expression::Literal(LiteralValue::Int32(500)),
+                }),
+            ));
+            search_one_pipeline.push(Stage::AtlasSearchStage(vector_search_stage));
+
+            pipelines.insert("searchOne".to_string(), search_one_pipeline);
+            pipelines
+        }
 
         test_serde_stage!(
             rank_fusion_empty_pipelines,
             expected = Stage::RankFusion(RankFusion {
                 input: RankFusionPipeline {
-                    pipelines: LinkedHashMap::new(),
+                    pipelines: empty_rankfusion_pipeline(),
                 },
                 combination: None,
                 score_details: true
@@ -1627,6 +1664,44 @@ mod stage_test {
                 "scoreDetails": true,
             }}"#
         );
+
+        test_serde_stage!(
+            rank_fusion_single_pipeline,
+            expected = Stage::RankFusion(RankFusion {
+                input: RankFusionPipeline {
+                    pipelines: single_rankfusion_pipeline(),
+                },
+                combination: None,
+                score_details: true
+            }),
+            input = r#"stage: {"$rankFusion": {
+               "input": { "pipelines": { searchOne: [{ "$vectorSearch" : {"index" : "movie_collection_index", "path" : "title", "queryVector": [10.6, 60.5], "numCandidates": 500} }]} },
+                "scoreDetails": true,
+            }}"#
+        );
+
+        test_serde_stage!(
+            rank_fusion_multiple_pipelines_with_weights,
+            expected = Stage::RankFusion(RankFusion {
+                input: RankFusionPipeline {
+                    pipelines: empty_rankfusion_pipeline(),
+                },
+                combination: Some(RankFusionCombination {
+                    weights: map! {
+                        "vectorSearch".to_string() => 0.8,
+                        "fullTextSearch".to_string() => 0.2
+                    }
+                }),
+                score_details: true
+            }),
+            input = r#"stage: {"$rankFusion": {
+               "input": { pipelines: { vectorSearch: [], fullTextSearch: []}},
+               "combinations": { weights: { vectorSearch: 0.8, fullTextSearch: 0.2}},
+               "scoreDetails": true,
+            }}"#
+        );
+
+        // TODO: Failure cases where expected fields are missing
     }
 
     mod densify {
