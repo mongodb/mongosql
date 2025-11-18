@@ -645,7 +645,6 @@ pub struct RankFusionPipeline {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RankFusionCombination {
-    // TODO: Should weights be f64, or possibly an expression?
     pub weights: LinkedHashMap<String, f64>,
 }
 

@@ -1609,6 +1609,7 @@ mod stage_test {
 
         use crate::definitions::AtlasSearchStage::{Search, VectorSearch};
         use crate::definitions::Expression::Literal;
+        use crate::definitions::Stage::Limit;
         use crate::definitions::{
             AtlasSearchStage, Expression, LiteralValue, RankFusion, RankFusionCombination,
             RankFusionPipeline, Stage,
@@ -1650,6 +1651,40 @@ mod stage_test {
             pipelines
         }
 
+        pub fn two_rankfusion_pipelines() -> LinkedHashMap<String, Vec<Stage>> {
+            let mut pipelines: LinkedHashMap<String, Vec<Stage>> = LinkedHashMap::new();
+
+            let vector_search_stage: AtlasSearchStage = VectorSearch(Box::new(
+                Expression::Document(map! {
+                    "index".to_string() => Literal(LiteralValue::String("hybrid-vector-search".to_string())),
+                    "path".to_string() => Literal(LiteralValue::String("plot_embedding_voyage_3_large".to_string())),
+                    "queryVector".to_string() => Expression::Array(vec![Literal(LiteralValue::Double(10.6)), Expression::Literal(LiteralValue::Double(60.5))]),
+                    "numCandidates".to_string() => Literal(LiteralValue::Int32(100)),
+                    "limit".to_string() => Literal(LiteralValue::Int32(20)),
+                }),
+            ));
+            let mut search_one_pipeline: Vec<Stage> = Vec::new();
+            search_one_pipeline.push(Stage::AtlasSearchStage(vector_search_stage));
+            pipelines.insert("vectorPipeline".to_string(), search_one_pipeline);
+
+            let full_text_search_stage: AtlasSearchStage = Search(Box::new(Expression::Document(
+                map! {
+                    "index".to_string() => Literal(LiteralValue::String("hybrid-full-text-search".to_string())),
+                    "phrase".to_string() => Expression::Document(map! {
+                        "query".to_string() => Literal(LiteralValue::String("star wars".to_string())),
+                        "path".to_string() => Literal(LiteralValue::String("title".to_string())),
+                    })
+                },
+            )));
+            let limit_stage: Stage = Limit(20);
+            let mut search_two_pipeline: Vec<Stage> = Vec::new();
+            search_two_pipeline.push(Stage::AtlasSearchStage(full_text_search_stage));
+            search_two_pipeline.push(limit_stage);
+            pipelines.insert("fullTextPipeline".to_string(), search_two_pipeline);
+
+            pipelines
+        }
+
         test_serde_stage!(
             rank_fusion_empty_pipelines,
             expected = Stage::RankFusion(RankFusion {
@@ -1672,11 +1707,11 @@ mod stage_test {
                     pipelines: single_rankfusion_pipeline(),
                 },
                 combination: None,
-                score_details: true
+                score_details: false
             }),
             input = r#"stage: {"$rankFusion": {
-               "input": { "pipelines": { searchOne: [{ "$vectorSearch" : {"index" : "movie_collection_index", "path" : "title", "queryVector": [10.6, 60.5], "numCandidates": 500} }]} },
-                "scoreDetails": true,
+               "input": { "pipelines": { searchOne: [{ "$vectorSearch" : {"index" : "movie_collection_index", "path" : "title", "queryVector": [10.6, 60.5], "numCandidates": 500} }] } },
+                "scoreDetails": false,
             }}"#
         );
 
@@ -1684,24 +1719,55 @@ mod stage_test {
             rank_fusion_multiple_pipelines_with_weights,
             expected = Stage::RankFusion(RankFusion {
                 input: RankFusionPipeline {
-                    pipelines: empty_rankfusion_pipeline(),
+                    pipelines: two_rankfusion_pipelines(),
                 },
                 combination: Some(RankFusionCombination {
                     weights: map! {
-                        "vectorSearch".to_string() => 0.8,
-                        "fullTextSearch".to_string() => 0.2
+                        "vectorPipeline".to_string() => 0.5,
+                        "fullTextPipeline".to_string() => 0.5
                     }
                 }),
                 score_details: true
             }),
-            input = r#"stage: {"$rankFusion": {
-               "input": { pipelines: { vectorSearch: [], fullTextSearch: []}},
-               "combinations": { weights: { vectorSearch: 0.8, fullTextSearch: 0.2}},
-               "scoreDetails": true,
-            }}"#
+            input = r#"stage:  {
+    "$rankFusion": {
+      "input": {
+        pipelines: {
+          vectorPipeline: [
+            {
+              "$vectorSearch": {
+                "index": "hybrid-vector-search",
+                "path": "plot_embedding_voyage_3_large",
+                "queryVector": [10.6, 60.5],
+                "numCandidates": 100,
+                "limit": 20
+              }
+            }
+          ],
+          fullTextPipeline: [
+            {
+              "$search": {
+                "index": "hybrid-full-text-search",
+                "phrase": {
+                  "query": "star wars",
+                  "path": "title"
+                }
+              }
+            },
+            { "$limit": 20 }
+          ]
+        }
+      },
+      "combination": {
+        weights: {
+          vectorPipeline: 0.5,
+          fullTextPipeline: 0.5
+        }
+      },
+      "scoreDetails": true
+    }
+  }"#
         );
-
-        // TODO: Failure cases where expected fields are missing
     }
 
     mod densify {
