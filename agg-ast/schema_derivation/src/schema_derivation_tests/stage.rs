@@ -2450,3 +2450,10 @@ mod unset_fields {
         })
     );
 }
+
+mod rank_fusion {
+    // Test #1: test where two sub pipelines have different schemas and are unioned together
+
+    // Test #2: test where a subpipeline is overwritten because a key is listed multiple times
+    // maybe this could be handled with custom serde instead of during schema derivation if we are modeling the input pipelines as a btreemap?
+}

@@ -622,14 +622,6 @@ pub struct Bucket {
     pub default: Option<Bson>,
     pub output: Option<LinkedHashMap<String, Expression>>,
 }
-
-// https://www.mongodb.com/docs/manual/reference/operator/aggregation/rankFusion/
-
-/**
-
-
-
-*/
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RankFusion {

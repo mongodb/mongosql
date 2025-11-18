@@ -434,6 +434,46 @@ impl DeriveSchema for Stage {
             }
         }
 
+        fn rank_fusion_derive_schema(
+            rank_fusion: &RankFusion,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            // 1. Derive the schema for each pipeline and union them together
+            let unioned_schema_pipelines: Schema = rank_fusion
+                .input
+                .pipelines
+                .values()
+                .map(|input| {
+                    let derived_schema = derive_schema_for_pipeline(input.clone(), None, state);
+                    derived_schema.unwrap_or(Schema::Unsat)
+                })
+                .fold(Schema::Unsat, |acc, val| acc.union(&val));
+
+            // 2. If score_details is true, add scoreDetails to the schema
+
+            let score_details_metadata_schema = Schema::Document(Document {
+                keys: map! {
+                        "value".to_string() => Schema::Atomic(Atomic::Decimal),
+                        "description".to_string() => Schema::Atomic(Atomic::String),
+                        "details".to_string() => Schema::Array(Box::new(Schema::Document(Document {
+                    keys: map! {
+                        "inputPipelineName".to_string() => Schema::Atomic(Atomic::String),
+                        "rank".to_string() => Schema::Atomic(Atomic::Integer),
+                        "weight".to_string() => Schema::Atomic(Atomic::Integer),
+                        "value".to_string() => Schema::Atomic(Atomic::Decimal),
+                        "details".to_string() => Schema::Array(Box::new(Schema::Any)),
+                    },
+                    required: set!("inputPipelineName".to_string(), "rank".to_string(),),
+                    ..Default::default()
+                })))
+                    },
+                required: set!("value".to_string(), "description".to_string(),),
+                ..Default::default()
+            });
+
+            Ok(unioned_schema_pipelines)
+        }
+
         /// bucket_derive_schema derives the schema for a $bucket stage. The schema is defined by the output field,
         /// and contains _id as well.
         fn bucket_derive_schema(bucket: &Bucket, state: &mut ResultSetState) -> Result<Schema> {
@@ -1129,7 +1169,7 @@ impl DeriveSchema for Stage {
             Stage::Lookup(l) => lookup_derive_schema(l, state),
             Stage::Match(ref m) => m.derive_schema(state),
             Stage::Project(p) => project_derive_schema(p, state),
-            Stage::RankFusion(rf) => Ok(state.result_set_schema.to_owned()),
+            Stage::RankFusion(rf) => rank_fusion_derive_schema(rf, state),
             Stage::Redact(_) => Ok(state.result_set_schema.to_owned()),
             Stage::ReplaceWith(r) => r
                 .to_owned()
