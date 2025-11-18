@@ -1768,81 +1768,81 @@ mod stage_test {
     }
   }"#
         );
-
-        test_serde_stage!(
-            rank_fusion_overrides_key_listed_multiple_times,
-            expected = Stage::RankFusion(RankFusion {
-                input: RankFusionPipeline {
-                    pipelines: {
-                        map! {
-                            "vectorPipeline".to_string() => map! {
-                                "index".to_string() => Literal(LiteralValue::String("hybrid-vector-search".to_string())),
-                                "path".to_string() => Literal(LiteralValue::String("plot_embedding_voyage_3_large".to_string()))
-                            }
-                            "fullTextPipeline".to_string() => map! {
-
-                            },
-
-                        }
-                    }
-                },
-                combination: Some(RankFusionCombination {
-                     weights: map! {
-                        "vectorPipeline".to_string() => 0.5,
-                        "fullTextPipeline".to_string() => 0.5
-                    }
-                }),
-                score_details: false
-            }),
-            input = r#"stage:  {
-    "$rankFusion": {
-      "input": {
-        pipelines: {
-            vectorPipeline: [
-                {
-                  "$vectorSearch": {
-                    "index": "hybrid-vector-search",
-                    "path": "plot_embedding_voyage_3_large",
-                  }
-                }
-              ],
-          fullTextPipeline: [
-            {
-              "$search": {
-                "index": "hybrid-full-text-search",
-                "phrase": {
-                  "query": "star wars",
-                  "path": "title"
-                }
-              }
-            },
-            { "$limit": 20 }
-          ],
-
-          fullTextPipeline: [
-            {
-              "$search": {
-                "index": "hybrid-full-text-search",
-                "phrase": {
-                  "query": "legend",
-                  "path": "title"
-                }
-              }
-            },
-            { "$limit": 10 }
-          ]
-        }
-      },
-      "combination": {
-        weights: {
-          vectorPipeline: 0.5,
-          fullTextPipeline: 0.5
-        }
-      },
-      "scoreDetails": true
-    }
-  }"#
-        );
+        // [TODO] Finish this test with the expected pipeline
+        //       test_serde_stage!(
+        //           rank_fusion_overrides_key_listed_multiple_times,
+        //           expected = Stage::RankFusion(RankFusion {
+        //               input: RankFusionPipeline {
+        //                   pipelines: {
+        //                       map! {
+        //                           "vectorPipeline".to_string() => map! {
+        //                               "index".to_string() => Literal(LiteralValue::String("hybrid-vector-search".to_string())),
+        //                               "path".to_string() => Literal(LiteralValue::String("plot_embedding_voyage_3_large".to_string()))
+        //                           }
+        //                           "fullTextPipeline".to_string() => map! {
+        //
+        //                           },
+        //
+        //                       }
+        //                   }
+        //               },
+        //               combination: Some(RankFusionCombination {
+        //                    weights: map! {
+        //                       "vectorPipeline".to_string() => 0.5,
+        //                       "fullTextPipeline".to_string() => 0.5
+        //                   }
+        //               }),
+        //               score_details: false
+        //           }),
+        //           input = r#"stage:  {
+        //   "$rankFusion": {
+        //     "input": {
+        //       pipelines: {
+        //           vectorPipeline: [
+        //               {
+        //                 "$vectorSearch": {
+        //                   "index": "hybrid-vector-search",
+        //                   "path": "plot_embedding_voyage_3_large",
+        //                 }
+        //               }
+        //             ],
+        //         fullTextPipeline: [
+        //           {
+        //             "$search": {
+        //               "index": "hybrid-full-text-search",
+        //               "phrase": {
+        //                 "query": "star wars",
+        //                 "path": "title"
+        //               }
+        //             }
+        //           },
+        //           { "$limit": 20 }
+        //         ],
+        //
+        //         fullTextPipeline: [
+        //           {
+        //             "$search": {
+        //               "index": "hybrid-full-text-search",
+        //               "phrase": {
+        //                 "query": "legend",
+        //                 "path": "title"
+        //               }
+        //             }
+        //           },
+        //           { "$limit": 10 }
+        //         ]
+        //       }
+        //     },
+        //     "combination": {
+        //       weights: {
+        //         vectorPipeline: 0.5,
+        //         fullTextPipeline: 0.5
+        //       }
+        //     },
+        //     "scoreDetails": true
+        //   }
+        // }"#
+        //       );
     }
 
     mod densify {

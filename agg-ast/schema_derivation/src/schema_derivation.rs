@@ -443,14 +443,15 @@ impl DeriveSchema for Stage {
                 .input
                 .pipelines
                 .values()
-                .map(|input| {
-                    let derived_schema = derive_schema_for_pipeline(input.clone(), None, state);
-                    derived_schema.unwrap_or(Schema::Unsat)
+                .map(|pipeline| {
+                    let derived_schema = derive_schema_for_pipeline(pipeline.clone(), None, state);
+                    derived_schema.unwrap()
                 })
-                .fold(Schema::Unsat, |acc, val| acc.union(&val));
+                .fold(Schema::Unsat, |acc, derived_schema| {
+                    acc.union(&derived_schema)
+                });
 
             // 2. If score_details is true, add scoreDetails to the schema
-
             let score_details_metadata_schema = Schema::Document(Document {
                 keys: map! {
                         "value".to_string() => Schema::Atomic(Atomic::Decimal),
@@ -471,7 +472,11 @@ impl DeriveSchema for Stage {
                 ..Default::default()
             });
 
-            Ok(unioned_schema_pipelines)
+            if rank_fusion.score_details {
+                Ok(unioned_schema_pipelines.document_union(score_details_metadata_schema))
+            } else {
+                Ok(unioned_schema_pipelines)
+            }
         }
 
         /// bucket_derive_schema derives the schema for a $bucket stage. The schema is defined by the output field,
