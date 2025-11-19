@@ -478,8 +478,26 @@ impl DeriveSchema for Stage {
                 ..Default::default()
             });
 
+            let score_details_scheme = Schema::Document(Document {
+                keys: map! {
+                    "scoreDetails".to_string() => score_details_metadata_schema
+                },
+                required: map! {},
+                additional_properties: false,
+                jaccard_index: None,
+            });
+
+            println!(
+                "This is the score details schema with scoreDetails: {:?}",
+                score_details_scheme
+            );
             if rank_fusion.score_details {
-                Ok(unioned_schema_pipelines.document_union(score_details_metadata_schema))
+                let combined_schema = unioned_schema_pipelines.document_union(score_details_scheme);
+                println!(
+                    "This is the combined schema with scoreDetails: {:?}",
+                    combined_schema
+                );
+                Ok(combined_schema)
             } else {
                 Ok(unioned_schema_pipelines)
             }

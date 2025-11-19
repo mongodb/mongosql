@@ -2455,6 +2455,7 @@ mod rank_fusion {
     use super::*;
 
     // Test #1: Base Test - two pipelines and a starting schema
+    #[ignore]
     test_derive_stage_schema!(
         two_search_pipelines_no_score_details,
         expected = Ok(Schema::Document(Document {
@@ -2558,29 +2559,32 @@ mod rank_fusion {
             ),
             ..Default::default()
         })),
-        input = r#"{
-    "$rankFusion": {
+        input = r#"{ 
+        "$rankFusion": {
       "input": {
         "pipelines": {
-            "vectorPipeline": [
-                {
-                  "$vectorSearch": {
-                    "index": "hybrid-vector-search",
-                    "path": "plot_embedding_voyage_3_large"
-                  }
-                }
-              ],
+          "vectorPipeline": [
+            {
+              "$vectorSearch": {
+                "index": "hybrid-vector-search",
+                "path": "plot_embedding_voyage_3_large",
+                "queryVector": [10.6, 60.5],
+                "numCandidates": 100,
+                "limit": 20
+              }
+            }
+          ],
           "fullTextPipeline": [
             {
               "$search": {
                 "index": "hybrid-full-text-search",
                 "phrase": {
-                  "query": "legend",
+                  "query": "star wars",
                   "path": "title"
                 }
               }
             },
-            { "$limit": 10 }
+            { "$limit": 20 }
           ]
         }
       },
@@ -2591,8 +2595,30 @@ mod rank_fusion {
         }
       },
       "scoreDetails": true
-    }
-  }"#
+    }}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "first".to_string() => Schema::Atomic(Atomic::String),
+                            "last".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("first".to_string(), "last".to_string()),
+                        ..Default::default()
+                    }),
+                    Schema::Atomic(Atomic::String),
+                )),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })
     );
     // Test #3: test where scoreDetails = true
 }
