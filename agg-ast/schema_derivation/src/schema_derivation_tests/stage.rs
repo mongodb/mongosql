@@ -2454,7 +2454,7 @@ mod unset_fields {
 mod rank_fusion {
     use super::*;
 
-    // Test #1: test where two sub pipelines have different schemas and are unioned together
+    // Test #1: Base Test - two pipelines and a starting schema
     test_derive_stage_schema!(
         two_search_pipelines_no_score_details,
         expected = Ok(Schema::Document(Document {
@@ -2473,21 +2473,17 @@ mod rank_fusion {
                     Schema::Atomic(Atomic::String),
                 )),
             },
-            required: set!("x".to_string(), "y".to_string(),),
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
             ..Default::default()
         })),
         input = r#"{
     "$rankFusion": {
       "input": {
         "pipelines": {
-            "vectorPipeline": [
-                {
-                  "$vectorSearch": {
-                    "index": "hybrid-vector-search",
-                    "path": "plot_embedding_voyage_3_large"
-                  }
-                }
-              ],
           "fullTextPipeline": [
             {
               "$search": {
@@ -2535,8 +2531,68 @@ mod rank_fusion {
             ..Default::default()
         })
     );
-    // Test #2: test where a subpipeline is overwritten because a key is listed multiple times
+    // Test #2: Score Details - Base Case - With Score Details
     // maybe this could be handled with custom serde instead of during schema derivation if we are modeling the input pipelines as a btreemap?
-
+    test_derive_stage_schema!(
+        two_search_pipelines_with_score_details,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "first".to_string() => Schema::Atomic(Atomic::String),
+                            "last".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("first".to_string(), "last".to_string()),
+                        ..Default::default()
+                    }),
+                    Schema::Atomic(Atomic::String),
+                )),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })),
+        input = r#"{
+    "$rankFusion": {
+      "input": {
+        "pipelines": {
+            "vectorPipeline": [
+                {
+                  "$vectorSearch": {
+                    "index": "hybrid-vector-search",
+                    "path": "plot_embedding_voyage_3_large"
+                  }
+                }
+              ],
+          "fullTextPipeline": [
+            {
+              "$search": {
+                "index": "hybrid-full-text-search",
+                "phrase": {
+                  "query": "legend",
+                  "path": "title"
+                }
+              }
+            },
+            { "$limit": 10 }
+          ]
+        }
+      },
+      "combination": {
+        "weights": {
+          "vectorPipeline": 0.5,
+          "fullTextPipeline": 0.5
+        }
+      },
+      "scoreDetails": true
+    }
+  }"#
+    );
     // Test #3: test where scoreDetails = true
 }
