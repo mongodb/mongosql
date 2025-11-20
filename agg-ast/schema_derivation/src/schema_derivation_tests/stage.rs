@@ -2633,8 +2633,26 @@ mod rank_fusion {
         })
     );
     // Test #3: Test where sub-pipelines have different output schemas
-    test_derive_stage_schema!(sub_pipelines_with_different_output_schemas,
-        expected = Ok(Schema::Document(Document::default())),
+    test_derive_stage_schema!(
+        sub_pipelines_with_different_output_schemas,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "first".to_string() => Schema::Atomic(Atomic::String),
+                            "last".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("first".to_string(), "last".to_string()),
+                        ..Default::default()
+                    }),
+                    Schema::Atomic(Atomic::String),
+                )),
+            },
+            required: set!("title".to_string(), "author".to_string(),),
+            ..Default::default()
+        })),
         input = r#"{
     "$rankFusion": {
       "input": {
@@ -2649,6 +2667,7 @@ mod rank_fusion {
                 "limit": 20
               }
             },
+            {"$project" : { "title": 1 }}
 
           ],
           "fullTextPipeline": [
@@ -2661,7 +2680,7 @@ mod rank_fusion {
                 }
               }
             },
-            { "$limit": 10 }
+             {"$project" : {"author" : 1}}
           ]
         }
       },
@@ -2673,5 +2692,29 @@ mod rank_fusion {
       },
       "scoreDetails": false
     }
-  }"#);
+  }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "first".to_string() => Schema::Atomic(Atomic::String),
+                            "last".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("first".to_string(), "last".to_string()),
+                        ..Default::default()
+                    }),
+                    Schema::Atomic(Atomic::String),
+                )),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })
+    );
 }

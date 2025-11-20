@@ -1626,17 +1626,7 @@ mod stage_test {
 
         pub fn single_rankfusion_pipeline() -> LinkedHashMap<String, Vec<Stage>> {
             let mut pipelines: LinkedHashMap<String, Vec<Stage>> = LinkedHashMap::new();
-            let mut search_one_pipeline: Vec<Stage> = Vec::new();
 
-            /**
-            {
-               "$vectorSearch": {
-                  "index": "<INDEX_NAME>",
-                  "path": "<FIELD_NAME>",
-                  "queryVector": <QUERY_EMBEDDINGS>,
-                  "numCandidates": 500,
-                  "
-            */
             let vector_search_stage: AtlasSearchStage = VectorSearch(Box::new(
                 Expression::Document(map! {
                     "index".to_string() => Expression::Literal(LiteralValue::String("movie_collection_index".to_string())),
@@ -1645,13 +1635,14 @@ mod stage_test {
                     "numCandidates".to_string() => Expression::Literal(LiteralValue::Int32(500)),
                 }),
             ));
-            search_one_pipeline.push(Stage::AtlasSearchStage(vector_search_stage));
+            let search_one_pipeline: Vec<Stage> =
+                vec![Stage::AtlasSearchStage(vector_search_stage)];
 
             pipelines.insert("searchOne".to_string(), search_one_pipeline);
             pipelines
         }
 
-        pub fn two_rankfusion_pipelines() -> LinkedHashMap<String, Vec<Stage>> {
+        pub fn two_rank_fusion_pipelines() -> LinkedHashMap<String, Vec<Stage>> {
             let mut pipelines: LinkedHashMap<String, Vec<Stage>> = LinkedHashMap::new();
 
             let vector_search_stage: AtlasSearchStage = VectorSearch(Box::new(
@@ -1663,8 +1654,8 @@ mod stage_test {
                     "limit".to_string() => Literal(LiteralValue::Int32(20)),
                 }),
             ));
-            let mut search_one_pipeline: Vec<Stage> = Vec::new();
-            search_one_pipeline.push(Stage::AtlasSearchStage(vector_search_stage));
+            let search_one_pipeline: Vec<Stage> =
+                vec![Stage::AtlasSearchStage(vector_search_stage)];
             pipelines.insert("vectorPipeline".to_string(), search_one_pipeline);
 
             let full_text_search_stage: AtlasSearchStage = Search(Box::new(Expression::Document(
@@ -1677,9 +1668,8 @@ mod stage_test {
                 },
             )));
             let limit_stage: Stage = Limit(20);
-            let mut search_two_pipeline: Vec<Stage> = Vec::new();
-            search_two_pipeline.push(Stage::AtlasSearchStage(full_text_search_stage));
-            search_two_pipeline.push(limit_stage);
+            let search_two_pipeline: Vec<Stage> =
+                vec![Stage::AtlasSearchStage(full_text_search_stage), limit_stage];
             pipelines.insert("fullTextPipeline".to_string(), search_two_pipeline);
 
             pipelines
@@ -1716,10 +1706,25 @@ mod stage_test {
         );
 
         test_serde_stage!(
+            rank_fusion_uses_latest_key_to_deduplicate_pipelines,
+            expected = Stage::RankFusion(RankFusion {
+                input: RankFusionPipeline {
+                    pipelines: single_rankfusion_pipeline(),
+                },
+                combination: None,
+                score_details: false
+            }),
+            input = r#"stage: {"$rankFusion": {
+               "input": { "pipelines": { searchOne: [{ "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "star wars", "path": "title"}}}, { "$limit": 20 }], searchOne: [{ "$vectorSearch" : {"index" : "movie_collection_index", "path" : "title", "queryVector": [10.6, 60.5], "numCandidates": 500} }] } },
+                "scoreDetails": false,
+            }}"#
+        );
+
+        test_serde_stage!(
             rank_fusion_multiple_pipelines_with_weights,
             expected = Stage::RankFusion(RankFusion {
                 input: RankFusionPipeline {
-                    pipelines: two_rankfusion_pipelines(),
+                    pipelines: two_rank_fusion_pipelines(),
                 },
                 combination: Some(RankFusionCombination {
                     weights: map! {
