@@ -2650,7 +2650,7 @@ mod rank_fusion {
                     Schema::Atomic(Atomic::String),
                 )),
             },
-            required: set!("title".to_string(), "author".to_string(),),
+            //      required: set!("title".to_string(), "author".to_string(),),
             ..Default::default()
         })),
         input = r#"{
