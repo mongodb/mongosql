@@ -1715,7 +1715,10 @@ mod stage_test {
                 score_details: false
             }),
             input = r#"stage: {"$rankFusion": {
-               "input": { "pipelines": { searchOne: [{ "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "star wars", "path": "title"}}}, { "$limit": 20 }], searchOne: [{ "$vectorSearch" : {"index" : "movie_collection_index", "path" : "title", "queryVector": [10.6, 60.5], "numCandidates": 500} }] } },
+               "input": { "pipelines": {
+               searchOne: [{ "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "star wars", "path": "title"}}}, { "$project": { "title": 1, "released" : 1 } }],
+               searchOne: [{ "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "star wars", "path": "title"}}}, { "$limit": 20 }],
+               searchOne: [{ "$vectorSearch" : {"index" : "movie_collection_index", "path" : "title", "queryVector": [10.6, 60.5], "numCandidates": 500} }] } },
                 "scoreDetails": false,
             }}"#
         );
