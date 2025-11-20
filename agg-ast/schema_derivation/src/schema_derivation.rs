@@ -446,12 +446,7 @@ impl DeriveSchema for Stage {
                 .map(|pipeline| {
                     let derived_schema =
                         derive_schema_for_pipeline(pipeline.clone(), None, &mut state.clone());
-                    let unwrapped_schema = derived_schema.unwrap();
-                    println!(
-                        "This is the unwrapped schema so far: {:?}",
-                        unwrapped_schema
-                    );
-                    unwrapped_schema
+                    derived_schema.unwrap_or(EMPTY_DOCUMENT.clone())
                 })
                 .fold(Schema::Unsat, |acc, derived_schema| {
                     acc.union(&derived_schema)

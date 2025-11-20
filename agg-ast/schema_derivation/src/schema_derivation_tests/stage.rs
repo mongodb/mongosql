@@ -2455,7 +2455,6 @@ mod rank_fusion {
     use super::*;
 
     // Test #1: Base Test - two pipelines and a starting schema
-    #[ignore]
     test_derive_stage_schema!(
         two_search_pipelines_no_score_details,
         expected = Ok(Schema::Document(Document {
@@ -2535,7 +2534,7 @@ mod rank_fusion {
     // Test #2: Score Details - Base Case - With Score Details
     // maybe this could be handled with custom serde instead of during schema derivation if we are modeling the input pipelines as a btreemap?
     test_derive_stage_schema!(
-        two_search_pipelines_with_score_details,
+        pipeline_with_score_details,
         expected = Ok(Schema::Document(Document {
             keys: map! {
                 "title".to_string() => Schema::Atomic(Atomic::String),
@@ -2551,12 +2550,26 @@ mod rank_fusion {
                     }),
                     Schema::Atomic(Atomic::String),
                 )),
+                "scoreDetails".to_string() => Schema::Document(Document {
+                keys: map! {
+                        "value".to_string() => Schema::Atomic(Atomic::Decimal),
+                        "description".to_string() => Schema::Atomic(Atomic::String),
+                        "details".to_string() => Schema::Array(Box::new(Schema::Document(Document {
+                    keys: map! {
+                        "inputPipelineName".to_string() => Schema::Atomic(Atomic::String),
+                        "rank".to_string() => Schema::Atomic(Atomic::Integer),
+                        "weight".to_string() => Schema::Atomic(Atomic::Integer),
+                        "value".to_string() => Schema::Atomic(Atomic::Decimal),
+                        "details".to_string() => Schema::Array(Box::new(Schema::Any)),
+                    },
+                    required: set!("inputPipelineName".to_string(), "rank".to_string(),),
+                    ..Default::default()
+                })))
+                    },
+                required: set!("value".to_string(), "description".to_string(),),
+                ..Default::default()
+            })
             },
-            required: set!(
-                "title".to_string(),
-                "author".to_string(),
-                "isbn".to_string(),
-            ),
             ..Default::default()
         })),
         input = r#"{ 
@@ -2573,18 +2586,6 @@ mod rank_fusion {
                 "limit": 20
               }
             }
-          ],
-          "fullTextPipeline": [
-            {
-              "$search": {
-                "index": "hybrid-full-text-search",
-                "phrase": {
-                  "query": "star wars",
-                  "path": "title"
-                }
-              }
-            },
-            { "$limit": 20 }
           ]
         }
       },
