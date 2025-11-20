@@ -1605,6 +1605,182 @@ mod stage_test {
             }}"#
         );
     }
+    mod rank_fusion {
+
+        use crate::definitions::AtlasSearchStage::{Search, VectorSearch};
+        use crate::definitions::Expression::Literal;
+        use crate::definitions::Stage::Limit;
+        use crate::definitions::{
+            AtlasSearchStage, Expression, LiteralValue, RankFusion, RankFusionCombination,
+            RankFusionPipeline, Stage,
+        };
+        use crate::map;
+        use linked_hash_map::LinkedHashMap;
+
+        pub fn empty_rankfusion_pipeline() -> LinkedHashMap<String, Vec<Stage>> {
+            let mut pipelines: LinkedHashMap<String, Vec<Stage>> = LinkedHashMap::new();
+
+            pipelines.insert("searchOne".to_string(), Vec::new());
+            pipelines
+        }
+
+        pub fn single_rankfusion_pipeline() -> LinkedHashMap<String, Vec<Stage>> {
+            let mut pipelines: LinkedHashMap<String, Vec<Stage>> = LinkedHashMap::new();
+
+            let vector_search_stage: AtlasSearchStage = VectorSearch(Box::new(
+                Expression::Document(map! {
+                    "index".to_string() => Expression::Literal(LiteralValue::String("movie_collection_index".to_string())),
+                    "path".to_string() => Expression::Literal(LiteralValue::String("title".to_string())),
+                    "queryVector".to_string() => Expression::Array(vec![Expression::Literal(LiteralValue::Double(10.6)), Expression::Literal(LiteralValue::Double(60.5))]),
+                    "numCandidates".to_string() => Expression::Literal(LiteralValue::Int32(500)),
+                }),
+            ));
+            let search_one_pipeline: Vec<Stage> =
+                vec![Stage::AtlasSearchStage(vector_search_stage)];
+
+            pipelines.insert("searchOne".to_string(), search_one_pipeline);
+            pipelines
+        }
+
+        pub fn two_rank_fusion_pipelines() -> LinkedHashMap<String, Vec<Stage>> {
+            let mut pipelines: LinkedHashMap<String, Vec<Stage>> = LinkedHashMap::new();
+
+            let vector_search_stage: AtlasSearchStage = VectorSearch(Box::new(
+                Expression::Document(map! {
+                    "index".to_string() => Literal(LiteralValue::String("hybrid-vector-search".to_string())),
+                    "path".to_string() => Literal(LiteralValue::String("plot_embedding_voyage_3_large".to_string())),
+                    "queryVector".to_string() => Expression::Array(vec![Literal(LiteralValue::Double(10.6)), Expression::Literal(LiteralValue::Double(60.5))]),
+                    "numCandidates".to_string() => Literal(LiteralValue::Int32(100)),
+                    "limit".to_string() => Literal(LiteralValue::Int32(20)),
+                }),
+            ));
+            let search_one_pipeline: Vec<Stage> =
+                vec![Stage::AtlasSearchStage(vector_search_stage)];
+            pipelines.insert("vectorPipeline".to_string(), search_one_pipeline);
+
+            let full_text_search_stage: AtlasSearchStage = Search(Box::new(Expression::Document(
+                map! {
+                    "index".to_string() => Literal(LiteralValue::String("hybrid-full-text-search".to_string())),
+                    "phrase".to_string() => Expression::Document(map! {
+                        "query".to_string() => Literal(LiteralValue::String("star wars".to_string())),
+                        "path".to_string() => Literal(LiteralValue::String("title".to_string())),
+                    })
+                },
+            )));
+            let limit_stage: Stage = Limit(20);
+            let search_two_pipeline: Vec<Stage> =
+                vec![Stage::AtlasSearchStage(full_text_search_stage), limit_stage];
+            pipelines.insert("fullTextPipeline".to_string(), search_two_pipeline);
+
+            pipelines
+        }
+
+        // Test #1: Validate that we can parse a basic version of $rankFusion with 0 pipelines
+        test_serde_stage!(
+            rank_fusion_empty_pipelines,
+            expected = Stage::RankFusion(RankFusion {
+                input: RankFusionPipeline {
+                    pipelines: empty_rankfusion_pipeline(),
+                },
+                combination: None,
+                score_details: true
+            }),
+            input = r#"stage: {"$rankFusion": {
+               "input": { "pipelines": { searchOne: []}},
+                "scoreDetails": true,
+            }}"#
+        );
+
+        // Test #2: Validate we can parse $rankFusion stage with a single pipeline
+        test_serde_stage!(
+            rank_fusion_single_pipeline,
+            expected = Stage::RankFusion(RankFusion {
+                input: RankFusionPipeline {
+                    pipelines: single_rankfusion_pipeline(),
+                },
+                combination: None,
+                score_details: false
+            }),
+            input = r#"stage: {"$rankFusion": {
+               "input": { "pipelines": { searchOne: [{ "$vectorSearch" : {"index" : "movie_collection_index", "path" : "title", "queryVector": [10.6, 60.5], "numCandidates": 500} }] } },
+                "scoreDetails": false,
+            }}"#
+        );
+
+        // Test #3: Validate that if a pipeline with the same key appears multiple times, only the last key is respected.
+        test_serde_stage!(
+            rank_fusion_uses_latest_key_to_deduplicate_pipelines,
+            expected = Stage::RankFusion(RankFusion {
+                input: RankFusionPipeline {
+                    pipelines: single_rankfusion_pipeline(),
+                },
+                combination: None,
+                score_details: false
+            }),
+            input = r#"stage: {"$rankFusion": {
+               "input": { "pipelines": {
+               searchOne: [{ "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "star wars", "path": "title"}}}, { "$project": { "title": 1, "released" : 1 } }],
+               searchOne: [{ "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "star wars", "path": "title"}}}, { "$limit": 20 }],
+               searchOne: [{ "$vectorSearch" : {"index" : "movie_collection_index", "path" : "title", "queryVector": [10.6, 60.5], "numCandidates": 500} }] } },
+                "scoreDetails": false,
+            }}"#
+        );
+
+        // Test #4: Validate we parse multiple input pipelines along with specifying weights for each pipeline
+        test_serde_stage!(
+            rank_fusion_multiple_pipelines_with_weights,
+            expected = Stage::RankFusion(RankFusion {
+                input: RankFusionPipeline {
+                    pipelines: two_rank_fusion_pipelines(),
+                },
+                combination: Some(RankFusionCombination {
+                    weights: map! {
+                        "vectorPipeline".to_string() => 0.5,
+                        "fullTextPipeline".to_string() => 0.5
+                    }
+                }),
+                score_details: true
+            }),
+            input = r#"stage:  {
+    "$rankFusion": {
+      "input": {
+        pipelines: {
+          vectorPipeline: [
+            {
+              "$vectorSearch": {
+                "index": "hybrid-vector-search",
+                "path": "plot_embedding_voyage_3_large",
+                "queryVector": [10.6, 60.5],
+                "numCandidates": 100,
+                "limit": 20
+              }
+            }
+          ],
+          fullTextPipeline: [
+            {
+              "$search": {
+                "index": "hybrid-full-text-search",
+                "phrase": {
+                  "query": "star wars",
+                  "path": "title"
+                }
+              }
+            },
+            { "$limit": 20 }
+          ]
+        }
+      },
+      "combination": {
+        weights: {
+          vectorPipeline: 0.5,
+          fullTextPipeline: 0.5
+        }
+      },
+      "scoreDetails": true
+    }
+  }"#
+        );
+    }
 
     mod densify {
         use crate::definitions::{Densify, DensifyRange, DensifyRangeBounds, Stage};

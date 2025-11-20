@@ -2450,3 +2450,269 @@ mod unset_fields {
         })
     );
 }
+
+mod rank_fusion {
+    use super::*;
+
+    // Test #1: Base Test - two pipelines and a starting schema
+    test_derive_stage_schema!(
+        two_search_pipelines_no_score_details,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "first".to_string() => Schema::Atomic(Atomic::String),
+                            "last".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("first".to_string(), "last".to_string()),
+                        ..Default::default()
+                    }),
+                    Schema::Atomic(Atomic::String),
+                )),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })),
+        input = r#"{
+    "$rankFusion": {
+      "input": {
+        "pipelines": {
+          "vectorPipeline": [
+            {
+              "$vectorSearch": {
+                "index": "hybrid-vector-search",
+                "path": "plot_embedding_voyage_3_large",
+                "queryVector": [10.6, 60.5],
+                "numCandidates": 100,
+                "limit": 20
+              }
+            }
+          ],
+          "fullTextPipeline": [
+            {
+              "$search": {
+                "index": "hybrid-full-text-search",
+                "phrase": {
+                  "query": "legend",
+                  "path": "title"
+                }
+              }
+            },
+            { "$limit": 10 }
+          ]
+        }
+      },
+      "combination": {
+        "weights": {
+          "vectorPipeline": 0.5,
+          "fullTextPipeline": 0.5
+        }
+      },
+      "scoreDetails": false
+    }
+  }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "first".to_string() => Schema::Atomic(Atomic::String),
+                            "last".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("first".to_string(), "last".to_string()),
+                        ..Default::default()
+                    }),
+                    Schema::Atomic(Atomic::String),
+                )),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })
+    );
+    // Test #2: Score Details - Base Case - With Score Details
+    test_derive_stage_schema!(
+        pipeline_with_score_details,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "first".to_string() => Schema::Atomic(Atomic::String),
+                            "last".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("first".to_string(), "last".to_string()),
+                        ..Default::default()
+                    }),
+                    Schema::Atomic(Atomic::String),
+                )),
+                "scoreDetails".to_string() => Schema::Document(Document {
+                keys: map! {
+                        "value".to_string() => Schema::Atomic(Atomic::Decimal),
+                        "description".to_string() => Schema::Atomic(Atomic::String),
+                        "details".to_string() => Schema::Array(Box::new(Schema::Document(Document {
+                    keys: map! {
+                        "inputPipelineName".to_string() => Schema::Atomic(Atomic::String),
+                        "rank".to_string() => Schema::Atomic(Atomic::Integer),
+                        "weight".to_string() => Schema::Atomic(Atomic::Integer),
+                        "value".to_string() => Schema::Atomic(Atomic::Decimal),
+                        "details".to_string() => Schema::Array(Box::new(Schema::Any)),
+                    },
+                    required: set!("inputPipelineName".to_string(), "rank".to_string(),),
+                    ..Default::default()
+                })))
+                    },
+                required: set!("value".to_string(), "description".to_string(),),
+                ..Default::default()
+            })
+            },
+            ..Default::default()
+        })),
+        input = r#"{ 
+        "$rankFusion": {
+      "input": {
+        "pipelines": {
+          "vectorPipeline": [
+            {
+              "$vectorSearch": {
+                "index": "hybrid-vector-search",
+                "path": "plot_embedding_voyage_3_large",
+                "queryVector": [10.6, 60.5],
+                "numCandidates": 100,
+                "limit": 20
+              }
+            }
+          ]
+        }
+      },
+      "combination": {
+        "weights": {
+          "vectorPipeline": 0.5,
+          "fullTextPipeline": 0.5
+        }
+      },
+      "scoreDetails": true
+    }}"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "first".to_string() => Schema::Atomic(Atomic::String),
+                            "last".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("first".to_string(), "last".to_string()),
+                        ..Default::default()
+                    }),
+                    Schema::Atomic(Atomic::String),
+                )),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })
+    );
+    // Test #3: Test where sub-pipelines have different output schemas
+    test_derive_stage_schema!(
+        sub_pipelines_with_different_output_schemas,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "first".to_string() => Schema::Atomic(Atomic::String),
+                            "last".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("first".to_string(), "last".to_string()),
+                        ..Default::default()
+                    }),
+                    Schema::Atomic(Atomic::String),
+                )),
+            },
+            ..Default::default()
+        })),
+        input = r#"{
+    "$rankFusion": {
+      "input": {
+        "pipelines": {
+          "vectorPipeline": [
+            {
+              "$vectorSearch": {
+                "index": "hybrid-vector-search",
+                "path": "plot_embedding_voyage_3_large",
+                "queryVector": [10.6, 60.5],
+                "numCandidates": 100,
+                "limit": 20
+              }
+            },
+            {"$project" : { "title": 1 }}
+
+          ],
+          "fullTextPipeline": [
+            {
+              "$search": {
+                "index": "hybrid-full-text-search",
+                "phrase": {
+                  "query": "legend",
+                  "path": "title"
+                }
+              }
+            },
+             {"$project" : {"author" : 1}}
+          ]
+        }
+      },
+      "combination": {
+        "weights": {
+          "vectorPipeline": 0.5,
+          "fullTextPipeline": 0.5
+        }
+      },
+      "scoreDetails": false
+    }
+  }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "first".to_string() => Schema::Atomic(Atomic::String),
+                            "last".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("first".to_string(), "last".to_string()),
+                        ..Default::default()
+                    }),
+                    Schema::Atomic(Atomic::String),
+                )),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })
+    );
+}

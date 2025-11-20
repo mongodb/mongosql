@@ -305,6 +305,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
             | Stage::Facet(_)
             | Stage::Fill(_)
             | Stage::GeoNear(_)
+            | Stage::RankFusion(_)
             | Stage::Sample(_)
             | Stage::SortByCount(_)
             | Stage::UnionWith(_)
