@@ -1675,6 +1675,7 @@ mod stage_test {
             pipelines
         }
 
+        // Test #1: Validate that we can parse a basic version of $rankFusion with 0 pipelines
         test_serde_stage!(
             rank_fusion_empty_pipelines,
             expected = Stage::RankFusion(RankFusion {
@@ -1690,6 +1691,7 @@ mod stage_test {
             }}"#
         );
 
+        // Test #2: Validate we can parse $rankFusion stage with a single pipeline
         test_serde_stage!(
             rank_fusion_single_pipeline,
             expected = Stage::RankFusion(RankFusion {
@@ -1705,6 +1707,7 @@ mod stage_test {
             }}"#
         );
 
+        // Test #3: Validate that if a pipeline with the same key appears multiple times, only the last key is respected.
         test_serde_stage!(
             rank_fusion_uses_latest_key_to_deduplicate_pipelines,
             expected = Stage::RankFusion(RankFusion {
@@ -1723,6 +1726,7 @@ mod stage_test {
             }}"#
         );
 
+        // Test #4: Validate we parse multiple input pipelines along with specifying weights for each pipeline
         test_serde_stage!(
             rank_fusion_multiple_pipelines_with_weights,
             expected = Stage::RankFusion(RankFusion {

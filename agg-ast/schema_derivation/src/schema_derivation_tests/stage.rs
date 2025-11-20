@@ -2543,7 +2543,6 @@ mod rank_fusion {
         })
     );
     // Test #2: Score Details - Base Case - With Score Details
-    // maybe this could be handled with custom serde instead of during schema derivation if we are modeling the input pipelines as a btreemap?
     test_derive_stage_schema!(
         pipeline_with_score_details,
         expected = Ok(Schema::Document(Document {
@@ -2650,7 +2649,6 @@ mod rank_fusion {
                     Schema::Atomic(Atomic::String),
                 )),
             },
-            //      required: set!("title".to_string(), "author".to_string(),),
             ..Default::default()
         })),
         input = r#"{
