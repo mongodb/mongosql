@@ -2484,6 +2484,17 @@ mod rank_fusion {
     "$rankFusion": {
       "input": {
         "pipelines": {
+          "vectorPipeline": [
+            {
+              "$vectorSearch": {
+                "index": "hybrid-vector-search",
+                "path": "plot_embedding_voyage_3_large",
+                "queryVector": [10.6, 60.5],
+                "numCandidates": 100,
+                "limit": 20
+              }
+            }
+          ],
           "fullTextPipeline": [
             {
               "$search": {
@@ -2621,5 +2632,46 @@ mod rank_fusion {
             ..Default::default()
         })
     );
-    // Test #3: test where scoreDetails = true
+    // Test #3: Test where sub-pipelines have different output schemas
+    test_derive_stage_schema!(sub_pipelines_with_different_output_schemas,
+        expected = Ok(Schema::Document(Document::default())),
+        input = r#"{
+    "$rankFusion": {
+      "input": {
+        "pipelines": {
+          "vectorPipeline": [
+            {
+              "$vectorSearch": {
+                "index": "hybrid-vector-search",
+                "path": "plot_embedding_voyage_3_large",
+                "queryVector": [10.6, 60.5],
+                "numCandidates": 100,
+                "limit": 20
+              }
+            },
+
+          ],
+          "fullTextPipeline": [
+            {
+              "$search": {
+                "index": "hybrid-full-text-search",
+                "phrase": {
+                  "query": "legend",
+                  "path": "title"
+                }
+              }
+            },
+            { "$limit": 10 }
+          ]
+        }
+      },
+      "combination": {
+        "weights": {
+          "vectorPipeline": 0.5,
+          "fullTextPipeline": 0.5
+        }
+      },
+      "scoreDetails": false
+    }
+  }"#);
 }
