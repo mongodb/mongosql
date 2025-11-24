@@ -627,7 +627,7 @@ pub struct Bucket {
 pub struct RankFusion {
     pub input: RankFusionInput,
     pub combination: Option<RankFusionCombination>,
-    pub score_details: bool,
+    pub score_details: Option<bool>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

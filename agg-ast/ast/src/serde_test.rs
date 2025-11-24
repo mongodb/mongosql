@@ -1607,11 +1607,13 @@ mod stage_test {
     }
     mod rank_fusion {
 
+        use crate::definitions::Stage::{AtlasSearchStage, Match, Sort};
         use crate::definitions::{
             AtlasSearchStage::{Search, VectorSearch},
             Expression,
             Expression::Literal,
-            LiteralValue, RankFusion, RankFusionCombination, RankFusionInput, Stage,
+            LiteralValue, MatchBinaryOp, MatchExpression, MatchField, MatchStage, RankFusion,
+            RankFusionCombination, RankFusionInput, Ref, Stage,
             Stage::Limit,
         };
         use crate::{map, text_search_pipeline, vector_pipeline};
@@ -1625,7 +1627,7 @@ mod stage_test {
                     },
                 },
                 combination: None,
-                score_details: false
+                score_details: Some(false)
             }),
             input = r#"stage: {"$rankFusion": {
                "input": { "pipelines": { searchOne: [{ "$vectorSearch" : {"index" : "hybrid-vector-search", "path" : "plot_embedding_voyage_3_large", "queryVector": [10.6, 60.5], "numCandidates": 100} }] } },
@@ -1642,7 +1644,7 @@ mod stage_test {
                     },
                 },
                 combination: None,
-                score_details: false
+                score_details: Some(false)
             }),
             input = r#"stage: {"$rankFusion": {
                "input": { "pipelines": {
@@ -1668,7 +1670,7 @@ mod stage_test {
                         "fullTextPipeline".to_string() => 0.5
                     }
                 }),
-                score_details: true
+                score_details: Some(true)
             }),
             input = r#"stage:  {
                 "$rankFusion": {
@@ -1707,6 +1709,53 @@ mod stage_test {
                   "scoreDetails": true
                 }
               }"#
+        );
+
+        test_serde_stage!(
+            pipelines_are_deduplicated,
+            expected = Stage::RankFusion(RankFusion {
+                input: RankFusionInput {
+                    pipelines: map! {
+                            "searchOne".to_string() => vec![AtlasSearchStage(Search(Box::new(
+                        Expression::Document(map! {
+                            "index".to_string() => Literal(LiteralValue::String("hybrid-full-text-search".to_string())),
+                            "phrase".to_string() => Expression::Document(map! {
+                                    "query".to_string() => Literal(LiteralValue::String("adventure".to_string())),
+                                    "path".to_string() => Literal(LiteralValue::String("plot".to_string()))
+                                }),
+
+                        }),
+                    ))),
+                    Match(MatchStage {
+                        expr: vec![MatchExpression::Field(MatchField {
+                            field: Ref::FieldRef("metacritic".to_string()),
+                            ops: map! { MatchBinaryOp::Gt =>  bson::Bson::Int32(75) }
+                        })]
+                    }) ,
+                    Sort(map! {"title".to_string() => 1})]
+                    },
+                },
+                combination: None,
+                score_details: Some(false)
+            }),
+            input = r#"stage: { "$rankFusion" : {
+    "input" : {
+      "pipelines" : {
+        searchOne: [
+          { "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "adventure", "path": "plot"}}},
+          { "$match": { "genres": "Western", "year": { "$lt": 1980 }}},
+          { "$sort": { "runtime": 1}
+        }],
+        searchOne: [
+          { "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "adventure","path": "plot"}}},
+          { "$match": { "metacritic": { "$gt": 75 }}},
+          { "$sort": { "title": 1}
+        }]
+      }
+    },
+    "scoreDetails": false
+  }
+}"#
         );
     }
 
