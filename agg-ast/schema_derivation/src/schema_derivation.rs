@@ -439,7 +439,7 @@ impl DeriveSchema for Stage {
             state: &mut ResultSetState,
         ) -> Result<Schema> {
             // 1. Derive the schema for each pipeline and union them together
-            let unioned_schema_pipelines: Schema = rank_fusion
+            let mut unioned_schema_pipelines: Schema = rank_fusion
                 .input
                 .pipelines
                 .values()
@@ -452,40 +452,39 @@ impl DeriveSchema for Stage {
                     acc.union(&derived_schema)
                 });
 
+            // 2. If score_details is true, add scoreDetails schema to the overall schema
             if rank_fusion.score_details {
-                // 2. If score_details is true, add scoreDetails to the schema
-                let score_details_metadata_schema = Schema::Document(Document {
-                    keys: map! {
-                            "value".to_string() => Schema::Atomic(Atomic::Decimal),
-                            "description".to_string() => Schema::Atomic(Atomic::String),
-                            "details".to_string() => Schema::Array(Box::new(Schema::Document(Document {
-                        keys: map! {
-                            "inputPipelineName".to_string() => Schema::Atomic(Atomic::String),
-                            "rank".to_string() => Schema::Atomic(Atomic::Integer),
-                            "weight".to_string() => Schema::Atomic(Atomic::Integer),
-                            "value".to_string() => Schema::Atomic(Atomic::Decimal),
-                            "details".to_string() => Schema::Array(Box::new(Schema::Any)),
-                        },
-                        required: set!("inputPipelineName".to_string(), "rank".to_string(),),
-                        ..Default::default()
-                    })))
-                        },
-                    required: set!("value".to_string(), "description".to_string(),),
-                    ..Default::default()
-                });
-
                 let score_details_scheme = Schema::Document(Document {
                     keys: map! {
-                        "scoreDetails".to_string() => score_details_metadata_schema
-                    },
+                            "scoreDetails".to_string() => Schema::Document(Document {
+                        keys: map! {
+                                "value".to_string() => Schema::Atomic(Atomic::Decimal),
+                                "description".to_string() => Schema::Atomic(Atomic::String),
+                                "details".to_string() => Schema::Array(Box::new(Schema::Document(Document {
+                            keys: map! {
+                                "inputPipelineName".to_string() => Schema::Atomic(Atomic::String),
+                                "rank".to_string() => Schema::Atomic(Atomic::Integer),
+                                "weight".to_string() => Schema::Atomic(Atomic::Integer),
+                                "value".to_string() => Schema::Atomic(Atomic::Decimal),
+                                "details".to_string() => Schema::Array(Box::new(Schema::Any)),
+                            },
+                            required: set!("inputPipelineName".to_string(), "rank".to_string(),),
+                            ..Default::default()
+                        })))
+                            },
+                        required: set!("value".to_string(), "description".to_string(),),
+                        ..Default::default()
+                    })
+                        },
                     required: map! {},
                     additional_properties: false,
                     jaccard_index: None,
                 });
-                Ok(unioned_schema_pipelines.document_union(score_details_scheme))
-            } else {
-                Ok(unioned_schema_pipelines)
+                unioned_schema_pipelines = unioned_schema_pipelines.union(&score_details_scheme);
             }
+
+            Ok(unioned_schema_pipelines)
+
         }
 
         /// bucket_derive_schema derives the schema for a $bucket stage. The schema is defined by the output field,
