@@ -2718,12 +2718,13 @@ mod rank_fusion {
     );
 
     test_derive_stage_schema!(
-        rank_fusion_unions_types_together,
+        rank_fusion_narrows_any_of_types,
         expected = Ok(Schema::Document(Document {
             keys: map! {
                 "phoneNumber".to_string() => AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)]),
             },
-            additional_properties: true,
+            required: set!["phoneNumber".to_string()],
+            additional_properties: false,
             ..Default::default()
         })),
         input = r#"{
@@ -2735,7 +2736,15 @@ mod rank_fusion {
           }
         }
       }
-    }"#
+    }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "phoneNumber".to_string() => AnyOf(set![AnyOf(set![Schema::Atomic(Atomic::Timestamp), Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Double),Schema::Atomic(Atomic::String)])]),
+            },
+            required: set!["phoneNumber".to_string()],
+            additional_properties: false,
+            jaccard_index: None,
+        })
     );
 
     test_derive_stage_schema!(
@@ -2758,7 +2767,7 @@ mod rank_fusion {
                     }],
                     "searchOne": [
                       { "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "adventure","path": "plot"}}},
-                      { "$match": { "metacritic": { "$gt": 75 }}},
+                      { "$match": { "metacritic": { "$gt": 75.0 }}},
                       { "$sort": { "title": 1}
                     }]
                   }
