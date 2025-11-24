@@ -484,7 +484,6 @@ impl DeriveSchema for Stage {
             }
 
             Ok(unioned_schema_pipelines)
-
         }
 
         /// bucket_derive_schema derives the schema for a $bucket stage. The schema is defined by the output field,
