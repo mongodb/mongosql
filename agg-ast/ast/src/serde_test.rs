@@ -1612,7 +1612,7 @@ mod stage_test {
         use crate::definitions::Stage::Limit;
         use crate::definitions::{
             AtlasSearchStage, Expression, LiteralValue, RankFusion, RankFusionCombination,
-            RankFusionPipeline, Stage,
+            RankFusionInput, Stage,
         };
         use crate::map;
         use linked_hash_map::LinkedHashMap;
@@ -1679,7 +1679,7 @@ mod stage_test {
         test_serde_stage!(
             rank_fusion_empty_pipelines,
             expected = Stage::RankFusion(RankFusion {
-                input: RankFusionPipeline {
+                input: RankFusionInput {
                     pipelines: empty_rankfusion_pipeline(),
                 },
                 combination: None,
@@ -1695,7 +1695,7 @@ mod stage_test {
         test_serde_stage!(
             rank_fusion_single_pipeline,
             expected = Stage::RankFusion(RankFusion {
-                input: RankFusionPipeline {
+                input: RankFusionInput {
                     pipelines: single_rankfusion_pipeline(),
                 },
                 combination: None,
@@ -1711,7 +1711,7 @@ mod stage_test {
         test_serde_stage!(
             rank_fusion_uses_latest_key_to_deduplicate_pipelines,
             expected = Stage::RankFusion(RankFusion {
-                input: RankFusionPipeline {
+                input: RankFusionInput {
                     pipelines: single_rankfusion_pipeline(),
                 },
                 combination: None,
@@ -1730,7 +1730,7 @@ mod stage_test {
         test_serde_stage!(
             rank_fusion_multiple_pipelines_with_weights,
             expected = Stage::RankFusion(RankFusion {
-                input: RankFusionPipeline {
+                input: RankFusionInput {
                     pipelines: two_rank_fusion_pipelines(),
                 },
                 combination: Some(RankFusionCombination {

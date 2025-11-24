@@ -625,13 +625,13 @@ pub struct Bucket {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RankFusion {
-    pub input: RankFusionPipeline,
+    pub input: RankFusionInput,
     pub combination: Option<RankFusionCombination>,
     pub score_details: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct RankFusionPipeline {
+pub struct RankFusionInput {
     pub pipelines: LinkedHashMap<String, Vec<Stage>>,
 }
 
