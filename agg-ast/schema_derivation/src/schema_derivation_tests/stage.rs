@@ -2455,7 +2455,6 @@ mod rank_fusion {
     use super::*;
     use mongosql::schema::Schema::AnyOf;
 
-    // Test #1: Base Test - two pipelines and a starting schema
     test_derive_stage_schema!(
         two_search_pipelines_no_score_details,
         expected = Ok(Schema::Document(Document {
@@ -2543,7 +2542,7 @@ mod rank_fusion {
             ..Default::default()
         })
     );
-    // Test #2: Score Details - Base Case - With Score Details
+
     test_derive_stage_schema!(
         pipeline_with_score_details,
         expected = Ok(Schema::Document(Document {
@@ -2632,7 +2631,6 @@ mod rank_fusion {
             ..Default::default()
         })
     );
-    // Test #3: Test where sub-pipelines have different output schemas
     test_derive_stage_schema!(
         sub_pipelines_with_different_output_schemas,
         expected = Ok(Schema::Document(Document {
@@ -2718,7 +2716,7 @@ mod rank_fusion {
     );
 
     test_derive_stage_schema!(
-        rank_fusion_narrows_any_of_types,
+        rank_fusion_narrows_anyof_types,
         expected = Ok(Schema::Document(Document {
             keys: map! {
                 "phoneNumber".to_string() => AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)]),
