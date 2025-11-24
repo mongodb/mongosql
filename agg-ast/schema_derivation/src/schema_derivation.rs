@@ -453,41 +453,39 @@ impl DeriveSchema for Stage {
                 });
 
             // 2. If score_details is true, add scoreDetails schema to the overall schema
-            match rank_fusion.score_details {
-                Some(score_details_enabled) => {
-                    if score_details_enabled {
-                        let score_details_schema: Schema = Schema::Document(Document {
+            if let Some(score_details_enabled) = rank_fusion.score_details {
+                if score_details_enabled {
+                    let score_details_schema: Schema = Schema::Document(Document {
+                        keys: map! {
+                                "scoreDetails".to_string() => Schema::Document(Document {
                             keys: map! {
-                                    "scoreDetails".to_string() => Schema::Document(Document {
+                                    "value".to_string() => Schema::Atomic(Atomic::Decimal),
+                                    "description".to_string() => Schema::Atomic(Atomic::String),
+                                    "details".to_string() => Schema::Array(Box::new(Schema::Document(Document {
                                 keys: map! {
-                                        "value".to_string() => Schema::Atomic(Atomic::Decimal),
-                                        "description".to_string() => Schema::Atomic(Atomic::String),
-                                        "details".to_string() => Schema::Array(Box::new(Schema::Document(Document {
-                                    keys: map! {
-                                        "inputPipelineName".to_string() => Schema::Atomic(Atomic::String),
-                                        "rank".to_string() => Schema::Atomic(Atomic::Integer),
-                                        "weight".to_string() => Schema::Atomic(Atomic::Integer),
-                                        "value".to_string() => Schema::Atomic(Atomic::Decimal),
-                                        "details".to_string() => Schema::Array(Box::new(Schema::Any)),
-                                    },
-                                    required: set!("inputPipelineName".to_string(), "rank".to_string(),),
-                                    ..Default::default()
-                                })))
-                                    },
-                                required: set!("value".to_string(), "description".to_string(),),
-                                ..Default::default()
-                            })
+                                    "inputPipelineName".to_string() => Schema::Atomic(Atomic::String),
+                                    "rank".to_string() => Schema::Atomic(Atomic::Integer),
+                                    "weight".to_string() => Schema::Atomic(Atomic::Integer),
+                                    "value".to_string() => Schema::Atomic(Atomic::Decimal),
+                                    "details".to_string() => Schema::Array(Box::new(Schema::Any)),
                                 },
-                            required: map! {},
-                            additional_properties: false,
-                            jaccard_index: None,
-                        });
-                        unioned_schema_pipelines =
-                            unioned_schema_pipelines.union(&score_details_schema);
-                    }
+                                required: set!("inputPipelineName".to_string(), "rank".to_string(),),
+                                ..Default::default()
+                            })))
+                                },
+                            required: set!("value".to_string(), "description".to_string(),),
+                            ..Default::default()
+                        })
+                            },
+                        required: map! {},
+                        additional_properties: false,
+                        jaccard_index: None,
+                    });
+                    unioned_schema_pipelines =
+                        unioned_schema_pipelines.union(&score_details_schema);
                 }
-                None => {}
             }
+
             Ok(unioned_schema_pipelines)
         }
 
