@@ -2453,6 +2453,7 @@ mod unset_fields {
 
 mod rank_fusion {
     use super::*;
+    use mongosql::schema::Schema::AnyOf;
 
     // Test #1: Base Test - two pipelines and a starting schema
     test_derive_stage_schema!(
@@ -2714,5 +2715,56 @@ mod rank_fusion {
             ),
             ..Default::default()
         })
+    );
+
+    test_derive_stage_schema!(
+        rank_fusion_unions_types_together,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "phoneNumber".to_string() => AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)]),
+            },
+            additional_properties: true,
+            ..Default::default()
+        })),
+        input = r#"{
+      "$rankFusion" : {
+        "input" : {
+          "pipelines" : {
+            "searchOne": [{ "$match": { "phoneNumber": { "$type": "int"}}}, {"$sort": { "country": 1}}],
+            "searchTwo": [{ "$match": { "phoneNumber": { "$type": "string"}}}, {"$sort": { "country": 1}}]
+          }
+        }
+      }
+    }"#
+    );
+
+    test_derive_stage_schema!(
+        rank_fusion_uses_latest_key_for_duplicate_pipelines,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "metacritic".to_string() => AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long), Schema::Atomic(Atomic::Double), Schema::Atomic(Atomic::Decimal)]),
+            },
+            required: Default::default(),
+            additional_properties: true,
+            jaccard_index: None,
+        })),
+        input = r#"{ "$rankFusion" : {
+                "input" : {
+                  "pipelines" : {
+                    "searchOne": [
+                      { "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "adventure", "path": "plot"}}},
+                      { "$match": { "genres": "Western", "year": { "$lt": 1980 }}},
+                      { "$sort": { "runtime": 1}
+                    }],
+                    "searchOne": [
+                      { "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "adventure","path": "plot"}}},
+                      { "$match": { "metacritic": { "$gt": 75 }}},
+                      { "$sort": { "title": 1}
+                    }]
+                  }
+                },
+                "scoreDetails": false
+              }
+            }"#
     );
 }

@@ -1739,23 +1739,23 @@ mod stage_test {
                 score_details: Some(false)
             }),
             input = r#"stage: { "$rankFusion" : {
-    "input" : {
-      "pipelines" : {
-        searchOne: [
-          { "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "adventure", "path": "plot"}}},
-          { "$match": { "genres": "Western", "year": { "$lt": 1980 }}},
-          { "$sort": { "runtime": 1}
-        }],
-        searchOne: [
-          { "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "adventure","path": "plot"}}},
-          { "$match": { "metacritic": { "$gt": 75 }}},
-          { "$sort": { "title": 1}
-        }]
-      }
-    },
-    "scoreDetails": false
-  }
-}"#
+                "input" : {
+                  "pipelines" : {
+                    searchOne: [
+                      { "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "adventure", "path": "plot"}}},
+                      { "$match": { "genres": "Western", "year": { "$lt": 1980 }}},
+                      { "$sort": { "runtime": 1}
+                    }],
+                    searchOne: [
+                      { "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "adventure","path": "plot"}}},
+                      { "$match": { "metacritic": { "$gt": 75 }}},
+                      { "$sort": { "title": 1}
+                    }]
+                  }
+                },
+                "scoreDetails": false
+              }
+            }"#
         );
     }
 
