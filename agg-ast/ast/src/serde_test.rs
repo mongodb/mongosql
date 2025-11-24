@@ -1628,7 +1628,7 @@ mod stage_test {
                 score_details: false
             }),
             input = r#"stage: {"$rankFusion": {
-               "input": { "pipelines": { searchOne: [{ "$vectorSearch" : {"index" : "movie_collection_index", "path" : "title", "queryVector": [10.6, 60.5], "numCandidates": 500} }] } },
+               "input": { "pipelines": { searchOne: [{ "$vectorSearch" : {"index" : "hybrid-vector-search", "path" : "plot_embedding_voyage_3_large", "queryVector": [10.6, 60.5], "numCandidates": 100} }] } },
                 "scoreDetails": false,
             }}"#
         );
@@ -1648,7 +1648,7 @@ mod stage_test {
                "input": { "pipelines": {
                searchOne: [{ "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "star wars", "path": "title"}}}, { "$project": { "title": 1, "released" : 1 } }],
                searchOne: [{ "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "star wars", "path": "title"}}}, { "$limit": 20 }],
-               searchOne: [{ "$vectorSearch" : {"index" : "movie_collection_index", "path" : "title", "queryVector": [10.6, 60.5], "numCandidates": 500} }] } },
+               searchOne: [{ "$vectorSearch" : {"index" : "hybrid-vector-search", "path" : "plot_embedding_voyage_3_large", "queryVector": [10.6, 60.5], "numCandidates": 100} }] } },
                 "scoreDetails": false,
             }}"#
         );
@@ -1681,7 +1681,6 @@ mod stage_test {
                             "path": "plot_embedding_voyage_3_large",
                             "queryVector": [10.6, 60.5],
                             "numCandidates": 100,
-                            "limit": 20
                           }
                         }
                       ],
