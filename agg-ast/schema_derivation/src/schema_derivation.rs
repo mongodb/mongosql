@@ -453,8 +453,7 @@ impl DeriveSchema for Stage {
                 });
 
             // 2. If score_details is true, add scoreDetails schema to the overall schema
-            if let Some(score_details_enabled) = rank_fusion.score_details {
-                if score_details_enabled {
+            if let Some(true) = rank_fusion.score_details {
                     let score_details_schema: Schema = Schema::Document(Document {
                         keys: map! {
                                 "scoreDetails".to_string() => Schema::Document(Document {
@@ -483,7 +482,7 @@ impl DeriveSchema for Stage {
                     });
                     unioned_schema_pipelines =
                         unioned_schema_pipelines.union(&score_details_schema);
-                }
+
             }
 
             Ok(unioned_schema_pipelines)
