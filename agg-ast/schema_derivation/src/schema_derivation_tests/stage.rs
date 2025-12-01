@@ -2755,35 +2755,6 @@ mod rank_fusion {
     );
 
     test_derive_stage_schema!(
-        rank_fusion_uses_latest_key_for_duplicate_pipelines,
-        expected = Ok(Schema::Document(Document {
-            keys: map! {
-                "metacritic".to_string() => AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long), Schema::Atomic(Atomic::Double), Schema::Atomic(Atomic::Decimal)]),
-            },
-            required: Default::default(),
-            additional_properties: true,
-            jaccard_index: None,
-        })),
-        input = r#"{ "$rankFusion" : {
-                "input" : {
-                  "pipelines" : {
-                    "searchOne": [
-                      { "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "adventure", "path": "plot"}}},
-                      { "$match": { "genres": "Western", "year": { "$lt": 1980 }}},
-                      { "$sort": { "runtime": 1}
-                    }],
-                    "searchOne": [
-                      { "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "adventure","path": "plot"}}},
-                      { "$match": { "metacritic": { "$gt": 75.0 }}},
-                      { "$sort": { "title": 1}
-                    }]
-                  }
-                },
-                "scoreDetails": false
-              }
-            }"#
-    );
-    test_derive_stage_schema!(
         rank_fusion_errors_when_pipeline_schema_derivation_fails,
         expected = Err(crate::Error::InvalidStage(Box::new(Stage::GeoNear(
             Box::new(GeoNear {

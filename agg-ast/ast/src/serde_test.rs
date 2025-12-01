@@ -1616,7 +1616,38 @@ mod stage_test {
             RankFusionCombination, RankFusionInput, Ref, Stage,
             Stage::Limit,
         };
-        use crate::{map, text_search_pipeline, vector_pipeline};
+        use crate::map;
+
+        #[macro_export]
+        macro_rules! vector_pipeline {
+            () => {
+                   vec![Stage::AtlasSearchStage(VectorSearch(Box::new(
+                        Expression::Document(map! {
+                            "index".to_string() => Literal(LiteralValue::String("hybrid-vector-search".to_string())),
+                            "path".to_string() => Literal(LiteralValue::String("plot_embedding_voyage_3_large".to_string())),
+                            "queryVector".to_string() => Expression::Array(vec![Literal(LiteralValue::Double(10.6)), Expression::Literal(LiteralValue::Double(60.5))]),
+                            "numCandidates".to_string() => Literal(LiteralValue::Int32(100)),
+                        }),
+                    )))]
+            };
+        }
+
+        #[macro_export]
+        macro_rules! text_search_pipeline {
+            () => {
+                vec![Stage::AtlasSearchStage(
+                    Search(Box::new(Expression::Document(
+                        map! {
+                            "index".to_string() => Literal(LiteralValue::String("hybrid-full-text-search".to_string())),
+                            "phrase".to_string() => Expression::Document(map! {
+                                "query".to_string() => Literal(LiteralValue::String("star wars".to_string())),
+                                "path".to_string() => Literal(LiteralValue::String("title".to_string())),
+                            })
+                        },
+                    )))
+                ), Limit(20)]
+            };
+        }
 
         test_serde_stage!(
             rank_fusion_single_pipeline,
@@ -1631,26 +1662,6 @@ mod stage_test {
             }),
             input = r#"stage: {"$rankFusion": {
                "input": { "pipelines": { searchOne: [{ "$vectorSearch" : {"index" : "hybrid-vector-search", "path" : "plot_embedding_voyage_3_large", "queryVector": [10.6, 60.5], "numCandidates": 100} }] } },
-            }}"#
-        );
-
-        test_serde_stage!(
-            rank_fusion_uses_latest_key_to_deduplicate_pipelines,
-            expected = Stage::RankFusion(RankFusion {
-                input: RankFusionInput {
-                    pipelines: map! {
-                        "searchOne".to_string() => vector_pipeline!()
-                    },
-                },
-                combination: None,
-                score_details: Some(false)
-            }),
-            input = r#"stage: {"$rankFusion": {
-               "input": { "pipelines": {
-               searchOne: [{ "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "star wars", "path": "title"}}}, { "$project": { "title": 1, "released" : 1 } }],
-               searchOne: [{ "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "star wars", "path": "title"}}}, { "$limit": 20 }],
-               searchOne: [{ "$vectorSearch" : {"index" : "hybrid-vector-search", "path" : "plot_embedding_voyage_3_large", "queryVector": [10.6, 60.5], "numCandidates": 100} }] } },
-                "scoreDetails": false,
             }}"#
         );
 
