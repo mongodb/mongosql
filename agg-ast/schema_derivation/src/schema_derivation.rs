@@ -439,22 +439,26 @@ impl DeriveSchema for Stage {
             state: &mut ResultSetState,
         ) -> Result<Schema> {
             // 1. Derive the schema for each pipeline and union them together
-            let mut unioned_schema_pipelines: Schema = rank_fusion
-                .input
-                .pipelines
-                .values()
-                .map(|pipeline| {
-                    let derived_schema =
-                        derive_schema_for_pipeline(pipeline.clone(), None, &mut state.clone());
-                    derived_schema.unwrap_or(EMPTY_DOCUMENT.clone())
-                })
-                .fold(Schema::Unsat, |acc, derived_schema| {
-                    acc.union(&derived_schema)
-                });
+            let pipelines = rank_fusion.input.pipelines.values();
+
+            let mut unioned_schema_pipelines = Schema::Unsat;
+
+            for pipeline in pipelines {
+                let derived_pipeline_schema =
+                    derive_schema_for_pipeline(pipeline.clone(), None, &mut state.clone());
+                match derived_pipeline_schema {
+                    Ok(derived_schema) => {
+                        unioned_schema_pipelines = unioned_schema_pipelines.union(&derived_schema);
+                    }
+                    Err(e) => {
+                        return Err(e);
+                    }
+                }
+            }
 
             // 2. If score_details is true, add scoreDetails schema to the overall schema
             if let Some(true) = rank_fusion.score_details {
-                let score_details_schema: Schema = Schema::Document(Document {
+                let score_details_document: Document = Document {
                     keys: map! {
                             "scoreDetails".to_string() => Schema::Document(Document {
                         keys: map! {
@@ -476,17 +480,15 @@ impl DeriveSchema for Stage {
                         ..Default::default()
                     })
                         },
-                    required: map! {},
+                    required: set!("scoreDetails".to_string()),
                     additional_properties: false,
                     jaccard_index: None,
-                });
+                };
 
                 // Merge the pipeline schema and score details schema together
                 if let Schema::Document(ref pipeline_doc) = unioned_schema_pipelines {
-                    if let Schema::Document(score_details_doc) = score_details_schema {
-                        unioned_schema_pipelines =
-                            Schema::Document(pipeline_doc.clone().merge(score_details_doc));
-                    }
+                    unioned_schema_pipelines =
+                        Schema::Document(pipeline_doc.clone().merge(score_details_document));
                 }
             }
 

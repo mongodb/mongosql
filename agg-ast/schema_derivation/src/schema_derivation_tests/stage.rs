@@ -2453,6 +2453,9 @@ mod unset_fields {
 
 mod rank_fusion {
     use super::*;
+    use agg_ast::definitions;
+    use agg_ast::definitions::{GeoNear, GeoNearPoint};
+    use bson::Bson;
     use mongosql::schema::Schema::AnyOf;
 
     test_derive_stage_schema!(
@@ -2583,7 +2586,8 @@ mod rank_fusion {
             required: set!(
                 "title".to_string(),
                 "author".to_string(),
-                "isbn".to_string()
+                "isbn".to_string(),
+                "scoreDetails".to_string()
             ),
             ..Default::default()
         })),
@@ -2773,6 +2777,38 @@ mod rank_fusion {
                       { "$match": { "metacritic": { "$gt": 75.0 }}},
                       { "$sort": { "title": 1}
                     }]
+                  }
+                },
+                "scoreDetails": false
+              }
+            }"#
+    );
+    test_derive_stage_schema!(
+        rank_fusion_errors_when_pipeline_schema_derivation_fails,
+        expected = Err(crate::Error::InvalidStage(Box::new(Stage::GeoNear(
+            Box::new(GeoNear {
+                distance_field: "dist.calculated".to_string(),
+                distance_multiplier: None,
+                include_locs: None,
+                key: None,
+                max_distance: Some(Bson::Int32(2)),
+                min_distance: None,
+                near: GeoNearPoint::GeoJSON(definitions::GeoJSON {
+                    r#type: "Point".to_string(),
+                    coordinates: [Bson::Double(-73.99279), Bson::Double(40.719296)]
+                }),
+                query: None,
+                spherical: None,
+            })
+        )))),
+        input = r#"{ "$rankFusion" : {
+                "input" : {
+                  "pipelines" : {
+                    "searchOne": [{"$geoNear": {
+                      "near": { "type": "Point", "coordinates": [ -73.99279 , 40.719296 ] },
+                      "distanceField": "dist.calculated",
+                      "maxDistance": 2
+                    }}]
                   }
                 },
                 "scoreDetails": false

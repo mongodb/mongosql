@@ -1627,11 +1627,10 @@ mod stage_test {
                     },
                 },
                 combination: None,
-                score_details: Some(false)
+                score_details: None
             }),
             input = r#"stage: {"$rankFusion": {
                "input": { "pipelines": { searchOne: [{ "$vectorSearch" : {"index" : "hybrid-vector-search", "path" : "plot_embedding_voyage_3_large", "queryVector": [10.6, 60.5], "numCandidates": 100} }] } },
-                "scoreDetails": false,
             }}"#
         );
 
