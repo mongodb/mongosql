@@ -2580,6 +2580,11 @@ mod rank_fusion {
                 ..Default::default()
             })
             },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string()
+            ),
             ..Default::default()
         })),
         input = r#"{ 
