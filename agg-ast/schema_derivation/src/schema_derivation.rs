@@ -439,22 +439,17 @@ impl DeriveSchema for Stage {
             state: &mut ResultSetState,
         ) -> Result<Schema> {
             // 1. Derive the schema for each pipeline and union them together
-            let pipelines = rank_fusion.input.pipelines.values();
 
-            let mut unioned_schema_pipelines = Schema::Unsat;
+            let mut unioned_schema_pipelines: Schema = rank_fusion
+                .input
+                .pipelines
+                .iter()
+                .try_fold(Schema::Unsat, |acc, pair| {
+                    let derived_pipeline_schema =
+                        derive_schema_for_pipeline(pair.1.clone(), None, &mut state.clone())?;
 
-            for pipeline in pipelines {
-                let derived_pipeline_schema =
-                    derive_schema_for_pipeline(pipeline.clone(), None, &mut state.clone());
-                match derived_pipeline_schema {
-                    Ok(derived_schema) => {
-                        unioned_schema_pipelines = unioned_schema_pipelines.union(&derived_schema);
-                    }
-                    Err(e) => {
-                        return Err(e);
-                    }
-                }
-            }
+                    Ok(acc.union(&derived_pipeline_schema))
+                })?;
 
             // 2. If score_details is true, add scoreDetails schema to the overall schema
             if let Some(true) = rank_fusion.score_details {
