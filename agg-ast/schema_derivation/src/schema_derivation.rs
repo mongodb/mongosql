@@ -481,16 +481,12 @@ impl DeriveSchema for Stage {
                     jaccard_index: None,
                 });
 
-                // Merge the pipeline schemas with the score details document
-                match unioned_schema_pipelines {
-                    Schema::Document(ref pipeline_doc) => match score_details_schema {
-                        Schema::Document(doc) => {
-                            unioned_schema_pipelines =
-                                Schema::Document(pipeline_doc.clone().merge(doc));
-                        }
-                        _ => {}
-                    },
-                    _ => {}
+                // Merge the pipeline schema and score details schema together
+                if let Schema::Document(ref pipeline_doc) = unioned_schema_pipelines {
+                    if let Schema::Document(score_details_doc) = score_details_schema {
+                        unioned_schema_pipelines =
+                            Schema::Document(pipeline_doc.clone().merge(score_details_doc));
+                    }
                 }
             }
 
