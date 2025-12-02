@@ -2484,43 +2484,43 @@ mod rank_fusion {
             ..Default::default()
         })),
         input = r#"{
-    "$rankFusion": {
-      "input": {
-        "pipelines": {
-          "vectorPipeline": [
-            {
-              "$vectorSearch": {
-                "index": "hybrid-vector-search",
-                "path": "plot_embedding_voyage_3_large",
-                "queryVector": [10.6, 60.5],
-                "numCandidates": 100,
-                "limit": 20
-              }
-            }
-          ],
-          "fullTextPipeline": [
-            {
-              "$search": {
-                "index": "hybrid-full-text-search",
-                "phrase": {
-                  "query": "legend",
-                  "path": "title"
+            "$rankFusion": {
+              "input": {
+                "pipelines": {
+                  "vectorPipeline": [
+                    {
+                      "$vectorSearch": {
+                        "index": "hybrid-vector-search",
+                        "path": "plot_embedding_voyage_3_large",
+                        "queryVector": [10.6, 60.5],
+                        "numCandidates": 100,
+                        "limit": 20
+                      }
+                    }
+                  ],
+                  "fullTextPipeline": [
+                    {
+                      "$search": {
+                        "index": "hybrid-full-text-search",
+                        "phrase": {
+                          "query": "legend",
+                          "path": "title"
+                        }
+                      }
+                    },
+                    { "$limit": 10 }
+                  ]
                 }
-              }
-            },
-            { "$limit": 10 }
-          ]
-        }
-      },
-      "combination": {
-        "weights": {
-          "vectorPipeline": 0.5,
-          "fullTextPipeline": 0.5
-        }
-      },
-      "scoreDetails": false
-    }
-  }"#,
+              },
+              "combination": {
+                "weights": {
+                  "vectorPipeline": 0.5,
+                  "fullTextPipeline": 0.5
+                }
+              },
+              "scoreDetails": false
+            }
+          }"#,
         starting_schema = Schema::Document(Document {
             keys: map! {
                 "title".to_string() => Schema::Atomic(Atomic::String),
@@ -2593,29 +2593,29 @@ mod rank_fusion {
         })),
         input = r#"{ 
         "$rankFusion": {
-      "input": {
-        "pipelines": {
-          "vectorPipeline": [
-            {
-              "$vectorSearch": {
-                "index": "hybrid-vector-search",
-                "path": "plot_embedding_voyage_3_large",
-                "queryVector": [10.6, 60.5],
-                "numCandidates": 100,
-                "limit": 20
-              }
-            }
-          ]
-        }
-      },
-      "combination": {
-        "weights": {
-          "vectorPipeline": 0.5,
-          "fullTextPipeline": 0.5
-        }
-      },
-      "scoreDetails": true
-    }}"#,
+              "input": {
+                "pipelines": {
+                  "vectorPipeline": [
+                    {
+                      "$vectorSearch": {
+                        "index": "hybrid-vector-search",
+                        "path": "plot_embedding_voyage_3_large",
+                        "queryVector": [10.6, 60.5],
+                        "numCandidates": 100,
+                        "limit": 20
+                      }
+                    }
+                  ]
+                }
+              },
+              "combination": {
+                "weights": {
+                  "vectorPipeline": 0.5,
+                  "fullTextPipeline": 0.5
+                }
+              },
+              "scoreDetails": true
+            }}"#,
         starting_schema = Schema::Document(Document {
             keys: map! {
                 "title".to_string() => Schema::Atomic(Atomic::String),
@@ -2660,45 +2660,45 @@ mod rank_fusion {
             ..Default::default()
         })),
         input = r#"{
-    "$rankFusion": {
-      "input": {
-        "pipelines": {
-          "vectorPipeline": [
-            {
-              "$vectorSearch": {
-                "index": "hybrid-vector-search",
-                "path": "plot_embedding_voyage_3_large",
-                "queryVector": [10.6, 60.5],
-                "numCandidates": 100,
-                "limit": 20
-              }
-            },
-            {"$project" : { "title": 1 }}
+            "$rankFusion": {
+              "input": {
+                "pipelines": {
+                  "vectorPipeline": [
+                    {
+                      "$vectorSearch": {
+                        "index": "hybrid-vector-search",
+                        "path": "plot_embedding_voyage_3_large",
+                        "queryVector": [10.6, 60.5],
+                        "numCandidates": 100,
+                        "limit": 20
+                      }
+                    },
+                    {"$project" : { "title": 1 }}
 
-          ],
-          "fullTextPipeline": [
-            {
-              "$search": {
-                "index": "hybrid-full-text-search",
-                "phrase": {
-                  "query": "legend",
-                  "path": "title"
+                  ],
+                  "fullTextPipeline": [
+                    {
+                      "$search": {
+                        "index": "hybrid-full-text-search",
+                        "phrase": {
+                          "query": "legend",
+                          "path": "title"
+                        }
+                      }
+                    },
+                     {"$project" : {"author" : 1}}
+                  ]
                 }
-              }
-            },
-             {"$project" : {"author" : 1}}
-          ]
-        }
-      },
-      "combination": {
-        "weights": {
-          "vectorPipeline": 0.5,
-          "fullTextPipeline": 0.5
-        }
-      },
-      "scoreDetails": false
-    }
-  }"#,
+              },
+              "combination": {
+                "weights": {
+                  "vectorPipeline": 0.5,
+                  "fullTextPipeline": 0.5
+                }
+              },
+              "scoreDetails": false
+            }
+          }"#,
         starting_schema = Schema::Document(Document {
             keys: map! {
                 "title".to_string() => Schema::Atomic(Atomic::String),
@@ -2735,15 +2735,15 @@ mod rank_fusion {
             ..Default::default()
         })),
         input = r#"{
-      "$rankFusion" : {
-        "input" : {
-          "pipelines" : {
-            "searchOne": [{ "$match": { "phoneNumber": { "$type": "int"}}}, {"$sort": { "country": 1}}],
-            "searchTwo": [{ "$match": { "phoneNumber": { "$type": "string"}}}, {"$sort": { "country": 1}}]
-          }
-        }
-      }
-    }"#,
+              "$rankFusion" : {
+                "input" : {
+                  "pipelines" : {
+                    "searchOne": [{ "$match": { "phoneNumber": { "$type": "int"}}}, {"$sort": { "country": 1}}],
+                    "searchTwo": [{ "$match": { "phoneNumber": { "$type": "string"}}}, {"$sort": { "country": 1}}]
+                  }
+                }
+              }
+        }"#,
         starting_schema = Schema::Document(Document {
             keys: map! {
                 "phoneNumber".to_string() => AnyOf(set![AnyOf(set![Schema::Atomic(Atomic::Timestamp), Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Double),Schema::Atomic(Atomic::String)])]),

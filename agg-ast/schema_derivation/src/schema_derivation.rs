@@ -444,9 +444,9 @@ impl DeriveSchema for Stage {
                 .input
                 .pipelines
                 .iter()
-                .try_fold(Schema::Unsat, |acc, pair| {
+                .try_fold(Schema::Unsat, |acc, (_, pipeline)| {
                     let derived_pipeline_schema =
-                        derive_schema_for_pipeline(pair.1.clone(), None, &mut state.clone())?;
+                        derive_schema_for_pipeline(pipeline.clone(), None, &mut state.clone())?;
 
                     Ok(acc.union(&derived_pipeline_schema))
                 })?;
