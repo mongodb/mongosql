@@ -1618,7 +1618,6 @@ mod stage_test {
         };
         use crate::map;
 
-        #[macro_export]
         macro_rules! vector_pipeline {
             () => {
                    vec![Stage::AtlasSearchStage(VectorSearch(Box::new(
@@ -1632,7 +1631,6 @@ mod stage_test {
             };
         }
 
-        #[macro_export]
         macro_rules! text_search_pipeline {
             () => {
                 vec![Stage::AtlasSearchStage(

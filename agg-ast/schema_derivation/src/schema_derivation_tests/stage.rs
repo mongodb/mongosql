@@ -2483,7 +2483,8 @@ mod rank_fusion {
             ),
             ..Default::default()
         })),
-        input = r#"{
+        input = r#"
+        {
             "$rankFusion": {
               "input": {
                 "pipelines": {
@@ -2520,7 +2521,7 @@ mod rank_fusion {
               },
               "scoreDetails": false
             }
-          }"#,
+        }"#,
         starting_schema = Schema::Document(Document {
             keys: map! {
                 "title".to_string() => Schema::Atomic(Atomic::String),
@@ -2591,31 +2592,33 @@ mod rank_fusion {
             ),
             ..Default::default()
         })),
-        input = r#"{ 
-        "$rankFusion": {
-              "input": {
-                "pipelines": {
-                  "vectorPipeline": [
-                    {
-                      "$vectorSearch": {
-                        "index": "hybrid-vector-search",
-                        "path": "plot_embedding_voyage_3_large",
-                        "queryVector": [10.6, 60.5],
-                        "numCandidates": 100,
-                        "limit": 20
-                      }
+        input = r#"
+        {
+            "$rankFusion": {
+                  "input": {
+                    "pipelines": {
+                      "vectorPipeline": [
+                        {
+                          "$vectorSearch": {
+                            "index": "hybrid-vector-search",
+                            "path": "plot_embedding_voyage_3_large",
+                            "queryVector": [10.6, 60.5],
+                            "numCandidates": 100,
+                            "limit": 20
+                          }
+                        }
+                      ]
                     }
-                  ]
+                  },
+                  "combination": {
+                    "weights": {
+                      "vectorPipeline": 0.5,
+                      "fullTextPipeline": 0.5
+                    }
+                  },
+                  "scoreDetails": true
                 }
-              },
-              "combination": {
-                "weights": {
-                  "vectorPipeline": 0.5,
-                  "fullTextPipeline": 0.5
-                }
-              },
-              "scoreDetails": true
-            }}"#,
+        }"#,
         starting_schema = Schema::Document(Document {
             keys: map! {
                 "title".to_string() => Schema::Atomic(Atomic::String),
