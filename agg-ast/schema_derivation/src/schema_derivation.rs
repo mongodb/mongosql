@@ -7,8 +7,9 @@ use crate::{
 use agg_ast::definitions::{
     AtlasSearchStage, Bucket, BucketAuto, ConciseSubqueryLookup, Densify, Documents,
     EqualityLookup, Expression, Fill, FillOutput, GraphLookup, Group, LiteralValue, Lookup,
-    LookupFrom, Namespace, ProjectItem, ProjectStage, Ref, SetWindowFields, Stage, SubqueryLookup,
-    TaggedOperator, UnionWith, Unset, UntaggedOperator, UntaggedOperatorName, Unwind,
+    LookupFrom, Namespace, ProjectItem, ProjectStage, RankFusion, Ref, SetWindowFields, Stage,
+    SubqueryLookup, TaggedOperator, UnionWith, Unset, UntaggedOperator, UntaggedOperatorName,
+    Unwind,
 };
 use linked_hash_map::LinkedHashMap;
 use mongosql::{
@@ -431,6 +432,61 @@ impl DeriveSchema for Stage {
                     "count".to_string() => Schema::AnyOf(set!(Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long)))
                 })
             }
+        }
+
+        fn rank_fusion_derive_schema(
+            rank_fusion: &RankFusion,
+            state: &mut ResultSetState,
+        ) -> Result<Schema> {
+            // Derive the schema for each pipeline and union them together
+            let mut unioned_schema_pipelines: Schema = rank_fusion
+                .input
+                .pipelines
+                .iter()
+                .try_fold(Schema::Unsat, |acc, (_, pipeline)| {
+                    let derived_pipeline_schema =
+                        derive_schema_for_pipeline(pipeline.clone(), None, &mut state.clone())?;
+
+                    Ok(acc.union(&derived_pipeline_schema))
+                })?;
+
+            // 2. If score_details is true, add scoreDetails schema to the overall schema
+            if let Some(true) = rank_fusion.score_details {
+                let score_details_document: Document = Document {
+                    keys: map! {
+                            "scoreDetails".to_string() => Schema::Document(Document {
+                        keys: map! {
+                                "value".to_string() => Schema::Atomic(Atomic::Decimal),
+                                "description".to_string() => Schema::Atomic(Atomic::String),
+                                "details".to_string() => Schema::Array(Box::new(Schema::Document(Document {
+                            keys: map! {
+                                "inputPipelineName".to_string() => Schema::Atomic(Atomic::String),
+                                "rank".to_string() => Schema::Atomic(Atomic::Integer),
+                                "weight".to_string() => Schema::Atomic(Atomic::Integer),
+                                "value".to_string() => Schema::Atomic(Atomic::Decimal),
+                                "details".to_string() => Schema::Array(Box::new(Schema::Any)),
+                            },
+                            required: set!("inputPipelineName".to_string(), "rank".to_string(),),
+                            ..Default::default()
+                        })))
+                            },
+                        required: set!("value".to_string(), "description".to_string(),),
+                        ..Default::default()
+                    })
+                        },
+                    required: set!("scoreDetails".to_string()),
+                    additional_properties: false,
+                    jaccard_index: None,
+                };
+
+                // Merge the pipeline schema and score details schema together
+                if let Schema::Document(ref pipeline_doc) = unioned_schema_pipelines {
+                    unioned_schema_pipelines =
+                        Schema::Document(pipeline_doc.clone().merge(score_details_document));
+                }
+            }
+
+            Ok(unioned_schema_pipelines)
         }
 
         /// bucket_derive_schema derives the schema for a $bucket stage. The schema is defined by the output field,
@@ -1128,6 +1184,7 @@ impl DeriveSchema for Stage {
             Stage::Lookup(l) => lookup_derive_schema(l, state),
             Stage::Match(ref m) => m.derive_schema(state),
             Stage::Project(p) => project_derive_schema(p, state),
+            Stage::RankFusion(rf) => rank_fusion_derive_schema(rf, state),
             Stage::Redact(_) => Ok(state.result_set_schema.to_owned()),
             Stage::ReplaceWith(r) => r
                 .to_owned()

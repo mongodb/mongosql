@@ -1605,6 +1605,167 @@ mod stage_test {
             }}"#
         );
     }
+    mod rank_fusion {
+
+        use crate::definitions::Stage::{AtlasSearchStage, Match, Sort};
+        use crate::definitions::{
+            AtlasSearchStage::{Search, VectorSearch},
+            Expression,
+            Expression::Literal,
+            LiteralValue, MatchBinaryOp, MatchExpression, MatchField, MatchStage, RankFusion,
+            RankFusionCombination, RankFusionInput, Ref, Stage,
+            Stage::Limit,
+        };
+        use crate::map;
+
+        macro_rules! vector_pipeline {
+            () => {
+                   vec![Stage::AtlasSearchStage(VectorSearch(Box::new(
+                        Expression::Document(map! {
+                            "index".to_string() => Literal(LiteralValue::String("hybrid-vector-search".to_string())),
+                            "path".to_string() => Literal(LiteralValue::String("plot_embedding_voyage_3_large".to_string())),
+                            "queryVector".to_string() => Expression::Array(vec![Literal(LiteralValue::Double(10.6)), Expression::Literal(LiteralValue::Double(60.5))]),
+                            "numCandidates".to_string() => Literal(LiteralValue::Int32(100)),
+                        }),
+                    )))]
+            };
+        }
+
+        macro_rules! text_search_pipeline {
+            () => {
+                vec![Stage::AtlasSearchStage(
+                    Search(Box::new(Expression::Document(
+                        map! {
+                            "index".to_string() => Literal(LiteralValue::String("hybrid-full-text-search".to_string())),
+                            "phrase".to_string() => Expression::Document(map! {
+                                "query".to_string() => Literal(LiteralValue::String("star wars".to_string())),
+                                "path".to_string() => Literal(LiteralValue::String("title".to_string())),
+                            })
+                        },
+                    )))
+                ), Limit(20)]
+            };
+        }
+
+        test_serde_stage!(
+            rank_fusion_single_pipeline,
+            expected = Stage::RankFusion(RankFusion {
+                input: RankFusionInput {
+                    pipelines: map! {
+                        "searchOne".to_string() => vector_pipeline!()
+                    },
+                },
+                combination: None,
+                score_details: None
+            }),
+            input = r#"stage: {"$rankFusion": {
+               "input": { "pipelines": { searchOne: [{ "$vectorSearch" : {"index" : "hybrid-vector-search", "path" : "plot_embedding_voyage_3_large", "queryVector": [10.6, 60.5], "numCandidates": 100} }] } },
+            }}"#
+        );
+
+        test_serde_stage!(
+            rank_fusion_multiple_pipelines_with_weights,
+            expected = Stage::RankFusion(RankFusion {
+                input: RankFusionInput {
+                    pipelines: map! {
+                        "vectorPipeline".to_string() => vector_pipeline!(),
+                        "fullTextPipeline".to_string() => text_search_pipeline!(),
+                    },
+                },
+                combination: Some(RankFusionCombination {
+                    weights: map! {
+                        "vectorPipeline".to_string() => 0.5,
+                        "fullTextPipeline".to_string() => 0.5
+                    }
+                }),
+                score_details: Some(true)
+            }),
+            input = r#"stage:  {
+                "$rankFusion": {
+                  "input": {
+                    pipelines: {
+                      vectorPipeline: [
+                        {
+                          "$vectorSearch": {
+                            "index": "hybrid-vector-search",
+                            "path": "plot_embedding_voyage_3_large",
+                            "queryVector": [10.6, 60.5],
+                            "numCandidates": 100,
+                          }
+                        }
+                      ],
+                      fullTextPipeline: [
+                        {
+                          "$search": {
+                            "index": "hybrid-full-text-search",
+                            "phrase": {
+                              "query": "star wars",
+                              "path": "title"
+                            }
+                          }
+                        },
+                        { "$limit": 20 }
+                      ]
+                    }
+                  },
+                  "combination": {
+                    weights: {
+                      vectorPipeline: 0.5,
+                      fullTextPipeline: 0.5
+                    }
+                  },
+                  "scoreDetails": true
+                }
+              }"#
+        );
+
+        test_serde_stage!(
+            pipelines_are_deduplicated,
+            expected = Stage::RankFusion(RankFusion {
+                input: RankFusionInput {
+                    pipelines: map! {
+                            "searchOne".to_string() => vec![AtlasSearchStage(Search(Box::new(
+                        Expression::Document(map! {
+                            "index".to_string() => Literal(LiteralValue::String("hybrid-full-text-search".to_string())),
+                            "phrase".to_string() => Expression::Document(map! {
+                                    "query".to_string() => Literal(LiteralValue::String("adventure".to_string())),
+                                    "path".to_string() => Literal(LiteralValue::String("plot".to_string()))
+                                }),
+
+                        }),
+                    ))),
+                    Match(MatchStage {
+                        expr: vec![MatchExpression::Field(MatchField {
+                            field: Ref::FieldRef("metacritic".to_string()),
+                            ops: map! { MatchBinaryOp::Gt =>  bson::Bson::Int32(75) }
+                        })]
+                    }) ,
+                    Sort(map! {"title".to_string() => 1})]
+                    },
+                },
+                combination: None,
+                score_details: Some(false)
+            }),
+            input = r#"stage: { "$rankFusion" : {
+                "input" : {
+                  "pipelines" : {
+                    searchOne: [
+                      { "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "adventure", "path": "plot"}}},
+                      { "$match": { "genres": "Western", "year": { "$lt": 1980 }}},
+                      { "$sort": { "runtime": 1}
+                    }],
+                    searchOne: [
+                      { "$search": { "index": "hybrid-full-text-search", "phrase": { "query": "adventure","path": "plot"}}},
+                      { "$match": { "metacritic": { "$gt": 75 }}},
+                      { "$sort": { "title": 1}
+                    }]
+                  }
+                },
+                "scoreDetails": false
+              }
+            }"#
+        );
+    }
 
     mod densify {
         use crate::definitions::{Densify, DensifyRange, DensifyRangeBounds, Stage};

@@ -2450,3 +2450,343 @@ mod unset_fields {
         })
     );
 }
+
+mod rank_fusion {
+    use super::*;
+    use agg_ast::definitions;
+    use agg_ast::definitions::{GeoNear, GeoNearPoint};
+    use bson::Bson;
+    use mongosql::schema::Schema::AnyOf;
+
+    test_derive_stage_schema!(
+        two_search_pipelines_no_score_details,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "first".to_string() => Schema::Atomic(Atomic::String),
+                            "last".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("first".to_string(), "last".to_string()),
+                        ..Default::default()
+                    }),
+                    Schema::Atomic(Atomic::String),
+                )),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })),
+        input = r#"
+        {
+            "$rankFusion": {
+              "input": {
+                "pipelines": {
+                  "vectorPipeline": [
+                    {
+                      "$vectorSearch": {
+                        "index": "hybrid-vector-search",
+                        "path": "plot_embedding_voyage_3_large",
+                        "queryVector": [10.6, 60.5],
+                        "numCandidates": 100,
+                        "limit": 20
+                      }
+                    }
+                  ],
+                  "fullTextPipeline": [
+                    {
+                      "$search": {
+                        "index": "hybrid-full-text-search",
+                        "phrase": {
+                          "query": "legend",
+                          "path": "title"
+                        }
+                      }
+                    },
+                    { "$limit": 10 }
+                  ]
+                }
+              },
+              "combination": {
+                "weights": {
+                  "vectorPipeline": 0.5,
+                  "fullTextPipeline": 0.5
+                }
+              },
+              "scoreDetails": false
+            }
+        }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "first".to_string() => Schema::Atomic(Atomic::String),
+                            "last".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("first".to_string(), "last".to_string()),
+                        ..Default::default()
+                    }),
+                    Schema::Atomic(Atomic::String),
+                )),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        pipeline_with_score_details,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "first".to_string() => Schema::Atomic(Atomic::String),
+                            "last".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("first".to_string(), "last".to_string()),
+                        ..Default::default()
+                    }),
+                    Schema::Atomic(Atomic::String),
+                )),
+                "scoreDetails".to_string() => Schema::Document(Document {
+                keys: map! {
+                        "value".to_string() => Schema::Atomic(Atomic::Decimal),
+                        "description".to_string() => Schema::Atomic(Atomic::String),
+                        "details".to_string() => Schema::Array(Box::new(Schema::Document(Document {
+                    keys: map! {
+                        "inputPipelineName".to_string() => Schema::Atomic(Atomic::String),
+                        "rank".to_string() => Schema::Atomic(Atomic::Integer),
+                        "weight".to_string() => Schema::Atomic(Atomic::Integer),
+                        "value".to_string() => Schema::Atomic(Atomic::Decimal),
+                        "details".to_string() => Schema::Array(Box::new(Schema::Any)),
+                    },
+                    required: set!("inputPipelineName".to_string(), "rank".to_string(),),
+                    ..Default::default()
+                })))
+                    },
+                required: set!("value".to_string(), "description".to_string(),),
+                ..Default::default()
+            })
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+                "scoreDetails".to_string()
+            ),
+            ..Default::default()
+        })),
+        input = r#"
+        {
+            "$rankFusion": {
+                  "input": {
+                    "pipelines": {
+                      "vectorPipeline": [
+                        {
+                          "$vectorSearch": {
+                            "index": "hybrid-vector-search",
+                            "path": "plot_embedding_voyage_3_large",
+                            "queryVector": [10.6, 60.5],
+                            "numCandidates": 100,
+                            "limit": 20
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "combination": {
+                    "weights": {
+                      "vectorPipeline": 0.5,
+                      "fullTextPipeline": 0.5
+                    }
+                  },
+                  "scoreDetails": true
+                }
+        }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "first".to_string() => Schema::Atomic(Atomic::String),
+                            "last".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("first".to_string(), "last".to_string()),
+                        ..Default::default()
+                    }),
+                    Schema::Atomic(Atomic::String),
+                )),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })
+    );
+    test_derive_stage_schema!(
+        sub_pipelines_with_different_output_schemas,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "first".to_string() => Schema::Atomic(Atomic::String),
+                            "last".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("first".to_string(), "last".to_string()),
+                        ..Default::default()
+                    }),
+                    Schema::Atomic(Atomic::String),
+                )),
+            },
+            ..Default::default()
+        })),
+        input = r#"{
+            "$rankFusion": {
+              "input": {
+                "pipelines": {
+                  "vectorPipeline": [
+                    {
+                      "$vectorSearch": {
+                        "index": "hybrid-vector-search",
+                        "path": "plot_embedding_voyage_3_large",
+                        "queryVector": [10.6, 60.5],
+                        "numCandidates": 100,
+                        "limit": 20
+                      }
+                    },
+                    {"$project" : { "title": 1 }}
+
+                  ],
+                  "fullTextPipeline": [
+                    {
+                      "$search": {
+                        "index": "hybrid-full-text-search",
+                        "phrase": {
+                          "query": "legend",
+                          "path": "title"
+                        }
+                      }
+                    },
+                     {"$project" : {"author" : 1}}
+                  ]
+                }
+              },
+              "combination": {
+                "weights": {
+                  "vectorPipeline": 0.5,
+                  "fullTextPipeline": 0.5
+                }
+              },
+              "scoreDetails": false
+            }
+          }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "title".to_string() => Schema::Atomic(Atomic::String),
+                "isbn".to_string() => Schema::Atomic(Atomic::String),
+                "author".to_string() => Schema::AnyOf(set!(
+                    Schema::Document(Document {
+                        keys: map! {
+                            "first".to_string() => Schema::Atomic(Atomic::String),
+                            "last".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set!("first".to_string(), "last".to_string()),
+                        ..Default::default()
+                    }),
+                    Schema::Atomic(Atomic::String),
+                )),
+            },
+            required: set!(
+                "title".to_string(),
+                "author".to_string(),
+                "isbn".to_string(),
+            ),
+            ..Default::default()
+        })
+    );
+
+    test_derive_stage_schema!(
+        rank_fusion_narrows_anyof_types,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "phoneNumber".to_string() => AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)]),
+            },
+            required: set!["phoneNumber".to_string()],
+            additional_properties: false,
+            ..Default::default()
+        })),
+        input = r#"{
+              "$rankFusion" : {
+                "input" : {
+                  "pipelines" : {
+                    "searchOne": [{ "$match": { "phoneNumber": { "$type": "int"}}}, {"$sort": { "country": 1}}],
+                    "searchTwo": [{ "$match": { "phoneNumber": { "$type": "string"}}}, {"$sort": { "country": 1}}]
+                  }
+                }
+              }
+        }"#,
+        starting_schema = Schema::Document(Document {
+            keys: map! {
+                "phoneNumber".to_string() => AnyOf(set![AnyOf(set![Schema::Atomic(Atomic::Timestamp), Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Double),Schema::Atomic(Atomic::String)])]),
+            },
+            required: set!["phoneNumber".to_string()],
+            additional_properties: false,
+            jaccard_index: None,
+        })
+    );
+
+    test_derive_stage_schema!(
+        rank_fusion_errors_when_pipeline_schema_derivation_fails,
+        expected = Err(crate::Error::InvalidStage(Box::new(Stage::GeoNear(
+            Box::new(GeoNear {
+                distance_field: "dist.calculated".to_string(),
+                distance_multiplier: None,
+                include_locs: None,
+                key: None,
+                max_distance: Some(Bson::Int32(2)),
+                min_distance: None,
+                near: GeoNearPoint::GeoJSON(definitions::GeoJSON {
+                    r#type: "Point".to_string(),
+                    coordinates: [Bson::Double(-73.99279), Bson::Double(40.719296)]
+                }),
+                query: None,
+                spherical: None,
+            })
+        )))),
+        input = r#"{ "$rankFusion" : {
+                "input" : {
+                  "pipelines" : {
+                    "searchOne": [{"$geoNear": {
+                      "near": { "type": "Point", "coordinates": [ -73.99279 , 40.719296 ] },
+                      "distanceField": "dist.calculated",
+                      "maxDistance": 2
+                    }}]
+                  }
+                },
+                "scoreDetails": false
+              }
+            }"#
+    );
+}
