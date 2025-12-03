@@ -438,8 +438,7 @@ impl DeriveSchema for Stage {
             rank_fusion: &RankFusion,
             state: &mut ResultSetState,
         ) -> Result<Schema> {
-            // 1. Derive the schema for each pipeline and union them together
-
+            // Derive the schema for each pipeline and union them together
             let mut unioned_schema_pipelines: Schema = rank_fusion
                 .input
                 .pipelines
