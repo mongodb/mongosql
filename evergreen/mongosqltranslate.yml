@@ -1,15 +1,26 @@
+variables:
+  - &assume_role_cmd
+    command: ec2.assume_role
+    params:
+      role_arn: ${assume_role_arn}
+      duration_seconds: 3600
+  - &evg_bucket_config
+    aws_key: ${AWS_ACCESS_KEY_ID}
+    aws_secret: ${AWS_SECRET_ACCESS_KEY}
+    aws_session_token: ${AWS_SESSION_TOKEN}
+    bucket: mciuploads
+
 functions:
   "mciuploads mongosqltranslate":
     #macos
+    - *assume_role_cmd
     - command: s3.put
       params:
         build_variants:
           ["mongosqltranslate-macos", "mongosqltranslate-macos-arm"]
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        << : *evg_bucket_config
         local_file: mongosql-rs/target/release/libmongosqltranslate.dylib
         remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/libmongosqltranslate.dylib
-        bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
     #linux
@@ -17,35 +28,30 @@ functions:
       params:
         build_variants:
           ["mongosqltranslate-linux-arm64", "mongosqltranslate-linux-x86_64"]
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        << : *evg_bucket_config
         local_file: mongosql-rs/target/release/libmongosqltranslate.so
         remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/libmongosqltranslate.so
-        bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
     #windows
     - command: s3.put
       params:
         build_variants: ["mongosqltranslate-windows-64"]
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        << : *evg_bucket_config
         # MSVC builds filenames without the 'lib' prefix
         local_file: mongosql-rs/target/release/mongosqltranslate.dll
         remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongosqltranslate.dll
-        bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
 
   "upload mongosqltranslate release":
+    - *assume_role_cmd
     # macos x86_64
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        << : *evg_bucket_config
         remote_file: mongosql-rs/artifacts/${version_id}/mongosqltranslate-macos/libmongosqltranslate-signed.dylib
         local_file: mongosql-rs/release/mongosqltranslate-macos/libmongosqltranslate-signed.dylib
-        bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
@@ -59,11 +65,9 @@ functions:
     # macos arm64
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        << : *evg_bucket_config
         remote_file: mongosql-rs/artifacts/${version_id}/mongosqltranslate-macos-arm/libmongosqltranslate-signed.dylib
         local_file: mongosql-rs/release/mongosqltranslate-macos-arm/libmongosqltranslate-signed.dylib
-        bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
@@ -77,11 +81,9 @@ functions:
     # rhel x86_64
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        << : *evg_bucket_config
         remote_file: mongosql-rs/artifacts/${version_id}/mongosqltranslate-linux-x86_64/libmongosqltranslate.so
         local_file: mongosql-rs/release/mongosqltranslate-linux-x86_64/libmongosqltranslate.so
-        bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
@@ -95,11 +97,9 @@ functions:
     # rhel x86_64 signature file
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        << : *evg_bucket_config
         remote_file: mongosql-rs/artifacts/${version_id}/mongosqltranslate-linux-x86_64/libmongosqltranslate.so.sig
         local_file: mongosql-rs/release/mongosqltranslate-linux-x86_64/libmongosqltranslate.so.sig
-        bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
@@ -113,11 +113,9 @@ functions:
     # amazon2 arm64
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        << : *evg_bucket_config
         remote_file: mongosql-rs/artifacts/${version_id}/mongosqltranslate-linux-arm64/libmongosqltranslate.so
         local_file: mongosql-rs/release/mongosqltranslate-linux-arm64/libmongosqltranslate.so
-        bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
@@ -131,11 +129,9 @@ functions:
     # amazon2 arm64 signature file
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        << : *evg_bucket_config
         remote_file: mongosql-rs/artifacts/${version_id}/mongosqltranslate-linux-arm64/libmongosqltranslate.so.sig
         local_file: mongosql-rs/release/mongosqltranslate-linux-arm64/libmongosqltranslate.so.sig
-        bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
@@ -149,11 +145,9 @@ functions:
     # windows
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        << : *evg_bucket_config
         remote_file: mongosql-rs/artifacts/${version_id}/mongosqltranslate-windows-64/mongosqltranslate-signed.dll
         local_file: mongosql-rs/release/mongosqltranslate-windows-64/mongosqltranslate-signed.dll
-        bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
@@ -176,13 +170,12 @@ functions:
           cargo test --package mongosqltranslate
 
   "sign mongosqltranslate windows":
+    - *assume_role_cmd
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        << : *evg_bucket_config
         remote_file: mongosql-rs/artifacts/${version_id}/mongosqltranslate-windows-64/mongosqltranslate.dll
         local_file: mongosql-rs/mongosqltranslate.dll
-        bucket: mciuploads
     - command: shell.exec
       type: system
       retry_on_failure: true
@@ -208,11 +201,9 @@ functions:
             /bin/bash -c "jsign -a ${authenticode_key_name} --replace --tsaurl http://timestamp.digicert.com -d SHA-256 mongosqltranslate.dll"
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        << : *evg_bucket_config
         local_file: mongosql-rs/mongosqltranslate.dll
         remote_file: mongosql-rs/artifacts/${version_id}/mongosqltranslate-windows-64/mongosqltranslate-signed.dll
-        bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
         # For some reason, the file `mongosqltranslate-signed.dll` is shown in evergreen as `mongosqltranslate.dll`
@@ -220,15 +211,14 @@ functions:
         display_name: mongosqltranslate-signed.dll
 
   "sign mongosqltranslate linux":
+    - *assume_role_cmd
     - command: s3.get
       params:
         build_variants:
           ["mongosqltranslate-linux-arm64", "mongosqltranslate-linux-x86_64"]
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/libmongosqltranslate.so
         local_file: mongosql-rs/libmongosqltranslate.so
-        bucket: mciuploads
     - command: shell.exec
       type: system
       retry_on_failure: true
@@ -272,22 +262,19 @@ functions:
       params:
         build_variants:
           ["mongosqltranslate-linux-arm64", "mongosqltranslate-linux-x86_64"]
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         local_file: mongosql-rs/libmongosqltranslate.so.sig
         remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/libmongosqltranslate.so.sig
-        bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
 
   "sign mongosqltranslate macos":
+    - *assume_role_cmd
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/libmongosqltranslate.dylib
         local_file: mongosql-rs/libmongosqltranslate.dylib
-        bucket: mciuploads
     - command: subprocess.exec
       params:
         binary: bash
@@ -301,11 +288,9 @@ functions:
       params:
         build_variants:
           ["mongosqltranslate-macos", "mongosqltranslate-macos-arm"]
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         local_file: mongosql-rs/libmongosqltranslate.dylib
         remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/libmongosqltranslate-signed.dylib
-        bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
         display_name: libmongosqltranslate-signed.dylib
