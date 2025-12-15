@@ -1,3 +1,15 @@
+variables:
+  - &assume_role_cmd
+    command: ec2.assume_role
+    params:
+      role_arn: ${assume_role_arn}
+      duration_seconds: 3600
+  - &evg_bucket_config
+    aws_key: ${AWS_ACCESS_KEY_ID}
+    aws_secret: ${AWS_SECRET_ACCESS_KEY}
+    aws_session_token: ${AWS_SESSION_TOKEN}
+    bucket: mciuploads
+
 tasks:
   - name: test-grpc-service-integration
     commands:
@@ -49,13 +61,12 @@ tasks:
             ${prepare_shell}
             docker build -f service/Dockerfile -t sql-translator-service:${release_version} .
             docker save sql-translator-service:${release_version} | gzip > sql_translator_service.tar.gz
+      - *assume_role_cmd
       - command: s3.put
         params:
-          aws_key: ${aws_key}
-          aws_secret: ${aws_secret}
+          <<: *evg_bucket_config
           local_file: mongosql-rs/sql_translator_service.tar.gz
           remote_file: mongosql-rs/${version_id}/${build_variant}/sql_translator_service.tar.gz
-          bucket: mciuploads
           permissions: public-read
           content_type: application/gzip
 

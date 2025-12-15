@@ -44,6 +44,17 @@ include:
   - filename: evergreen/configs/mongodb_util.yml
     module: sql-engines-common-test-infra
 
+variables:
+  - &assume_role_cmd
+    command: ec2.assume_role
+    params:
+      role_arn: ${assume_role_arn}
+      duration_seconds: 3600
+  - &evg_bucket_config
+    aws_key: ${AWS_ACCESS_KEY_ID}
+    aws_secret: ${AWS_SECRET_ACCESS_KEY}
+    aws_session_token: ${AWS_SESSION_TOKEN}
+    bucket: mciuploads
 pre:
   - func: "fetch source"
   - func: "create expansions"
@@ -155,32 +166,28 @@ functions:
           cargo build --release
 
   "download c library":
+    - *assume_role_cmd
     - command: s3.get
       params:
         build_variants:
           ["macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64"]
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         remote_file: mongosql-rs/artifacts/test/${version_id}/${build_variant}/libmongosql.a
         local_file: mongosql-rs/libmongosql.a
-        bucket: mciuploads
     - command: s3.get
       params:
         build_variants: ["windows"]
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         remote_file: mongosql-rs/artifacts/test/${version_id}/${build_variant}/mongosql.dll
         local_file: mongosql-rs/go/mongosql/mongosql.dll
-        bucket: mciuploads
 
   "perform release":
+    - *assume_role_cmd
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         remote_file: mongosql-rs/artifacts/${version_id}/macos/libmongosql.a
         local_file: mongosql-rs/release/macos/libmongosql.a
-        bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
@@ -192,15 +199,12 @@ functions:
         content_type: application/octet-stream
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         remote_file: mongosql-rs/artifacts/${version_id}/macos-arm64/libmongosql.a
         local_file: mongosql-rs/release/macos-arm64/libmongosql.a
-        bucket: mciuploads
     - command: s3.put
       params:
-        aws_key: ${release_aws_key}
-        aws_secret: ${release_aws_secret}
+        <<: *evg_bucket_config
         local_file: mongosql-rs/release/macos-arm64/libmongosql.a
         remote_file: mongosql-rs/macos-arm64/${release_version}/libmongosql.a
         bucket: translators-connectors-releases
@@ -208,11 +212,9 @@ functions:
         content_type: application/octet-stream
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         remote_file: mongosql-rs/artifacts/${version_id}/rhel76/libmongosql.a
         local_file: mongosql-rs/release/rhel76/libmongosql.a
-        bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
@@ -224,11 +226,9 @@ functions:
         content_type: application/octet-stream
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         remote_file: mongosql-rs/artifacts/${version_id}/ubuntu1804/libmongosql.a
         local_file: mongosql-rs/release/ubuntu1804/libmongosql.a
-        bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
@@ -240,11 +240,9 @@ functions:
         content_type: application/octet-stream
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         remote_file: mongosql-rs/artifacts/${version_id}/amazon2-arm64/libmongosql.a
         local_file: mongosql-rs/release/amazon2-arm64/libmongosql.a
-        bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
@@ -256,11 +254,9 @@ functions:
         content_type: application/octet-stream
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         remote_file: mongosql-rs/artifacts/${version_id}/windows/mongosql.dll
         local_file: mongosql-rs/release/windows/mongosql.dll
-        bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
@@ -313,80 +309,69 @@ functions:
           cargo run --bin pipeline_generator
 
   "upload mongosql cli":
+    - *assume_role_cmd
     - command: s3.put
       params:
         build_variants:
           ["macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64"]
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         local_file: mongosql-rs/target/release/mongosql-cli
         remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongosql-cli
-        bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
     - command: s3.put
       params:
         build_variants: ["windows"]
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         local_file: mongosql-rs/target/release/mongosql-cli.exe
         remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongosql-cli.exe
-        bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
 
   "upload c library":
+    - *assume_role_cmd
     - command: s3.put
       params:
         build_variants:
           ["macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64"]
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         local_file: mongosql-rs/target/release/libmongosql.a
         remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/libmongosql.a
-        bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
     - command: s3.put
       params:
         build_variants: ["windows"]
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         local_file: mongosql-rs/target/release/mongosql.dll
         remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongosql.dll
-        bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
     - command: s3.put
       params:
         build_variants:
           ["macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64"]
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         local_file: mongosql-rs/test_target/release/libmongosql.a
         remote_file: mongosql-rs/artifacts/test/${version_id}/${build_variant}/libmongosql.a
-        bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
     - command: s3.put
       params:
         build_variants: ["windows"]
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         local_file: mongosql-rs/test_target/release/mongosql.dll
         remote_file: mongosql-rs/artifacts/test/${version_id}/${build_variant}/mongosql.dll
-        bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
 
   "upload criterion artifacts":
+    - *assume_role_cmd
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         local_file: mongosql-rs/target/criterion/translate_simple/profile/flamegraph.svg
         remote_file: mongosql-rs/artifacts/test/${version_id}/${build_variant}/criterion/flamegraph_translate_simple.svg
-        bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
 
@@ -431,14 +416,13 @@ functions:
           fi
           echo "Response Body: $response_body"
           echo "HTTP Status: $http_status"
+    - *assume_role_cmd
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         local_file: mongosql-rs/tpch.metrics.tgz
         remote_file: mongosql-rs/artifacts/${version_id}/${pipeline_dir}/${s3_prefix}.tpch.metrics.tgz
         display_name: ${s3_prefix}.tpch.metrics.tgz
-        bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
 
@@ -505,22 +489,19 @@ functions:
           # - heaptrack.profiler.gz: compressed file of full heaptrack profiling results
           benchmark/scripts/run_mem_profiler.sh "target/release/profiler" ${test_file}
           cat memory-usage-results.log
+    - *assume_role_cmd
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         local_file: mongosql-rs/memory-usage-results.log
         remote_file: mongosql-rs/${version_id}/${build_variant}/${test_file_basename}/memory-usage-results.log
-        bucket: mciuploads
         permissions: public-read
         content_type: text/plain
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         local_file: mongosql-rs/heaptrack.profiler.gz
         remote_file: mongosql-rs/${version_id}/${build_variant}/${test_file_basename}/heaptrack.profiler.gz
-        bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
     - command: shell.exec
@@ -665,15 +646,14 @@ functions:
           done
           echo "-----------------------------"
           echo "<<<< Done generating SBOM"
+    - *assume_role_cmd
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         local_files_include_filter:
           - mongosql-rs/*.cdx.json
         remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/${project_folder}/
         content_type: text/plain
-        bucket: mciuploads
         permissions: public-read
 
   "scan SBOM":
@@ -743,24 +723,22 @@ functions:
           artifactory.corp.mongodb.com/release-tools-container-registry-public-local/silkbomb:2.0 \
           augment --repo mongodb/mongosql --branch ${branch_name} --sbom-in /pwd/$SBOM_FINAL --sbom-out /pwd/${project_folder}.augmented.sbom.json --force
           echo "-------------------------------"
+    - *assume_role_cmd
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         local_file: mongosql-rs/${project_folder}.augmented.sbom.json
         remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/${project_folder}/${project_folder}.augmented.sbom.json
         content_type: application/json
-        bucket: mciuploads
         permissions: public-read
 
   "publish augmented SBOM":
+    - *assume_role_cmd
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         local_file: mongosql-rs/${project_folder}.augmented.sbom.json
         remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/${project_folder}/${project_folder}.augmented.sbom.json
-        bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
@@ -808,36 +786,32 @@ functions:
           exit $SCAN_RESULT
 
   "upload static analysis information":
+    - *assume_role_cmd
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         optional: true
         local_file: mongosql-rs/mongosql.sast.sarif
         remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/mongosql.sast.sarif
         content_type: text/json
-        bucket: mciuploads
         permissions: public-read
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         optional: true
         local_file: mongosql-rs/mongosql.sast.cmd.verbose.out
         remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/mongosql.sast.cmd.verbose.out
         content_type: text/plain; charset=utf-8
-        bucket: mciuploads
         permissions: public-read
 
   "publish static code analysis":
+    - *assume_role_cmd
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         local_file: mongosql-rs/mongosql.sast.sarif
         remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/mongosql.sast.sarif
         content_type: application/json
-        bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
@@ -886,25 +860,23 @@ functions:
           sed -i.bu "s,%RELEASE_DATE%,$release_date,g" ${project_folder}/$COMPLIANCE_REPORT_NAME
           # Set the product name
           sed -i.bu "s,%PRODUCT_NAME%,$PRODUCT_NAME,g" ${project_folder}/$COMPLIANCE_REPORT_NAME
+    - *assume_role_cmd
     - command: s3.put
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         local_file: mongosql-rs/${project_folder}/${COMPLIANCE_REPORT_NAME}
         remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/${project_folder}/${COMPLIANCE_REPORT_NAME}
         content_type: text/markdown
-        bucket: mciuploads
         permissions: public-read
 
   "publish compliance report":
+    - *assume_role_cmd
     - command: s3.get
       params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
+        <<: *evg_bucket_config
         local_file: mongosql-rs/${project_folder}/${COMPLIANCE_REPORT_NAME}
         remote_file: mongosql-rs/artifacts/${version_id}/ssdlc/${project_folder}/${COMPLIANCE_REPORT_NAME}
         content_type: text/markdown
-        bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
