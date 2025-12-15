@@ -39,6 +39,8 @@ include:
   # - filename: evergreen/grpc.yml
   - filename: evergreen/mongosqltranslate.yml
   - filename: evergreen/suite-tasks.yml
+  - filename: evergreen/configs/benchmark_util.yml
+    module: sql-engines-common-test-infra
   - filename: evergreen/configs/rust_util.yml
     module: sql-engines-common-test-infra
   - filename: evergreen/configs/mongodb_util.yml
@@ -437,24 +439,6 @@ functions:
           ${prepare_shell}
           benchmark/scripts/run_tpch.sh ${pipeline_dir} ${workload_filename} ${dataset_filename}
 
-  "install heaptrack":
-    - command: shell.exec
-      type: test
-      params:
-        shell: bash
-        working_dir: mongosql-rs
-        script: |
-          ${prepare_shell}
-          curl -LO https://mongosql-noexpire.s3.us-east-2.amazonaws.com/mem_usage/heaptrack_build.tar.gz
-          tar -xzvf heaptrack_build.tar.gz
-          cat <<EOT >> expansions.yml
-            export PATH="$PATH:$PWD/heaptrack/bin"
-            export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PWD/heaptrack/lib"
-          EOT
-    - command: expansions.update
-      params:
-        file: mongosql-rs/expansions.yml
-
   "generate memory usage tasks":
     - command: shell.exec
       type: test
@@ -482,6 +466,10 @@ functions:
         script: |
           ${prepare_shell}
           cargo build --bin profiler --release
+
+          # Update the environment to run heaptrack
+          export PATH="$PATH:${heaptrack_path}/bin"
+          export LD_LIBRARY_PATH="${heaptrack_path}/lib:$LD_LIBRARY_PATH"
 
           # run_mem_profiler.sh writes three files
           # - memory-usage-results.log: Memory usage metrics to upload to S3

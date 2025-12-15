@@ -287,12 +287,12 @@ impl SubqueryExprDesugarerPassVisitor {
 
         self.subquery_counter += 1;
         self.as_names.push(as_var.clone());
-        self.subquery_lookups = Box::new(Lookup(Lookup {
+        *self.subquery_lookups = Lookup(Lookup {
             source: self.subquery_lookups.clone(),
             let_vars,
             pipeline,
             as_var: as_var.clone(),
-        }));
+        });
 
         as_var
     }
@@ -322,7 +322,7 @@ impl Visitor for SubqueryExprDesugarerPassVisitor {
         // Reset values to default.
         self.subquery_counter = 0;
         self.as_names = vec![];
-        self.subquery_lookups = Box::new(Sentinel);
+        *self.subquery_lookups = Sentinel;
 
         // Walk this stage, desugaring subquery expressions and populating the
         // visitor's fields with desugared subquery data.

@@ -528,9 +528,9 @@ impl<'a> Algebrizer<'a> {
 
         // if we found Expressions's, algebrize them as a single document, and add it to the expression
         // under the Bottom namespace.
-        if bottom.is_some() {
+        if let Some(bottom) = bottom {
             let e = expression_algebrizer
-                .algebrize_expression(ast::Expression::Document(bottom.unwrap()), false)?;
+                .algebrize_expression(ast::Expression::Document(bottom), false)?;
             let bot = Key::bot(expression_algebrizer.scope_level);
             datasources
                 .insert(bot.clone())
