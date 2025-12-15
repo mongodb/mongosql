@@ -1493,7 +1493,16 @@ impl Schema {
     pub fn union(&self, other: &Schema) -> Schema {
         use std::cmp::Ordering;
         use Schema::*;
-        let (left, right) = (Self::simplify(self), Self::simplify(other));
+        // let (left, right) = (Self::simplify(self), Self::simplify(other));
+        // let ordering = left.cmp(&right);
+        // let (left, right) = match ordering {
+        //     Ordering::Greater => (right, left),
+        //     Ordering::Less => (left, right),
+        //     Ordering::Equal => {
+        //         return left;
+        //     }
+        // };
+        let (left, right) = (self.clone(), other.clone());
         let ordering = left.cmp(&right);
         let (left, right) = match ordering {
             Ordering::Greater => (right, left),
@@ -1502,6 +1511,7 @@ impl Schema {
                 return left;
             }
         };
+
         // Schema types ordered least to greatest. We use the order to reduce the number
         // of cases needed to match. For instance, Unsat will always be leftmost and Any will
         // always be rightmost, so we do not need to check symmetric cases (and catchall will
@@ -1544,6 +1554,8 @@ impl Schema {
                 if documents.is_empty() {
                     rest.insert(Document(d));
                 } else if let Some(Document(old_d)) = documents.into_iter().next() {
+                    // TODO: this branch actually depends on simplify being done; we'll need to update this to handle the "multiple docs" case,
+                    //   similar to the > 1 case for arrays...
                     rest.insert(Document(old_d.union(d)));
                 } else {
                     unreachable!();
