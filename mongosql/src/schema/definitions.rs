@@ -16,6 +16,7 @@ use std::{
     fmt::{Display, Formatter},
     iter::once,
 };
+use std::collections::btree_map::Entry;
 use thiserror::Error;
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -2028,6 +2029,7 @@ impl Document {
 
     /// union_keys constructs a key map where all the keys from both maps are kept.
     /// Those keys that overlap have their Schemata merged.
+    /*
     fn union_keys(
         mut m1: BTreeMap<String, Schema>,
         m2: BTreeMap<String, Schema>,
@@ -2041,6 +2043,30 @@ impl Document {
         }
         m1
     }
+     */
+
+    fn union_keys(
+        mut m1: BTreeMap<String, Schema>,
+        m2: BTreeMap<String, Schema>,
+    ) -> BTreeMap<String, Schema> {
+        if m2.is_empty() { return m1; }
+        if m1.is_empty() { return m2; }
+        for (key, schema2) in m2 {
+            match m1.entry(key) {
+                Entry::Occupied(mut entry) => {
+                    let old_schema = entry.get();
+                    let unioned = old_schema.union(&schema2);
+                    entry.insert(unioned);
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(schema2);
+                }
+            }
+        }
+
+        m1
+    }
+
 
     /// intersect_keys constructs a key map that is the intersection of the
     /// two passed maps.
