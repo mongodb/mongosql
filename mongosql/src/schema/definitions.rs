@@ -1493,15 +1493,6 @@ impl Schema {
     pub fn union(&self, other: &Schema) -> Schema {
         use std::cmp::Ordering;
         use Schema::*;
-        // let (left, right) = (Self::simplify(self), Self::simplify(other));
-        // let ordering = left.cmp(&right);
-        // let (left, right) = match ordering {
-        //     Ordering::Greater => (right, left),
-        //     Ordering::Less => (left, right),
-        //     Ordering::Equal => {
-        //         return left;
-        //     }
-        // };
         let (left, right) = (self.clone(), other.clone());
         let ordering = left.cmp(&right);
         let (left, right) = match ordering {
