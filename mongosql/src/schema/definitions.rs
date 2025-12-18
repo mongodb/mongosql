@@ -1545,7 +1545,14 @@ impl Schema {
                 } else {
                     unreachable!();
                 }
-                AnyOf(rest)
+
+                if rest.len() > 1 {
+                    AnyOf(rest)
+                } else {
+                    // The AnyOf may have contained only Array schemas. If that were the case, then
+                    // there will only be one element in rest at this point.
+                    rest.into_iter().next().unwrap()
+                }
             }
             (Document(d1), Document(d2)) => Document(d1.union(d2)),
             (Document(d), AnyOf(schemas)) => {
@@ -1553,14 +1560,25 @@ impl Schema {
                     schemas.into_iter().partition(|s| matches!(s, Document(_)));
                 if documents.is_empty() {
                     rest.insert(Document(d));
+                } else if documents.len() > 1 {
+                    let document_schema = documents
+                        .into_iter()
+                        .reduce(Schema::document_union)
+                        .unwrap();
+                    rest.insert(document_schema);
                 } else if let Some(Document(old_d)) = documents.into_iter().next() {
-                    // TODO: this branch actually depends on simplify being done; we'll need to update this to handle the "multiple docs" case,
-                    //   similar to the > 1 case for arrays...
                     rest.insert(Document(old_d.union(d)));
                 } else {
                     unreachable!();
                 }
-                AnyOf(rest)
+
+                if rest.len() > 1 {
+                    AnyOf(rest)
+                } else {
+                    // The AnyOf may have contained only Document schemas. If that were the case,
+                    // then there will only be one element in rest at this point.
+                    rest.into_iter().next().unwrap()
+                }
             }
             // x (strictly) < AnyOf
             (x, AnyOf(mut b)) => {

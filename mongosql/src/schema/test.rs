@@ -106,7 +106,7 @@ mod union_schemata {
     // with the result anyway.
     test_union_schema!(
         union_arrays_of_arrays_of_multiple_types_is_any,
-        expected = AnyOf(set! {Array(Box::new(Any))}),
+        expected = Array(Box::new(Any)),
         left = Array(Box::new(Atomic(Integer))),
         right = AnyOf(set! {Array(Box::new(Atomic(String))), Array(Box::new(Atomic(Double)))}),
     );
