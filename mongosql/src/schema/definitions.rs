@@ -1001,7 +1001,7 @@ impl Schema {
                 if !docs.is_empty() {
                     let doc_schema = Schema::Document(
                         docs.into_iter()
-                            .fold(Document::default(), |acc, s| acc.merge(s)),
+                            .fold(Document::default(), |acc, s| acc.union(s)),
                     );
                     non_doc_schemata.insert(doc_schema);
                 };
