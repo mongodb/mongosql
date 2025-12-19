@@ -999,10 +999,8 @@ impl Schema {
                         _ => Either::Right(s),
                     });
                 if !docs.is_empty() {
-                    let doc_schema = Schema::Document(
-                        docs.into_iter()
-                            .fold(Document::default(), |acc, s| acc.union(s)),
-                    );
+                    let doc_schema =
+                        Schema::Document(docs.into_iter().reduce(|acc, s| acc.union(s)).unwrap());
                     non_doc_schemata.insert(doc_schema);
                 };
                 let ret = non_doc_schemata;
