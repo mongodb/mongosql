@@ -159,7 +159,7 @@ impl DeriveSchema for Stage {
             Ok(state
                 .result_set_schema
                 .to_owned()
-                .document_union(required_doc))
+                .document_union(Schema::simplify(&required_doc)))
         }
 
         /// documents_derive_schema derives the schema for a $documents stage. $documents can either be a list of document

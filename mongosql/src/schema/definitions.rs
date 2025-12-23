@@ -1493,7 +1493,7 @@ impl Schema {
     pub fn union(&self, other: &Schema) -> Schema {
         use std::cmp::Ordering;
         use Schema::*;
-        let (left, right) = (Self::simplify(self), Self::simplify(other));
+        let (left, right) = (self.clone(), other.clone());
         let ordering = left.cmp(&right);
         let (left, right) = match ordering {
             Ordering::Greater => (right, left),
@@ -1502,6 +1502,7 @@ impl Schema {
                 return left;
             }
         };
+
         // Schema types ordered least to greatest. We use the order to reduce the number
         // of cases needed to match. For instance, Unsat will always be leftmost and Any will
         // always be rightmost, so we do not need to check symmetric cases (and catchall will
@@ -1535,7 +1536,14 @@ impl Schema {
                 } else {
                     unreachable!();
                 }
-                AnyOf(rest)
+
+                if rest.len() > 1 {
+                    AnyOf(rest)
+                } else {
+                    // The AnyOf may have contained only Array schemas. If that were the case, then
+                    // there will only be one element in rest at this point.
+                    rest.into_iter().next().unwrap()
+                }
             }
             (Document(d1), Document(d2)) => Document(d1.union(d2)),
             (Document(d), AnyOf(schemas)) => {
@@ -1543,12 +1551,25 @@ impl Schema {
                     schemas.into_iter().partition(|s| matches!(s, Document(_)));
                 if documents.is_empty() {
                     rest.insert(Document(d));
+                } else if documents.len() > 1 {
+                    let document_schema = documents
+                        .into_iter()
+                        .reduce(Schema::document_union)
+                        .unwrap();
+                    rest.insert(document_schema);
                 } else if let Some(Document(old_d)) = documents.into_iter().next() {
                     rest.insert(Document(old_d.union(d)));
                 } else {
                     unreachable!();
                 }
-                AnyOf(rest)
+
+                if rest.len() > 1 {
+                    AnyOf(rest)
+                } else {
+                    // The AnyOf may have contained only Document schemas. If that were the case,
+                    // then there will only be one element in rest at this point.
+                    rest.into_iter().next().unwrap()
+                }
             }
             // x (strictly) < AnyOf
             (x, AnyOf(mut b)) => {

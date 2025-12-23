@@ -1,3 +1,4 @@
+#[allow(unused_imports)]
 use crate::{
     ast, map, mir, multimap,
     schema::{Atomic, Satisfaction, Schema, ANY_DOCUMENT, NUMERIC_OR_NULLISH},

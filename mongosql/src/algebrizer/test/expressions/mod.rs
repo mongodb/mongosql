@@ -1,3 +1,4 @@
+#[allow(unused_imports)]
 use crate::{
     ast, map,
     mir::{self, binding_tuple::Key},
