@@ -118,14 +118,49 @@ impl SchemaEnvironment {
     /// and adds them to the current SchemaEnvironment, returning the modified
     /// SchemaEnvironment.
     ///
-    /// Schema values with duplicate Datasource keys are bundled in an AnyOf under
-    /// that same Datasource key.
+    /// Schema values with duplicate Datasource keys are unioned. See
+    /// Schema::union for details of schema unioning.
     pub fn union(self, other: SchemaEnvironment) -> Self {
         let mut out = self;
         for (k, v) in other.0.into_iter() {
-            out = out.union_schema_for_datasource(k, v);
+            out = out.modify_schema_for_datasource(k, v, Schema::union);
         }
         out
+    }
+
+    /// Takes all Datasource-Schema key-value pairs from a SchemaEnvironment
+    /// and adds them to the current SchemaEnvironment, returning the modified
+    /// SchemaEnvironment.
+    ///
+    /// Schema values with duplicate Datasource keys are merged. See
+    /// Schema::merge for details of schema merging.
+    pub fn merge_schemas(self, other: SchemaEnvironment) -> Self {
+        let mut out = self;
+        for (k, v) in other.0.into_iter() {
+            out = out.modify_schema_for_datasource(k, v, Schema::merge);
+        }
+        out
+    }
+
+    /// Inserts a Datasource-Schema key-value pair into the current
+    /// SchemaEnvironment, returning the modified SchemaEnvironment.
+    ///
+    /// If inserting a key with Schema value V, but the SchemaEnvironment already
+    /// contains the key with existing Schema value W, the existing Schema value
+    /// is overwritten with modify_fn(V, W). Typically, this is either a union
+    /// or a merge of the two Schema values.
+    pub fn modify_schema_for_datasource(
+        mut self,
+        datasource_key: binding_tuple::Key,
+        schema_value: Schema,
+        modify_fn: impl Fn(&Schema, &Schema) -> Schema,
+    ) -> Self {
+        if let Some(s) = self.0.remove(&datasource_key) {
+            self.0.insert(datasource_key, modify_fn(&s, &schema_value));
+        } else {
+            self.0.insert(datasource_key, schema_value);
+        }
+        self
     }
 
     /// check_for_non_namespaced_collisions iterates through the SchemaEnvironment
@@ -167,26 +202,6 @@ impl SchemaEnvironment {
             );
         }
         Ok(())
-    }
-
-    /// Inserts a Datasource-Schema key-value pair into the current
-    /// SchemaEnvironment, returning the modified SchemaEnvironment.
-    ///
-    /// If inserting a key with Schema value V, but the SchemaEnvironment already
-    /// contains the key with existing Schema value W, the existing Schema value
-    /// is overwritten to AnyOf(V, W).
-    pub fn union_schema_for_datasource(
-        mut self,
-        datasource_key: binding_tuple::Key,
-        schema_value: Schema,
-    ) -> Self {
-        if let Some(s) = self.0.remove(&datasource_key) {
-            self.0
-                .insert(datasource_key, Schema::AnyOf(set![s, schema_value]));
-        } else {
-            self.0.insert(datasource_key, schema_value);
-        }
-        self
     }
 
     pub fn nearest_scope_for_datasource(&self, d: &DatasourceName, scope: u16) -> Option<u16> {
@@ -999,10 +1014,8 @@ impl Schema {
                         _ => Either::Right(s),
                     });
                 if !docs.is_empty() {
-                    let doc_schema = Schema::Document(
-                        docs.into_iter()
-                            .fold(Document::default(), |acc, s| acc.merge(s)),
-                    );
+                    let doc_schema =
+                        Schema::Document(docs.into_iter().reduce(|acc, s| acc.union(s)).unwrap());
                     non_doc_schemata.insert(doc_schema);
                 };
                 let ret = non_doc_schemata;
@@ -1482,18 +1495,37 @@ impl Schema {
         }
     }
 
-    /// union unions two schemata. The idea is that the two schema both represent data in a given
-    /// collection, and that by combining them we have a more clear picture of the possibilities
-    /// for a given collection. The uniond schema must match all values matched by the two original
-    /// schemata, conceptually this is a set union, so a safe fall back is AnyOf of the two
-    /// original schemata, but we can do better for specific cases, for example, two documents can
-    /// simply union the keys (and the types of the keys when keys overlap), intersect the
-    /// required, and do a lattice join over additional_properties (if one document is true, and
-    /// the other is false, the solution is true).
+    /// Unions two schemata. The idea is that the two schemata both represent data in a given
+    /// collection, and that by combining them we have a more clear picture of the possibilities for
+    /// a given collection. The unioned schema must match all values matched by the two original
+    /// schemata. Conceptually this is a set union, so a safe fallback is AnyOf of the two original
+    /// schemata. We can do better for specific cases; for example, two documents can simply union
+    /// the keys (and the types of the keys when keys overlap), intersect the required, and do a
+    /// lattice join over additional_properties (if one document is true, and the other is false,
+    /// the solution is true).
     pub fn union(&self, other: &Schema) -> Schema {
+        self.combine(other, Schema::union, Document::union)
+    }
+
+    /// Merges two schemata. Unlike union, this method combines two schemata such that values that
+    /// satisfied one of the input schemas will not satisfy the resulting schema unless one is a
+    /// subset of the other. This is primarily useful when building a Document result schema field
+    /// by field and updating the environment as each schema is computed.
+    pub fn merge(&self, other: &Schema) -> Schema {
+        self.combine(other, Schema::merge, Document::merge)
+    }
+
+    /// Combines two schemata using the combinator functions provided. Typically, this is used for
+    /// union and merge.
+    fn combine(
+        &self,
+        other: &Schema,
+        schema_combine_fn: impl Fn(&Schema, &Schema) -> Schema,
+        doc_combine_fn: impl Fn(Document, Document) -> Document,
+    ) -> Schema {
         use std::cmp::Ordering;
         use Schema::*;
-        let (left, right) = (Self::simplify(self), Self::simplify(other));
+        let (left, right) = (Schema::simplify(self), Schema::simplify(other));
         let ordering = left.cmp(&right);
         let (left, right) = match ordering {
             Ordering::Greater => (right, left),
@@ -1522,7 +1554,7 @@ impl Schema {
                 b1.extend(b2);
                 AnyOf(b1)
             }
-            (Array(s1), Array(s2)) => Array(Box::new(s1.union(s2.as_ref()))),
+            (Array(s1), Array(s2)) => Array(Box::new(schema_combine_fn(s1.as_ref(), s2.as_ref()))),
             (Array(s1), AnyOf(schemas)) => {
                 let (arrays, mut rest): (BTreeSet<_>, BTreeSet<_>) =
                     schemas.into_iter().partition(|s| matches!(s, Array(_)));
@@ -1531,20 +1563,23 @@ impl Schema {
                 } else if arrays.len() > 1 {
                     rest.insert(Array(Box::new(Schema::Any)));
                 } else if let Some(Array(old_s)) = arrays.into_iter().next() {
-                    rest.insert(Array(Box::new(old_s.as_ref().union(s1.as_ref()))));
+                    rest.insert(Array(Box::new(schema_combine_fn(
+                        old_s.as_ref(),
+                        s1.as_ref(),
+                    ))));
                 } else {
                     unreachable!();
                 }
                 AnyOf(rest)
             }
-            (Document(d1), Document(d2)) => Document(d1.union(d2)),
+            (Document(d1), Document(d2)) => Document(doc_combine_fn(d1, d2)),
             (Document(d), AnyOf(schemas)) => {
                 let (documents, mut rest): (BTreeSet<_>, BTreeSet<_>) =
                     schemas.into_iter().partition(|s| matches!(s, Document(_)));
                 if documents.is_empty() {
                     rest.insert(Document(d));
                 } else if let Some(Document(old_d)) = documents.into_iter().next() {
-                    rest.insert(Document(old_d.union(d)));
+                    rest.insert(Document(doc_combine_fn(old_d, d)));
                 } else {
                     unreachable!();
                 }

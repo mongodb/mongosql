@@ -3,7 +3,7 @@ use crate::{
     map,
     mir::{
         binding_tuple,
-        schema::util::{lift_array_schemas, merge_bot_any_of_document_schemas, set_field_schema},
+        schema::util::{lift_array_schemas, set_field_schema},
         *,
     },
     schema::{
@@ -289,12 +289,12 @@ impl CachedSchema for Stage {
                     })
                     .collect::<Result<SchemaEnvironment, _>>()?;
                 let schema_env = if p.is_add_fields {
-                    state.env.union(schema_env)
+                    // If this is an AddFields, it adds fields to the existing schema, so we want
+                    // to merge the schema environments.
+                    state.env.merge_schemas(schema_env)
                 } else {
                     schema_env
                 };
-                // We want AddFields keys under bottom to be added to the incoming bottom schema.
-                let schema_env = merge_bot_any_of_document_schemas(state.scope_level, schema_env);
                 Ok(ResultSet {
                     schema_env: schema_env.simplify(),
                     min_size,
@@ -374,13 +374,13 @@ impl CachedSchema for Stage {
                     // keys will both belong to the Bottom datasource), it is incorrect to collect() into a
                     // SchemaEnvironment here, as collect() will overwrite any tuples with the same key.
                     // We handle this using a fold operation, which allows us to handle duplicate tuples by
-                    // manually unioning them with an accumulating SchemaEnvironment.
+                    // manually merging them with an accumulating SchemaEnvironment.
                     .fold(
                         Ok(SchemaEnvironment::default()),
                         |acc_schema_env, tuple_result| {
                             let (schema_env_key, schema_env_schema) = tuple_result?;
                             Ok(acc_schema_env?
-                                .union_schema_for_datasource(schema_env_key, schema_env_schema))
+                                .modify_schema_for_datasource(schema_env_key, schema_env_schema, Schema::merge))
                         },
                     )?;
 
@@ -402,16 +402,15 @@ impl CachedSchema for Stage {
                         Ok(SchemaEnvironment::default()),
                         |acc_schema_env, tuple_result| {
                             let (schema_env_key, schema_env_schema) = tuple_result?;
-                            Ok(acc_schema_env?
-                                .union_schema_for_datasource(schema_env_key, schema_env_schema))
+                            Ok(acc_schema_env?.modify_schema_for_datasource(
+                                schema_env_key,
+                                schema_env_schema,
+                                Schema::merge,
+                            ))
                         },
                     )?
-                    // Union the aggregation function bindings with the group key bindings.
-                    .union(schema_env);
-
-                // We want group keys and aggregations under bottom to be combined under a single
-                // document schema.
-                let schema_env = merge_bot_any_of_document_schemas(state.scope_level, schema_env);
+                    // Merge the aggregation function bindings with the group key bindings.
+                    .merge_schemas(schema_env);
 
                 Ok(ResultSet {
                     schema_env: schema_env.simplify(),

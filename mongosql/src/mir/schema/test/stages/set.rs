@@ -9,7 +9,7 @@ use crate::{
         },
         *,
     },
-    schema::{ResultSet, Schema},
+    schema::{Atomic, ResultSet, Schema},
     set, test_schema,
 };
 
@@ -17,11 +17,15 @@ test_schema!(
     set_unionall_same_name_unioned,
     expected = Ok(ResultSet {
         schema_env: map! {
-            ("foo", 0u16).into() => Schema::AnyOf(set![
-                    Schema::AnyOf(set![TEST_DOCUMENT_SCHEMA_B.clone()]),
-                    Schema::AnyOf(set![TEST_DOCUMENT_SCHEMA_A.clone()]),
-                ]
-            ),
+            ("foo", 0u16).into() => Schema::Document(schema::Document {
+                keys: map! {
+                    "a".to_string() => Schema::Atomic(Atomic::Integer),
+                    "b".to_string() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {},
+                additional_properties: false,
+                jaccard_index: None,
+            }),
         },
         min_size: 2,
         max_size: Some(2),
