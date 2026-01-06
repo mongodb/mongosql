@@ -10,6 +10,7 @@ use crate::{
 use enum_iterator::IntoEnumIterator;
 use itertools::{Either, Itertools};
 use lazy_static::lazy_static;
+use std::collections::btree_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -2053,11 +2054,25 @@ impl Document {
         mut m1: BTreeMap<String, Schema>,
         m2: BTreeMap<String, Schema>,
     ) -> BTreeMap<String, Schema> {
-        for (key2, schema2) in m2.into_iter() {
-            if let Some(old_schema) = m1.remove(&key2) {
-                m1.insert(key2, old_schema.union(&schema2));
-            } else {
-                m1.insert(key2, schema2);
+        if m2.is_empty() {
+            return m1;
+        }
+        if m1.is_empty() {
+            return m2;
+        }
+
+        for (key, schema2) in m2 {
+            match m1.entry(key) {
+                Entry::Occupied(mut entry) => {
+                    // Only union the schemas if they differ. Otherwise, keep the existing schema.
+                    if entry.get() != &schema2 {
+                        let schema_union = entry.get().union(&schema2);
+                        entry.insert(schema_union);
+                    }
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(schema2);
+                }
             }
         }
         m1
