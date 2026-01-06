@@ -1,8 +1,0 @@
-tests:
-  - description: or filtering on null values
-    current_db: spec_query_null_filtering_or
-    query: "SELECT foo._id, foo.b, foo.a  FROM foo WHERE b > 10 or a = 'B'"
-    result:
-      - { "": { "a": "B", "b": 11, "name": "1" } },
-      - { "": { "a": null, "b": 11, "name": "2" } },
-      - { "": { "a": "B", "b": null, "name": "3" } }

@@ -641,3 +641,13 @@ tests:
     current_db: e2e_queries_db3
     query: "SELECT * FROM bar WHERE CHAR_LENGTH(CASE WHEN a < 5 THEN NULL WHEN a < 10 THEN '' END) <> 0"
     result: []
+
+  - description: OR predicate handles null filtering for top level OR
+    current_db: e2e_queries_or_predicate_null_filtering
+    query: "SELECT foo._id, foo.b, foo.a  FROM foo WHERE b > 10 OR a = 'B'"
+    result:
+        - {'': { "a": "B", "b": 11, "name": "1" }}
+        - { '': { "a": null, "b": 11, "name": "2" }}
+        - { '': { "a": "B", "b": null, "name": "3" }}
+
+
