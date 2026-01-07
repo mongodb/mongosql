@@ -104,6 +104,175 @@ mod all_fields_always_nullable {
     );
 
     test_match_null_filtering!(
+        expected_to_not_include_null_filters_for_simple_top_level_or,
+        expected = Stage::Filter(Filter {
+            source: mir_collection("db", "foo"),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Or,
+                args: vec![
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Eq,
+                        args: vec![
+                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
+                            Expression::Literal(LiteralValue::Null,),
+                        ],
+                        is_nullable: false,
+                    }),
+                    Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::Eq,
+                        vec![
+                            field_access_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
+                            Expression::Literal(LiteralValue::Null,)
+                        ]
+                    ))
+                ],
+                is_nullable: true,
+            }),
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = false,
+        input = Stage::Filter(Filter {
+            source: mir_collection("db", "foo"),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                // Or Case: nullable_a = null OR nullable_b = null
+                function: ScalarFunction::Or,
+                args: vec![
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Eq,
+                        args: vec![
+                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
+                            Expression::Literal(LiteralValue::Null,),
+                        ],
+                        is_nullable: false,
+                    }),
+                    Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::Eq,
+                        vec![
+                            field_access_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
+                            Expression::Literal(LiteralValue::Null,)
+                        ]
+                    ))
+                ],
+                is_nullable: true,
+            }),
+            cache: SchemaCache::new(),
+        })
+    );
+
+    test_match_null_filtering!(
+        expected_to_not_include_null_filter_for_or_predicates_complex_top_level_or,
+        expected = Stage::Filter(Filter {
+            source: mir_collection("db", "foo"),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Or,
+                args: vec![
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Eq,
+                        args: vec![
+                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
+                            Expression::Literal(LiteralValue::String("B".to_string()),),
+                        ],
+                        is_nullable: false,
+                    }),
+                    Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::Gt,
+                        vec![
+                            field_access_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
+                            Expression::Literal(LiteralValue::Integer(10),)
+                        ]
+                    ))
+                ],
+                is_nullable: true,
+            }),
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = false,
+        input = Stage::Filter(Filter {
+            source: mir_collection("db", "foo"),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                // Represents the following OR case: b > 10 OR a = 'B'"
+                function: ScalarFunction::Or,
+                args: vec![
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Eq,
+                        args: vec![
+                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
+                            Expression::Literal(LiteralValue::String("B".to_string()),),
+                        ],
+                        is_nullable: false,
+                    }),
+                    Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::Gt,
+                        vec![
+                            field_access_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
+                            Expression::Literal(LiteralValue::Integer(10),)
+                        ]
+                    ))
+                ],
+                is_nullable: true,
+            }),
+            cache: SchemaCache::new(),
+        })
+    );
+
+    test_match_null_filtering!(
+        my_other_test,
+        expected = Stage::Filter(Filter {
+            source: mir_collection("db", "foo"),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Eq,
+                args: vec![
+                    field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
+                    Expression::Literal(LiteralValue::Null,),
+                ],
+                is_nullable: false,
+            }),
+            cache: Default::default(),
+        }),
+        expected_changed = true,
+        input = Stage::Filter(Filter {
+            source: mir_collection("db", "foo"),
+            // 1 = 1 AND (b > 10 OR a = 'B')
+            condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::And,
+                vec![
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Eq,
+                        args: vec![
+                            Expression::Literal(LiteralValue::Integer(1),),
+                            Expression::Literal(LiteralValue::Integer(1),),
+                        ],
+                        is_nullable: false,
+                    }),
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        // Represents the following OR case: b > 10 OR a = 'B'"
+                        function: ScalarFunction::Or,
+                        args: vec![
+                            Expression::ScalarFunction(ScalarFunctionApplication {
+                                function: ScalarFunction::Eq,
+                                args: vec![
+                                    field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
+                                    Expression::Literal(LiteralValue::String("B".to_string()),),
+                                ],
+                                is_nullable: false,
+                            }),
+                            Expression::ScalarFunction(ScalarFunctionApplication::new(
+                                ScalarFunction::Gt,
+                                vec![
+                                    field_access_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
+                                    Expression::Literal(LiteralValue::Integer(10),)
+                                ]
+                            ))
+                        ],
+                        is_nullable: true,
+                    }),
+                ]
+            )),
+            cache: Default::default(),
+        })
+    );
+
+    test_match_null_filtering!(
         do_not_update_is_nullable_for_exprs_with_literal_null_args,
         expected = Stage::Filter(Filter {
             source: Box::new(Stage::Filter(Filter {
@@ -258,7 +427,7 @@ mod all_fields_always_nullable {
             }),
             cache: SchemaCache::new(),
         }),
-        expected_changed = true,
+        expected_changed = false,
         input = Stage::Filter(Filter {
             source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {

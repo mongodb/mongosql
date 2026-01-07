@@ -649,5 +649,13 @@ tests:
         - {'': { "a": "B", "b": 11, "name": "1" }}
         - { '': { "a": null, "b": 11, "name": "2" }}
         - { '': { "a": "B", "b": null, "name": "3" }}
+  - description: OR predicate handles null filtering for nested OR
+    current_db: e2e_queries_or_predicate_null_filtering
+    query: "SELECT foo._id, foo.b, foo.a  FROM foo WHERE name IS NOT NULL AND (b > 10 OR a = 'B')"
+    result:
+        - { "_id": 10, "a": "B", "b": 11, "name": "1" }
+        - { "_id": 20, "a": null, "b": 11, "name": "2" }
+        - { "_id": 30, "a": "B", "b": null, "name": "3" }
+
 
 

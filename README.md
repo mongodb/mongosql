@@ -53,12 +53,14 @@ Requires a running mongod.
 ### e2e testing
 
 End-to-end query tests that do not exist in the spec. These tests specify queries and expected
-result sets and execute against an actual database. Requires a running mongod.
+result sets and execute against an actual database. They require a running mongod, and data to be
+loaded into it. We use the [sql-engines-common-test-infra](https://github.com/mongodb/sql-engines-common-test-infra)
+repo's data-loader tool to load the data into the mongod.
 
 #### Loading The Data
 
-The e2e tests use the [sql-engines-common-test-infra](https://github.com/mongodb/sql-engines-common-test-infra)
-`data-loader` tool. See `cargo run --bin data-loader -- --help` in that repo for more details.
+The [sql-engines-common-test-infra](https://github.com/mongodb/sql-engines-common-test-infra) repo
+`data-loader` tool loads test data into a running mongod. See `cargo run --bin data-loader -- --help` in that repo for more details.
 
 1. Clone the repo
 2. `cd sql-engines-common-test-infra`
