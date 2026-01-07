@@ -334,10 +334,8 @@ impl TryFrom<Schema> for bson::Document {
 impl TryFrom<Schema> for bson::Bson {
     type Error = Error;
     fn try_from(schema: Schema) -> std::result::Result<Self, Self::Error> {
-        let json_schema: json_schema::Schema = schema
-            .clone()
-            .try_into()
-            .map_err(|_| Error::JsonSchemaFailure)?;
+        let json_schema: json_schema::Schema =
+            schema.try_into().map_err(|_| Error::JsonSchemaFailure)?;
         let bson_schema = json_schema.to_bson().map_err(Error::BsonFailure)?;
 
         Ok(bson_schema)
@@ -388,14 +386,12 @@ impl Display for Schema {
             Unsat => write!(f, "Unsat"),
             Schema::Missing => write!(f, "missing value"),
             Schema::Atomic(atomic) => atomic.fmt(f),
-            AnyOf(schema_set) => {
-                let self_copy = AnyOf(schema_set.clone());
-
+            any_of @ AnyOf(schema_set) => {
                 if schema_set.len() == 3
                     && schema_set.contains(&Schema::Missing)
                     && schema_set.contains(&Schema::Atomic(Atomic::Null))
                 {
-                    let self_copy_without_nullish = self_copy.clone().subtract_nullish();
+                    let self_copy_without_nullish = any_of.clone().subtract_nullish();
                     match self_copy_without_nullish {
                         AnyOf(mut set) => {
                             let anyof_contents = set.pop_first().unwrap();
@@ -407,15 +403,15 @@ impl Display for Schema {
                         }
                         _ => unreachable!(),
                     }
-                } else if self_copy.eq(&INTEGER_LONG_OR_NULLISH) {
+                } else if any_of.eq(&INTEGER_LONG_OR_NULLISH) {
                     write!(f, "nullable long or integer")
-                } else if self_copy.eq(&NUMERIC_OR_NULLISH) {
+                } else if any_of.eq(&NUMERIC_OR_NULLISH) {
                     write!(f, "nullable numeric type")
-                } else if self_copy.eq(&NUMERIC) {
+                } else if any_of.eq(&NUMERIC) {
                     write!(f, "numeric type")
-                } else if self_copy.eq(&NULLISH) {
+                } else if any_of.eq(&NULLISH) {
                     write!(f, "null type")
-                } else if self_copy.eq(&NON_NULLISH) {
+                } else if any_of.eq(&NON_NULLISH) {
                     write!(f, "non-null type")
                 } else {
                     write!(f, "polymorphic type")
@@ -941,7 +937,7 @@ impl Schema {
             Schema::Atomic(_) => vec![],
             AnyOf(a) => a.iter().flat_map(|s| s.keys()).collect(),
             Schema::Array(_) => vec![],
-            Schema::Document(d) => d.clone().keys.into_keys().collect(),
+            Schema::Document(d) => d.keys.keys().cloned().collect(),
         }
     }
 
