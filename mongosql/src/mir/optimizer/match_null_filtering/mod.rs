@@ -260,8 +260,14 @@ impl Visitor for NullableFieldAccessGatherer {
             // If we encounter a "nullable" scalar function, meaning a scalar
             // function with SQL-style semantics, then we want to collect
             // nullable fields nested within that function's arguments.
+            Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Or,
+                ..
+            }) => node,
             Expression::ScalarFunction(sf)
-                if sf.is_nullable && sf.function.mql_null_semantics_diverge() =>
+                if sf.is_nullable
+                    && sf.function != ScalarFunction::Or
+                    && sf.function.mql_null_semantics_diverge() =>
             {
                 let old_is_collecting = self.is_collecting;
                 let old_found_impure = self.found_impure;

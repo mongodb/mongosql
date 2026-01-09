@@ -294,3 +294,23 @@ dataset:
       name: "variable"
       docs: []
     schema: {"bsonType":["object"],"properties":{"identifier":{"bsonType":["string"]},"name":{"bsonType":["object"],"properties":{"en":{"bsonType":["string"]}},"additionalProperties":false},"type":{"bsonType":["string"]},"tenantId":{"bsonType":["objectId"]},"systemMetadata":{"bsonType":["object"],"properties":{"createdBy":{"bsonType":["string"]},"createdDate":{"bsonType":["date"]},"updatedBy":{"bsonType":["string"]},"updatedDate":{"bsonType":["date"]},"schemaVersion":{"bsonType":["int"]}},"additionalProperties":false},"category":{"bsonType":["int"]},"scope":{"bsonType":["int"]},"shortName":{"bsonType":["string"]},"limitedChoices":{"bsonType":["array"],"items":{"bsonType":["object"],"properties":{"label":{"bsonType":["string"]},"value":{"bsonType":["int"]}},"additionalProperties":false}},"_id":{"bsonType":["objectId"]},"description":{"bsonType":["string"]},"inputType":{"bsonType":["string"]}},"additionalProperties":false,"required":["_id","category","identifier","inputType","name","scope","shortName","type","description","limitedChoices","tenantId","systemMetadata"]}
+
+  - db: "e2e_queries_or_predicate_null_filtering"
+    collection:
+      name: "foo"
+      docs:
+        - { "_id": 10, "a": "B", "b": 11, "name": "1" }
+        - { "_id": 20, "a": null, "b": 11, "name": "2" }
+        - { "_id": 30, "a": "B", "b": null, "name": "3" }
+        - { "_id": 40, "a": null, "b": null, "name": "4" }
+    schema: {
+      bsonType: 'object',
+      properties: {
+        _id: { bsonType: 'objectId' },
+        name: { bsonType: 'string' },
+        a: { anyOf: [ { bsonType: 'null' }, { bsonType: 'string' } ] },
+        b: { anyOf: [ { bsonType: 'null' }, { bsonType: 'int' } ] }
+      },
+      required: [ '_id', 'a', 'b', 'name' ],
+      additionalProperties: false
+    }
