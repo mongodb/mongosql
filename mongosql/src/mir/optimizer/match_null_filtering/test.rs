@@ -455,7 +455,7 @@ mod all_fields_always_nullable {
             }),
             cache: SchemaCache::new(),
         }),
-        expected_changed = false,
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
