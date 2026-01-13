@@ -26,6 +26,7 @@ macro_rules! test_translate_match_query {
                 mapping_registry,
                 scope_level: 0u16,
                 is_join: false,
+                is_filter_stage: false,
                 sql_options: SqlOptions::default(),
             };
 
@@ -379,6 +380,7 @@ mod match_path {
             mapping_registry,
             scope_level: 0u16,
             is_join: false,
+            is_filter_stage: false,
             sql_options: SqlOptions::default(),
         };
 

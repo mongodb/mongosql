@@ -60,6 +60,7 @@ pub struct MqlTranslator {
     pub scope_level: u16,
     pub sql_options: SqlOptions,
     is_join: bool,
+    is_filter_stage: bool,
 }
 
 impl MqlTranslator {
@@ -69,6 +70,7 @@ impl MqlTranslator {
             scope_level: 0u16,
             sql_options,
             is_join: false,
+            is_filter_stage: false,
         }
     }
 
