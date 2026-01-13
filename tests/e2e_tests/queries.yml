@@ -653,9 +653,9 @@ tests:
     current_db: e2e_queries_or_predicate_null_filtering
     query: "SELECT foo.b, foo.a, foo.name  FROM foo WHERE name IS NOT NULL AND (b > 10 OR a = 'B')"
     result:
-        - { "a": "B", "b": 11, "name": "1" }
-        - { "a": null, "b": 11, "name": "2" }
-        - { "a": "B", "b": null, "name": "3" }
+        - {'': { "a": "B", "b": 11, "name": "1" }}
+        - { '': { "a": null, "b": 11, "name": "2" }}
+        - { '': { "a": "B", "b": null, "name": "3" }}
 
 
 
