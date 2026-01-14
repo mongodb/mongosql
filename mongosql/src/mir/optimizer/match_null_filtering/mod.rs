@@ -260,6 +260,12 @@ impl Visitor for NullableFieldAccessGatherer {
             // If we encounter a "nullable" scalar function, meaning a scalar
             // function with SQL-style semantics, then we want to collect
             // nullable fields nested within that function's arguments.
+            // We do not want to null-filter operands of OR expressions since SQL OR semantics dictate
+            // that if any operand is TRUE, the result of the OR is true. If we filter out nullish fields before
+            // the OR, we may erroneously filter out rows that otherwise would have passed the OR filter.
+            // For example, a OR b where a is TRUE and b is NULL should evaluate to TRUE. However,  if
+            // we filtered out the row because b is NULL, then there would be no chance for the OR to
+            // evaluate to TRUE since the row is already filtered out.
             Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Or,
                 ..
