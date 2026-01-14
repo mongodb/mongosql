@@ -4,7 +4,6 @@ macro_rules! test_translate_expression {
         expected = $expected:expr,
         input = $input:expr
         $(, mapping_registry = $mapping_registry:expr)?
-        $(, is_filter_stage = $is_filter_stage:expr)?
         $(,)?
     ) => {
         #[test]
@@ -17,15 +16,11 @@ macro_rules! test_translate_expression {
             let mut mapping_registry = MqlMappingRegistry::default();
             $(mapping_registry = $mapping_registry;)?
 
-            #[allow(unused_mut, unused_assignments)]
-            let mut is_filter_stage: bool = false;
-            $(is_filter_stage = $is_filter_stage;)?
 
             let translator = translator::MqlTranslator{
                 mapping_registry,
                 scope_level: 0u16,
                 is_join: false,
-                is_filter_stage,
                 sql_options: SqlOptions::default()
             };
             let expected = $expected;
@@ -61,7 +56,6 @@ macro_rules! test_translate_expression_with_schema_info {
                 mapping_registry,
                 scope_level: 0u16,
                 is_join: false,
-                is_filter_stage: false,
                 sql_options: SqlOptions::default()
             };
             let expected = $expected;
@@ -1319,7 +1313,6 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null),
             ],
         )),
-        is_filter_stage = true,
     );
 
     test_translate_expression_with_schema_info!(

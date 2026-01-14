@@ -247,7 +247,6 @@ impl MqlTranslator {
         // Clone self so that we can translate the subquery pipeline
         // without modifying self's mapping registry or scope.
         let mut subquery_translator = self.clone();
-        subquery_translator.is_filter_stage = false;
 
         let (let_bindings, pipeline) =
             subquery_translator.translate_subquery_pipeline(*exists.stage)?;
@@ -360,19 +359,6 @@ impl MqlTranslator {
                     args: args.into_iter().rev().collect(),
                 }),
             ),
-            ScalarFunctionType::Sql(SqlOperator::Or) => Ok({
-                if self.is_filter_stage {
-                    air::Expression::MqlSemanticOperator(air::MqlSemanticOperator {
-                        op: MqlOperator::Or,
-                        args,
-                    })
-                } else {
-                    air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
-                        op: SqlOperator::Or,
-                        args,
-                    })
-                }
-            }),
             ScalarFunctionType::Sql(op) => Ok(air::Expression::SqlSemanticOperator(
                 air::SqlSemanticOperator { op, args },
             )),
@@ -455,7 +441,6 @@ impl MqlTranslator {
         // Clone self so that we can translate the subquery pipeline and output
         // path without modifying self's mapping registry or scope.
         let mut subquery_translator = self.clone();
-        subquery_translator.is_filter_stage = false;
 
         let (let_bindings, pipeline) =
             subquery_translator.translate_subquery_pipeline(*subquery.subquery)?;

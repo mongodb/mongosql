@@ -144,12 +144,14 @@ tests:
     # since there are more values of 'b' excluded by this index than values of 'a' excluded by a_1.
 
 #  TODO: Re-enable test as part of https://jira.mongodb.org/browse/SQL-3049
-#  - description: OR compound filter uses index scan when fields are nullable
-#    current_db: index_usage_filter
-#    query: "SELECT * FROM nullable_fields WHERE a > 100 OR b > 3000"
-#    expected_utilization: IX_SCAN
+  - description: OR compound filter uses index scan when fields are nullable
+    current_db: index_usage_filter
+    query: "SELECT * FROM nullable_fields WHERE a > 100 OR b > 3000"
+    expected_utilization: IX_SCAN
+
 
   - description: OR compound filter uses index scan when fields are non-nullable
+    skip_reason: "Re-enable test as part of https://jira.mongodb.org/browse/SQL-3049"
     current_db: index_usage_filter
     query: "SELECT * FROM non_nullable_fields WHERE a > 100 OR b > 3000"
     expected_utilization: IX_SCAN
