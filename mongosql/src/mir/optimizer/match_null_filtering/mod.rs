@@ -271,9 +271,7 @@ impl Visitor for NullableFieldAccessGatherer {
                 ..
             }) => node,
             Expression::ScalarFunction(sf)
-                if sf.is_nullable
-                    && sf.function != ScalarFunction::Or
-                    && sf.function.mql_null_semantics_diverge() =>
+                if sf.is_nullable && sf.function.mql_null_semantics_diverge() =>
             {
                 let old_is_collecting = self.is_collecting;
                 let old_found_impure = self.found_impure;
