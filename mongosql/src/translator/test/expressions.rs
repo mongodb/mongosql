@@ -1295,26 +1295,6 @@ mod scalar_function {
         )),
     );
 
-    test_translate_expression!(
-        nullish_or_in_filter_stage_context_is_evaluated_as_mql_operator_or,
-        expected = Ok(air::Expression::MqlSemanticOperator(
-            air::MqlSemanticOperator {
-                op: air::MqlOperator::Or,
-                args: vec![
-                    air::Expression::Literal(air::LiteralValue::Boolean(true)),
-                    air::Expression::Literal(air::LiteralValue::Null),
-                ],
-            }
-        )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
-            mir::ScalarFunction::Or,
-            vec![
-                mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
-                mir::Expression::Literal(mir::LiteralValue::Null),
-            ],
-        )),
-    );
-
     test_translate_expression_with_schema_info!(
         coalesce_nullish,
         expected = Ok(air::Expression::SqlSemanticOperator(

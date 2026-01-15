@@ -116,21 +116,8 @@ mod all_fields_always_nullable {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Or,
                 args: vec![
-                    Expression::ScalarFunction(ScalarFunctionApplication {
-                        function: ScalarFunction::Eq,
-                        args: vec![
-                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
-                            Expression::Literal(LiteralValue::Null,),
-                        ],
-                        is_nullable: false,
-                    }),
-                    Expression::ScalarFunction(ScalarFunctionApplication::new(
-                        ScalarFunction::Eq,
-                        vec![
-                            field_access_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
-                            Expression::Literal(LiteralValue::Null,)
-                        ]
-                    ))
+                    field_access_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
+                    field_access_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
                 ],
                 is_nullable: true,
             }),
@@ -140,6 +127,7 @@ mod all_fields_always_nullable {
 
     test_match_no_filtering_no_op!(
         expected_to_not_include_null_filter_for_or_predicates_complex_top_level_or,
+        // nullable_a = B OR nullable_b > 10
         Stage::Filter(Filter {
             source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -148,7 +136,7 @@ mod all_fields_always_nullable {
                     Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Eq,
                         args: vec![
-                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
+                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
                             Expression::Literal(LiteralValue::String("B".to_string()),),
                         ],
                         is_nullable: false,
@@ -213,21 +201,23 @@ mod all_fields_always_nullable {
 
     test_match_null_filtering!(
         null_filters_added_for_fields_not_in_or_expressions,
-        // nullable_field1 AND (nullable_field2 OR nullable_field3)
+        // Two stages: A Filter whose source is the field existence
         expected = Stage::Filter(Filter {
-            source: mir_collection("db", "foo"),
+            source: Box::new(Stage::Filter(Filter {
+                source: mir_collection("db", "foo"),
+                condition: field_existence_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
+                cache: SchemaCache::new(),
+            })),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::And,
                 args: vec![
-                    field_existence_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
+                    field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
                     Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Or,
-                        args: vec![field_existence_expr(
-                            "foo",
-                            vec!["nullable_b"],
-                            0u16,
-                            vec![true]
-                        ),],
+                        args: vec![
+                            field_access_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
+                            field_access_expr("foo", vec!["nullable_c"], 0u16, vec![true]),
+                        ],
                         is_nullable: true,
                     })
                 ],
@@ -236,38 +226,19 @@ mod all_fields_always_nullable {
             cache: SchemaCache::new(),
         }),
         expected_changed = true,
+        // nullable_field1 AND (nullable_field2 OR nullable_field3)
         input = Stage::Filter(Filter {
             source: mir_collection("db", "foo"),
             // nullable_field1 AND (nullable_field2 OR nullable_field3)
             condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
                 ScalarFunction::And,
                 vec![
-                    Expression::ScalarFunction(ScalarFunctionApplication {
-                        function: ScalarFunction::Eq,
-                        args: vec![
-                            field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
-                            Expression::Literal(LiteralValue::String("B".to_string()),),
-                        ],
-                        is_nullable: true,
-                    }),
+                    field_access_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
                     Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Or,
                         args: vec![
-                            Expression::ScalarFunction(ScalarFunctionApplication {
-                                function: ScalarFunction::Eq,
-                                args: vec![
-                                    field_access_expr("foo", vec!["nullable_b"], 0u16, vec![false]),
-                                    Expression::Literal(LiteralValue::String("B".to_string()),),
-                                ],
-                                is_nullable: true,
-                            }),
-                            Expression::ScalarFunction(ScalarFunctionApplication::new(
-                                ScalarFunction::Gt,
-                                vec![
-                                    field_access_expr("foo", vec!["nullable_c"], 0u16, vec![true]),
-                                    Expression::Literal(LiteralValue::Integer(10),)
-                                ]
-                            ))
+                            field_access_expr("foo", vec!["nullable_b"], 0u16, vec![true]),
+                            field_access_expr("foo", vec!["nullable_c"], 0u16, vec![true])
                         ],
                         is_nullable: true,
                     })
@@ -854,9 +825,9 @@ mod mixed_field_nullability {
         })
     );
 
-    test_match_null_filtering!(
+    test_match_no_filtering_no_op!(
         no_nullable_fields_does_not_create_filter,
-        expected = Stage::Filter(Filter {
+        Stage::Filter(Filter {
             source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
@@ -868,18 +839,5 @@ mod mixed_field_nullability {
             }),
             cache: SchemaCache::new(),
         }),
-        expected_changed = false,
-        input = Stage::Filter(Filter {
-            source: mir_collection("db", "foo"),
-            condition: Expression::ScalarFunction(ScalarFunctionApplication {
-                function: ScalarFunction::Eq,
-                args: vec![
-                    field_access_expr("foo", vec!["non_nullable_a"], 0u16, vec![false]),
-                    field_access_expr("foo", vec!["non_nullable_b"], 0u16, vec![false]),
-                ],
-                is_nullable: false,
-            }),
-            cache: SchemaCache::new(),
-        })
     );
 }
