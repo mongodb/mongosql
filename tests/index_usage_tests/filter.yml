@@ -147,13 +147,13 @@ tests:
   - description: OR compound filter uses index scan when fields are nullable
     current_db: index_usage_filter
     query: "SELECT * FROM nullable_fields WHERE a > 100 OR b > 3000"
+    skip_reason: "Re-enable test as part of https://jira.mongodb.org/browse/SQL-3049"
     expected_utilization: IX_SCAN
 
 
   - description: OR compound filter uses index scan when fields are non-nullable
     current_db: index_usage_filter
     query: "SELECT * FROM non_nullable_fields WHERE a > 100 OR b > 3000"
-    skip_reason: "Re-enable test as part of https://jira.mongodb.org/browse/SQL-3049"
     expected_utilization: IX_SCAN
 
   - description: complex filter uses index scan when fields are nullable
