@@ -35,6 +35,7 @@ impl MqlTranslator {
     fn translate_filter(&mut self, mir_filter: mir::Filter) -> Result<air::Stage> {
         let source_translation = self.translate_stage(*mir_filter.source)?;
         let expr_translation = self.translate_expression(mir_filter.condition)?;
+
         Ok(air::Stage::Match(air::Match::ExprLanguage(
             air::ExprLanguage {
                 source: Box::new(source_translation),

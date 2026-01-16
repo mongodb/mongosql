@@ -178,7 +178,7 @@ mod all_fields_always_nullable {
                             Expression::ScalarFunction(ScalarFunctionApplication {
                                 function: ScalarFunction::Eq,
                                 args: vec![
-                                    field_access_expr("foo", vec!["nullable_a"], 0u16, vec![false]),
+                                    field_access_expr("foo", vec!["nullable_a"], 0u16, vec![true]),
                                     Expression::Literal(LiteralValue::String("B".to_string()),),
                                 ],
                                 is_nullable: false,

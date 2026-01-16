@@ -1,11 +1,5 @@
 macro_rules! test_translate_expression {
-    (
-        $func_name:ident,
-        expected = $expected:expr,
-        input = $input:expr
-        $(, mapping_registry = $mapping_registry:expr)?
-        $(,)?
-    ) => {
+    ($func_name:ident, expected = $expected:expr, input = $input:expr, $(mapping_registry = $mapping_registry:expr,)?) => {
         #[test]
         fn $func_name() {
             use crate::{translator, mapping_registry::MqlMappingRegistry, options::SqlOptions};
@@ -15,7 +9,6 @@ macro_rules! test_translate_expression {
             #[allow(unused_mut, unused_assignments)]
             let mut mapping_registry = MqlMappingRegistry::default();
             $(mapping_registry = $mapping_registry;)?
-
 
             let translator = translator::MqlTranslator{
                 mapping_registry,
