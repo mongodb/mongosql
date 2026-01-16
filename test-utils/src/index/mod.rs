@@ -154,6 +154,7 @@ pub struct CursorStage {
 
 /// run_explain_aggregate runs the provided translation's pipeline against the
 /// provided client using an `explain` command that wraps an `aggregate`.
+#[allow(clippy::result_large_err)]
 pub fn run_explain_aggregate(
     client: &Client,
     translation: Translation,
@@ -184,6 +185,7 @@ pub fn run_explain_aggregate(
     deserialize_explain_result(result)
 }
 
+#[allow(clippy::result_large_err)]
 pub(crate) fn deserialize_explain_result(d: Document) -> Result<ExplainResult, Error> {
     let deserializer = bson::Deserializer::new(bson::Bson::Document(d));
     let deserializer = serde_stacker::Deserializer::new(deserializer);
@@ -191,6 +193,7 @@ pub(crate) fn deserialize_explain_result(d: Document) -> Result<ExplainResult, E
 }
 
 impl ExplainResult {
+    #[allow(clippy::result_large_err)]
     pub fn get_query_planner(&self) -> Result<QueryPlanner, Error> {
         match self.query_planner.clone() {
             Some(query_planner) => Ok(query_planner),
@@ -256,6 +259,7 @@ impl InputStage {
 
 /// as_index_utilization converts an ExecutionStage.stage type into an
 /// IndexUtilization value. Only COLLSCAN and IXSCAN are valid.
+#[allow(clippy::result_large_err)]
 pub fn as_index_utilization(stage_type: String) -> Result<IndexUtilization, Error> {
     match stage_type.as_str() {
         "COLLSCAN" => Ok(IndexUtilization::CollScan),
