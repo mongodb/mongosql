@@ -257,7 +257,6 @@ impl Visitor for NullableFieldAccessGatherer {
 
     fn visit_expression(&mut self, node: Expression) -> Expression {
         match node {
-
             // We do not want to null-filter operands of OR expressions since SQL OR semantics dictate
             // that if any operand is TRUE, the result of the OR is true. If we filter out nullish fields before
             // the OR, we may erroneously filter out rows that otherwise would have passed the OR filter.
