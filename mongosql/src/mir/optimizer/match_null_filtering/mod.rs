@@ -257,9 +257,7 @@ impl Visitor for NullableFieldAccessGatherer {
 
     fn visit_expression(&mut self, node: Expression) -> Expression {
         match node {
-            // If we encounter a "nullable" scalar function, meaning a scalar
-            // function with SQL-style semantics, then we want to collect
-            // nullable fields nested within that function's arguments.
+
             // We do not want to null-filter operands of OR expressions since SQL OR semantics dictate
             // that if any operand is TRUE, the result of the OR is true. If we filter out nullish fields before
             // the OR, we may erroneously filter out rows that otherwise would have passed the OR filter.
@@ -270,6 +268,9 @@ impl Visitor for NullableFieldAccessGatherer {
                 function: ScalarFunction::Or,
                 ..
             }) => node,
+            // If we encounter a "nullable" scalar function, meaning a scalar
+            // function with SQL-style semantics, then we want to collect
+            // nullable fields nested within that function's arguments.
             Expression::ScalarFunction(sf)
                 if sf.is_nullable && sf.function.mql_null_semantics_diverge() =>
             {
