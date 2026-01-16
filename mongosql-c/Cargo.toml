@@ -11,7 +11,7 @@ agg-ast = { path = "../agg-ast/ast" }
 base64 = { workspace = true }
 bson = { workspace = true }
 lazy_static = { workspace = true }
-libc = "0"
+libc = "0.2"
 mongosql = { path = "../mongosql" }
 serde = { workspace = true, features = ["derive"] }
 serde_stacker = { workspace = true }

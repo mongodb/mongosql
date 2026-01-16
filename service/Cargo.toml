@@ -23,34 +23,34 @@ path = "src/bin/generate_proto.rs"
 
 [dependencies]
 agg-ast = { path = "../agg-ast/ast" }
-prost = "0"
-tonic = "0"
+prost = "0.12.1"
+tonic = "0.10.2"
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 futures = { workspace = true }
-tonic-reflection = "0"
+tonic-reflection = "0.10.2"
 mongosql = { path = "../mongosql" }
 serde_json = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 bson = { workspace = true }
-tonic-build = "0"
-prometheus = "0"
-hyper = "1"
-log = { version = "0", features = ["kv"] }
-opentelemetry = "0"
-opentelemetry_sdk = { version = "0", features = ["rt-tokio", "trace"] }
-opentelemetry-otlp = "0"
-opentelemetry-stdout = "0"
+tonic-build = "0.10.2"
+prometheus = "0.13.4"
+hyper = "0.14.30"
+log = { version = "0.4.22", features = ["kv"] }
+opentelemetry = "0.24.0"
+opentelemetry_sdk = { version = "0.24.1", features = ["rt-tokio", "trace"] }
+opentelemetry-otlp = "0.17.0"
+opentelemetry-stdout = "0.5.0"
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter", "fmt", "chrono", "time"]}
 
 [dev-dependencies]
-uuid = { version = "1", features = ["v4", "fast-rng"] }
-futures-util = "0"
+uuid = { version = "1.2.2", features = ["v4", "fast-rng"] }
+futures-util = "0.3.25"
 anyhow = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
-opentelemetry_sdk = { version = "0", features = ["testing", "trace"] }
-reqwest = { version = "0", features = ["blocking"] }
+opentelemetry_sdk = { version = "0.24.1", features = ["testing", "trace"] }
+reqwest = { version = "0.11", features = ["blocking"] }
 
 [features]
 integration = []

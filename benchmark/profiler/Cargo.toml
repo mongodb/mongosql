@@ -20,8 +20,8 @@ serde_json = { workspace = true }
 lazy_static = { workspace = true }
 
 [target.'cfg(not(windows))'.dev-dependencies]
-criterion = "0"
-pprof = { version = "0", features = ["flamegraph", "criterion"] }
+criterion = "0.5.1"
+pprof = { version = "0.13.0", features = ["flamegraph", "criterion"] }
 
 [[bench]]
 name = "profile"
