@@ -27,6 +27,7 @@ pub mod schema_derivation;
 pub use schema_derivation::*;
 pub mod e2e_db_manager;
 
+#[allow(clippy::result_large_err)]
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("failed to read directory: {0:?}")]
@@ -45,7 +46,6 @@ pub enum Error {
     MongoDBDrop(String, mongodb::error::Error),
     #[error("failed to insert into '{0}.{1}': {2:?}")]
     MongoDBInsert(String, String, mongodb::error::Error),
-    #[allow(clippy::result_large_err)]
     #[error("failed to create indexes for '{0}.{1}': {2:?}")]
     MongoDBCreateIndexes(String, String, mongodb::error::Error),
     #[error("failed to convert schema to MongoSql model: {0:?}")]
