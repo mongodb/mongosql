@@ -45,6 +45,7 @@ pub enum Error {
     MongoDBDrop(String, mongodb::error::Error),
     #[error("failed to insert into '{0}.{1}': {2:?}")]
     MongoDBInsert(String, String, mongodb::error::Error),
+    #[allow(clippy::result_large_err)]
     #[error("failed to create indexes for '{0}.{1}': {2:?}")]
     MongoDBCreateIndexes(String, String, mongodb::error::Error),
     #[error("failed to convert schema to MongoSql model: {0:?}")]
