@@ -206,7 +206,6 @@ functions:
         local_file: mongosql-rs/release/macos-arm64/libmongosql.a
     - command: s3.put
       params:
-        <<: *evg_bucket_config
         local_file: mongosql-rs/release/macos-arm64/libmongosql.a
         remote_file: mongosql-rs/macos-arm64/${release_version}/libmongosql.a
         bucket: translators-connectors-releases
