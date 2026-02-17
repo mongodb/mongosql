@@ -2184,9 +2184,6 @@ impl Document {
     /// are processed. Documents that are a subset or superset of each other will be considered
     /// equivalent and will always have a JaccardIndex of 1.
     pub fn union(self, other: Document) -> Document {
-        if self == Document::any() || other == Document::any() {
-            return Document::any();
-        }
         if self.unstable {
             return Document {
                 additional_properties: true,
