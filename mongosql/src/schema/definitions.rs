@@ -552,6 +552,7 @@ pub struct Document {
     pub additional_properties: bool,
     // JaccardIndex is an optional field that is used to track the stability of the schema
     pub jaccard_index: Option<JaccardIndex>,
+    pub unstable: bool,
 }
 
 impl PartialEq for Document {
@@ -817,6 +818,7 @@ lazy_static! {
             required: set!["coordinates".to_string()],
             additional_properties: false,
             jaccard_index: None,
+            unstable: false,
         }),
         Schema::Array(Box::new(NUMERIC.clone())),
     ]);
@@ -874,6 +876,7 @@ lazy_static! {
             required: set!["coordinates".to_string()],
             additional_properties: false,
             jaccard_index: None,
+            unstable: false,
         }),
         Schema::Array(Box::new(NUMERIC.clone())),
         Schema::Atomic(Atomic::Null),
@@ -2209,6 +2212,7 @@ impl Document {
                     additional_properties: self.additional_properties
                         || other.additional_properties,
                     jaccard_index: Some(jaccard_index),
+                    unstable: self.unstable || other.unstable,
                 }
             }
         } else {
@@ -2263,6 +2267,7 @@ impl Document {
             required: self.required.into_iter().chain(other.required).collect(),
             additional_properties: self.additional_properties || other.additional_properties,
             jaccard_index,
+            unstable: self.unstable || other.unstable,
         }
     }
 

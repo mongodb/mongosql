@@ -425,7 +425,7 @@ mod array_ops {
             },
             required: set! {"i".to_string(), "f".to_string(), "r".to_string()},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })
     );
     test_derive_expression_schema!(
@@ -442,7 +442,7 @@ mod array_ops {
             },
             required: set! {},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })
     );
     test_derive_expression_schema!(
@@ -465,7 +465,7 @@ mod array_ops {
             },
             required: set! {"i".to_string(), "f".to_string(), "r".to_string()},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })
     );
     test_derive_expression_schema!(
@@ -482,7 +482,7 @@ mod array_ops {
             },
             required: set! {},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })
     );
 }

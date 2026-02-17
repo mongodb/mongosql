@@ -476,7 +476,7 @@ impl DeriveSchema for Stage {
                         },
                     required: set!("scoreDetails".to_string()),
                     additional_properties: false,
-                    jaccard_index: None,
+                    ..Default::default()
                 };
 
                 // Merge the pipeline schema and score details schema together

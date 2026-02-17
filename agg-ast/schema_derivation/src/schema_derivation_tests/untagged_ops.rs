@@ -931,7 +931,7 @@ mod numeric_ops {
             // Nullability implied by lack of requirement
             required: set! {},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })
     );
 }
@@ -1003,7 +1003,7 @@ mod misc_ops {
             // Nullability implied by lack of requirement
             required: set! {},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })
     );
     test_derive_expression_schema!(
@@ -1020,7 +1020,7 @@ mod misc_ops {
             // Nullability implied by lack of requirement
             required: set! {"bar".to_string()},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })
     );
     test_derive_expression_schema!(
@@ -1045,7 +1045,7 @@ mod misc_ops {
             // Nullability implied by lack of requirement
             required: set! {},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })
     );
     test_derive_expression_schema!(
@@ -1069,7 +1069,7 @@ mod misc_ops {
             // Nullability implied by lack of requirement
             required: set! {"r".to_string()},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })
     );
     test_derive_expression_schema!(
@@ -1090,7 +1090,7 @@ mod misc_ops {
             // Nullability implied by lack of requirement
             required: set! {},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })
     );
 
@@ -1104,7 +1104,7 @@ mod misc_ops {
             },
             required: set! {"a".to_string(), "b".to_string()},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })),
         input = r#"{"$mergeObjects": [{"a": 1}, {"b": "yes"}]}"#
     );
@@ -1116,7 +1116,7 @@ mod misc_ops {
             },
             required: set! {"a".to_string()},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })),
         input = r#"{"$mergeObjects": [{"a": 1}, {"a": 2}]}"#
     );
@@ -1128,7 +1128,7 @@ mod misc_ops {
             },
             required: set! {"a".to_string()},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })),
         input = r#"{"$mergeObjects": [{"a": 1}, {"a": true}]}"#
     );
@@ -1141,7 +1141,7 @@ mod misc_ops {
             },
             required: set! {"a".to_string(), "b".to_string()},
             additional_properties: true,
-            jaccard_index: None,
+            ..Default::default()
         })),
         input = r#"{"$mergeObjects": [{"a": 1}, null, {"b": "yes"}, "$missing"]}"#
     );
@@ -1151,7 +1151,7 @@ mod misc_ops {
             keys: map! {},
             required: set! {},
             additional_properties: true,
-            jaccard_index: None,
+            ..Default::default()
         })),
         input = r#"{"$mergeObjects": [null, null, "$missing"]}"#
     );
@@ -1165,7 +1165,7 @@ mod misc_ops {
             },
             required: set! {"a".to_string()},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })),
         input = r#"{"$mergeObjects": [{"a": 1}, "$foo", "$bar", "$missing"]}"#,
         starting_schema = Schema::Document(Document {
@@ -1178,7 +1178,7 @@ mod misc_ops {
                         },
                         required: set! {"b".to_string()},
                         additional_properties: false,
-                        jaccard_index: None,
+                        ..Default::default()
                     }),
                 }),
                 "bar".to_string() => Schema::Document(Document {
@@ -1187,12 +1187,12 @@ mod misc_ops {
                     },
                     required: set! {"c".to_string()},
                     additional_properties: false,
-                    jaccard_index: None,
+                    ..Default::default()
                 }),
             },
             required: set! {"foo".to_string()},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })
     );
     test_derive_expression_schema!(
@@ -1205,7 +1205,7 @@ mod misc_ops {
             },
             required: set! {"b".to_string(), "c".to_string()},
             additional_properties: true,
-            jaccard_index: None,
+            ..Default::default()
         })),
         input = r#"{"$mergeObjects": ["$foo", {"c": true}]}"#,
         starting_schema = Schema::Document(Document {
@@ -1217,7 +1217,7 @@ mod misc_ops {
                         },
                         required: set! {"b".to_string()},
                         additional_properties: true,
-                        jaccard_index: None,
+                        ..Default::default()
                     }),
                     Schema::Document(Document {
                         keys: map! {
@@ -1226,13 +1226,13 @@ mod misc_ops {
                         },
                         required: set! {"b".to_string()},
                         additional_properties: false,
-                        jaccard_index: None,
+                        ..Default::default()
                     }),
                 }),
             },
             required: set! {"foo".to_string()},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })
     );
     test_derive_expression_schema!(
@@ -1246,7 +1246,7 @@ mod misc_ops {
             },
             required: set! {"a".to_string()},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })),
         input = r#"{"$mergeObjects": ["$foo", "$bar"]}"#,
         starting_schema = Schema::Document(Document {
@@ -1257,7 +1257,7 @@ mod misc_ops {
                     },
                     required: set! {"a".to_string()},
                     additional_properties: false,
-                    jaccard_index: None,
+                    ..Default::default()
                 }),
                 "bar".to_string() => Schema::Document(Document {
                     keys: map! {
@@ -1267,12 +1267,12 @@ mod misc_ops {
                     // is not required.
                     required: set! {},
                     additional_properties: false,
-                    jaccard_index: None,
+                    ..Default::default()
                 }),
             },
             required: set! {"foo".to_string(), "bar".to_string()},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })
     );
     // $objectToArray
@@ -1285,7 +1285,7 @@ mod misc_ops {
             },
             required: set! {"k".to_string(), "v".to_string()},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })))),
         input = r#"{"$objectToArray": {}}"#
     );
@@ -1298,7 +1298,7 @@ mod misc_ops {
             },
             required: set! {"k".to_string(), "v".to_string()},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })))),
         input = r#"{"$objectToArray": {"a": 1}}"#
     );
@@ -1315,7 +1315,7 @@ mod misc_ops {
             },
             required: set! {"k".to_string(), "v".to_string()},
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })))),
         input = r#"{"$objectToArray": {"a": 1, "b": true, "c": "yes"}}"#
     );
