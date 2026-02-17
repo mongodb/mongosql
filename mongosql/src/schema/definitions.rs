@@ -2167,16 +2167,37 @@ impl Document {
     /// all document values matched by either `self` or `other`. Additional properties will
     /// be allowed if either `self` or `other` allows them.
     ///
-    /// If either of the two documents has a JaccardIndex, the union calculates the moving
-    /// average. Once the 5th union is reached, each union will inspect the index
-    /// and return a Document that allows any properties if the index is less than the
-    /// stability_limit specified in the JaccardIndex struct. Prior to comparison, the inverse
-    /// of the numer of unions is added to the average Jaccard index to allow for some variance,
-    /// becoming more sensitive as more unions are processed. Documents that are a subset or superset
-    /// of each other will be considered equivalent and will always have a JaccardIndex of 1.
+    /// If either of the two documents is unstable -- meaning a previous union caused the document's
+    /// JaccardIndex to exceed the stability limit -- union is not attempted. Instead, an unstable
+    /// schema will be returned with additional_properties set to true. If `self` is unstable,
+    /// `self` is returned with additional_properties updated to true; if only `other` is unstable,
+    /// `other` is returned with additional_properties updated to true. This pattern prefers the
+    /// unstable schema since instability implies more information is stored in the schema. When
+    /// both are unstable, `self` is preferred. When instability is possible, it is advised that
+    /// callers provide the preferred schema as `self`.
+    ///
+    /// If either of the two documents has a JaccardIndex, the union calculates the moving average.
+    /// Once the 5th union is reached, each union will inspect the index. If the index is less than
+    /// the stability_limit specified in the JaccardIndex, the union will proceed but will also mark
+    /// the schema as unstable. Prior to comparison, the inverse of the number of unions is added to
+    /// the average Jaccard index to allow for some variance, becoming more sensitive as more unions
+    /// are processed. Documents that are a subset or superset of each other will be considered
+    /// equivalent and will always have a JaccardIndex of 1.
     pub fn union(self, other: Document) -> Document {
         if self == Document::any() || other == Document::any() {
             return Document::any();
+        }
+        if self.unstable {
+            return Document {
+                additional_properties: true,
+                ..self
+            };
+        }
+        if other.unstable {
+            return Document {
+                additional_properties: true,
+                ..other
+            };
         }
         if let Some(jaccard_index) = Document::get_jaccard_index(&self, &other) {
             let union = Document::union_keys(self.keys.clone(), other.keys.clone());
@@ -2197,23 +2218,19 @@ impl Document {
 
             // as the number of unions grows, this number will become smaller and smaller
             let stabilization_rate = 1.0 / jaccard_index.num_unions as f64;
-            if jaccard_index.num_unions >= 5
-                && (jaccard_index.avg_ji + stabilization_rate) < jaccard_index.stability_limit
-            {
-                Document::any()
-            } else {
-                Document {
-                    keys: union,
-                    required: self
-                        .required
-                        .intersection(&other.required)
-                        .cloned()
-                        .collect(),
-                    additional_properties: self.additional_properties
-                        || other.additional_properties,
-                    jaccard_index: Some(jaccard_index),
-                    unstable: self.unstable || other.unstable,
-                }
+            let unstable = jaccard_index.num_unions >= 5
+                && (jaccard_index.avg_ji + stabilization_rate) < jaccard_index.stability_limit;
+
+            Document {
+                keys: union,
+                required: self
+                    .required
+                    .intersection(&other.required)
+                    .cloned()
+                    .collect(),
+                additional_properties: self.additional_properties || other.additional_properties,
+                jaccard_index: Some(jaccard_index),
+                unstable,
             }
         } else {
             Document {
