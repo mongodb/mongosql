@@ -1636,6 +1636,96 @@ mod document_union {
             }),
         ])
     );
+    test_document_union!(
+        left_is_unstable_returns_left_with_additional_properties_true,
+        expected = Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".into()},
+            additional_properties: true,
+            jaccard_index: None,
+            unstable: true,
+        }),
+        schema1 = Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".into()},
+            additional_properties: false,
+            jaccard_index: None,
+            unstable: true,
+        }),
+        schema2 = Schema::Document(Document {
+            keys: map! {
+                "b".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"b".into()},
+            additional_properties: false,
+            jaccard_index: None,
+            unstable: false,
+        }),
+    );
+    test_document_union!(
+        left_and_right_are_unstable_returns_left_with_additional_properties_true,
+        expected = Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".into()},
+            additional_properties: true,
+            jaccard_index: None,
+            unstable: true,
+        }),
+        schema1 = Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".into()},
+            additional_properties: false,
+            jaccard_index: None,
+            unstable: true,
+        }),
+        schema2 = Schema::Document(Document {
+            keys: map! {
+                "b".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"b".into()},
+            additional_properties: false,
+            jaccard_index: None,
+            unstable: true,
+        }),
+    );
+    test_document_union!(
+        only_right_is_unstable_returns_right_with_additional_properties_true,
+        expected = Schema::Document(Document {
+            keys: map! {
+                "b".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"b".into()},
+            additional_properties: true,
+            jaccard_index: None,
+            unstable: true,
+        }),
+        schema1 = Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".into()},
+            additional_properties: false,
+            jaccard_index: None,
+            unstable: false,
+        }),
+        schema2 = Schema::Document(Document {
+            keys: map! {
+                "b".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"b".into()},
+            additional_properties: false,
+            jaccard_index: None,
+            unstable: true,
+        }),
+    );
 }
 
 // +---------------------+
