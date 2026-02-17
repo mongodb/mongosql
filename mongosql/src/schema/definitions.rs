@@ -560,6 +560,7 @@ impl PartialEq for Document {
         self.keys == other.keys
             && self.required == other.required
             && self.additional_properties == other.additional_properties
+            && self.unstable == other.unstable
     }
 }
 

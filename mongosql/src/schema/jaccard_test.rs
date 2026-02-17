@@ -182,7 +182,7 @@ mod jaccard {
                 num_unions: 4,
                 stability_limit: 0.8,
             }),
-            unstable: true,
+            unstable: false,
         }));
     }
 
