@@ -985,6 +985,15 @@ impl Schema {
         }
     }
 
+    /// Returns whether a schema is unstable. Only Document schemas are possibly unstable.
+    pub fn is_unstable(&self) -> bool {
+        match self {
+            Schema::Document(d) => d.unstable,
+            Schema::AnyOf(a) => a.iter().any(|s| s.is_unstable()),
+            _ => false,
+        }
+    }
+
     /// returns a simplified version of this schema.
     pub fn simplify(schema: &Schema) -> Schema {
         // remove_missing removes all Missing types from the given Schema. It should
