@@ -545,6 +545,8 @@ impl Ord for JaccardIndex {
     }
 }
 
+pub const MAX_NUM_DOC_UNIONS: u32 = 5;
+
 #[derive(Eq, PartialOrd, Ord, Clone, Default)]
 pub struct Document {
     pub keys: BTreeMap<String, Schema>,
@@ -2216,7 +2218,7 @@ impl Document {
 
             // as the number of unions grows, this number will become smaller and smaller
             let stabilization_rate = 1.0 / jaccard_index.num_unions as f64;
-            let unstable = jaccard_index.num_unions >= 5
+            let unstable = jaccard_index.num_unions >= MAX_NUM_DOC_UNIONS
                 && (jaccard_index.avg_ji + stabilization_rate) < jaccard_index.stability_limit;
 
             Document {
