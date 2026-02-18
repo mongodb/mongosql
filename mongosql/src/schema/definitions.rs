@@ -2177,37 +2177,73 @@ impl Document {
 
     /// union unions together two Schema::Documents returning a single Document schema that matches
     /// all document values matched by either `self` or `other`. Additional properties will
-    /// be allowed if either `self` or `other` allows them.
+    /// be allowed if either `self` or `other` allows them. There are caveats to this if either
+    /// Document is unstable or if either has a JaccardIndex. See below.
     ///
-    /// If either of the two documents is unstable -- meaning a previous union caused the document's
-    /// JaccardIndex to exceed the stability limit -- union is not attempted. Instead, an unstable
-    /// schema will be returned with additional_properties set to true. If `self` is unstable,
-    /// `self` is returned with additional_properties updated to true; if only `other` is unstable,
-    /// `other` is returned with additional_properties updated to true. This pattern prefers the
-    /// unstable schema since instability implies more information is stored in the schema. When
-    /// both are unstable, `self` is preferred. When instability is possible, it is advised that
-    /// callers provide the preferred schema as `self`.
+    /// If both Documents are stable, if either of the two documents has a JaccardIndex, the union
+    /// calculates the moving average. Once the 5th union is reached, each union will inspect the
+    /// index. If the index is less than the stability_limit specified in the JaccardIndex, the
+    /// union will proceed but will also mark the schema as unstable. Prior to comparison, the
+    /// inverse of the number of unions is added to the average Jaccard index to allow for some
+    /// variance, becoming more sensitive as more unions are processed. Documents that are a subset
+    /// or superset of each other will be considered equivalent and will always have a
+    /// JaccardIndex of 1.
     ///
-    /// If either of the two documents has a JaccardIndex, the union calculates the moving average.
-    /// Once the 5th union is reached, each union will inspect the index. If the index is less than
-    /// the stability_limit specified in the JaccardIndex, the union will proceed but will also mark
-    /// the schema as unstable. Prior to comparison, the inverse of the number of unions is added to
-    /// the average Jaccard index to allow for some variance, becoming more sensitive as more unions
-    /// are processed. Documents that are a subset or superset of each other will be considered
-    /// equivalent and will always have a JaccardIndex of 1.
+    /// If both Documents are stable and neither has a JaccardIndex, the union will proceed as
+    /// initially described: returning a single Document schema that matches all document values
+    /// matched by either `self` or `other`. Additional properties will be allowed if either `self`
+    /// or `other` allows them.
+    ///
+    /// If exactly one of `self` or `other` is unstable -- meaning a previous union caused the
+    /// document's JaccardIndex to exceed the stability limit -- union is not attempted. Instead,
+    /// the stable schema will be returned with additional_properties set to true and the unstable
+    /// flag set to true.
+    ///
+    /// If both of the two documents is unstable, union is not attempted. Instead, the unstable
+    /// schema with the higher avg_ji value will be returned with additional_properties set to true.
+    /// If the avg_ji value is equal, then `self` is preferred.
     pub fn union(self, other: Document) -> Document {
-        if self.unstable {
+        // If only self is stable and other is unstable, prefer self.
+        if !self.unstable && other.unstable {
             return Document {
                 additional_properties: true,
+                unstable: true,
                 ..self
             };
         }
-        if other.unstable {
+        // If only other is stable and self is unstable, prefer other.
+        if self.unstable && !other.unstable {
             return Document {
                 additional_properties: true,
+                unstable: true,
                 ..other
             };
         }
+
+        if self.unstable && other.unstable {
+            let pref_doc = match (self.jaccard_index, other.jaccard_index) {
+                // If neither has a JaccardIndex, or only Self has one, prefer self.
+                (None, None) | (Some(_), None) => self,
+                // If only other has one, prefer other.
+                (None, Some(_)) => other,
+                // If both have a JaccardIndex, prefer the one with the larger avg_ji value. If
+                // those values are equal, prefer self.
+                (Some(self_ji), Some(other_ji)) => {
+                    if self_ji.avg_ji >= other_ji.avg_ji {
+                        self
+                    } else {
+                        other
+                    }
+                }
+            };
+            return Document {
+                additional_properties: true,
+                ..pref_doc
+            };
+        }
+
+        // If both are stable, attempt to union using Jaccard Index information, or union "normally"
+        // if no JaccardIndex info is present.
         if let Some(jaccard_index) = Document::get_jaccard_index(&self, &other) {
             let union = Document::union_keys(self.keys.clone(), other.keys.clone());
             let left_keys = self.keys.keys().collect::<HashSet<_>>();
