@@ -218,6 +218,226 @@ mod jaccard {
     }
 
     #[test]
+    fn union_stable_and_unstable_schemas_returns_the_stable_schema_marked_as_unstable() {
+        let stable_doc = Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer)
+            },
+            required: set! {"a".into()},
+            additional_properties: false,
+            // In this example, we assume we've unioned 10 documents that all had the same schema.
+            jaccard_index: Some(JaccardIndex {
+                avg_ji: 1.0,
+                num_unions: 10,
+                stability_limit: 0.8,
+            }),
+            unstable: false,
+        };
+
+        let unstable_doc = Document {
+            keys: map! {
+                "b".into() => Schema::Atomic(Atomic::Integer),
+                "c".into() => Schema::Atomic(Atomic::Integer),
+                "d".into() => Schema::Atomic(Atomic::Integer),
+                "e".into() => Schema::Atomic(Atomic::Integer),
+                "f".into() => Schema::Atomic(Atomic::Integer),
+                "g".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {},
+            additional_properties: false,
+            // In this example, we assume we've unioned 5 documents that all had unique schema.
+            jaccard_index: Some(JaccardIndex {
+                avg_ji: 0.0,
+                num_unions: 5,
+                stability_limit: 0.8,
+            }),
+            unstable: true,
+        };
+
+        // When we union a stable document and an unstable document, we want to retain the stable
+        // schema but also mark it as unstable and set additional_properties to true.
+        let new_doc = stable_doc.clone().union(unstable_doc.clone());
+        assert!(
+            new_doc.eq_with_jaccard_index(&Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into()},
+                additional_properties: true,
+                jaccard_index: Some(JaccardIndex {
+                    // ((weighted avg_ji for stable_doc and unstable_doc) * total # unions) / (total # unions + 1)
+                    avg_ji: (10f64 * 15f64) / 16f64,
+                    // 10 unions from stable_doc + 5 unions from unstable_doc + 1 union of them together
+                    num_unions: 16,
+                    stability_limit: 0.8,
+                }),
+                unstable: true,
+            }),
+            "Incorrect document union result"
+        );
+
+        // Order should not impact this behavior
+        let new_doc = unstable_doc.union(stable_doc);
+        assert!(
+            new_doc.eq_with_jaccard_index(&Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into()},
+                additional_properties: true,
+                jaccard_index: Some(JaccardIndex {
+                    // ((weighted avg_ji for stable_doc and unstable_doc) * total # unions) / (total # unions + 1)
+                    avg_ji: (10f64 * 15f64) / 16f64,
+                    // 10 unions from stable_doc + 5 unions from unstable_doc + 1 union of them together
+                    num_unions: 16,
+                    stability_limit: 0.8,
+                }),
+                unstable: true,
+            }),
+            "Incorrect document union result"
+        );
+    }
+
+    #[test]
+    fn union_between_unstable_docs_prefers_schema_with_larger_avg_ji() {
+        // Recall that the updated avg_ji is computed with the formula:
+        //   new_avg_ji = (prev_avg_ji * num_unions + intersection_size / union_size) / (num_unions + 1)
+        // Assume this document schema is the result of unioning the following 6 documents:
+        // 1. { a: 1 }
+        // 2. { a: 1, b: 1 }
+        // 3. { a: 1, c: 1 }
+        // 4. { a: 1, d: 1 }
+        // 5. { a: 1, e: 1 }
+        // 6. { a: 1, f: 1 }
+        // That results in the Jaccard Index updating as follows as each document is unioned:
+        // 1. num_unions = 0, avg_ji = 1
+        // 2. num_unions = 1, avg_ji = 1 / 2
+        // 3. num_unions = 2, avg_ji = (1/2 * 1 + 1/3) / 2 = 5 / 12
+        // 4. num_unions = 3, avg_ji = (5/12 * 2 + 1/4) / 3 = 13 / 36
+        // 5. num_unions = 4, avg_ji = (13/36 * 3 + 1/5) / 4 = 77 / 240
+        // 6. num_unions = 5, avg_ji = (77/240 * 4 + 1/6) / 5 = 29 / 100
+        let unstable_doc_1 = Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+                "b".into() => Schema::Atomic(Atomic::Integer),
+                "c".into() => Schema::Atomic(Atomic::Integer),
+                "d".into() => Schema::Atomic(Atomic::Integer),
+                "e".into() => Schema::Atomic(Atomic::Integer),
+                "f".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".into()},
+            additional_properties: false,
+            jaccard_index: Some(JaccardIndex {
+                avg_ji: 0.29,
+                num_unions: 5,
+                stability_limit: 0.8,
+            }),
+            unstable: true,
+        };
+
+        // Assume this document schema is the result of unioning the following 6 documents:
+        // 1. { a: 1 }
+        // 2. { a: 1, b: 1 }
+        // 3. { a: 1, c: 1 }
+        // 4. { a: 1, d: 1 }
+        // 5. { a: 1, e: 1 }
+        // 6. { f: 1 }
+        // That results in the Jaccard Index updating as follows as each document is unioned:
+        // 1. num_unions = 0, avg_ji = 1
+        // 2. num_unions = 1, avg_ji = 1 / 2
+        // 3. num_unions = 2, avg_ji = (1/2 * 1 + 1/3) / 2 = 5 / 12
+        // 4. num_unions = 3, avg_ji = (5/12 * 2 + 1/4) / 3 = 13 / 36
+        // 5. num_unions = 4, avg_ji = (13/36 * 3 + 1/5) / 4 = 77 / 240
+        // 6. num_unions = 5, avg_ji = (77/240 * 4 + 0/6) / 5 = 77 / 300
+        let unstable_doc_2 = Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+                "b".into() => Schema::Atomic(Atomic::Integer),
+                "c".into() => Schema::Atomic(Atomic::Integer),
+                "d".into() => Schema::Atomic(Atomic::Integer),
+                "e".into() => Schema::Atomic(Atomic::Integer),
+                "f".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {},
+            additional_properties: false,
+            jaccard_index: Some(JaccardIndex {
+                avg_ji: 0.256, // estimated value, the true value is .256666...
+                num_unions: 5,
+                stability_limit: 0.8,
+            }),
+            unstable: true,
+        };
+
+        // When we union an unstable document and an unstable document, we want to retain schema
+        // with the higher avg_ji value and mark it with additional_properties true.
+        let new_doc = unstable_doc_1.clone().union(unstable_doc_2.clone());
+        assert!(new_doc.eq_with_jaccard_index(&Document {
+            additional_properties: true,
+            ..unstable_doc_1.clone()
+        }));
+
+        // Order should not impact this behavior
+        let new_doc = unstable_doc_2.union(unstable_doc_1.clone());
+        assert!(new_doc.eq_with_jaccard_index(&Document {
+            additional_properties: true,
+            ..unstable_doc_1
+        }));
+    }
+
+    #[test]
+    fn union_between_unstable_docs_with_equal_avg_ji_prefers_left() {
+        let unstable_doc_1 = Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+                "b".into() => Schema::Atomic(Atomic::Integer),
+                "c".into() => Schema::Atomic(Atomic::Integer),
+                "d".into() => Schema::Atomic(Atomic::Integer),
+                "e".into() => Schema::Atomic(Atomic::Integer),
+                "f".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".into()},
+            additional_properties: false,
+            jaccard_index: Some(JaccardIndex {
+                avg_ji: 0.29,
+                num_unions: 5,
+                stability_limit: 0.8,
+            }),
+            unstable: true,
+        };
+
+        let unstable_doc_2 = Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+                "b".into() => Schema::Atomic(Atomic::Integer),
+                "c".into() => Schema::Atomic(Atomic::Integer),
+                "d".into() => Schema::Atomic(Atomic::Integer),
+                "e".into() => Schema::Atomic(Atomic::Integer),
+                "f".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"b".into()},
+            additional_properties: false,
+            jaccard_index: Some(JaccardIndex {
+                avg_ji: 0.29,
+                num_unions: 5,
+                stability_limit: 0.8,
+            }),
+            unstable: true,
+        };
+
+        let new_doc = unstable_doc_1.clone().union(unstable_doc_2.clone());
+        assert!(new_doc.eq_with_jaccard_index(&Document {
+            additional_properties: true,
+            ..unstable_doc_1.clone()
+        }));
+
+        let new_doc = unstable_doc_2.clone().union(unstable_doc_1);
+        assert!(new_doc.eq_with_jaccard_index(&Document {
+            additional_properties: true,
+            ..unstable_doc_2
+        }))
+    }
+
+    #[test]
     fn stable_docs() {
         let a_doc = Document {
             keys: map! {
