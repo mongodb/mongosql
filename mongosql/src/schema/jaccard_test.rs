@@ -254,46 +254,34 @@ mod jaccard {
             unstable: true,
         };
 
+        let expected_doc = Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".into()},
+            additional_properties: true,
+            jaccard_index: Some(JaccardIndex {
+                // ((weighted avg_ji for stable_doc and unstable_doc) * total # unions) / (total # unions + 1)
+                avg_ji: (10f64 * 15f64) / 16f64,
+                // 10 unions from stable_doc + 5 unions from unstable_doc + 1 union of them together
+                num_unions: 16,
+                stability_limit: 0.8,
+            }),
+            unstable: true,
+        };
+
         // When we union a stable document and an unstable document, we want to retain the stable
         // schema but also mark it as unstable and set additional_properties to true.
-        let new_doc = stable_doc.clone().union(unstable_doc.clone());
+        let actual_doc = stable_doc.clone().union(unstable_doc.clone());
         assert!(
-            new_doc.eq_with_jaccard_index(&Document {
-                keys: map! {
-                    "a".into() => Schema::Atomic(Atomic::Integer),
-                },
-                required: set! {"a".into()},
-                additional_properties: true,
-                jaccard_index: Some(JaccardIndex {
-                    // ((weighted avg_ji for stable_doc and unstable_doc) * total # unions) / (total # unions + 1)
-                    avg_ji: (10f64 * 15f64) / 16f64,
-                    // 10 unions from stable_doc + 5 unions from unstable_doc + 1 union of them together
-                    num_unions: 16,
-                    stability_limit: 0.8,
-                }),
-                unstable: true,
-            }),
+            actual_doc.eq_with_jaccard_index(&expected_doc),
             "Incorrect document union result"
         );
 
         // Order should not impact this behavior
-        let new_doc = unstable_doc.union(stable_doc);
+        let actual_doc = unstable_doc.union(stable_doc);
         assert!(
-            new_doc.eq_with_jaccard_index(&Document {
-                keys: map! {
-                    "a".into() => Schema::Atomic(Atomic::Integer),
-                },
-                required: set! {"a".into()},
-                additional_properties: true,
-                jaccard_index: Some(JaccardIndex {
-                    // ((weighted avg_ji for stable_doc and unstable_doc) * total # unions) / (total # unions + 1)
-                    avg_ji: (10f64 * 15f64) / 16f64,
-                    // 10 unions from stable_doc + 5 unions from unstable_doc + 1 union of them together
-                    num_unions: 16,
-                    stability_limit: 0.8,
-                }),
-                unstable: true,
-            }),
+            actual_doc.eq_with_jaccard_index(&expected_doc),
             "Incorrect document union result"
         );
     }
