@@ -2199,7 +2199,7 @@ impl Document {
     /// the stable schema will be returned with additional_properties set to true and the unstable
     /// flag set to true.
     ///
-    /// If both of the two documents is unstable, union is not attempted. Instead, the unstable
+    /// If both of the two documents are unstable, union is not attempted. Instead, the unstable
     /// schema with the higher avg_ji value will be returned with additional_properties set to true.
     /// If the avg_ji value is equal, then `self` is preferred.
     pub fn union(self, other: Document) -> Document {
