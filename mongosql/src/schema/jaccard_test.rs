@@ -482,15 +482,13 @@ mod jaccard {
             jaccard_index: JaccardIndex::default().into(),
             ..Default::default()
         };
-        let new_doc = iter::repeat(a_doc.clone())
-            .take(MAX_NUM_DOC_UNIONS as usize / 2)
+        let new_doc = iter::repeat_n(a_doc.clone(), MAX_NUM_DOC_UNIONS as usize / 2)
             .reduce(|acc, doc| acc.union(doc))
             .unwrap();
         let new_doc = new_doc
             .union(DOC_SCHEMAS[&"a2".to_string()].clone())
             .union(DOC_SCHEMAS[&"a3".to_string()].clone());
-        let new_doc = iter::repeat(a_doc.clone())
-            .take(MAX_NUM_DOC_UNIONS as usize / 2 - 2)
+        let new_doc = iter::repeat_n(a_doc.clone(), MAX_NUM_DOC_UNIONS as usize / 2 - 2)
             .fold(new_doc, |acc, doc| acc.union(doc));
 
         assert!(!new_doc.unstable);
@@ -509,8 +507,7 @@ mod jaccard {
             ..Default::default()
         };
         let num_stable_unions = MAX_NUM_DOC_UNIONS as usize / 2;
-        let new_doc = iter::repeat(a_doc.clone())
-            .take(num_stable_unions)
+        let new_doc = iter::repeat_n(a_doc.clone(), num_stable_unions)
             .reduce(|acc, doc| acc.union(doc))
             .unwrap();
         let new_doc = n_chars_iter!(MAX_NUM_DOC_UNIONS as usize - num_stable_unions + 1)
