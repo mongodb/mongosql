@@ -2115,7 +2115,7 @@ impl Document {
         mut m1: BTreeMap<String, Schema>,
         m2: &BTreeMap<String, Schema>,
     ) -> BTreeMap<String, Schema> {
-        for (key, s1) in m2.into_iter() {
+        for (key, s1) in m2.iter() {
             if let Some(s2) = m1.remove(key) {
                 m1.insert(key.clone(), s1.union(&s2));
             }
