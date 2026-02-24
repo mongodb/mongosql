@@ -2111,14 +2111,13 @@ impl Document {
 
     /// retain_keys retains keys from the m1 map argument, creating an AnyOf for the Schema of any
     /// that overlap, and ignoring the keys from the m2 map that are not overlapping with m1.
-    #[allow(dead_code)]
     fn retain_keys(
         mut m1: BTreeMap<String, Schema>,
-        m2: BTreeMap<String, Schema>,
+        m2: &BTreeMap<String, Schema>,
     ) -> BTreeMap<String, Schema> {
         for (key, s1) in m2.into_iter() {
-            if let Some(s2) = m1.remove(&key) {
-                m1.insert(key, s1.union(&s2));
+            if let Some(s2) = m1.remove(key) {
+                m1.insert(key.clone(), s1.union(&s2));
             }
         }
         m1
@@ -2266,44 +2265,29 @@ impl Document {
         }
     }
 
-    /// Performs an unstable union.
-    ///
-    /// An unstable union chooses a preferred document between the two and uses that as the basis of
-    /// the returned schema. If exactly one of `self` or `other` is unstable, then the stable
-    /// document is preferred. If both are unstable, then the document with the greater JaccardIndex
-    /// value is preferred. If both are unstable and have equal JaccardIndex values, `self` is
-    /// preferred. The returned schema is constructed as follows:
-    ///   1. `keys` - All keys from the preferred doc are retained. Any keys that overlap between
-    ///      the preferred doc and the other doc are unioned. Any keys that appear only in the other
-    ///      doc are ignored.
-    ///   2. `required` - The intersection between the preferred doc's `required` list and the other
-    ///      doc's `required` list.
-    ///   3. `additional_properties` - True if the preferred doc already has this value set to true,
-    ///      or if the other doc contains any `keys` not contained in the preferred doc.
-    ///   4. `jaccard_index` - Updated JaccardIndex using the preferred doc's JaccardIndex as the
-    ///      base value.
-    ///   5. `unstable` - Unconditionally set to `true`.
+    /// Performs an unstable union. See the `union` doc comment for further details, as that method
+    /// is public and therefore contains all relevant information.
     fn unstable_union(self, other: Document) -> Document {
         let (pref_doc, other_doc) = if self.unstable && other.unstable {
             match (self.jaccard_index, other.jaccard_index) {
                 // If neither has a JaccardIndex or only self has one, prefer self.
-                (None, None) | (Some(_), None) => (self.clone(), other.clone()),
+                (None, None) | (Some(_), None) => (self, other),
                 // If only other has one, prefer other.
-                (None, Some(_)) => (other.clone(), self.clone()),
+                (None, Some(_)) => (other, self),
                 // If both have a JaccardIndex, prefer the one with the larger avg_ji value. If
                 // those values are equal, prefer self.
                 (Some(self_ji), Some(other_ji)) => {
                     if self_ji.avg_ji >= other_ji.avg_ji {
-                        (self.clone(), other.clone())
+                        (self, other)
                     } else {
-                        (other.clone(), self.clone())
+                        (other, self)
                     }
                 }
             }
         } else if self.unstable {
-            (other.clone(), self.clone())
+            (other, self)
         } else {
-            (self.clone(), other.clone())
+            (self, other)
         };
 
         let jaccard_index = pref_doc.jaccard_index.map(|ji| {
@@ -2317,7 +2301,7 @@ impl Document {
             Self::update_jaccard_index(ji, union_size, intersection_size)
         });
 
-        let keys = Self::retain_keys(pref_doc.keys, other_doc.keys.clone());
+        let keys = Self::retain_keys(pref_doc.keys, &other_doc.keys);
 
         let required = pref_doc
             .required
