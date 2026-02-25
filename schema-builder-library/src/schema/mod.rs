@@ -127,6 +127,8 @@ pub(crate) async fn derive_schema_for_partition(
         &ignored_ids,
     )?);
 
+    let mut saw_unstable = false;
+
     loop {
         notify!(
             &tx_notifications,
@@ -157,6 +159,7 @@ pub(crate) async fn derive_schema_for_partition(
         first_stage = None;
 
         let mut no_result = true;
+        let mut iter_schema = Schema::Unsat;
         while let Some(doc) = cursor.try_next().await? {
             notify!(
                 &tx_notifications,
@@ -170,9 +173,9 @@ pub(crate) async fn derive_schema_for_partition(
             );
             if let Some(id) = doc.get("_id") {
                 partition.min = id.clone();
-                let old_schema = schema.clone();
-                schema = Some(schema_for_document(&doc).union(&schema.unwrap_or(Schema::Unsat)));
-                if old_schema == schema {
+                let old_schema = iter_schema.clone();
+                iter_schema = iter_schema.union(&schema_for_document(&doc));
+                if old_schema == iter_schema {
                     ignored_ids.push(id.clone());
                 }
                 no_result = false;
@@ -191,6 +194,22 @@ pub(crate) async fn derive_schema_for_partition(
         }
         if no_result {
             break;
+        }
+
+        schema = Some(schema.unwrap_or(Schema::Unsat).union(&iter_schema));
+
+        // If the schema for this partition becomes unstable, we should do at most one more
+        // iteration to see if we detect any additional properties. After two iterations with an
+        // unstable schema, we should stop deriving schema for this partition since it is unlikely
+        // new information will be added.
+        if let Some(schema) = &schema {
+            if schema.is_unstable() {
+                if saw_unstable {
+                    break;
+                } else {
+                    saw_unstable = true;
+                }
+            }
         }
     }
     drop(tx_notifications);

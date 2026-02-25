@@ -90,6 +90,13 @@ impl ResultSetActor {
                     namespace_info.db_name, namespace_info.coll_or_view_name
                 );
             }
+            SchemaResult::UnstableInitialSchema(namespace_info) => {
+                // We ignore unstable initial schemas.
+                debug!(
+                    "Encountered unstable initial schema for {}.{}",
+                    namespace_info.db_name, namespace_info.coll_or_view_name
+                );
+            }
             SchemaResult::FullSchema(namespace_info_with_schema) => {
                 let db_name = namespace_info_with_schema.namespace_info.db_name.clone();
                 let coll_or_view_name = namespace_info_with_schema
@@ -133,6 +140,13 @@ impl ResultSetActor {
                         for channel in &self.forward_channels {
                             let _ =
                                 channel.send(SchemaResult::NamespaceOnly(namespace_info.clone()));
+                        }
+                    }
+                    // If we encounter an unstable initial schema, we only receive namespace info without schemas
+                    if let SchemaResult::UnstableInitialSchema(namespace_info) = &schema_result {
+                        for channel in &self.forward_channels {
+                            let _ = channel
+                                .send(SchemaResult::UnstableInitialSchema(namespace_info.clone()));
                         }
                     }
                     // Process the schema normally

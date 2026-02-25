@@ -52,8 +52,9 @@ async fn enabled() {
                             schema_res.namespace_info.coll_or_view_name,
                         );
                     }
-                    Some(crate::SchemaResult::InitialSchema(_)) => {}
-                    Some(crate::SchemaResult::NamespaceOnly(_)) => {}
+                    Some(crate::SchemaResult::InitialSchema(_))
+                    | Some(crate::SchemaResult::UnstableInitialSchema(_))
+                    | Some(crate::SchemaResult::NamespaceOnly(_)) => {}
                     None => break
                 }
             }

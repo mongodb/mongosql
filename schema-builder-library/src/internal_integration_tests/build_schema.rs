@@ -92,7 +92,7 @@ macro_rules! test_build_schema {
                                     schema_res.coll_or_view_name,
                                 );
                             }
-                            Some(SchemaResult::InitialSchema(_)) => {
+                            Some(SchemaResult::InitialSchema(_)) | Some(SchemaResult::UnstableInitialSchema(_)) => {
                                 // Initial schemas are not expected in this test.
                                 panic!("unexpected initial schema result");
                             }

@@ -1,7 +1,7 @@
 use agg_ast::definitions::Namespace;
 use futures::future;
 use mongodb::bson::doc;
-use mongosql::schema::Schema;
+use mongosql::schema::{Document, Schema};
 use result_set::ResultSet;
 use std::{
     fmt::{self, Display, Formatter},
@@ -50,6 +50,10 @@ pub enum SchemaResult {
     /// SchemaResult without schema info. Used in dry_run mode.
     NamespaceOnly(NamespaceInfo),
 
+    /// SchemaResult without schema info. Used when an initial schema
+    /// is unstable.
+    UnstableInitialSchema(NamespaceInfo),
+
     /// SchemaResult with initial schema info. It is up to the caller
     /// to decide if they want to do anything special with this schema.
     /// This schema is not guaranteed to be complete or correct.
@@ -63,6 +67,10 @@ impl PartialEq for SchemaResult {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (SchemaResult::NamespaceOnly(ns1), SchemaResult::NamespaceOnly(ns2)) => ns1 == ns2,
+            (
+                SchemaResult::UnstableInitialSchema(ns1),
+                SchemaResult::UnstableInitialSchema(ns2),
+            ) => ns1 == ns2,
             (SchemaResult::FullSchema(ns1), SchemaResult::FullSchema(ns2)) => ns1 == ns2,
             (SchemaResult::InitialSchema(ns1), SchemaResult::InitialSchema(ns2)) => ns1 == ns2,
             _ => false,
@@ -330,72 +338,82 @@ async fn fetch_initial_schemas(
     result_tx: UnboundedSender<SchemaResult>,
 ) {
     future::join_all(databases.iter().map(|db_name| {
-                let db = options.client.database(db_name);
-                let schema_collection = options.schema_collection.clone();
-                let tx_notifications = options.tx_notifications.clone();
-                let result_tx = result_tx.clone();
-                async move {
-                    match query_for_initial_schemas(schema_collection, &db).await {
-                        Ok(initial_collection_schemas) => {
-                            debug!(
-                                "queried for intial schemas in database {}, found {}",
-                                db_name,
-                                initial_collection_schemas.len()
-                            );
-                            // For each schema document, create a NamespaceInfoWithSchema and send it to the ResultSet.
-                            for (coll_name, schema_doc) in initial_collection_schemas {
-                                if let Ok(schema) =
-                                    mongosql::schema::Schema::try_from(schema_doc.clone())
-                                {
-                                    let namespace_info = NamespaceInfo {
-                                        db_name: db_name.clone(),
-                                        coll_or_view_name: coll_name.clone(),
-                                        namespace_type: NamespaceType::Collection, // Assume Collection by default
-                                    };
+        let db = options.client.database(db_name);
+        let schema_collection = options.schema_collection.clone();
+        let tx_notifications = options.tx_notifications.clone();
+        let result_tx = result_tx.clone();
+        async move {
+            match query_for_initial_schemas(schema_collection, &db).await {
+                Ok(initial_collection_schemas) => {
+                    debug!(
+                        "queried for initial schemas in database {}, found {}",
+                        db_name,
+                        initial_collection_schemas.len()
+                    );
+                    // For each schema document, create a NamespaceInfoWithSchema and send it to the ResultSet.
+                    for (coll_name, (schema_doc, unstable)) in initial_collection_schemas {
+                        if let Ok(mut schema) =
+                            mongosql::schema::Schema::try_from(schema_doc.clone())
+                        {
+                            let namespace_info = NamespaceInfo {
+                                db_name: db_name.clone(),
+                                coll_or_view_name: coll_name.clone(),
+                                namespace_type: NamespaceType::Collection, // Assume Collection by default
+                            };
 
-                                    let namespace_with_schema = NamespaceInfoWithSchema {
-                                        namespace_info,
-                                        namespace_schema: schema,
-                                    };
-
-                                    // Send to the ResultSet.
-                                    if let Err(e) = result_tx
-                                        .send(SchemaResult::InitialSchema(namespace_with_schema))
-                                    {
-                                        notify!(
-                                            &tx_notifications,
-                                            SamplerNotification {
-                                                db: db_name.to_string(),
-                                                collection_or_view: coll_name.clone(),
-                                                action: SamplerAction::Warning {
-                                                    message: format!(
-                                                        "failed to add initial schema to ResultSet: {e}"
-                                                    ),
-                                                },
-                                            },
-                                        );
-                                    }
+                            if unstable {
+                                schema = match schema {
+                                    Schema::Document(d) => Schema::Document(Document {
+                                        unstable: true,
+                                        ..d
+                                    }),
+                                    _ => schema,
                                 }
                             }
-                        }
-                        Err(e) => {
-                            notify!(
-                                tx_notifications,
-                                SamplerNotification {
-                                    db: db_name.to_string(),
-                                    collection_or_view: "".to_string(),
-                                    action: SamplerAction::Warning {
-                                        message: format!(
-                                            "failed to query for initial schemas in database with error {e}"
-                                        ),
+
+                            let namespace_with_schema = NamespaceInfoWithSchema {
+                                namespace_info,
+                                namespace_schema: schema,
+                            };
+
+                            // Send to the ResultSet.
+                            if let Err(e) =
+                                result_tx.send(SchemaResult::InitialSchema(namespace_with_schema))
+                            {
+                                notify!(
+                                    &tx_notifications,
+                                    SamplerNotification {
+                                        db: db_name.to_string(),
+                                        collection_or_view: coll_name.clone(),
+                                        action: SamplerAction::Warning {
+                                            message: format!(
+                                                "failed to add initial schema to ResultSet: {e}"
+                                            ),
+                                        },
                                     },
-                                },
-                            );
+                                );
+                            }
                         }
                     }
                 }
-            }))
-            .await;
+                Err(e) => {
+                    notify!(
+                        tx_notifications,
+                        SamplerNotification {
+                            db: db_name.to_string(),
+                            collection_or_view: "".to_string(),
+                            action: SamplerAction::Warning {
+                                message: format!(
+                                    "failed to query for initial schemas in database with error {e}"
+                                ),
+                            },
+                        },
+                    );
+                }
+            }
+        }
+    }))
+    .await;
 }
 
 async fn process_collection_tasks(

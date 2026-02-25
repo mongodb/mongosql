@@ -33,18 +33,20 @@ pub(crate) async fn get_partitions(collection: &Collection<Document>) -> Result<
     let size_info = get_size_counts(collection).await?;
     let num_partitions = get_num_partitions(size_info.size, PARTITION_SIZE_IN_BYTES) as usize;
     let (mut min_bound, max_bound) = get_bounds(collection).await?;
-    let mut partitions = Vec::with_capacity(num_partitions);
-    let sample_rate = num_partitions as f64 / size_info.count as f64 * 2.0;
 
-    // if the sampling rate is greater than 1.0 or less than or equal to 0.0, we will just use one
-    // partition. This usually happens with very small collections.
-    if sample_rate > 1.0 || sample_rate <= 0.0 {
+    // If the number of partitions is 1, no need to sample to determine partition boundaries. This
+    // usually happens for very small collections.
+    if num_partitions == 1 {
         return Ok(vec![Partition {
             min: min_bound,
             max: max_bound,
             is_max_bound_inclusive: true,
         }]);
     }
+
+    let mut partitions = Vec::with_capacity(num_partitions);
+    let sample_rate = num_partitions as f64 / size_info.count as f64 * 2.0;
+
     let maybe_cursor = collection
         .aggregate(vec![
             doc! { "$sort": {"_id": 1} },

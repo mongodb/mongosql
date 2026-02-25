@@ -62,16 +62,24 @@ pub(crate) struct ViewOptions {
 pub(crate) async fn query_for_initial_schemas(
     schema_collection: Option<String>,
     database: &Database,
-) -> Result<HashMap<String, Document>> {
+) -> Result<HashMap<String, (Document, bool)>> {
     let mut initial_collection_schemas = HashMap::new();
     if let Some(schema_coll) = schema_collection {
         let coll = database.collection::<Document>(schema_coll.as_str());
         let mut cursor = coll.find(doc! {}).await?;
         while let Some(doc) = cursor.try_next().await? {
+            // If the unstable flag is not present or is present and is not a boolean, assume it is
+            // false (i.e., this schema is stable)
+            let unstable = doc
+                .get("unstable")
+                .unwrap_or(&bson::Bson::Boolean(false))
+                .as_bool()
+                .unwrap_or(false);
             if let (Some(bson::Bson::String(collection_name)), Some(bson::Bson::Document(schema))) =
                 (doc.get("_id"), doc.get("schema"))
             {
-                initial_collection_schemas.insert(collection_name.to_string(), schema.clone());
+                initial_collection_schemas
+                    .insert(collection_name.to_string(), (schema.clone(), unstable));
             } else {
                 return Err(Error::InitialSchemaError(schema_coll));
             }
@@ -165,7 +173,11 @@ impl CollectionInfo {
                         _ => None,
                     };
 
-                    if initial_schema.is_some() {
+                    if let Some(ref initial_schema) = initial_schema {
+                        if initial_schema.is_unstable() {
+                            let _ = tx_schemata.send(SchemaResult::UnstableInitialSchema(namespace_info));
+                            return;
+                        }
                         notify!(
                             &tx_notifications,
                             SamplerNotification {
@@ -235,7 +247,7 @@ impl CollectionInfo {
                                 tx_notifications.clone(),
                                 task_semaphore.clone(),
                             )
-                            .await
+                                .await
                             {
                                 Err(e) => {
                                     notify!(
@@ -387,16 +399,16 @@ impl CollectionInfo {
                                     format!(
                                         "Failed to get schema for underlying collection {} backing the view {}: {}.\n Falling back to sampling.",
                                         view_doc.options.view_on, view_doc.name, e
-                                    )
+                                    ),
                                 ).await;
                             }
                             Ok(None) => {
 
                                 // Fall back to the old sampling method if no schema exists
                                 fallback_view_task(&view_doc, &db, tx_notifications.clone(), tx_schemata.clone(), namespace_info, format!(
-                                        "No schema found for underlying collection {} backing the view {}.\n Falling back to sampling.",
-                                        view_doc.options.view_on, view_doc.name
-                                    )).await;
+                                    "No schema found for underlying collection {} backing the view {}.\n Falling back to sampling.",
+                                    view_doc.options.view_on, view_doc.name
+                                )).await;
                             }
                             Ok(Some(collection_info_with_schema)) => {
                                 // Use the catalog and the pipeline to derive the view schema
@@ -413,33 +425,32 @@ impl CollectionInfo {
                                 let mut state = ResultSetState::new(&catalog, db.name().to_string());
 
 
-                                        match derive_schema_for_pipeline(
-                                            pipeline,
-                                            Some(view_doc.options.view_on.clone()),
-                                            &mut state,
-                                        ) {
-                                            Ok(schema) => {
-                                                notify_info!(
+                                match derive_schema_for_pipeline(
+                                    pipeline,
+                                    Some(view_doc.options.view_on.clone()),
+                                    &mut state,
+                                ) {
+                                    Ok(schema) => {
+                                        notify_info!(
                                                     &tx_notifications,
                                                     db.name(),
                                                     view_doc.name,
                                                     format!("Successfully derived schema for view")
                                                 );
 
-                                                let _ = tx_schemata.send(SchemaResult::FullSchema(
-                                                    NamespaceInfoWithSchema {
-                                                        namespace_info,
-                                                        namespace_schema: schema,
-                                                    },
-                                                ));
-                                            }
-                                            Err(e) => {
-                                                fallback_view_task(&view_doc, &db, tx_notifications.clone(), tx_schemata.clone(), namespace_info, format!(
-                                                        "Failed to derive schema from pipeline: {e}.\n Falling back to sampling."
-                                                    )).await;
-                                            }
-                                        }
-
+                                        let _ = tx_schemata.send(SchemaResult::FullSchema(
+                                            NamespaceInfoWithSchema {
+                                                namespace_info,
+                                                namespace_schema: schema,
+                                            },
+                                        ));
+                                    }
+                                    Err(e) => {
+                                        fallback_view_task(&view_doc, &db, tx_notifications.clone(), tx_schemata.clone(), namespace_info, format!(
+                                            "Failed to derive schema from pipeline: {e}.\n Falling back to sampling."
+                                        )).await;
+                                    }
+                                }
                             }
                         }
                     } else {
