@@ -78,7 +78,7 @@ tests:
   - description: error if schema's field paths cannot be exhaustively enumerated
     current_db: spec_query_flatten
     query: "SELECT * FROM FLATTEN(noSchemaInfo)"
-    algebrize_error: "cannot exhaustively enumerate all field paths in schema Document(Document { keys: {}, required: {}, additional_properties: true })"
+    algebrize_error: "cannot exhaustively enumerate all field paths in schema Document(Document { keys: {}, required: {}, additional_properties: true, unstable: false })"
 
   - description: error if naming collision MUST occur
     current_db: spec_query_flatten
@@ -88,7 +88,7 @@ tests:
   - description: error if naming collision MAY occur
     current_db: spec_query_flatten
     query: "SELECT * FROM FLATTEN(mayCollide)"
-    algebrize_error: 'cannot exhaustively enumerate all field paths in schema Document(Document { keys: {"_id": Atomic(Integer), "a": Document(Document { keys: {"b": Atomic(Integer)}, required: {"b"}, additional_properties: false })}, required: {"_id", "a"}, additional_properties: true })'
+    algebrize_error: 'cannot exhaustively enumerate all field paths in schema Document(Document { keys: {"_id": Atomic(Integer), "a": Document(Document { keys: {"b": Atomic(Integer)}, required: {"b"}, additional_properties: false, unstable: false })}, required: {"_id", "a"}, additional_properties: true, unstable: false })'
 
   - description: FLATTENing a FLATTENed datasource is allowed
     current_db: spec_query_flatten
