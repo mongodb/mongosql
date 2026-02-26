@@ -22,6 +22,7 @@ lazy_static = { workspace = true }
 glob = { workspace = true }
 test-utils = { path = "../test-utils" }
 tracing = { workspace = true }
+async-trait = "0"
 
 [features]
 integration = []

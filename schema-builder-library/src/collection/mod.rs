@@ -3,9 +3,10 @@
  * and how we operate with them.
  */
 use crate::{
-    derive_schema_for_partitions, derive_schema_for_view, get_partitions, notify, notify_info,
-    notify_warning, result_set::ResultSet, Error, NamespaceInfo, NamespaceInfoWithSchema,
-    NamespaceType, Result, SamplerAction, SamplerNotification, SchemaResult,
+    client_util::DatabaseExt, derive_schema_for_partitions, derive_schema_for_view, get_partitions,
+    notify, notify_info, notify_warning, result_set::ResultSet, Error, NamespaceInfo,
+    NamespaceInfoWithSchema, NamespaceType, Result, SamplerAction, SamplerNotification,
+    SchemaResult,
 };
 mod patterns;
 use agg_ast::Namespace;
@@ -105,9 +106,10 @@ impl CollectionInfo {
         exclude_list: Vec<glob::Pattern>,
     ) -> Result<Self> {
         let collection_info_cursor = db
-            .run_cursor_command(doc! { "listCollections": 1.0, "authorizedCollections": true})
-            .await
-            .map_err(Error::from)?;
+            .run_cursor_command_with_read_preference(
+                doc! { "listCollections": 1.0, "authorizedCollections": true},
+            )
+            .await?;
 
         CollectionInfo::separate_views_from_collections(
             db_name,
