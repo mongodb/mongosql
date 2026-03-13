@@ -529,6 +529,8 @@ fn test_disallowed_collection_names() {
         "system.profile",
         "system.js",
         "system.views",
+        "system.buckets.timeSeriesCollection",
+        "system.buckets.otherCollection",
         "included",
         "excludeded",
     );

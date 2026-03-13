@@ -6,7 +6,9 @@ macro_rules! test_get_bounds {
             use super::get_mdb_collection;
             #[allow(unused)]
             use crate::{
-                internal_integration_tests::consts::NUM_DOCS_IN_SMALL_COLLECTION,
+                internal_integration_tests::consts::{
+                    DEFAULT_PARTITION_KEY, NUM_DOCS_IN_SMALL_COLLECTION,
+                },
                 partitioning::get_bounds,
             };
             use mongodb::bson::Bson;
@@ -18,7 +20,7 @@ macro_rules! test_get_bounds {
 
             let coll = get_mdb_collection($input_db, $input_coll).await;
 
-            let actual_res = get_bounds(&coll).await;
+            let actual_res = get_bounds(&coll, DEFAULT_PARTITION_KEY.as_str()).await;
             match actual_res {
                 Err(err) => assert!(false, "unexpected error: {err:?}"),
                 Ok((actual_min, actual_max)) => {
@@ -72,12 +74,13 @@ test_get_bounds!(
 #[tokio::test]
 async fn empty_collection() {
     use super::get_mdb_collection;
+    use crate::internal_integration_tests::consts::DEFAULT_PARTITION_KEY;
     use crate::{errors::Error, partitioning::get_bounds};
     use test_utils::schema_builder_library_integration_test_consts::UNIFORM_DB_NAME;
 
     let coll = get_mdb_collection(UNIFORM_DB_NAME, "empty").await;
 
-    let actual_res = get_bounds(&coll).await;
+    let actual_res = get_bounds(&coll, DEFAULT_PARTITION_KEY.as_str()).await;
     match actual_res {
         Err(Error::NoBounds(_)) => {} // expect the NoBounds errors
         Err(err) => panic!("unexpected error: {err:?}"),

@@ -1,5 +1,7 @@
+use crate::collection::CollectionDoc;
 use crate::partitioning::Partition;
 use lazy_static::lazy_static;
+use mongodb::bson::doc;
 use mongodb::bson::Bson;
 use mongosql::{
     map,
@@ -121,4 +123,12 @@ lazy_static! {
     // is not perfectly divisible by the doc size, we load slightly fewer bytes in practice
     pub static ref SMALL_COLL_SIZE_IN_BYTES: i64 = *NUM_DOCS_IN_SMALL_COLLECTION * DATA_DOC_SIZE_IN_BYTES;
     pub static ref LARGE_COLL_SIZE_IN_BYTES: i64 = *NUM_DOCS_IN_LARGE_COLLECTION * DATA_DOC_SIZE_IN_BYTES;
+
+    pub static ref DEFAULT_PARTITION_KEY: String = "_id".to_string();
+    pub static ref DEFAULT_HINT: Option<mongodb::options::Hint> = Some(mongodb::options::Hint::Keys(doc! {"_id": 1}));
+    pub static ref DEFAULT_COLLECTION_DOC: CollectionDoc = CollectionDoc {
+        type_: "collection".to_string(),
+        name: "empty".to_string(),
+        ..Default::default()
+    };
 }

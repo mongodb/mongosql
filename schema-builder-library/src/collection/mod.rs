@@ -41,22 +41,41 @@ static INCLUDE_LIST_IN_DB_AND_COLL_PAIRS: OnceLock<Vec<(String, String)>> = Once
 pub(crate) struct CollectionInfo {
     pub views: Vec<CollectionDoc>,
     pub collections: Vec<CollectionDoc>,
+    pub timeseries: Vec<CollectionDoc>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
-pub(crate) struct CollectionDoc {
+pub struct CollectionDoc {
     #[serde(rename = "type")]
     pub type_: String,
     pub name: String,
-    pub options: ViewOptions,
+    pub options: Options,
+}
+
+// The "options" field in listCollection output is overloaded to store different values for
+// different collection types, so we do the same here. This struct may store view options, or it
+// may store timeseries options. Consumers of this type should assert the CollectionDoc.type_ before
+// accessing the relevant options values here.
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
+pub(crate) struct Options {
+    #[serde(flatten, default)]
+    pub view_options: Option<ViewOptions>,
+    #[serde(rename = "timeseries", default)]
+    pub timeseries_options: Option<TimeSeriesOptions>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
 pub(crate) struct ViewOptions {
-    #[serde(rename = "viewOn", default)]
+    #[serde(rename = "viewOn")]
     pub view_on: String,
-    #[serde(default)]
     pub pipeline: Vec<Document>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct TimeSeriesOptions {
+    pub time_field: String,
+    pub meta_field: Option<String>,
 }
 
 #[instrument(level = "trace", skip_all)]
@@ -111,7 +130,7 @@ impl CollectionInfo {
             )
             .await?;
 
-        CollectionInfo::separate_views_from_collections(
+        CollectionInfo::separate_collection_types(
             db_name,
             &include_list,
             &exclude_list,
@@ -142,6 +161,7 @@ impl CollectionInfo {
         self.collections
             .as_slice()
             .iter()
+            .chain(self.timeseries.as_slice())
             .map(|collection_doc| {
                 let db = db.clone();
                 let collection_doc = collection_doc.clone();
@@ -203,7 +223,7 @@ impl CollectionInfo {
                         },
                     );
 
-                    match get_partitions(&collection).await {
+                    match get_partitions(&collection, collection_doc.clone()).await {
                         // If we fail to get partitions, log a warning and ignore this collection
                         Err(e) => {
                             notify!(
@@ -220,8 +240,8 @@ impl CollectionInfo {
 
                         // If we successfully retrieve partitions from the collection,
                         // derive the schema for each partition.
-                        Ok(partitions) => {
-                            let partition_count = partitions.len();
+                        Ok(partitioned_collection) => {
+                            let partition_count = partitioned_collection.partitions.len();
 
                             // Notify that we've gotten the partitions
                             notify!(
@@ -243,11 +263,11 @@ impl CollectionInfo {
                             match derive_schema_for_partitions(
                                 db.name().to_string(),
                                 &collection,
-                                partitions,
                                 initial_schema,
                                 &tokio::runtime::Handle::current(),
                                 tx_notifications.clone(),
                                 task_semaphore.clone(),
+                                partitioned_collection,
                             )
                                 .await
                             {
@@ -360,9 +380,11 @@ impl CollectionInfo {
                         },
                     );
 
+                    let Some(ref view_options) = view_doc.options.view_options else {
+                        unreachable!("process_views_with_catalog was a passed a CollectionDoc without view options.")
+                    };
 
-                    if let Ok(pipeline) = view_doc
-                        .options
+                    if let Ok(pipeline) = view_options
                         .pipeline
                         .iter()
                         .map(|doc| bson::from_document(doc.clone()))
@@ -376,7 +398,7 @@ impl CollectionInfo {
 
                         // Get the catalog for the view the database is in
                         // and use it for schema derivation
-                        let namespaces = schema_derivation::get_namespaces_for_pipeline(pipeline.clone(), db.name().to_string(), Some(view_doc.options.view_on.clone()));
+                        let namespaces = schema_derivation::get_namespaces_for_pipeline(pipeline.clone(), db.name().to_string(), Some(view_options.view_on.clone()));
 
                         match result_set.get_schemas_for_namespaces(namespaces).await {
                             Err(e) => {
@@ -387,7 +409,7 @@ impl CollectionInfo {
                                     format!(
                                         "Failed to get schema for underlying collection {} backing the view {}: {}.\n Falling
                                         back to sampling.",
-                                        view_doc.options.view_on, view_doc.name, e
+                                        view_options.view_on, view_doc.name, e
                                     )
                                 );
 
@@ -400,7 +422,7 @@ impl CollectionInfo {
                                     namespace_info,
                                     format!(
                                         "Failed to get schema for underlying collection {} backing the view {}: {}.\n Falling back to sampling.",
-                                        view_doc.options.view_on, view_doc.name, e
+                                        view_options.view_on, view_doc.name, e
                                     ),
                                 ).await;
                             }
@@ -409,7 +431,7 @@ impl CollectionInfo {
                                 // Fall back to the old sampling method if no schema exists
                                 fallback_view_task(&view_doc, &db, tx_notifications.clone(), tx_schemata.clone(), namespace_info, format!(
                                     "No schema found for underlying collection {} backing the view {}.\n Falling back to sampling.",
-                                    view_doc.options.view_on, view_doc.name
+                                    view_options.view_on, view_doc.name
                                 )).await;
                             }
                             Ok(Some(collection_info_with_schema)) => {
@@ -429,7 +451,7 @@ impl CollectionInfo {
 
                                 match derive_schema_for_pipeline(
                                     pipeline,
-                                    Some(view_doc.options.view_on.clone()),
+                                    Some(view_options.view_on.clone()),
                                     &mut state,
                                 ) {
                                     Ok(schema) => {

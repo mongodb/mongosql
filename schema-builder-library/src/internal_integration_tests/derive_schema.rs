@@ -1,6 +1,7 @@
 use super::create_mdb_client;
 use crate::internal_integration_tests::consts::{
-    LARGE_PARTITIONS, NONUNIFORM_LARGE_PARTITION_SCHEMAS, SMALL_PARTITIONS,
+    DEFAULT_HINT, DEFAULT_PARTITION_KEY, LARGE_PARTITIONS, NONUNIFORM_LARGE_PARTITION_SCHEMAS,
+    SMALL_PARTITIONS,
 };
 use test_utils::schema_builder_library_integration_test_consts::{
     LARGE_COLL_NAME, NONUNIFORM_DB_NAME, NONUNIFORM_LARGE_SCHEMA, NONUNIFORM_SMALL_SCHEMA,
@@ -17,6 +18,7 @@ mod for_partitions {
             async fn $test_name() {
                 use super::create_mdb_client;
                 use crate::schema::derive_schema_for_partitions;
+                use crate::partitioning::PartitionedCollection;
                 use mongodb::bson::Document;
 
                 let client = create_mdb_client().await;
@@ -28,14 +30,20 @@ mod for_partitions {
 
                 let partitions = $partitions.to_vec();
 
+                let partitioned_collection = PartitionedCollection {
+                    partitions,
+                    partition_key: DEFAULT_PARTITION_KEY.to_string(),
+                    hint: DEFAULT_HINT.clone(),
+                };
+
                 match derive_schema_for_partitions(
                     $db_name.to_string(),
                     &coll,
-                    partitions,
                     None,
                     &tokio::runtime::Handle::current(),
                     tx_notifications.clone(),
                     std::sync::Arc::new(tokio::sync::Semaphore::new(10)),
+                    partitioned_collection,
                 )
                 .await
                 {
@@ -89,7 +97,7 @@ mod for_partition {
             #[tokio::test]
             async fn $test_name() {
                 use super::create_mdb_client;
-                use crate::{partitioning::Partition, schema::derive_schema_for_partition};
+                use crate::{partitioning::Partition, schema::{derive_schema_for_partition, SinglePartition}};
                 use mongodb::bson::Document;
 
                 let client = create_mdb_client().await;
@@ -102,13 +110,20 @@ mod for_partition {
                 let partitions: Vec<Partition> = $partitions.to_vec();
 
                 for (ix, expected_schema) in $expected_schema.iter().enumerate() {
+
+                    let single_partition = SinglePartition {
+                        partition: partitions.get(ix).unwrap().clone(),
+                        partition_key: DEFAULT_PARTITION_KEY.to_string(),
+                        hint: DEFAULT_HINT.clone(),
+                        partition_ix: ix
+                    };
+
                     match derive_schema_for_partition(
                         $db_name.to_string(),
                         &coll,
-                        partitions.get(ix).unwrap().clone(),
                         None,
                         tx_notifications.clone(),
-                        ix,
+                        single_partition
                     )
                     .await
                     {

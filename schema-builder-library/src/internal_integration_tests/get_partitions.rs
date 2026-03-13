@@ -1,4 +1,6 @@
-use crate::internal_integration_tests::consts::SMALL_PARTITIONS;
+use crate::internal_integration_tests::consts::{
+    DEFAULT_COLLECTION_DOC, DEFAULT_HINT, DEFAULT_PARTITION_KEY, SMALL_PARTITIONS,
+};
 
 macro_rules! test_get_partitions {
     ($test_name:ident, expected = $expected:expr, input_db = $input_db:expr, input_coll = $input_coll:expr $(, ignore = $ignore:expr)?) => {
@@ -23,18 +25,26 @@ macro_rules! test_get_partitions {
 
             let expected: Vec<Partition> = $expected.to_vec();
 
-            let actual_res = get_partitions(&coll).await;
+            let actual_res = get_partitions(&coll, DEFAULT_COLLECTION_DOC.clone()).await;
             match actual_res {
                 Err(err) => assert!(false, "unexpected error: {err:?}"),
-                Ok(actual_partitions) => {
-                    let a_len = actual_partitions.len();
+                Ok(actual_partitioned_collection) => {
+                    let a_len = actual_partitioned_collection.partitions.len();
                     let e_len = expected.len();
                     // The large tests here have potential to fail, be aware. Failures should be
                     // uncommon.
                     assert!(
                         a_len >= e_len,
                         "actual partition #{a_len} is not greater than or equal to expected partition #{e_len}"
-                    )
+                    );
+
+                    let partition_key = actual_partitioned_collection.partition_key;
+                    let hint = actual_partitioned_collection.hint;
+
+                    assert!(partition_key == *DEFAULT_PARTITION_KEY, "partition key was not _id, was {partition_key}");
+
+                    assert!(hint == *DEFAULT_HINT, "hint was not Some(mongodb::options::Hint::Keys(doc! {{\"_id\": 1}})), was {hint:?}");
+
                 }
             }
         }
@@ -75,7 +85,7 @@ async fn one_doc_collection() {
 
     let coll = get_mdb_collection(UNIFORM_DB_NAME, "empty").await;
 
-    let actual_res = get_partitions(&coll).await;
+    let actual_res = get_partitions(&coll, DEFAULT_COLLECTION_DOC.clone()).await;
     match actual_res {
         Err(Error::NoCollectionStats(_)) => {} // expect the NoBounds errors
         Err(err) => panic!("unexpected error: {err:?}"),
@@ -92,7 +102,7 @@ async fn empty_collection() {
 
     let coll = get_mdb_collection(UNIFORM_DB_NAME, "empty").await;
 
-    let actual_res = get_partitions(&coll).await;
+    let actual_res = get_partitions(&coll, DEFAULT_COLLECTION_DOC.clone()).await;
     match actual_res {
         Err(Error::NoCollectionStats(_)) => {} // expect the NoBounds errors
         Err(err) => panic!("unexpected error: {err:?}"),

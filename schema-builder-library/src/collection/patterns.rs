@@ -10,7 +10,7 @@ use mongodb::{
 use tracing::instrument;
 
 impl CollectionInfo {
-    /// process_inclusion filters an input collectiondoc by the include_list and
+    /// process_inclusion filters an input CollectionDoc by the include_list and
     /// exclude_list.
     /// First, it filters the input collection_list by the include_list, retaining
     /// items that are in the include_list.
@@ -39,7 +39,9 @@ impl CollectionInfo {
             && (!(EXCLUDE_DUNDERSCORE_PATTERN.matches(database)
                 || EXCLUDE_DUNDERSCORE_PATTERN.matches(collection_or_view.name.as_str()))
                 || allow_dunderscore_namespace)
-            && (!DISALLOWED_COLLECTION_NAMES.contains(&collection_or_view.name.as_str())))
+            && (!DISALLOWED_COLLECTION_NAMES
+                .iter()
+                .any(|pattern| pattern.matches(collection_or_view.name.as_str()))))
     }
 
     /// Since we automatically exclude DBs and collections that start with dunderscores,
@@ -194,7 +196,7 @@ impl CollectionInfo {
     }
 
     #[instrument(level = "trace")]
-    pub async fn separate_views_from_collections(
+    pub async fn separate_collection_types(
         database: &str,
         include_list: &[glob::Pattern],
         exclude_list: &[glob::Pattern],
@@ -211,6 +213,8 @@ impl CollectionInfo {
                 )? {
                     if collection_doc.type_ == "view" {
                         collection_info.views.push(collection_doc);
+                    } else if collection_doc.type_ == "timeseries" {
+                        collection_info.timeseries.push(collection_doc);
                     } else {
                         collection_info.collections.push(collection_doc);
                     }

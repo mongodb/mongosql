@@ -9,10 +9,18 @@ use schema_derivation::schema_for_document;
 use tracing::instrument;
 
 use crate::{
-    generate_partition_match, generate_partition_match_with_doc, notify, CollectionDoc, Error,
-    Partition, Result, SamplerAction, SamplerNotification, PARTITION_DOCS_PER_ITERATION,
-    VIEW_SAMPLE_SIZE,
+    generate_partition_match, generate_partition_match_with_doc, notify,
+    partitioning::PartitionedCollection, CollectionDoc, Error, Partition, Result, SamplerAction,
+    SamplerNotification, PARTITION_DOCS_PER_ITERATION, VIEW_SAMPLE_SIZE,
 };
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct SinglePartition {
+    pub partition: Partition,
+    pub partition_key: String,
+    pub hint: Option<mongodb::options::Hint>,
+    pub partition_ix: usize,
+}
 
 /// A utility function for deriving the schema for a collection based on its partitions.
 ///
@@ -21,7 +29,7 @@ use crate::{
 ///     The initial schema is used as the "seed" for the partition.
 ///
 ///  2. If there is no initial schema
-///     An aggregation operation is issued that sorts based on the _id and limits the result set to
+///     An aggregation operation is issued that sorts based on the partition key and limits the result set to
 ///     20 documents. The schema for these documents is computed and "seeds" the schema for the
 ///     partition.
 ///
@@ -36,61 +44,72 @@ use crate::{
 pub(crate) async fn derive_schema_for_partitions(
     db_name: String,
     collection: &Collection<Document>,
-    col_parts: Vec<Partition>,
     initial_schema_doc: Option<Schema>,
     rt_handle: &tokio::runtime::Handle,
     tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
     task_semaphore: std::sync::Arc<tokio::sync::Semaphore>,
+    partitioned_collection: PartitionedCollection,
 ) -> Result<Option<Schema>> {
-    let partition_tasks = col_parts.into_iter().enumerate().map(|(ix, partition)| {
-        let db_name = db_name.clone();
-        let tx_notifications = tx_notifications.clone();
-        let collection = collection.clone();
-        let initial_schema_doc = initial_schema_doc.clone();
-        let task_semaphore = task_semaphore.clone();
-        rt_handle.spawn(async move {
-            // Acquire a permit from the semaphore to limit concurrency
-            #[allow(clippy::unwrap_used)]
-            let _permit = task_semaphore.acquire().await.unwrap();
-            let schema_res = derive_schema_for_partition(
-                db_name.clone(),
-                &collection,
-                partition,
-                initial_schema_doc,
-                tx_notifications.clone(),
-                ix,
-            )
-            .await;
+    let partition_tasks = partitioned_collection
+        .partitions
+        .into_iter()
+        .enumerate()
+        .map(|(ix, partition)| {
+            let db_name = db_name.clone();
+            let tx_notifications = tx_notifications.clone();
+            let collection = collection.clone();
+            let initial_schema_doc = initial_schema_doc.clone();
+            let task_semaphore = task_semaphore.clone();
 
-            let schema = match schema_res {
-                Err(e) => {
-                    notify!(
-                        &tx_notifications,
-                        SamplerNotification {
-                            db: db_name.clone(),
-                            collection_or_view: collection.name().to_string(),
-                            action: SamplerAction::Warning {
-                                message: format!(
-                                    "failed derive schema for partition {ix} with error {e}",
-                                ),
-                            },
-                        },
-                    );
-                    // If we encounter an error when processing a partition,
-                    // we effectively ignore it by saying the schema is Unsat.
-                    // Note that for any schema s, Unsat.union(s) == s. Users
-                    // can check there error notifications to see that schema
-                    // building for this collection may be incomplete and can
-                    // consider rerunning the builder if they wish.
-                    Schema::Unsat
-                }
-                Ok(schema) => schema,
+            let single_partition = SinglePartition {
+                partition,
+                partition_key: partitioned_collection.partition_key.clone(),
+                hint: partitioned_collection.hint.clone(),
+                partition_ix: ix,
             };
 
-            drop(tx_notifications);
-            schema
-        })
-    });
+            rt_handle.spawn(async move {
+                // Acquire a permit from the semaphore to limit concurrency
+                #[allow(clippy::unwrap_used)]
+                let _permit = task_semaphore.acquire().await.unwrap();
+                let schema_res = derive_schema_for_partition(
+                    db_name.clone(),
+                    &collection,
+                    initial_schema_doc,
+                    tx_notifications.clone(),
+                    single_partition,
+                )
+                .await;
+
+                let schema = match schema_res {
+                    Err(e) => {
+                        notify!(
+                            &tx_notifications,
+                            SamplerNotification {
+                                db: db_name.clone(),
+                                collection_or_view: collection.name().to_string(),
+                                action: SamplerAction::Warning {
+                                    message: format!(
+                                        "failed derive schema for partition {ix} with error {e}",
+                                    ),
+                                },
+                            },
+                        );
+                        // If we encounter an error when processing a partition,
+                        // we effectively ignore it by saying the schema is Unsat.
+                        // Note that for any schema s, Unsat.union(s) == s. Users
+                        // can check there error notifications to see that schema
+                        // building for this collection may be incomplete and can
+                        // consider rerunning the builder if they wish.
+                        Schema::Unsat
+                    }
+                    Ok(schema) => schema,
+                };
+
+                drop(tx_notifications);
+                schema
+            })
+        });
 
     // Here, we await all partitions and then union them together to create the
     // full collection schema. Note that we could union the partition schemas as
@@ -110,21 +129,26 @@ pub(crate) async fn derive_schema_for_partitions(
 pub(crate) async fn derive_schema_for_partition(
     db_name: String,
     collection: &Collection<Document>,
-    mut partition: Partition,
     initial_schema_doc: Option<Schema>,
     tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
-    partition_ix: usize,
+    single_partition: SinglePartition,
 ) -> Result<Schema> {
     let mut schema = initial_schema_doc.clone();
+
+    let mut partition = single_partition.partition;
+    let partition_key = single_partition.partition_key.as_str();
+    let hint = single_partition.hint;
+
     // convert the initial schema doc to a Document
     let schema_doc = initial_schema_doc
         .map(bson::Document::try_from)
         .transpose()?;
-    let mut ignored_ids = vec![];
+    let mut ignored_keys = vec![];
     let mut first_stage = Some(generate_partition_match_with_doc(
         &partition,
+        partition_key,
         schema_doc,
-        &ignored_ids,
+        &ignored_keys,
     )?);
 
     let mut saw_unstable = false;
@@ -136,7 +160,7 @@ pub(crate) async fn derive_schema_for_partition(
                 db: db_name.clone(),
                 collection_or_view: collection.name().to_string(),
                 action: SamplerAction::Querying {
-                    partition: partition_ix as u16,
+                    partition: single_partition.partition_ix as u16,
                 },
             },
         );
@@ -144,17 +168,14 @@ pub(crate) async fn derive_schema_for_partition(
             .aggregate(vec![
                 first_stage.unwrap_or(generate_partition_match(
                     &partition,
+                    partition_key,
                     schema.clone(),
-                    &ignored_ids,
+                    &ignored_keys,
                 )?),
-                doc! { "$sort": {"_id": 1}},
+                doc! { "$sort": {partition_key: 1}},
                 doc! { "$limit": PARTITION_DOCS_PER_ITERATION },
             ])
-            .with_options(
-                AggregateOptions::builder()
-                    .hint(Some(mongodb::options::Hint::Keys(doc! {"_id": 1})))
-                    .build(),
-            )
+            .with_options(AggregateOptions::builder().hint(hint.clone()).build())
             .await?;
         first_stage = None;
 
@@ -167,16 +188,16 @@ pub(crate) async fn derive_schema_for_partition(
                     db: db_name.clone(),
                     collection_or_view: collection.name().to_string(),
                     action: SamplerAction::Processing {
-                        partition: partition_ix as u16,
+                        partition: single_partition.partition_ix as u16,
                     },
                 },
             );
-            if let Some(id) = doc.get("_id") {
+            if let Some(id) = doc.get(partition_key) {
                 partition.min = id.clone();
                 let old_schema = iter_schema.clone();
                 iter_schema = iter_schema.union(&schema_for_document(&doc));
                 if old_schema == iter_schema {
-                    ignored_ids.push(id.clone());
+                    ignored_keys.push(id.clone());
                 }
                 no_result = false;
             } else {
@@ -186,7 +207,7 @@ pub(crate) async fn derive_schema_for_partition(
                         db: db_name.clone(),
                         collection_or_view: collection.name().to_string(),
                         action: SamplerAction::Warning {
-                            message: "Document missing _id field".to_string(),
+                            message: format!("Document missing {partition_key} field"),
                         },
                     },
                 );
@@ -225,15 +246,19 @@ pub(crate) async fn derive_schema_for_view(
     database: &Database,
     tx_notification: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
 ) -> Option<Schema> {
+    let Some(ref view_options) = view.options.view_options else {
+        unreachable!("derive_schema_for_view was a passed a CollectionDoc without view options.")
+    };
+
     let pipeline = vec![doc! { "$sample": { "size": VIEW_SAMPLE_SIZE } }]
         .into_iter()
-        .chain(view.options.pipeline.clone().into_iter())
+        .chain(view_options.pipeline.clone().into_iter())
         .collect::<Vec<Document>>();
 
     let mut schema = None;
 
     match database
-        .collection::<Document>(&view.options.view_on)
+        .collection::<Document>(&view_options.view_on)
         .aggregate(pipeline)
         .await
     {

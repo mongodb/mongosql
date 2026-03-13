@@ -10,6 +10,10 @@ pub enum Error {
     NoCollectionStats(String),
     #[error("Unable to get bounds for collection: {0}")]
     NoBounds(String),
+    #[error("No timeField specified for timeseries collection '{0}'")]
+    NoTimeFieldSpecified(String),
+    #[error("No count field specified for collection '{0}'")]
+    MissingCountFieldForCollection(String),
     #[error("Collection {0} appears to be empty")]
     EmptyCollection(String),
     #[error("NoIdInSample")]

@@ -7,6 +7,9 @@ use crate::{
     PARTITION_SIZE_IN_BYTES,
 };
 use schema_derivation::schema_for_document;
+use std::sync::LazyLock;
+
+static DEFAULT_PARTITION_KEY: LazyLock<String> = LazyLock::new(|| "_id".to_string());
 
 #[test]
 fn test_generate_partition_match_without_schema_doc_max_bound_inclusive() {
@@ -17,7 +20,13 @@ fn test_generate_partition_match_without_schema_doc_max_bound_inclusive() {
     };
 
     let ignored_ids = vec![Bson::ObjectId(ObjectId::new())];
-    let match_stage = generate_partition_match(&partition, None, &ignored_ids).unwrap();
+    let match_stage = generate_partition_match(
+        &partition,
+        DEFAULT_PARTITION_KEY.as_str(),
+        None,
+        &ignored_ids,
+    )
+    .unwrap();
     assert_eq!(
         match_stage,
         doc! {
@@ -41,7 +50,13 @@ fn test_generate_partition_match_without_schema_doc_max_bound_exclusive() {
     };
 
     let ignored_ids = vec![Bson::ObjectId(ObjectId::new())];
-    let match_stage = generate_partition_match(&partition, None, &ignored_ids).unwrap();
+    let match_stage = generate_partition_match(
+        &partition,
+        DEFAULT_PARTITION_KEY.as_str(),
+        None,
+        &ignored_ids,
+    )
+    .unwrap();
     assert_eq!(
         match_stage,
         doc! {
@@ -70,8 +85,13 @@ fn test_generate_partition_match_with_schema_doc_max_bound_inclusive() {
     });
 
     let ignored_ids = vec![Bson::ObjectId(ObjectId::new())];
-    let match_stage =
-        generate_partition_match(&partition, Some(schema.clone()), &ignored_ids).unwrap();
+    let match_stage = generate_partition_match(
+        &partition,
+        DEFAULT_PARTITION_KEY.as_str(),
+        Some(schema.clone()),
+        &ignored_ids,
+    )
+    .unwrap();
     let bson_schema = json_schema::Schema::try_from(schema)
         .unwrap()
         .to_bson()
@@ -107,8 +127,13 @@ fn test_generate_partition_match_with_schema_doc_max_bound_exclusive() {
     });
 
     let ignored_ids = vec![Bson::ObjectId(ObjectId::new())];
-    let match_stage =
-        generate_partition_match(&partition, Some(schema.clone()), &ignored_ids).unwrap();
+    let match_stage = generate_partition_match(
+        &partition,
+        DEFAULT_PARTITION_KEY.as_str(),
+        Some(schema.clone()),
+        &ignored_ids,
+    )
+    .unwrap();
     let bson_schema = json_schema::Schema::try_from(schema)
         .unwrap()
         .to_bson()
