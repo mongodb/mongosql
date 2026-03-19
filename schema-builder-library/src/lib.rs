@@ -1,28 +1,25 @@
 use agg_ast::definitions::Namespace;
 use futures::future;
-use mongodb::bson::doc;
+use mongodb::{Client, Database, bson::doc};
 use mongosql::schema::{Document, Schema};
 use result_set::ResultSet;
 use std::{
+    collections::HashMap,
     fmt::{self, Display, Formatter},
     sync::Arc,
 };
-use tokio::sync::mpsc::UnboundedSender;
-use tracing::{debug, error, instrument, span, Level};
+use tokio::sync::RwLock;
+use tracing::{Level, debug, error, instrument, span, warn};
 
 pub(crate) mod result_set;
 
 pub mod client_util;
 mod consts;
-use consts::{
-    DISALLOWED_DB_NAMES, PARTITION_DOCS_PER_ITERATION, PARTITION_SIZE_IN_BYTES, VIEW_SAMPLE_SIZE,
-};
+use consts::{DISALLOWED_DB_NAMES, VIEW_SAMPLE_SIZE};
 mod collection;
-use collection::{query_for_initial_schemas, CollectionDoc, CollectionInfo};
+use collection::{CollectionDoc, CollectionInfo, query_for_initial_schemas};
 mod partitioning;
-use partitioning::{
-    generate_partition_match, generate_partition_match_with_doc, get_partitions, Partition,
-};
+use partitioning::get_partitions;
 mod schema;
 use schema::{derive_schema_for_partitions, derive_schema_for_view};
 mod errors;
@@ -35,6 +32,11 @@ pub type MongoSqlSchema = Schema;
 
 pub mod options;
 use options::BuilderOptions;
+
+use crate::result_set::{Catalog, ShareableResultSet};
+
+/// Re-export for consumers that call [`ResultSet::into_build_output`].
+pub use result_set::SchemaBuildOutput;
 
 #[cfg(feature = "integration")]
 #[cfg(test)]
@@ -107,7 +109,7 @@ pub struct NamespaceInfoWithSchema {
     pub namespace_info: NamespaceInfo,
 
     /// The schema for the namespace.
-    pub namespace_schema: Schema,
+    pub namespace_schema: Arc<Schema>,
 }
 
 /// An enum representing the two namespace types for which this library
@@ -148,12 +150,14 @@ impl Display for NamespaceType {
 /// This function parallelizes handling each database, collection, collection partition, and
 /// view by using asynchronous tokio tasks which are spawned using the provided runtime::Handle.
 #[instrument(name = "schema builder", level = "info")]
-pub async fn build_schema(options: BuilderOptions) -> Result<()> {
+pub async fn build_schema(options: BuilderOptions) -> Result<ResultSet> {
     // Ensure that the `include_list` only contains valid patterns.
     for pattern in &options.include_list {
         let pat_as_str = pattern.as_str();
         if !pat_as_str.contains(".") {
-            error!("The `include_list` contains the following invalid pattern: `{pat_as_str}`. All patterns must be in `<database_pattern>.<collection_pattern>` format");
+            error!(
+                "The `include_list` contains the following invalid pattern: `{pat_as_str}`. All patterns must be in `<database_pattern>.<collection_pattern>` format"
+            );
             return Err(Error::IncludeOrExcludeListContainsInvalidPatterns(
                 "include_list".to_string(),
                 pat_as_str.to_string(),
@@ -164,7 +168,9 @@ pub async fn build_schema(options: BuilderOptions) -> Result<()> {
     for pattern in &options.exclude_list {
         let pat_as_str = pattern.as_str();
         if !pat_as_str.contains(".") {
-            error!("The `exclude_list` contains the following invalid pattern: `{pat_as_str}`. All patterns must be in `<database_pattern>.<collection_pattern>` format");
+            error!(
+                "The `exclude_list` contains the following invalid pattern: `{pat_as_str}`. All patterns must be in `<database_pattern>.<collection_pattern>` format"
+            );
             return Err(Error::IncludeOrExcludeListContainsInvalidPatterns(
                 "exclude_list".to_string(),
                 pat_as_str.to_string(),
@@ -183,49 +189,43 @@ pub async fn build_schema(options: BuilderOptions) -> Result<()> {
                 .filter(|db| !DISALLOWED_DB_NAMES.contains(&db.as_str()))
                 .collect();
 
-            process_databases(options, valid_databases).await;
-            Ok(())
+            Ok(process_databases(options, valid_databases).await)
         }
         // If listing the databases fails, there is nothing to do so we report an
         // error, drop all channels, and return the error.
         Err(e) => {
-            notify!(
-                &options.tx_notifications,
-                SamplerNotification {
-                    db: "".to_string(),
-                    collection_or_view: "".to_string(),
-                    action: SamplerAction::Error {
-                        message: format!("Unable to list databases: {e}"),
-                    },
-                },
-            );
-            drop(options.tx_notifications);
-            drop(options.tx_schemata);
+            error!("unable to list databases: {e}");
             Err(Error::from(e))
         }
     }
 }
 
 #[instrument(level = "debug", skip_all)]
-async fn process_databases(options: BuilderOptions, databases: Vec<String>) {
+async fn process_databases(options: BuilderOptions, databases: Vec<String>) -> ResultSet {
     // we've checked the error condition above, so this should be safe
 
     let span = span!(Level::DEBUG, "initial_schemas", databases = ?databases);
-
-    // Create a ResultSet to track all schemas and forward them to the the caller
-    let forward_channels = vec![options.tx_schemata.clone()];
-    let (result_set, result_tx) = ResultSet::new(forward_channels);
-
-    let result_set = Arc::new(result_set);
 
     // If the schema_collection option is set and dry_run is not specified, we query for the initial schemas prior
     // to starting the schema building process. We store these initial schemas in the ResultSet
     // for concurrent access across all tasks. Additionally, if a user specified only a view to be updated,
     // we need the initial schemas for the source collection(s).
-    if options.schema_collection.is_some() && !options.dry_run {
+    let initial_schemas = if let Some(schema_collection) = options.schema_collection.as_deref()
+        && !options.dry_run
+    {
         let _enter = span.enter();
-        fetch_initial_schemas(&options, &databases, result_tx.clone()).await;
-    }
+        fetch_initial_schemas(&options.client, schema_collection, &databases)
+            .await
+            .inspect_err(|e| {
+                warn!("failed to query for initial schemas in database with error {e}")
+            })
+            .unwrap_or_default()
+    } else {
+        Default::default()
+    };
+
+    // Create a ResultSet to track all schemas
+    let result_set = Arc::new(RwLock::new(ResultSet::new(initial_schemas)));
 
     // Here, we iterate through each database and spawn a new async task to
     // compute each db schema. Importantly, we are not awaiting the spawned
@@ -239,9 +239,6 @@ async fn process_databases(options: BuilderOptions, databases: Vec<String>) {
         // To avoid passing a reference to the mongodb::Client around, we
         // create a mongodb::Database before spawning the db-schema task.
         let db = options.client.database(&db_name);
-        let tx_notifications = options.tx_notifications.clone();
-        let tx_schemata = options.tx_schemata.clone();
-        let result_tx = result_tx.clone();
         let result_set = result_set.clone();
 
         let include_list = options.include_list.clone();
@@ -251,57 +248,38 @@ async fn process_databases(options: BuilderOptions, databases: Vec<String>) {
         // Spawn the db task.
         tokio::runtime::Handle::current().spawn(async move {
             let task_semaphore = task_semaphore.clone();
+
             // To start computing the schema for all collections and views
             // in a database, we need to wait for list_collections to finish.
-            let collection_info =
-                CollectionInfo::new(&db, &db_name, include_list, exclude_list).await;
-
-            match collection_info {
-                Err(e) => {
-                    notify!(
-                        &tx_notifications,
-                        SamplerNotification {
-                            db: db.name().to_string(),
-                            collection_or_view: "".to_string(),
-                            action: SamplerAction::Warning {
-                                message: format!(
-                                    "failed to list collections in database with error {e}"
-                                ),
-                            },
-                        },
-                    );
-                    return;
-                }
-                // Process collections first, then views
-                Ok(collection_info) => {
-                    // Process collections and wait for them to complete
-                    process_collection_tasks(
-                        &collection_info,
-                        &db,
-                        options.dry_run,
-                        &tx_notifications,
-                        &result_tx,
-                        &result_set,
-                        task_semaphore.clone(),
-                    )
-                    .await;
-
-                    // Now process views using the schema catalog
-                    process_view_tasks(
-                        &collection_info,
-                        &db,
-                        options.dry_run,
-                        &tx_notifications,
-                        &result_tx,
-                        &result_set,
-                        task_semaphore.clone(),
-                    )
-                    .await;
-                }
+            let Ok(collection_info) =
+                CollectionInfo::new(&db, &db_name, include_list, exclude_list)
+                    .await
+                    .inspect_err(|e| {
+                        warn!("failed to list collections in database with error: {e}")
+                    })
+            else {
+                return;
             };
 
-            drop(tx_notifications);
-            drop(tx_schemata);
+            // Process collections first, then views
+            process_collection_tasks(
+                &collection_info,
+                &db,
+                options.dry_run,
+                Arc::clone(&result_set),
+                task_semaphore.clone(),
+            )
+            .await;
+
+            // Now process views using the schema catalog
+            process_view_tasks(
+                &collection_info,
+                &db,
+                options.dry_run,
+                Arc::clone(&result_set),
+                task_semaphore.clone(),
+            )
+            .await;
         })
     });
 
@@ -313,125 +291,89 @@ async fn process_databases(options: BuilderOptions, databases: Vec<String>) {
         .into_iter()
         .for_each(|db_schema_res| {
             if let Err(e) = db_schema_res {
-                notify!(
-                    &options.tx_notifications,
-                    SamplerNotification {
-                        db: "".to_string(),
-                        collection_or_view: "".to_string(),
-                        action: SamplerAction::Warning {
-                            message: format!("failed to complete schema building with error {e}"),
-                        },
-                    },
-                );
+                warn!("failed to complete schema building with error: {e}");
             }
         });
 
-    // After waiting for all database tasks to finish, we can safely drop
-    // both channels.
-    drop(options.tx_notifications);
-    drop(options.tx_schemata);
+    let Some(arc) = Arc::into_inner(result_set) else {
+        panic!("Unexpected error: References to result_set remain after all tasks completed");
+    };
+    arc.into_inner()
+}
+
+async fn fetch_initial_schema(db: Database, collection: &str) -> Result<Catalog> {
+    query_for_initial_schemas(collection, &db)
+        .await
+        .inspect_err(|e| warn!("failed to query for initial schemas in database with error {e}"))
+        .map(|initial_collection_schemas| {
+            debug!(
+                "queried for initial schemas in database {}, found {}",
+                db.name(),
+                initial_collection_schemas.len()
+            );
+
+            initial_collection_schemas
+                .into_iter()
+                .map(|(coll_name, (mut schema, is_unstable))| {
+                    let namespace_info = NamespaceInfo {
+                        db_name: db.name().to_string(),
+                        coll_or_view_name: coll_name.clone(),
+                        namespace_type: NamespaceType::Collection, // Assume Collection by default
+                    };
+
+                    if is_unstable {
+                        schema = match schema {
+                            Schema::Document(d) => Schema::Document(Document {
+                                unstable: true,
+                                ..d
+                            }),
+                            _ => schema,
+                        }
+                    }
+
+                    (
+                        namespace_info.coll_or_view_name.clone(),
+                        NamespaceInfoWithSchema {
+                            namespace_info,
+                            namespace_schema: Arc::new(schema),
+                        },
+                    )
+                })
+                .collect()
+        })
 }
 
 async fn fetch_initial_schemas(
-    options: &BuilderOptions,
+    client: &Client,
+    schema_collection: &str,
     databases: &[String],
-    result_tx: UnboundedSender<SchemaResult>,
-) {
+) -> Result<HashMap<String, Catalog>> {
     future::join_all(databases.iter().map(|db_name| {
-        let db = options.client.database(db_name);
-        let schema_collection = options.schema_collection.clone();
-        let tx_notifications = options.tx_notifications.clone();
-        let result_tx = result_tx.clone();
+        let db = client.database(db_name);
+        let db_name = db.name().to_string();
         async move {
-            match query_for_initial_schemas(schema_collection, &db).await {
-                Ok(initial_collection_schemas) => {
-                    debug!(
-                        "queried for initial schemas in database {}, found {}",
-                        db_name,
-                        initial_collection_schemas.len()
-                    );
-                    // For each schema document, create a NamespaceInfoWithSchema and send it to the ResultSet.
-                    for (coll_name, (schema_doc, unstable)) in initial_collection_schemas {
-                        if let Ok(mut schema) =
-                            mongosql::schema::Schema::try_from(schema_doc.clone())
-                        {
-                            let namespace_info = NamespaceInfo {
-                                db_name: db_name.clone(),
-                                coll_or_view_name: coll_name.clone(),
-                                namespace_type: NamespaceType::Collection, // Assume Collection by default
-                            };
-
-                            if unstable {
-                                schema = match schema {
-                                    Schema::Document(d) => Schema::Document(Document {
-                                        unstable: true,
-                                        ..d
-                                    }),
-                                    _ => schema,
-                                }
-                            }
-
-                            let namespace_with_schema = NamespaceInfoWithSchema {
-                                namespace_info,
-                                namespace_schema: schema,
-                            };
-
-                            // Send to the ResultSet.
-                            if let Err(e) =
-                                result_tx.send(SchemaResult::InitialSchema(namespace_with_schema))
-                            {
-                                notify!(
-                                    &tx_notifications,
-                                    SamplerNotification {
-                                        db: db_name.to_string(),
-                                        collection_or_view: coll_name.clone(),
-                                        action: SamplerAction::Warning {
-                                            message: format!(
-                                                "failed to add initial schema to ResultSet: {e}"
-                                            ),
-                                        },
-                                    },
-                                );
-                            }
-                        }
-                    }
-                }
-                Err(e) => {
-                    notify!(
-                        tx_notifications,
-                        SamplerNotification {
-                            db: db_name.to_string(),
-                            collection_or_view: "".to_string(),
-                            action: SamplerAction::Warning {
-                                message: format!(
-                                    "failed to query for initial schemas in database with error {e}"
-                                ),
-                            },
-                        },
-                    );
-                }
-            }
+            fetch_initial_schema(db, schema_collection)
+                .await
+                .map(|catalog| (db_name, catalog))
         }
     }))
-    .await;
+    .await
+    .into_iter()
+    .collect()
 }
 
 async fn process_collection_tasks(
     collection_info: &CollectionInfo,
     db: &mongodb::Database,
     dry_run: bool,
-    tx_notifications: &UnboundedSender<SamplerNotification>,
-    result_tx: &UnboundedSender<SchemaResult>,
-    result_set: &Arc<ResultSet>,
+    result_set: ShareableResultSet,
     task_semaphore: Arc<tokio::sync::Semaphore>,
 ) {
     // Process collections and wait for them to complete
     let coll_tasks = collection_info.process_collections(
         db,
         dry_run,
-        tx_notifications.clone(),
-        result_tx.clone(), // Send to ResultSet
-        result_set.clone(),
+        Arc::clone(&result_set),
         task_semaphore.clone(),
     );
 
@@ -441,16 +383,7 @@ async fn process_collection_tasks(
         .into_iter()
         .for_each(|coll_schema_res| {
             if let Err(e) = coll_schema_res {
-                notify!(
-                    &tx_notifications,
-                    SamplerNotification {
-                        db: db.name().to_string(),
-                        collection_or_view: "".to_string(),
-                        action: SamplerAction::Warning {
-                            message: format!("failed to complete schema building with error {e}"),
-                        },
-                    },
-                );
+                warn!("failed to complete schema building with error: {e}");
             }
         });
 }
@@ -459,18 +392,14 @@ async fn process_view_tasks(
     collection_info: &CollectionInfo,
     db: &mongodb::Database,
     dry_run: bool,
-    tx_notifications: &UnboundedSender<SamplerNotification>,
-    result_tx: &UnboundedSender<SchemaResult>,
-    result_set: &Arc<ResultSet>,
+    result_set: ShareableResultSet,
     task_semaphore: Arc<tokio::sync::Semaphore>,
 ) {
     // Process views using the schema catalog
     let view_tasks = collection_info.process_views_with_catalog(
         db,
         dry_run,
-        tx_notifications.clone(),
-        result_tx.clone(), // Send to ResultSet
-        result_set.clone(),
+        Arc::clone(&result_set),
         task_semaphore.clone(),
     );
 
@@ -479,16 +408,7 @@ async fn process_view_tasks(
         .into_iter()
         .for_each(|view_schema_res| {
             if let Err(e) = view_schema_res {
-                notify!(
-                    &tx_notifications,
-                    SamplerNotification {
-                        db: db.name().to_string(),
-                        collection_or_view: "".to_string(),
-                        action: SamplerAction::Warning {
-                            message: format!("failed to complete schema building with error {e}"),
-                        },
-                    },
-                );
+                warn!("failed to complete schema building with error: {e}");
             }
         });
 }

@@ -1,21 +1,14 @@
-use crate::{collection::CollectionDoc, Error, Result, PARTITION_SIZE_IN_BYTES};
+pub(crate) use crate::partitioning::partition::{PARTITION_SIZE_IN_BYTES, Partition};
+use crate::{Error, Result, collection::CollectionDoc};
 use futures::TryStreamExt;
 use mongodb::{
-    bson::{doc, Bson, Document},
     Collection,
+    bson::{Bson, Document, doc},
 };
-use mongosql::schema::Schema;
 use tracing::{instrument, trace};
 
-#[cfg(test)]
+mod partition;
 mod test;
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct Partition {
-    pub min: Bson,
-    pub max: Bson,
-    pub is_max_bound_inclusive: bool,
-}
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct PartitionedCollection {
@@ -228,58 +221,8 @@ async fn get_bound(
         return doc
             .get(partition_key)
             .cloned()
-            .ok_or(Error::NoBounds(collection.name().to_string()));
+            .ok_or_else(|| Error::NoBounds(collection.name().to_string()));
     }
+
     Err(Error::NoBounds(collection.name().to_string()))
-}
-
-// generate_partition_match generates the $match stage for sampling based on the partition
-// additional_properties and an optional Schema. If the Schema is None, the $match will only
-// be based on the Partition bounds.
-// This function also accepts a list of ignored_keys which will be used to exclude certain documents.
-#[instrument(level = "trace", skip_all)]
-pub(crate) fn generate_partition_match(
-    partition: &Partition,
-    partition_key: &str,
-    schema: Option<Schema>,
-    ignored_keys: &[Bson],
-) -> Result<Document> {
-    generate_partition_match_with_doc(
-        partition,
-        partition_key,
-        schema.map(Document::try_from).transpose()?,
-        ignored_keys,
-    )
-}
-
-// generate_partition_match_with_doc generates the $match stage for sampling based on the partition
-// additional_properties and an optional input jsonSchema. If the jsonSchema doc is None, the $match
-// will only be based on the Partition bounds.
-// This function also accepts a list of ignored_keys which will be used to exclude certain documents.
-#[instrument(level = "trace", skip_all)]
-pub(crate) fn generate_partition_match_with_doc(
-    partition: &Partition,
-    partition_key: &str,
-    schema: Option<Document>,
-    ignored_keys: &[Bson],
-) -> Result<Document> {
-    let lt_op = if partition.is_max_bound_inclusive {
-        "$lte"
-    } else {
-        "$lt"
-    };
-
-    let mut match_body = doc! {
-        partition_key: {
-            "$nin": ignored_keys,
-            "$gte": partition.min.clone(),
-            lt_op: partition.max.clone(),
-        }
-    };
-    if let Some(schema) = schema {
-        match_body.insert("$nor", vec![schema]);
-    }
-    Ok(doc! {
-        "$match": match_body
-    })
 }

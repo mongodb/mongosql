@@ -1,4 +1,3 @@
-use crate::{SamplerNotification, SchemaResult};
 use std::fmt::Debug;
 
 #[derive(Clone)]
@@ -13,10 +12,6 @@ pub struct BuilderOptions {
     pub dry_run: bool,
     /// The MongoDB client
     pub client: mongodb::Client,
-    /// The notification channel
-    pub tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
-    /// The schema channel
-    pub tx_schemata: tokio::sync::mpsc::UnboundedSender<SchemaResult>,
     /// Task sempahore
     pub task_semaphore: std::sync::Arc<tokio::sync::Semaphore>,
 }

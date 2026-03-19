@@ -1,12 +1,12 @@
 use crate::{Error, Result};
 use async_trait::async_trait;
 use mongodb::{
+    Cursor, Database,
     bson::Document,
     options::{
         ClientOptions, ReadPreference, ReadPreferenceOptions, ResolverConfig, SelectionCriteria,
         TagSet,
     },
-    Cursor, Database,
 };
 
 #[cfg(not(test))]

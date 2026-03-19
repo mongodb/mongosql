@@ -60,7 +60,7 @@ test_get_partitions!(
 
 test_get_partitions!(
     uniform_unit,
-    expected = vec![Partition {
+    expected = [Partition {
         min: Bson::MinKey,
         max: Bson::MaxKey,
         is_max_bound_inclusive: true

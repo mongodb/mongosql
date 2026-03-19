@@ -1,8 +1,10 @@
 use crate::collection::CollectionDoc;
 use crate::partitioning::Partition;
+use std::sync::Arc;
+
 use lazy_static::lazy_static;
-use mongodb::bson::doc;
 use mongodb::bson::Bson;
+use mongodb::bson::doc;
 use mongosql::{
     map,
     schema::{Atomic, Document, Schema},
@@ -14,7 +16,7 @@ use test_utils::schema_builder_library_integration_test_consts::{
 };
 
 lazy_static! {
-    pub static ref NONUNIFORM_LARGE_PARTITION_SCHEMAS: Vec<Schema> = vec![
+    pub static ref NONUNIFORM_LARGE_PARTITION_SCHEMAS: Vec<Arc<Schema>> = vec![
         Schema::Document(Document {
             keys: map!(
                 "_id".to_string() => Schema::Atomic(Atomic::Long),
@@ -77,7 +79,7 @@ lazy_static! {
             required: set! {"_id".to_string(), "padding".to_string(), "second".to_string(), "third".to_string(), "var".to_string()},
             ..Default::default()
         }),
-    ];
+    ].into_iter().map(Arc::new).collect();
 
     pub static ref LARGE_PARTITIONS: Vec<Partition> = vec![
         Partition {

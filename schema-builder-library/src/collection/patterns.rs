@@ -1,11 +1,11 @@
 use super::{
     CollectionDoc, CollectionInfo, EXCLUDE_DUNDERSCORE_PATTERN, INCLUDE_LIST_IN_DB_AND_COLL_PAIRS,
 };
-use crate::{consts::DISALLOWED_COLLECTION_NAMES, Error, Result};
+use crate::{Error, Result, consts::DISALLOWED_COLLECTION_NAMES};
 use futures::TryStreamExt;
 use mongodb::{
-    bson::{self, Document},
     Cursor,
+    bson::{self, Document},
 };
 use tracing::instrument;
 
@@ -204,20 +204,21 @@ impl CollectionInfo {
     ) -> Result<CollectionInfo> {
         let mut collection_info = CollectionInfo::default();
         while let Some(collection_doc) = collection_doc.try_next().await? {
-            if let Ok(collection_doc) = bson::from_bson(bson::Bson::Document(collection_doc)) {
-                if CollectionInfo::should_consider(
-                    database,
-                    &collection_doc,
-                    include_list,
-                    exclude_list,
-                )? {
-                    if collection_doc.type_ == "view" {
-                        collection_info.views.push(collection_doc);
-                    } else if collection_doc.type_ == "timeseries" {
-                        collection_info.timeseries.push(collection_doc);
-                    } else {
-                        collection_info.collections.push(collection_doc);
-                    }
+            let Ok(collection_doc) = bson::from_bson(bson::Bson::Document(collection_doc)) else {
+                continue;
+            };
+            if CollectionInfo::should_consider(
+                database,
+                &collection_doc,
+                include_list,
+                exclude_list,
+            )? {
+                if collection_doc.type_ == "view" {
+                    collection_info.views.push(collection_doc);
+                } else if collection_doc.type_ == "timeseries" {
+                    collection_info.timeseries.push(collection_doc);
+                } else {
+                    collection_info.collections.push(collection_doc);
                 }
             }
         }

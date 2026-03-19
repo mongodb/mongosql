@@ -3,26 +3,27 @@
  * and how we operate with them.
  */
 use crate::{
+    Error, NamespaceInfo, NamespaceInfoWithSchema, NamespaceType, Result, SamplerAction,
     client_util::DatabaseExt, derive_schema_for_partitions, derive_schema_for_view, get_partitions,
-    notify, notify_info, notify_warning, result_set::ResultSet, Error, NamespaceInfo,
-    NamespaceInfoWithSchema, NamespaceType, Result, SamplerAction, SamplerNotification,
-    SchemaResult,
+    result_set::ShareableResultSet, schema::initial_schema::InitialSchema,
 };
+
 mod patterns;
 use agg_ast::Namespace;
 use futures::TryStreamExt;
 use mongodb::{
-    bson::{self, doc, Document},
     Database,
+    bson::{self, Document, doc},
 };
-use schema_derivation::{derive_schema_for_pipeline, ResultSetState};
+use mongosql::schema::Schema;
+use schema_derivation::{ResultSetState, derive_schema_for_pipeline};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, HashMap},
     sync::{Arc, LazyLock, OnceLock},
 };
-use tokio::{sync::mpsc::UnboundedSender, task::JoinHandle};
-use tracing::{info, instrument};
+use tokio::task::JoinHandle;
+use tracing::{debug, info, instrument, warn};
 
 #[cfg(test)]
 mod test;
@@ -80,31 +81,42 @@ pub(crate) struct TimeSeriesOptions {
 
 #[instrument(level = "trace", skip_all)]
 pub(crate) async fn query_for_initial_schemas(
-    schema_collection: Option<String>,
+    schema_collection: &str,
     database: &Database,
-) -> Result<HashMap<String, (Document, bool)>> {
-    let mut initial_collection_schemas = HashMap::new();
-    if let Some(schema_coll) = schema_collection {
-        let coll = database.collection::<Document>(schema_coll.as_str());
-        let mut cursor = coll.find(doc! {}).await?;
-        while let Some(doc) = cursor.try_next().await? {
-            // If the unstable flag is not present or is present and is not a boolean, assume it is
-            // false (i.e., this schema is stable)
-            let unstable = doc
-                .get("unstable")
-                .unwrap_or(&bson::Bson::Boolean(false))
-                .as_bool()
-                .unwrap_or(false);
-            if let (Some(bson::Bson::String(collection_name)), Some(bson::Bson::Document(schema))) =
-                (doc.get("_id"), doc.get("schema"))
-            {
+) -> Result<HashMap<String, (Schema, bool)>> {
+    let mut initial_collection_schemas: HashMap<String, (Schema, bool)> = HashMap::new();
+
+    let coll = database.collection::<Document>(schema_collection);
+    let mut cursor = coll.find(doc! {}).await?;
+
+    // Try to parse all of the initial schemas, failing if any of them fail to
+    // parse correctly
+
+    while let Some(doc) = cursor.try_next().await? {
+        // If the unstable flag is not present or is present and is not a boolean, assume it is
+        // false (i.e., this schema is stable)
+        let unstable = doc
+            .get("unstable")
+            .unwrap_or(&bson::Bson::Boolean(false))
+            .as_bool()
+            .unwrap_or(false);
+
+        // Convert the Doc into our InitialSchema struct
+        let initial_schema = InitialSchema::try_from(doc)
+            .map_err(|_| Error::InitialSchemaError(schema_collection.to_string()));
+
+        // If conversion is successful, add the schema to the map
+        match initial_schema {
+            Ok(initial_schema) => {
                 initial_collection_schemas
-                    .insert(collection_name.to_string(), (schema.clone(), unstable));
-            } else {
-                return Err(Error::InitialSchemaError(schema_coll));
+                    .insert(initial_schema.collection, (initial_schema.schema, unstable));
+            }
+            Err(_) => {
+                return Err(Error::InitialSchemaError(String::from(schema_collection)));
             }
         }
-    };
+    }
+
     Ok(initial_collection_schemas)
 }
 
@@ -153,9 +165,7 @@ impl CollectionInfo {
         &self,
         db: &Database,
         dry_run: bool,
-        tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
-        tx_schemata: tokio::sync::mpsc::UnboundedSender<SchemaResult>,
-        result_set: Arc<ResultSet>,
+        result_set: ShareableResultSet,
         task_semaphore: Arc<tokio::sync::Semaphore>,
     ) -> Vec<JoinHandle<()>> {
         self.collections
@@ -165,17 +175,27 @@ impl CollectionInfo {
             .map(|collection_doc| {
                 let db = db.clone();
                 let collection_doc = collection_doc.clone();
-                let tx_notifications = tx_notifications.clone();
-                let tx_schemata = tx_schemata.clone();
                 let result_set = result_set.clone();
 
                 info!(name: "processing collection", collection = ?collection_doc);
+                let collection_name = collection_doc.name.clone();
 
                 let task_semaphore = task_semaphore.clone();
                 // Spawn the collection task.
                 tokio::runtime::Handle::current().spawn(async move {
                     let db_name = db.name();
-                    let collection_name = collection_doc.name.clone();
+
+                    // In dry_run mode, there is no need to derive schema for a view. Instead,
+                    // we send just the namespace info and return.
+                    if dry_run {
+                        debug!("Received namespace-only info for {db_name}.{collection_name}");
+                        result_set
+                            .write()
+                            .await
+                            .mark_as_changed(db_name.to_string(), collection_name);
+
+                        return;
+                    }
 
                     let namespace_info = NamespaceInfo {
                         db_name: db_name.to_string(),
@@ -183,139 +203,103 @@ impl CollectionInfo {
                         namespace_type: NamespaceType::Collection,
                     };
 
-                    if dry_run {
-                        let _ = tx_schemata.send(SchemaResult::NamespaceOnly(namespace_info));
-                        return;
-                    }
+                    let initial_schema = result_set
+                        .read()
+                        .await
+                        .get_schema_for_database(db_name)
+                        .and_then(|catalog| {
+                            catalog
+                                .get(&collection_name)
+                                .map(|c| Arc::clone(&c.namespace_schema))
+                        });
+                    if let Some(schema) = &initial_schema {
+                        info!(
+                            "{}: {}:{}",
+                            SamplerAction::UsingInitialSchema,
+                            db.name(),
+                            collection_name
+                        );
 
-                    let initial_schema = match result_set.get_schema_for_database(db_name.to_string()).await {
-                        Ok(Some(schemas)) => schemas
-                            .get(&collection_name)
-                            .map(|schema| schema.namespace_schema.clone()),
-                        _ => None,
-                    };
-
-                    if let Some(ref initial_schema) = initial_schema {
-                        if initial_schema.is_unstable() {
-                            let _ = tx_schemata.send(SchemaResult::UnstableInitialSchema(namespace_info));
+                        if schema.is_unstable() {
+                            result_set
+                                .write()
+                                .await
+                                .mark_unstable_initial_schema(db_name.to_string(), collection_name.clone());
+                            info!(
+                                "Found unstable initial schema for namespace `{}.{}`. Marking as unstable.",
+                                db_name, collection_name
+                            );
                             return;
                         }
-                        notify!(
-                            &tx_notifications,
-                            SamplerNotification {
-                                db: db.name().to_string(),
-                                collection_or_view: collection_doc.name.clone(),
-                                action: SamplerAction::UsingInitialSchema
-                            },
-                        );
                     }
 
-                    let collection = db.collection::<Document>(&collection_doc.name.clone());
-
-                    notify!(
-                        &tx_notifications,
-                        SamplerNotification {
-                            db: db.name().to_string(),
-                            collection_or_view: collection_doc.name.clone(),
-                            action: SamplerAction::Info {
-                                message: "Getting partitions".to_string(),
-                            },
-                        },
+                    let collection = db.collection::<Document>(&collection_name);
+                    info!(
+                        db = db.name(),
+                        collection = collection_name,
+                        "Getting partitions"
                     );
 
-                    match get_partitions(&collection, collection_doc.clone()).await {
-                        // If we fail to get partitions, log a warning and ignore this collection
-                        Err(e) => {
-                            notify!(
-                                &tx_notifications,
-                                SamplerNotification {
-                                    db: db.name().to_string(),
-                                    collection_or_view: collection_doc.name.clone(),
-                                    action: SamplerAction::Warning {
-                                        message: format!("Could not get partitions: {e}"),
-                                    },
-                                },
-                            );
-                        }
+                    // If we successfully retrieve partitions from the collection,
+                    // derive the schema for each partition.
+                    let Ok(partitioned_collection) = get_partitions(&collection, collection_doc.clone()).await.inspect_err(|e| {
+                        warn!(
+                            db = db.name(),
+                            collection = collection_name,
+                            "could not get partitions: {e}"
+                        )
+                    }) else {
+                        return;
+                    };
 
-                        // If we successfully retrieve partitions from the collection,
-                        // derive the schema for each partition.
-                        Ok(partitioned_collection) => {
-                            let partition_count = partitioned_collection.partitions.len();
+                    // Notify that we've gotten the partitions
+                    info!(
+                        db = db.name(),
+                        collection = collection_name,
+                        "found {} partitions",
+                        partitioned_collection.partitions.len()
+                    );
 
-                            // Notify that we've gotten the partitions
-                            notify!(
-                                &tx_notifications,
-                                SamplerNotification {
-                                    db: db.name().to_string(),
-                                    collection_or_view: collection_doc.name.clone(),
-                                    action: SamplerAction::Info {
-                                        message: format!("Found {partition_count} partitions"),
-                                    },
-                                },
-                            );
+                    // Derive the schema for each partition, using the initial_schema
+                    // as the foundation for the derived schema. Then, we do a union on the initial schema
+                    // with the schema for each document in the partition.
+                    let Ok(schema) = derive_schema_for_partitions(
+                        db.name().to_string(),
+                        &collection,
+                        initial_schema,
+                        &tokio::runtime::Handle::current(),
+                        task_semaphore.clone(),
+                        partitioned_collection,
+                    )
+                    .await
+                    .inspect_err(|e| {
+                        warn!(
+                            db = db.name(),
+                            collection = collection_name,
+                            "could not derive schema: {e}"
+                        )
+                    }) else {
+                        return;
+                    };
 
-                            // Derive the schema for the each partition. We can
-                            // use the initial schema if we have one, but
-                            // currently we just treat even collections where we
-                            // already have a schema as if we're deriving their
-                            // schema for the first time.
-                            match derive_schema_for_partitions(
-                                db.name().to_string(),
-                                &collection,
-                                initial_schema,
-                                &tokio::runtime::Handle::current(),
-                                tx_notifications.clone(),
-                                task_semaphore.clone(),
-                                partitioned_collection,
-                            )
-                                .await
-                            {
-                                Err(e) => {
-                                    notify!(
-                                        &tx_notifications,
-                                        SamplerNotification {
-                                            db: db.name().to_string(),
-                                            collection_or_view: collection_doc.name.clone(),
-                                            action: SamplerAction::Warning {
-                                                message: format!("Could not derive schema: {e}"),
-                                            },
-                                        },
-                                    );
-                                }
-                                Ok(schema) => {
-                                    match schema {
-                                        None => {
-                                            notify!(
-                                                &tx_notifications,
-                                                SamplerNotification {
-                                                    db: db.name().to_string(),
-                                                    collection_or_view: collection_doc.name.clone(),
-                                                    action: SamplerAction::Warning {
-                                                        message: "no schema derived, collection may be empty"
-                                                            .to_string()
-                                                    },
-                                                },
-                                            );
-                                        }
-                                        Some(namespace_schema) => {
-                                            let schema_result = NamespaceInfoWithSchema {
-                                                namespace_info,
-                                                namespace_schema,
-                                            };
+                    let Some(schema) = schema else {
+                        warn!(
+                            db = db.name(),
+                            collection = collection_name,
+                            "no schema derived, collection may be empty"
+                        );
 
-                                            // Send to both the result_set (which will store it in the catalog)
-                                            // and to tx_schemata (for the caller to use)
-                                            let _ = tx_schemata
-                                                .send(SchemaResult::FullSchema(schema_result));
-                                        }
-                                    }
-                                }
-                            }
-                            drop(tx_notifications);
-                            drop(tx_schemata);
-                        }
-                    }
+                        return;
+                    };
+
+                    // Add the final schema to our results
+                    result_set
+                        .write()
+                        .await
+                        .add_schema(NamespaceInfoWithSchema {
+                            namespace_info,
+                            namespace_schema: Arc::new(schema),
+                        });
                 })
             })
             .collect()
@@ -334,9 +318,7 @@ impl CollectionInfo {
         &self,
         db: &Database,
         dry_run: bool,
-        tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
-        tx_schemata: tokio::sync::mpsc::UnboundedSender<SchemaResult>,
-        result_set: Arc<ResultSet>,
+        result_set: ShareableResultSet,
         task_semaphore: Arc<tokio::sync::Semaphore>,
     ) -> Vec<JoinHandle<()>> {
         self.views
@@ -345,9 +327,7 @@ impl CollectionInfo {
             .map(|view_doc| {
                 let db = db.clone();
                 let view_doc = view_doc.clone();
-                let tx_notifications = tx_notifications.clone();
-                let tx_schemata = tx_schemata.clone();
-                let result_set = result_set.clone();
+                let result_set = Arc::clone(&result_set);
 
                 info!(name: "processing view with catalog", view = ?view_doc);
 
@@ -362,23 +342,22 @@ impl CollectionInfo {
                         namespace_type: NamespaceType::View,
                     };
 
+                    // In dry_run mode, there is no need to derive schema for a view. Instead,
+                    // we send just the namespace info and return.
                     if dry_run {
-                        // In dry_run mode, there is no need to derive schema for a view. Instead,
-                        // we send just the namespace info and return.
-                        let _ = tx_schemata.send(SchemaResult::NamespaceOnly(namespace_info));
+                        debug!(
+                            "Received namespace-only info for {}.{}",
+                            namespace_info.db_name, namespace_info.coll_or_view_name
+                        );
+                        result_set
+                            .write()
+                            .await
+                            .mark_as_changed(namespace_info.db_name, namespace_info.coll_or_view_name);
+
                         return;
                     }
 
-                    notify!(
-                        &tx_notifications,
-                        SamplerNotification {
-                            db: db.name().to_string(),
-                            collection_or_view: view_doc.name.clone(),
-                            action: SamplerAction::Info {
-                                message: "Getting schema for view".to_string()
-                            },
-                        },
-                    );
+                    info!(db = db.name(), collection = view_doc.name, "getting schema for view");
 
                     let Some(ref view_options) = view_doc.options.view_options else {
                         unreachable!("process_views_with_catalog was a passed a CollectionDoc without view options.")
@@ -400,54 +379,38 @@ impl CollectionInfo {
                         // and use it for schema derivation
                         let namespaces = schema_derivation::get_namespaces_for_pipeline(pipeline.clone(), db.name().to_string(), Some(view_options.view_on.clone()));
 
-                        match result_set.get_schemas_for_namespaces(namespaces).await {
-                            Err(e) => {
-                                notify_warning!(
-                                    tx_notifications,
-                                    db.name(),
-                                    view_doc.name,
-                                    format!(
-                                        "Failed to get schema for underlying collection {} backing the view {}: {}.\n Falling
-                                        back to sampling.",
-                                        view_options.view_on, view_doc.name, e
-                                    )
-                                );
-
-                                // Fall back to the old sampling method if we can't get the schema
+                        let schemas = {
+                            let guard = result_set.read().await;
+                            guard.get_schemas_for_namespaces(&namespaces)
+                        };
+                        match schemas {
+                            None => {
+                                // Fall back to the old sampling method if no schema exists
                                 fallback_view_task(
                                     &view_doc,
                                     &db,
-                                    tx_notifications.clone(),
-                                    tx_schemata.clone(),
                                     namespace_info,
+                                    Arc::clone(&result_set),
                                     format!(
-                                        "Failed to get schema for underlying collection {} backing the view {}: {}.\n Falling back to sampling.",
-                                        view_options.view_on, view_doc.name, e
-                                    ),
+                                        "No schema found for underlying collection {} backing the view {}.\n Falling back to sampling.",
+                                       view_options.view_on,
+                                        view_doc.name
+                                    )
                                 ).await;
                             }
-                            Ok(None) => {
-
-                                // Fall back to the old sampling method if no schema exists
-                                fallback_view_task(&view_doc, &db, tx_notifications.clone(), tx_schemata.clone(), namespace_info, format!(
-                                    "No schema found for underlying collection {} backing the view {}.\n Falling back to sampling.",
-                                    view_options.view_on, view_doc.name
-                                )).await;
-                            }
-                            Ok(Some(collection_info_with_schema)) => {
+                            Some(collection_info_with_schema) => {
                                 // Use the catalog and the pipeline to derive the view schema
                                 let catalog = collection_info_with_schema.iter().fold(
                                     BTreeMap::new(),
                                     |mut acc, (key, value)| {
                                         acc.insert(
-                                            Namespace::new(db.name().to_string(), key.clone()),
-                                            value.namespace_schema.clone(),
+                                            Namespace::new(db.name().to_string(), key.to_string()),
+                                            Schema::clone(value),
                                         );
                                         acc
                                     },
                                 );
                                 let mut state = ResultSetState::new(&catalog, db.name().to_string());
-
 
                                 match derive_schema_for_pipeline(
                                     pipeline,
@@ -455,24 +418,22 @@ impl CollectionInfo {
                                     &mut state,
                                 ) {
                                     Ok(schema) => {
-                                        notify_info!(
-                                                    &tx_notifications,
-                                                    db.name(),
-                                                    view_doc.name,
-                                                    format!("Successfully derived schema for view")
-                                                );
-
-                                        let _ = tx_schemata.send(SchemaResult::FullSchema(
-                                            NamespaceInfoWithSchema {
-                                                namespace_info,
-                                                namespace_schema: schema,
-                                            },
-                                        ));
+                                        info!(db = db.name(), collection = view_doc.name, "Successfully derived schema for view");
+                                        result_set.write().await.add_schema(NamespaceInfoWithSchema {
+                                            namespace_info,
+                                            namespace_schema: Arc::new(schema),
+                                        });
                                     }
                                     Err(e) => {
-                                        fallback_view_task(&view_doc, &db, tx_notifications.clone(), tx_schemata.clone(), namespace_info, format!(
-                                            "Failed to derive schema from pipeline: {e}.\n Falling back to sampling."
-                                        )).await;
+                                        fallback_view_task(
+                                            &view_doc,
+                                            &db,
+                                            namespace_info,
+                                            Arc::clone(&result_set),
+                                            format!(
+                                                "Failed to derive schema from pipeline: {e}.\n Falling back to sampling."
+                                            )
+                                        ).await;
                                     }
                                 }
                             }
@@ -481,15 +442,11 @@ impl CollectionInfo {
                         fallback_view_task(
                             &view_doc,
                             &db,
-                            tx_notifications.clone(),
-                            tx_schemata.clone(),
                             namespace_info,
+                            Arc::clone(&result_set),
                             "Unable to parse view pipeline, falling back to sampling".to_string(),
                         ).await;
                     }
-
-                    drop(tx_notifications);
-                    drop(tx_schemata);
                 })
             })
             .collect()
@@ -501,29 +458,25 @@ impl CollectionInfo {
 async fn fallback_view_task(
     view_doc: &CollectionDoc,
     db: &Database,
-    tx_notifications: UnboundedSender<SamplerNotification>,
-    tx_schemata: UnboundedSender<SchemaResult>,
     namespace_info: NamespaceInfo,
+    result_set: ShareableResultSet,
     reason: String,
 ) {
-    notify_warning!(
-        tx_notifications,
-        db.name(),
-        view_doc.name,
-        reason.to_string()
-    );
-    match derive_schema_for_view(view_doc, db, tx_notifications.clone()).await {
-        None => notify_warning!(
-            tx_notifications,
-            db.name(),
-            view_doc.name,
-            "No schema derived, view may be empty".to_string()
+    warn!(db = db.name(), collection = view_doc.name, "{reason}");
+    match derive_schema_for_view(view_doc, db).await {
+        None => warn!(
+            db = db.name(),
+            collection = view_doc.name,
+            "no schema derived, view may be empty"
         ),
         Some(schema) => {
-            let _ = tx_schemata.send(SchemaResult::FullSchema(NamespaceInfoWithSchema {
-                namespace_info,
-                namespace_schema: schema,
-            }));
+            result_set
+                .write()
+                .await
+                .add_schema(NamespaceInfoWithSchema {
+                    namespace_info,
+                    namespace_schema: Arc::new(schema),
+                });
         }
-    }
+    };
 }

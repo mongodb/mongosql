@@ -19,7 +19,7 @@ pub enum Error {
     #[error("NoIdInSample")]
     NoIdInSample,
     #[error("Driver Error {0}")]
-    DriverError(mongodb::error::Error),
+    DriverError(#[from] mongodb::error::Error),
     #[error("Schema Error {0}")]
     SchemaError(mongosql::schema::Error),
     #[error("NoCollection {0}")]
@@ -34,16 +34,12 @@ pub enum Error {
         "The glob::Pattern `{0}` has an opening bracket (`[`) without a closing bracket (`]`)."
     )]
     InclusionBracketPatternIsMissingClosingBracket(String),
-    #[error("The `{0}` contains the following invalid pattern: `{1}`. All patterns must be in `<database_pattern>.<collection_pattern>` format")]
+    #[error(
+        "The `{0}` contains the following invalid pattern: `{1}`. All patterns must be in `<database_pattern>.<collection_pattern>` format"
+    )]
     IncludeOrExcludeListContainsInvalidPatterns(String, String),
     #[error("{0}")]
     ChannelClosed(String),
-}
-
-impl From<mongodb::error::Error> for Error {
-    fn from(value: mongodb::error::Error) -> Self {
-        Self::DriverError(value)
-    }
 }
 
 impl From<mongosql::schema::Error> for Error {

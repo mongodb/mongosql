@@ -7,21 +7,25 @@ macro_rules! notify {
         match $notification.action {
             SamplerAction::Warning { .. } => {
                 tracing::warn!("{}", $notification);
+                $channel.send($notification).unwrap_or_default();
             }
             SamplerAction::Error { .. } => {
                 tracing::error!("{}", $notification);
+                $channel.send($notification).unwrap_or_default();
             }
             SamplerAction::Info { .. } => {
+                // Log but do not send to avoid flooding the channel.
                 tracing::info!("{}", $notification);
             }
             SamplerAction::Querying { .. }
             | SamplerAction::Processing { .. }
             | SamplerAction::Partitioning { .. }
             | SamplerAction::SamplingView
-            | SamplerAction::UsingInitialSchema => tracing::trace!("{}", $notification),
+            | SamplerAction::UsingInitialSchema => {
+                // Log at trace level but do not send to avoid unbounded memory growth.
+                tracing::trace!("{}", $notification);
+            }
         }
-
-        $channel.send($notification).unwrap_or_default();
     }};
 }
 
