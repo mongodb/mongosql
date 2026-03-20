@@ -41,11 +41,7 @@ macro_rules! test_get_bounds {
 test_get_bounds!(
     uniform_small,
     expected_min = Bson::Int64(SMALL_ID_MIN),
-    expected_max = Bson::Int64(
-        (SMALL_ID_MIN + *NUM_DOCS_IN_SMALL_COLLECTION - 1)
-            .try_into()
-            .expect("max cannot fit into an i64")
-    ),
+    expected_max = Bson::Int64(SMALL_ID_MIN + *NUM_DOCS_IN_SMALL_COLLECTION - 1),
     input_db = UNIFORM_DB_NAME,
     input_coll = SMALL_COLL_NAME
 );
@@ -53,11 +49,7 @@ test_get_bounds!(
 test_get_bounds!(
     uniform_large,
     expected_min = Bson::Int64(LARGE_ID_MIN),
-    expected_max = Bson::Int64(
-        (LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 4) - 1)
-            .try_into()
-            .expect("max cannot fit into an i64")
-    ),
+    expected_max = Bson::Int64(LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 4) - 1),
     input_db = UNIFORM_DB_NAME,
     input_coll = LARGE_COLL_NAME
 );
@@ -65,11 +57,7 @@ test_get_bounds!(
 test_get_bounds!(
     nonuniform_small,
     expected_min = Bson::Int64(SMALL_ID_MIN),
-    expected_max = Bson::Int64(
-        (SMALL_ID_MIN + *NUM_DOCS_IN_SMALL_COLLECTION - 1)
-            .try_into()
-            .expect("max cannot fit into an i64")
-    ),
+    expected_max = Bson::Int64(SMALL_ID_MIN + *NUM_DOCS_IN_SMALL_COLLECTION - 1),
     input_db = NONUNIFORM_DB_NAME,
     input_coll = SMALL_COLL_NAME
 );
@@ -77,11 +65,7 @@ test_get_bounds!(
 test_get_bounds!(
     nonuniform_large,
     expected_min = Bson::Int64(LARGE_ID_MIN),
-    expected_max = Bson::Int64(
-        (LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 4) - 1)
-            .try_into()
-            .expect("max cannot fit into an i64")
-    ),
+    expected_max = Bson::Int64(LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 4) - 1),
     input_db = NONUNIFORM_DB_NAME,
     input_coll = LARGE_COLL_NAME
 );
