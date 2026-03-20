@@ -74,9 +74,7 @@ impl DeadCodeEliminationVisitor {
                                 // After the swap the Group (now inner) only emits group keys;
                                 // the Document fields it referenced no longer exist in its output.
                                 let expr = match v {
-                                    Expression::Document(_) => {
-                                        Expression::Reference(r.clone())
-                                    }
+                                    Expression::Document(_) => Expression::Reference(r.clone()),
                                     _ => v.clone(),
                                 };
                                 new_expr.insert(r.key.clone(), expr);
