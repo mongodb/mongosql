@@ -2753,7 +2753,7 @@ mod rank_fusion {
             },
             required: set!["phoneNumber".to_string()],
             additional_properties: false,
-            jaccard_index: None,
+            ..Default::default()
         })
     );
 

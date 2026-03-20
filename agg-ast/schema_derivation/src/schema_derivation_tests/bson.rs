@@ -32,6 +32,7 @@ test_schema_for_bson!(
         required: set!("a".into(), "b".into(), "c".into()),
         additional_properties: false,
         jaccard_index: JaccardIndex::default().into(),
+        unstable: false,
     })
 );
 
@@ -43,6 +44,7 @@ test_schema_for_bson!(
         required: set!(),
         additional_properties: false,
         jaccard_index: JaccardIndex::default().into(),
+        unstable: false,
     })
 );
 
@@ -66,16 +68,19 @@ test_schema_for_bson!(
                         required: set!("foo".into()),
                         additional_properties: false,
                         jaccard_index: JaccardIndex::default().into(),
+                        unstable: false,
                     }),
                 ),
                 required: set!("inner".into()),
                 additional_properties: false,
                 jaccard_index: JaccardIndex::default().into(),
+                unstable: false,
             })
         ),
         required: set!("middle".into()),
         additional_properties: false,
         jaccard_index: JaccardIndex::default().into(),
+        unstable: false,
     })
 );
 
@@ -201,5 +206,6 @@ test_schema_for_bson!(
         ),
         additional_properties: false,
         jaccard_index: JaccardIndex::default().into(),
+        unstable: false,
     })
 );

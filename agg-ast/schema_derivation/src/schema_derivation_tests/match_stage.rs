@@ -103,7 +103,7 @@ test_derive_schema_for_match_stage! {
                 },
                 required: set!{"car".to_string()},
                 additional_properties: false,
-                jaccard_index: None,
+                ..Default::default()
             }),
         },
         required: set!{"foo".to_string(), "bar".to_string()},

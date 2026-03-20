@@ -24,7 +24,7 @@ test_schema!(
                 },
                 required: set! {},
                 additional_properties: false,
-                jaccard_index: None,
+                ..Default::default()
             }),
         },
         min_size: 2,

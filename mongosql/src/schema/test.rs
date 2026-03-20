@@ -1434,9 +1434,10 @@ mod has_overlaping_keys_with {
 mod document_union {
     use crate::{
         map,
-        schema::{Atomic, Document, Schema, ANY_DOCUMENT, EMPTY_DOCUMENT},
+        schema::{Atomic, Document, JaccardIndex, Schema, ANY_DOCUMENT, EMPTY_DOCUMENT},
         set,
     };
+
     macro_rules! test_document_union {
         ($func_name:ident, expected = $expected:expr, schema1 = $schema1:expr, schema2 = $schema2:expr $(,)?) => {
             #[test]
@@ -1447,176 +1448,39 @@ mod document_union {
         };
     }
 
-    test_document_union!(
-        schema_does_not_satisfy_document_results_in_any,
-        expected = EMPTY_DOCUMENT.clone(),
-        schema1 = Schema::Atomic(Atomic::Integer),
-        schema2 = ANY_DOCUMENT.clone(),
-    );
-    test_document_union!(
-        schema_does_not_satisfy_document_results_in_any_symmetric,
-        expected = EMPTY_DOCUMENT.clone(),
-        schema1 = ANY_DOCUMENT.clone(),
-        schema2 = Schema::Atomic(Atomic::Integer),
-    );
-    test_document_union!(
-        document_union_of_two_documents_will_document_union_keys_and_intersect_required_wo_additional_properties,
-        expected = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::AnyOf(set![
-                    Schema::Atomic(Atomic::Decimal),
-                    Schema::Atomic(Atomic::Integer),
-                ]),
-                "b".into() => Schema::AnyOf(set![
-                    Schema::Atomic(Atomic::Double),
-                    Schema::Atomic(Atomic::Integer),
-                ]),
-            },
-            required: set! {"a".into()},
-            additional_properties: false,
-            ..Default::default()
-            }),
-        schema1 = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::Atomic(Atomic::Decimal),
-                "b".into() => Schema::Atomic(Atomic::Double),
-            },
-            required: set! {"a".into()},
-            additional_properties: false,
-            ..Default::default()
-            }),
-        schema2 = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::Atomic(Atomic::Integer),
-                "b".into() => Schema::Atomic(Atomic::Integer),
-            },
-            required: set! {"a".into(), "b".into()},
-            additional_properties: false,
-            ..Default::default()
-            }),
-    );
-    test_document_union!(
-        document_union_of_two_documents_will_document_union_keys_and_intersect_required_wo_additional_properties_symmetric,
-        expected = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::AnyOf(set![
-                    Schema::Atomic(Atomic::Integer),
-                    Schema::Atomic(Atomic::Decimal),
-                ]),
-                "b".into() => Schema::AnyOf(set![
-                    Schema::Atomic(Atomic::Integer),
-                    Schema::Atomic(Atomic::Double),
-                ]),
-            },
-            required: set! {"a".into()},
-            additional_properties: false,
-            ..Default::default()
-            }),
-        schema1 = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::Atomic(Atomic::Integer),
-                "b".into() => Schema::Atomic(Atomic::Integer),
-            },
-            required: set! {"a".into(), "b".into()},
-            additional_properties: false,
-            ..Default::default()
-            }),
-        schema2 = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::Atomic(Atomic::Decimal),
-                "b".into() => Schema::Atomic(Atomic::Double),
-            },
-            required: set! {"a".into()},
-            additional_properties: false,
-            ..Default::default()
-            }),
-    );
-    test_document_union!(
-        document_union_of_doc_with_empty_doc_is_doc_with_no_required,
-        expected = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::Atomic(Atomic::Integer),
-                "c".into() => Schema::Atomic(Atomic::Integer),
-            },
-            required: set! {},
-            additional_properties: false,
-            ..Default::default()
-        }),
-        schema1 = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::Atomic(Atomic::Integer),
-                "c".into() => Schema::Atomic(Atomic::Integer),
-            },
-            required: set! {"a".into(), "c".into()},
-            additional_properties: false,
-            ..Default::default()
-        }),
-        schema2 = EMPTY_DOCUMENT.clone(),
-    );
-    test_document_union!(
-        document_union_of_doc_with_empty_doc_is_doc_with_no_required_symmetric,
-        expected = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::Atomic(Atomic::Integer),
-                "c".into() => Schema::Atomic(Atomic::Integer),
-            },
-            required: set! {},
-            additional_properties: false,
-            ..Default::default()
-        }),
-        schema1 = EMPTY_DOCUMENT.clone(),
-        schema2 = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::Atomic(Atomic::Integer),
-                "c".into() => Schema::Atomic(Atomic::Integer),
-            },
-            required: set! {"a".into(), "c".into()},
-            additional_properties: false,
-            ..Default::default()
-        }),
-    );
-    test_document_union!(
-        document_union_of_any_of_recursively_applies_document_union,
-        expected = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::AnyOf(set![
-                    Schema::Atomic(Atomic::Integer),
-                    Schema::Atomic(Atomic::Decimal),
-                ]),
-                "b".into() => Schema::AnyOf(set![
-                    Schema::Atomic(Atomic::Integer),
-                    Schema::Atomic(Atomic::Double),
-                ]),
-                "c".into() => Schema::Atomic(Atomic::Integer),
-                "d".into() => Schema::Atomic(Atomic::Double),
-            },
-            required: set! {"a".into()},
-            additional_properties: false,
-            ..Default::default()
-        }),
-        schema1 = Schema::AnyOf(set![
-            Schema::Document(Document {
+    mod stable {
+        use super::*;
+
+        test_document_union!(
+            schema_does_not_satisfy_document_results_in_any,
+            expected = EMPTY_DOCUMENT.clone(),
+            schema1 = Schema::Atomic(Atomic::Integer),
+            schema2 = ANY_DOCUMENT.clone(),
+        );
+        test_document_union!(
+            schema_does_not_satisfy_document_results_in_any_symmetric,
+            expected = EMPTY_DOCUMENT.clone(),
+            schema1 = ANY_DOCUMENT.clone(),
+            schema2 = Schema::Atomic(Atomic::Integer),
+        );
+        test_document_union!(
+            document_union_of_two_documents_will_document_union_keys_and_intersect_required_wo_additional_properties,
+            expected = Schema::Document(Document {
                 keys: map! {
-                    "a".into() => Schema::Atomic(Atomic::Integer),
-                    "b".into() => Schema::Atomic(Atomic::Integer),
+                    "a".into() => Schema::AnyOf(set![
+                        Schema::Atomic(Atomic::Decimal),
+                        Schema::Atomic(Atomic::Integer),
+                    ]),
+                    "b".into() => Schema::AnyOf(set![
+                        Schema::Atomic(Atomic::Double),
+                        Schema::Atomic(Atomic::Integer),
+                    ]),
                 },
-                required: set! {"a".into(), "b".into()},
+                required: set! {"a".into()},
                 additional_properties: false,
                 ..Default::default()
-            }),
-            Schema::Document(Document {
-                keys: map! {
-                    "a".into() => Schema::Atomic(Atomic::Integer),
-                    "b".into() => Schema::Atomic(Atomic::Integer),
-                    "c".into() => Schema::Atomic(Atomic::Integer),
-                },
-                required: set! {"a".into(), "b".into()},
-                additional_properties: false,
-                ..Default::default()
-            })
-        ]),
-        schema2 = Schema::AnyOf(set![
-            Schema::Document(Document {
+                }),
+            schema1 = Schema::Document(Document {
                 keys: map! {
                     "a".into() => Schema::Atomic(Atomic::Decimal),
                     "b".into() => Schema::Atomic(Atomic::Double),
@@ -1624,18 +1488,503 @@ mod document_union {
                 required: set! {"a".into()},
                 additional_properties: false,
                 ..Default::default()
-            }),
-            Schema::Document(Document {
+                }),
+            schema2 = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into(), "b".into()},
+                additional_properties: false,
+                ..Default::default()
+                }),
+        );
+        test_document_union!(
+            document_union_of_two_documents_will_document_union_keys_and_intersect_required_wo_additional_properties_symmetric,
+            expected = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::AnyOf(set![
+                        Schema::Atomic(Atomic::Integer),
+                        Schema::Atomic(Atomic::Decimal),
+                    ]),
+                    "b".into() => Schema::AnyOf(set![
+                        Schema::Atomic(Atomic::Integer),
+                        Schema::Atomic(Atomic::Double),
+                    ]),
+                },
+                required: set! {"a".into()},
+                additional_properties: false,
+                ..Default::default()
+                }),
+            schema1 = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into(), "b".into()},
+                additional_properties: false,
+                ..Default::default()
+                }),
+            schema2 = Schema::Document(Document {
                 keys: map! {
                     "a".into() => Schema::Atomic(Atomic::Decimal),
+                    "b".into() => Schema::Atomic(Atomic::Double),
+                },
+                required: set! {"a".into()},
+                additional_properties: false,
+                ..Default::default()
+                }),
+        );
+        test_document_union!(
+            document_union_of_doc_with_empty_doc_is_doc_with_no_required,
+            expected = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                    "c".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {},
+                additional_properties: false,
+                ..Default::default()
+            }),
+            schema1 = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                    "c".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into(), "c".into()},
+                additional_properties: false,
+                ..Default::default()
+            }),
+            schema2 = EMPTY_DOCUMENT.clone(),
+        );
+        test_document_union!(
+            document_union_of_doc_with_empty_doc_is_doc_with_no_required_symmetric,
+            expected = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                    "c".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {},
+                additional_properties: false,
+                ..Default::default()
+            }),
+            schema1 = EMPTY_DOCUMENT.clone(),
+            schema2 = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                    "c".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into(), "c".into()},
+                additional_properties: false,
+                ..Default::default()
+            }),
+        );
+        test_document_union!(
+            document_union_of_any_of_recursively_applies_document_union,
+            expected = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::AnyOf(set![
+                        Schema::Atomic(Atomic::Integer),
+                        Schema::Atomic(Atomic::Decimal),
+                    ]),
+                    "b".into() => Schema::AnyOf(set![
+                        Schema::Atomic(Atomic::Integer),
+                        Schema::Atomic(Atomic::Double),
+                    ]),
+                    "c".into() => Schema::Atomic(Atomic::Integer),
                     "d".into() => Schema::Atomic(Atomic::Double),
                 },
                 required: set! {"a".into()},
                 additional_properties: false,
                 ..Default::default()
             }),
-        ])
-    );
+            schema1 = Schema::AnyOf(set![
+                Schema::Document(Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Integer),
+                        "b".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set! {"a".into(), "b".into()},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+                Schema::Document(Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Integer),
+                        "b".into() => Schema::Atomic(Atomic::Integer),
+                        "c".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set! {"a".into(), "b".into()},
+                    additional_properties: false,
+                    ..Default::default()
+                })
+            ]),
+            schema2 = Schema::AnyOf(set![
+                Schema::Document(Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Decimal),
+                        "b".into() => Schema::Atomic(Atomic::Double),
+                    },
+                    required: set! {"a".into()},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+                Schema::Document(Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Decimal),
+                        "d".into() => Schema::Atomic(Atomic::Double),
+                    },
+                    required: set! {"a".into()},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            ])
+        );
+    }
+
+    // The following tests focus primarily on the mechanics of unstable unions: picking a preferred
+    // document and using the preferred document's fields as the basis of the returned value. See
+    // the jaccard_test module for more detailed testing of the JaccardIndex values during unstable
+    // unions.
+    mod unstable {
+        use super::*;
+
+        test_document_union!(
+            when_only_one_is_unstable_result_prefers_stable_doc_properties,
+            expected = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {},
+                additional_properties: true,
+                jaccard_index: None,
+                unstable: true,
+            }),
+            schema1 = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into()},
+                additional_properties: false,
+                jaccard_index: None,
+                unstable: false,
+            }),
+            schema2 = Schema::Document(Document {
+                keys: map! {
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"b".into()},
+                additional_properties: false,
+                jaccard_index: None,
+                unstable: true,
+            }),
+        );
+        test_document_union!(
+            when_only_one_is_unstable_result_prefers_stable_doc_properties_order_does_not_matter,
+            expected = Schema::Document(Document {
+                keys: map! {
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {},
+                additional_properties: true,
+                jaccard_index: None,
+                unstable: true,
+            }),
+            schema1 = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into()},
+                additional_properties: false,
+                jaccard_index: None,
+                unstable: true,
+            }),
+            schema2 = Schema::Document(Document {
+                keys: map! {
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"b".into()},
+                additional_properties: false,
+                jaccard_index: None,
+                unstable: false,
+            }),
+        );
+        test_document_union!(
+            when_only_one_is_unstable_update_and_retain_only_stable_keys_and_overlapping_required,
+            expected = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::AnyOf(set! {
+                        Schema::Atomic(Atomic::Integer),
+                        Schema::Atomic(Atomic::String),
+                    }),
+                },
+                required: set! {"a".into()},
+                additional_properties: true,
+                jaccard_index: None,
+                unstable: true,
+            }),
+            schema1 = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into()},
+                additional_properties: false,
+                jaccard_index: None,
+                unstable: false,
+            }),
+            schema2 = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::String),
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into(), "b".into()},
+                additional_properties: false,
+                jaccard_index: None,
+                unstable: true,
+            }),
+        );
+        test_document_union!(
+            when_all_keys_overlap_only_set_additional_properties_true_if_pref_doc_already_does,
+            expected = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::AnyOf(set! {
+                        Schema::Atomic(Atomic::Integer),
+                        Schema::Atomic(Atomic::String),
+                    }),
+                },
+                required: set! {"a".into()},
+                additional_properties: true,
+                jaccard_index: None,
+                unstable: true,
+            }),
+            schema1 = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into()},
+                additional_properties: false,
+                jaccard_index: None,
+                unstable: true,
+            }),
+            schema2 = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::String),
+                },
+                required: set! {"a".into()},
+                additional_properties: true,
+                jaccard_index: None,
+                unstable: false,
+            }),
+        );
+        test_document_union!(
+            both_are_unstable_and_no_ji_prefers_left,
+            expected = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {},
+                additional_properties: true,
+                jaccard_index: None,
+                unstable: true,
+            }),
+            schema1 = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into()},
+                additional_properties: false,
+                jaccard_index: None,
+                unstable: true,
+            }),
+            schema2 = Schema::Document(Document {
+                keys: map! {
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"b".into()},
+                additional_properties: false,
+                jaccard_index: None,
+                unstable: true,
+            }),
+        );
+        test_document_union!(
+            both_are_unstable_and_only_left_has_ji_prefers_left,
+            expected = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {},
+                additional_properties: true,
+                jaccard_index: Some(JaccardIndex::default()),
+                unstable: true,
+            }),
+            schema1 = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into()},
+                additional_properties: false,
+                jaccard_index: Some(JaccardIndex::default()),
+                unstable: true,
+            }),
+            schema2 = Schema::Document(Document {
+                keys: map! {
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"b".into()},
+                additional_properties: false,
+                jaccard_index: None,
+                unstable: true,
+            }),
+        );
+        test_document_union!(
+            both_are_unstable_and_only_right_has_ji_prefers_right,
+            expected = Schema::Document(Document {
+                keys: map! {
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {},
+                additional_properties: true,
+                jaccard_index: Some(JaccardIndex::default()),
+                unstable: true,
+            }),
+            schema1 = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into()},
+                additional_properties: false,
+                jaccard_index: None,
+                unstable: true,
+            }),
+            schema2 = Schema::Document(Document {
+                keys: map! {
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"b".into()},
+                additional_properties: false,
+                jaccard_index: Some(JaccardIndex::default()),
+                unstable: true,
+            }),
+        );
+        test_document_union!(
+            both_are_unstable_and_have_ji_prefers_schema_with_larger_avg_ji_left,
+            expected = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {},
+                additional_properties: true,
+                jaccard_index: Some(JaccardIndex {
+                    // (.5 * 5 + .25 * 5) / 10
+                    avg_ji: 0.375,
+                    // 5 + 5
+                    num_unions: 10,
+                    stability_limit: 0.8,
+                }),
+                unstable: true,
+            }),
+            schema1 = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into()},
+                additional_properties: false,
+                jaccard_index: Some(JaccardIndex {
+                    avg_ji: 0.5,
+                    num_unions: 5,
+                    stability_limit: 0.8,
+                }),
+                unstable: true,
+            }),
+            schema2 = Schema::Document(Document {
+                keys: map! {
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"b".into()},
+                additional_properties: false,
+                jaccard_index: Some(JaccardIndex {
+                    avg_ji: 0.25,
+                    num_unions: 5,
+                    stability_limit: 0.8,
+                }),
+                unstable: true,
+            }),
+        );
+        test_document_union!(
+            both_are_unstable_and_have_ji_prefers_schema_with_larger_avg_ji_right,
+            expected = Schema::Document(Document {
+                keys: map! {
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {},
+                additional_properties: true,
+                jaccard_index: Some(JaccardIndex {
+                    // (.5 * 5 + .25 * 5) / 10
+                    avg_ji: 0.375,
+                    // 5 + 5
+                    num_unions: 10,
+                    stability_limit: 0.8,
+                }),
+                unstable: true,
+            }),
+            schema1 = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into()},
+                additional_properties: false,
+                jaccard_index: Some(JaccardIndex {
+                    avg_ji: 0.25,
+                    num_unions: 5,
+                    stability_limit: 0.8,
+                }),
+                unstable: true,
+            }),
+            schema2 = Schema::Document(Document {
+                keys: map! {
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"b".into()},
+                additional_properties: false,
+                jaccard_index: Some(JaccardIndex {
+                    avg_ji: 0.5,
+                    num_unions: 5,
+                    stability_limit: 0.8,
+                }),
+                unstable: true,
+            }),
+        );
+        test_document_union!(
+            both_are_unstable_and_have_equal_ji_prefers_left,
+            expected = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {},
+                additional_properties: true,
+                jaccard_index: Some(JaccardIndex::default()),
+                unstable: true,
+            }),
+            schema1 = Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into()},
+                additional_properties: false,
+                jaccard_index: Some(JaccardIndex::default()),
+                unstable: true,
+            }),
+            schema2 = Schema::Document(Document {
+                keys: map! {
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"b".into()},
+                additional_properties: false,
+                jaccard_index: Some(JaccardIndex::default()),
+                unstable: true,
+            }),
+        );
+    }
 }
 
 // +---------------------+
@@ -3172,8 +3521,9 @@ mod collision_check {
             the following conflicting field(s) to unique names: a\n\tCaused by:\n\tCannot \
             return non-namespaced result set due to field name conflict(s), schema \
             [Document(Document { keys: {\"a\": Atomic(Integer), \"c\": Atomic(Integer)}, \
-            required: {}, additional_properties: false }), Document(Document { keys: {\"a\": \
-            Atomic(Integer)}, required: {}, additional_properties: false })]".to_string())),
+            required: {}, additional_properties: false, unstable: false }), Document(Document \
+            { keys: {\"a\": Atomic(Integer)}, required: {}, additional_properties: false, \
+            unstable: false })]".to_string())),
         instances = {
         "schema" => A_C_DOCUMENT_SCHEMA.clone(),
         "schema_other" => A_DOCUMENT_SCHEMA.clone()
@@ -3186,9 +3536,9 @@ mod collision_check {
             the following conflicting field(s) to unique names: a, c\n\tCaused by:\n\tCannot \
             return non-namespaced result set due to field name conflict(s), schema \
             [Document(Document { keys: {\"a\": Atomic(Integer), \"c\": Atomic(Integer)}, \
-            required: {}, additional_properties: false }), Document(Document { keys: {\"a\": \
-            Atomic(Integer), \"c\": Atomic(Integer)}, required: {}, \
-            additional_properties: false })]".to_string())),
+            required: {}, additional_properties: false, unstable: false }), Document(Document { \
+            keys: {\"a\": Atomic(Integer), \"c\": Atomic(Integer)}, required: {}, \
+            additional_properties: false, unstable: false })]".to_string())),
         instances = {
             "schema" => A_C_DOCUMENT_SCHEMA.clone(),
             "schema_other" => A_C_DOCUMENT_SCHEMA.clone()
@@ -3201,9 +3551,10 @@ mod collision_check {
             the following conflicting field(s) to unique names: a, b, c\n\tCaused by:\n\tCannot \
             return non-namespaced result set due to field name conflict(s), schema \
             [Document(Document { keys: {\"a\": Atomic(Integer), \"b\": Atomic(Integer), \"c\": \
-            Atomic(Integer)}, required: {}, additional_properties: false }), Document(Document \
-            { keys: {\"a\": Atomic(Integer), \"b\": Atomic(Integer), \"c\": Atomic(Integer), \
-            \"d\": Atomic(Integer)}, required: {}, additional_properties: false })]".to_string())),
+            Atomic(Integer)}, required: {}, additional_properties: false, unstable: false }), \
+            Document(Document { keys: {\"a\": Atomic(Integer), \"b\": Atomic(Integer), \"c\": \
+            Atomic(Integer), \"d\": Atomic(Integer)}, required: {}, additional_properties: false, \
+            unstable: false })]".to_string())),
         instances = {
             "schema" => A_B_C_DOCUMENT_SCHEMA.clone(),
             "schema_other" => A_B_C_D_DOCUMENT_SCHEMA.clone()
@@ -3235,11 +3586,12 @@ mod collision_check {
             the following conflicting field(s) to unique names: a, c, b\n\tCaused by:\n\tCannot \
             return non-namespaced result set due to field name conflict(s), schema \
             [Document(Document { keys: {\"a\": Atomic(Integer), \"c\": Atomic(Integer)}, \
-            required: {}, additional_properties: false }), Document(Document { keys: {\"b\": \
-            Atomic(Integer)}, required: {}, additional_properties: false }), Document(Document \
-            { keys: {\"a\": Atomic(Integer), \"c\": Atomic(Integer)}, required: {}, \
-            additional_properties: false }), Document(Document { keys: {\"b\": Atomic(Integer)}, \
-            required: {}, additional_properties: false })]".to_string())),
+            required: {}, additional_properties: false, unstable: false }), Document(Document { \
+            keys: {\"b\": Atomic(Integer)}, required: {}, additional_properties: false, \
+            unstable: false }), Document(Document { keys: {\"a\": Atomic(Integer), \"c\": \
+            Atomic(Integer)}, required: {}, additional_properties: false, unstable: false }), \
+            Document(Document { keys: {\"b\": Atomic(Integer)}, required: {}, \
+            additional_properties: false, unstable: false })]".to_string())),
         instances = {
             "schema_1" => A_C_DOCUMENT_SCHEMA.clone(),
             "schema_2" => B_DOCUMENT_SCHEMA.clone(),

@@ -173,7 +173,7 @@ fn select_and_order_by_column_not_in_select() {
                     },
                     required: set! {"_id".into(), "a".into(), "b".into()},
                     additional_properties: false,
-                    jaccard_index: None,
+                    ..Default::default()
                 }),
             )
         })

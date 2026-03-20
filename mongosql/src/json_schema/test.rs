@@ -227,8 +227,6 @@ mod no_stack_overflows {
             doc = bson::doc! { "anyOf": [doc] }
         }
 
-        println!("start");
-
         let _ = Schema::from_document(&doc);
     }
 }
