@@ -60,6 +60,7 @@ const TRIGGER_PANIC: &str = "__test_panic";
 
 #[tonic::async_trait]
 impl TranslatorService for PanicHandlingTranslateSqlService {
+    #[allow(clippy::result_large_err)]
     async fn translate_sql(
         &self,
         request: Request<TranslateSqlRequest>,
@@ -81,6 +82,7 @@ impl TranslatorService for PanicHandlingTranslateSqlService {
             })
     }
 
+    #[allow(clippy::result_large_err)]
     async fn get_namespaces(
         &self,
         request: Request<GetNamespacesRequest>,
