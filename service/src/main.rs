@@ -61,6 +61,7 @@ fn parse_addr(
 }
 
 #[tokio::main]
+#[allow(clippy::result_large_err)]
 async fn main() -> Result<(), Box<dyn Error>> {
     init_logger();
     info!("Starting the SQL translation server");
