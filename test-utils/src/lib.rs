@@ -26,6 +26,7 @@ pub use query::*;
 pub mod schema_derivation;
 pub use schema_derivation::*;
 pub mod e2e_db_manager;
+pub mod schema_builder_library_integration_test_consts;
 
 #[derive(Debug, Error)]
 pub enum Error {
