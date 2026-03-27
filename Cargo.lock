@@ -3579,6 +3579,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "schema-builder-library"
+version = "0.0.0"
+dependencies = [
+ "agg-ast",
+ "async-trait",
+ "bson",
+ "futures",
+ "glob",
+ "lazy_static",
+ "mongodb",
+ "mongosql",
+ "schema_derivation",
+ "serde",
+ "test-utils",
+ "thiserror 2.0.17",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "schema_derivation"
 version = "0.0.0"
 dependencies = [
