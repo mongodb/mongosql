@@ -657,3 +657,10 @@ tests:
         - {'': { "a": "B", "b": 11, "name": "1" }}
         - { '': { "a": null, "b": 11, "name": "2" }}
         - { '': { "a": "B", "b": null, "name": "3" }}
+
+  - description: FLATTEN with unaliased GROUP BY key emits only group keys
+    current_db: flatten_query_group_by
+    query: "SELECT * FROM FLATTEN(foo_flatten_group) GROUP BY x"
+    result:
+        - { "foo_flatten_group": { "x": 1 } }
+        - { "foo_flatten_group": { "x": 2 } }

@@ -314,3 +314,22 @@ dataset:
       required: [ '_id', 'a', 'b', 'name' ],
       additionalProperties: false
     }
+
+  - db: "flatten_query_group_by"
+    collection:
+      name: "foo_flatten_group"
+      docs:
+        - { "_id": 0, "x": 1, "y": 1 }
+        - { "_id": 1, "x": 1, "y": 2 }
+        - { "_id": 2, "x": 2, "y": 3 }
+    schema:
+      bsonType: "object"
+      required: []
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        x:
+          bsonType: "int"
+        y:
+          bsonType: "int"

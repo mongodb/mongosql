@@ -8,7 +8,7 @@ use crate::{
     },
     schema::{Atomic, Document, Satisfaction, Schema, SchemaEnvironment},
     set, unchecked_unique_linked_hash_map,
-    util::mir_collection,
+    util::{mir_collection, mir_field_access},
     SchemaCheckingMode,
 };
 use agg_ast::definitions::Namespace;
@@ -390,6 +390,61 @@ test_dead_code_elimination_no_op!(
         expression: map! {
             ("foo2", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
         },
+        cache: SchemaCache::new(),
+    })
+);
+
+test_dead_code_elimination!(
+    swapping_group_stage_with_project_that_outputs_a_literal_document_replaces_doc_with_ref,
+    expected = Stage::Project(Project {
+        is_add_fields: false,
+        source: Box::new(Stage::Group(Group {
+            source: mir_collection("db", "bar"),
+            keys: vec![OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(
+                FieldAccess::new(
+                    Box::new(Expression::Document(mir::DocumentExpr {
+                        document: unchecked_unique_linked_hash_map!(
+                            "a".to_string() => *mir_field_access("bar", "a", true),
+                            "b".to_string() => *mir_field_access("bar", "b", true),
+                            "c".to_string() => *mir_field_access("bar", "c", true),
+                        ),
+                    })),
+                    "b".to_string(),
+                )
+            ))],
+            aggregations: vec![],
+            scope: 0u16,
+            cache: SchemaCache::new(),
+        })),
+        expression: map! {
+            ("bar", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
+        },
+        cache: SchemaCache::new(),
+    }),
+    expected_changed = true,
+    input = Stage::Group(Group {
+        source: Box::new(Stage::Project(Project {
+            is_add_fields: false,
+            source: mir_collection("db", "bar"),
+            expression: map! {
+                ("bar", 0u16).into() => mir::Expression::Document(mir::DocumentExpr {
+                    document: unchecked_unique_linked_hash_map!(
+                        "a".to_string() => *mir_field_access("bar", "a", true),
+                        "b".to_string() => *mir_field_access("bar", "b", true),
+                        "c".to_string() => *mir_field_access("bar", "c", true),
+                    ),
+                })
+            },
+            cache: SchemaCache::new(),
+        })),
+        keys: vec![OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(
+            FieldAccess::new(
+                Box::new(Expression::Reference(("bar", 0u16).into())),
+                "b".to_string(),
+            )
+        ))],
+        aggregations: vec![],
+        scope: 0u16,
         cache: SchemaCache::new(),
     })
 );

@@ -82,6 +82,7 @@ impl TranslatorService for PanicHandlingTranslateSqlService {
             })
     }
 
+    #[allow(clippy::result_large_err)]
     async fn get_namespaces(
         &self,
         request: Request<GetNamespacesRequest>,

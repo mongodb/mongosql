@@ -69,7 +69,26 @@ impl DeadCodeEliminationVisitor {
                     if let Expression::FieldAccess(f) = u {
                         if let Expression::Reference(ref r) = *f.expr {
                             if let Some(v) = p.expression.get(&r.key) {
-                                new_expr.insert(r.key.clone(), v.clone());
+                                // At this point, we are attempting to swap a Group with a Project
+                                // parent. If the Project defines more fields than the set of group
+                                // keys, then the Project would no longer be valid if we directly
+                                // swapped the stages. After the swap, the Group stage (now the
+                                // parent of the Project) only emits group keys (and aggregations);
+                                // any additional fields referenced by the Project, therefore, no
+                                // longer exist in the Group stage's output. To avoid this situation,
+                                // we instead update the Project stage to output a Reference to the
+                                // unaliased group key reference.
+                                //
+                                // The state where a Project could define additional fields is when
+                                // the Project expression is a Document. We choose not to check
+                                // which fields the Document actually defines. It is always safe to
+                                // replace the Document expression with the Reference expression(s)
+                                // for unaliased group keys.
+                                let expr = match v {
+                                    Expression::Document(_) => Expression::Reference(r.clone()),
+                                    _ => v.clone(),
+                                };
+                                new_expr.insert(r.key.clone(), expr);
                             }
                         }
                     }
