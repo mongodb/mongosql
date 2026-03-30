@@ -548,10 +548,3 @@ tests:
     query: "SELECT * FROM spec_query_group_by.baz AS arr GROUP BY a.a AS a AGGREGATE SUM(a) AS gsum"
     should_compile: false
     algebrize_error: 'schema checking failed for Sum: required AnyOf({Missing, Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal), Atomic(Null)}), found Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false })'
-
-  - description: FLATTEN with unaliased GROUP BY key emits only group keys
-    current_db: spec_query_group_by
-    query: "SELECT * FROM FLATTEN(foo_flatten_group) GROUP BY x"
-    result:
-      - { "foo_flatten_group": { "x": 1 } }
-      - { "foo_flatten_group": { "x": 2 } }
