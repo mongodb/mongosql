@@ -14,7 +14,8 @@ use bson::Document;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
-use crate::{Error, Result, data_service::{CollectionInfo, DataService}};
+use crate::{Error, Result};
+use super::{CollectionInfo, DataService};
 
 /// Initialize the WASM module. Sets up a panic hook for better error messages in the browser.
 #[wasm_bindgen(start)]

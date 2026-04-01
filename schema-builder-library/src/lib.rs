@@ -18,14 +18,10 @@ pub mod data_service;
 pub use data_service::{CollectionInfo as DataServiceCollectionInfo, DataService};
 
 #[cfg(not(target_arch = "wasm32"))]
-pub mod mongodb_data_service;
-#[cfg(not(target_arch = "wasm32"))]
-pub use mongodb_data_service::MongoDbDataService;
+pub use data_service::MongoDbDataService;
 
 #[cfg(target_arch = "wasm32")]
-pub mod wasm;
-#[cfg(target_arch = "wasm32")]
-pub use wasm::{JsDataService, WasmDataService};
+pub use data_service::{JsDataService, WasmDataService};
 
 pub mod client_util;
 mod consts;

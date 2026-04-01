@@ -4,15 +4,11 @@
 //! using the Rust MongoDB driver. This implementation is intended for use by
 //! schema-manager and other native Rust consumers.
 
-#![cfg(not(target_arch = "wasm32"))]
-
 use futures::TryStreamExt;
 use mongodb::{Client, bson::Document, bson::doc};
 
-use crate::{
-    Error, Result,
-    data_service::{CollectionInfo, CollectionOptions, DataService, parse_namespace},
-};
+use crate::{Error, Result};
+use super::{CollectionInfo, CollectionOptions, DataService, parse_namespace};
 
 /// MongoDB implementation of the DataService trait.
 ///

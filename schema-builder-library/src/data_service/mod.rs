@@ -10,6 +10,16 @@ use serde::{Deserialize, Serialize};
 
 use crate::Result;
 
+#[cfg(not(target_arch = "wasm32"))]
+pub mod mongodb;
+#[cfg(not(target_arch = "wasm32"))]
+pub use mongodb::MongoDbDataService;
+
+#[cfg(target_arch = "wasm32")]
+pub mod wasm;
+#[cfg(target_arch = "wasm32")]
+pub use wasm::{JsDataService, WasmDataService};
+
 /// Information about a single collection entry, returned by `list_collections`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CollectionInfo {
