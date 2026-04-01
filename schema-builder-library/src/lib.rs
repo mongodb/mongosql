@@ -13,6 +13,20 @@ use tracing::{Level, debug, error, instrument, span, warn};
 
 pub(crate) mod result_set;
 
+// DataService trait and implementations
+pub mod data_service;
+pub use data_service::{CollectionInfo as DataServiceCollectionInfo, DataService};
+
+#[cfg(not(target_arch = "wasm32"))]
+pub mod mongodb_data_service;
+#[cfg(not(target_arch = "wasm32"))]
+pub use mongodb_data_service::MongoDbDataService;
+
+#[cfg(target_arch = "wasm32")]
+pub mod wasm;
+#[cfg(target_arch = "wasm32")]
+pub use wasm::{JsDataService, WasmDataService};
+
 pub mod client_util;
 mod consts;
 use consts::{DISALLOWED_DB_NAMES, VIEW_SAMPLE_SIZE};
