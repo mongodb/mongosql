@@ -38,7 +38,7 @@ The binary is written to `target/debug/mongosql-cli` (or `target/release/mongosq
 ### Usage
 
 ```
-mongosql-cli [OPTIONS] <QUERY>
+./mongosql-cli [OPTIONS] <QUERY>
 ```
 
 **Arguments:**
@@ -56,6 +56,7 @@ mongosql-cli [OPTIONS] <QUERY>
 | `-f`, `--schema-file <FILE>` | Path to a local schema file (`.json`, `.yaml`, or `.yml`). If omitted, schema is fetched from the `__sql_schemas` collection in MongoDB. Any other file extension is an error. | *(fetched from DB)* |
 | `-t`, `--translation` | When used with `--execute`, also print the translated aggregation pipeline before showing query results. Without `--execute`, the translation is always printed regardless of this flag. | false |
 | `-e`, `--execute` | Connect to MongoDB, run the translated query, and display results. Requires a running MongoDB instance. | false |
+| `-h`, `--help` | Print help information and exit. | — |
 
 ### Examples
 
@@ -93,12 +94,6 @@ cargo run --package mongosql-cli -- --db mydb --schema-file schema.yaml "SELECT 
 
 When `--schema-file` is provided, the CLI reads collection schemas from a local file. The file must be JSON or YAML, structured as a map of database name → collection name → [JSON Schema](https://www.mongodb.com/docs/manual/reference/operator/query/jsonSchema/) object.
 
-Each collection schema describes the shape of a MongoDB document. Valid `bsonType` values are:
-`object`, `array`, `string`, `int`, `double`, `long`, `decimal`, `bool`, `date`, `null`,
-`objectId`, `binData`, `timestamp`, `regex`, `javascript`, `javascriptWithScope`,
-`symbol`, `dbPointer`, `undefined`, `minKey`, `maxKey`.
-
-`bsonType` also accepts an array of the above values (e.g. `["int", "null"]`) to represent a field that may hold multiple types.
 
 ```yaml
 # schema.yaml
