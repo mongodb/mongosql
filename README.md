@@ -17,6 +17,131 @@ This document contains instructions for building and testing the MongoSQL compil
 For release mode, use `cargo build --release`, this will remove debugging support and will optimize
 the code.
 
+## MongoSQL CLI
+
+The `mongosql-cli` binary translates SQL queries to MongoDB aggregation pipelines and optionally executes them against a running MongoDB instance.
+
+### Building the CLI
+
+```bash
+cargo build --package mongosql-cli
+```
+
+For an optimized release build:
+
+```bash
+cargo build --release --package mongosql-cli
+```
+
+The binary is written to `target/debug/mongosql-cli` (or `target/release/mongosql-cli` for release builds).
+
+### Usage
+
+```
+mongosql-cli [OPTIONS] <QUERY>
+```
+
+**Arguments:**
+
+| Argument | Description |
+|---|---|
+| `<QUERY>` | The SQL query to translate (required) |
+
+**Options:**
+
+| Flag | Description | Default |
+|---|---|---|
+| `-d`, `--db <DB>` | The database where collections in the query are assumed to live. Cross-database queries are not supported. Required when using `--execute` or when `--schema-file` is not provided. | `test` |
+| `-u`, `--uri <URI>` | MongoDB connection URI. Only used when `--execute` is set or when fetching schema from the database. | `mongodb://localhost:27017` |
+| `-f`, `--schema-file <FILE>` | Path to a local schema file (`.json`, `.yaml`, or `.yml`). If omitted, schema is fetched from the `__sql_schemas` collection in MongoDB. Any other file extension is an error. | *(fetched from DB)* |
+| `-t`, `--translation` | When used with `--execute`, also print the translated aggregation pipeline before showing query results. Without `--execute`, the translation is always printed regardless of this flag. | false |
+| `-e`, `--execute` | Connect to MongoDB, run the translated query, and display results. Requires a running MongoDB instance. | false |
+
+### Examples
+
+**Translate a query using a local schema file (no MongoDB connection required):**
+
+```bash
+./target/debug/mongosql-cli --db mydb --schema-file schema.yaml "SELECT name, age FROM users WHERE age > 30"
+# or with cargo run:
+cargo run --package mongosql-cli -- --db mydb --schema-file schema.yaml "SELECT name, age FROM users WHERE age > 30"
+```
+
+**Translate a query, fetching schema from a running MongoDB instance:**
+
+> **Prerequisites:** MongoDB must be running and the `__sql_schemas` collection must be populated in `mydb`. See [Schema from MongoDB](#schema-from-mongodb) below.
+
+```bash
+./target/debug/mongosql-cli --db mydb --uri mongodb://localhost:27017 "SELECT name FROM orders"
+```
+
+**Execute a query and display results:**
+
+> **Prerequisites:** MongoDB must be running and the `__sql_schemas` collection must be populated in `mydb`.
+
+```bash
+./target/debug/mongosql-cli --db mydb --execute "SELECT name, age FROM users WHERE age > 30"
+```
+
+**Print both the translation and execute the query:**
+
+```bash
+./target/debug/mongosql-cli --db mydb --execute --translation "SELECT * FROM products"
+```
+
+### Schema Files
+
+When `--schema-file` is provided, the CLI reads collection schemas from a local file. The file must be JSON or YAML, structured as a map of database name → collection name → [JSON Schema](https://www.mongodb.com/docs/manual/reference/operator/query/jsonSchema/) object.
+
+Each collection schema describes the shape of a MongoDB document. Valid `bsonType` values are:
+`object`, `array`, `string`, `int`, `double`, `long`, `decimal`, `bool`, `date`, `null`,
+`objectId`, `binData`, `timestamp`, `regex`, `javascript`, `javascriptWithScope`,
+`symbol`, `dbPointer`, `undefined`, `minKey`, `maxKey`.
+
+`bsonType` also accepts an array of the above values (e.g. `["int", "null"]`) to represent a field that may hold multiple types.
+
+```yaml
+# schema.yaml
+mydb:
+  users:
+    bsonType: object
+    properties:
+      name: { bsonType: string }
+      age: { bsonType: int }
+  orders:
+    bsonType: object
+    properties:
+      total: { bsonType: double }
+```
+
+```json
+{
+  "mydb": {
+    "users": {
+      "bsonType": "object",
+      "properties": {
+        "name": { "bsonType": "string" },
+        "age": { "bsonType": "int" }
+      }
+    }
+  }
+}
+```
+
+### Schema from MongoDB
+
+When `--schema-file` is omitted, the CLI connects to MongoDB and reads schema from the `__sql_schemas` collection in the specified database. Each document in that collection must have the following shape:
+
+```json
+{ "_id": "<collectionName>", "schema": { <SchemaObject> } }
+```
+
+where `<SchemaObject>` follows the same JSON Schema structure described in the [Schema Files](#schema-files) section above (i.e. the value that would appear under a collection name in a schema file).
+
+> **Note:** Warnings about missing schemas are written to **stdout**, not stderr. If you capture stdout to parse the pipeline output, missing-schema warnings will be interleaved with the translation. Collections with no schema found are assigned empty schemas, and the resulting translation may be inaccurate.
+
+---
+
 ## Rust testing
 
 There are several types of tests for the Rust code: unit tests, fuzz tests, index usage tests, e2e
