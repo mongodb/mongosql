@@ -41,22 +41,7 @@ The binary is written to `target/debug/mongosql-cli` (or `target/release/mongosq
 ./mongosql-cli [OPTIONS] <QUERY>
 ```
 
-**Arguments:**
-
-| Argument | Description |
-|---|---|
-| `<QUERY>` | The SQL query to translate (required) |
-
-**Options:**
-
-| Flag | Description | Default |
-|---|---|---|
-| `-d`, `--db <DB>` | The database where collections in the query are assumed to live. Cross-database queries are not supported. Required when using `--execute` or when `--schema-file` is not provided. | `test` |
-| `-u`, `--uri <URI>` | MongoDB connection URI. Only used when `--execute` is set or when fetching schema from the database. | `mongodb://localhost:27017` |
-| `-f`, `--schema-file <FILE>` | Path to a local schema file (`.json`, `.yaml`, or `.yml`). If omitted, schema is fetched from the `__sql_schemas` collection in MongoDB. Any other file extension is an error. | *(fetched from DB)* |
-| `-t`, `--translation` | When used with `--execute`, also print the translated aggregation pipeline before showing query results. Without `--execute`, the translation is always printed regardless of this flag. | false |
-| `-e`, `--execute` | Connect to MongoDB, run the translated query, and display results. Requires a running MongoDB instance. | false |
-| `-h`, `--help` | Print help information and exit. | — |
+Run `./mongosql-cli --help` for full usage instructions and available options.
 
 ### Examples
 
@@ -125,15 +110,15 @@ mydb:
 
 ### Schema from MongoDB
 
-When `--schema-file` is omitted, the CLI connects to MongoDB and reads schema from the `__sql_schemas` collection in the specified database. Each document in that collection must have the following shape:
+When `--schema-file` is omitted, the CLI connects to MongoDB and reads schema from the `__sql_schemas` collection in the specified database.
 
-```json
-{ "_id": "<collectionName>", "schema": { <SchemaObject> } }
-```
+> **Note:** 
+> To generate the __sql_schemas collection, use the MongoDB SQL Schema Builder CLI, which is available at the SQL Interfaces Download Center:
+https://www.mongodb.com/try/download/sql-schema-builder 
+> 
+> 
+> Warnings about missing schemas are written to **stdout**, not stderr. If you capture stdout to parse the pipeline output, missing-schema warnings will be interleaved with the translation. Collections with no schema found are assigned empty schemas, and the resulting translation may be inaccurate.
 
-where `<SchemaObject>` follows the same JSON Schema structure described in the [Schema Files](#schema-files) section above (i.e. the value that would appear under a collection name in a schema file).
-
-> **Note:** Warnings about missing schemas are written to **stdout**, not stderr. If you capture stdout to parse the pipeline output, missing-schema warnings will be interleaved with the translation. Collections with no schema found are assigned empty schemas, and the resulting translation may be inaccurate.
 
 ---
 
