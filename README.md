@@ -27,13 +27,6 @@ The `mongosql-cli` binary translates SQL queries to MongoDB aggregation pipeline
 cargo build --package mongosql-cli
 ```
 
-For an optimized release build:
-
-```bash
-cargo build --release --package mongosql-cli
-```
-
-The binary is written to `target/debug/mongosql-cli` (or `target/release/mongosql-cli` for release builds).
 
 ### Usage
 
