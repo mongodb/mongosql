@@ -66,39 +66,11 @@ pub struct CollectionOptions {
 ///
 /// # Send requirement
 ///
-/// For non-WASM targets, the trait requires `Send + Sync` for `tokio::spawn` compatibility.
-/// For WASM targets, `Send + Sync` is not required since JavaScript is single-threaded.
-#[cfg(not(target_arch = "wasm32"))]
-#[async_trait::async_trait]
-pub trait DataService: Send + Sync {
-    /// List all database names.
-    async fn list_databases(&self) -> Result<Vec<String>>;
-
-    /// List all collections in a database.
-    ///
-    /// Returns collection information including name, type, and options (for views).
-    async fn list_collections(&self, db_name: &str) -> Result<Vec<CollectionInfo>>;
-
-    /// Execute an aggregation pipeline on a namespace.
-    ///
-    /// # Arguments
-    ///
-    /// * `ns` - The namespace in `"database.collection"` format
-    /// * `pipeline` - The aggregation pipeline stages
-    async fn aggregate(&self, ns: &str, pipeline: Vec<Document>) -> Result<Vec<Document>>;
-
-    /// Execute a find query on a namespace.
-    ///
-    /// # Arguments
-    ///
-    /// * `ns` - The namespace in `"database.collection"` format
-    /// * `filter` - The query filter document
-    async fn find(&self, ns: &str, filter: Document) -> Result<Vec<Document>>;
-}
-
-/// WASM version of DataService (no `Send + Sync` requirement).
-#[cfg(target_arch = "wasm32")]
-#[async_trait::async_trait(?Send)]
+/// On non-WASM targets, functions that spawn tasks (e.g. via `tokio::spawn`) require
+/// `D: DataService + Send + Sync`. On WASM targets, `Send + Sync` is not required
+/// since JavaScript is single-threaded.
+#[cfg_attr(not(target_arch = "wasm32"), async_trait::async_trait)]
+#[cfg_attr(target_arch = "wasm32", async_trait::async_trait(?Send))]
 pub trait DataService {
     /// List all database names.
     async fn list_databases(&self) -> Result<Vec<String>>;
