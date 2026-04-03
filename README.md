@@ -77,8 +77,9 @@ cargo run --package mongosql-cli -- --db mydb --schema-file schema.yaml "SELECT 
 
 ### Schema Files
 
-When `--schema-file` is provided, the CLI reads collection schemas from a local file. The file must be JSON or YAML, structured as a map of database name → collection name → [JSON Schema](https://www.mongodb.com/docs/manual/reference/operator/query/jsonSchema/) object.
+When `--schema-file` is provided, the CLI reads collection schemas from a local file. 
 
+Here are some examples, but you can find more examples in the [mongo-cli test directory](/mongosql-cli/test).
 
 ```yaml
 # schema.yaml
