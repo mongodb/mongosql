@@ -17,6 +17,105 @@ This document contains instructions for building and testing the MongoSQL compil
 For release mode, use `cargo build --release`, this will remove debugging support and will optimize
 the code.
 
+## MongoSQL CLI
+
+The `mongosql-cli` binary translates SQL queries to MongoDB aggregation pipelines and optionally executes them against a running MongoDB instance.
+
+### Building the CLI
+
+```bash
+cargo build --package mongosql-cli
+```
+
+
+### Usage
+
+```
+./mongosql-cli [OPTIONS] <QUERY>
+```
+
+Run `./mongosql-cli --help` for full usage instructions and available options.
+
+### Examples
+
+**Translate a query using a local schema file (no MongoDB connection required):**
+
+```bash
+./target/debug/mongosql-cli --db mydb --schema-file schema.yaml "SELECT name, age FROM users WHERE age > 30"
+# or with cargo run:
+cargo run --package mongosql-cli -- --db mydb --schema-file schema.yaml "SELECT name, age FROM users WHERE age > 30"
+```
+
+**Translate a query, fetching schema from a running MongoDB instance:**
+
+> **Prerequisites:** MongoDB must be running and the `__sql_schemas` collection must be populated in `mydb`. See [Schema from MongoDB](#schema-from-mongodb) below.
+
+```bash
+./target/debug/mongosql-cli --db mydb --uri mongodb://localhost:27017 "SELECT name FROM orders"
+```
+
+**Execute a query and display results:**
+
+> **Prerequisites:** MongoDB must be running and the `__sql_schemas` collection must be populated in `mydb`.
+
+```bash
+./target/debug/mongosql-cli --db mydb --execute "SELECT name, age FROM users WHERE age > 30"
+```
+
+**Print both the translation and execute the query:**
+
+```bash
+./target/debug/mongosql-cli --db mydb --execute --translation "SELECT * FROM products"
+```
+
+### Schema Files
+
+When `--schema-file` is provided, the CLI reads collection schemas from a local file. 
+
+Here are some examples, but you can find more examples in the [mongo-cli test directory](/mongosql-cli/test).
+
+```yaml
+# schema.yaml
+mydb:
+  users:
+    bsonType: object
+    properties:
+      name: { bsonType: string }
+      age: { bsonType: int }
+  orders:
+    bsonType: object
+    properties:
+      total: { bsonType: double }
+```
+
+```json
+{
+  "mydb": {
+    "users": {
+      "bsonType": "object",
+      "properties": {
+        "name": { "bsonType": "string" },
+        "age": { "bsonType": "int" }
+      }
+    }
+  }
+}
+```
+
+### Schema from MongoDB
+
+When `--schema-file` is omitted, the CLI connects to MongoDB and reads schema from the `__sql_schemas` collection in the specified database.
+
+> **Note:** 
+> To generate the __sql_schemas collection, use the MongoDB SQL Schema Builder CLI, which is available at the SQL Interfaces Download Center:
+https://www.mongodb.com/try/download/sql-schema-builder 
+> 
+> 
+> Warnings about missing schemas are written to **stdout**, not stderr. If you capture stdout to parse the pipeline output, missing-schema warnings will be interleaved with the translation. Collections with no schema found are assigned empty schemas, and the resulting translation may be inaccurate.
+
+
+---
+
 ## Rust testing
 
 There are several types of tests for the Rust code: unit tests, fuzz tests, index usage tests, e2e
