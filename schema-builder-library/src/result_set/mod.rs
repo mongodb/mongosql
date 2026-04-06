@@ -74,7 +74,7 @@ impl ResultSet {
     ) -> Option<HashMap<&'a str, Arc<Schema>>> {
         namespaces
             .iter()
-            .filter_map(|namespace| {
+            .map(|namespace| {
                 self.schemas
                     .get(&namespace.database)
                     .and_then(|db_catalog: &Catalog| db_catalog.get(&namespace.collection))
@@ -85,8 +85,7 @@ impl ResultSet {
                         )
                     })
             })
-            .collect::<HashMap<_, _>>()
-            .into()
+            .collect::<Option<HashMap<_, _>>>()
     }
 
     /// Add a full schema to the result set
