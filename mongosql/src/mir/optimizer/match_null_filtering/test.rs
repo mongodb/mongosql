@@ -792,7 +792,7 @@ mod all_fields_always_nullable {
 
 mod impure_and_pure_field_access {
     use super::*;
-    
+
     test_match_null_filtering!(
         impure_field_access_with_pure_nullable_field_does_not_flip_semantics,
         expected = Stage::Filter(Filter {
