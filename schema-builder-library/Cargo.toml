@@ -25,6 +25,9 @@ tracing = { workspace = true }
 bson.workspace = true
 async-trait = { workspace = true }
 
+[dev-dependencies]
+tracing-test = "0.2"
+
 [features]
 integration = []
 

@@ -24,8 +24,6 @@ mod schema;
 use schema::{derive_schema_for_partitions, derive_schema_for_view};
 mod errors;
 pub use errors::Error;
-mod notifications;
-pub use notifications::{SamplerAction, SamplerNotification};
 
 /// Re-export of mongosql Schema type for convenience
 pub type MongoSqlSchema = Schema;

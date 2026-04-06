@@ -3,7 +3,7 @@
  * and how we operate with them.
  */
 use crate::{
-    Error, NamespaceInfo, NamespaceInfoWithSchema, NamespaceType, Result, SamplerAction,
+    Error, NamespaceInfo, NamespaceInfoWithSchema, NamespaceType, Result,
     client_util::DatabaseExt, derive_schema_for_partitions, derive_schema_for_view, get_partitions,
     result_set::ShareableResultSet, schema::initial_schema::InitialSchema,
 };
@@ -214,8 +214,7 @@ impl CollectionInfo {
                         });
                     if let Some(schema) = &initial_schema {
                         info!(
-                            "{}: {}:{}",
-                            SamplerAction::UsingInitialSchema,
+                            "Using initial schema: {}:{}",
                             db.name(),
                             collection_name
                         );
@@ -399,6 +398,28 @@ impl CollectionInfo {
                                 ).await;
                             }
                             Some(collection_info_with_schema) => {
+                                // If the backing collection schema is an empty Document, the
+                                // collection may not exist. Fall back to sampling.
+                                if collection_info_with_schema
+                                    .get(view_options.view_on.as_str())
+                                    .is_some_and(|s| {
+                                        matches!(s.as_ref(), Schema::Document(d) if d.keys.is_empty() && !d.additional_properties)
+                                    })
+                                {
+                                    fallback_view_task(
+                                        &view_doc,
+                                        &db,
+                                        namespace_info,
+                                        Arc::clone(&result_set),
+                                        format!(
+                                            "Schema for underlying collection {} is empty, it may not exist. Falling back to sampling for view {}.",
+                                            view_options.view_on,
+                                            view_doc.name
+                                        ),
+                                    )
+                                    .await;
+                                    return;
+                                }
                                 // Use the catalog and the pipeline to derive the view schema
                                 let catalog = collection_info_with_schema.iter().fold(
                                     BTreeMap::new(),
@@ -467,8 +488,19 @@ async fn fallback_view_task(
         None => warn!(
             db = db.name(),
             collection = view_doc.name,
-            "no schema derived, view may be empty"
+            "no schema derived, view {}.{} may be empty",
+            db.name(),
+            view_doc.name
         ),
+        Some(Schema::Document(ref d)) if d.keys.is_empty() && !d.additional_properties => {
+            warn!(
+                db = db.name(),
+                collection = view_doc.name,
+                "no schema will be generated for {}.{}, the underlying collection may not exist",
+                db.name(),
+                view_doc.name
+            )
+        }
         Some(schema) => {
             result_set
                 .write()

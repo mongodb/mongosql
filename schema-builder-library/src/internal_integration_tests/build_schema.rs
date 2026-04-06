@@ -1,3 +1,4 @@
+use tracing_test::traced_test;
 use test_utils::schema_builder_library_integration_test_consts::{
     LARGE_COLL_NAME, NONUNIFORM_DB_NAME, NONUNIFORM_LARGE_SCHEMA, NONUNIFORM_SMALL_SCHEMA,
     NONUNIFORM_VIEW_SCHEMA, SMALL_COLL_NAME, UNIFORM_COLL_SCHEMA, UNIFORM_DB_NAME,
@@ -339,3 +340,53 @@ test_build_schema!(
     .collect(),
     schema_collection = None
 );
+
+#[tokio::test]
+#[traced_test]
+async fn view_on_nonexistent_collection_does_not_crash() {
+    use crate::{build_schema, options::BuilderOptions};
+    use super::create_mdb_client;
+
+    let db_name = "schema_builder_test_view_on_nonexistent";
+    let view_name = "test_view";
+    let nonexistent_coll = "nonexistent_collection";
+
+    let client = create_mdb_client().await;
+    let db = client.database(db_name);
+
+    // Drop and recreate just the view on a nonexistent collection
+    db.drop().await.expect("failed to drop test db");
+    db.create_collection(view_name)
+        .view_on(nonexistent_coll.to_string())
+        .pipeline(vec![])
+        .await
+        .expect("failed to create view on nonexistent collection");
+
+    let options = BuilderOptions {
+        include_list: [format!("{db_name}.*")]
+            .iter()
+            .map(|s| glob::Pattern::new(s).unwrap())
+            .collect(),
+        exclude_list: vec![],
+        schema_collection: None,
+        dry_run: false,
+        client,
+        task_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(10)),
+    };
+
+    let result = build_schema(options).await.expect("failed to build schema");
+
+    // No schema should be generated for a view on a nonexistent collection
+    assert!(
+        result.into_inner().is_empty(),
+        "expected no schemas for view on nonexistent collection"
+    );
+
+    // Logs should contain the fallback-to-sampling warning
+    assert!(logs_contain("Falling back to sampling"));
+
+    // Logs should contain a warning with the db.view namespace
+    assert!(logs_contain(&format!("{db_name}.{view_name}")));
+
+    db.drop().await.expect("failed to drop test db");
+}
