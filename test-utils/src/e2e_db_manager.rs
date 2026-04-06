@@ -1,6 +1,7 @@
 use mongodb::{
     bson::{doc, Document},
     error::{CommandError, ErrorKind},
+    options::WriteConcern,
     Client,
 };
 use std::cell::LazyCell;
@@ -77,13 +78,28 @@ impl TestDatabaseManager {
             },
         }
 
+        // Detect the number of replica set members so we can apply an appropriate
+        // write concern. This prevents race conditions where writes complete on the
+        // primary but haven't yet propagated to secondaries before the test reads.
+        let num_replica_set_members = admin_db
+            .run_command(doc! { "replSetGetStatus": 1 })
+            .await
+            .ok()
+            .and_then(|doc| doc.get_array("members").ok().map(|m| m.len() as u32))
+            .unwrap_or(1);
+        let write_concern = WriteConcern::nodes(num_replica_set_members);
+
         for db in &dbs {
             let db = client.database(db);
             // drop the database in case it exists
-            db.drop().await.expect("Failed to drop databases");
+            db.drop()
+                .write_concern(write_concern.clone())
+                .await
+                .expect("Failed to drop databases");
             for coll in &collections {
-                db.collection(coll)
+                db.collection::<Document>(coll)
                     .insert_one(doc! { "a": 1 })
+                    .write_concern(write_concern.clone())
                     .await
                     .expect("Failed to insert document");
             }
@@ -91,6 +107,7 @@ impl TestDatabaseManager {
                 db.create_collection(view_name)
                     .view_on(collections[0].clone())
                     .pipeline(vec![doc! { "$match": { "a": 1 } }])
+                    .write_concern(write_concern.clone())
                     .await
                     .expect("Failed to create view");
             }

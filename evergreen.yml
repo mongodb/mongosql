@@ -739,6 +739,30 @@ functions:
         display_name: ${project_folder}-v${release_version}.sbom.json
         content_type: application/json
 
+  "get schema-builder-library testdata":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs/testdata
+        script: |
+          ${prepare_shell}
+          curl -LO https://mongosql-noexpire.s3.us-east-2.amazonaws.com/schema_manager/schema-builder-library.tar.gz
+
+  "decompress schema-builder-library testdata":
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+          echo "Removing existing schema-builder-library..."
+          rm -rf testdata/schema-builder-library/
+          echo "Removal complete"
+          echo "Decompressing integration test data..."
+          tar -xzvf testdata/schema-builder-library.tar.gz --directory testdata
+          echo "Decompression complete"
+
   "generate static code analysis":
     - command: shell.exec
       type: test
@@ -943,6 +967,29 @@ tasks:
           description: "run rewrite and type constraint spec tests"
           cargo_test_flags: >-
             -- --ignored
+
+  - name: test-schema-builder-library-integration
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 6.0
+          TOPOLOGY: server
+      - func: "install rust toolchain"
+      - func: "get schema-builder-library testdata"
+      - func: "decompress schema-builder-library testdata"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d=../testdata/schema-builder-library"
+      - func: "run rust tests"
+        retry_on_failure: true
+        vars:
+          description: "run schema-builder-library integration tests"
+          cargo_test_flags: >-
+            --features=integration
+            --package=schema-builder-library
+            --lib internal_integration_tests
+            -- --test-threads=1
 
   - name: release
     git_tag_only: true
@@ -1374,6 +1421,7 @@ buildvariants:
       - sql-engines-common-test-infra
     tasks:
       - name: .standalone
+      - name: test-schema-builder-library-integration
 
   - name: macos
     display_name: "macOS"

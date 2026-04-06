@@ -12,6 +12,7 @@ members = [
     "mongosql-datastructures",
     "mongosql-c",
     "mongosql",
+    "schema-builder-library",
     "service",
     "test-utils",
     "usererrordisplay-impl",
@@ -44,6 +45,10 @@ tracing-subscriber = "0"
 glob = "0"
 futures = "0"
 linked-hash-map = "0"
+async-trait = "0"
+mongosql = { path = "mongosql" }
+agg-ast = { path = "agg-ast/ast" }
+schema_derivation = { path = "agg-ast/schema_derivation" }
 base64 = "0.22.1"
 bson = "2"
 tailcall = "1"
