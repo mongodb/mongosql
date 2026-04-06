@@ -1,9 +1,9 @@
-use tracing_test::traced_test;
 use test_utils::schema_builder_library_integration_test_consts::{
     LARGE_COLL_NAME, NONUNIFORM_DB_NAME, NONUNIFORM_LARGE_SCHEMA, NONUNIFORM_SMALL_SCHEMA,
     NONUNIFORM_VIEW_SCHEMA, SMALL_COLL_NAME, UNIFORM_COLL_SCHEMA, UNIFORM_DB_NAME,
     UNIFORM_VIEW_SCHEMA, UNITARY_COLL_NAME, VIEW_NAME,
 };
+use tracing_test::traced_test;
 
 macro_rules! test_build_schema {
     ($test_name:ident, expected = $expected:expr, expected_num_init_schemas_used = $expected_num_init_schemas_used:expr, include = $include:expr, exclude = $exclude:expr, schema_collection = $schema_collection:expr) => {
@@ -344,8 +344,8 @@ test_build_schema!(
 #[tokio::test]
 #[traced_test]
 async fn view_on_nonexistent_collection_does_not_crash() {
-    use crate::{build_schema, options::BuilderOptions};
     use super::create_mdb_client;
+    use crate::{build_schema, options::BuilderOptions};
 
     let db_name = "schema_builder_test_view_on_nonexistent";
     let view_name = "test_view";

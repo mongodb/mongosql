@@ -3,8 +3,8 @@
  * and how we operate with them.
  */
 use crate::{
-    Error, NamespaceInfo, NamespaceInfoWithSchema, NamespaceType, Result,
-    client_util::DatabaseExt, derive_schema_for_partitions, derive_schema_for_view, get_partitions,
+    Error, NamespaceInfo, NamespaceInfoWithSchema, NamespaceType, Result, client_util::DatabaseExt,
+    derive_schema_for_partitions, derive_schema_for_view, get_partitions,
     result_set::ShareableResultSet, schema::initial_schema::InitialSchema,
 };
 
