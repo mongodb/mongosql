@@ -790,6 +790,65 @@ mod all_fields_always_nullable {
     );
 }
 
+mod impure_and_pure_field_access {
+    use super::*;
+    
+    test_match_null_filtering!(
+        impure_field_access_with_pure_nullable_field_does_not_flip_semantics,
+        expected = Stage::Filter(Filter {
+            source: Box::new(Stage::Filter(Filter {
+                source: mir_collection("db", "foo"),
+                condition: field_existence_expr("foo", vec!["b"], 0u16, vec![true]),
+                cache: SchemaCache::new(),
+            })),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Gt,
+                args: vec![
+                    Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
+                            function: ScalarFunction::Coalesce,
+                            args: vec![
+                                field_access_expr("foo", vec!["o1"], 0u16, vec![true]),
+                                field_access_expr("foo", vec!["o2"], 0u16, vec![true]),
+                            ],
+                            is_nullable: true,
+                        })),
+                        field: "a".to_string(),
+                        is_nullable: false,
+                    }),
+                    field_access_expr("foo", vec!["b"], 0u16, vec![false]),
+                ],
+                is_nullable: true,
+            }),
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Filter(Filter {
+            source: mir_collection("db", "foo"),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Gt,
+                args: vec![
+                    Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
+                            function: ScalarFunction::Coalesce,
+                            args: vec![
+                                field_access_expr("foo", vec!["o1"], 0u16, vec![true]),
+                                field_access_expr("foo", vec!["o2"], 0u16, vec![true]),
+                            ],
+                            is_nullable: true,
+                        })),
+                        field: "a".to_string(),
+                        is_nullable: false,
+                    }),
+                    field_access_expr("foo", vec!["b"], 0u16, vec![true]),
+                ],
+                is_nullable: true,
+            }),
+            cache: SchemaCache::new(),
+        })
+    );
+}
+
 mod mixed_field_nullability {
 
     use super::*;
