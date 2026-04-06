@@ -397,29 +397,22 @@ impl CollectionInfo {
                                     )
                                 ).await;
                             }
-                            Some(collection_info_with_schema) => {
-                                // If the backing collection schema is an empty Document, the
-                                // collection may not exist. Fall back to sampling.
-                                if collection_info_with_schema
-                                    .get(view_options.view_on.as_str())
-                                    .is_some_and(|s| {
-                                        matches!(s.as_ref(), Schema::Document(d) if d.keys.is_empty() && !d.additional_properties)
-                                    })
-                                {
-                                    fallback_view_task(
-                                        &view_doc,
-                                        &db,
-                                        namespace_info,
-                                        Arc::clone(&result_set),
-                                        format!(
-                                            "Schema for underlying collection {} is empty, it may not exist. Falling back to sampling for view {}.",
-                                            view_options.view_on,
-                                            view_doc.name
-                                        ),
+                            Some(collection_info_with_schema) if collection_info_with_schema.is_empty() => {
+                                // Fall back to sampling when the underlying collection schema is empty
+                                // (e.g., the collection doesn't exist)
+                                fallback_view_task(
+                                    &view_doc,
+                                    &db,
+                                    namespace_info,
+                                    Arc::clone(&result_set),
+                                    format!(
+                                        "Schema for underlying collection {} is empty (collection may not exist). Falling back to sampling for view {}.",
+                                        view_options.view_on,
+                                        view_doc.name
                                     )
-                                    .await;
-                                    return;
-                                }
+                                ).await;
+                            }
+                            Some(collection_info_with_schema) => {
                                 // Use the catalog and the pipeline to derive the view schema
                                 let catalog = collection_info_with_schema.iter().fold(
                                     BTreeMap::new(),
@@ -488,7 +481,7 @@ async fn fallback_view_task(
         None => warn!(
             db = db.name(),
             collection = view_doc.name,
-            "no schema derived, view {}.{} may be empty",
+            "no schema derived for {}.{}, view may be empty",
             db.name(),
             view_doc.name
         ),
@@ -496,10 +489,10 @@ async fn fallback_view_task(
             warn!(
                 db = db.name(),
                 collection = view_doc.name,
-                "no schema will be generated for {}.{}, the underlying collection may not exist",
+                "sampled view schema is empty for {}.{}; the underlying collection may not exist, no schema will be generated",
                 db.name(),
                 view_doc.name
-            )
+            );
         }
         Some(schema) => {
             result_set
