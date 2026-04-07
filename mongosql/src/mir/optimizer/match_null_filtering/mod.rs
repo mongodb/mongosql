@@ -293,22 +293,25 @@ impl Visitor for NullableFieldAccessGatherer {
             }
             Expression::FieldAccess(fa) => {
                 let scope = fa.scope_if_pure();
-                if self.is_collecting && scope == Some(self.scope) && fa.is_nullable {
-                    // Only store nullable "pure" fields in the map.
-                    match fa.to_string_if_pure() {
+                if self.is_collecting {
+                    match scope {
                         None => {
                             self.found_impure = true;
                         }
-                        Some(s) => {
-                            self.filter_fields.insert(s, fa.clone());
+                        Some(s) if s == self.scope && fa.is_nullable => {
+                            if let Some(key) = fa.to_string_if_pure() {
+                                // Only store nullable "pure" fields in the map.
+                                self.filter_fields.insert(key, fa.clone());
 
-                            // If this is a pure field access, mark is as not nullable
-                            // since it will be filtered for nullability before the
-                            // stage containing this access.
-                            let mut fa = fa.clone();
-                            fa.is_nullable = false;
-                            return Expression::FieldAccess(fa);
+                                // If this is a pure field access, mark it as not nullable
+                                // since it will be filtered for nullability before the
+                                // stage containing this access.
+                                let mut fa = fa.clone();
+                                fa.is_nullable = false;
+                                return Expression::FieldAccess(fa);
+                            }
                         }
+                        Some(_) => {}
                     }
                 }
 
