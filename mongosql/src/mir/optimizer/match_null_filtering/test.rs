@@ -793,6 +793,11 @@ mod all_fields_always_nullable {
 mod impure_and_pure_field_access {
     use super::*;
 
+    // We artificially set is_nullable to false for this FieldAccess even though that is not a
+    // realistic value for it. In a real query, this FieldAccess would be marked as is_nullable: true.
+    // However, this test aims to demonstrate that the mere presence of impure field paths results
+    // in semantics not being flipped for filtered expressions. Here, we add a null-filter for b,
+    // but still do not flip the is_nullable flag for the Gt since COALESCE(o1, o2).a is impure.
     test_match_null_filtering!(
         impure_field_access_with_pure_nullable_field_does_not_flip_semantics,
         expected = Stage::Filter(Filter {
