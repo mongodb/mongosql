@@ -1,5 +1,3 @@
-#![cfg(target_arch = "wasm32")]
-
 use bson::Document;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
@@ -30,12 +28,16 @@ export interface CollectionInfo {
     name: string;
     /** The type: "collection", "view", or "timeseries" */
     type: string;
-    /** Options for views */
     options?: {
         /** For views, the source collection name */
         viewOn?: string;
         /** For views, the aggregation pipeline */
         pipeline?: BsonDocument[];
+        /** For timeseries, the timeseries options */
+        timeseries?: {
+            timeField: string;
+            metaField?: string;
+        };
     };
 }
 
@@ -50,10 +52,10 @@ export interface DataService {
     listDatabases(): Promise<string[]>;
     /** List all collections in a database */
     listCollections(dbName: string): Promise<CollectionInfo[]>;
-    /** Execute an aggregation pipeline on a namespace (format: "database.collection") */
-    aggregate(ns: string, pipeline: BsonDocument[]): Promise<BsonDocument[]>;
-    /** Execute a find query on a namespace (format: "database.collection") */
-    find(ns: string, filter: BsonDocument): Promise<BsonDocument[]>;
+    /** Execute an aggregation pipeline on a collection */
+    aggregate(dbName: string, collName: string, pipeline: BsonDocument[]): Promise<BsonDocument[]>;
+    /** Execute a find query on a collection */
+    find(dbName: string, collName: string, filter: BsonDocument): Promise<BsonDocument[]>;
 }
 "#;
 
@@ -76,14 +78,16 @@ extern "C" {
     #[wasm_bindgen(method, catch)]
     async fn aggregate(
         this: &JsDataService,
-        ns: &str,
+        db_name: &str,
+        coll_name: &str,
         pipeline: JsValue,
     ) -> std::result::Result<JsValue, JsValue>;
 
     #[wasm_bindgen(method, catch)]
     async fn find(
         this: &JsDataService,
-        ns: &str,
+        db_name: &str,
+        coll_name: &str,
         filter: JsValue,
     ) -> std::result::Result<JsValue, JsValue>;
 }
@@ -123,7 +127,12 @@ impl DataService for WasmDataService {
             .map_err(|e| Error::JsError(format!("Deserialization error: {e}")))
     }
 
-    async fn aggregate(&self, ns: &str, pipeline: Vec<Document>) -> Result<Vec<Document>> {
+    async fn aggregate(
+        &self,
+        db_name: &str,
+        coll_name: &str,
+        pipeline: Vec<Document>,
+    ) -> Result<Vec<Document>> {
         let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
         let pipeline_js = pipeline
             .serialize(&serializer)
@@ -131,7 +140,7 @@ impl DataService for WasmDataService {
 
         let js_result = self
             .js_service
-            .aggregate(ns, pipeline_js)
+            .aggregate(db_name, coll_name, pipeline_js)
             .await
             .map_err(|e| Error::JsError(format!("{e:?}")))?;
 
@@ -139,7 +148,12 @@ impl DataService for WasmDataService {
             .map_err(|e| Error::JsError(format!("Deserialization error: {e}")))
     }
 
-    async fn find(&self, ns: &str, filter: Document) -> Result<Vec<Document>> {
+    async fn find(
+        &self,
+        db_name: &str,
+        coll_name: &str,
+        filter: Document,
+    ) -> Result<Vec<Document>> {
         let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
         let filter_js = filter
             .serialize(&serializer)
@@ -147,7 +161,7 @@ impl DataService for WasmDataService {
 
         let js_result = self
             .js_service
-            .find(ns, filter_js)
+            .find(db_name, coll_name, filter_js)
             .await
             .map_err(|e| Error::JsError(format!("{e:?}")))?;
 
