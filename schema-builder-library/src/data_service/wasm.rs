@@ -4,8 +4,8 @@ use bson::Document;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
-use crate::{Error, Result};
 use super::{CollectionInfo, DataService};
+use crate::{Error, Result};
 
 #[wasm_bindgen(start)]
 pub fn init() {
