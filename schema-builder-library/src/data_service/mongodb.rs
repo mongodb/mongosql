@@ -1,24 +1,15 @@
-//! MongoDB implementation of the DataService trait.
-//!
-//! This module provides `MongoDbDataService`, which implements the `DataService` trait
-//! using the Rust MongoDB driver. This implementation is intended for use by
-//! schema-manager and other native Rust consumers.
-
 use futures::TryStreamExt;
 use mongodb::{Client, bson::Document, bson::doc};
 
 use crate::{Error, Result};
 use super::{CollectionInfo, CollectionOptions, DataService, parse_namespace};
 
-/// MongoDB implementation of the DataService trait.
-///
-/// Wraps a `mongodb::Client` and delegates all database operations to it.
+/// [`DataService`] implementation backed by the Rust MongoDB driver.
 pub struct MongoDbDataService {
     client: Client,
 }
 
 impl MongoDbDataService {
-    /// Create a new `MongoDbDataService` with the given MongoDB client.
     pub fn new(client: Client) -> Self {
         Self { client }
     }

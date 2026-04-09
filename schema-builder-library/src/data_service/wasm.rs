@@ -1,13 +1,3 @@
-//! WASM bridge for the schema builder library.
-//!
-//! This module provides WASM bindings for the schema builder, allowing it to be
-//! called from JavaScript/TypeScript. It defines the JavaScript interface using
-//! `wasm_bindgen` and provides a `WasmDataService` wrapper that implements the
-//! Rust `DataService` trait by delegating to JavaScript callbacks.
-//!
-//! Note: The WASM entry point (`build_schema_wasm`) will be added in a future
-//! ticket once `BuilderOptions` is made generic over `DataService`.
-
 #![cfg(target_arch = "wasm32")]
 
 use bson::Document;
@@ -17,7 +7,6 @@ use wasm_bindgen::prelude::*;
 use crate::{Error, Result};
 use super::{CollectionInfo, DataService};
 
-/// Initialize the WASM module. Sets up a panic hook for better error messages in the browser.
 #[wasm_bindgen(start)]
 pub fn init() {
     #[cfg(feature = "console_error_panic_hook")]
@@ -55,24 +44,6 @@ export interface CollectionInfo {
  *
  * Implement this interface in your JavaScript/TypeScript code to provide
  * database access to the schema builder.
- *
- * @example
- * ```typescript
- * class MyDataService implements DataService {
- *     async listDatabases(): Promise<string[]> {
- *         return ['db1', 'db2'];
- *     }
- *     async listCollections(dbName: string): Promise<CollectionInfo[]> {
- *         return [{ name: 'coll1', type: 'collection' }];
- *     }
- *     async aggregate(ns: string, pipeline: BsonDocument[]): Promise<BsonDocument[]> {
- *         return await myDriver.aggregate(ns, pipeline);
- *     }
- *     async find(ns: string, filter: BsonDocument): Promise<BsonDocument[]> {
- *         return await myDriver.find(ns, filter);
- *     }
- * }
- * ```
  */
 export interface DataService {
     /** List all database names */
@@ -117,17 +88,12 @@ extern "C" {
     ) -> std::result::Result<JsValue, JsValue>;
 }
 
-/// Wrapper around a JavaScript DataService that implements the Rust `DataService` trait.
-///
-/// This type bridges the JS world and the Rust schema builder by deserializing
-/// JS return values into Rust types and serializing Rust inputs (pipelines, filters)
-/// into plain JS objects.
+/// [`DataService`] implementation backed by a JavaScript DataService object.
 pub struct WasmDataService {
     js_service: JsDataService,
 }
 
 impl WasmDataService {
-    /// Create a new `WasmDataService` wrapping a JavaScript DataService object.
     pub fn new(js_service: JsDataService) -> Self {
         Self { js_service }
     }

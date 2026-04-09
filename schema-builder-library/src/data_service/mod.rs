@@ -1,10 +1,3 @@
-//! DataService trait for abstracting database operations.
-//!
-//! This module defines the `DataService` trait which provides a flat, namespace-based
-//! interface for database operations. This design mirrors Compass's DataService pattern
-//! and enables the schema builder to work with different backends (Rust MongoDB driver,
-//! WASM with JavaScript callbacks, etc.)
-
 use bson::Document;
 use serde::{Deserialize, Serialize};
 
@@ -44,31 +37,10 @@ pub struct CollectionOptions {
     pub pipeline: Vec<Document>,
 }
 
-/// A trait for abstracting database operations.
+/// Abstraction over database operations used by the schema builder.
 ///
-/// This trait provides a flat, namespace-based interface that mirrors Compass's
-/// DataService pattern. It uses namespace strings (`"database.collection"`) for
-/// collection operations instead of database/collection handles.
-///
-/// # Design Decisions
-///
-/// - **Flat interface**: Methods are flat on the trait (no `db.collection()` chaining)
-/// - **Namespace strings**: Uses `ns: &str` in `"database.collection"` format for collection operations
-/// - **Vec returns**: Returns `Vec<Document>` instead of cursors (simpler, loads all into memory)
-///
-/// # Example
-///
-/// ```ignore
-/// let databases = data_service.list_databases().await?;
-/// let collections = data_service.list_collections("mydb").await?;
-/// let docs = data_service.aggregate("mydb.mycoll", vec![doc! {"$limit": 10}]).await?;
-/// ```
-///
-/// # Send requirement
-///
-/// On non-WASM targets, functions that spawn tasks (e.g. via `tokio::spawn`) require
-/// `D: DataService + Send + Sync`. On WASM targets, `Send + Sync` is not required
-/// since JavaScript is single-threaded.
+/// Uses namespace strings in `"database.collection"` format for collection operations.
+/// On non-WASM targets `Send + Sync` is required; on WASM it is not.
 #[cfg_attr(not(target_arch = "wasm32"), async_trait::async_trait)]
 #[cfg_attr(target_arch = "wasm32", async_trait::async_trait(?Send))]
 pub trait DataService {
@@ -76,38 +48,18 @@ pub trait DataService {
     async fn list_databases(&self) -> Result<Vec<String>>;
 
     /// List all collections in a database.
-    ///
-    /// Returns collection information including name, type, and options (for views).
     async fn list_collections(&self, db_name: &str) -> Result<Vec<CollectionInfo>>;
 
-    /// Execute an aggregation pipeline on a namespace.
-    ///
-    /// # Arguments
-    ///
-    /// * `ns` - The namespace in `"database.collection"` format
-    /// * `pipeline` - The aggregation pipeline stages
+    /// Execute an aggregation pipeline on a namespace (`"database.collection"` format).
     async fn aggregate(&self, ns: &str, pipeline: Vec<Document>) -> Result<Vec<Document>>;
 
-    /// Execute a find query on a namespace.
-    ///
-    /// # Arguments
-    ///
-    /// * `ns` - The namespace in `"database.collection"` format
-    /// * `filter` - The query filter document
+    /// Execute a find query on a namespace (`"database.collection"` format).
     async fn find(&self, ns: &str, filter: Document) -> Result<Vec<Document>>;
 }
 
-/// Parse a namespace string into database and collection name components.
+/// Splits a `"database.collection"` namespace string into its two components.
 ///
 /// Splits on the first `.`, so collection names containing dots are handled correctly.
-///
-/// # Arguments
-///
-/// * `ns` - The namespace in `"database.collection"` format
-///
-/// # Panics
-///
-/// Panics if the namespace does not contain a `.` separator.
 pub fn parse_namespace(ns: &str) -> (&str, &str) {
     let dot_pos = ns
         .find('.')
