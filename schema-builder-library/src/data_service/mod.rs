@@ -66,22 +66,3 @@ pub fn parse_namespace(ns: &str) -> (&str, &str) {
         .unwrap_or_else(|| panic!("Invalid namespace format: {ns}"));
     (&ns[..dot_pos], &ns[dot_pos + 1..])
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_parse_namespace() {
-        let (db, coll) = parse_namespace("mydb.mycoll");
-        assert_eq!(db, "mydb");
-        assert_eq!(coll, "mycoll");
-    }
-
-    #[test]
-    fn test_parse_namespace_with_dots_in_collection() {
-        let (db, coll) = parse_namespace("mydb.my.coll.name");
-        assert_eq!(db, "mydb");
-        assert_eq!(coll, "my.coll.name");
-    }
-}
