@@ -171,14 +171,14 @@ mod for_views {
         ($test_name:ident, $db_name:expr, $view_name:expr, $expected_schema:expr$(,)?) => {
             #[tokio::test]
             async fn $test_name() {
-                use crate::{collection::CollectionInfo, schema::derive_schema_for_view};
+                use crate::{collection::DatabaseCollections, schema::derive_schema_for_view};
 
                 let db = create_mdb_client().await.database($db_name);
 
-                let CollectionInfo { views, .. } =
-                    CollectionInfo::new(&db, $db_name, vec![], vec![])
+                let DatabaseCollections { views, .. } =
+                    DatabaseCollections::new(&db, $db_name, vec![], vec![])
                         .await
-                        .unwrap_or_else(|e| panic!("Error while creating CollectionInfo: {}", e));
+                        .unwrap_or_else(|e| panic!("Error while creating DatabaseCollections: {}", e));
 
                 let view = views
                     .into_iter()

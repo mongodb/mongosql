@@ -1,4 +1,4 @@
-use crate::collection::CollectionDoc;
+use crate::CollectionInfo as CollectionDoc;
 use crate::partitioning::Partition;
 use std::sync::Arc;
 
