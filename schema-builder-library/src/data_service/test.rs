@@ -135,14 +135,18 @@ fn test_view_deserialization() {
         }
     };
     let info: CollectionInfo = bson::from_document(doc).unwrap();
-    assert_eq!(info.name, "myView");
-    assert_eq!(info.collection_type, CollectionType::View);
-    assert_eq!(info.options.view_on, "sourceCollection");
     assert_eq!(
-        info.options.pipeline,
-        vec![bson::doc! { "$match": { "active": true } }]
+        info,
+        CollectionInfo {
+            name: "myView".to_string(),
+            collection_type: CollectionType::View,
+            options: CollectionOptions {
+                view_on: "sourceCollection".to_string(),
+                pipeline: vec![bson::doc! { "$match": { "active": true } }],
+                timeseries: None,
+            },
+        }
     );
-    assert_eq!(info.options.timeseries, None);
 }
 
 #[test]
@@ -161,14 +165,19 @@ fn test_timeseries_deserialization() {
         }
     };
     let info: CollectionInfo = bson::from_document(doc).unwrap();
-    assert_eq!(info.name, "myTimeseries");
-    assert_eq!(info.collection_type, CollectionType::Timeseries);
     assert_eq!(
-        info.options.timeseries,
-        Some(TimeSeriesOptions {
-            time_field: "timestamp".to_string(),
-            meta_field: Some("metadata".to_string()),
-        })
+        info,
+        CollectionInfo {
+            name: "myTimeseries".to_string(),
+            collection_type: CollectionType::Timeseries,
+            options: CollectionOptions {
+                timeseries: Some(TimeSeriesOptions {
+                    time_field: "timestamp".to_string(),
+                    meta_field: Some("metadata".to_string()),
+                }),
+                ..Default::default()
+            },
+        }
     );
 }
 
@@ -184,7 +193,18 @@ fn test_timeseries_without_meta_field_deserialization() {
         }
     };
     let info: CollectionInfo = bson::from_document(doc).unwrap();
-    let ts_opts = info.options.timeseries.unwrap();
-    assert_eq!(ts_opts.time_field, "timestamp");
-    assert_eq!(ts_opts.meta_field, None);
+    assert_eq!(
+        info,
+        CollectionInfo {
+            name: "myTimeseries".to_string(),
+            collection_type: CollectionType::Timeseries,
+            options: CollectionOptions {
+                timeseries: Some(TimeSeriesOptions {
+                    time_field: "timestamp".to_string(),
+                    meta_field: None,
+                }),
+                ..Default::default()
+            },
+        }
+    );
 }
