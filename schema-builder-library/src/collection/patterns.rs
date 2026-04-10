@@ -213,9 +213,9 @@ impl CollectionInfo {
                 include_list,
                 exclude_list,
             )? {
-                if collection_doc.type_ == "view" {
+                if collection_doc.collection_type == "view" {
                     collection_info.views.push(collection_doc);
-                } else if collection_doc.type_ == "timeseries" {
+                } else if collection_doc.collection_type == "timeseries" {
                     collection_info.timeseries.push(collection_doc);
                 } else {
                     collection_info.collections.push(collection_doc);

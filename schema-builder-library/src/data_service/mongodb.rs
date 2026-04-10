@@ -1,5 +1,6 @@
 use futures::TryStreamExt;
 use mongodb::{Client, bson, bson::Document, bson::doc};
+use tracing::warn;
 
 use super::{CollectionInfo, DataService};
 use crate::{Error, Result, client_util::DatabaseExt};
@@ -30,9 +31,14 @@ impl DataService for MongoDbDataService {
             .await?;
 
         let docs: Vec<Document> = cursor.try_collect().await.map_err(Error::from)?;
-        docs.into_iter()
-            .map(|doc| bson::from_document(doc).map_err(|_| Error::BsonFailure))
-            .collect()
+        Ok(docs
+            .into_iter()
+            .filter_map(|doc| {
+                bson::from_document(doc)
+                    .map_err(|e| warn!("Skipping malformed listCollections entry: {e}"))
+                    .ok()
+            })
+            .collect())
     }
 
     async fn aggregate(

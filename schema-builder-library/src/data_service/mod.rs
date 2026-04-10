@@ -14,7 +14,7 @@ pub mod wasm;
 pub use wasm::{JsDataService, WasmDataService};
 
 /// Information about a single collection entry, returned by `list_collections`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct CollectionInfo {
     /// The name of the collection.
     pub name: String,
@@ -29,7 +29,7 @@ pub struct CollectionInfo {
 /// Options for collections. View options and timeseries options are both represented here
 /// since the `options` field in `listCollections` output is overloaded for different collection types.
 /// Consumers should check `CollectionInfo::collection_type` before accessing the relevant fields.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct CollectionOptions {
     /// For views, the name of the source collection.
     #[serde(rename = "viewOn", default)]
@@ -43,7 +43,7 @@ pub struct CollectionOptions {
 }
 
 /// Options for timeseries collections.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TimeSeriesOptions {
     pub time_field: String,

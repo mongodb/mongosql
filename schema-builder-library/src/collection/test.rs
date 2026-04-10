@@ -1,4 +1,4 @@
-use crate::{CollectionDoc, CollectionInfo};
+use crate::{collection::CollectionInfo, data_service::CollectionInfo as CollectionDoc};
 impl From<&str> for CollectionDoc {
     fn from(name: &str) -> Self {
         CollectionDoc {

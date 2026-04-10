@@ -42,12 +42,12 @@ export interface CollectionInfo {
 }
 
 /**
- * DataService interface for database operations.
+ * SqlDataService interface for database operations.
  *
  * Implement this interface in your JavaScript/TypeScript code to provide
  * database access to the schema builder.
  */
-export interface DataService {
+export interface SqlDataService {
     /** List all database names */
     listDatabases(): Promise<string[]>;
     /** List all collections in a database */
@@ -62,8 +62,8 @@ export interface DataService {
 // Declare the expected JavaScript object shape.
 #[wasm_bindgen]
 extern "C" {
-    /// JavaScript DataService object type.
-    #[wasm_bindgen(typescript_type = "DataService")]
+    /// JavaScript SqlDataService object type.
+    #[wasm_bindgen(typescript_type = "SqlDataService")]
     pub type JsDataService;
 
     #[wasm_bindgen(method, js_name = "listDatabases", catch)]
