@@ -327,14 +327,8 @@ impl DatabaseCollections {
                     if let Ok(pipeline) = view_doc.options
                         .pipeline
                         .iter()
-                        .map(|doc| bson::from_document(doc.clone()))
-                        .try_fold(Vec::<agg_ast::definitions::Stage>::new(), |mut acc, doc| match doc {
-                            Ok(stage) => {
-                                acc.push(stage);
-                                Ok(acc)
-                            }
-                            Err(e) => Err(e),
-                        }) {
+                        .map(|doc| bson::from_document::<agg_ast::definitions::Stage>(doc.clone()))
+                        .collect::<core::result::Result<Vec<_>, _>>() {
 
                         // Get the catalog for the view the database is in
                         // and use it for schema derivation
