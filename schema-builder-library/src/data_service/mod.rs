@@ -1,6 +1,9 @@
 use bson::Document;
 use serde::{Deserialize, Serialize};
 
+#[cfg(test)]
+mod test;
+
 use crate::Result;
 
 #[cfg(not(target_arch = "wasm32"))]
