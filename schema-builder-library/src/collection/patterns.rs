@@ -1,7 +1,7 @@
 use super::{
-    CollectionDoc, DatabaseCollections, EXCLUDE_DUNDERSCORE_PATTERN,
-    INCLUDE_LIST_IN_DB_AND_COLL_PAIRS,
+    DatabaseCollections, EXCLUDE_DUNDERSCORE_PATTERN, INCLUDE_LIST_IN_DB_AND_COLL_PAIRS,
 };
+use crate::data_service::CollectionInfo;
 use crate::{Error, Result, consts::DISALLOWED_COLLECTION_NAMES};
 use futures::TryStreamExt;
 use mongodb::{
@@ -11,7 +11,7 @@ use mongodb::{
 use tracing::instrument;
 
 impl DatabaseCollections {
-    /// process_inclusion filters an input CollectionDoc by the include_list and
+    /// process_inclusion filters an input CollectionInfo by the include_list and
     /// exclude_list.
     /// First, it filters the input collection_list by the include_list, retaining
     /// items that are in the include_list.
@@ -23,7 +23,7 @@ impl DatabaseCollections {
     #[instrument(level = "trace")]
     pub(crate) fn should_consider(
         database: &str,
-        collection_or_view: &CollectionDoc,
+        collection_or_view: &CollectionInfo,
         include_list: &[glob::Pattern],
         exclude_list: &[glob::Pattern],
     ) -> Result<bool> {
@@ -52,7 +52,7 @@ impl DatabaseCollections {
     #[instrument(level = "trace")]
     pub(crate) fn should_allow_dunderscore_namespace(
         database: &str,
-        collection_or_view: &CollectionDoc,
+        collection_or_view: &CollectionInfo,
         include_list: &[glob::Pattern],
     ) -> Result<bool> {
         let db_starts_with_dunderscore = database.starts_with("__");

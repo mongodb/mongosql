@@ -4,7 +4,7 @@
  */
 use crate::{
     Error, NamespaceInfo, NamespaceInfoWithSchema, NamespaceType, Result, client_util::DatabaseExt,
-    data_service::CollectionInfo as CollectionDoc, derive_schema_for_partitions,
+    data_service::CollectionInfo, derive_schema_for_partitions,
     derive_schema_for_view, get_partitions, result_set::ShareableResultSet,
     schema::initial_schema::InitialSchema,
 };
@@ -40,9 +40,9 @@ static INCLUDE_LIST_IN_DB_AND_COLL_PAIRS: OnceLock<Vec<(String, String)>> = Once
 /// (views, regular collections, and timeseries), and prepared for schema processing.
 #[derive(Debug, Default)]
 pub(crate) struct DatabaseCollections {
-    pub views: Vec<CollectionDoc>,
-    pub collections: Vec<CollectionDoc>,
-    pub timeseries: Vec<CollectionDoc>,
+    pub views: Vec<CollectionInfo>,
+    pub collections: Vec<CollectionInfo>,
+    pub timeseries: Vec<CollectionInfo>,
 }
 
 #[instrument(level = "trace", skip_all)]
@@ -432,7 +432,7 @@ impl DatabaseCollections {
 /// Fallback function for processing views that don't have a schema in the catalog,
 /// or for view that we weren't able to derive a schema for.
 async fn fallback_view_task(
-    view_doc: &CollectionDoc,
+    view_doc: &CollectionInfo,
     db: &Database,
     namespace_info: NamespaceInfo,
     result_set: ShareableResultSet,

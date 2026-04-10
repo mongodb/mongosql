@@ -1,7 +1,7 @@
-use crate::{collection::DatabaseCollections, data_service::CollectionInfo as CollectionDoc};
-impl From<&str> for CollectionDoc {
+use crate::{collection::DatabaseCollections, data_service::CollectionInfo};
+impl From<&str> for CollectionInfo {
     fn from(name: &str) -> Self {
-        CollectionDoc {
+        CollectionInfo {
             name: name.to_string(),
             ..Default::default()
         }
@@ -10,7 +10,7 @@ impl From<&str> for CollectionDoc {
 
 macro_rules! vec_collection_docs {
         ($($x:expr),* $(,)?) => {
-            vec![$(CollectionDoc::from($x)),*]
+            vec![$(CollectionInfo::from($x)),*]
         };
     }
 
@@ -22,7 +22,7 @@ macro_rules! actual {
                 DatabaseCollections::should_consider($db, c, $include_list, $exclude_list).unwrap()
             })
             .cloned()
-            .collect::<Vec<CollectionDoc>>()
+            .collect::<Vec<CollectionInfo>>()
     }};
 }
 
@@ -52,7 +52,7 @@ fn test_exclusion_glob() {
     let exclude_list = glob_it(vec!["mydb.*", "otherdb.*"]);
     let input = vec_collection_docs!("included", "excluded", "excludeded", "system.views");
 
-    let expected: Vec<CollectionDoc> = vec![];
+    let expected: Vec<CollectionInfo> = vec![];
     assert_eq!(
         actual!(input, "mydb", &include_list, &exclude_list),
         expected,
