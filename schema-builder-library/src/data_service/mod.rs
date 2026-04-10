@@ -66,7 +66,6 @@ pub struct TimeSeriesOptions {
 
 /// Abstraction over database operations used by the schema builder.
 ///
-/// Uses namespace strings in `"database.collection"` format for collection operations.
 /// On non-WASM targets `Send + Sync` is required; on WASM it is not.
 #[cfg_attr(not(target_arch = "wasm32"), async_trait::async_trait)]
 #[cfg_attr(target_arch = "wasm32", async_trait::async_trait(?Send))]
