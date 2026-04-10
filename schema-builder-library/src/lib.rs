@@ -245,7 +245,7 @@ async fn process_databases(options: BuilderOptions, databases: Vec<String>) -> R
 
             // To start computing the schema for all collections and views
             // in a database, we need to wait for list_collections to finish.
-            let Ok(collection_info) =
+            let Ok(database_collections) =
                 DatabaseCollections::new(&db, &db_name, include_list, exclude_list)
                     .await
                     .inspect_err(|e| {
@@ -257,7 +257,7 @@ async fn process_databases(options: BuilderOptions, databases: Vec<String>) -> R
 
             // Process collections first, then views
             process_collection_tasks(
-                &collection_info,
+                &database_collections,
                 &db,
                 options.dry_run,
                 Arc::clone(&result_set),
@@ -267,7 +267,7 @@ async fn process_databases(options: BuilderOptions, databases: Vec<String>) -> R
 
             // Now process views using the schema catalog
             process_view_tasks(
-                &collection_info,
+                &database_collections,
                 &db,
                 options.dry_run,
                 Arc::clone(&result_set),
@@ -357,14 +357,14 @@ async fn fetch_initial_schemas(
 }
 
 async fn process_collection_tasks(
-    collection_info: &DatabaseCollections,
+    database_collections: &DatabaseCollections,
     db: &mongodb::Database,
     dry_run: bool,
     result_set: ShareableResultSet,
     task_semaphore: Arc<tokio::sync::Semaphore>,
 ) {
     // Process collections and wait for them to complete
-    let coll_tasks = collection_info.process_collections(
+    let coll_tasks = database_collections.process_collections(
         db,
         dry_run,
         Arc::clone(&result_set),
@@ -383,14 +383,14 @@ async fn process_collection_tasks(
 }
 
 async fn process_view_tasks(
-    collection_info: &DatabaseCollections,
+    database_collections: &DatabaseCollections,
     db: &mongodb::Database,
     dry_run: bool,
     result_set: ShareableResultSet,
     task_semaphore: Arc<tokio::sync::Semaphore>,
 ) {
     // Process views using the schema catalog
-    let view_tasks = collection_info.process_views_with_catalog(
+    let view_tasks = database_collections.process_views_with_catalog(
         db,
         dry_run,
         Arc::clone(&result_set),
