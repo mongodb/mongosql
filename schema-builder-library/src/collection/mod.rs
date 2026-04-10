@@ -36,10 +36,10 @@ static EXCLUDE_DUNDERSCORE_PATTERN: LazyLock<glob::Pattern> = LazyLock::new(|| {
 
 static INCLUDE_LIST_IN_DB_AND_COLL_PAIRS: OnceLock<Vec<(String, String)>> = OnceLock::new();
 
-/// CollectionInfo is responsible for extracting the collections and views
-/// and preparing them for processing.
+/// DatabaseCollections holds all collections for a single database, categorized by type
+/// (views, regular collections, and timeseries), and prepared for schema processing.
 #[derive(Debug, Default)]
-pub(crate) struct CollectionInfo {
+pub(crate) struct DatabaseCollections {
     pub views: Vec<CollectionDoc>,
     pub collections: Vec<CollectionDoc>,
     pub timeseries: Vec<CollectionDoc>,
@@ -86,8 +86,8 @@ pub(crate) async fn query_for_initial_schemas(
     Ok(initial_collection_schemas)
 }
 
-impl CollectionInfo {
-    /// Create a new CollectionInfo instance. Collections and Views within a database
+impl DatabaseCollections {
+    /// Create a new DatabaseCollections instance. Collections and Views within a database
     /// will be enumerated, checked for inclusion/exclusion, and prepared for
     /// processing. The caller must actually process the collections/views by calling
     /// their JoinHandle.
@@ -108,7 +108,7 @@ impl CollectionInfo {
             )
             .await?;
 
-        CollectionInfo::separate_collection_types(
+        DatabaseCollections::separate_collection_types(
             db_name,
             &include_list,
             &exclude_list,

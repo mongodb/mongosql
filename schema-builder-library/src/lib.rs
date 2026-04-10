@@ -27,7 +27,7 @@ pub mod client_util;
 mod consts;
 use consts::{DISALLOWED_DB_NAMES, VIEW_SAMPLE_SIZE};
 mod collection;
-use collection::{CollectionInfo as CollectionManager, query_for_initial_schemas};
+use collection::{DatabaseCollections, query_for_initial_schemas};
 mod partitioning;
 use partitioning::get_partitions;
 mod schema;
@@ -246,7 +246,7 @@ async fn process_databases(options: BuilderOptions, databases: Vec<String>) -> R
             // To start computing the schema for all collections and views
             // in a database, we need to wait for list_collections to finish.
             let Ok(collection_info) =
-                CollectionManager::new(&db, &db_name, include_list, exclude_list)
+                DatabaseCollections::new(&db, &db_name, include_list, exclude_list)
                     .await
                     .inspect_err(|e| {
                         warn!("failed to list collections in database with error: {e}")
@@ -357,7 +357,7 @@ async fn fetch_initial_schemas(
 }
 
 async fn process_collection_tasks(
-    collection_info: &CollectionManager,
+    collection_info: &DatabaseCollections,
     db: &mongodb::Database,
     dry_run: bool,
     result_set: ShareableResultSet,
@@ -383,7 +383,7 @@ async fn process_collection_tasks(
 }
 
 async fn process_view_tasks(
-    collection_info: &CollectionManager,
+    collection_info: &DatabaseCollections,
     db: &mongodb::Database,
     dry_run: bool,
     result_set: ShareableResultSet,
