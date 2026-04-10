@@ -1,5 +1,5 @@
-use crate::{CollectionInfo as CollectionDoc, data_service::CollectionType};
 use crate::partitioning::Partition;
+use crate::{CollectionInfo as CollectionDoc, data_service::CollectionType};
 use std::sync::Arc;
 
 use lazy_static::lazy_static;

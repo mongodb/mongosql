@@ -4,9 +4,8 @@
  */
 use crate::{
     Error, NamespaceInfo, NamespaceInfoWithSchema, NamespaceType, Result, client_util::DatabaseExt,
-    data_service::CollectionInfo, derive_schema_for_partitions,
-    derive_schema_for_view, get_partitions, result_set::ShareableResultSet,
-    schema::initial_schema::InitialSchema,
+    data_service::CollectionInfo, derive_schema_for_partitions, derive_schema_for_view,
+    get_partitions, result_set::ShareableResultSet, schema::initial_schema::InitialSchema,
 };
 
 mod patterns;

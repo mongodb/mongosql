@@ -4,7 +4,9 @@ use bson::Document;
 
 use crate::{
     Result,
-    data_service::{CollectionInfo, CollectionOptions, CollectionType, DataService, TimeSeriesOptions},
+    data_service::{
+        CollectionInfo, CollectionOptions, CollectionType, DataService, TimeSeriesOptions,
+    },
 };
 
 /// A configurable in-memory implementation of [`DataService`] for use in tests.

@@ -15,7 +15,9 @@ pub(crate) mod result_set;
 
 // DataService trait and implementations
 pub mod data_service;
-pub use data_service::{CollectionInfo, CollectionOptions, CollectionType, DataService, TimeSeriesOptions};
+pub use data_service::{
+    CollectionInfo, CollectionOptions, CollectionType, DataService, TimeSeriesOptions,
+};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use data_service::MongoDbDataService;

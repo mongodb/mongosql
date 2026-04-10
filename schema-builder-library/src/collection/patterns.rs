@@ -1,6 +1,4 @@
-use super::{
-    DatabaseCollections, EXCLUDE_DUNDERSCORE_PATTERN, INCLUDE_LIST_IN_DB_AND_COLL_PAIRS,
-};
+use super::{DatabaseCollections, EXCLUDE_DUNDERSCORE_PATTERN, INCLUDE_LIST_IN_DB_AND_COLL_PAIRS};
 use crate::data_service::{CollectionInfo, CollectionType};
 use crate::{Error, Result, consts::DISALLOWED_COLLECTION_NAMES};
 use futures::TryStreamExt;
