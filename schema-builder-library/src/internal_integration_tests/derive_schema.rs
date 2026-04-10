@@ -178,7 +178,9 @@ mod for_views {
                 let DatabaseCollections { views, .. } =
                     DatabaseCollections::new(&db, $db_name, vec![], vec![])
                         .await
-                        .unwrap_or_else(|e| panic!("Error while creating DatabaseCollections: {}", e));
+                        .unwrap_or_else(|e| {
+                            panic!("Error while creating DatabaseCollections: {}", e)
+                        });
 
                 let view = views
                     .into_iter()
