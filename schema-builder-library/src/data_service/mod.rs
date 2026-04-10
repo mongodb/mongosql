@@ -16,14 +16,24 @@ pub mod wasm;
 #[cfg(target_arch = "wasm32")]
 pub use wasm::{JsDataService, WasmDataService};
 
+/// The type of a MongoDB collection entry.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CollectionType {
+    #[default]
+    Collection,
+    View,
+    Timeseries,
+}
+
 /// Information about a single collection entry, returned by `list_collections`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct CollectionInfo {
     /// The name of the collection.
     pub name: String,
-    /// The type of the collection ("collection", "view", or "timeseries").
+    /// The type of the collection.
     #[serde(rename = "type")]
-    pub collection_type: String,
+    pub collection_type: CollectionType,
     /// Additional options (primarily used for views and timeseries).
     #[serde(default)]
     pub options: CollectionOptions,

@@ -1,7 +1,7 @@
 use super::{
     DatabaseCollections, EXCLUDE_DUNDERSCORE_PATTERN, INCLUDE_LIST_IN_DB_AND_COLL_PAIRS,
 };
-use crate::data_service::CollectionInfo;
+use crate::data_service::{CollectionInfo, CollectionType};
 use crate::{Error, Result, consts::DISALLOWED_COLLECTION_NAMES};
 use futures::TryStreamExt;
 use mongodb::{
@@ -214,12 +214,10 @@ impl DatabaseCollections {
                 include_list,
                 exclude_list,
             )? {
-                if collection_doc.collection_type == "view" {
-                    collection_info.views.push(collection_doc);
-                } else if collection_doc.collection_type == "timeseries" {
-                    collection_info.timeseries.push(collection_doc);
-                } else {
-                    collection_info.collections.push(collection_doc);
+                match collection_doc.collection_type {
+                    CollectionType::View => collection_info.views.push(collection_doc),
+                    CollectionType::Timeseries => collection_info.timeseries.push(collection_doc),
+                    CollectionType::Collection => collection_info.collections.push(collection_doc),
                 }
             }
         }

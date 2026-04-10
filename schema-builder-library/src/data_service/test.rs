@@ -4,7 +4,7 @@ use bson::Document;
 
 use crate::{
     Result,
-    data_service::{CollectionInfo, CollectionOptions, DataService, TimeSeriesOptions},
+    data_service::{CollectionInfo, CollectionOptions, CollectionType, DataService, TimeSeriesOptions},
 };
 
 /// A configurable in-memory implementation of [`DataService`] for use in tests.
@@ -56,6 +56,38 @@ impl DataService for MockDataService {
     }
 }
 
+// CollectionType deserialization tests.
+//
+// These verify that CollectionType correctly maps the raw strings from MongoDB's
+// listCollections wire format and rejects unknown values.
+
+#[test]
+fn test_collection_type_deserialization() {
+    assert_eq!(
+        bson::from_bson::<CollectionType>(bson::Bson::String("collection".to_string())).unwrap(),
+        CollectionType::Collection
+    );
+    assert_eq!(
+        bson::from_bson::<CollectionType>(bson::Bson::String("view".to_string())).unwrap(),
+        CollectionType::View
+    );
+    assert_eq!(
+        bson::from_bson::<CollectionType>(bson::Bson::String("timeseries".to_string())).unwrap(),
+        CollectionType::Timeseries
+    );
+}
+
+#[test]
+fn test_unknown_collection_type_deserialization_errors() {
+    let result = bson::from_bson::<CollectionType>(bson::Bson::String("unknown".to_string()));
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(
+        err.contains("unknown"),
+        "error should mention the unknown variant, got: {err}"
+    );
+}
+
 // CollectionInfo deserialization tests.
 //
 // These verify that the serde annotations on CollectionInfo, CollectionOptions, and
@@ -77,7 +109,7 @@ fn test_plain_collection_deserialization() {
         info,
         CollectionInfo {
             name: "myCollection".to_string(),
-            collection_type: "collection".to_string(),
+            collection_type: CollectionType::Collection,
             options: CollectionOptions::default(),
         }
     );
@@ -105,7 +137,7 @@ fn test_view_deserialization() {
     };
     let info: CollectionInfo = bson::from_document(doc).unwrap();
     assert_eq!(info.name, "myView");
-    assert_eq!(info.collection_type, "view");
+    assert_eq!(info.collection_type, CollectionType::View);
     assert_eq!(info.options.view_on, "sourceCollection");
     assert_eq!(
         info.options.pipeline,
@@ -131,7 +163,7 @@ fn test_timeseries_deserialization() {
     };
     let info: CollectionInfo = bson::from_document(doc).unwrap();
     assert_eq!(info.name, "myTimeseries");
-    assert_eq!(info.collection_type, "timeseries");
+    assert_eq!(info.collection_type, CollectionType::Timeseries);
     assert_eq!(
         info.options.timeseries,
         Some(TimeSeriesOptions {

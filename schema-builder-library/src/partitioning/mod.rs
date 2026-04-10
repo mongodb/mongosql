@@ -1,5 +1,5 @@
 pub(crate) use crate::partitioning::partition::{PARTITION_SIZE_IN_BYTES, Partition};
-use crate::{Error, Result, data_service::CollectionInfo as CollectionDoc};
+use crate::{Error, Result, data_service::{CollectionInfo as CollectionDoc, CollectionType}};
 use futures::TryStreamExt;
 use mongodb::{
     Collection,
@@ -38,7 +38,7 @@ pub(crate) async fn get_partitions(
     // For timeseries collections, there is no `count` field reported, so we sample at a rate of
     // 1 per # of partitions. This is likely a much higher sample rate than for non-timeseries
     // collections, but it is our best effort for now to avoid running a full collection count.
-    let (sample_rate, partition_key, hint) = if collection_doc.collection_type == "timeseries" {
+    let (sample_rate, partition_key, hint) = if collection_doc.collection_type == CollectionType::Timeseries {
         let sample_rate = 1f64 / num_partitions as f64;
 
         let timeseries_options = collection_doc
