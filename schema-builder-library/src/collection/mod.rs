@@ -4,8 +4,9 @@
  */
 use crate::{
     Error, NamespaceInfo, NamespaceInfoWithSchema, NamespaceType, Result, client_util::DatabaseExt,
-    derive_schema_for_partitions, derive_schema_for_view, get_partitions,
-    result_set::ShareableResultSet, schema::initial_schema::InitialSchema,
+    data_service::CollectionInfo as CollectionDoc, derive_schema_for_partitions,
+    derive_schema_for_view, get_partitions, result_set::ShareableResultSet,
+    schema::initial_schema::InitialSchema,
 };
 
 mod patterns;
@@ -17,7 +18,6 @@ use mongodb::{
 };
 use mongosql::schema::Schema;
 use schema_derivation::{ResultSetState, derive_schema_for_pipeline};
-use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, HashMap},
     sync::{Arc, LazyLock, OnceLock},
@@ -36,47 +36,13 @@ static EXCLUDE_DUNDERSCORE_PATTERN: LazyLock<glob::Pattern> = LazyLock::new(|| {
 
 static INCLUDE_LIST_IN_DB_AND_COLL_PAIRS: OnceLock<Vec<(String, String)>> = OnceLock::new();
 
-/// CollectionInfo is responsible for extracting the collections and views
-/// and preparing them for processing.
+/// DatabaseCollections holds all collections for a single database, categorized by type
+/// (views, regular collections, and timeseries), and prepared for schema processing.
 #[derive(Debug, Default)]
-pub(crate) struct CollectionInfo {
+pub(crate) struct DatabaseCollections {
     pub views: Vec<CollectionDoc>,
     pub collections: Vec<CollectionDoc>,
     pub timeseries: Vec<CollectionDoc>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
-pub struct CollectionDoc {
-    #[serde(rename = "type")]
-    pub type_: String,
-    pub name: String,
-    pub options: Options,
-}
-
-// The "options" field in listCollection output is overloaded to store different values for
-// different collection types, so we do the same here. This struct may store view options, or it
-// may store timeseries options. Consumers of this type should assert the CollectionDoc.type_ before
-// accessing the relevant options values here.
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
-pub(crate) struct Options {
-    #[serde(flatten, default)]
-    pub view_options: Option<ViewOptions>,
-    #[serde(rename = "timeseries", default)]
-    pub timeseries_options: Option<TimeSeriesOptions>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
-pub(crate) struct ViewOptions {
-    #[serde(rename = "viewOn")]
-    pub view_on: String,
-    pub pipeline: Vec<Document>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct TimeSeriesOptions {
-    pub time_field: String,
-    pub meta_field: Option<String>,
 }
 
 #[instrument(level = "trace", skip_all)]
@@ -120,8 +86,8 @@ pub(crate) async fn query_for_initial_schemas(
     Ok(initial_collection_schemas)
 }
 
-impl CollectionInfo {
-    /// Create a new CollectionInfo instance. Collections and Views within a database
+impl DatabaseCollections {
+    /// Create a new DatabaseCollections instance. Collections and Views within a database
     /// will be enumerated, checked for inclusion/exclusion, and prepared for
     /// processing. The caller must actually process the collections/views by calling
     /// their JoinHandle.
@@ -142,7 +108,7 @@ impl CollectionInfo {
             )
             .await?;
 
-        CollectionInfo::separate_collection_types(
+        DatabaseCollections::separate_collection_types(
             db_name,
             &include_list,
             &exclude_list,
@@ -358,15 +324,11 @@ impl CollectionInfo {
 
                     info!(db = db.name(), collection = view_doc.name, "getting schema for view");
 
-                    let Some(ref view_options) = view_doc.options.view_options else {
-                        unreachable!("process_views_with_catalog was a passed a CollectionDoc without view options.")
-                    };
-
-                    if let Ok(pipeline) = view_options
+                    if let Ok(pipeline) = view_doc.options
                         .pipeline
                         .iter()
                         .map(|doc| bson::from_document(doc.clone()))
-                        .try_fold(Vec::new(), |mut acc, doc| match doc {
+                        .try_fold(Vec::<agg_ast::definitions::Stage>::new(), |mut acc, doc| match doc {
                             Ok(stage) => {
                                 acc.push(stage);
                                 Ok(acc)
@@ -376,7 +338,7 @@ impl CollectionInfo {
 
                         // Get the catalog for the view the database is in
                         // and use it for schema derivation
-                        let namespaces = schema_derivation::get_namespaces_for_pipeline(pipeline.clone(), db.name().to_string(), Some(view_options.view_on.clone()));
+                        let namespaces = schema_derivation::get_namespaces_for_pipeline(pipeline.clone(), db.name().to_string(), Some(view_doc.options.view_on.clone()));
 
                         let schemas = {
                             let guard = result_set.read().await;
@@ -392,7 +354,7 @@ impl CollectionInfo {
                                     Arc::clone(&result_set),
                                     format!(
                                         "No schema found for underlying collection {} backing the view {}.\n Falling back to sampling.",
-                                       view_options.view_on,
+                                        view_doc.options.view_on,
                                         view_doc.name
                                     )
                                 ).await;
@@ -407,7 +369,7 @@ impl CollectionInfo {
                                     Arc::clone(&result_set),
                                     format!(
                                         "Schema for underlying collection {} is empty (collection may not exist). Falling back to sampling for view {}.",
-                                        view_options.view_on,
+                                        view_doc.options.view_on,
                                         view_doc.name
                                     )
                                 ).await;
@@ -428,7 +390,7 @@ impl CollectionInfo {
 
                                 match derive_schema_for_pipeline(
                                     pipeline,
-                                    Some(view_options.view_on.clone()),
+                                    Some(view_doc.options.view_on.clone()),
                                     &mut state,
                                 ) {
                                     Ok(schema) => {

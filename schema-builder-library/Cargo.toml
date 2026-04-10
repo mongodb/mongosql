@@ -8,19 +8,18 @@ edition = "2024"
 [lib]
 name = "schema_builder_library"
 path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
 
+# Common dependencies for all targets
 [dependencies]
 futures = { workspace = true }
-mongodb = { workspace = true }
 serde = { workspace = true }
-tokio = { workspace = true, features = ["full"] }
 mongosql = { workspace = true }
 agg-ast = { workspace = true }
 schema_derivation = { workspace = true }
 thiserror = { workspace = true }
 lazy_static = { workspace = true }
 glob = { workspace = true }
-test-utils = { path = "../test-utils" }
 tracing = { workspace = true }
 bson.workspace = true
 async-trait = { workspace = true }
@@ -28,8 +27,25 @@ async-trait = { workspace = true }
 [dev-dependencies]
 tracing-test = "0.2"
 
+# Native-only dependencies (excluded from WASM)
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+mongodb = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+test-utils = { path = "../test-utils" }
+
+# WASM-only dependencies
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+serde-wasm-bindgen = "0.6"
+js-sys = "0.3"
+tokio = { version = "1", default-features = false, features = ["sync", "macros", "rt"] }
+console_error_panic_hook = { version = "0.1", optional = true }
+
 [features]
 integration = []
+sync = []
+default = []
 
 [lints.clippy]
 unwrap_used = "deny"

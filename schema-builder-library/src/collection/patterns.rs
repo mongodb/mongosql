@@ -1,5 +1,6 @@
 use super::{
-    CollectionDoc, CollectionInfo, EXCLUDE_DUNDERSCORE_PATTERN, INCLUDE_LIST_IN_DB_AND_COLL_PAIRS,
+    CollectionDoc, DatabaseCollections, EXCLUDE_DUNDERSCORE_PATTERN,
+    INCLUDE_LIST_IN_DB_AND_COLL_PAIRS,
 };
 use crate::{Error, Result, consts::DISALLOWED_COLLECTION_NAMES};
 use futures::TryStreamExt;
@@ -9,7 +10,7 @@ use mongodb::{
 };
 use tracing::instrument;
 
-impl CollectionInfo {
+impl DatabaseCollections {
     /// process_inclusion filters an input CollectionDoc by the include_list and
     /// exclude_list.
     /// First, it filters the input collection_list by the include_list, retaining
@@ -201,21 +202,21 @@ impl CollectionInfo {
         include_list: &[glob::Pattern],
         exclude_list: &[glob::Pattern],
         mut collection_doc: Cursor<Document>,
-    ) -> Result<CollectionInfo> {
-        let mut collection_info = CollectionInfo::default();
+    ) -> Result<DatabaseCollections> {
+        let mut collection_info = DatabaseCollections::default();
         while let Some(collection_doc) = collection_doc.try_next().await? {
             let Ok(collection_doc) = bson::from_bson(bson::Bson::Document(collection_doc)) else {
                 continue;
             };
-            if CollectionInfo::should_consider(
+            if DatabaseCollections::should_consider(
                 database,
                 &collection_doc,
                 include_list,
                 exclude_list,
             )? {
-                if collection_doc.type_ == "view" {
+                if collection_doc.collection_type == "view" {
                     collection_info.views.push(collection_doc);
-                } else if collection_doc.type_ == "timeseries" {
+                } else if collection_doc.collection_type == "timeseries" {
                     collection_info.timeseries.push(collection_doc);
                 } else {
                     collection_info.collections.push(collection_doc);

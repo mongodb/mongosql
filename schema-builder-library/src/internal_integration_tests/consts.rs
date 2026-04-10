@@ -1,4 +1,4 @@
-use crate::collection::CollectionDoc;
+use crate::CollectionInfo as CollectionDoc;
 use crate::partitioning::Partition;
 use std::sync::Arc;
 
@@ -129,7 +129,7 @@ lazy_static! {
     pub static ref DEFAULT_PARTITION_KEY: String = "_id".to_string();
     pub static ref DEFAULT_HINT: Option<mongodb::options::Hint> = Some(mongodb::options::Hint::Keys(doc! {"_id": 1}));
     pub static ref DEFAULT_COLLECTION_DOC: CollectionDoc = CollectionDoc {
-        type_: "collection".to_string(),
+        collection_type: "collection".to_string(),
         name: "empty".to_string(),
         ..Default::default()
     };

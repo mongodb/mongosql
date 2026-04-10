@@ -13,7 +13,10 @@ use tracing::{info, instrument, warn};
 pub(crate) mod initial_schema;
 
 use crate::partitioning::Partition;
-use crate::{CollectionDoc, Error, Result, VIEW_SAMPLE_SIZE, partitioning::PartitionedCollection};
+use crate::{
+    Error, Result, VIEW_SAMPLE_SIZE, data_service::CollectionInfo as CollectionDoc,
+    partitioning::PartitionedCollection,
+};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct SinglePartition {
@@ -218,17 +221,13 @@ pub(crate) async fn derive_schema_for_view(
     view: &CollectionDoc,
     database: &Database,
 ) -> Option<Schema> {
-    let Some(ref view_options) = view.options.view_options else {
-        unreachable!("derive_schema_for_view was a passed a CollectionDoc without view options.")
-    };
-
     let pipeline = vec![doc! { "$sample": { "size": VIEW_SAMPLE_SIZE } }]
         .into_iter()
-        .chain(view_options.pipeline.clone().into_iter())
+        .chain(view.options.pipeline.clone().into_iter())
         .collect::<Vec<Document>>();
 
     let Ok(mut cursor) = database
-        .collection::<Document>(&view_options.view_on)
+        .collection::<Document>(&view.options.view_on)
         .aggregate(pipeline)
         .await
         .inspect_err(|e| {

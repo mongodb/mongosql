@@ -1,4 +1,4 @@
-use crate::{CollectionDoc, CollectionInfo};
+use crate::{collection::DatabaseCollections, data_service::CollectionInfo as CollectionDoc};
 impl From<&str> for CollectionDoc {
     fn from(name: &str) -> Self {
         CollectionDoc {
@@ -19,7 +19,7 @@ macro_rules! actual {
         $input
             .iter()
             .filter(|c| {
-                CollectionInfo::should_consider($db, c, $include_list, $exclude_list).unwrap()
+                DatabaseCollections::should_consider($db, c, $include_list, $exclude_list).unwrap()
             })
             .cloned()
             .collect::<Vec<CollectionDoc>>()
