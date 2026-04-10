@@ -18,8 +18,7 @@ pub(crate) struct MockDataService {
     pub documents: HashMap<String, Vec<Document>>,
 }
 
-#[cfg_attr(not(target_arch = "wasm32"), async_trait::async_trait)]
-#[cfg_attr(target_arch = "wasm32", async_trait::async_trait(?Send))]
+#[async_trait::async_trait]
 impl DataService for MockDataService {
     async fn list_databases(&self) -> Result<Vec<String>> {
         Ok(self.databases.clone())
