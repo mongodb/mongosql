@@ -3,7 +3,18 @@ use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 use super::{CollectionInfo, DataService};
-use crate::{Error, Result};
+
+/// Error type for [`WasmDataService`] operations.
+#[derive(Debug)]
+pub struct WasmDataServiceError(String);
+
+impl std::fmt::Display for WasmDataServiceError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::error::Error for WasmDataServiceError {}
 
 #[wasm_bindgen(start)]
 pub fn init() {
@@ -60,26 +71,31 @@ impl WasmDataService {
 
 #[async_trait::async_trait(?Send)]
 impl DataService for WasmDataService {
-    async fn list_databases(&self) -> Result<Vec<String>> {
+    type Error = WasmDataServiceError;
+
+    async fn list_databases(&self) -> std::result::Result<Vec<String>, Self::Error> {
         let js_result = self
             .js_service
             .list_databases()
             .await
-            .map_err(|e| Error::JsError(format!("{e:?}")))?;
+            .map_err(|e| WasmDataServiceError(format!("{e:?}")))?;
 
         serde_wasm_bindgen::from_value(js_result)
-            .map_err(|e| Error::JsError(format!("Deserialization error: {e}")))
+            .map_err(|e| WasmDataServiceError(format!("Deserialization error: {e}")))
     }
 
-    async fn list_collections(&self, db_name: &str) -> Result<Vec<CollectionInfo>> {
+    async fn list_collections(
+        &self,
+        db_name: &str,
+    ) -> std::result::Result<Vec<CollectionInfo>, Self::Error> {
         let js_result = self
             .js_service
             .list_collections(db_name)
             .await
-            .map_err(|e| Error::JsError(format!("{e:?}")))?;
+            .map_err(|e| WasmDataServiceError(format!("{e:?}")))?;
 
         serde_wasm_bindgen::from_value(js_result)
-            .map_err(|e| Error::JsError(format!("Deserialization error: {e}")))
+            .map_err(|e| WasmDataServiceError(format!("Deserialization error: {e}")))
     }
 
     async fn aggregate(
@@ -87,20 +103,20 @@ impl DataService for WasmDataService {
         db_name: &str,
         coll_name: &str,
         pipeline: Vec<Document>,
-    ) -> Result<Vec<Document>> {
+    ) -> std::result::Result<Vec<Document>, Self::Error> {
         let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
         let pipeline_js = pipeline
             .serialize(&serializer)
-            .map_err(|e| Error::JsError(format!("Serialization error: {e}")))?;
+            .map_err(|e| WasmDataServiceError(format!("Serialization error: {e}")))?;
 
         let js_result = self
             .js_service
             .aggregate(db_name, coll_name, pipeline_js)
             .await
-            .map_err(|e| Error::JsError(format!("{e:?}")))?;
+            .map_err(|e| WasmDataServiceError(format!("{e:?}")))?;
 
         serde_wasm_bindgen::from_value(js_result)
-            .map_err(|e| Error::JsError(format!("Deserialization error: {e}")))
+            .map_err(|e| WasmDataServiceError(format!("Deserialization error: {e}")))
     }
 
     async fn find(
@@ -108,19 +124,19 @@ impl DataService for WasmDataService {
         db_name: &str,
         coll_name: &str,
         filter: Document,
-    ) -> Result<Vec<Document>> {
+    ) -> std::result::Result<Vec<Document>, Self::Error> {
         let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
         let filter_js = filter
             .serialize(&serializer)
-            .map_err(|e| Error::JsError(format!("Serialization error: {e}")))?;
+            .map_err(|e| WasmDataServiceError(format!("Serialization error: {e}")))?;
 
         let js_result = self
             .js_service
             .find(db_name, coll_name, filter_js)
             .await
-            .map_err(|e| Error::JsError(format!("{e:?}")))?;
+            .map_err(|e| WasmDataServiceError(format!("{e:?}")))?;
 
         serde_wasm_bindgen::from_value(js_result)
-            .map_err(|e| Error::JsError(format!("Deserialization error: {e}")))
+            .map_err(|e| WasmDataServiceError(format!("Deserialization error: {e}")))
     }
 }

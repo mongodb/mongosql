@@ -2,11 +2,8 @@ use std::collections::HashMap;
 
 use bson::Document;
 
-use crate::{
-    Result,
-    data_service::{
-        CollectionInfo, CollectionOptions, CollectionType, DataService, TimeSeriesOptions,
-    },
+use crate::data_service::{
+    CollectionInfo, CollectionOptions, CollectionType, DataService, TimeSeriesOptions,
 };
 
 /// A configurable in-memory implementation of [`DataService`] for use in tests.
@@ -22,11 +19,16 @@ pub(crate) struct MockDataService {
 
 #[async_trait::async_trait]
 impl DataService for MockDataService {
-    async fn list_databases(&self) -> Result<Vec<String>> {
+    type Error = std::convert::Infallible;
+
+    async fn list_databases(&self) -> std::result::Result<Vec<String>, Self::Error> {
         Ok(self.databases.clone())
     }
 
-    async fn list_collections(&self, db_name: &str) -> Result<Vec<CollectionInfo>> {
+    async fn list_collections(
+        &self,
+        db_name: &str,
+    ) -> std::result::Result<Vec<CollectionInfo>, Self::Error> {
         Ok(self.collections.get(db_name).cloned().unwrap_or_default())
     }
 
@@ -35,7 +37,7 @@ impl DataService for MockDataService {
         db_name: &str,
         coll_name: &str,
         _pipeline: Vec<Document>,
-    ) -> Result<Vec<Document>> {
+    ) -> std::result::Result<Vec<Document>, Self::Error> {
         Ok(self
             .documents
             .get(&format!("{db_name}.{coll_name}"))
@@ -48,7 +50,7 @@ impl DataService for MockDataService {
         db_name: &str,
         coll_name: &str,
         _filter: Document,
-    ) -> Result<Vec<Document>> {
+    ) -> std::result::Result<Vec<Document>, Self::Error> {
         Ok(self
             .documents
             .get(&format!("{db_name}.{coll_name}"))
