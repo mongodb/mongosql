@@ -14,7 +14,7 @@ pub(crate) mod initial_schema;
 
 use crate::partitioning::Partition;
 use crate::{
-    Error, Result, VIEW_SAMPLE_SIZE, data_service::CollectionInfo as CollectionDoc,
+    Error, Result, VIEW_SAMPLE_SIZE, data_service::CollectionInfo,
     partitioning::PartitionedCollection,
 };
 
@@ -213,12 +213,12 @@ pub(crate) async fn derive_schema_for_partition(
     Ok(schema)
 }
 
-/// derive_schema_for_view takes a CollectionDoc and executes the pipeline
+/// derive_schema_for_view takes a CollectionInfo and executes the pipeline
 /// against the viewOn collection to generate a schema for the view.
 /// It does this by first prepending $sample to the pipeline
 #[instrument(level = "trace", skip_all)]
 pub(crate) async fn derive_schema_for_view(
-    view: &CollectionDoc,
+    view: &CollectionInfo,
     database: &Database,
 ) -> Option<Schema> {
     let pipeline = vec![doc! { "$sample": { "size": VIEW_SAMPLE_SIZE } }]

@@ -1,7 +1,7 @@
 pub(crate) use crate::partitioning::partition::{PARTITION_SIZE_IN_BYTES, Partition};
 use crate::{
     Error, Result,
-    data_service::{CollectionInfo as CollectionDoc, CollectionType},
+    data_service::{CollectionInfo, CollectionType},
 };
 use futures::TryStreamExt;
 use mongodb::{
@@ -33,7 +33,7 @@ pub struct PartitionedCollection {
 #[instrument(level = "trace", skip(collection))]
 pub(crate) async fn get_partitions(
     collection: &Collection<Document>,
-    collection_doc: CollectionDoc,
+    collection_doc: CollectionInfo,
 ) -> Result<PartitionedCollection> {
     let size_info = get_size_counts(collection).await?;
     let num_partitions = get_num_partitions(size_info.size, PARTITION_SIZE_IN_BYTES) as usize;

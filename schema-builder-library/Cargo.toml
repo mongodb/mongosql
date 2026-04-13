@@ -42,7 +42,6 @@ tracing-test = "0.2"
 
 [features]
 integration = []
-sync = []
 default = ["native-client"]
 native-client = ["dep:mongodb", "dep:test-utils", "dep:tokio", "tokio/full"]
 wasm = [

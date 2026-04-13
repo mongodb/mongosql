@@ -42,9 +42,6 @@ pub enum Error {
     IncludeOrExcludeListContainsInvalidPatterns(String, String),
     #[error("{0}")]
     ChannelClosed(String),
-    #[cfg(feature = "wasm")]
-    #[error("JavaScript error: {0}")]
-    JsError(String),
 }
 
 impl From<mongosql::schema::Error> for Error {

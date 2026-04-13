@@ -1,5 +1,5 @@
 use crate::internal_integration_tests::consts::{
-    DEFAULT_COLLECTION_DOC, DEFAULT_HINT, DEFAULT_PARTITION_KEY, SMALL_PARTITIONS,
+    DEFAULT_COLLECTION_INFO, DEFAULT_HINT, DEFAULT_PARTITION_KEY, SMALL_PARTITIONS,
 };
 
 macro_rules! test_get_partitions {
@@ -25,7 +25,7 @@ macro_rules! test_get_partitions {
 
             let expected: Vec<Partition> = $expected.to_vec();
 
-            let actual_res = get_partitions(&coll, DEFAULT_COLLECTION_DOC.clone()).await;
+            let actual_res = get_partitions(&coll, DEFAULT_COLLECTION_INFO.clone()).await;
             match actual_res {
                 Err(err) => assert!(false, "unexpected error: {err:?}"),
                 Ok(actual_partitioned_collection) => {
@@ -85,7 +85,7 @@ async fn one_doc_collection() {
 
     let coll = get_mdb_collection(UNIFORM_DB_NAME, "empty").await;
 
-    let actual_res = get_partitions(&coll, DEFAULT_COLLECTION_DOC.clone()).await;
+    let actual_res = get_partitions(&coll, DEFAULT_COLLECTION_INFO.clone()).await;
     match actual_res {
         Err(Error::NoCollectionStats(_)) => {} // expect the NoBounds errors
         Err(err) => panic!("unexpected error: {err:?}"),
@@ -102,7 +102,7 @@ async fn empty_collection() {
 
     let coll = get_mdb_collection(UNIFORM_DB_NAME, "empty").await;
 
-    let actual_res = get_partitions(&coll, DEFAULT_COLLECTION_DOC.clone()).await;
+    let actual_res = get_partitions(&coll, DEFAULT_COLLECTION_INFO.clone()).await;
     match actual_res {
         Err(Error::NoCollectionStats(_)) => {} // expect the NoBounds errors
         Err(err) => panic!("unexpected error: {err:?}"),

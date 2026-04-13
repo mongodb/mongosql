@@ -9,13 +9,8 @@ use mongodb::{
 use tracing::instrument;
 
 impl DatabaseCollections {
-    /// process_inclusion filters an input CollectionInfo by the include_list and
-    /// exclude_list.
-    /// First, it filters the input collection_list by the include_list, retaining
-    /// items that are in the include_list.
-    /// Second, it filters the collection_list by the exclude_list, removing items
-    /// that are in the exclude_list.
-    /// Lastly, it filters out any collections that are in the disallowed list.
+    /// Returns true if a collection or view should be included in schema building,
+    /// based on the include_list, exclude_list, and disallowed collection names.
     ///
     /// Glob syntax is supported, i.e. mydb.* will match all collections in mydb.
     #[instrument(level = "trace")]
@@ -201,7 +196,7 @@ impl DatabaseCollections {
         exclude_list: &[glob::Pattern],
         mut collection_doc: Cursor<Document>,
     ) -> Result<DatabaseCollections> {
-        let mut collection_info = DatabaseCollections::default();
+        let mut database_collections = DatabaseCollections::default();
         while let Some(collection_doc) = collection_doc.try_next().await? {
             let Ok(collection_doc) = bson::from_bson(bson::Bson::Document(collection_doc)) else {
                 continue;
@@ -213,13 +208,13 @@ impl DatabaseCollections {
                 exclude_list,
             )? {
                 match collection_doc.collection_type {
-                    CollectionType::View => collection_info.views.push(collection_doc),
-                    CollectionType::Timeseries => collection_info.timeseries.push(collection_doc),
-                    CollectionType::Collection => collection_info.collections.push(collection_doc),
+                    CollectionType::View => database_collections.views.push(collection_doc),
+                    CollectionType::Timeseries => database_collections.timeseries.push(collection_doc),
+                    CollectionType::Collection => database_collections.collections.push(collection_doc),
                 }
             }
         }
 
-        Ok(collection_info)
+        Ok(database_collections)
     }
 }
