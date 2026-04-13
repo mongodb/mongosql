@@ -35,8 +35,8 @@ static EXCLUDE_DUNDERSCORE_PATTERN: LazyLock<glob::Pattern> = LazyLock::new(|| {
 
 static INCLUDE_LIST_IN_DB_AND_COLL_PAIRS: OnceLock<Vec<(String, String)>> = OnceLock::new();
 
-/// DatabaseCollections holds all collections for a single database, categorized by type
-/// (views, regular collections, and timeseries), and prepared for schema processing.
+/// DatabaseCollections is responsible for extracting the collections and views
+/// and preparing them for processing.
 #[derive(Debug, Default)]
 pub(crate) struct DatabaseCollections {
     pub views: Vec<CollectionInfo>,

@@ -142,12 +142,22 @@ impl Display for NamespaceType {
     }
 }
 
-/// Entry point for the schema-builder-library. Given a [`BuilderOptions`], builds schema
-/// for all namespaces matching the include/exclude lists on the configured MongoDB instance.
+/// build_schema is the entry point for the schema-builder-library. Given a [`BuilderOptions`]
+/// specifying various behaviors, this function builds schema for the appropriate namespaces of
+/// the provided MongoDB instance. Importantly, this function must be called in a tokio::runtime
+/// context since it accesses the current tokio runtime handle.
 ///
-/// Must be called within a tokio runtime context, as it spawns async tasks per database,
-/// collection, and view. For collections, schema is derived by partitioning the data and
-/// unifying results across partitions. For views, a best-effort schema is produced by sampling.
+/// The function returns a [`ResultSet`] containing the derived schema for all matching namespaces.
+///
+/// For collections, this function produces a complete schema representing all data. It does
+/// this by using an algorithm based on partitioning the data, repeatedly querying each
+/// partition (in parallel) for documents that do not match the in-progress schema, and then
+/// unifying the schema for each partition.
+///
+/// For views, this function produces a best-effort schema based on sampling.
+///
+/// This function parallelizes handling each database, collection, collection partition, and
+/// view by using asynchronous tokio tasks.
 #[instrument(name = "schema builder", level = "info")]
 pub async fn build_schema(options: BuilderOptions) -> Result<ResultSet> {
     // Ensure that the `include_list` only contains valid patterns.

@@ -9,8 +9,13 @@ use mongodb::{
 use tracing::instrument;
 
 impl DatabaseCollections {
-    /// Returns true if a collection or view should be included in schema building,
-    /// based on the include_list, exclude_list, and disallowed collection names.
+    /// should_consider filters an input CollectionInfo by the include_list and
+    /// exclude_list.
+    /// First, it filters the input collection_list by the include_list, retaining
+    /// items that are in the include_list.
+    /// Second, it filters the collection_list by the exclude_list, removing items
+    /// that are in the exclude_list.
+    /// Lastly, it filters out any collections that are in the disallowed list.
     ///
     /// Glob syntax is supported, i.e. mydb.* will match all collections in mydb.
     #[instrument(level = "trace")]
