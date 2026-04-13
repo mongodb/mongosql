@@ -10,7 +10,6 @@ name = "schema_builder_library"
 path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
-# Common dependencies for all targets
 [dependencies]
 futures = { workspace = true }
 serde = { workspace = true }
@@ -24,28 +23,39 @@ tracing = { workspace = true }
 bson.workspace = true
 async-trait = { workspace = true }
 
+# Optional dependencies enabled by features
+tokio = { version = "1", default-features = false, optional = true }
+
+# native-client dependencies
+mongodb = { workspace = true, optional = true }
+test-utils = { path = "../test-utils", optional = true }
+
+# wasm dependencies
+wasm-bindgen = { version = "0.2", optional = true }
+wasm-bindgen-futures = { version = "0.4", optional = true }
+serde-wasm-bindgen = { version = "0.6", optional = true }
+js-sys = { version = "0.3", optional = true }
+console_error_panic_hook = { version = "0.1", optional = true }
+
 [dev-dependencies]
 tracing-test = "0.2"
-
-# Native-only dependencies (excluded from WASM)
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-mongodb = { workspace = true }
-tokio = { workspace = true, features = ["full"] }
-test-utils = { path = "../test-utils" }
-
-# WASM-only dependencies
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = "0.2"
-wasm-bindgen-futures = "0.4"
-serde-wasm-bindgen = "0.6"
-js-sys = "0.3"
-tokio = { version = "1", default-features = false, features = ["sync", "macros", "rt"] }
-console_error_panic_hook = "0.1"
 
 [features]
 integration = []
 sync = []
-default = []
+default = ["native-client"]
+native-client = ["dep:mongodb", "dep:test-utils", "dep:tokio", "tokio/full"]
+wasm = [
+    "dep:console_error_panic_hook",
+    "dep:js-sys",
+    "dep:serde-wasm-bindgen",
+    "dep:wasm-bindgen",
+    "dep:wasm-bindgen-futures",
+    "dep:tokio",
+    "tokio/sync",
+    "tokio/macros",
+    "tokio/rt",
+]
 
 [lints.clippy]
 unwrap_used = "deny"

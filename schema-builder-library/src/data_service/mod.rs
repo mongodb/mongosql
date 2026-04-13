@@ -6,14 +6,14 @@ mod test;
 
 use crate::Result;
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "native-client")]
 pub mod mongodb;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "native-client")]
 pub use mongodb::MongoDbDataService;
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(feature = "wasm")]
 pub mod wasm;
-#[cfg(target_arch = "wasm32")]
+#[cfg(feature = "wasm")]
 pub use wasm::{JsDataService, WasmDataService};
 
 /// The type of a MongoDB collection entry.
@@ -67,8 +67,8 @@ pub struct TimeSeriesOptions {
 /// Abstraction over database operations used by the schema builder.
 ///
 /// On non-WASM targets `Send + Sync` is required; on WASM it is not.
-#[cfg_attr(not(target_arch = "wasm32"), async_trait::async_trait)]
-#[cfg_attr(target_arch = "wasm32", async_trait::async_trait(?Send))]
+#[cfg_attr(not(feature = "wasm"), async_trait::async_trait)]
+#[cfg_attr(feature = "wasm", async_trait::async_trait(?Send))]
 pub trait DataService {
     /// List all database names.
     async fn list_databases(&self) -> Result<Vec<String>>;

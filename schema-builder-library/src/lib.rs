@@ -19,10 +19,13 @@ pub use data_service::{
     CollectionInfo, CollectionOptions, CollectionType, DataService, TimeSeriesOptions,
 };
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(feature = "native-client", feature = "wasm"))]
+compile_error!("`native-client` and `wasm` features are mutually exclusive");
+
+#[cfg(feature = "native-client")]
 pub use data_service::MongoDbDataService;
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(feature = "wasm")]
 pub use data_service::{JsDataService, WasmDataService};
 
 pub mod client_util;

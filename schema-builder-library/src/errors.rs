@@ -18,14 +18,14 @@ pub enum Error {
     EmptyCollection(String),
     #[error("NoIdInSample")]
     NoIdInSample,
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(feature = "native-client")]
     #[error("Driver Error {0}")]
     DriverError(#[from] mongodb::error::Error),
     #[error("Schema Error {0}")]
     SchemaError(mongosql::schema::Error),
     #[error("NoCollection {0}")]
     NoCollection(String),
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(feature = "native-client")]
     #[error("Execution Error {0}")]
     TokioError(tokio::task::JoinError),
     #[error("Inital schema for {0} is not valid")]
@@ -42,7 +42,7 @@ pub enum Error {
     IncludeOrExcludeListContainsInvalidPatterns(String, String),
     #[error("{0}")]
     ChannelClosed(String),
-    #[cfg(target_arch = "wasm32")]
+    #[cfg(feature = "wasm")]
     #[error("JavaScript error: {0}")]
     JsError(String),
 }
