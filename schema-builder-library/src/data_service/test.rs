@@ -129,6 +129,17 @@ fn test_missing_options_field_uses_default() {
 }
 
 #[test]
+fn test_view_missing_view_on_defaults_to_empty_string() {
+    let doc = bson::doc! {
+        "name": "myView",
+        "type": "view",
+        "options": {}
+    };
+    let info: CollectionInfo = bson::from_document(doc).unwrap();
+    assert_eq!(info.options.view_on, "");
+}
+
+#[test]
 fn test_view_deserialization() {
     let doc = bson::doc! {
         "name": "myView",
