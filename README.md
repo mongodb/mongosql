@@ -107,15 +107,10 @@ mydb:
 When `--schema-file` is omitted, the CLI connects to MongoDB and reads schema from the `__sql_schemas` collection in the specified database.
 
 > **Note:** 
-> To generate the __sql_schemas collection, use the MongoDB SQL Schema Builder CLI, which is available at the SQL Interfaces Download Center:
-https://www.mongodb.com/try/download/sql-schema-builder 
+> MongoDB On-Prem Enterprise customers can use the [Schema Builder CLI](https://www.mongodb.com/try/download/sql-schema-builder) to generate the `__sql_schemas` collection.
 > 
-> 
-> Warnings about missing schemas are written to **stdout**, not stderr. If you capture stdout to parse the pipeline output, missing-schema warnings will be interleaved with the translation. Collections with no schema found are assigned empty schemas, and the resulting translation may be inaccurate.
-
-
----
-
+> This CLI tool is __only__ available for MongoDB On-Prem Enterprise customers.
+> Refer to the [Schema Builder documentation](https://www.mongodb.com/docs/sql-interface/sql-interface-install/) for more information.
 ## Rust testing
 
 There are several types of tests for the Rust code: unit tests, fuzz tests, index usage tests, e2e
