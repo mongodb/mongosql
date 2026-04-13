@@ -107,9 +107,9 @@ mydb:
 When `--schema-file` is omitted, the CLI connects to MongoDB and reads schema from the `__sql_schemas` collection in the specified database.
 
 > **Note:** 
-> MongoDB On-Prem Enterprise customers can use the [Schema Builder CLI](https://www.mongodb.com/try/download/sql-schema-builder) to generate the `__sql_schemas` collection.
+> MongoDB Enterprise Advanced (EA) customers can use the [Schema Builder CLI](https://www.mongodb.com/try/download/sql-schema-builder) to generate the `__sql_schemas` collection.
 > 
-> This CLI tool is __only__ available for MongoDB On-Prem Enterprise customers.
+> This CLI tool is __only__ available for MongoDB Enterprise Advanced (EA) customers.
 > Refer to the [Schema Builder documentation](https://www.mongodb.com/docs/sql-interface/sql-interface-install/) for more information.
 ## Rust testing
 
