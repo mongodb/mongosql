@@ -3598,7 +3598,6 @@ dependencies = [
  "console_error_panic_hook",
  "futures",
  "glob",
- "js-sys",
  "lazy_static",
  "mongodb",
  "mongosql",
@@ -3611,7 +3610,6 @@ dependencies = [
  "tracing",
  "tracing-test",
  "wasm-bindgen",
- "wasm-bindgen-futures",
 ]
 
 [[package]]

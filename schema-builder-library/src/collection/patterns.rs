@@ -209,8 +209,12 @@ impl DatabaseCollections {
             )? {
                 match collection_doc.collection_type {
                     CollectionType::View => database_collections.views.push(collection_doc),
-                    CollectionType::Timeseries => database_collections.timeseries.push(collection_doc),
-                    CollectionType::Collection => database_collections.collections.push(collection_doc),
+                    CollectionType::Timeseries => {
+                        database_collections.timeseries.push(collection_doc)
+                    }
+                    CollectionType::Collection => {
+                        database_collections.collections.push(collection_doc)
+                    }
                 }
             }
         }
