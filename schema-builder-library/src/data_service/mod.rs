@@ -66,7 +66,7 @@ pub struct TimeSeriesOptions {
 #[cfg_attr(feature = "wasm", async_trait::async_trait(?Send))]
 pub trait DataService {
     /// The error type returned by this service's operations.
-    type Error: std::error::Error;
+    type Error;
 
     /// List all database names.
     async fn list_databases(&self) -> std::result::Result<Vec<String>, Self::Error>;
