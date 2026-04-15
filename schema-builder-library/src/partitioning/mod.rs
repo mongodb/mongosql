@@ -41,8 +41,8 @@ pub(crate) async fn get_partitions(
     // For timeseries collections, there is no `count` field reported, so we sample at a rate of
     // 1 per # of partitions. This is likely a much higher sample rate than for non-timeseries
     // collections, but it is our best effort for now to avoid running a full collection count.
-    let (sample_rate, partition_key, hint) =
-        if collection_doc.collection_type == CollectionType::Timeseries {
+    let (sample_rate, partition_key, hint) = match collection_doc.collection_type {
+        CollectionType::Timeseries => {
             let sample_rate = 1f64 / num_partitions as f64;
 
             let timeseries_options = collection_doc
@@ -57,7 +57,8 @@ pub(crate) async fn get_partitions(
             });
 
             (sample_rate, partition_key, hint)
-        } else {
+        }
+        CollectionType::Collection | CollectionType::View => {
             let count = size_info
                 .count
                 .ok_or_else(|| Error::MissingCountFieldForCollection(collection_doc.name))?;
@@ -66,7 +67,8 @@ pub(crate) async fn get_partitions(
                 "_id".to_string(),
                 Some(mongodb::options::Hint::Keys(doc! {"_id": 1})),
             )
-        };
+        }
+    };
 
     let (mut min_bound, max_bound) = get_bounds(collection, partition_key.as_str()).await?;
 
