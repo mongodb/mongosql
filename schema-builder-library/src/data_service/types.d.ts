@@ -5,6 +5,26 @@
 export type BsonDocument = Record<string, unknown>;
 
 /**
+ * Options for timeseries collections.
+ */
+export interface TimeSeriesOptions {
+    timeField: string;
+    metaField?: string;
+}
+
+/**
+ * Options for a collection entry, varying by collection type.
+ */
+export interface CollectionInfoOptions {
+    /** For views, the source collection name */
+    viewOn: string;
+    /** For views, the aggregation pipeline */
+    pipeline: BsonDocument[];
+    /** For timeseries collections, the timeseries options */
+    timeseries: TimeSeriesOptions;
+}
+
+/**
  * Information about a collection.
  */
 export interface CollectionInfo {
@@ -12,17 +32,8 @@ export interface CollectionInfo {
     name: string;
     /** The type: "collection", "view", or "timeseries" */
     type: string;
-    options?: {
-        /** For views, the source collection name */
-        viewOn?: string;
-        /** For views, the aggregation pipeline */
-        pipeline?: BsonDocument[];
-        /** For timeseries, the timeseries options */
-        timeseries?: {
-            timeField: string;
-            metaField?: string;
-        };
-    };
+    /** Type-specific options; fields vary by collection type */
+    options?: Partial<CollectionInfoOptions>;
 }
 
 /**
