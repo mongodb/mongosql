@@ -5,16 +5,15 @@ use wasm_bindgen::prelude::*;
 use super::{CollectionInfo, DataService};
 
 /// Error type for [`WasmDataService`] operations.
-#[derive(Debug)]
-pub struct WasmDataServiceError(String);
-
-impl std::fmt::Display for WasmDataServiceError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
+#[derive(Debug, thiserror::Error)]
+pub enum WasmDataServiceError {
+    #[error("Serialization error: {0}")]
+    Serialization(String),
+    #[error("Query error: {0}")]
+    Query(String),
+    #[error("Deserialization error: {0}")]
+    Deserialization(String),
 }
-
-impl std::error::Error for WasmDataServiceError {}
 
 #[wasm_bindgen(start)]
 pub fn init() {
@@ -78,10 +77,10 @@ impl DataService for WasmDataService {
             .js_service
             .list_databases()
             .await
-            .map_err(|e| WasmDataServiceError(format!("{e:?}")))?;
+            .map_err(|e| WasmDataServiceError::Query(format!("{e:?}")))?;
 
         serde_wasm_bindgen::from_value(js_result)
-            .map_err(|e| WasmDataServiceError(format!("Deserialization error: {e}")))
+            .map_err(|e| WasmDataServiceError::Deserialization(e.to_string()))
     }
 
     async fn list_collections(
@@ -92,10 +91,10 @@ impl DataService for WasmDataService {
             .js_service
             .list_collections(db_name)
             .await
-            .map_err(|e| WasmDataServiceError(format!("{e:?}")))?;
+            .map_err(|e| WasmDataServiceError::Query(format!("{e:?}")))?;
 
         serde_wasm_bindgen::from_value(js_result)
-            .map_err(|e| WasmDataServiceError(format!("Deserialization error: {e}")))
+            .map_err(|e| WasmDataServiceError::Deserialization(e.to_string()))
     }
 
     async fn aggregate(
@@ -107,16 +106,16 @@ impl DataService for WasmDataService {
         let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
         let pipeline_js = pipeline
             .serialize(&serializer)
-            .map_err(|e| WasmDataServiceError(format!("Serialization error: {e}")))?;
+            .map_err(|e| WasmDataServiceError::Serialization(e.to_string()))?;
 
         let js_result = self
             .js_service
             .aggregate(db_name, coll_name, pipeline_js)
             .await
-            .map_err(|e| WasmDataServiceError(format!("{e:?}")))?;
+            .map_err(|e| WasmDataServiceError::Query(format!("{e:?}")))?;
 
         serde_wasm_bindgen::from_value(js_result)
-            .map_err(|e| WasmDataServiceError(format!("Deserialization error: {e}")))
+            .map_err(|e| WasmDataServiceError::Deserialization(e.to_string()))
     }
 
     async fn find(
@@ -128,15 +127,15 @@ impl DataService for WasmDataService {
         let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
         let filter_js = filter
             .serialize(&serializer)
-            .map_err(|e| WasmDataServiceError(format!("Serialization error: {e}")))?;
+            .map_err(|e| WasmDataServiceError::Serialization(e.to_string()))?;
 
         let js_result = self
             .js_service
             .find(db_name, coll_name, filter_js)
             .await
-            .map_err(|e| WasmDataServiceError(format!("{e:?}")))?;
+            .map_err(|e| WasmDataServiceError::Query(format!("{e:?}")))?;
 
         serde_wasm_bindgen::from_value(js_result)
-            .map_err(|e| WasmDataServiceError(format!("Deserialization error: {e}")))
+            .map_err(|e| WasmDataServiceError::Deserialization(e.to_string()))
     }
 }
