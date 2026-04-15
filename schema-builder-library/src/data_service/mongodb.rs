@@ -4,6 +4,19 @@ use tracing::warn;
 
 use super::{CollectionInfo, CollectionOptions, CollectionType, DataService, TimeSeriesOptions};
 
+impl TryFrom<DriverCollectionType> for CollectionType {
+    type Error = DriverCollectionType;
+
+    fn try_from(value: DriverCollectionType) -> std::result::Result<Self, Self::Error> {
+        match value {
+            DriverCollectionType::Collection => Ok(CollectionType::Collection),
+            DriverCollectionType::View => Ok(CollectionType::View),
+            DriverCollectionType::Timeseries => Ok(CollectionType::Timeseries),
+            other => Err(other),
+        }
+    }
+}
+
 /// [`DataService`] implementation backed by the Rust MongoDB driver.
 pub struct MongoDbDataService {
     client: Client,
@@ -34,15 +47,11 @@ impl DataService for MongoDbDataService {
         Ok(specs
             .into_iter()
             .filter_map(|spec| {
-                let collection_type = match spec.collection_type {
-                    DriverCollectionType::Collection => CollectionType::Collection,
-                    DriverCollectionType::View => CollectionType::View,
-                    DriverCollectionType::Timeseries => CollectionType::Timeseries,
-                    _ => {
-                        warn!("Skipping collection '{}' with unknown type", spec.name);
-                        return None;
-                    }
-                };
+                let collection_type = spec
+                    .collection_type
+                    .try_into()
+                    .inspect_err(|_| warn!("Skipping collection '{}' with unknown type", spec.name))
+                    .ok()?;
                 let options = CollectionOptions {
                     view_on: spec.options.view_on.unwrap_or_default(),
                     pipeline: spec.options.pipeline.unwrap_or_default(),
