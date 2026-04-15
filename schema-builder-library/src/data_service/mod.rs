@@ -41,16 +41,13 @@ pub struct CollectionInfo {
 /// since the `options` field in `listCollections` output is overloaded for different collection types.
 /// Consumers should check `CollectionInfo::collection_type` before accessing the relevant fields.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", default)]
 pub struct CollectionOptions {
     /// For views, the name of the source collection.
-    #[serde(default)]
     pub view_on: String,
     /// For views, the aggregation pipeline.
-    #[serde(default)]
     pub pipeline: Vec<Document>,
     /// For timeseries collections, the timeseries options.
-    #[serde(default)]
     pub timeseries: Option<TimeSeriesOptions>,
 }
 
