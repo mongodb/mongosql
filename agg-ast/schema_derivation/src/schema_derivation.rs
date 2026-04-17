@@ -2164,10 +2164,8 @@ impl DeriveSchema for UntaggedOperator {
             // our operator can return, and return the anyof of all the possible types.
             for arg_schema in arg_schemas {
                 match arg_schema {
-                    Schema::Atomic(_) => {
-                        if arg_schema > lower_bound {
-                            type_set.insert(arg_schema);
-                        }
+                    Schema::Atomic(_) if arg_schema > lower_bound => {
+                        type_set.insert(arg_schema);
                     }
                     Schema::AnyOf(ao) => {
                         ao.into_iter().for_each(|schema| {

@@ -149,8 +149,8 @@ impl ResultSet {
         changed: HashSet<(String, String)>,
     ) -> Vec<NamespaceInfoWithSchema> {
         schemas
-            .into_iter()
-            .flat_map(|(_, catalog)| {
+            .into_values()
+            .flat_map(|catalog| {
                 catalog.into_iter().filter_map(|(namespace, schema)| {
                     changed
                         .contains(&(schema.namespace_info.db_name.clone(), namespace))
