@@ -1018,11 +1018,12 @@ tasks:
             --lib internal_integration_tests
             -- --test-threads=1
 
-  - name: compile-schema-builder-library
-    commands:
-      - func: "install rust toolchain"
-      - func: "compile schema-builder-library"
-      - func: "upload schema-builder-library wasm"
+  # SQL-3165: uncomment once BuilderOptions is generic over DataService
+  # - name: compile-schema-builder-library
+  #   commands:
+  #     - func: "install rust toolchain"
+  #     - func: "compile schema-builder-library"
+  #     - func: "upload schema-builder-library wasm"
 
   - name: release
     git_tag_only: true
@@ -1558,10 +1559,11 @@ buildvariants:
     tasks:
       - name: release
 
-  - name: schema-builder-library
-    display_name: "Schema Builder Library"
-    run_on: [rhel80-small]
-    modules:
-      - sql-engines-common-test-infra
-    tasks:
-      - name: compile-schema-builder-library
+  # SQL-3165: uncomment once BuilderOptions is generic over DataService
+  # - name: schema-builder-library
+  #   display_name: "Schema Builder Library"
+  #   run_on: [rhel80-small]
+  #   modules:
+  #     - sql-engines-common-test-infra
+  #   tasks:
+  #     - name: compile-schema-builder-library
