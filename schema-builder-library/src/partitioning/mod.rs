@@ -1,5 +1,8 @@
 pub(crate) use crate::partitioning::partition::{PARTITION_SIZE_IN_BYTES, Partition};
-use crate::{Error, Result, collection::CollectionDoc};
+use crate::{
+    Error, Result,
+    data_service::{CollectionInfo, CollectionType},
+};
 use futures::TryStreamExt;
 use mongodb::{
     Collection,
@@ -30,7 +33,7 @@ pub struct PartitionedCollection {
 #[instrument(level = "trace", skip(collection))]
 pub(crate) async fn get_partitions(
     collection: &Collection<Document>,
-    collection_doc: CollectionDoc,
+    collection_doc: CollectionInfo,
 ) -> Result<PartitionedCollection> {
     let size_info = get_size_counts(collection).await?;
     let num_partitions = get_num_partitions(size_info.size, PARTITION_SIZE_IN_BYTES) as usize;
@@ -38,30 +41,33 @@ pub(crate) async fn get_partitions(
     // For timeseries collections, there is no `count` field reported, so we sample at a rate of
     // 1 per # of partitions. This is likely a much higher sample rate than for non-timeseries
     // collections, but it is our best effort for now to avoid running a full collection count.
-    let (sample_rate, partition_key, hint) = if collection_doc.type_ == "timeseries" {
-        let sample_rate = 1f64 / num_partitions as f64;
+    let (sample_rate, partition_key, hint) = match collection_doc.collection_type {
+        CollectionType::Timeseries => {
+            let sample_rate = 1f64 / num_partitions as f64;
 
-        let timeseries_options = collection_doc
-            .options
-            .timeseries_options
-            .ok_or_else(|| Error::NoTimeFieldSpecified(collection_doc.name))?;
+            let timeseries_options = collection_doc
+                .options
+                .timeseries
+                .ok_or_else(|| Error::NoTimeFieldSpecified(collection_doc.name))?;
 
-        let partition_key = timeseries_options.time_field;
+            let partition_key = timeseries_options.time_field;
 
-        let hint = timeseries_options.meta_field.map(|meta_field| {
-            mongodb::options::Hint::Keys(doc! { meta_field: 1, partition_key.as_str(): 1 })
-        });
+            let hint = timeseries_options.meta_field.map(|meta_field| {
+                mongodb::options::Hint::Keys(doc! { meta_field: 1, partition_key.as_str(): 1 })
+            });
 
-        (sample_rate, partition_key, hint)
-    } else {
-        let count = size_info
-            .count
-            .ok_or_else(|| Error::MissingCountFieldForCollection(collection_doc.name))?;
-        (
-            num_partitions as f64 / count as f64 * 2.0,
-            "_id".to_string(),
-            Some(mongodb::options::Hint::Keys(doc! {"_id": 1})),
-        )
+            (sample_rate, partition_key, hint)
+        }
+        CollectionType::Collection | CollectionType::View => {
+            let count = size_info
+                .count
+                .ok_or_else(|| Error::MissingCountFieldForCollection(collection_doc.name))?;
+            (
+                num_partitions as f64 / count as f64 * 2.0,
+                "_id".to_string(),
+                Some(mongodb::options::Hint::Keys(doc! {"_id": 1})),
+            )
+        }
     };
 
     let (mut min_bound, max_bound) = get_bounds(collection, partition_key.as_str()).await?;

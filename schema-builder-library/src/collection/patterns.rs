@@ -1,6 +1,5 @@
-use super::{
-    CollectionDoc, CollectionInfo, EXCLUDE_DUNDERSCORE_PATTERN, INCLUDE_LIST_IN_DB_AND_COLL_PAIRS,
-};
+use super::{DatabaseCollections, EXCLUDE_DUNDERSCORE_PATTERN, INCLUDE_LIST_IN_DB_AND_COLL_PAIRS};
+use crate::data_service::{CollectionInfo, CollectionType};
 use crate::{Error, Result, consts::DISALLOWED_COLLECTION_NAMES};
 use futures::TryStreamExt;
 use mongodb::{
@@ -9,8 +8,8 @@ use mongodb::{
 };
 use tracing::instrument;
 
-impl CollectionInfo {
-    /// process_inclusion filters an input CollectionDoc by the include_list and
+impl DatabaseCollections {
+    /// should_consider filters an input CollectionInfo by the include_list and
     /// exclude_list.
     /// First, it filters the input collection_list by the include_list, retaining
     /// items that are in the include_list.
@@ -22,7 +21,7 @@ impl CollectionInfo {
     #[instrument(level = "trace")]
     pub(crate) fn should_consider(
         database: &str,
-        collection_or_view: &CollectionDoc,
+        collection_or_view: &CollectionInfo,
         include_list: &[glob::Pattern],
         exclude_list: &[glob::Pattern],
     ) -> Result<bool> {
@@ -51,7 +50,7 @@ impl CollectionInfo {
     #[instrument(level = "trace")]
     pub(crate) fn should_allow_dunderscore_namespace(
         database: &str,
-        collection_or_view: &CollectionDoc,
+        collection_or_view: &CollectionInfo,
         include_list: &[glob::Pattern],
     ) -> Result<bool> {
         let db_starts_with_dunderscore = database.starts_with("__");
@@ -201,28 +200,30 @@ impl CollectionInfo {
         include_list: &[glob::Pattern],
         exclude_list: &[glob::Pattern],
         mut collection_doc: Cursor<Document>,
-    ) -> Result<CollectionInfo> {
-        let mut collection_info = CollectionInfo::default();
+    ) -> Result<DatabaseCollections> {
+        let mut database_collections = DatabaseCollections::default();
         while let Some(collection_doc) = collection_doc.try_next().await? {
             let Ok(collection_doc) = bson::from_bson(bson::Bson::Document(collection_doc)) else {
                 continue;
             };
-            if CollectionInfo::should_consider(
+            if DatabaseCollections::should_consider(
                 database,
                 &collection_doc,
                 include_list,
                 exclude_list,
             )? {
-                if collection_doc.type_ == "view" {
-                    collection_info.views.push(collection_doc);
-                } else if collection_doc.type_ == "timeseries" {
-                    collection_info.timeseries.push(collection_doc);
-                } else {
-                    collection_info.collections.push(collection_doc);
+                match collection_doc.collection_type {
+                    CollectionType::View => database_collections.views.push(collection_doc),
+                    CollectionType::Timeseries => {
+                        database_collections.timeseries.push(collection_doc)
+                    }
+                    CollectionType::Collection => {
+                        database_collections.collections.push(collection_doc)
+                    }
                 }
             }
         }
 
-        Ok(collection_info)
+        Ok(database_collections)
     }
 }

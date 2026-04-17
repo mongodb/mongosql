@@ -13,11 +13,26 @@ use tracing::{Level, debug, error, instrument, span, warn};
 
 pub(crate) mod result_set;
 
+// DataService trait and implementations
+pub mod data_service;
+pub use data_service::{
+    CollectionInfo, CollectionOptions, CollectionType, DataService, TimeSeriesOptions,
+};
+
+#[cfg(all(feature = "native-client", feature = "wasm"))]
+compile_error!("`native-client` and `wasm` features are mutually exclusive");
+
+#[cfg(feature = "native-client")]
+pub use data_service::MongoDbDataService;
+
+#[cfg(feature = "wasm")]
+pub use data_service::{JsDataService, WasmDataService};
+
 pub mod client_util;
 mod consts;
 use consts::{DISALLOWED_DB_NAMES, VIEW_SAMPLE_SIZE};
 mod collection;
-use collection::{CollectionDoc, CollectionInfo, query_for_initial_schemas};
+use collection::{DatabaseCollections, query_for_initial_schemas};
 mod partitioning;
 use partitioning::get_partitions;
 mod schema;
@@ -127,16 +142,12 @@ impl Display for NamespaceType {
     }
 }
 
-/// build_schema is the entry point for the schema-builder-library. Given a mongodb::Client,
-/// channels for communicating results and status notifications, and various options specifying
-/// specific behaviors, this function builds schema for the appropriate namespaces of the provided
-/// MongoDB instance. Importantly, this function must be called in a tokio::runtime context since
-/// it accesses the current tokio runtime handle.
+/// build_schema is the entry point for the schema-builder-library. Given a [`BuilderOptions`]
+/// specifying various behaviors, this function builds schema for the appropriate namespaces of
+/// the provided MongoDB instance. Importantly, this function must be called in a tokio::runtime
+/// context since it accesses the current tokio runtime handle.
 ///
-/// The function does not return anything. Instead, as it builds schema for each namespace
-/// it sends that information over the tx_schemata channel when a namespace's schema is
-/// ready. It also sends status notifications over the tx_notification channel as it takes
-/// actions such as Querying, Processing, and Partitioning.
+/// The function returns a [`ResultSet`] containing the derived schema for all matching namespaces.
 ///
 /// For collections, this function produces a complete schema representing all data. It does
 /// this by using an algorithm based on partitioning the data, repeatedly querying each
@@ -146,7 +157,7 @@ impl Display for NamespaceType {
 /// For views, this function produces a best-effort schema based on sampling.
 ///
 /// This function parallelizes handling each database, collection, collection partition, and
-/// view by using asynchronous tokio tasks which are spawned using the provided runtime::Handle.
+/// view by using asynchronous tokio tasks.
 #[instrument(name = "schema builder", level = "info")]
 pub async fn build_schema(options: BuilderOptions) -> Result<ResultSet> {
     // Ensure that the `include_list` only contains valid patterns.
@@ -249,8 +260,8 @@ async fn process_databases(options: BuilderOptions, databases: Vec<String>) -> R
 
             // To start computing the schema for all collections and views
             // in a database, we need to wait for list_collections to finish.
-            let Ok(collection_info) =
-                CollectionInfo::new(&db, &db_name, include_list, exclude_list)
+            let Ok(database_collections) =
+                DatabaseCollections::new(&db, &db_name, include_list, exclude_list)
                     .await
                     .inspect_err(|e| {
                         warn!("failed to list collections in database with error: {e}")
@@ -261,7 +272,7 @@ async fn process_databases(options: BuilderOptions, databases: Vec<String>) -> R
 
             // Process collections first, then views
             process_collection_tasks(
-                &collection_info,
+                &database_collections,
                 &db,
                 options.dry_run,
                 Arc::clone(&result_set),
@@ -271,7 +282,7 @@ async fn process_databases(options: BuilderOptions, databases: Vec<String>) -> R
 
             // Now process views using the schema catalog
             process_view_tasks(
-                &collection_info,
+                &database_collections,
                 &db,
                 options.dry_run,
                 Arc::clone(&result_set),
@@ -361,14 +372,14 @@ async fn fetch_initial_schemas(
 }
 
 async fn process_collection_tasks(
-    collection_info: &CollectionInfo,
+    database_collections: &DatabaseCollections,
     db: &mongodb::Database,
     dry_run: bool,
     result_set: ShareableResultSet,
     task_semaphore: Arc<tokio::sync::Semaphore>,
 ) {
     // Process collections and wait for them to complete
-    let coll_tasks = collection_info.process_collections(
+    let coll_tasks = database_collections.process_collections(
         db,
         dry_run,
         Arc::clone(&result_set),
@@ -387,14 +398,14 @@ async fn process_collection_tasks(
 }
 
 async fn process_view_tasks(
-    collection_info: &CollectionInfo,
+    database_collections: &DatabaseCollections,
     db: &mongodb::Database,
     dry_run: bool,
     result_set: ShareableResultSet,
     task_semaphore: Arc<tokio::sync::Semaphore>,
 ) {
     // Process views using the schema catalog
-    let view_tasks = collection_info.process_views_with_catalog(
+    let view_tasks = database_collections.process_views_with_catalog(
         db,
         dry_run,
         Arc::clone(&result_set),

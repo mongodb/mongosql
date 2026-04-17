@@ -8,28 +8,49 @@ edition = "2024"
 [lib]
 name = "schema_builder_library"
 path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 futures = { workspace = true }
-mongodb = { workspace = true }
 serde = { workspace = true }
-tokio = { workspace = true, features = ["full"] }
 mongosql = { workspace = true }
 agg-ast = { workspace = true }
 schema_derivation = { workspace = true }
 thiserror = { workspace = true }
 lazy_static = { workspace = true }
 glob = { workspace = true }
-test-utils = { path = "../test-utils" }
 tracing = { workspace = true }
 bson.workspace = true
 async-trait = { workspace = true }
+
+# Optional dependencies enabled by features
+tokio = { version = "1", default-features = false, optional = true }
+
+# native-client dependencies
+mongodb = { workspace = true, optional = true }
+test-utils = { path = "../test-utils", optional = true }
+
+# wasm dependencies
+wasm-bindgen = { version = "0.2", optional = true }
+serde-wasm-bindgen = { version = "0.6", optional = true }
+console_error_panic_hook = { version = "0.1", optional = true }
 
 [dev-dependencies]
 tracing-test = "0.2"
 
 [features]
 integration = []
+default = ["native-client"]
+native-client = ["dep:mongodb", "dep:test-utils", "dep:tokio", "tokio/full"]
+wasm = [
+    "dep:console_error_panic_hook",
+    "dep:serde-wasm-bindgen",
+    "dep:wasm-bindgen",
+    "dep:tokio",
+    "tokio/sync",
+    "tokio/macros",
+    "tokio/rt",
+]
 
 [lints.clippy]
 unwrap_used = "deny"

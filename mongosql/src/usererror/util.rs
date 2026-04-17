@@ -22,7 +22,7 @@ pub fn generate_suggestion(input: &str, expected: &[String]) -> Result<Vec<Strin
         })
         .collect::<Result<Vec<_>>>()?;
 
-    closest.sort_by(|(a, _), (b, _)| a.cmp(b));
+    closest.sort_by_key(|(a, _)| *a);
 
     Ok(closest.into_iter().map(|(_, s)| s.clone()).collect())
 }

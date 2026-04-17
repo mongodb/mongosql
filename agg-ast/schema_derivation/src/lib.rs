@@ -433,40 +433,39 @@ pub(crate) fn remove_field(schema: &mut Schema, path: Vec<String>) {
                     d.required.remove(field);
                 }
             }
-            Some(Schema::AnyOf(schemas)) => {
+            Some(Schema::AnyOf(schemas))
                 // we search the anyof for a single document schema to remove the key from.
                 if schemas
                     .iter()
                     .filter(|x| matches!(x, &Schema::Document(_)))
                     .count()
-                    == 1
-                {
-                    let schemas = std::mem::take(schemas);
-                    // because we already matched on the document schema, we should always find one here
-                    let d = schemas.clone().into_iter().find_map(|s| {
-                        if let Schema::Document(doc) = s {
-                            Some(doc)
-                        } else {
-                            None
-                        }
-                    });
-                    if let Some(mut doc) = d {
-                        // we create a new set with all the non document schemas
-                        let mut any_of: BTreeSet<Schema> = schemas
-                            .into_iter()
-                            .filter(|x| !matches!(x, &Schema::Document(_)))
-                            .collect();
-                        // mutate the document to remove the field, then insert it into the anyof
-                        doc.keys.remove(field);
-                        doc.required.remove(field);
-                        if !doc.keys.is_empty() {
-                            any_of.insert(Schema::Document(doc));
-                        }
-                        // finally, we update the original schema to be this new anyof with the updated
-                        // document schema.
-                        if let Some(s) = get_schema_for_path_mut(schema, field_path.into()) {
-                            *s = Schema::AnyOf(any_of);
-                        }
+                    == 1 =>
+            {
+                let schemas = std::mem::take(schemas);
+                // because we already matched on the document schema, we should always find one here
+                let d = schemas.clone().into_iter().find_map(|s| {
+                    if let Schema::Document(doc) = s {
+                        Some(doc)
+                    } else {
+                        None
+                    }
+                });
+                if let Some(mut doc) = d {
+                    // we create a new set with all the non document schemas
+                    let mut any_of: BTreeSet<Schema> = schemas
+                        .into_iter()
+                        .filter(|x| !matches!(x, &Schema::Document(_)))
+                        .collect();
+                    // mutate the document to remove the field, then insert it into the anyof
+                    doc.keys.remove(field);
+                    doc.required.remove(field);
+                    if !doc.keys.is_empty() {
+                        any_of.insert(Schema::Document(doc));
+                    }
+                    // finally, we update the original schema to be this new anyof with the updated
+                    // document schema.
+                    if let Some(s) = get_schema_for_path_mut(schema, field_path.into()) {
+                        *s = Schema::AnyOf(any_of);
                     }
                 }
             }
