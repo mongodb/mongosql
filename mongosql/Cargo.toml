@@ -16,7 +16,7 @@ itertools = { workspace = true }
 lalrpop-util = { version = "0.20.2", features = ["lexer"] }
 lazy_static = { workspace = true }
 linked-hash-map = { workspace = true }
-quickcheck = "1"
+quickcheck = { version = "1", default-features = false }
 rand = { workspace = true }
 regex = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

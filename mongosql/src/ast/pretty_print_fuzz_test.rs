@@ -65,7 +65,7 @@ Reparsed AST:
         }
 
         QuickCheck::new()
-            .gen(Gen::new(0))
+            .rng(Gen::new(0))
             .quickcheck(pretty_print_query as fn(Query) -> TestResult);
     }
 }
@@ -73,7 +73,7 @@ Reparsed AST:
 mod arbitrary {
     use crate::ast::definitions::*;
     use quickcheck::{Arbitrary, Gen};
-    use rand::{rng, Rng};
+    use rand::{rng, RngExt as _};
 
     // For SELECT, GROUP BY, and ORDER BY clauses
     static MIN_CLAUSE_EXPRS: u32 = 1; // minimum number of expressions in an arbitrary clause

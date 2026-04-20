@@ -7,7 +7,7 @@ pub mod trace;
 pub mod version;
 
 pub mod translator {
-    include!("translator.v1.rs");
+    tonic::include_proto!("translator.v1");
 }
 
 pub mod logger {

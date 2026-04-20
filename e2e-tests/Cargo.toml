@@ -15,7 +15,6 @@ sql-engines-common-test-infra = { git = "https://github.com/mongodb/sql-engines-
 test-utils = { path = "../test-utils" }
 
 [build-dependencies]
-serde = { workspace = true }
 sql-engines-common-test-infra = { git = "https://github.com/mongodb/sql-engines-common-test-infra.git", branch = "main", package = "test-generator" }
 test-utils = { path = "../test-utils" }
 

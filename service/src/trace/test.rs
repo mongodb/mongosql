@@ -3,8 +3,8 @@ use crate::trace::distributed_tracing::{
 };
 use opentelemetry::global;
 use opentelemetry::trace::Span;
-use opentelemetry_sdk::testing::trace::InMemorySpanExporter;
-use opentelemetry_sdk::trace::TracerProvider;
+use opentelemetry_sdk::trace::InMemorySpanExporter;
+use opentelemetry_sdk::trace::SdkTracerProvider;
 use std::env;
 use std::sync::LazyLock;
 use tokio::sync::Mutex;
@@ -18,10 +18,10 @@ async fn test_start_span_and_events() {
     let _guard = TRACE_TEST_MUTEX.lock().await;
 
     let span_exporter = InMemorySpanExporter::default();
-    let tracer_provider = TracerProvider::builder()
+    let tracer_provider = SdkTracerProvider::builder()
         .with_simple_exporter(span_exporter.clone())
         .build();
-    global::set_tracer_provider(tracer_provider);
+    global::set_tracer_provider(tracer_provider.clone());
     let parent_cx = opentelemetry::Context::current();
 
     let span_name = "test_span";
@@ -56,10 +56,12 @@ async fn test_start_span_and_events() {
 
     // Confirm Name is "SQLTranslationService"
     assert_eq!(
-        test_span.instrumentation_lib.name.as_ref(),
+        test_span.instrumentation_scope.name(),
         SQL_SERVICE_NAME.to_string()
     );
-    global::shutdown_tracer_provider();
+    tracer_provider
+        .shutdown()
+        .expect("tracer provider to shut down");
 }
 
 // Checks that the tracer provider initialized is "SimpleSpanProcessor" when COLLECTOR_ENDPOINT is not set.
@@ -71,7 +73,7 @@ async fn test_init_tracer_provider_without_endpoint_var() {
 
     assert!(format!("{provider:?}").contains("SimpleSpanProcessor"));
     assert!(format!("{provider:?}").contains(SQL_SERVICE_NAME));
-    global::shutdown_tracer_provider();
+    provider.shutdown().expect("tracer provider to shut down");
 }
 
 // Checks that the tracer provider initialized is "BatchSpanProcessor" when COLLECTOR_ENDPOINT is specified.
@@ -83,5 +85,5 @@ async fn test_init_tracer_provider_with_endpoint_var() {
 
     assert!(format!("{provider:?}").contains("BatchSpanProcessor"));
     assert!(format!("{provider:?}").contains(SQL_SERVICE_NAME));
-    global::shutdown_tracer_provider();
+    provider.shutdown().expect("tracer provider to shut down");
 }
