@@ -1413,6 +1413,14 @@ buildvariants:
       - name: test-go
       - name: .standalone !.7.0 !.8.0 !.rapid !.latest
 
+  - name: rhel89
+    display_name: "RHEL 8.9"
+    run_on: [rhel8.9-large]
+    modules:
+      - sql-engines-common-test-infra
+    tasks:
+      - name: test-schema-builder-library-integration
+
   - name: ubuntu2204
     display_name: "MongoDB Integration Suite"
     tags: ["mongodb-suite-variant"]
@@ -1421,7 +1429,6 @@ buildvariants:
       - sql-engines-common-test-infra
     tasks:
       - name: .standalone
-      - name: test-schema-builder-library-integration
 
   - name: macos
     display_name: "macOS"
