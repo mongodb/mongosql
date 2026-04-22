@@ -1,10 +1,8 @@
 use opentelemetry::global;
 use opentelemetry::propagation::Extractor;
-use opentelemetry::trace::TraceError;
 use opentelemetry::{trace::Tracer, KeyValue};
-use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::trace::Config;
-use opentelemetry_sdk::{runtime, trace as sdktrace, Resource};
+use opentelemetry_otlp::{ExporterBuildError, WithExportConfig};
+use opentelemetry_sdk::{trace as sdktrace, Resource};
 use tonic::metadata::MetadataMap;
 
 use std::env;
@@ -13,39 +11,42 @@ use std::sync::LazyLock;
 pub static SQL_SERVICE_NAME: &str = "SQLTranslationService";
 pub static COLLECTOR_ENDPOINT: &str = "COLLECTOR_ENDPOINT";
 
-static RESOURCE: LazyLock<Resource> =
-    LazyLock::new(|| Resource::new(vec![KeyValue::new("service.name", SQL_SERVICE_NAME)]));
+static RESOURCE: LazyLock<Resource> = LazyLock::new(|| {
+    Resource::builder()
+        .with_attribute(KeyValue::new("service.name", SQL_SERVICE_NAME))
+        .build()
+});
 
 // Initializes the tracer provider based on the COLLECTOR_ENDPOINT environment variable.
 // If COLLECTOR_ENDPOINT is set, it uses an OTLP exporter to send data to a collector at that endpoint.
 // Otherwise, it falls back to a stdout exporter for local tracing.
-pub fn init_tracer_provider() -> Result<sdktrace::TracerProvider, TraceError> {
+pub fn init_tracer_provider() -> Result<sdktrace::SdkTracerProvider, ExporterBuildError> {
     let collector_endpoint = env::var(COLLECTOR_ENDPOINT).ok();
 
-    match collector_endpoint {
+    let provider = match collector_endpoint {
         Some(endpoint) => {
             // Use OTLP exporter
-            opentelemetry_otlp::new_pipeline()
-                .tracing()
-                .with_exporter(
-                    opentelemetry_otlp::new_exporter()
-                        .tonic()
-                        .with_endpoint(endpoint),
-                )
-                .with_trace_config(Config::default().with_resource(RESOURCE.clone()))
-                .install_batch(runtime::Tokio)
+            let exporter = opentelemetry_otlp::SpanExporter::builder()
+                .with_tonic()
+                .with_endpoint(endpoint)
+                .build()?;
+            sdktrace::SdkTracerProvider::builder()
+                .with_batch_exporter(exporter)
+                .with_resource(RESOURCE.clone())
+                .build()
         }
         None => {
             // Use stdout exporter
             let exporter = opentelemetry_stdout::SpanExporter::default();
-            let provider = sdktrace::TracerProvider::builder()
+            sdktrace::SdkTracerProvider::builder()
                 .with_simple_exporter(exporter)
-                .with_config(Config::default().with_resource(RESOURCE.clone()))
-                .build();
-            global::set_tracer_provider(provider.clone());
-            Ok(provider)
+                .with_resource(RESOURCE.clone())
+                .build()
         }
-    }
+    };
+
+    global::set_tracer_provider(provider.clone());
+    Ok(provider)
 }
 
 pub struct MetadataMapExtractor<'a>(pub &'a MetadataMap);

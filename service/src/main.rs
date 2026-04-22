@@ -38,7 +38,8 @@ pub enum MainError {
 }
 
 mod mongosql_proto {
-    pub(crate) const FILE_DESCRIPTOR_SET: &[u8] = include_bytes!("translator_descriptor.bin");
+    pub(crate) const FILE_DESCRIPTOR_SET: &[u8] =
+        tonic::include_file_descriptor_set!("translator_descriptor");
 }
 
 // Helper function to get environment variable with a default
@@ -92,7 +93,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let reflection_service = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(mongosql_proto::FILE_DESCRIPTOR_SET)
-        .build()
+        .build_v1()
         .map_err(|e| Box::new(MainError::ReflectionServiceBuild(e)) as Box<dyn Error>)?;
 
     info!("SQL translation server listening on {}", grpc_addr);
@@ -100,7 +101,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let error_interceptor = ErrorInterceptor::new();
     let server = Server::builder()
-        .layer(tonic::service::interceptor(move |req| {
+        .layer(tonic::service::InterceptorLayer::new(move |req| {
             error_interceptor.clone().call(req)
         }))
         .add_service(TranslatorServiceServer::new(panic_handling_service))
@@ -181,7 +182,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Check results and propagate errors
     metrics_result??;
     grpc_result??;
-    global::shutdown_tracer_provider();
+    tracer_provider.shutdown()?;
 
     info!("All servers shut down successfully");
     Ok(())
