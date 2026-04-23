@@ -155,6 +155,33 @@ functions:
           cargo build --release --features "mongosql-c/test" --target-dir "test_target"
           cargo build --release
 
+  "compile schema-builder-library":
+    - command: shell.exec
+      type: test
+      retry_on_failure: true
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+          rustup target add wasm32-unknown-unknown
+          cargo build \
+            --target wasm32-unknown-unknown \
+            --package schema-builder-library \
+            --release \
+            --no-default-features \
+            --features=wasm
+
+  "upload schema-builder-library wasm":
+    - *assume_role_cmd
+    - command: s3.put
+      params:
+        <<: *evg_bucket_config
+        local_file: mongosql-rs/target/wasm32-unknown-unknown/release/schema_builder_library.wasm
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/schema_builder_library.wasm
+        permissions: public-read
+        content_type: application/wasm
+
   # "libmongosqltranslate" is the name of the library we release for on-prem SQL.
   "compile libmongosqltranslate":
     - command: shell.exec
@@ -991,6 +1018,13 @@ tasks:
             --lib internal_integration_tests
             -- --test-threads=1
 
+  # SQL-3165: uncomment once BuilderOptions is generic over DataService
+  # - name: compile-schema-builder-library
+  #   commands:
+  #     - func: "install rust toolchain"
+  #     - func: "compile schema-builder-library"
+  #     - func: "upload schema-builder-library wasm"
+
   - name: release
     git_tag_only: true
     depends_on:
@@ -1532,3 +1566,11 @@ buildvariants:
     tasks:
       - name: release
 
+  # SQL-3165: uncomment once BuilderOptions is generic over DataService
+  # - name: schema-builder-library
+  #   display_name: "Schema Builder Library"
+  #   run_on: [rhel80-small]
+  #   modules:
+  #     - sql-engines-common-test-infra
+  #   tasks:
+  #     - name: compile-schema-builder-library
