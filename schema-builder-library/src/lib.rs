@@ -56,7 +56,7 @@ pub use result_set::SchemaBuildOutput;
 #[cfg(test)]
 mod internal_integration_tests;
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T, E> = std::result::Result<T, Error<E>>;
 
 /// An enum for communicating results of this library to a caller. Results may
 /// be namespace-only, meaning they do not include schema information, or they
@@ -160,7 +160,9 @@ impl Display for NamespaceType {
 /// This function parallelizes handling each database, collection, collection partition, and
 /// view by using asynchronous tokio tasks.
 #[instrument(name = "schema builder", level = "info")]
-pub async fn build_schema<S: DataService>(options: BuilderOptions<S>) -> Result<ResultSet> {
+pub async fn build_schema<S: DataService>(
+    options: BuilderOptions<S>,
+) -> Result<ResultSet, S::Error> {
     // Ensure that the `include_list` only contains valid patterns.
     for pattern in &options.include_list {
         let pat_as_str = pattern.as_str();
@@ -205,7 +207,7 @@ pub async fn build_schema<S: DataService>(options: BuilderOptions<S>) -> Result<
         // error, drop all channels, and return the error.
         Err(e) => {
             error!("unable to list databases: {e}");
-            Err(Error::DataServiceError)
+            Err(Error::DataServiceError(e))
         }
     }
 }
@@ -304,7 +306,7 @@ async fn fetch_initial_schema<S: DataService>(
     service: &S,
     db: &str,
     collection: &str,
-) -> Result<Catalog> {
+) -> Result<Catalog, S::Error> {
     query_for_initial_schemas(service, db, collection)
         .await
         .inspect_err(|e| warn!("failed to query for initial schemas in database with error {e}"))
@@ -349,7 +351,7 @@ async fn fetch_initial_schemas<S: DataService>(
     service: &S,
     collection: &str,
     databases: &[String],
-) -> Result<HashMap<String, Catalog>> {
+) -> Result<HashMap<String, Catalog>, S::Error> {
     future::join_all(databases.iter().map(|db| async move {
         fetch_initial_schema(service, db, collection)
             .await

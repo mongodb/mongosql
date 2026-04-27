@@ -1,4 +1,4 @@
-use crate::{Error, Result};
+use crate::{DataService, Error, MongoDbDataService, Result};
 use async_trait::async_trait;
 use mongodb::{
     Cursor, Database,
@@ -40,16 +40,19 @@ pub async fn load_password_auth(
 }
 
 /// Returns a client options with the optimal pool size set.
-pub async fn get_opts(uri: &str, resolver: Option<ResolverConfig>) -> Result<ClientOptions> {
+pub async fn get_opts(
+    uri: &str,
+    resolver: Option<ResolverConfig>,
+) -> Result<ClientOptions, <MongoDbDataService as DataService>::Error> {
     let mut opts = if let Some(resolver) = resolver {
         ClientOptions::parse(uri)
             .resolver_config(resolver)
             .await
-            .map_err(|_| Error::DataServiceError)?
+            .map_err(Error::DataServiceError)?
     } else {
         ClientOptions::parse(uri)
             .await
-            .map_err(|_| Error::DataServiceError)?
+            .map_err(Error::DataServiceError)?
     };
     opts.max_pool_size = Some(get_optimal_pool_size());
     opts.max_connecting = Some(2);
@@ -81,35 +84,41 @@ pub async fn get_opts(uri: &str, resolver: Option<ResolverConfig>) -> Result<Cli
 
 #[async_trait]
 pub trait DatabaseExt {
-    async fn run_command_with_read_preference(&self, command: Document) -> Result<Document>;
+    async fn run_command_with_read_preference(
+        &self,
+        command: Document,
+    ) -> Result<Document, <MongoDbDataService as DataService>::Error>;
 
     async fn run_cursor_command_with_read_preference(
         &self,
         command: Document,
-    ) -> Result<Cursor<Document>>;
+    ) -> Result<Cursor<Document>, <MongoDbDataService as DataService>::Error>;
 }
 
 #[async_trait]
 impl DatabaseExt for Database {
-    async fn run_command_with_read_preference(&self, command: Document) -> Result<Document> {
+    async fn run_command_with_read_preference(
+        &self,
+        command: Document,
+    ) -> Result<Document, <MongoDbDataService as DataService>::Error> {
         let selection_criteria = get_selection_criteria();
 
         self.run_command(command)
             .selection_criteria(selection_criteria)
             .await
-            .map_err(|_| Error::DataServiceError)
+            .map_err(Error::DataServiceError)
     }
 
     async fn run_cursor_command_with_read_preference(
         &self,
         command: Document,
-    ) -> Result<Cursor<Document>> {
+    ) -> Result<Cursor<Document>, <MongoDbDataService as DataService>::Error> {
         let selection_criteria = get_selection_criteria();
 
         self.run_cursor_command(command)
             .selection_criteria(selection_criteria)
             .await
-            .map_err(|_| Error::DataServiceError)
+            .map_err(Error::DataServiceError)
     }
 }
 

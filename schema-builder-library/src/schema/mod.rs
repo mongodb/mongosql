@@ -118,7 +118,7 @@ pub(crate) async fn derive_schema_for_partition<S: DataService>(
     collection: &str,
     initial_schema_doc: Option<Arc<Schema>>,
     single_partition: SinglePartition,
-) -> Result<Schema> {
+) -> Result<Schema, S::Error> {
     let mut ignored_ids = Vec::new();
     let mut partition = single_partition.partition;
     let partition_key = single_partition.partition_key.as_str();
@@ -150,7 +150,7 @@ pub(crate) async fn derive_schema_for_partition<S: DataService>(
         let results = service
             .aggregate(db, collection, pipeline, hint.clone())
             .await
-            .map_err(|_| Error::DataServiceError)?;
+            .map_err(Error::DataServiceError)?;
 
         let mut no_result = true;
         let mut iter_schema = Schema::Unsat;

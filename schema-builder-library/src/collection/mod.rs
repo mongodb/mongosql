@@ -11,7 +11,7 @@ use crate::{
     schema::{derive_schema_for_partitions, derive_schema_for_view, initial_schema::InitialSchema},
 };
 
-mod patterns;
+pub(crate) mod patterns;
 use agg_ast::Namespace;
 use bson::doc;
 use futures::future;
@@ -49,11 +49,11 @@ pub(crate) async fn query_for_initial_schemas<S: DataService>(
     service: &S,
     db: &str,
     collection: &str,
-) -> Result<HashMap<String, (Schema, bool)>> {
+) -> Result<HashMap<String, (Schema, bool)>, S::Error> {
     let docs = service
         .find(db, collection, doc! {})
         .await
-        .map_err(|_| Error::DataServiceError)?;
+        .map_err(Error::DataServiceError)?;
 
     // Try to parse all of the initial schemas, failing if any of them fail to
     // parse correctly
@@ -88,11 +88,11 @@ impl DatabaseCollections {
         db: String,
         include_list: Vec<glob::Pattern>,
         exclude_list: Vec<glob::Pattern>,
-    ) -> Result<Self> {
+    ) -> Result<Self, S::Error> {
         let collection_info = service
             .list_collections(&db)
             .await
-            .map_err(|_| Error::DataServiceError)?;
+            .map_err(Error::DataServiceError)?;
 
         DatabaseCollections::separate_collection_types(
             db,
@@ -101,6 +101,7 @@ impl DatabaseCollections {
             collection_info,
         )
         .await
+        .map_err(Into::into)
     }
 
     /// process_collections creates parallel, async tasks for deriving the

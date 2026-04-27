@@ -31,7 +31,7 @@ pub(crate) async fn get_partitions<S: DataService>(
     service: &S,
     db: &str,
     collection_info: CollectionInfo,
-) -> Result<PartitionedCollection> {
+) -> Result<PartitionedCollection, S::Error> {
     let size_info = get_size_counts(service, db, &collection_info.name).await?;
     let num_partitions = get_num_partitions(size_info.size, PARTITION_SIZE_IN_BYTES) as usize;
 
@@ -151,7 +151,7 @@ pub(crate) async fn get_size_counts<S: DataService>(
     service: &S,
     db: &str,
     collection: &str,
-) -> Result<CollectionSizes> {
+) -> Result<CollectionSizes, S::Error> {
     let stats = service
         .aggregate(
             db,
@@ -206,7 +206,7 @@ pub(crate) async fn get_bounds<S: DataService>(
     db: &str,
     collection: &str,
     partition_key: &str,
-) -> Result<(Bson, Bson)> {
+) -> Result<(Bson, Bson), S::Error> {
     Ok((
         get_bound(service, db, collection, partition_key, 1).await?,
         get_bound(service, db, collection, partition_key, -1).await?,
@@ -222,7 +222,7 @@ async fn get_bound<S: DataService>(
     collection: &str,
     partition_key: &str,
     direction: i32,
-) -> Result<Bson> {
+) -> Result<Bson, S::Error> {
     let pipeline = vec![
         doc! {"$sort": {partition_key: direction}},
         doc! {"$limit": 1},
@@ -231,7 +231,7 @@ async fn get_bound<S: DataService>(
     let doc = service
         .aggregate(db, collection, pipeline, None)
         .await
-        .map_err(|_| Error::DataServiceError)?;
+        .map_err(Error::DataServiceError)?;
     let doc = doc
         .first()
         .ok_or_else(|| Error::NoBounds(collection.to_string()))?;

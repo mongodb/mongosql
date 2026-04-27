@@ -1,7 +1,19 @@
 use super::{DatabaseCollections, EXCLUDE_DUNDERSCORE_PATTERN, INCLUDE_LIST_IN_DB_AND_COLL_PAIRS};
+use crate::consts::DISALLOWED_COLLECTION_NAMES;
 use crate::data_service::{CollectionInfo, CollectionType};
-use crate::{Error, Result, consts::DISALLOWED_COLLECTION_NAMES};
 use tracing::instrument;
+
+/// An error in a database pattern
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("The following error occurred while trying to make a Glob::Pattern: {0}")]
+    Pattern(#[from] glob::PatternError),
+
+    #[error(
+        "The glob::Pattern `{0}` has an opening bracket (`[`) without a closing bracket (`]`)."
+    )]
+    InclusionBracketPatternIsMissingClosingBracket(String),
+}
 
 impl DatabaseCollections {
     /// should_consider filters an input CollectionInfo by the include_list and
@@ -19,7 +31,7 @@ impl DatabaseCollections {
         collection_or_view: &CollectionInfo,
         include_list: &[glob::Pattern],
         exclude_list: &[glob::Pattern],
-    ) -> Result<bool> {
+    ) -> Result<bool, Error> {
         let allow_dunderscore_namespace =
             Self::should_allow_dunderscore_namespace(database, collection_or_view, include_list)?;
 
@@ -47,7 +59,7 @@ impl DatabaseCollections {
         database: &str,
         collection_or_view: &CollectionInfo,
         include_list: &[glob::Pattern],
-    ) -> Result<bool> {
+    ) -> Result<bool, Error> {
         let db_starts_with_dunderscore = database.starts_with("__");
         let coll_starts_with_dunderscore = collection_or_view.name.as_str().starts_with("__");
 
@@ -129,7 +141,7 @@ impl DatabaseCollections {
     pub(crate) fn pattern_allows_dunderscore_name(
         pattern_as_str: &str,
         name: &str,
-    ) -> Result<bool> {
+    ) -> Result<bool, Error> {
         // Proof: The only way in glob syntax to explicitly include characters is by using the character itself
         // or by using brackets with the character included in the brackets. Therefore, to disallow implicit inclusion
         // of dunderscore-prefixed names and allow for explicit inclusion of them, we want to ignore every
@@ -147,7 +159,7 @@ impl DatabaseCollections {
         if pattern_as_str.starts_with("__")
             || (pattern_as_str.starts_with("_[") && !pattern_as_str.starts_with("_[!"))
         {
-            let pattern = glob::Pattern::new(pattern_as_str).map_err(Error::GlobPatternError)?;
+            let pattern = glob::Pattern::new(pattern_as_str)?;
             return Ok(pattern.matches(name));
         }
         // Checks cases (3) and (4)
@@ -179,8 +191,7 @@ impl DatabaseCollections {
                 || slice_excluding_first_inclusion_brackets.starts_with("?")
                 || slice_excluding_first_inclusion_brackets.starts_with("[!"))
             {
-                let pattern =
-                    glob::Pattern::new(pattern_as_str).map_err(Error::GlobPatternError)?;
+                let pattern = glob::Pattern::new(pattern_as_str)?;
                 return Ok(pattern.matches(name));
             }
         }
@@ -195,7 +206,7 @@ impl DatabaseCollections {
         include_list: &[glob::Pattern],
         exclude_list: &[glob::Pattern],
         collection_info: Vec<CollectionInfo>,
-    ) -> Result<DatabaseCollections> {
+    ) -> Result<DatabaseCollections, Error> {
         let mut database_collections = DatabaseCollections {
             db,
             ..Default::default()
