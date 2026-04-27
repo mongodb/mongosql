@@ -18,16 +18,12 @@ pub enum Error {
     EmptyCollection(String),
     #[error("NoIdInSample")]
     NoIdInSample,
-    #[cfg(feature = "native-client")]
-    #[error("Driver Error {0}")]
-    DriverError(#[from] mongodb::error::Error),
+    #[error("Error in DataService: check the logs for more info")]
+    DataServiceError,
     #[error("Schema Error {0}")]
     SchemaError(mongosql::schema::Error),
     #[error("NoCollection {0}")]
     NoCollection(String),
-    #[cfg(feature = "native-client")]
-    #[error("Execution Error {0}")]
-    TokioError(tokio::task::JoinError),
     #[error("Inital schema for {0} is not valid")]
     InitialSchemaError(String),
     #[error("The following error occurred while trying to make a Glob::Pattern: {0}")]

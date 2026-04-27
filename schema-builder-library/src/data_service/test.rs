@@ -17,7 +17,8 @@ pub(crate) struct MockDataService {
     pub documents: HashMap<String, Vec<Document>>,
 }
 
-#[async_trait::async_trait]
+#[cfg_attr(not(feature = "wasm"), async_trait::async_trait)]
+#[cfg_attr(feature = "wasm", async_trait::async_trait(?Send))]
 impl DataService for MockDataService {
     type Error = std::convert::Infallible;
 
@@ -37,6 +38,7 @@ impl DataService for MockDataService {
         db_name: &str,
         coll_name: &str,
         _pipeline: Vec<Document>,
+        _hint: Option<Document>,
     ) -> std::result::Result<Vec<Document>, Self::Error> {
         Ok(self
             .documents

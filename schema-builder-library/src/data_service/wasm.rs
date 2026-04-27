@@ -46,6 +46,7 @@ extern "C" {
         db_name: &str,
         coll_name: &str,
         pipeline: JsValue,
+        hint: Option<JsValue>,
     ) -> std::result::Result<JsValue, JsValue>;
 
     #[wasm_bindgen(method, catch)]
@@ -102,15 +103,22 @@ impl DataService for WasmDataService {
         db_name: &str,
         coll_name: &str,
         pipeline: Vec<Document>,
+        hint: Option<Document>,
     ) -> std::result::Result<Vec<Document>, Self::Error> {
         let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
         let pipeline_js = pipeline
             .serialize(&serializer)
             .map_err(|e| WasmDataServiceError::Serialization(e.to_string()))?;
+        let hint_js = hint
+            .map(|h| {
+                h.serialize(&serializer)
+                    .map_err(|e| WasmDataServiceError::Serialization(e.to_string()))
+            })
+            .transpose()?;
 
         let js_result = self
             .js_service
-            .aggregate(db_name, coll_name, pipeline_js)
+            .aggregate(db_name, coll_name, pipeline_js, hint_js)
             .await
             .map_err(|e| WasmDataServiceError::Query(format!("{e:?}")))?;
 

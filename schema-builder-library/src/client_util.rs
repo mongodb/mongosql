@@ -42,9 +42,14 @@ pub async fn load_password_auth(
 /// Returns a client options with the optimal pool size set.
 pub async fn get_opts(uri: &str, resolver: Option<ResolverConfig>) -> Result<ClientOptions> {
     let mut opts = if let Some(resolver) = resolver {
-        ClientOptions::parse(uri).resolver_config(resolver).await?
+        ClientOptions::parse(uri)
+            .resolver_config(resolver)
+            .await
+            .map_err(|_| Error::DataServiceError)?
     } else {
-        ClientOptions::parse(uri).await?
+        ClientOptions::parse(uri)
+            .await
+            .map_err(|_| Error::DataServiceError)?
     };
     opts.max_pool_size = Some(get_optimal_pool_size());
     opts.max_connecting = Some(2);
@@ -92,7 +97,7 @@ impl DatabaseExt for Database {
         self.run_command(command)
             .selection_criteria(selection_criteria)
             .await
-            .map_err(Error::DriverError)
+            .map_err(|_| Error::DataServiceError)
     }
 
     async fn run_cursor_command_with_read_preference(
@@ -104,7 +109,7 @@ impl DatabaseExt for Database {
         self.run_cursor_command(command)
             .selection_criteria(selection_criteria)
             .await
-            .map_err(Error::DriverError)
+            .map_err(|_| Error::DataServiceError)
     }
 }
 

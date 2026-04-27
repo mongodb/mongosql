@@ -1,5 +1,7 @@
 use futures::TryStreamExt;
-use mongodb::{Client, bson::Document, results::CollectionType as DriverCollectionType};
+use mongodb::{
+    Client, bson::Document, options::Hint, results::CollectionType as DriverCollectionType,
+};
 use tracing::warn;
 
 use super::{CollectionInfo, CollectionOptions, CollectionType, DataService, TimeSeriesOptions};
@@ -74,13 +76,21 @@ impl DataService for MongoDbDataService {
         db_name: &str,
         coll_name: &str,
         pipeline: Vec<Document>,
+        key_hint: Option<Document>,
     ) -> std::result::Result<Vec<Document>, Self::Error> {
         let collection = self
             .client
             .database(db_name)
             .collection::<Document>(coll_name);
-        let cursor = collection.aggregate(pipeline).await?;
-        cursor.try_collect().await
+
+        // Create a native cursor over the specified aggregate, adding a key hint
+        // if supplied.
+        let mut cursor = collection.aggregate(pipeline);
+        if let Some(hint) = key_hint {
+            cursor = cursor.hint(Hint::Keys(hint))
+        };
+
+        cursor.await?.try_collect().await
     }
 
     async fn find(

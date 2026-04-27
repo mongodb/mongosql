@@ -1,11 +1,6 @@
 use super::{DatabaseCollections, EXCLUDE_DUNDERSCORE_PATTERN, INCLUDE_LIST_IN_DB_AND_COLL_PAIRS};
 use crate::data_service::{CollectionInfo, CollectionType};
 use crate::{Error, Result, consts::DISALLOWED_COLLECTION_NAMES};
-use futures::TryStreamExt;
-use mongodb::{
-    Cursor,
-    bson::{self, Document},
-};
 use tracing::instrument;
 
 impl DatabaseCollections {
@@ -196,30 +191,27 @@ impl DatabaseCollections {
 
     #[instrument(level = "trace")]
     pub async fn separate_collection_types(
-        database: &str,
+        db: String,
         include_list: &[glob::Pattern],
         exclude_list: &[glob::Pattern],
-        mut collection_doc: Cursor<Document>,
+        collection_info: Vec<CollectionInfo>,
     ) -> Result<DatabaseCollections> {
-        let mut database_collections = DatabaseCollections::default();
-        while let Some(collection_doc) = collection_doc.try_next().await? {
-            let Ok(collection_doc) = bson::from_bson(bson::Bson::Document(collection_doc)) else {
-                continue;
-            };
+        let mut database_collections = DatabaseCollections {
+            db,
+            ..Default::default()
+        };
+
+        for info in collection_info {
             if DatabaseCollections::should_consider(
-                database,
-                &collection_doc,
+                &database_collections.db,
+                &info,
                 include_list,
                 exclude_list,
             )? {
-                match collection_doc.collection_type {
-                    CollectionType::View => database_collections.views.push(collection_doc),
-                    CollectionType::Timeseries => {
-                        database_collections.timeseries.push(collection_doc)
-                    }
-                    CollectionType::Collection => {
-                        database_collections.collections.push(collection_doc)
-                    }
+                match info.collection_type {
+                    CollectionType::View => database_collections.views.push(info),
+                    CollectionType::Timeseries => database_collections.timeseries.push(info),
+                    CollectionType::Collection => database_collections.collections.push(info),
                 }
             }
         }
