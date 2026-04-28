@@ -24,7 +24,7 @@ pub enum Error<ServiceError: core::error::Error> {
     SchemaError(mongosql::schema::Error),
     #[error("NoCollection {0}")]
     NoCollection(String),
-    #[error("Inital schema for {0} is not valid")]
+    #[error("Initial schema for {0} is not valid")]
     InitialSchemaError(String),
     #[error("Error when processing database pattern: {0}")]
     PatternError(#[from] crate::collection::patterns::Error),

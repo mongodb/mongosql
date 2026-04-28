@@ -12,9 +12,9 @@ pub struct BuilderOptions<S: DataService> {
     pub schema_collection: Option<String>,
     /// Whether to perform a dry run, i.e. no analysis and no writing to the database
     pub dry_run: bool,
-    /// The MongoDB client
+    /// The backend data service used to connect to MongoDB
     pub service: S,
-    /// Task sempahore
+    /// Task semaphore
     pub task_semaphore: std::sync::Arc<tokio::sync::Semaphore>,
 }
 

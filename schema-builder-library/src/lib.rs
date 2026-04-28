@@ -190,26 +190,22 @@ pub async fn build_schema<S: DataService>(
         }
     }
 
-    // To start computing the schema for all databases, we need to wait for the
-    // list_database_names method to finish.
-    match options.service.list_databases().await {
-        Ok(databases) => {
-            // The list_database_names() `filter` option doesn't work for Atlas Free and Shared tier clusters,
-            // so we have to manually filter out unwanted databases here.
-            let valid_databases = databases
-                .into_iter()
-                .filter(|db| !DISALLOWED_DB_NAMES.contains(&db.as_str()))
-                .collect();
+    // To start computing the schema for all databases, we need to wait for the list of
+    // available databases.
+    //
+    // Note: The built-in mongodb `filter` option doesn't work for Atlas Free and
+    // Shared tier clusters, so we have to manyally filter out unwanted databases here.
+    let valid_databases = options
+        .service
+        .list_databases()
+        .await
+        .inspect_err(|e| tracing::error!("unable to list databases: {e}"))
+        .map_err(Error::DataServiceError)?
+        .into_iter()
+        .filter(|db| !DISALLOWED_DB_NAMES.contains(&db.as_str()))
+        .collect();
 
-            Ok(process_databases(options, valid_databases).await)
-        }
-        // If listing the databases fails, there is nothing to do so we report an
-        // error, drop all channels, and return the error.
-        Err(e) => {
-            error!("unable to list databases: {e}");
-            Err(Error::DataServiceError(e))
-        }
-    }
+    Ok(process_databases(options, valid_databases).await)
 }
 
 #[instrument(level = "debug", skip_all)]
