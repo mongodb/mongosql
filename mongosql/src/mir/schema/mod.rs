@@ -1769,6 +1769,14 @@ impl ScalarFunction {
                 Ok(Schema::Atomic(Atomic::Date))
             }
             MergeObjects => self.schema_check_merge_objects(state, arg_schemas),
+            // [TODO] Is there a way that we handle the NOT in the NOT_IN eariler, so we only have a case for In here, and the Not case will recursively handle this?
+            // Note: As is, I've left this as a separate branch to make it clear how we handle IN / NOT_IN 
+            In | NotIn => self.propagate_variadic_null_arguments(
+                state,
+                arg_schemas,
+                Schema::Any,
+                Schema::Atomic(Atomic::Boolean),
+            ),
         }
     }
 

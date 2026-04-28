@@ -31,7 +31,6 @@ pub use with_query::WithQueryRewritePass;
 
 #[cfg(test)]
 mod test;
-
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Errors that can occur during rewrite passes

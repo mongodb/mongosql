@@ -554,6 +554,8 @@ pub enum ScalarFunction {
     // Array scalar functions
     Slice,
     Size,
+    In,
+    NotIn,
 
     // Numeric value scalar functions
     Position,
@@ -636,6 +638,7 @@ impl ScalarFunction {
             ScalarFunction::Floor => "Floor",
             ScalarFunction::Gt => "Gt",
             ScalarFunction::Gte => "Gte",
+            ScalarFunction::In => "In",
             ScalarFunction::Between => "Between",
             ScalarFunction::Log => "Log",
             ScalarFunction::Lower => "Lower",
@@ -647,6 +650,7 @@ impl ScalarFunction {
             ScalarFunction::Neg => "Neg",
             ScalarFunction::Not => "Not",
             ScalarFunction::NullIf => "NullIf",
+            ScalarFunction::NotIn => "NotIn",
             ScalarFunction::OctetLength => "OctetLength",
             ScalarFunction::Or => "Or",
             ScalarFunction::Pos => "Pos",
@@ -747,7 +751,9 @@ impl ScalarFunction {
             | ScalarFunction::RTrim
             | ScalarFunction::BTrim
             | ScalarFunction::Upper
-            | ScalarFunction::MergeObjects => false
+            | ScalarFunction::MergeObjects
+            | ScalarFunction::In
+            | ScalarFunction::NotIn => false
         }
     }
 }

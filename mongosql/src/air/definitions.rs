@@ -368,6 +368,7 @@ pub enum SqlOperator {
     // Array scalar functions
     Slice,
     Size,
+    In,
 
     // Numeric value scalar functions
     IndexOfCP,

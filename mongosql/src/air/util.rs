@@ -1,5 +1,6 @@
 use crate::air::{FieldRef, LiteralValue, Match, MqlOperator, SqlOperator, Stage, Variable};
 use std::fmt;
+use crate::air;
 
 impl Stage {
     pub(crate) fn get_source(&self) -> Box<Stage> {
@@ -94,6 +95,7 @@ pub fn sql_op_to_mql_op(sql_op: SqlOperator) -> Option<MqlOperator> {
     let mql_op = match sql_op {
         SqlOperator::Eq => MqlOperator::Eq,
         SqlOperator::IndexOfCP => MqlOperator::IndexOfCP,
+        SqlOperator::In => MqlOperator::In,
         SqlOperator::Lt => MqlOperator::Lt,
         SqlOperator::Lte => MqlOperator::Lte,
         SqlOperator::Gt => MqlOperator::Gt,
@@ -125,6 +127,7 @@ pub fn sql_op_to_mql_op(sql_op: SqlOperator) -> Option<MqlOperator> {
         | SqlOperator::CurrentTimestamp
         | SqlOperator::Neg
         | SqlOperator::Pos => return None,
+       
     };
     Some(mql_op)
 }
