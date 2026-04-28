@@ -958,6 +958,8 @@ pub enum UntaggedOperatorName {
     IfNull,
     #[serde(rename = "$in")]
     In,
+    #[serde(rename = "$nin")]
+    NotIn,
     #[serde(rename = "$indexOfArray")]
     IndexOfArray,
     #[serde(rename = "$indexOfBytes")]

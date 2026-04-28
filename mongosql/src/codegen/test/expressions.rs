@@ -1021,6 +1021,18 @@ mod mql_semantic_operator {
     );
 
     test_codegen_expression!(
+        not_in_op,
+        expected = Ok(bson!({ "$nin": [{ "$literal": 1}, [{ "$literal": 1 }, { "$literal": 2 }]]})),
+        input = MqlSemanticOperator(MqlSemanticOperator {
+            op: NotIn,
+            args: vec![
+                Literal(Integer(1)),
+                air::Expression::Array(vec![Literal(Integer(1)), Literal(Integer(2))]),
+            ],
+        })
+    );
+
+    test_codegen_expression!(
         first,
         expected = Ok(bson!({ "$first": ["$foo"]})),
         input = MqlSemanticOperator(MqlSemanticOperator {

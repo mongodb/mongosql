@@ -274,6 +274,7 @@ pub enum MqlOperator {
     Size,
     ElemAt,
     In,
+    NotIn,
     First,
     Last,
     AllElementsTrue,
@@ -369,6 +370,7 @@ pub enum SqlOperator {
     Slice,
     Size,
     In,
+    NotIn,
 
     // Numeric value scalar functions
     IndexOfCP,

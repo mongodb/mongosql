@@ -106,6 +106,7 @@ impl MqlCodeGenerator {
             | SqlOperator::Sqrt
             | SqlOperator::SubstrCP
             | SqlOperator::In
+            | SqlOperator::NotIn
             | SqlOperator::Tan => {
                 let ops = sql_op
                     .args

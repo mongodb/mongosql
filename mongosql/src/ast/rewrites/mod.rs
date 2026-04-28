@@ -75,7 +75,6 @@ pub trait Pass {
 pub fn rewrite_query(query: ast::Query) -> Result<ast::Query> {
     let passes: Vec<&dyn Pass> = vec![
         &ExtendedUnwindRewritePass,
-        &InTupleRewritePass,
         &SingleTupleRewritePass,
         &GroupBySelectAliasRewritePass,
         &AddAliasRewritePass,

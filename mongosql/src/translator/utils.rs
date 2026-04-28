@@ -372,6 +372,8 @@ impl From<mir::ScalarFunction> for ScalarFunctionType {
 
             // MergeObjects merges an array of objects
             MergeObjects => ScalarFunctionType::Mql(MqlOperator::MergeObjects),
+            In => ScalarFunctionType::Mql(MqlOperator::In),
+            NotIn => ScalarFunctionType::Mql(MqlOperator::NotIn),
         }
     }
 }

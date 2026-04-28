@@ -102,6 +102,7 @@ pub fn sql_op_to_mql_op(sql_op: SqlOperator) -> Option<MqlOperator> {
         SqlOperator::Gte => MqlOperator::Gte,
         SqlOperator::Ne => MqlOperator::Ne,
         SqlOperator::Not => MqlOperator::Not,
+        SqlOperator::NotIn => MqlOperator::NotIn,
         SqlOperator::Size => MqlOperator::Size,
         SqlOperator::StrLenBytes => MqlOperator::StrLenBytes,
         SqlOperator::StrLenCP => MqlOperator::StrLenCP,
