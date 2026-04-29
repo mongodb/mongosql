@@ -123,10 +123,10 @@ lazy_static! {
         ("STAR", "*"),
         ("SUB", "-"),
         ("TYPE_ASSERTION", "::!"),
+        ("SEMICOLON", ";"),
     ]);
 }
 
-#[allow(dead_code)]
 pub fn get_token<T: Into<String>>(input: T) -> String {
     let input = input.into();
     match TOKEN_MAP.get(input.as_str()) {
