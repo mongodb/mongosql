@@ -194,7 +194,7 @@ pub async fn build_schema<S: DataService>(
     // available databases.
     //
     // Note: The built-in mongodb `filter` option doesn't work for Atlas Free and
-    // Shared tier clusters, so we have to manyally filter out unwanted databases here.
+    // Shared tier clusters, so we have to manually filter out unwanted databases here.
     let valid_databases = options
         .service
         .list_databases()
