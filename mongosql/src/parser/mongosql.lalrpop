@@ -9,8 +9,8 @@ extern {
 }
 
 pub Query: Query = {
-  WithQuery => <>,
-  SimpleQuery => <>
+  <q:WithQuery> SEMICOLON? => q,
+  <q:SimpleQuery> SEMICOLON? => q,
 };
 
 SimpleQuery: Query = {
@@ -808,6 +808,7 @@ match {
   ")" => RIGHT_PAREN,
   "*" => STAR,
   "-" => SUB,
+  ";" => SEMICOLON,
   "::!" => TYPE_ASSERTION,
   r"(?i)aggregate" => AGGREGATE,
   r"(?i)all" => ALL,
