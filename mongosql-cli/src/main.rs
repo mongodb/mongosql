@@ -60,6 +60,7 @@ struct Cli {
     schema_file: Option<String>,
     #[arg(
         long,
+        short = 'q',
         help = "A sql file to use instead of passing the query as an argument. The sql-file argument takes precedence over sql query text."
     )]
     sql_file: Option<PathBuf>,
