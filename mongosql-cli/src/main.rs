@@ -5,6 +5,7 @@ use mongodb::sync::{Client, Collection};
 use mongosql::{build_catalog_from_catalog_schema, catalog::Catalog, json_schema::Schema};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
+use std::path::PathBuf;
 
 const SQL_SCHEMAS_COLLECTION: &str = "__sql_schemas";
 
@@ -36,7 +37,7 @@ struct Cli {
     )]
     db: Option<String>,
     #[arg(index = 1, help = "The query to translate")]
-    query: String,
+    query: Option<String>,
     #[arg(
         short,
         long,
@@ -57,6 +58,11 @@ struct Cli {
         help = "A schema file to use instead of querying the database for schema"
     )]
     schema_file: Option<String>,
+    #[arg(
+        long,
+        help = "A sql file to use instead of passing the query as an argument. The sql-file argument takes precedence over sql query text."
+    )]
+    sql_file: Option<PathBuf>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -65,12 +71,34 @@ pub struct SchemaFile {
     pub schemas: BTreeMap<String, BTreeMap<String, Schema>>,
 }
 
+fn parse_query_from_args(
+    query: Option<String>,
+    sql_file: Option<PathBuf>,
+) -> Result<String, CliError> {
+    if let Some(sql_file) = sql_file {
+        let parsed_file = std::fs::read_to_string(sql_file)?.trim().to_string();
+        if parsed_file.is_empty() {
+            Err(CliError(
+                "The provided sql file is empty. Please provide a valid sql file or pass the sql query directly to the cli.".to_string(),
+            ))
+        } else {
+            Ok(parsed_file)
+        }
+    } else if let Some(query) = query {
+        Ok(query)
+    } else {
+        Err(CliError(
+            "No query provided. Please provide a query using the `query` argument or a sql file using the `sql_file` argument.".to_string(),
+        ))
+    }
+}
+
 fn main() -> Result<(), CliError> {
     let args = Cli::parse();
 
     let uri = args.uri.unwrap_or("mongodb://localhost:27017".to_string());
     let current_db = args.db.unwrap_or("test".to_string());
-    let query = args.query;
+    let query = parse_query_from_args(args.query, args.sql_file)?;
     let namespaces = mongosql::get_namespaces(current_db.as_str(), query.as_str())?;
     let catalog = if let Some(schema_file) = args.schema_file {
         let contents = std::fs::read_to_string(&schema_file)?;

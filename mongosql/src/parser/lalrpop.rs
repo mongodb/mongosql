@@ -123,6 +123,7 @@ lazy_static! {
         ("STAR", "*"),
         ("SUB", "-"),
         ("TYPE_ASSERTION", "::!"),
+        ("SEMICOLON", ";"),
     ]);
 }
 
