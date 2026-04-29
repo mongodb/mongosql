@@ -1,6 +1,6 @@
+use crate::air;
 use crate::air::{FieldRef, LiteralValue, Match, MqlOperator, SqlOperator, Stage, Variable};
 use std::fmt;
-use crate::air;
 
 impl Stage {
     pub(crate) fn get_source(&self) -> Box<Stage> {
@@ -128,7 +128,6 @@ pub fn sql_op_to_mql_op(sql_op: SqlOperator) -> Option<MqlOperator> {
         | SqlOperator::CurrentTimestamp
         | SqlOperator::Neg
         | SqlOperator::Pos => return None,
-       
     };
     Some(mql_op)
 }

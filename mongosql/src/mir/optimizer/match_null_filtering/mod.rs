@@ -396,7 +396,7 @@ impl ScalarFunction {
             | ScalarFunction::IsoWeek
             | ScalarFunction::IsoWeekday
             | ScalarFunction::MergeObjects
-            | ScalarFunction::In 
+            | ScalarFunction::In
             | ScalarFunction::NotIn => false,
         }
     }

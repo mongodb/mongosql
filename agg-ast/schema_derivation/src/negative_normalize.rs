@@ -362,7 +362,7 @@ impl NegativeNormalize<Expression> for Expression {
                     }
                     // the following operators negation depends on the underlying documents -- thus,
                     // for the sake of schema derivation, they function the same way negated as they do normally
-                    UntaggedOperatorName::Cmp | UntaggedOperatorName::In | UntaggedOperatorName::Size
+                    UntaggedOperatorName::Cmp | UntaggedOperatorName::In | UntaggedOperatorName::NotIn | UntaggedOperatorName::Size
                     | UntaggedOperatorName::StrLenBytes | UntaggedOperatorName::StrLenCP | UntaggedOperatorName::Strcasecmp | UntaggedOperatorName::SetEquals
                     | UntaggedOperatorName::SetIsSubset | UntaggedOperatorName::Sum => (u.op, u.args.clone()),
                     // toBool is the only untagged op that is boolean or nullish

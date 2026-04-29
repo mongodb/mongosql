@@ -3477,7 +3477,4 @@ mod neg {
     );
 }
 
-mod in_operator {
-
-
-}
+mod in_operator {}
