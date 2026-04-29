@@ -311,3 +311,59 @@ fn get_schema_catalog(
         )?,
     )?)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn it_parses_query_correctly() {
+        let query = "SELECT * FROM users".to_string();
+        let sql_file = None;
+
+        let parse_result = parse_query_from_args(Some(query), sql_file);
+
+        assert!(parse_result.is_ok());
+        assert_eq!(parse_result.unwrap(), "SELECT * FROM users".to_string());
+    }
+
+    #[test]
+    fn it_parses_sql_file_correctly() {
+        let query: Option<String> = None;
+        let sql_file = Some(PathBuf::from("./test/sample_query.sql"));
+
+        let parse_result = parse_query_from_args(query, sql_file);
+
+        assert!(parse_result.is_ok());
+        assert_eq!(parse_result.unwrap(), "SELECT customerAge, COUNT(*) FROM sample_supplies.sales GROUP BY customer.age AS customerAge limit 10;".trim().to_string());
+    }
+
+    #[test]
+    fn sql_file_takes_precedence_over_query() {
+        let query = "SELECT * FROM users".to_string();
+        let sql_file = Some(PathBuf::from("./test/sample_query.sql"));
+
+        let parse_result = parse_query_from_args(Some(query), sql_file);
+
+        assert!(parse_result.is_ok());
+        assert_eq!(parse_result.unwrap(), "SELECT customerAge, COUNT(*) FROM sample_supplies.sales GROUP BY customer.age AS customerAge limit 10;".trim().to_string());
+    }
+
+    #[test]
+    fn no_query_provided_returns_error() {
+        let query: Option<String> = None;
+        let sql_file: Option<PathBuf> = None;
+
+        let parse_result = parse_query_from_args(query, sql_file);
+
+        assert!(parse_result.is_err());
+    }
+
+    #[test]
+    fn empty_sql_file_returns_error() {
+        let query: Option<String> = None;
+        let sql_file = Some(PathBuf::from("./test/empty_query.sql"));
+
+        let parse_result = parse_query_from_args(query, sql_file);
+        assert!(parse_result.is_err());
+    }
+}
