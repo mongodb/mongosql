@@ -49,7 +49,7 @@ pub(crate) async fn query_for_initial_schemas<S: DataService>(
     service: &S,
     db: &str,
     collection: &str,
-) -> Result<HashMap<String, (Schema, bool)>, S::Error> {
+) -> Result<HashMap<String, Schema>, S::Error> {
     let docs = service
         .find(db, collection, doc! {})
         .await
@@ -59,16 +59,9 @@ pub(crate) async fn query_for_initial_schemas<S: DataService>(
     // parse correctly
     docs.into_iter()
         .map(|doc| {
-            let unstable = doc
-                .get("unstable")
-                .unwrap_or(&bson::Bson::Boolean(false))
-                .as_bool()
-                .unwrap_or(false);
-
-            // Convert the Doc into our InitialSchema struct
             InitialSchema::try_from(doc)
                 .map_err(|_| Error::InitialSchemaError(collection.to_string()))
-                .map(|schema| (schema.collection, (schema.schema, unstable)))
+                .map(|InitialSchema { collection, schema }| (collection, schema))
         })
         .collect()
 }

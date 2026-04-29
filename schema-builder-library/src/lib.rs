@@ -1,6 +1,6 @@
 use agg_ast::definitions::Namespace;
 use futures::future;
-use mongosql::schema::{Document, Schema};
+use mongosql::schema::Schema;
 use result_set::ResultSet;
 use std::{
     collections::HashMap,
@@ -314,22 +314,12 @@ async fn fetch_initial_schema<S: DataService>(
 
             initial_collection_schemas
                 .into_iter()
-                .map(|(coll_name, (mut schema, is_unstable))| {
+                .map(|(coll_name, schema)| {
                     let namespace_info = NamespaceInfo {
                         db_name: db.to_string(),
                         coll_or_view_name: coll_name.clone(),
                         namespace_type: NamespaceType::Collection, // Assume Collection by default
                     };
-
-                    if is_unstable {
-                        schema = match schema {
-                            Schema::Document(d) => Schema::Document(Document {
-                                unstable: true,
-                                ..d
-                            }),
-                            _ => schema,
-                        }
-                    }
 
                     (
                         namespace_info.coll_or_view_name.clone(),
