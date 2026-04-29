@@ -88,7 +88,7 @@ fn parse_query_from_args(
         Ok(query)
     } else {
         Err(CliError(
-            "No query provided. Please provide a query or a sql file using the `sql_file` argument.".to_string(),
+            "No query provided. Please provide a query or a sql file using the `sql-file` argument.".to_string(),
         ))
     }
 }
