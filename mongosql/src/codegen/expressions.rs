@@ -37,6 +37,7 @@ impl MqlCodeGenerator {
             SubqueryComparison(sc) => self.codegen_subquery_comparison(sc),
             SubqueryExists(se) => self.codegen_subquery_exists(se),
             Array(array) => self.codegen_array(array),
+            Tuple(array) => self.codegen_array(array),
             Document(document) => self.codegen_document(document),
         }
     }

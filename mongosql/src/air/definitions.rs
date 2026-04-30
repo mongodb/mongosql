@@ -237,6 +237,7 @@ pub enum Expression {
     SubqueryExists(SubqueryExists),
     Array(Vec<Expression>),
     Document(UniqueLinkedHashMap<String, Expression>),
+    Tuple(Vec<Expression>),
 }
 
 #[allow(dead_code)]

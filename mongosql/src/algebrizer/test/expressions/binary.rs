@@ -715,3 +715,5 @@ test_algebrize!(
         }),
     },
 );
+
+// Algebrizer Test where you get an

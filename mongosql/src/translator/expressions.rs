@@ -41,6 +41,7 @@ impl MqlTranslator {
             }
             mir::Expression::TypeAssertion(ta) => self.translate_expression(*ta.expr),
             mir::Expression::MqlIntrinsicFieldExistence(fa) => self.translate_field_existence(fa),
+            mir::Expression::Tuple(expr) => self.translate_tuple_expression(expr.array),
         }
     }
 
@@ -135,6 +136,15 @@ impl MqlTranslator {
 
     fn translate_array_expression(&self, array: Vec<mir::Expression>) -> Result<air::Expression> {
         Ok(air::Expression::Array(
+            array
+                .into_iter()
+                .map(|x| self.translate_expression(x))
+                .collect::<Result<Vec<air::Expression>>>()?,
+        ))
+    }
+
+    fn translate_tuple_expression(&self, array: Vec<mir::Expression>) -> Result<air::Expression> {
+        Ok(air::Expression::Tuple(
             array
                 .into_iter()
                 .map(|x| self.translate_expression(x))
