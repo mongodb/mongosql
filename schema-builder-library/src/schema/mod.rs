@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use bson::{Document, doc};
-use futures::future;
+use futures::{TryStreamExt as _, future};
 use mongosql::schema::Schema;
 use schema_derivation::schema_for_document;
 use tracing::{info, instrument, warn};
@@ -147,14 +147,14 @@ pub(crate) async fn derive_schema_for_partition<S: DataService>(
             doc! { "$sort": {partition_key: 1}},
             doc! { "$limit": PARTITION_DOCS_PER_ITERATION },
         ];
-        let results = service
+        let mut cursor = service
             .aggregate(db, collection, pipeline, hint.clone())
             .await
             .map_err(Error::DataServiceError)?;
 
         let mut no_result = true;
         let mut iter_schema = Schema::Unsat;
-        for doc in results {
+        while let Some(doc) = cursor.try_next().await.map_err(Error::DataServiceError)? {
             info!(db, collection, "processing partition {partition_ix}");
             if let Some(id) = doc.get(partition_key) {
                 partition.min = id.clone();
@@ -212,7 +212,7 @@ pub(crate) async fn derive_schema_for_view<S: DataService>(
         .chain(view.options.pipeline.clone().into_iter())
         .collect::<Vec<Document>>();
 
-    let Ok(cursor) = service
+    let mut cursor = service
         .aggregate(db, &view.options.view_on, pipeline, None)
         .await
         .inspect_err(|e| {
@@ -222,12 +222,11 @@ pub(crate) async fn derive_schema_for_view<S: DataService>(
                 "view sampling encountered an error: {e}"
             )
         })
-    else {
-        return None;
-    };
+        .ok()?;
 
     let mut schema = None;
-    for (iterations, doc) in cursor.iter().enumerate() {
+    let mut iterations = 0u64;
+    while let Some(Ok(doc)) = cursor.try_next().await.transpose() {
         // Notify every 100 iterations, so it isn't too spammy
         if iterations.is_multiple_of(100) {
             info!(
@@ -238,9 +237,11 @@ pub(crate) async fn derive_schema_for_view<S: DataService>(
             );
         }
 
-        schema = schema.map_or(Some(schema_for_document(doc)), |s: Schema| {
-            Some(s.union(&schema_for_document(doc)))
+        schema = schema.map_or(Some(schema_for_document(&doc)), |s: Schema| {
+            Some(s.union(&schema_for_document(&doc)))
         });
+
+        iterations += 1;
     }
 
     schema

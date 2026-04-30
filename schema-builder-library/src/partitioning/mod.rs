@@ -4,6 +4,7 @@ use crate::{
     data_service::{CollectionInfo, CollectionType},
 };
 use bson::{Bson, Document, doc};
+use futures::{StreamExt as _, TryStreamExt as _};
 use tracing::{instrument, trace};
 
 mod partition;
@@ -94,7 +95,7 @@ pub(crate) async fn get_partitions<S: DataService>(
 
     // If the partitioning query fails, check the entire collection. This is safer than missing a
     // namespace.
-    let Ok(results) = service
+    let Ok(mut cursor) = service
         .aggregate(db, &collection_info.name, sample_pipeline, hint.clone())
         .await
     else {
@@ -109,7 +110,7 @@ pub(crate) async fn get_partitions<S: DataService>(
         });
     };
 
-    for doc in results {
+    while let Some(doc) = cursor.try_next().await.map_err(Error::DataServiceError)? {
         let local_max = doc
             .get(partition_key.as_str())
             .unwrap_or(&Bson::MaxKey)
@@ -152,7 +153,7 @@ pub(crate) async fn get_size_counts<S: DataService>(
     db: &str,
     collection: &str,
 ) -> Result<CollectionSizes, S::Error> {
-    let stats = service
+    let mut cursor = service
         .aggregate(
             db,
             collection,
@@ -161,8 +162,11 @@ pub(crate) async fn get_size_counts<S: DataService>(
         )
         .await
         .map_err(|_| Error::NoCollectionStats(collection.to_string()))?;
-    let stats = stats
-        .first()
+    let stats = cursor
+        .next()
+        .await
+        .transpose()
+        .map_err(Error::DataServiceError)?
         .ok_or_else(|| Error::NoCollectionStats(collection.to_string()))?;
 
     let stats = stats
@@ -228,12 +232,17 @@ async fn get_bound<S: DataService>(
         doc! {"$limit": 1},
         doc! {"$project": {partition_key: 1}},
     ];
-    let doc = service
+    let mut cursor = service
         .aggregate(db, collection, pipeline, None)
         .await
         .map_err(Error::DataServiceError)?;
-    let doc = doc
-        .first()
+
+    let doc = cursor
+        .next()
+        .await
+        .transpose()
+        // The original code here returned `NoBounds` instead of a data service error
+        .map_err(Error::DataServiceError)?
         .ok_or_else(|| Error::NoBounds(collection.to_string()))?;
 
     doc.get(partition_key)

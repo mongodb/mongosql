@@ -14,7 +14,7 @@ use crate::{
 pub(crate) mod patterns;
 use agg_ast::Namespace;
 use bson::doc;
-use futures::future;
+use futures::{TryStreamExt as _, future};
 use mongosql::schema::Schema;
 use schema_derivation::{ResultSetState, derive_schema_for_pipeline};
 use std::{
@@ -48,22 +48,26 @@ pub(crate) struct DatabaseCollections {
 pub(crate) async fn query_for_initial_schemas<S: DataService>(
     service: &S,
     db: &str,
-    collection: &str,
+    schema_collection: &str,
 ) -> Result<HashMap<String, Schema>, S::Error> {
-    let docs = service
-        .find(db, collection, doc! {})
+    let mut initial_collection_schemas = HashMap::new();
+    let mut cursor = service
+        .find(db, schema_collection, doc! {})
         .await
         .map_err(Error::DataServiceError)?;
 
     // Try to parse all of the initial schemas, failing if any of them fail to
     // parse correctly
-    docs.into_iter()
-        .map(|doc| {
-            InitialSchema::try_from(doc)
-                .map_err(|_| Error::InitialSchemaError(collection.to_string()))
-                .map(|InitialSchema { collection, schema }| (collection, schema))
-        })
-        .collect()
+    while let Some(doc) = cursor.try_next().await.map_err(Error::DataServiceError)? {
+        // Convert the Doc into our InitialSchema struct
+        let InitialSchema { collection, schema } = InitialSchema::try_from(doc)
+            .map_err(|_| Error::InitialSchemaError(schema_collection.to_string()))?;
+
+        // If conversion is successful, add the schema to the map
+        initial_collection_schemas.insert(collection, schema);
+    }
+
+    Ok(initial_collection_schemas)
 }
 
 impl DatabaseCollections {
