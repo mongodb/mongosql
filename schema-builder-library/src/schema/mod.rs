@@ -147,13 +147,14 @@ pub(crate) async fn derive_schema_for_partition<S: DataService>(
             doc! { "$sort": {partition_key: 1}},
             doc! { "$limit": PARTITION_DOCS_PER_ITERATION },
         ];
-        let mut cursor = service
+        let cursor = service
             .aggregate(db, collection, pipeline, hint.clone())
             .await
             .map_err(Error::DataServiceError)?;
 
         let mut no_result = true;
         let mut iter_schema = Schema::Unsat;
+        let mut cursor = Box::pin(cursor);
         while let Some(doc) = cursor.try_next().await.map_err(Error::DataServiceError)? {
             info!(db, collection, "processing partition {partition_ix}");
             if let Some(id) = doc.get(partition_key) {
@@ -212,7 +213,7 @@ pub(crate) async fn derive_schema_for_view<S: DataService>(
         .chain(view.options.pipeline.clone().into_iter())
         .collect::<Vec<Document>>();
 
-    let mut cursor = service
+    let cursor = service
         .aggregate(db, &view.options.view_on, pipeline, None)
         .await
         .inspect_err(|e| {
@@ -226,6 +227,7 @@ pub(crate) async fn derive_schema_for_view<S: DataService>(
 
     let mut schema = None;
     let mut iterations = 0u64;
+    let mut cursor = Box::pin(cursor);
     while let Some(Ok(doc)) = cursor.try_next().await.transpose() {
         // Notify every 100 iterations, so it isn't too spammy
         if iterations.is_multiple_of(100) {

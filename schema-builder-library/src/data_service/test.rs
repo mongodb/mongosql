@@ -1,7 +1,7 @@
 use std::{collections::HashMap, convert::Infallible};
 
 use bson::Document;
-use futures::stream::Iter;
+use futures::Stream;
 
 use crate::data_service::{
     CollectionInfo, CollectionOptions, CollectionType, DataService, TimeSeriesOptions,
@@ -21,7 +21,6 @@ pub(crate) struct MockDataService {
 #[cfg_attr(not(feature = "wasm"), async_trait::async_trait)]
 #[cfg_attr(feature = "wasm", async_trait::async_trait(?Send))]
 impl DataService for MockDataService {
-    type Cursor = Iter<std::vec::IntoIter<Result<Document, Self::Error>>>;
     type Error = Infallible;
 
     async fn list_databases(&self) -> Result<Vec<String>, Self::Error> {
@@ -38,7 +37,7 @@ impl DataService for MockDataService {
         coll_name: &str,
         _pipeline: Vec<Document>,
         _hint: Option<Document>,
-    ) -> Result<Self::Cursor, Self::Error> {
+    ) -> Result<impl Stream<Item = Result<Document, Self::Error>>, Self::Error> {
         let results = self
             .documents
             .get(&format!("{db_name}.{coll_name}"))
@@ -57,7 +56,7 @@ impl DataService for MockDataService {
         db_name: &str,
         coll_name: &str,
         _filter: Document,
-    ) -> Result<Self::Cursor, Self::Error> {
+    ) -> Result<impl Stream<Item = Result<Document, Self::Error>>, Self::Error> {
         let results = self
             .documents
             .get(&format!("{db_name}.{coll_name}"))

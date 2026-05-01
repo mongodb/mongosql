@@ -95,7 +95,7 @@ pub(crate) async fn get_partitions<S: DataService>(
 
     // If the partitioning query fails, check the entire collection. This is safer than missing a
     // namespace.
-    let Ok(mut cursor) = service
+    let Ok(cursor) = service
         .aggregate(db, &collection_info.name, sample_pipeline, hint.clone())
         .await
     else {
@@ -110,6 +110,7 @@ pub(crate) async fn get_partitions<S: DataService>(
         });
     };
 
+    let mut cursor = Box::pin(cursor);
     while let Some(doc) = cursor.try_next().await.map_err(Error::DataServiceError)? {
         let local_max = doc
             .get(partition_key.as_str())
@@ -153,7 +154,7 @@ pub(crate) async fn get_size_counts<S: DataService>(
     db: &str,
     collection: &str,
 ) -> Result<CollectionSizes, S::Error> {
-    let mut cursor = service
+    let cursor = service
         .aggregate(
             db,
             collection,
@@ -162,6 +163,8 @@ pub(crate) async fn get_size_counts<S: DataService>(
         )
         .await
         .map_err(|_| Error::NoCollectionStats(collection.to_string()))?;
+    let mut cursor = Box::pin(cursor);
+
     let stats = cursor
         .next()
         .await
@@ -232,10 +235,11 @@ async fn get_bound<S: DataService>(
         doc! {"$limit": 1},
         doc! {"$project": {partition_key: 1}},
     ];
-    let mut cursor = service
+    let cursor = service
         .aggregate(db, collection, pipeline, None)
         .await
         .map_err(Error::DataServiceError)?;
+    let mut cursor = Box::pin(cursor);
 
     let doc = cursor
         .next()

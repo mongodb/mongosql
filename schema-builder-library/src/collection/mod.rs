@@ -51,13 +51,14 @@ pub(crate) async fn query_for_initial_schemas<S: DataService>(
     schema_collection: &str,
 ) -> Result<HashMap<String, Schema>, S::Error> {
     let mut initial_collection_schemas = HashMap::new();
-    let mut cursor = service
+    let cursor = service
         .find(db, schema_collection, doc! {})
         .await
         .map_err(Error::DataServiceError)?;
 
     // Try to parse all of the initial schemas, failing if any of them fail to
     // parse correctly
+    let mut cursor = Box::pin(cursor);
     while let Some(doc) = cursor.try_next().await.map_err(Error::DataServiceError)? {
         // Convert the Doc into our InitialSchema struct
         let InitialSchema { collection, schema } = InitialSchema::try_from(doc)

@@ -1,4 +1,4 @@
-use futures::TryStreamExt;
+use futures::{Stream, TryStreamExt};
 use mongodb::{
     Client, bson::Document, options::Hint, results::CollectionType as DriverCollectionType,
 };
@@ -32,7 +32,6 @@ impl MongoDbDataService {
 
 #[async_trait::async_trait]
 impl DataService for MongoDbDataService {
-    type Cursor = mongodb::Cursor<Document>;
     type Error = mongodb::error::Error;
 
     async fn list_databases(&self) -> Result<Vec<String>, Self::Error> {
@@ -75,7 +74,7 @@ impl DataService for MongoDbDataService {
         coll_name: &str,
         pipeline: Vec<Document>,
         key_hint: Option<Document>,
-    ) -> Result<Self::Cursor, Self::Error> {
+    ) -> Result<impl Stream<Item = Result<Document, Self::Error>>, Self::Error> {
         let collection = self
             .client
             .database(db_name)
@@ -96,7 +95,7 @@ impl DataService for MongoDbDataService {
         db_name: &str,
         coll_name: &str,
         filter: Document,
-    ) -> Result<Self::Cursor, Self::Error> {
+    ) -> Result<impl Stream<Item = Result<Document, Self::Error>>, Self::Error> {
         let collection = self
             .client
             .database(db_name)

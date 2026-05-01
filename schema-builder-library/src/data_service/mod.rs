@@ -66,9 +66,6 @@ pub struct TimeSeriesOptions {
 #[cfg_attr(not(feature = "wasm"), async_trait::async_trait)]
 #[cfg_attr(feature = "wasm", async_trait::async_trait(?Send))]
 pub trait DataService {
-    /// The streamable cursor type over documents
-    type Cursor: Stream<Item = Result<Document, Self::Error>> + Unpin;
-
     /// The error type returned by this service's operations.
     type Error: core::error::Error;
 
@@ -85,7 +82,7 @@ pub trait DataService {
         coll_name: &str,
         pipeline: Vec<Document>,
         key_hint: Option<Document>,
-    ) -> Result<Self::Cursor, Self::Error>;
+    ) -> Result<impl Stream<Item = Result<Document, Self::Error>>, Self::Error>;
 
     /// Execute a find query on a collection.
     async fn find(
@@ -93,5 +90,5 @@ pub trait DataService {
         db_name: &str,
         coll_name: &str,
         filter: Document,
-    ) -> Result<Self::Cursor, Self::Error>;
+    ) -> Result<impl Stream<Item = Result<Document, Self::Error>>, Self::Error>;
 }
