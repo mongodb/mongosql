@@ -1,7 +1,6 @@
 use agg_ast::definitions::Namespace;
 use futures::future;
-use mongodb::{Client, Database, bson::doc};
-use mongosql::schema::{Document, Schema};
+use mongosql::schema::Schema;
 use result_set::ResultSet;
 use std::{
     collections::HashMap,
@@ -28,16 +27,18 @@ pub use data_service::MongoDbDataService;
 #[cfg(feature = "wasm")]
 pub use data_service::{JsDataService, WasmDataService};
 
+#[cfg(feature = "native-client")]
 pub mod client_util;
+
 mod consts;
+pub(crate) mod context;
 use consts::{DISALLOWED_DB_NAMES, VIEW_SAMPLE_SIZE};
 mod collection;
 use collection::{DatabaseCollections, query_for_initial_schemas};
 mod partitioning;
 use partitioning::get_partitions;
-mod schema;
-use schema::{derive_schema_for_partitions, derive_schema_for_view};
 mod errors;
+mod schema;
 pub use errors::Error;
 
 /// Re-export of mongosql Schema type for convenience
@@ -46,7 +47,7 @@ pub type MongoSqlSchema = Schema;
 pub mod options;
 use options::BuilderOptions;
 
-use crate::result_set::{Catalog, ShareableResultSet};
+use crate::{context::Context, result_set::Catalog};
 
 /// Re-export for consumers that call [`ResultSet::into_build_output`].
 pub use result_set::SchemaBuildOutput;
@@ -55,7 +56,7 @@ pub use result_set::SchemaBuildOutput;
 #[cfg(test)]
 mod internal_integration_tests;
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T, E> = std::result::Result<T, Error<E>>;
 
 /// An enum for communicating results of this library to a caller. Results may
 /// be namespace-only, meaning they do not include schema information, or they
@@ -159,7 +160,9 @@ impl Display for NamespaceType {
 /// This function parallelizes handling each database, collection, collection partition, and
 /// view by using asynchronous tokio tasks.
 #[instrument(name = "schema builder", level = "info")]
-pub async fn build_schema(options: BuilderOptions) -> Result<ResultSet> {
+pub async fn build_schema<S: DataService>(
+    options: BuilderOptions<S>,
+) -> Result<ResultSet, S::Error> {
     // Ensure that the `include_list` only contains valid patterns.
     for pattern in &options.include_list {
         let pat_as_str = pattern.as_str();
@@ -187,32 +190,29 @@ pub async fn build_schema(options: BuilderOptions) -> Result<ResultSet> {
         }
     }
 
-    // To start computing the schema for all databases, we need to wait for the
-    // list_database_names method to finish.
-    match options.client.list_database_names().await {
-        Ok(databases) => {
-            // The list_database_names() `filter` option doesn't work for Atlas Free and Shared tier clusters,
-            // so we have to manually filter out unwanted databases here.
-            let valid_databases = databases
-                .into_iter()
-                .filter(|db| !DISALLOWED_DB_NAMES.contains(&db.as_str()))
-                .collect();
+    // To start computing the schema for all databases, we need to wait for the list of
+    // available databases.
+    //
+    // Note: The built-in mongodb `filter` option doesn't work for Atlas Free and
+    // Shared tier clusters, so we have to manually filter out unwanted databases here.
+    let valid_databases = options
+        .service
+        .list_databases()
+        .await
+        .inspect_err(|e| tracing::error!("unable to list databases: {e}"))
+        .map_err(Error::DataServiceError)?
+        .into_iter()
+        .filter(|db| !DISALLOWED_DB_NAMES.contains(&db.as_str()))
+        .collect();
 
-            Ok(process_databases(options, valid_databases).await)
-        }
-        // If listing the databases fails, there is nothing to do so we report an
-        // error, drop all channels, and return the error.
-        Err(e) => {
-            error!("unable to list databases: {e}");
-            Err(Error::from(e))
-        }
-    }
+    Ok(process_databases(options, valid_databases).await)
 }
 
 #[instrument(level = "debug", skip_all)]
-async fn process_databases(options: BuilderOptions, databases: Vec<String>) -> ResultSet {
-    // we've checked the error condition above, so this should be safe
-
+async fn process_databases<S: DataService>(
+    options: BuilderOptions<S>,
+    databases: Vec<String>,
+) -> ResultSet {
     let span = span!(Level::DEBUG, "initial_schemas", databases = ?databases);
 
     // If the schema_collection option is set and dry_run is not specified, we query for the initial schemas prior
@@ -223,7 +223,7 @@ async fn process_databases(options: BuilderOptions, databases: Vec<String>) -> R
         && !options.dry_run
     {
         let _enter = span.enter();
-        fetch_initial_schemas(&options.client, schema_collection, &databases)
+        fetch_initial_schemas(&options.service, schema_collection, &databases)
             .await
             .inspect_err(|e| {
                 warn!("failed to query for initial schemas in database with error {e}")
@@ -244,24 +244,24 @@ async fn process_databases(options: BuilderOptions, databases: Vec<String>) -> R
     let span = span!(Level::DEBUG, "database_tasks", databases = ?databases);
     let _enter = span.enter();
     let task_semaphore = options.task_semaphore.clone();
-    let db_tasks = databases.into_iter().map(|db_name| {
-        // To avoid passing a reference to the mongodb::Client around, we
-        // create a mongodb::Database before spawning the db-schema task.
-        let db = options.client.database(&db_name);
+    let ctx = Arc::new(Context::new(options.service));
+
+    let db_tasks = databases.into_iter().map(|db| {
+        let ctx = ctx.clone();
         let result_set = result_set.clone();
+        let task_semaphore = task_semaphore.clone();
+        let dry_run = options.dry_run;
 
         let include_list = options.include_list.clone();
         let exclude_list = options.exclude_list.clone();
 
-        let task_semaphore = task_semaphore.clone();
-        // Spawn the db task.
-        tokio::runtime::Handle::current().spawn(async move {
+        async move {
             let task_semaphore = task_semaphore.clone();
 
             // To start computing the schema for all collections and views
             // in a database, we need to wait for list_collections to finish.
             let Ok(database_collections) =
-                DatabaseCollections::new(&db, &db_name, include_list, exclude_list)
+                DatabaseCollections::new(ctx.service(), db, include_list, exclude_list)
                     .await
                     .inspect_err(|e| {
                         warn!("failed to list collections in database with error: {e}")
@@ -271,38 +271,26 @@ async fn process_databases(options: BuilderOptions, databases: Vec<String>) -> R
             };
 
             // Process collections first, then views
-            process_collection_tasks(
-                &database_collections,
-                &db,
-                options.dry_run,
-                Arc::clone(&result_set),
-                task_semaphore.clone(),
-            )
-            .await;
+            database_collections
+                .process_collections(
+                    Arc::clone(&ctx),
+                    dry_run,
+                    Arc::clone(&result_set),
+                    Arc::clone(&task_semaphore),
+                )
+                .await;
 
             // Now process views using the schema catalog
-            process_view_tasks(
-                &database_collections,
-                &db,
-                options.dry_run,
-                Arc::clone(&result_set),
-                task_semaphore.clone(),
-            )
-            .await;
-        })
+            database_collections
+                .process_views_with_catalog(Arc::clone(&ctx), dry_run, result_set, task_semaphore)
+                .await;
+        }
     });
 
     // After spawning async tasks for each database, the final step is to wait
     // for all of those task to finish by awaiting the result of join_all for
     // all database task JoinHandles.
-    future::join_all(db_tasks)
-        .await
-        .into_iter()
-        .for_each(|db_schema_res| {
-            if let Err(e) = db_schema_res {
-                warn!("failed to complete schema building with error: {e}");
-            }
-        });
+    future::join_all(db_tasks).await;
 
     let Some(arc) = Arc::into_inner(result_set) else {
         panic!("Unexpected error: References to result_set remain after all tasks completed");
@@ -310,35 +298,28 @@ async fn process_databases(options: BuilderOptions, databases: Vec<String>) -> R
     arc.into_inner()
 }
 
-async fn fetch_initial_schema(db: Database, collection: &str) -> Result<Catalog> {
-    query_for_initial_schemas(collection, &db)
+async fn fetch_initial_schema<S: DataService>(
+    service: &S,
+    db: &str,
+    collection: &str,
+) -> Result<Catalog, S::Error> {
+    query_for_initial_schemas(service, db, collection)
         .await
         .inspect_err(|e| warn!("failed to query for initial schemas in database with error {e}"))
         .map(|initial_collection_schemas| {
             debug!(
-                "queried for initial schemas in database {}, found {}",
-                db.name(),
+                "queried for initial schemas in database {db}, found {}",
                 initial_collection_schemas.len()
             );
 
             initial_collection_schemas
                 .into_iter()
-                .map(|(coll_name, (mut schema, is_unstable))| {
+                .map(|(coll_name, schema)| {
                     let namespace_info = NamespaceInfo {
-                        db_name: db.name().to_string(),
+                        db_name: db.to_string(),
                         coll_or_view_name: coll_name.clone(),
                         namespace_type: NamespaceType::Collection, // Assume Collection by default
                     };
-
-                    if is_unstable {
-                        schema = match schema {
-                            Schema::Document(d) => Schema::Document(Document {
-                                unstable: true,
-                                ..d
-                            }),
-                            _ => schema,
-                        }
-                    }
 
                     (
                         namespace_info.coll_or_view_name.clone(),
@@ -352,72 +333,17 @@ async fn fetch_initial_schema(db: Database, collection: &str) -> Result<Catalog>
         })
 }
 
-async fn fetch_initial_schemas(
-    client: &Client,
-    schema_collection: &str,
+async fn fetch_initial_schemas<S: DataService>(
+    service: &S,
+    collection: &str,
     databases: &[String],
-) -> Result<HashMap<String, Catalog>> {
-    future::join_all(databases.iter().map(|db_name| {
-        let db = client.database(db_name);
-        let db_name = db.name().to_string();
-        async move {
-            fetch_initial_schema(db, schema_collection)
-                .await
-                .map(|catalog| (db_name, catalog))
-        }
+) -> Result<HashMap<String, Catalog>, S::Error> {
+    future::join_all(databases.iter().map(|db| async move {
+        fetch_initial_schema(service, db, collection)
+            .await
+            .map(|catalog| (db.clone(), catalog))
     }))
     .await
     .into_iter()
     .collect()
-}
-
-async fn process_collection_tasks(
-    database_collections: &DatabaseCollections,
-    db: &mongodb::Database,
-    dry_run: bool,
-    result_set: ShareableResultSet,
-    task_semaphore: Arc<tokio::sync::Semaphore>,
-) {
-    // Process collections and wait for them to complete
-    let coll_tasks = database_collections.process_collections(
-        db,
-        dry_run,
-        Arc::clone(&result_set),
-        task_semaphore.clone(),
-    );
-
-    // Wait for all collections to finish before processing views
-    future::join_all(coll_tasks)
-        .await
-        .into_iter()
-        .for_each(|coll_schema_res| {
-            if let Err(e) = coll_schema_res {
-                warn!("failed to complete schema building with error: {e}");
-            }
-        });
-}
-
-async fn process_view_tasks(
-    database_collections: &DatabaseCollections,
-    db: &mongodb::Database,
-    dry_run: bool,
-    result_set: ShareableResultSet,
-    task_semaphore: Arc<tokio::sync::Semaphore>,
-) {
-    // Process views using the schema catalog
-    let view_tasks = database_collections.process_views_with_catalog(
-        db,
-        dry_run,
-        Arc::clone(&result_set),
-        task_semaphore.clone(),
-    );
-
-    future::join_all(view_tasks)
-        .await
-        .into_iter()
-        .for_each(|view_schema_res| {
-            if let Err(e) = view_schema_res {
-                warn!("failed to complete schema building with error: {e}");
-            }
-        });
 }

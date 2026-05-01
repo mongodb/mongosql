@@ -52,3 +52,14 @@ export interface SqlDataService {
     /** Execute a find query on a collection */
     find(dbName: string, collName: string, filter: BsonDocument): Promise<BsonDocument[]>;
 }
+
+/**
+ * SqlCursor interface for streaming database results
+ *
+ * Implement this interface in your JavaScript/TypeScript code to provide a
+ * way to stream over database results
+ */
+export interface SqlCursor {
+    /** Get the next element in this cursor. Return undefined to signal the end of the stream */
+    next(): Promise<BsonDocument | undefined>;
+}

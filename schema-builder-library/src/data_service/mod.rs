@@ -1,4 +1,5 @@
 use bson::Document;
+use futures::Stream;
 use serde::{Deserialize, Serialize};
 
 #[cfg(test)]
@@ -66,16 +67,13 @@ pub struct TimeSeriesOptions {
 #[cfg_attr(feature = "wasm", async_trait::async_trait(?Send))]
 pub trait DataService {
     /// The error type returned by this service's operations.
-    type Error;
+    type Error: core::error::Error;
 
     /// List all database names.
-    async fn list_databases(&self) -> std::result::Result<Vec<String>, Self::Error>;
+    async fn list_databases(&self) -> Result<Vec<String>, Self::Error>;
 
     /// List all collections in a database.
-    async fn list_collections(
-        &self,
-        db_name: &str,
-    ) -> std::result::Result<Vec<CollectionInfo>, Self::Error>;
+    async fn list_collections(&self, db_name: &str) -> Result<Vec<CollectionInfo>, Self::Error>;
 
     /// Execute an aggregation pipeline on a collection.
     async fn aggregate(
@@ -83,7 +81,8 @@ pub trait DataService {
         db_name: &str,
         coll_name: &str,
         pipeline: Vec<Document>,
-    ) -> std::result::Result<Vec<Document>, Self::Error>;
+        key_hint: Option<Document>,
+    ) -> Result<impl Stream<Item = Result<Document, Self::Error>>, Self::Error>;
 
     /// Execute a find query on a collection.
     async fn find(
@@ -91,5 +90,5 @@ pub trait DataService {
         db_name: &str,
         coll_name: &str,
         filter: Document,
-    ) -> std::result::Result<Vec<Document>, Self::Error>;
+    ) -> Result<impl Stream<Item = Result<Document, Self::Error>>, Self::Error>;
 }

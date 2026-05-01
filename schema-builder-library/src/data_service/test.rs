@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, convert::Infallible};
 
 use bson::Document;
+use futures::Stream;
 
 use crate::data_service::{
     CollectionInfo, CollectionOptions, CollectionType, DataService, TimeSeriesOptions,
@@ -17,18 +18,16 @@ pub(crate) struct MockDataService {
     pub documents: HashMap<String, Vec<Document>>,
 }
 
-#[async_trait::async_trait]
+#[cfg_attr(not(feature = "wasm"), async_trait::async_trait)]
+#[cfg_attr(feature = "wasm", async_trait::async_trait(?Send))]
 impl DataService for MockDataService {
-    type Error = std::convert::Infallible;
+    type Error = Infallible;
 
-    async fn list_databases(&self) -> std::result::Result<Vec<String>, Self::Error> {
+    async fn list_databases(&self) -> Result<Vec<String>, Self::Error> {
         Ok(self.databases.clone())
     }
 
-    async fn list_collections(
-        &self,
-        db_name: &str,
-    ) -> std::result::Result<Vec<CollectionInfo>, Self::Error> {
+    async fn list_collections(&self, db_name: &str) -> Result<Vec<CollectionInfo>, Self::Error> {
         Ok(self.collections.get(db_name).cloned().unwrap_or_default())
     }
 
@@ -37,12 +36,19 @@ impl DataService for MockDataService {
         db_name: &str,
         coll_name: &str,
         _pipeline: Vec<Document>,
-    ) -> std::result::Result<Vec<Document>, Self::Error> {
-        Ok(self
+        _hint: Option<Document>,
+    ) -> Result<impl Stream<Item = Result<Document, Self::Error>>, Self::Error> {
+        let results = self
             .documents
             .get(&format!("{db_name}.{coll_name}"))
             .cloned()
-            .unwrap_or_default())
+            .unwrap_or_default();
+
+        // The cursor returns results, so we map the infallible documents to a
+        // wrapped `Result` here.
+        let results: Vec<_> = results.into_iter().map(Ok).collect();
+
+        Ok(futures::stream::iter(results))
     }
 
     async fn find(
@@ -50,12 +56,18 @@ impl DataService for MockDataService {
         db_name: &str,
         coll_name: &str,
         _filter: Document,
-    ) -> std::result::Result<Vec<Document>, Self::Error> {
-        Ok(self
+    ) -> Result<impl Stream<Item = Result<Document, Self::Error>>, Self::Error> {
+        let results = self
             .documents
             .get(&format!("{db_name}.{coll_name}"))
             .cloned()
-            .unwrap_or_default())
+            .unwrap_or_default();
+
+        // The cursor returns results, so we map the infallible documents to a
+        // wrapped `Result` here.
+        let results: Vec<_> = results.into_iter().map(Ok).collect();
+
+        Ok(futures::stream::iter(results))
     }
 }
 

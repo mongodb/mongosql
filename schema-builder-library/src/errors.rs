@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum Error {
+pub enum Error<ServiceError: core::error::Error> {
     #[error("JsonSchemaFailure")]
     JsonSchemaFailure,
     #[error("BsonFailure")]
@@ -18,24 +18,16 @@ pub enum Error {
     EmptyCollection(String),
     #[error("NoIdInSample")]
     NoIdInSample,
-    #[cfg(feature = "native-client")]
-    #[error("Driver Error {0}")]
-    DriverError(#[from] mongodb::error::Error),
+    #[error("Error in DataService: {0}")]
+    DataServiceError(ServiceError),
     #[error("Schema Error {0}")]
     SchemaError(mongosql::schema::Error),
     #[error("NoCollection {0}")]
     NoCollection(String),
-    #[cfg(feature = "native-client")]
-    #[error("Execution Error {0}")]
-    TokioError(tokio::task::JoinError),
-    #[error("Inital schema for {0} is not valid")]
+    #[error("Initial schema for {0} is not valid")]
     InitialSchemaError(String),
-    #[error("The following error occurred while trying to make a Glob::Pattern: {0}")]
-    GlobPatternError(glob::PatternError),
-    #[error(
-        "The glob::Pattern `{0}` has an opening bracket (`[`) without a closing bracket (`]`)."
-    )]
-    InclusionBracketPatternIsMissingClosingBracket(String),
+    #[error("Error when processing database pattern: {0}")]
+    PatternError(#[from] crate::collection::patterns::Error),
     #[error(
         "The `{0}` contains the following invalid pattern: `{1}`. All patterns must be in `<database_pattern>.<collection_pattern>` format"
     )]
@@ -44,7 +36,7 @@ pub enum Error {
     ChannelClosed(String),
 }
 
-impl From<mongosql::schema::Error> for Error {
+impl<S: core::error::Error> From<mongosql::schema::Error> for Error<S> {
     fn from(value: mongosql::schema::Error) -> Self {
         match value {
             mongosql::schema::Error::BsonFailure(_) => Self::BsonFailure,
