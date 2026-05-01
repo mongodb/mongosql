@@ -1,0 +1,2 @@
+SELECT a FROM t1
+WHERE a IN (1,2,3);
