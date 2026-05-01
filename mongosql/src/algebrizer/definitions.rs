@@ -46,9 +46,8 @@ impl TryFrom<ast::BinaryOp> for mir::ScalarFunction {
             ast::BinaryOp::Mul => mir::ScalarFunction::Mul,
             ast::BinaryOp::Or => mir::ScalarFunction::Or,
             ast::BinaryOp::Sub => mir::ScalarFunction::Sub,
-            ast::BinaryOp::In | ast::BinaryOp::NotIn => {
-                panic!("{0} cannot be algebrized", op.as_str())
-            }
+            ast::BinaryOp::In => mir::ScalarFunction::In,
+            ast::BinaryOp::NotIn => mir::ScalarFunction::NotIn,
         })
     }
 }
@@ -1376,23 +1375,17 @@ impl<'a> Algebrizer<'a> {
             ast::Expression::TypeAssertion(t) => self.algebrize_type_assertion(t),
             ast::Expression::Is(i) => self.algebrize_is(i),
             ast::Expression::Like(l) => self.algebrize_like(l),
-            // If we have a tuple it must be an In or NotIn expression because that's the only type of tuple we allow to keep going.
-            // For these tuples, we want to just return an expression again?
-            ast::Expression::Tuple(exprs) => self.algebrize_tuple(exprs),
+            // Tuples will be translated to the tuple type.
+            ast::Expression::Tuple(a) => Ok(mir::Expression::Tuple(
+                a.into_iter()
+                    .map(|e| self.algebrize_expression(e, false))
+                    .collect::<Result<Vec<mir::Expression>>>()?
+                    .into(),
+            )),
             ast::Expression::Subquery(s) => self.algebrize_subquery(*s),
             ast::Expression::SubqueryComparison(s) => self.algebrize_subquery_comparison(s),
             ast::Expression::Exists(e) => self.algebrize_exists(*e),
         }
-    }
-
-    fn algebrize_tuple(&self, expressions: Vec<ast::Expression>) -> Result<mir::Expression> {
-        Ok(mir::Expression::Tuple(
-            expressions
-                .into_iter()
-                .map(|e| self.algebrize_expression(e, false))
-                .collect::<Result<Vec<mir::Expression>>>()?
-                .into(),
-        ))
     }
 
     pub fn algebrize_literal(&self, ast_node: ast::Literal) -> mir::LiteralValue {
@@ -1727,8 +1720,8 @@ impl<'a> Algebrizer<'a> {
 
             // In and NotIn should have been rewritten during ast rewriting.
             In | NotIn => (
-                self.algebrize_expression(*b.left, true)?,
-                self.algebrize_expression(*b.right, true)?,
+                self.algebrize_expression(*b.left, false)?,
+                self.algebrize_expression(*b.right, false)?,
             ),
         };
 

@@ -1,4 +1,5 @@
 use super::*;
+use crate::mir::TupleExpr;
 
 test_algebrize!(
     add_bin_op,
@@ -716,4 +717,92 @@ test_algebrize!(
     },
 );
 
-// Algebrizer Test where you get an
+test_algebrize!(
+    in_operator_is_transformed_to_in_scalar_function,
+    method = algebrize_expression,
+    in_implicit_type_conversion_context = false,
+    expected = Ok(mir::Expression::ScalarFunction(
+        mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::In,
+            args: vec![
+                mir::Expression::FieldAccess(mir::FieldAccess {
+                    expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                    field: "a".into(),
+                    is_nullable: true,
+                }),
+                mir::Expression::Tuple(TupleExpr {
+                    array: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(3)),
+                    ],
+                }),
+            ],
+            is_nullable: true,
+        }
+    )),
+    input = ast::Expression::Binary(ast::BinaryExpr {
+        left: Box::new(ast::Expression::Identifier("a".to_string())),
+        op: ast::BinaryOp::In,
+        right: Box::new(ast::Expression::Tuple(vec![
+            ast::Expression::Literal(ast::Literal::Integer(1)),
+            ast::Expression::Literal(ast::Literal::Integer(2)),
+            ast::Expression::Literal(ast::Literal::Integer(3)),
+        ])),
+    }),
+    env = map! {
+        ("foo", 1u16).into() => Schema::Document( Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::String),
+            },
+            required: set!{},
+            additional_properties: false,
+            ..Default::default()
+        }),
+    },
+);
+
+test_algebrize!(
+    not_in_operator_is_transformed_to_in_scalar_function,
+    method = algebrize_expression,
+    in_implicit_type_conversion_context = false,
+    expected = Ok(mir::Expression::ScalarFunction(
+        mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::NotIn,
+            args: vec![
+                mir::Expression::FieldAccess(mir::FieldAccess {
+                    expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                    field: "a".into(),
+                    is_nullable: true,
+                }),
+                mir::Expression::Tuple(TupleExpr {
+                    array: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(3)),
+                    ],
+                }),
+            ],
+            is_nullable: true,
+        }
+    )),
+    input = ast::Expression::Binary(ast::BinaryExpr {
+        left: Box::new(ast::Expression::Identifier("a".to_string())),
+        op: ast::BinaryOp::In,
+        right: Box::new(ast::Expression::Tuple(vec![
+            ast::Expression::Literal(ast::Literal::Integer(1)),
+            ast::Expression::Literal(ast::Literal::Integer(2)),
+            ast::Expression::Literal(ast::Literal::Integer(3)),
+        ])),
+    }),
+    env = map! {
+        ("foo", 1u16).into() => Schema::Document( Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::String),
+            },
+            required: set!{},
+            additional_properties: false,
+            ..Default::default()
+        }),
+    },
+);
