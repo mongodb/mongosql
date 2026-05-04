@@ -372,8 +372,12 @@ impl From<mir::ScalarFunction> for ScalarFunctionType {
 
             // MergeObjects merges an array of objects
             MergeObjects => ScalarFunctionType::Mql(MqlOperator::MergeObjects),
-            In => ScalarFunctionType::Mql(MqlOperator::In),
-            NotIn => ScalarFunctionType::Mql(MqlOperator::NotIn),
+            // $in is valid in aggregation expression contexts; route through SqlSemanticOperator
+            // so both In and NotIn share a single consistent codegen path.
+            // $nin is match-language-only and rejected by the server in $project; NotIn must
+            // emit { "$not": [{ "$in": [...] }] } via SqlSemanticOperator codegen.
+            In => ScalarFunctionType::Sql(SqlOperator::In),
+            NotIn => ScalarFunctionType::Sql(SqlOperator::NotIn),
         }
     }
 }

@@ -53,13 +53,19 @@ impl MqlCodeGenerator {
             })
             .collect();
 
-        let op_name = match args.op {
-            air::MatchLanguageInOp::In => "$in",
-            air::MatchLanguageInOp::NotIn => "$nin",
-        };
+        let op = bson!({ "$in": Bson::Array(values) });
 
-        let op = bson!({ op_name: Bson::Array(values) });
-        Ok(bson!({ field: op }))
+        match args.op {
+            air::MatchLanguageInOp::In => Ok(bson!({ field: op })),
+            air::MatchLanguageInOp::NotIn => Ok(bson!({
+                field: {
+                    "$not": op
+                }
+            })),
+        }
+
+        // let op = bson!({ op_name: Bson::Array(values) });
+        // Ok(bson!({ field: op }))
     }
 
     fn codegen_match_logical_operator(

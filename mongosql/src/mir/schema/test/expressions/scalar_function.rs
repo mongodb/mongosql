@@ -3482,7 +3482,10 @@ mod in_operator {
 
     test_schema!(
         in_operator_schema_is_boolean,
-        expected = Ok(Schema::Atomic(Atomic::Boolean)),
+        expected = Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Boolean),
+            Schema::Atomic(Atomic::Null)
+        ])),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::NotIn,
             args: vec![
@@ -3501,7 +3504,14 @@ mod in_operator {
             ],
             is_nullable: true,
         }),
-        schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
+        schema_env = map! {
+            ("foo", 1u16).into() => Schema::Document(Document {
+                keys: map! { "a".into() => Schema::Atomic(Atomic::String) },
+                required: set! {},
+                additional_properties: false,
+                ..Default::default()
+            })
+        },
     );
 
     test_schema!(

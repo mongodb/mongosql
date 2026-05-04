@@ -1399,6 +1399,44 @@ mod sql_semantic_operator {
             args: vec![]
         })
     );
+
+    test_codegen_expression!(
+        in_op,
+        expected = Ok(
+            bson!({ "$in": [{ "$literal": 1 }, [{ "$literal": 1 }, { "$literal": 2 }, { "$literal": 3 }]] })
+        ),
+        input = SqlSemanticOperator(SqlSemanticOperator {
+            op: In,
+            args: vec![
+                Literal(Integer(1)),
+                air::Expression::Array(vec![
+                    Literal(Integer(1)),
+                    Literal(Integer(2)),
+                    Literal(Integer(3)),
+                ]),
+            ],
+        })
+    );
+
+    // NotIn in an expression context ($project) must emit { "$not": [{ "$in": [...] }] }.
+    // $nin is a match-language-only operator and is rejected by the server in $project.
+    test_codegen_expression!(
+        not_in_op,
+        expected = Ok(
+            bson!({ "$not": [{ "$in": [{ "$literal": 1 }, [{ "$literal": 1 }, { "$literal": 2 }, { "$literal": 3 }]] }] })
+        ),
+        input = SqlSemanticOperator(SqlSemanticOperator {
+            op: NotIn,
+            args: vec![
+                Literal(Integer(1)),
+                air::Expression::Array(vec![
+                    Literal(Integer(1)),
+                    Literal(Integer(2)),
+                    Literal(Integer(3)),
+                ]),
+            ],
+        })
+    );
 }
 
 mod document {

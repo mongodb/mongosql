@@ -81,6 +81,24 @@ impl MqlCodeGenerator {
             | SqlOperator::ToLower => {
                 bson::bson!({ Self::to_sql_op(sql_op.op).unwrap(): self.codegen_expression(sql_op.args[0].clone())?})
             }
+            // $in is a standard MQL array operator with no $sql prefix.
+            SqlOperator::In => {
+                let ops = sql_op
+                    .args
+                    .into_iter()
+                    .map(|x| self.codegen_expression(x))
+                    .collect::<Result<Vec<_>>>()?;
+                bson::bson!({ "$in": Bson::Array(ops) })
+            }
+            // $nin is match-language-only and rejected in $project expressions; use $not/$in.
+            SqlOperator::NotIn => {
+                let ops = sql_op
+                    .args
+                    .into_iter()
+                    .map(|x| self.codegen_expression(x))
+                    .collect::<Result<Vec<_>>>()?;
+                bson::bson!({ "$not": [{ "$in": Bson::Array(ops) }] })
+            }
             SqlOperator::And
             | SqlOperator::Between
             | SqlOperator::BitLength
@@ -106,8 +124,6 @@ impl MqlCodeGenerator {
             | SqlOperator::Split
             | SqlOperator::Sqrt
             | SqlOperator::SubstrCP
-            | SqlOperator::In
-            | SqlOperator::NotIn
             | SqlOperator::Tan => {
                 let ops = sql_op
                     .args

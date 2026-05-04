@@ -788,7 +788,7 @@ test_algebrize!(
     )),
     input = ast::Expression::Binary(ast::BinaryExpr {
         left: Box::new(ast::Expression::Identifier("a".to_string())),
-        op: ast::BinaryOp::In,
+        op: ast::BinaryOp::NotIn,
         right: Box::new(ast::Expression::Tuple(vec![
             ast::Expression::Literal(ast::Literal::Integer(1)),
             ast::Expression::Literal(ast::Literal::Integer(2)),
