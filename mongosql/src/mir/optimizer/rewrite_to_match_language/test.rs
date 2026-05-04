@@ -402,3 +402,32 @@ test_rewrite_to_match_language_no_op!(
         bson::Decimal128::from_str("1.0").unwrap()
     )))
 );
+
+test_rewrite_to_match_language!(
+    rewrite_in_operator_to_match_language,
+    expected = match_filter_stage(MatchQuery::In(MatchLanguageIn {
+        op: MatchLanguageInOp::In,
+        input: Some(mir_field_path("foo", vec!["int"])),
+        values: vec![
+            LiteralValue::Integer(1),
+            LiteralValue::Integer(2),
+            LiteralValue::Integer(3),
+        ],
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
+        function: ScalarFunction::In,
+        args: vec![
+            *mir_field_access("foo", "int", true),
+            Expression::Tuple(TupleExpr {
+                array: vec![
+                    Expression::Literal(LiteralValue::Integer(1)),
+                    Expression::Literal(LiteralValue::Integer(2)),
+                    Expression::Literal(LiteralValue::Integer(3)),
+                ],
+            })
+        ],
+        is_nullable: false,
+    }))
+);

@@ -931,6 +931,7 @@ pub enum MatchQuery {
     Regex(MatchLanguageRegex),
     ElemMatch(ElemMatch),
     Comparison(MatchLanguageComparison),
+    In(MatchLanguageIn),
     // annoyingly, our cache system requires this
     False(MatchFalse),
 }
@@ -1106,6 +1107,21 @@ pub enum MatchLanguageComparisonOp {
     Gt,
     Gte,
 }
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum MatchLanguageInOp {
+    In,
+    NotIn,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct MatchLanguageIn {
+    pub op: MatchLanguageInOp,
+    pub input: Option<FieldPath>,
+    pub values: Vec<LiteralValue>,
+    pub cache: SchemaCache<Schema>,
+}
+
 
 impl From<crate::ast::UnaryOp> for ScalarFunction {
     fn from(op: crate::ast::UnaryOp) -> ScalarFunction {
