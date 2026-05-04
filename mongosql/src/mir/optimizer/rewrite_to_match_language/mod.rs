@@ -30,9 +30,10 @@ use crate::{
         schema::{SchemaCache, SchemaInferenceState},
         visitor::Visitor,
         Expression, FieldPath, IsExpr, LikeExpr, LiteralValue, MatchFalse, MatchFilter,
-        MatchLanguageComparison, MatchLanguageComparisonOp, MatchLanguageLogical,
-        MatchLanguageLogicalOp, MatchLanguageRegex, MatchLanguageType, MatchQuery, MqlStage,
-        ScalarFunction, Stage, Type, TypeOrMissing,
+        MatchLanguageComparison, MatchLanguageComparisonOp, MatchLanguageIn, MatchLanguageInOp,
+        MatchLanguageLogical, MatchLanguageLogicalOp, MatchLanguageRegex, MatchLanguageType,
+        MatchQuery, MqlStage, ScalarFunction, ScalarFunctionApplication, Stage, TupleExpr, Type,
+        TypeOrMissing,
     },
     util::{convert_sql_pattern, LIKE_OPTIONS},
     SchemaCheckingMode,
@@ -120,6 +121,45 @@ impl MatchLanguageRewriterVisitor {
             })
     }
 
+    /// Rewrites `IN` and `NOT IN` scalar functions to native match language when the
+    /// left-hand side is a field access and every value in the list is a literal.
+    ///
+    /// Any other shape (subqueries, field refs in the list, functions) falls through
+    /// to `None` so the expression stays in `ExprLanguage`.
+    fn rewrite_in(sf: ScalarFunctionApplication) -> Option<MatchQuery> {
+        let field_path: FieldPath = match sf.args.first()? {
+            Expression::FieldAccess(fa) => fa.clone().try_into().ok()?,
+            _ => return None,
+        };
+
+        let values: Vec<LiteralValue> = match sf.args.get(1)? {
+            Expression::Tuple(TupleExpr { array }) => array
+                .iter()
+                .map(|e| {
+                    if let Expression::Literal(lit) = e {
+                        Some(lit.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Option<Vec<_>>>()?,
+            _ => return None,
+        };
+
+        let op = match sf.function {
+            ScalarFunction::In => MatchLanguageInOp::In,
+            ScalarFunction::NotIn => MatchLanguageInOp::NotIn,
+            _ => return None,
+        };
+
+        Some(MatchQuery::In(MatchLanguageIn {
+            op,
+            input: Some(field_path),
+            values,
+            cache: SchemaCache::new(),
+        }))
+    }
+
     // Only rewrite a condition that consists of Is, Like, or a logical operation
     // that contains only other rewritable expressions.
     fn rewrite_condition(condition: Expression) -> Option<MatchQuery> {
@@ -129,6 +169,7 @@ impl MatchLanguageRewriterVisitor {
             Expression::ScalarFunction(sf) => match sf.function {
                 ScalarFunction::And => Self::rewrite_logical(MatchLanguageLogicalOp::And, sf.args),
                 ScalarFunction::Or => Self::rewrite_logical(MatchLanguageLogicalOp::Or, sf.args),
+                ScalarFunction::In | ScalarFunction::NotIn => Self::rewrite_in(sf),
                 _ => None,
             },
             // Note this relies on ConstantFolding to ensure that the a constant expression becomes

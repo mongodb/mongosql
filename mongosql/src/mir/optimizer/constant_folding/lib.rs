@@ -953,6 +953,7 @@ impl Visitor for ConstantFoldExprVisitor<'_> {
         let e = e.walk(self);
         let (folded, changed) = match e {
             Expression::Array(_) => (e, false),
+            Expression::Tuple(_) => (e, false),
             Expression::Cast(cast_expr) => self.fold_cast_expr(cast_expr),
             Expression::Document(_) => (e, false),
             Expression::Exists(_) => (e, false),

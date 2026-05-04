@@ -3476,3 +3476,61 @@ mod neg {
         )),
     );
 }
+
+mod in_operator {
+    use super::*;
+
+    test_schema!(
+        in_operator_schema_is_boolean,
+        expected = Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Boolean),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NotIn,
+            args: vec![
+                Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("foo", 1u16).into())),
+                    field: "a".into(),
+                    is_nullable: true,
+                }),
+                Expression::Tuple(TupleExpr {
+                    array: vec![
+                        Expression::Literal(LiteralValue::Integer(1)),
+                        Expression::Literal(LiteralValue::Integer(2)),
+                        Expression::Literal(LiteralValue::Integer(3)),
+                    ],
+                }),
+            ],
+            is_nullable: true,
+        }),
+        schema_env = map! {
+            ("foo", 1u16).into() => Schema::Document(Document {
+                keys: map! { "a".into() => Schema::Atomic(Atomic::String) },
+                required: set! {},
+                additional_properties: false,
+                ..Default::default()
+            })
+        },
+    );
+
+    test_schema!(
+        basic_in_operator_schema_is_boolean,
+        expected = Ok(Schema::Atomic(Atomic::Boolean)),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NotIn,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Tuple(TupleExpr {
+                    array: vec![
+                        Expression::Literal(LiteralValue::Integer(1)),
+                        Expression::Literal(LiteralValue::Integer(2)),
+                        Expression::Literal(LiteralValue::Integer(3)),
+                    ],
+                }),
+            ],
+            is_nullable: true,
+        }),
+        schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
+    );
+}

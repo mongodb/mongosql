@@ -4345,3 +4345,5 @@ mod mql_intrinsic {
         },
     );
 }
+
+// [TODO] Unit tests to validate translating $in as part of a select or project stage. like a select a in (1,2,3)

@@ -237,6 +237,7 @@ pub enum Expression {
     SubqueryExists(SubqueryExists),
     Array(Vec<Expression>),
     Document(UniqueLinkedHashMap<String, Expression>),
+    Tuple(Vec<Expression>),
 }
 
 #[allow(dead_code)]
@@ -274,6 +275,7 @@ pub enum MqlOperator {
     Size,
     ElemAt,
     In,
+    NotIn,
     First,
     Last,
     AllElementsTrue,
@@ -368,6 +370,8 @@ pub enum SqlOperator {
     // Array scalar functions
     Slice,
     Size,
+    In,
+    NotIn,
 
     // Numeric value scalar functions
     IndexOfCP,
@@ -720,6 +724,7 @@ pub enum MatchQuery {
     Regex(MatchLanguageRegex),
     ElemMatch(ElemMatch),
     Comparison(MatchLanguageComparison),
+    In(MatchLanguageIn),
     False,
 }
 
@@ -759,5 +764,22 @@ pub enum MatchLanguageComparisonOp {
     Gte,
 }
 
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum MatchLanguageInOp {
+    In,
+    NotIn,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+/// Per the documentation, the $in and $nin operators have this format:
+/// { $in: [ <expression>, <array expression> ] }
+///
+/// When we convert to MQL will translate a NotIn to a not { in {} }
+///
+pub struct MatchLanguageIn {
+    pub op: MatchLanguageInOp,
+    pub expression: Expression,
+    pub array_expression: Vec<Expression>,
+}
 
 } // end of generate_visitors! block

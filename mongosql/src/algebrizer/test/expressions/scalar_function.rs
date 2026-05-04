@@ -1248,6 +1248,28 @@ test_algebrize!(
 );
 
 test_algebrize!(
+    in_operator_transforms_to_scalar_function,
+    method = algebrize_expression,
+    in_implicit_type_conversion_context = false,
+    expected = Ok(mir::Expression::ScalarFunction(
+        mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Upper,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::String(
+                "hello".to_string()
+            )),],
+            is_nullable: false
+        }
+    )),
+    input = ast::Expression::Function(ast::FunctionExpr {
+        function: ast::FunctionName::Upper,
+        args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
+            "hello".to_string()
+        ),]),
+        set_quantifier: None,
+    }),
+);
+
+test_algebrize!(
     upper_unary_op,
     method = algebrize_expression,
     in_implicit_type_conversion_context = false,

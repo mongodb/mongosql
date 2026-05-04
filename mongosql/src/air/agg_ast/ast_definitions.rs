@@ -759,6 +759,7 @@ impl From<UntaggedOperator> for air::Expression {
             UntaggedOperatorName::Size => mql_op!(air::MqlOperator::Size),
             UntaggedOperatorName::ArrayElemAt => mql_op!(air::MqlOperator::ElemAt),
             UntaggedOperatorName::In => mql_op!(air::MqlOperator::In),
+            UntaggedOperatorName::NotIn => mql_op!(air::MqlOperator::NotIn),
             UntaggedOperatorName::First => mql_op!(air::MqlOperator::First),
             UntaggedOperatorName::Last => mql_op!(air::MqlOperator::Last),
             UntaggedOperatorName::AllElementsTrue => mql_op!(air::MqlOperator::AllElementsTrue),

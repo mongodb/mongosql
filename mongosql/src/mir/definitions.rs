@@ -262,6 +262,7 @@ pub enum Expression {
     Subquery(SubqueryExpr),
     SubqueryComparison(SubqueryComparison),
     TypeAssertion(TypeAssertionExpr),
+    Tuple(TupleExpr),
 
     // Special variants that only exists for optimization purposes;
     // these do not represent actual MongoSql constructs.
@@ -289,6 +290,7 @@ impl Expression {
             Expression::Subquery(x) => x.is_nullable,
             Expression::SubqueryComparison(x) => x.is_nullable,
             Expression::TypeAssertion(x) => x.expr.is_nullable(),
+            Expression::Tuple(_) => false,
         }
     }
 
@@ -311,6 +313,7 @@ impl Expression {
             Expression::Reference(_) => (),
             Expression::Subquery(_) => (),
             Expression::TypeAssertion(_) => (),
+            Expression::Tuple(_) => (),
         }
     }
 }
@@ -409,6 +412,20 @@ impl<T: Into<Key>> From<T> for ReferenceExpr {
         }
     }
 }
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct TupleExpr {
+    pub array: Vec<Expression>,
+}
+
+impl From<Vec<Expression>> for TupleExpr {
+    fn from(array: Vec<Expression>) -> Self {
+        TupleExpr {
+            array,
+        }
+    }
+}
+
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct ArrayExpr {
@@ -554,6 +571,8 @@ pub enum ScalarFunction {
     // Array scalar functions
     Slice,
     Size,
+    In,
+    NotIn,
 
     // Numeric value scalar functions
     Position,
@@ -636,6 +655,7 @@ impl ScalarFunction {
             ScalarFunction::Floor => "Floor",
             ScalarFunction::Gt => "Gt",
             ScalarFunction::Gte => "Gte",
+            ScalarFunction::In => "In",
             ScalarFunction::Between => "Between",
             ScalarFunction::Log => "Log",
             ScalarFunction::Lower => "Lower",
@@ -646,6 +666,7 @@ impl ScalarFunction {
             ScalarFunction::Neq => "Neq",
             ScalarFunction::Neg => "Neg",
             ScalarFunction::Not => "Not",
+            ScalarFunction::NotIn => "NotIn",
             ScalarFunction::NullIf => "NullIf",
             ScalarFunction::OctetLength => "OctetLength",
             ScalarFunction::Or => "Or",
@@ -747,7 +768,9 @@ impl ScalarFunction {
             | ScalarFunction::RTrim
             | ScalarFunction::BTrim
             | ScalarFunction::Upper
-            | ScalarFunction::MergeObjects => false
+            | ScalarFunction::MergeObjects
+            | ScalarFunction::In
+            | ScalarFunction::NotIn => false
         }
     }
 }
@@ -908,6 +931,7 @@ pub enum MatchQuery {
     Regex(MatchLanguageRegex),
     ElemMatch(ElemMatch),
     Comparison(MatchLanguageComparison),
+    In(MatchLanguageIn),
     // annoyingly, our cache system requires this
     False(MatchFalse),
 }
@@ -1083,6 +1107,21 @@ pub enum MatchLanguageComparisonOp {
     Gt,
     Gte,
 }
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum MatchLanguageInOp {
+    In,
+    NotIn,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct MatchLanguageIn {
+    pub op: MatchLanguageInOp,
+    pub input: Option<FieldPath>,
+    pub values: Vec<LiteralValue>,
+    pub cache: SchemaCache<Schema>,
+}
+
 
 impl From<crate::ast::UnaryOp> for ScalarFunction {
     fn from(op: crate::ast::UnaryOp) -> ScalarFunction {

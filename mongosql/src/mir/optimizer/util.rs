@@ -40,6 +40,7 @@ impl Visitor for ContainsSubqueryVisitor {
             Expression::MqlIntrinsicFieldExistence(e) => {
                 Expression::MqlIntrinsicFieldExistence(e.walk(self))
             }
+            Expression::Tuple(e) => Expression::Tuple(e.walk(self)),
         }
     }
 }

@@ -1,3 +1,4 @@
+use crate::air;
 use crate::air::{FieldRef, LiteralValue, Match, MqlOperator, SqlOperator, Stage, Variable};
 use std::fmt;
 
@@ -94,12 +95,14 @@ pub fn sql_op_to_mql_op(sql_op: SqlOperator) -> Option<MqlOperator> {
     let mql_op = match sql_op {
         SqlOperator::Eq => MqlOperator::Eq,
         SqlOperator::IndexOfCP => MqlOperator::IndexOfCP,
+        SqlOperator::In => MqlOperator::In,
         SqlOperator::Lt => MqlOperator::Lt,
         SqlOperator::Lte => MqlOperator::Lte,
         SqlOperator::Gt => MqlOperator::Gt,
         SqlOperator::Gte => MqlOperator::Gte,
         SqlOperator::Ne => MqlOperator::Ne,
         SqlOperator::Not => MqlOperator::Not,
+        SqlOperator::NotIn => MqlOperator::NotIn,
         SqlOperator::Size => MqlOperator::Size,
         SqlOperator::StrLenBytes => MqlOperator::StrLenBytes,
         SqlOperator::StrLenCP => MqlOperator::StrLenCP,
