@@ -70,7 +70,7 @@ pub trait DataService {
     type Error: core::error::Error;
 
     /// List all database names.
-    async fn list_databases(&self) -> Result<Vec<String>, Self::Error>;
+    async fn list_database_names(&self) -> Result<Vec<String>, Self::Error>;
 
     /// List all collections in a database.
     async fn list_collections(&self, db_name: &str) -> Result<Vec<CollectionInfo>, Self::Error>;

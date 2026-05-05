@@ -34,7 +34,7 @@ impl MongoDbDataService {
 impl DataService for MongoDbDataService {
     type Error = mongodb::error::Error;
 
-    async fn list_databases(&self) -> Result<Vec<String>, Self::Error> {
+    async fn list_database_names(&self) -> Result<Vec<String>, Self::Error> {
         self.client.list_database_names().await
     }
 

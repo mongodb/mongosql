@@ -197,7 +197,7 @@ pub async fn build_schema<S: DataService>(
     // Shared tier clusters, so we have to manually filter out unwanted databases here.
     let valid_databases = options
         .service
-        .list_databases()
+        .list_database_names()
         .await
         .inspect_err(|e| tracing::error!("unable to list databases: {e}"))
         .map_err(Error::DataServiceError)?

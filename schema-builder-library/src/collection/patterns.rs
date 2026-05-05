@@ -3,7 +3,7 @@ use crate::consts::DISALLOWED_COLLECTION_NAMES;
 use crate::data_service::{CollectionInfo, CollectionType};
 use tracing::instrument;
 
-/// An error in a database pattern
+/// An error in a namespace pattern
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("The following error occurred while trying to make a Glob::Pattern: {0}")]

@@ -235,7 +235,7 @@ pub(crate) async fn derive_schema_for_view<S: DataService>(
                 db,
                 view_name = view.name,
                 iteration = iterations,
-                "Sampling view"
+                "Calculating schema for sampled view"
             );
         }
 

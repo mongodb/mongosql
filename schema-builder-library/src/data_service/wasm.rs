@@ -37,7 +37,7 @@ extern "C" {
     pub type JsCursor;
 
     #[wasm_bindgen(method, js_name = "listDatabases", catch)]
-    async fn list_databases(this: &JsDataService) -> Result<JsValue, JsValue>;
+    async fn list_database_names(this: &JsDataService) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(method, js_name = "listCollections", catch)]
     async fn list_collections(this: &JsDataService, db_name: &str) -> Result<JsValue, JsValue>;
@@ -78,10 +78,10 @@ impl WasmDataService {
 impl DataService for WasmDataService {
     type Error = WasmDataServiceError;
 
-    async fn list_databases(&self) -> Result<Vec<String>, Self::Error> {
+    async fn list_database_names(&self) -> Result<Vec<String>, Self::Error> {
         let js_result = self
             .js_service
-            .list_databases()
+            .list_database_names()
             .await
             .map_err(|e| WasmDataServiceError::Query(format!("{e:?}")))?;
 

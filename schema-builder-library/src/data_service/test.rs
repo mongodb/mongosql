@@ -23,7 +23,7 @@ pub(crate) struct MockDataService {
 impl DataService for MockDataService {
     type Error = Infallible;
 
-    async fn list_databases(&self) -> Result<Vec<String>, Self::Error> {
+    async fn list_database_names(&self) -> Result<Vec<String>, Self::Error> {
         Ok(self.databases.clone())
     }
 
