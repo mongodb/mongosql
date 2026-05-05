@@ -3,6 +3,8 @@ use futures::Stream;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
+use crate::data_service::AggregateOptions;
+
 use super::{CollectionInfo, DataService};
 
 /// Error type for [`WasmDataService`] operations.
@@ -48,7 +50,7 @@ extern "C" {
         db_name: &str,
         coll_name: &str,
         pipeline: JsValue,
-        hint: Option<JsValue>,
+        options: JsValue,
     ) -> Result<JsCursor, JsValue>;
 
     #[wasm_bindgen(method, catch)]
@@ -105,22 +107,21 @@ impl DataService for WasmDataService {
         db_name: &str,
         coll_name: &str,
         pipeline: Vec<Document>,
-        hint: Option<Document>,
+        options: AggregateOptions,
     ) -> Result<impl Stream<Item = Result<Document, Self::Error>>, Self::Error> {
-        let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
+        let serializer = serde_wasm_bindgen::Serializer::new()
+            .serialize_maps_as_objects(true)
+            .serialize_missing_as_null(true);
         let pipeline_js = pipeline
             .serialize(&serializer)
             .map_err(|e| WasmDataServiceError::Serialization(e.to_string()))?;
-        let hint_js = hint
-            .map(|h| {
-                h.serialize(&serializer)
-                    .map_err(|e| WasmDataServiceError::Serialization(e.to_string()))
-            })
-            .transpose()?;
+        let options_js = options
+            .serialize(&serializer)
+            .map_err(|e| WasmDataServiceError::Serialization(e.to_string()))?;
 
         let js_cursor = self
             .js_service
-            .aggregate(db_name, coll_name, pipeline_js, hint_js)
+            .aggregate(db_name, coll_name, pipeline_js, options_js)
             .await
             .map_err(|e| WasmDataServiceError::Query(format!("{e:?}")))?;
 

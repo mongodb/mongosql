@@ -60,6 +60,13 @@ pub struct TimeSeriesOptions {
     pub meta_field: Option<String>,
 }
 
+/// Options for aggregate queries
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct AggregateOptions {
+    /// A key hint for indexing
+    pub key_hint: Option<Document>,
+}
+
 /// Abstraction over database operations used by the schema builder.
 ///
 /// On non-WASM targets `Send + Sync` is required; on WASM it is not.
@@ -81,7 +88,7 @@ pub trait DataService {
         db_name: &str,
         coll_name: &str,
         pipeline: Vec<Document>,
-        key_hint: Option<Document>,
+        options: AggregateOptions,
     ) -> Result<impl Stream<Item = Result<Document, Self::Error>>, Self::Error>;
 
     /// Execute a find query on a collection.

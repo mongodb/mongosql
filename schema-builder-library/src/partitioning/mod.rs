@@ -1,7 +1,7 @@
 pub(crate) use crate::partitioning::partition::{PARTITION_SIZE_IN_BYTES, Partition};
 use crate::{
     DataService, Error, Result,
-    data_service::{CollectionInfo, CollectionType},
+    data_service::{AggregateOptions, CollectionInfo, CollectionType},
 };
 use bson::{Bson, Document, doc};
 use futures::{StreamExt as _, TryStreamExt as _};
@@ -96,7 +96,14 @@ pub(crate) async fn get_partitions<S: DataService>(
     // If the partitioning query fails, check the entire collection. This is safer than missing a
     // namespace.
     let Ok(cursor) = service
-        .aggregate(db, &collection_info.name, sample_pipeline, hint.clone())
+        .aggregate(
+            db,
+            &collection_info.name,
+            sample_pipeline,
+            AggregateOptions {
+                key_hint: hint.clone(),
+            },
+        )
         .await
     else {
         return Ok(PartitionedCollection {
@@ -159,7 +166,7 @@ pub(crate) async fn get_size_counts<S: DataService>(
             db,
             collection,
             vec![doc! {"$collStats": {"storageStats": {}}}],
-            None,
+            AggregateOptions::default(),
         )
         .await
         .map_err(Error::DataServiceError)?;
@@ -236,7 +243,7 @@ async fn get_bound<S: DataService>(
         doc! {"$project": {partition_key: 1}},
     ];
     let cursor = service
-        .aggregate(db, collection, pipeline, None)
+        .aggregate(db, collection, pipeline, AggregateOptions::default())
         .await
         .map_err(Error::DataServiceError)?;
     let mut cursor = Box::pin(cursor);

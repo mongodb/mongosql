@@ -9,6 +9,7 @@ use tracing::{info, instrument, warn};
 pub(crate) mod initial_schema;
 
 use crate::context::ContextHandle;
+use crate::data_service::AggregateOptions;
 use crate::{DataService, partitioning::Partition};
 use crate::{
     Error, Result, VIEW_SAMPLE_SIZE, data_service::CollectionInfo,
@@ -148,7 +149,14 @@ pub(crate) async fn derive_schema_for_partition<S: DataService>(
             doc! { "$limit": PARTITION_DOCS_PER_ITERATION },
         ];
         let cursor = service
-            .aggregate(db, collection, pipeline, hint.clone())
+            .aggregate(
+                db,
+                collection,
+                pipeline,
+                AggregateOptions {
+                    key_hint: hint.clone(),
+                },
+            )
             .await
             .map_err(Error::DataServiceError)?;
 
@@ -214,7 +222,12 @@ pub(crate) async fn derive_schema_for_view<S: DataService>(
         .collect::<Vec<Document>>();
 
     let cursor = service
-        .aggregate(db, &view.options.view_on, pipeline, None)
+        .aggregate(
+            db,
+            &view.options.view_on,
+            pipeline,
+            AggregateOptions::default(),
+        )
         .await
         .inspect_err(|e| {
             warn!(

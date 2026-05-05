@@ -4,6 +4,8 @@ use mongodb::{
 };
 use tracing::warn;
 
+use crate::data_service::AggregateOptions;
+
 use super::{CollectionInfo, CollectionOptions, CollectionType, DataService, TimeSeriesOptions};
 
 impl TryFrom<DriverCollectionType> for CollectionType {
@@ -73,7 +75,7 @@ impl DataService for MongoDbDataService {
         db_name: &str,
         coll_name: &str,
         pipeline: Vec<Document>,
-        key_hint: Option<Document>,
+        options: AggregateOptions,
     ) -> Result<impl Stream<Item = Result<Document, Self::Error>>, Self::Error> {
         let collection = self
             .client
@@ -83,7 +85,7 @@ impl DataService for MongoDbDataService {
         // Create a native cursor over the specified aggregate, adding a key hint
         // if supplied.
         let mut cursor = collection.aggregate(pipeline);
-        if let Some(hint) = key_hint {
+        if let Some(hint) = options.key_hint {
             cursor = cursor.hint(Hint::Keys(hint))
         };
 

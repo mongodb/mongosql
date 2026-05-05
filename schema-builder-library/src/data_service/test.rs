@@ -4,7 +4,8 @@ use bson::Document;
 use futures::Stream;
 
 use crate::data_service::{
-    CollectionInfo, CollectionOptions, CollectionType, DataService, TimeSeriesOptions,
+    AggregateOptions, CollectionInfo, CollectionOptions, CollectionType, DataService,
+    TimeSeriesOptions,
 };
 
 /// A configurable in-memory implementation of [`DataService`] for use in tests.
@@ -36,7 +37,7 @@ impl DataService for MockDataService {
         db_name: &str,
         coll_name: &str,
         _pipeline: Vec<Document>,
-        _hint: Option<Document>,
+        _options: AggregateOptions,
     ) -> Result<impl Stream<Item = Result<Document, Self::Error>>, Self::Error> {
         let results = self
             .documents

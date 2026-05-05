@@ -37,6 +37,14 @@ export interface CollectionInfo {
 }
 
 /**
+ * Options for aggregate queries
+ */
+export interface AggregateOptions {
+    /** A hint for which key to use for indexing */
+    key_hint: BsonDocument,
+}
+
+/**
  * SqlDataService interface for database operations.
  *
  * Implement this interface in your JavaScript/TypeScript code to provide
@@ -48,7 +56,7 @@ export interface SqlDataService {
     /** List all collections in a database */
     listCollections(dbName: string): Promise<CollectionInfo[]>;
     /** Execute an aggregation pipeline on a collection */
-    aggregate(dbName: string, collName: string, pipeline: BsonDocument[]): Promise<BsonDocument[]>;
+    aggregate(dbName: string, collName: string, pipeline: BsonDocument[], options: Partial<AggregateOptions>): Promise<BsonDocument[]>;
     /** Execute a find query on a collection */
     find(dbName: string, collName: string, filter: BsonDocument): Promise<BsonDocument[]>;
 }
