@@ -162,7 +162,7 @@ pub(crate) async fn get_size_counts<S: DataService>(
             None,
         )
         .await
-        .map_err(|_| Error::NoCollectionStats(collection.to_string()))?;
+        .map_err(Error::DataServiceError)?;
     let mut cursor = Box::pin(cursor);
 
     let stats = cursor
