@@ -1,4 +1,4 @@
-use crate::{DataService, Error, MongoDbDataService, Result};
+use crate::{DataService, MongoDbDataService};
 use async_trait::async_trait;
 use mongodb::{
     Cursor, Database,
@@ -45,14 +45,9 @@ pub async fn get_opts(
     resolver: Option<ResolverConfig>,
 ) -> Result<ClientOptions, <MongoDbDataService as DataService>::Error> {
     let mut opts = if let Some(resolver) = resolver {
-        ClientOptions::parse(uri)
-            .resolver_config(resolver)
-            .await
-            .map_err(Error::DataServiceError)?
+        ClientOptions::parse(uri).resolver_config(resolver).await?
     } else {
-        ClientOptions::parse(uri)
-            .await
-            .map_err(Error::DataServiceError)?
+        ClientOptions::parse(uri).await?
     };
     opts.max_pool_size = Some(get_optimal_pool_size());
     opts.max_connecting = Some(2);
@@ -106,7 +101,6 @@ impl DatabaseExt for Database {
         self.run_command(command)
             .selection_criteria(selection_criteria)
             .await
-            .map_err(Error::DataServiceError)
     }
 
     async fn run_cursor_command_with_read_preference(
@@ -118,7 +112,6 @@ impl DatabaseExt for Database {
         self.run_cursor_command(command)
             .selection_criteria(selection_criteria)
             .await
-            .map_err(Error::DataServiceError)
     }
 }
 

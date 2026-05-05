@@ -1,12 +1,13 @@
+use bson::doc;
 use futures::{Stream, TryStreamExt};
 use mongodb::{
     Client, bson::Document, options::Hint, results::CollectionType as DriverCollectionType,
 };
 use tracing::warn;
 
-use crate::data_service::AggregateOptions;
+use crate::{client_util::DatabaseExt as _, data_service::AggregateOptions};
 
-use super::{CollectionInfo, CollectionOptions, CollectionType, DataService, TimeSeriesOptions};
+use super::{CollectionInfo, CollectionType, DataService};
 
 impl TryFrom<DriverCollectionType> for CollectionType {
     type Error = DriverCollectionType;
@@ -42,30 +43,27 @@ impl DataService for MongoDbDataService {
 
     async fn list_collections(&self, db_name: &str) -> Result<Vec<CollectionInfo>, Self::Error> {
         let db = self.client.database(db_name);
-        let cursor = db.list_collections().await?;
-        let specs = cursor.try_collect::<Vec<_>>().await?;
 
+        // Note: Here we manually run the `listCollection` method rather than use the
+        // driver's `list_collections` method since the latter does not filter authorized
+        // collections only. See [1] for more context and [2] for when this was originally
+        // changed.
+        //
+        // [1]: https://github.com/mongodb/mongosql/pull/143#discussion_r3164925954
+        // [2]: https://github.com/mongodb/mongosql/pull/136#discussion_r3066410249
+        let cursor = db
+            .run_cursor_command_with_read_preference(
+                doc! { "listCollections": 1.0, "authorizedCollections": true },
+            )
+            .await?;
+
+        let specs = cursor.try_collect::<Vec<_>>().await?;
         Ok(specs
             .into_iter()
-            .filter_map(|spec| {
-                let collection_type = spec
-                    .collection_type
-                    .try_into()
-                    .inspect_err(|_| warn!("Skipping collection '{}' with unknown type", spec.name))
-                    .ok()?;
-                let options = CollectionOptions {
-                    view_on: spec.options.view_on.unwrap_or_default(),
-                    pipeline: spec.options.pipeline.unwrap_or_default(),
-                    timeseries: spec.options.timeseries.map(|ts| TimeSeriesOptions {
-                        time_field: ts.time_field,
-                        meta_field: ts.meta_field,
-                    }),
-                };
-                Some(CollectionInfo {
-                    name: spec.name,
-                    collection_type,
-                    options,
-                })
+            .filter_map(|doc| {
+                bson::from_document(doc)
+                    .map_err(|e| warn!("Skipping malformed listCollections entry: {e}"))
+                    .ok()
             })
             .collect())
     }
