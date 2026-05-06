@@ -778,6 +778,35 @@ mod single_tuple {
         expected = Ok("SELECT * FROM (SELECT (a, b)) AS z"),
         input = "SELECT * FROM (SELECT (a, b)) AS z",
     );
+    // The RHS of IN/NOT IN is semantically an array and must not be collapsed, even when
+    // it contains a single element.  Collapsing (true) → true would produce an invalid
+    // second argument for $in at codegen time.
+    test_rewrite!(
+        in_single_elem_tuple_rhs_preserved,
+        pass = SingleTupleRewritePass,
+        expected = Ok("SELECT * FROM foo WHERE a IN (true)"),
+        input = "SELECT * FROM foo WHERE a IN (true)",
+    );
+    test_rewrite!(
+        not_in_single_elem_tuple_rhs_preserved,
+        pass = SingleTupleRewritePass,
+        expected = Ok("SELECT * FROM foo WHERE a NOT IN (true)"),
+        input = "SELECT * FROM foo WHERE a NOT IN (true)",
+    );
+    // LHS single-element tuples should still be unwrapped.
+    test_rewrite!(
+        in_single_elem_tuple_lhs_unwrapped,
+        pass = SingleTupleRewritePass,
+        expected = Ok("SELECT * FROM foo WHERE a IN (1, 2)"),
+        input = "SELECT * FROM foo WHERE (a) IN (1, 2)",
+    );
+    // Nested single-element tuples inside an IN tuple's elements should still be collapsed.
+    test_rewrite!(
+        in_nested_tuple_inside_rhs_collapsed,
+        pass = SingleTupleRewritePass,
+        expected = Ok("SELECT * FROM foo WHERE a IN (1, 2)"),
+        input = "SELECT * FROM foo WHERE a IN ((1), (2))",
+    );
 }
 
 mod table_subquery {

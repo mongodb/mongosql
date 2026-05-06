@@ -74,6 +74,8 @@ pub fn translate_sql(
     );
     let plan = algebrizer.algebrize_query(ast)?;
 
+    eprintln!("{plan:#?}");
+
     // optimizer runs
     let plan = mir::optimizer::optimize_plan(
         plan,
