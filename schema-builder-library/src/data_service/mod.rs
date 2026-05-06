@@ -62,6 +62,8 @@ pub struct TimeSeriesOptions {
 
 /// Options for aggregate queries
 #[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct AggregateOptions {
     /// A key hint for indexing
     pub key_hint: Option<Document>,

@@ -41,7 +41,7 @@ export interface CollectionInfo {
  */
 export interface AggregateOptions {
     /** A hint for which key to use for indexing */
-    key_hint: BsonDocument,
+    keyHint: BsonDocument,
 }
 
 /**
