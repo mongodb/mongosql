@@ -426,7 +426,6 @@ impl From<Vec<Expression>> for TupleExpr {
     }
 }
 
-
 #[derive(PartialEq, Debug, Clone)]
 pub struct ArrayExpr {
     pub array: Vec<Expression>,
@@ -495,7 +494,6 @@ pub struct FieldAccess {
     #[new(value = "true")]
     pub is_nullable: bool,
 }
-
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum AggregationFunction {
@@ -922,7 +920,6 @@ pub enum SubqueryModifier {
     Any,
     All,
 }
-
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum MatchQuery {

@@ -74,8 +74,6 @@ pub fn translate_sql(
     );
     let plan = algebrizer.algebrize_query(ast)?;
 
-    eprintln!("{plan:#?}");
-
     // optimizer runs
     let plan = mir::optimizer::optimize_plan(
         plan,
@@ -133,7 +131,10 @@ pub fn translate_sql(
     })
 }
 
-#[allow(clippy::result_large_err)]
+#[expect(
+    clippy::result_large_err,
+    reason = "Error type size is acceptable and not on a hot path"
+)]
 pub fn get_namespaces(
     current_db: &str,
     sql: &str,

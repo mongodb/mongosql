@@ -772,11 +772,10 @@ pub enum MatchLanguageInOp {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-/// Per the documentation, the $in and $nin operators have this format:
-/// { $in: [ <expression>, <array expression> ] }
+/// Match language `$in` / `$nin` operator applied to a field path.
 ///
-/// When we convert to MQL will translate a NotIn to a not { in {} }
-///
+/// Emits `{ <field>: { $in: [<values>] } }` for `In` and
+/// `{ <field>: { "$not": { "$in": [<values>] } } }` for `NotIn`.
 pub struct MatchLanguageIn {
     pub op: MatchLanguageInOp,
     pub expression: FieldRef,
