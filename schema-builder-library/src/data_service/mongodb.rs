@@ -61,8 +61,11 @@ impl DataService for MongoDbDataService {
         Ok(specs
             .into_iter()
             .filter_map(|doc| {
+                // Note: We try to extract the collection name here in case it fails
+                // for better error messages.
+                let name = doc.get_str("name").unwrap_or("<unknown>").to_string();
                 bson::from_document(doc)
-                    .map_err(|e| warn!("Skipping malformed listCollections entry: {e}"))
+                    .map_err(|e| warn!("Skipping malformed listCollections entry '{name}': {e}"))
                     .ok()
             })
             .collect())
