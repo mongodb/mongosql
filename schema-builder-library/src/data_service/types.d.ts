@@ -56,9 +56,9 @@ export interface SqlDataService {
     /** List all collections in a database */
     listCollections(dbName: string): Promise<CollectionInfo[]>;
     /** Execute an aggregation pipeline on a collection */
-    aggregate(dbName: string, collName: string, pipeline: BsonDocument[], options: Partial<AggregateOptions>): Promise<BsonDocument[]>;
+    aggregate(dbName: string, collName: string, pipeline: BsonDocument[], options: Partial<AggregateOptions>): Promise<SqlCursor>;
     /** Execute a find query on a collection */
-    find(dbName: string, collName: string, filter: BsonDocument): Promise<BsonDocument[]>;
+    find(dbName: string, collName: string, filter: BsonDocument): Promise<SqlCursor>;
 }
 
 /**
