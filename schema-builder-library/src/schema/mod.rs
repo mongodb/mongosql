@@ -241,7 +241,19 @@ pub(crate) async fn derive_schema_for_view<S: DataService>(
     let mut schema = None;
     let mut iterations = 0u64;
     let mut cursor = Box::pin(cursor);
-    while let Some(Ok(doc)) = cursor.try_next().await.transpose() {
+    while let Some(Ok(doc)) = cursor
+        .try_next()
+        .await
+        .inspect_err(|e| {
+            warn!(
+                db,
+                view_name = view.name,
+                iteration = iterations,
+                "view sampling encountered an error: {e}"
+            )
+        })
+        .transpose()
+    {
         // Notify every 100 iterations, so it isn't too spammy
         if iterations.is_multiple_of(100) {
             info!(

@@ -105,6 +105,13 @@ pub(crate) async fn get_partitions<S: DataService>(
             },
         )
         .await
+        .inspect_err(|e| {
+            tracing::warn!(
+                db,
+                collection = %collection_info.name,
+                "partition sampling failed; falling back to a single partition: {e}"
+            )
+        })
     else {
         return Ok(PartitionedCollection {
             partitions: vec![Partition {
