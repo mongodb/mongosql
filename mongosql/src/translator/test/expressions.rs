@@ -4347,3 +4347,90 @@ mod mql_intrinsic {
 }
 
 // [TODO] Unit tests to validate translating $in as part of a select or project stage. like a select a in (1,2,3)
+mod in_operator {
+    // Test conversion
+    use crate::mapping_registry::MqlReferenceType;
+    use crate::mir::{
+        Expression, LiteralValue, ScalarFunction, ScalarFunctionApplication, TupleExpr,
+    };
+    use crate::util::mir_field_access;
+    use crate::{air, mapping_registry::MqlMappingRegistryValue};
+
+    test_translate_expression!(
+        does_it_convert_correctly,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::In,
+                args: vec![
+                    air::Expression::FieldRef("foo.x".to_string().into()),
+                    air::Expression::Tuple(vec!(
+                        air::Expression::Literal(air::LiteralValue::Integer(1)),
+                        air::Expression::Literal(air::LiteralValue::Integer(2)),
+                        air::Expression::Literal(air::LiteralValue::Integer(3))
+                    ))
+                ],
+            }
+        )),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::In,
+            args: vec![
+                *mir_field_access("foo", "x", true),
+                Expression::Tuple(TupleExpr {
+                    array: vec![
+                        Expression::Literal(LiteralValue::Integer(1)),
+                        Expression::Literal(LiteralValue::Integer(2)),
+                        Expression::Literal(LiteralValue::Integer(3)),
+                    ],
+                })
+            ],
+            is_nullable: false,
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(
+                ("foo", 0u16),
+                MqlMappingRegistryValue::new("foo".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr
+        },
+    );
+
+    test_translate_expression!(
+        in_with_literal_strings,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::In,
+                args: vec![
+                    air::Expression::FieldRef("foo.a".to_string().into()),
+                    air::Expression::Tuple(vec![
+                        air::Expression::Literal(air::LiteralValue::String("a".into())),
+                        air::Expression::Literal(air::LiteralValue::String("b".into())),
+                        air::Expression::Literal(air::LiteralValue::String("c".into())),
+                    ])
+                ],
+            }
+        )),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::In,
+            args: vec![
+                *mir_field_access("foo", "a", false),
+                Expression::Tuple(TupleExpr {
+                    array: vec![
+                        Expression::Literal(LiteralValue::String("a".into())),
+                        Expression::Literal(LiteralValue::String("b".into())),
+                        Expression::Literal(LiteralValue::String("c".into())),
+                    ],
+                })
+            ],
+            is_nullable: false,
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(
+                ("foo", 0u16),
+                MqlMappingRegistryValue::new("foo".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr
+        },
+    );
+}
