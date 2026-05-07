@@ -305,10 +305,15 @@ mod arbitrary {
         fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
             let body = self.body.clone();
             let queries = self.queries.clone();
-            Box::new((body, queries).shrink().map(|(b, q)| WithQuery {
-                body: b,
-                queries: q,
-            }))
+            Box::new(
+                (body, queries)
+                    .shrink()
+                    .filter(|(_, q)| !q.is_empty())
+                    .map(|(b, q)| WithQuery {
+                        body: b,
+                        queries: q,
+                    }),
+            )
         }
     }
 
@@ -665,10 +670,21 @@ mod arbitrary {
 
     impl Arbitrary for BinaryExpr {
         fn arbitrary(g: &mut Gen) -> Self {
+            let op = BinaryOp::arbitrary(g);
+            // The parser always produces a Tuple on the RHS of IN/NOT IN, so arbitrary
+            // generation must match that shape to satisfy the round-trip property.
+            let right = if op == BinaryOp::In || op == BinaryOp::NotIn {
+                let elems = (0..rand_len(1, MAX_COMPOSITE_DATA_LEN))
+                    .map(|_| Expression::arbitrary(g))
+                    .collect();
+                Box::new(Expression::Tuple(elems))
+            } else {
+                Box::new(Expression::arbitrary(g))
+            };
             Self {
                 left: Box::new(Expression::arbitrary(g)),
-                op: BinaryOp::arbitrary(g),
-                right: Box::new(Expression::arbitrary(g)),
+                op,
+                right,
             }
         }
     }
