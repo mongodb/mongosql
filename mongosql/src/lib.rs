@@ -131,10 +131,7 @@ pub fn translate_sql(
     })
 }
 
-#[expect(
-    clippy::result_large_err,
-    reason = "Error type size is acceptable and not on a hot path"
-)]
+
 pub fn get_namespaces(
     current_db: &str,
     sql: &str,
