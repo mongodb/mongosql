@@ -167,7 +167,7 @@ impl DataService for WasmDataService {
                 let deserialized: Option<Document> = serde_wasm_bindgen::from_value(next)
                     .map_err(|e| WasmDataServiceError::Deserialization(e.to_string()))?;
 
-                Ok(Some((deserialized, cursor)))
+                Ok(deserialized.map(|doc| (doc, cursor)))
             },
         ))
     }
