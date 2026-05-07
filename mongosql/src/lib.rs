@@ -131,7 +131,6 @@ pub fn translate_sql(
     })
 }
 
-
 pub fn get_namespaces(
     current_db: &str,
     sql: &str,
