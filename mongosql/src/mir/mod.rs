@@ -1,5 +1,6 @@
 pub mod definitions;
 pub use definitions::*;
+pub mod pretty_print;
 pub mod schema;
 
 pub use mongosql_datastructures::binding_tuple;
