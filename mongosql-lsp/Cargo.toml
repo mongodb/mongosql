@@ -1,0 +1,13 @@
+[package]
+name    = "mongosql-lsp"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tower-lsp  = { version = "0.20", features = ["proposed"] }
+tokio      = { version = "1", features = ["full"] }
+dashmap    = "6"
+crop       = "0.4"
+serde_json = "1"
+log        = "0.4"
+env_logger = "0.11"

@@ -1,0 +1,144 @@
+[WARNING] No schema information was found for the requested collections `["users"]` in database `mydb`. Either the collections don't exist in `mydb` or they don't have a schema. For now, they will be assigned empty schemas. Hint: You either need to generate schemas for your collections or correct your query.
+Project(
+    Project {
+        source: Project(
+            Project {
+                source: Filter(
+                    Filter {
+                        source: Collection(
+                            Collection {
+                                db: "mydb",
+                                collection: "users",
+                                cache: <SchemaCache...>,
+                            },
+                        ),
+                        condition: ScalarFunction(
+                            ScalarFunctionApplication {
+                                function: And,
+                                args: [
+                                    MqlIntrinsicFieldExistence(
+                                        FieldAccess {
+                                            expr: Reference(
+                                                ReferenceExpr {
+                                                    key: Key {
+                                                        datasource: Named(
+                                                            "users",
+                                                        ),
+                                                        scope: 0,
+                                                    },
+                                                },
+                                            ),
+                                            field: "age",
+                                            is_nullable: true,
+                                        },
+                                    ),
+                                    ScalarFunction(
+                                        ScalarFunctionApplication {
+                                            function: Gt,
+                                            args: [
+                                                FieldAccess(
+                                                    FieldAccess {
+                                                        expr: Reference(
+                                                            ReferenceExpr {
+                                                                key: Key {
+                                                                    datasource: Named(
+                                                                        "users",
+                                                                    ),
+                                                                    scope: 0,
+                                                                },
+                                                            },
+                                                        ),
+                                                        field: "age",
+                                                        is_nullable: false,
+                                                    },
+                                                ),
+                                                Literal(
+                                                    Integer(
+                                                        30,
+                                                    ),
+                                                ),
+                                            ],
+                                            is_nullable: false,
+                                        },
+                                    ),
+                                ],
+                                is_nullable: false,
+                            },
+                        ),
+                        cache: <SchemaCache...>,
+                    },
+                ),
+                expression: BindingTuple(
+                    {
+                        Key {
+                            datasource: Named(
+                                "users",
+                            ),
+                            scope: 0,
+                        }: Reference(
+                            ReferenceExpr {
+                                key: Key {
+                                    datasource: Named(
+                                        "users",
+                                    ),
+                                    scope: 0,
+                                },
+                            },
+                        ),
+                    },
+                ),
+                is_add_fields: false,
+                cache: <SchemaCache...>,
+            },
+        ),
+        expression: BindingTuple(
+            {
+                Key {
+                    datasource: Bottom,
+                    scope: 0,
+                }: Document(
+                    DocumentExpr {
+                        document: UniqueLinkedHashMap(
+                            {
+                                "name": FieldAccess(
+                                    FieldAccess {
+                                        expr: Reference(
+                                            ReferenceExpr {
+                                                key: Key {
+                                                    datasource: Named(
+                                                        "users",
+                                                    ),
+                                                    scope: 0,
+                                                },
+                                            },
+                                        ),
+                                        field: "name",
+                                        is_nullable: true,
+                                    },
+                                ),
+                                "age": FieldAccess(
+                                    FieldAccess {
+                                        expr: Reference(
+                                            ReferenceExpr {
+                                                key: Key {
+                                                    datasource: Named(
+                                                        "users",
+                                                    ),
+                                                    scope: 0,
+                                                },
+                                            },
+                                        ),
+                                        field: "age",
+                                        is_nullable: true,
+                                    },
+                                ),
+                            },
+                        ),
+                    },
+                ),
+            },
+        ),
+        is_add_fields: false,
+        cache: <SchemaCache...>,
+    },
+)
