@@ -27,6 +27,18 @@ where
     }
 }
 
+#[derive(clap::ValueEnum, Debug, Clone, Copy)]
+enum TranslationCheckpoint {
+    /// Stop after SQL parsing and AST rewrites; print the AST.
+    Ast,
+    /// Stop after algebrizing to MIR and running optimizer passes; print the MIR tree.
+    Mir,
+    /// AIR pretty-printing is not yet implemented.
+    Air,
+    /// Full translation to MQL; print the generated pipeline (default when --stage is omitted).
+    Mql,
+}
+
 #[derive(Parser, Debug)]
 #[command(version, about, long_about=None)]
 struct Cli {
@@ -64,6 +76,12 @@ struct Cli {
         help = "A sql file to use instead of passing the query as an argument. The sql-file argument takes precedence over sql query text."
     )]
     sql_file: Option<PathBuf>,
+    #[arg(
+        long,
+        value_enum,
+        help = "Stop at the specified compilation stage and print its intermediate representation. When omitted the CLI behaves as normal."
+    )]
+    stage: Option<TranslationCheckpoint>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -94,14 +112,13 @@ fn parse_query_from_args(
     }
 }
 
-fn main() -> Result<(), CliError> {
-    let args = Cli::parse();
-
-    let uri = args.uri.unwrap_or("mongodb://localhost:27017".to_string());
-    let current_db = args.db.unwrap_or("test".to_string());
-    let query = parse_query_from_args(args.query, args.sql_file)?;
-    let namespaces = mongosql::get_namespaces(current_db.as_str(), query.as_str())?;
-    let catalog = if let Some(schema_file) = args.schema_file {
+fn build_catalog(
+    uri: &str,
+    current_db: &str,
+    namespaces: std::collections::BTreeSet<Namespace>,
+    schema_file: Option<String>,
+) -> Result<Catalog, CliError> {
+    if let Some(schema_file) = schema_file {
         let contents = std::fs::read_to_string(&schema_file)?;
         let path = std::path::Path::new(&schema_file);
         let extension = path
@@ -114,14 +131,88 @@ fn main() -> Result<(), CliError> {
             Some("json") => serde_json::from_str(&contents)?,
             _ => {
                 return Err(CliError(format!(
-                "Unsupported schema file extension: {extension:?}. Supported formats are .yml, .yaml, .json"
+                    "Unsupported schema file extension: {extension:?}. Supported formats are .yml, .yaml, .json"
                 )))
             }
         };
-        build_catalog_from_catalog_schema(catalog.schemas)?
+        Ok(build_catalog_from_catalog_schema(catalog.schemas)?)
     } else {
-        get_schema_catalog(uri.as_str(), current_db.as_str(), namespaces)?
-    };
+        get_schema_catalog(uri, current_db, namespaces)
+    }
+}
+
+fn main() -> Result<(), CliError> {
+    let args = Cli::parse();
+
+    let uri = args.uri.unwrap_or("mongodb://localhost:27017".to_string());
+    let current_db = args.db.unwrap_or("test".to_string());
+    let query = parse_query_from_args(args.query, args.sql_file)?;
+    let stage = args.stage.unwrap_or(TranslationCheckpoint::Mql);
+
+    if args.execute && !matches!(stage, TranslationCheckpoint::Mql) {
+        return Err(CliError(
+            "--execute is only valid with --stage mql or without --stage".to_string(),
+        ));
+    }
+
+    match stage {
+        TranslationCheckpoint::Ast => {
+            let output = mongosql::translate_sql_to_ast_repr(query.as_str())?;
+            println!("{output}");
+            return Ok(());
+        }
+        TranslationCheckpoint::Mir => {
+            let namespaces = mongosql::get_namespaces(current_db.as_str(), query.as_str())?;
+            let catalog = build_catalog(
+                uri.as_str(),
+                current_db.as_str(),
+                namespaces,
+                args.schema_file,
+            )?;
+            let options = mongosql::options::SqlOptions {
+                allow_order_by_missing_columns: true,
+                ..Default::default()
+            };
+            let output = mongosql::translate_sql_to_mir_repr(
+                current_db.as_str(),
+                query.as_str(),
+                &catalog,
+                options,
+            )?;
+            println!("{output}");
+            return Ok(());
+        }
+        TranslationCheckpoint::Air => {
+            let namespaces = mongosql::get_namespaces(current_db.as_str(), query.as_str())?;
+            let catalog = build_catalog(
+                uri.as_str(),
+                current_db.as_str(),
+                namespaces,
+                args.schema_file,
+            )?;
+            let options = mongosql::options::SqlOptions {
+                allow_order_by_missing_columns: true,
+                ..Default::default()
+            };
+            let output = mongosql::translate_sql_to_air_repr(
+                current_db.as_str(),
+                query.as_str(),
+                &catalog,
+                options,
+            )?;
+            println!("{output}");
+            return Ok(());
+        }
+        TranslationCheckpoint::Mql => {}
+    }
+
+    let namespaces = mongosql::get_namespaces(current_db.as_str(), query.as_str())?;
+    let catalog = build_catalog(
+        uri.as_str(),
+        current_db.as_str(),
+        namespaces,
+        args.schema_file,
+    )?;
     let options = mongosql::options::SqlOptions {
         allow_order_by_missing_columns: true,
         ..Default::default()

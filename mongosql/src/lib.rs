@@ -131,6 +131,91 @@ pub fn translate_sql(
     })
 }
 
+/// Returns the debug-formatted AST for the provided SQL after syntactic rewrites.
+///
+/// Prints the Rust struct tree of the rewritten AST using `{:#?}`.
+/// Intended for debugging; output format is not stable across versions.
+///
+/// # Errors
+///
+/// Returns `Err` if parsing or rewriting fails.
+pub fn translate_sql_to_ast_repr(sql: &str) -> Result<String> {
+    let ast = parser::parse_query(sql)?;
+    let ast = ast::rewrites::rewrite_query(ast)?;
+    Ok(format!("{ast:#?}"))
+}
+
+/// Returns the debug-formatted MIR for the provided SQL after algebrizing and optimization.
+///
+/// Prints the Rust struct tree of the optimizer-output MIR using `{:#?}`.
+/// Intended for debugging; output format is not stable across versions.
+///
+/// # Errors
+///
+/// Returns `Err` if parsing, algebrizing, or schema-checking fails.
+pub fn translate_sql_to_mir_repr(
+    current_db: &str,
+    sql: &str,
+    catalog: &Catalog,
+    sql_options: SqlOptions,
+) -> Result<String> {
+    let ast = parser::parse_query(sql)?;
+    let ast = ast::rewrites::rewrite_query(ast)?;
+
+    let algebrizer = Algebrizer::new(
+        current_db,
+        catalog,
+        0u16,
+        sql_options.schema_checking_mode,
+        sql_options.allow_order_by_missing_columns,
+        crate::algebrizer::ClauseType::Unintialized,
+    );
+    let plan = algebrizer.algebrize_query(ast)?;
+    let plan = mir::optimizer::optimize_plan(
+        plan,
+        sql_options.schema_checking_mode,
+        &algebrizer.schema_inference_state(),
+    );
+
+    Ok(format!("{plan:#?}"))
+}
+
+/// Returns the debug-formatted AIR for the provided SQL after MIR translation and desugaring.
+///
+/// Prints the Rust struct tree of the fully desugared AIR stage using `{:#?}`.
+/// Intended for debugging; output format is not stable across versions.
+///
+/// # Errors
+///
+/// Returns `Err` if parsing, algebrizing, translating, or desugaring fails.
+pub fn translate_sql_to_air_repr(
+    current_db: &str,
+    sql: &str,
+    catalog: &Catalog,
+    sql_options: SqlOptions,
+) -> Result<String> {
+    let ast = parser::parse_query(sql)?;
+    let ast = ast::rewrites::rewrite_query(ast)?;
+    let algebrizer = Algebrizer::new(
+        current_db,
+        catalog,
+        0u16,
+        sql_options.schema_checking_mode,
+        sql_options.allow_order_by_missing_columns,
+        crate::algebrizer::ClauseType::Unintialized,
+    );
+    let plan = algebrizer.algebrize_query(ast)?;
+    let plan = mir::optimizer::optimize_plan(
+        plan,
+        sql_options.schema_checking_mode,
+        &algebrizer.schema_inference_state(),
+    );
+    let mut translator = MqlTranslator::new(sql_options);
+    let air_plan = translator.translate_plan(plan)?;
+    let air_plan = air::desugarer::desugar_pipeline(air_plan)?;
+    Ok(format!("{air_plan:#?}"))
+}
+
 #[allow(clippy::result_large_err)]
 pub fn get_namespaces(
     current_db: &str,

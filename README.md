@@ -68,6 +68,32 @@ cargo run --package mongosql-cli -- --db mydb --schema-file schema.yaml "SELECT 
 ./target/debug/mongosql-cli --db mydb --execute --translation "SELECT * FROM products"
 ```
 
+**Inspect an intermediate compilation stage:**
+
+Use `--stage` to stop translation at a specific point in the pipeline and print the intermediate representation. This is useful for debugging query compilation issues.
+
+```bash
+# Print the rewritten AST (no MongoDB connection required)
+./target/debug/mongosql-cli --db mydb --schema-file schema.yaml --stage ast "SELECT name FROM users"
+
+# Print the optimized MIR tree
+./target/debug/mongosql-cli --db mydb --schema-file schema.yaml --stage mir "SELECT name FROM users"
+
+# Full MQL pipeline (same as omitting --stage)
+./target/debug/mongosql-cli --db mydb --schema-file schema.yaml --stage mql "SELECT name FROM users"
+```
+
+Available stages (in pipeline order):
+
+| Stage | Description |
+|-------|-------------|
+| `ast` | SQL parsed and syntactically rewritten; prints the AST as a Rust debug tree (`{:#?}`). No schema or MongoDB connection required. |
+| `mir` | Algebrized and optimizer-pass output; prints the MIR tree. Requires schema. |
+| `air` | MIR translated and desugared to AIR; prints the Rust struct tree (`{:#?}`). Requires schema. |
+| `mql` | Full translation to a MongoDB aggregation pipeline (default). |
+
+> **Note:** `--execute` is only valid with `--stage mql` or when `--stage` is omitted.
+
 ### Schema Files
 
 When `--schema-file` is provided, the CLI reads collection schemas from a local file. 
