@@ -94,6 +94,39 @@ Available stages (in pipeline order):
 
 > **Note:** `--execute` is only valid with `--stage mql` or when `--stage` is omitted.
 
+**Capture an audit trail of all translation stages:**
+
+Use `--audit-trail` to write every intermediate representation produced during translation into `audit_trail.zip` in the current working directory. Extracting the zip yields an `audit_trail/` folder:
+
+| File | Contents |
+|------|----------|
+| `initial_query.sql` | The original SQL query, verbatim. Always present. |
+| `query.ast` | Rewritten AST (present when stage ≥ `ast`). |
+| `query.mir` | Optimized MIR tree (present when stage ≥ `mir`). |
+| `query.air` | Desugared AIR tree (present when stage ≥ `air`). |
+| `pipeline.js` | Generated MQL aggregation pipeline as JSON (present when stage = `mql`). |
+
+The set of files included depends on `--stage` (defaults to all stages). Normal stdout output is unchanged — the CLI still prints the stage representation to stdout as usual.
+
+```bash
+# Capture all stages (default) using a local schema file
+./target/debug/mongosql-cli --db mydb --schema-file schema.yaml --audit-trail "SELECT name FROM users"
+
+# Capture only up to MIR
+./target/debug/mongosql-cli --db mydb --schema-file schema.yaml --audit-trail --stage mir "SELECT name FROM users"
+```
+
+After running, extract the zip to inspect the intermediate representations:
+
+```bash
+unzip audit_trail.zip
+# → audit_trail/initial_query.sql
+# → audit_trail/query.ast
+# → audit_trail/query.mir
+# → audit_trail/query.air
+# → audit_trail/pipeline.js
+```
+
 ### Schema Files
 
 When `--schema-file` is provided, the CLI reads collection schemas from a local file. 
@@ -164,7 +197,12 @@ npm run build
 ### Launching in VS Code
 
 1. Build the server: `cargo build -p mongosql-lsp`
-2. Press **F5** in VS Code — this runs the **Launch Client** configuration in `.vscode/launch.json`, which opens an Extension Development Host window with `SERVER_PATH` pointed at `target/debug/mongosql-lsp`.
+2. Install extension dependencies and build the bundle:
+   ```bash
+   npm install
+   npm run build
+   ```
+3. Press **F5** in VS Code — this runs the **Launch Client** configuration in `.vscode/launch.json`, which opens an Extension Development Host window with `SERVER_PATH` pointed at `target/debug/mongosql-lsp`.
 3. Open any `.mir` or `.air` file to get:
    - **Syntax highlighting** — enum variant names, struct field keys, string/number literals, and keywords each in a distinct colour.
    - **Code folding** — fold struct bodies and arrays with the editor's fold shortcut.

@@ -12,3 +12,7 @@ serde_json = { "workspace" = true }
 serde_yaml = { "workspace" = true }
 serde = { "workspace" = true, features = ["derive"] }
 clap = { "workspace" = true }
+zip = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
