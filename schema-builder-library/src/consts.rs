@@ -1,7 +1,7 @@
 use glob::Pattern;
 use std::sync::LazyLock;
 
-pub(crate) const DISALLOWED_DB_NAMES: [&str; 4] = ["admin", "config", "local", "system"];
+pub const DISALLOWED_DB_NAMES: [&str; 4] = ["admin", "config", "local", "system"];
 
 pub(crate) static DISALLOWED_COLLECTION_NAMES: LazyLock<Vec<Pattern>> = LazyLock::new(|| {
     vec![
@@ -15,4 +15,4 @@ pub(crate) static DISALLOWED_COLLECTION_NAMES: LazyLock<Vec<Pattern>> = LazyLock
     ]
 });
 
-pub(crate) const VIEW_SAMPLE_SIZE: i64 = 1000;
+pub const VIEW_SAMPLE_SIZE: i64 = 1000;

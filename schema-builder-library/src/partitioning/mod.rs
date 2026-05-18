@@ -28,7 +28,7 @@ pub struct PartitionedCollection {
 /// Note that the 100MB limit comes from the server, as noted in
 /// [$bucketAuto docs](https://www.mongodb.com/docs/manual/reference/operator/aggregation/bucketAuto/#-bucketauto-and-memory-restrictions).
 #[instrument(level = "trace", skip(service))]
-pub(crate) async fn get_partitions<S: DataService>(
+pub async fn get_partitions<S: DataService>(
     service: &S,
     db: &str,
     collection_info: CollectionInfo,

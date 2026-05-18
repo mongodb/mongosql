@@ -32,14 +32,15 @@ pub mod client_util;
 
 mod consts;
 pub(crate) mod context;
-use consts::{DISALLOWED_DB_NAMES, VIEW_SAMPLE_SIZE};
+pub use consts::{DISALLOWED_DB_NAMES, VIEW_SAMPLE_SIZE};
 mod collection;
 use collection::{DatabaseCollections, query_for_initial_schemas};
 mod partitioning;
-use partitioning::get_partitions;
+pub use partitioning::{PartitionedCollection, get_partitions};
 mod errors;
 mod schema;
 pub use errors::Error;
+pub use schema::{SinglePartition, derive_schema_for_partition, derive_schema_for_view};
 
 /// Re-export of mongosql Schema type for convenience
 pub type MongoSqlSchema = Schema;

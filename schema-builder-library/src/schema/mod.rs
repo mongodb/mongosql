@@ -113,7 +113,7 @@ pub(crate) async fn derive_schema_for_partitions<S: DataService>(
 
 /// A utility function for deriving the schema for a single partition of a collection.
 #[instrument(level = "trace", skip_all)]
-pub(crate) async fn derive_schema_for_partition<S: DataService>(
+pub async fn derive_schema_for_partition<S: DataService>(
     service: &S,
     db: &str,
     collection: &str,
@@ -211,7 +211,7 @@ pub(crate) async fn derive_schema_for_partition<S: DataService>(
 /// against the viewOn collection to generate a schema for the view.
 /// It does this by first prepending $sample to the pipeline
 #[instrument(level = "trace", skip_all)]
-pub(crate) async fn derive_schema_for_view<S: DataService>(
+pub async fn derive_schema_for_view<S: DataService>(
     service: &S,
     db: &str,
     view: &CollectionInfo,
