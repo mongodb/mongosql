@@ -1,0 +1,11 @@
+{
+  "name": "mongosql-lsp-client",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.75.0"
+  }
+}

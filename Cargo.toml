@@ -12,6 +12,7 @@ members = [
     "mongosql-datastructures",
     "mongosql-c",
     "mongosql",
+    "mongosql-lsp",
     "schema-builder-library",
     "service",
     "test-utils",
@@ -52,6 +53,7 @@ schema_derivation = { path = "agg-ast/schema_derivation" }
 base64 = "0.22.1"
 bson = "2"
 tailcall = "1"
+zip = "2"
 
 [profile.release]
 lto = "fat"

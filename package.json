@@ -1,0 +1,34 @@
+{
+  "name": "mongosql-lsp",
+  "displayName": "MongoSQL LSP",
+  "description": "Language server for MongoSQL MIR and AIR debug-tree files",
+  "version": "0.1.0",
+  "engines": { "vscode": "^1.75.0" },
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:mongosql-mir",
+    "onLanguage:mongosql-air"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "mongosql-mir",
+        "extensions": [".mir"],
+        "aliases": ["MongoSQL MIR"]
+      },
+      {
+        "id": "mongosql-air",
+        "extensions": [".air"],
+        "aliases": ["MongoSQL AIR"]
+      }
+    ]
+  },
+  "scripts": {
+    "postinstall": "cd client && npm i",
+    "build": "rolldown -c"
+  },
+  "devDependencies": {
+    "rolldown": "^1.0.0-beta.7",
+    "typescript": "^5.4.0"
+  }
+}

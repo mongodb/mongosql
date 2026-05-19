@@ -1,16 +1,15 @@
-use agg_ast::definitions::Namespace;
-use bson::{doc, Document};
+mod audit_trail;
+mod catalog;
+
+use audit_trail::{handle_audit_trail, TranslationCheckpoint};
+use bson::Document;
+use catalog::build_catalog;
 use clap::Parser;
 use mongodb::sync::{Client, Collection};
-use mongosql::{build_catalog_from_catalog_schema, catalog::Catalog, json_schema::Schema};
-use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
-const SQL_SCHEMAS_COLLECTION: &str = "__sql_schemas";
-
 #[derive(Debug)]
-struct CliError(String);
+pub(crate) struct CliError(String);
 
 impl std::fmt::Display for CliError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -28,7 +27,7 @@ where
 }
 
 #[derive(Parser, Debug)]
-#[command(version, about, long_about=None)]
+#[command(version, about, long_about = None, arg_required_else_help = true)]
 struct Cli {
     #[arg(
         short,
@@ -64,12 +63,23 @@ struct Cli {
         help = "A sql file to use instead of passing the query as an argument. The sql-file argument takes precedence over sql query text."
     )]
     sql_file: Option<PathBuf>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SchemaFile {
-    #[serde(flatten)]
-    pub schemas: BTreeMap<String, BTreeMap<String, Schema>>,
+    #[arg(
+        long,
+        value_enum,
+        help = "Stop at the specified compilation stage and print its intermediate representation. When omitted the CLI behaves as normal."
+    )]
+    stage: Option<TranslationCheckpoint>,
+    #[arg(
+        long,
+        default_value_t = false,
+        help = "Write intermediate representations for each completed translation stage \
+                into audit_trail.zip in the current working directory. \
+                Extracting the zip produces an audit_trail/ folder containing: \
+                initial_query.sql, and whichever of query.ast, query.mir, query.air, \
+                pipeline.js were reached. Which stages are included depends on --stage \
+                (defaults to all stages). Normal stdout output is unchanged."
+    )]
+    audit_trail: bool,
 }
 
 fn parse_query_from_args(
@@ -100,28 +110,70 @@ fn main() -> Result<(), CliError> {
     let uri = args.uri.unwrap_or("mongodb://localhost:27017".to_string());
     let current_db = args.db.unwrap_or("test".to_string());
     let query = parse_query_from_args(args.query, args.sql_file)?;
-    let namespaces = mongosql::get_namespaces(current_db.as_str(), query.as_str())?;
-    let catalog = if let Some(schema_file) = args.schema_file {
-        let contents = std::fs::read_to_string(&schema_file)?;
-        let path = std::path::Path::new(&schema_file);
-        let extension = path
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .map(|ext| ext.to_lowercase());
+    let stage = args.stage.unwrap_or(TranslationCheckpoint::Mql);
 
-        let catalog: SchemaFile = match extension.as_deref() {
-            Some("yaml") | Some("yml") => serde_yaml::from_str(&contents)?,
-            Some("json") => serde_json::from_str(&contents)?,
-            _ => {
-                return Err(CliError(format!(
-                "Unsupported schema file extension: {extension:?}. Supported formats are .yml, .yaml, .json"
-                )))
-            }
-        };
-        build_catalog_from_catalog_schema(catalog.schemas)?
-    } else {
-        get_schema_catalog(uri.as_str(), current_db.as_str(), namespaces)?
-    };
+    if args.execute && !matches!(stage, TranslationCheckpoint::Mql) {
+        return Err(CliError(
+            "--execute is only valid with --stage mql or without --stage".to_string(),
+        ));
+    }
+
+    let namespaces = mongosql::get_namespaces(current_db.as_str(), query.as_str())?;
+    let catalog = build_catalog(
+        uri.as_str(),
+        current_db.as_str(),
+        namespaces,
+        args.schema_file,
+    )?;
+
+    if args.audit_trail {
+        return handle_audit_trail(
+            stage,
+            current_db.as_str(),
+            query.as_str(),
+            uri.as_str(),
+            args.execute,
+            &catalog,
+        );
+    }
+
+    match stage {
+        TranslationCheckpoint::Ast => {
+            let output = mongosql::translate_sql_to_ast_repr(query.as_str())?;
+            println!("{output}");
+            return Ok(());
+        }
+        TranslationCheckpoint::Mir => {
+            let options = mongosql::options::SqlOptions {
+                allow_order_by_missing_columns: true,
+                ..Default::default()
+            };
+            let output = mongosql::translate_sql_to_mir_repr(
+                current_db.as_str(),
+                query.as_str(),
+                &catalog,
+                options,
+            )?;
+            println!("{output}");
+            return Ok(());
+        }
+        TranslationCheckpoint::Air => {
+            let options = mongosql::options::SqlOptions {
+                allow_order_by_missing_columns: true,
+                ..Default::default()
+            };
+            let output = mongosql::translate_sql_to_air_repr(
+                current_db.as_str(),
+                query.as_str(),
+                &catalog,
+                options,
+            )?;
+            println!("{output}");
+            return Ok(());
+        }
+        TranslationCheckpoint::Mql => {}
+    }
+
     let options = mongosql::options::SqlOptions {
         allow_order_by_missing_columns: true,
         ..Default::default()
@@ -156,7 +208,7 @@ fn main() -> Result<(), CliError> {
     run_query_and_display_results(uri.as_str(), translation)
 }
 
-fn run_query_and_display_results(
+pub(crate) fn run_query_and_display_results(
     uri: &str,
     translation: mongosql::Translation,
 ) -> Result<(), CliError> {
@@ -167,7 +219,7 @@ fn run_query_and_display_results(
     };
     let pipeline = pipeline
         .into_iter()
-        .map(|doc| doc.as_document().map(|doc| doc.to_owned()))
+        .map(|doc| doc.as_document().map(std::borrow::ToOwned::to_owned))
         .collect::<Option<Vec<Document>>>()
         .ok_or_else(|| CliError("Pipeline contains non-Document!".to_string()))?;
     let results = if let Some(target_collection) = translation.target_collection {
@@ -186,143 +238,15 @@ fn run_query_and_display_results(
     Ok(())
 }
 
-fn get_schema_catalog(
-    uri: &str,
-    current_db: &str,
-    namespaces: BTreeSet<Namespace>,
-) -> Result<Catalog, CliError> {
-    // If there are no namespaces (e.g. queries with only array datasources), assign
-    // an empty schema to `current_db`
-    if namespaces.is_empty() {
-        let schema_catalog_doc = doc! {
-            current_db: doc! {},
-        };
-
-        return Ok(mongosql::build_catalog_from_catalog_schema(
-            serde_json::from_str::<BTreeMap<String, BTreeMap<String, Schema>>>(
-                &schema_catalog_doc.to_string(),
-            )?,
-        )?);
-    }
-
-    // Otherwise, fetch the schema information for the specified collections.
-    let client = Client::with_uri_str(uri)?;
-    let db = client.database(current_db);
-    let schema_collection = db.collection::<Document>(SQL_SCHEMAS_COLLECTION);
-
-    let collection_names = namespaces
-        .iter()
-        .map(|namespace| namespace.collection.as_str())
-        .collect::<Vec<&str>>();
-
-    // Create an aggregation pipeline to fetch the schema information for the specified collections.
-    // The pipeline uses $in to query all the specified collections and projects them into the desired format:
-    // "dbName": { "collection1" : "Schema1", "collection2" : "Schema2", ... }
-    let schema_catalog_aggregation_pipeline = vec![
-        doc! {"$match": {
-            "_id": {
-                "$in": &collection_names
-                }
-            }
-        },
-        doc! {"$project":{
-            "_id": 1,
-            "schema": 1
-            }
-        },
-        doc! {"$group": {
-            "_id": null,
-            "collections": {
-                "$push": {
-                    "collectionName": "$_id",
-                    "schema": "$schema"
-                    }
-                }
-            }
-        },
-        doc! {"$project": {
-            "_id": 0,
-            current_db: {
-                "$arrayToObject": [{
-                    "$map": {
-                        "input": "$collections",
-                        "as": "coll",
-                        "in": {
-                            "k": "$$coll.collectionName",
-                            "v": "$$coll.schema"
-                            }
-                        }
-                    }]
-                }
-            }
-        },
-    ];
-
-    // create the schema_catalog document
-    let mut schema_catalog_doc_vec: Vec<Document> = schema_collection
-        .aggregate(schema_catalog_aggregation_pipeline)
-        .run()?
-        .collect::<Result<Vec<Document>, _>>()?;
-
-    if schema_catalog_doc_vec.len() > 1 {
-        return Err(CliError("Multiple Schema Documents Returned".to_string()));
-    }
-
-    if schema_catalog_doc_vec.is_empty() {
-        println!("[WARNING] No schema information was found for the requested collections `{collection_names:?}` in database `{current_db}`. Either the collections don't exist \
-                    in `{current_db}` or they don't have a schema. For now, they will be assigned empty schemas. Hint: You either need to generate schemas for your collections \
-                    or correct your query.");
-
-        let mut collections_schema_doc = doc! {};
-
-        for collection in collection_names {
-            collections_schema_doc.insert(collection, doc! {});
-        }
-
-        let schema_catalog_doc = doc! {
-          current_db: collections_schema_doc,
-        };
-
-        schema_catalog_doc_vec.push(schema_catalog_doc);
-    }
-
-    let mut schema_catalog_doc = schema_catalog_doc_vec[0].to_owned();
-
-    let collections_schema_doc = schema_catalog_doc.get_document_mut(current_db)?;
-
-    // If there are collections with no schema available, assign them empty schemas.
-    if namespaces.len() != collections_schema_doc.len() {
-        let missing_collections: Vec<String> = namespaces
-            .iter()
-            .map(|namespace| namespace.collection.clone())
-            .filter(|collection| !collections_schema_doc.contains_key(collection.as_str()))
-            .collect();
-
-        println!("[WARNING] No schema was found for the following collections: {missing_collections:?}. These collections will be assigned empty schemas. \
-                    Hint: Generate schemas for your collections.");
-
-        for collection in missing_collections {
-            collections_schema_doc.insert(collection, doc! {});
-        }
-    }
-
-    Ok(mongosql::build_catalog_from_catalog_schema(
-        serde_json::from_str::<BTreeMap<String, BTreeMap<String, Schema>>>(
-            &schema_catalog_doc.to_string(),
-        )?,
-    )?)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn it_parses_query_correctly() {
         let query = "SELECT * FROM users".to_string();
         let sql_file = None;
-
         let parse_result = parse_query_from_args(Some(query), sql_file);
-
         assert!(parse_result.is_ok());
         assert_eq!(parse_result.unwrap(), "SELECT * FROM users".to_string());
     }
@@ -331,9 +255,7 @@ mod tests {
     fn it_parses_sql_file_correctly() {
         let query: Option<String> = None;
         let sql_file = Some(PathBuf::from("./test/sample_query.sql"));
-
         let parse_result = parse_query_from_args(query, sql_file);
-
         assert!(parse_result.is_ok());
         assert_eq!(parse_result.unwrap(), "SELECT customerAge, COUNT(*) FROM sample_supplies.sales GROUP BY customer.age AS customerAge limit 10;".trim().to_string());
     }
@@ -342,9 +264,7 @@ mod tests {
     fn sql_file_takes_precedence_over_query() {
         let query = "SELECT * FROM users".to_string();
         let sql_file = Some(PathBuf::from("./test/sample_query.sql"));
-
         let parse_result = parse_query_from_args(Some(query), sql_file);
-
         assert!(parse_result.is_ok());
         assert_eq!(parse_result.unwrap(), "SELECT customerAge, COUNT(*) FROM sample_supplies.sales GROUP BY customer.age AS customerAge limit 10;".trim().to_string());
     }
@@ -353,9 +273,7 @@ mod tests {
     fn no_query_provided_returns_error() {
         let query: Option<String> = None;
         let sql_file: Option<PathBuf> = None;
-
         let parse_result = parse_query_from_args(query, sql_file);
-
         assert!(parse_result.is_err());
     }
 
@@ -363,7 +281,6 @@ mod tests {
     fn empty_sql_file_returns_error() {
         let query: Option<String> = None;
         let sql_file = Some(PathBuf::from("./test/empty_query.sql"));
-
         let parse_result = parse_query_from_args(query, sql_file);
         assert!(parse_result.is_err());
     }

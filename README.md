@@ -68,6 +68,65 @@ cargo run --package mongosql-cli -- --db mydb --schema-file schema.yaml "SELECT 
 ./target/debug/mongosql-cli --db mydb --execute --translation "SELECT * FROM products"
 ```
 
+**Inspect an intermediate compilation stage:**
+
+Use `--stage` to stop translation at a specific point in the pipeline and print the intermediate representation. This is useful for debugging query compilation issues.
+
+```bash
+# Print the rewritten AST (no MongoDB connection required)
+./target/debug/mongosql-cli --db mydb --schema-file schema.yaml --stage ast "SELECT name FROM users"
+
+# Print the optimized MIR tree
+./target/debug/mongosql-cli --db mydb --schema-file schema.yaml --stage mir "SELECT name FROM users"
+
+# Full MQL pipeline (same as omitting --stage)
+./target/debug/mongosql-cli --db mydb --schema-file schema.yaml --stage mql "SELECT name FROM users"
+```
+
+Available stages (in pipeline order):
+
+| Stage | Description |
+|-------|-------------|
+| `ast` | SQL parsed and syntactically rewritten; prints the AST as a Rust debug tree (`{:#?}`). No schema or MongoDB connection required. |
+| `mir` | Algebrized and optimizer-pass output; prints the MIR tree. Requires schema. |
+| `air` | MIR translated and desugared to AIR; prints the Rust struct tree (`{:#?}`). Requires schema. |
+| `mql` | Full translation to a MongoDB aggregation pipeline (default). |
+
+> **Note:** `--execute` is only valid with `--stage mql` or when `--stage` is omitted.
+
+**Capture an audit trail of all translation stages:**
+
+Use `--audit-trail` to write every intermediate representation produced during translation into `audit_trail.zip` in the current working directory. Extracting the zip yields an `audit_trail/` folder:
+
+| File | Contents |
+|------|----------|
+| `initial_query.sql` | The original SQL query, verbatim. Always present. |
+| `query.ast` | Rewritten AST (present when stage ≥ `ast`). |
+| `query.mir` | Optimized MIR tree (present when stage ≥ `mir`). |
+| `query.air` | Desugared AIR tree (present when stage ≥ `air`). |
+| `pipeline.js` | Generated MQL aggregation pipeline as JSON (present when stage = `mql`). |
+
+The set of files included depends on `--stage` (defaults to all stages). Normal stdout output is unchanged — the CLI still prints the stage representation to stdout as usual.
+
+```bash
+# Capture all stages (default) using a local schema file
+./target/debug/mongosql-cli --db mydb --schema-file schema.yaml --audit-trail "SELECT name FROM users"
+
+# Capture only up to MIR
+./target/debug/mongosql-cli --db mydb --schema-file schema.yaml --audit-trail --stage mir "SELECT name FROM users"
+```
+
+After running, extract the zip to inspect the intermediate representations:
+
+```bash
+unzip audit_trail.zip
+# → audit_trail/initial_query.sql
+# → audit_trail/query.ast
+# → audit_trail/query.mir
+# → audit_trail/query.air
+# → audit_trail/pipeline.js
+```
+
 ### Schema Files
 
 When `--schema-file` is provided, the CLI reads collection schemas from a local file. 
@@ -111,6 +170,52 @@ When `--schema-file` is omitted, the CLI connects to MongoDB and reads schema fr
 > 
 > This CLI tool is __only__ available for MongoDB Enterprise Advanced (EA) customers.
 > Refer to the [Schema Builder documentation](https://www.mongodb.com/docs/sql-interface/sql-interface-install/) for more information.
+## MongoSQL LSP
+
+The `mongosql-lsp` binary is a Language Server Protocol (LSP) server for `.mir` and `.air` debug-tree files produced by `mongosql-cli --stage mir` and `--stage air`. It provides syntax highlighting, code folding, and hover tooltips explaining each node type.
+
+### Building the server
+
+```bash
+cargo build -p mongosql-lsp
+```
+
+### Installing the VS Code extension
+
+The repository includes a thin VS Code extension that spawns the LSP server. Install its dependencies once from the repo root (the `postinstall` script automatically installs the client dependencies as well):
+
+```bash
+npm install
+```
+
+Then build the extension bundle:
+
+```bash
+npm run build
+```
+
+### Launching in VS Code
+
+1. Build the server: `cargo build -p mongosql-lsp`
+2. Install extension dependencies and build the bundle:
+   ```bash
+   npm install
+   npm run build
+   ```
+3. Press **F5** in VS Code — this runs the **Launch Client** configuration in `.vscode/launch.json`, which opens an Extension Development Host window with `SERVER_PATH` pointed at `target/debug/mongosql-lsp`.
+3. Open any `.mir` or `.air` file to get:
+   - **Syntax highlighting** — enum variant names, struct field keys, string/number literals, and keywords each in a distinct colour.
+   - **Code folding** — fold struct bodies and arrays with the editor's fold shortcut.
+   - **Hover tooltips** — hover over a node name (e.g. `Filter`, `Project`, `Lookup`) for a Markdown description of that compilation stage.
+
+### Using with other editors
+
+Because `mongosql-lsp` speaks plain JSON-RPC over stdio it works with any LSP-capable editor. For Neovim:
+
+```lua
+vim.lsp.start({ cmd = { "mongosql-lsp" }, filetypes = { "mir", "air" } })
+```
+
 ## Rust testing
 
 There are several types of tests for the Rust code: unit tests, fuzz tests, index usage tests, e2e
