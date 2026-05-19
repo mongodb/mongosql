@@ -8,7 +8,6 @@ pub use extended_unwind_rewrite::ExtendedUnwindRewritePass;
 mod select;
 pub use select::SelectRewritePass;
 pub mod tuples;
-pub use tuples::InTupleRewritePass;
 pub use tuples::SingleTupleRewritePass;
 mod from;
 pub use from::ImplicitFromRewritePass;
