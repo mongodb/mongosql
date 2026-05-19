@@ -3390,7 +3390,6 @@ name = "schema-builder-library"
 version = "0.0.0"
 dependencies = [
  "agg-ast",
- "async-trait",
  "bson",
  "console_error_panic_hook",
  "futures",
@@ -3406,6 +3405,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-test",
+ "trait-variant",
  "wasm-bindgen",
  "wasm-bindgen-futures",
 ]
@@ -4386,6 +4386,17 @@ version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ad06847b7afb65c7866a36664b75c40b895e318cea4f71299f013fb22965329d"
 dependencies = [
+ "quote",
+ "syn 2.0.114",
+]
+
+[[package]]
+name = "trait-variant"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70977707304198400eb4835a78f6a9f928bf41bba420deb8fdb175cd965d77a7"
+dependencies = [
+ "proc-macro2",
  "quote",
  "syn 2.0.114",
 ]

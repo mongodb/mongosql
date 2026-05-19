@@ -1,5 +1,4 @@
 use crate::{DataService, MongoDbDataService};
-use async_trait::async_trait;
 use mongodb::{
     Cursor, Database,
     bson::Document,
@@ -77,7 +76,7 @@ pub async fn get_opts(
     Ok(opts)
 }
 
-#[async_trait]
+#[trait_variant::make(Send)]
 pub trait DatabaseExt {
     async fn run_command_with_read_preference(
         &self,
@@ -90,7 +89,6 @@ pub trait DatabaseExt {
     ) -> Result<Cursor<Document>, <MongoDbDataService as DataService>::Error>;
 }
 
-#[async_trait]
 impl DatabaseExt for Database {
     async fn run_command_with_read_preference(
         &self,

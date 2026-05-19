@@ -23,6 +23,7 @@ impl TryFrom<DriverCollectionType> for CollectionType {
 }
 
 /// [`DataService`] implementation backed by the Rust MongoDB driver.
+#[derive(Debug, Clone)]
 pub struct MongoDbDataService {
     client: Client,
 }
@@ -33,7 +34,6 @@ impl MongoDbDataService {
     }
 }
 
-#[async_trait::async_trait]
 impl DataService for MongoDbDataService {
     type Error = mongodb::error::Error;
 

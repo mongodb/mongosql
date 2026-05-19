@@ -3,9 +3,9 @@ use futures::Stream;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
-use crate::data_service::AggregateOptions;
+use crate::data_service::{AggregateOptions, LocalDataService};
 
-use super::{CollectionInfo, DataService};
+use super::CollectionInfo;
 
 /// Error type for [`WasmDataService`] operations.
 #[derive(Debug, thiserror::Error)]
@@ -76,8 +76,7 @@ impl WasmDataService {
     }
 }
 
-#[async_trait::async_trait(?Send)]
-impl DataService for WasmDataService {
+impl LocalDataService for WasmDataService {
     type Error = WasmDataServiceError;
 
     async fn list_database_names(&self) -> Result<Vec<String>, Self::Error> {
