@@ -8,8 +8,7 @@ use tracing::{info, instrument, warn};
 
 use crate::data_service::AggregateOptions;
 use crate::{
-    DataService, Error, Result, VIEW_SAMPLE_SIZE, data_service::CollectionInfo,
-    partitioning::Partition,
+    DataService, Error, VIEW_SAMPLE_SIZE, data_service::CollectionInfo, partitioning::Partition,
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -30,7 +29,7 @@ pub async fn derive_schema_for_partition<S: DataService>(
     collection: &str,
     initial_schema_doc: Option<Arc<Schema>>,
     single_partition: SinglePartition,
-) -> Result<Schema, S::Error> {
+) -> Result<Schema, Error<S::Error>> {
     let mut ignored_ids = Vec::new();
     let mut partition = single_partition.partition;
     let partition_key = single_partition.partition_key.as_str();

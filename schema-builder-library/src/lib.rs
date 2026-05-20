@@ -33,5 +33,3 @@ pub type MongoSqlSchema = Schema;
 #[cfg(feature = "integration")]
 #[cfg(test)]
 mod internal_integration_tests;
-
-pub type Result<T, E> = std::result::Result<T, Error<E>>;
