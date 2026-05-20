@@ -1108,7 +1108,6 @@ impl Expression {
                 .cloned()
                 .ok_or_else(|| Error::DatasourceNotFoundInSchemaEnv(key.clone())),
             Expression::Array(ArrayExpr { array, .. }) => Expression::array_schema(state, array),
-            Expression::Tuple(TupleExpr { array, .. }) => Expression::array_schema(state, array),
 
             Expression::Document(DocumentExpr { document, .. }) => {
                 Expression::document_schema(state, document)

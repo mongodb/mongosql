@@ -1375,8 +1375,7 @@ impl<'a> Algebrizer<'a> {
             ast::Expression::TypeAssertion(t) => self.algebrize_type_assertion(t),
             ast::Expression::Is(i) => self.algebrize_is(i),
             ast::Expression::Like(l) => self.algebrize_like(l),
-            // Tuples will be translated to the tuple type.
-            ast::Expression::Tuple(a) => Ok(mir::Expression::Tuple(
+            ast::Expression::Tuple(a) => Ok(mir::Expression::Array(
                 a.into_iter()
                     .map(|e| self.algebrize_expression(e, false))
                     .collect::<Result<Vec<mir::Expression>>>()?

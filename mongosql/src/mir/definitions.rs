@@ -262,7 +262,6 @@ pub enum Expression {
     Subquery(SubqueryExpr),
     SubqueryComparison(SubqueryComparison),
     TypeAssertion(TypeAssertionExpr),
-    Tuple(TupleExpr),
 
     // Special variants that only exists for optimization purposes;
     // these do not represent actual MongoSql constructs.
@@ -290,7 +289,6 @@ impl Expression {
             Expression::Subquery(x) => x.is_nullable,
             Expression::SubqueryComparison(x) => x.is_nullable,
             Expression::TypeAssertion(x) => x.expr.is_nullable(),
-            Expression::Tuple(_) => false,
         }
     }
 
@@ -313,7 +311,6 @@ impl Expression {
             Expression::Reference(_) => (),
             Expression::Subquery(_) => (),
             Expression::TypeAssertion(_) => (),
-            Expression::Tuple(_) => (),
         }
     }
 }
@@ -409,19 +406,6 @@ impl<T: Into<Key>> From<T> for ReferenceExpr {
     fn from(k: T) -> Self {
         ReferenceExpr {
             key: k.into(),
-        }
-    }
-}
-
-#[derive(PartialEq, Debug, Clone)]
-pub struct TupleExpr {
-    pub array: Vec<Expression>,
-}
-
-impl From<Vec<Expression>> for TupleExpr {
-    fn from(array: Vec<Expression>) -> Self {
-        TupleExpr {
-            array,
         }
     }
 }

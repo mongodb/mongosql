@@ -24,6 +24,7 @@
 #[cfg(test)]
 mod test;
 
+use crate::mir::ArrayExpr;
 use crate::{
     mir::{
         optimizer::Optimizer,
@@ -32,7 +33,7 @@ use crate::{
         Expression, FieldPath, IsExpr, LikeExpr, LiteralValue, MatchFalse, MatchFilter,
         MatchLanguageComparison, MatchLanguageComparisonOp, MatchLanguageIn, MatchLanguageInOp,
         MatchLanguageLogical, MatchLanguageLogicalOp, MatchLanguageRegex, MatchLanguageType,
-        MatchQuery, MqlStage, ScalarFunction, ScalarFunctionApplication, Stage, TupleExpr, Type,
+        MatchQuery, MqlStage, ScalarFunction, ScalarFunctionApplication, Stage, Type,
         TypeOrMissing,
     },
     util::{convert_sql_pattern, LIKE_OPTIONS},
@@ -126,14 +127,14 @@ impl MatchLanguageRewriterVisitor {
     ///
     /// Any other shape (subqueries, field refs in the list, functions) falls through
     /// to `None` so the expression stays in `ExprLanguage`.
-    fn rewrite_in(sf: ScalarFunctionApplication) -> Option<MatchQuery> {
+    fn rewrite_in(sf: &ScalarFunctionApplication) -> Option<MatchQuery> {
         let field_path: FieldPath = match sf.args.first()? {
             Expression::FieldAccess(fa) => fa.clone().try_into().ok()?,
             _ => return None,
         };
 
         let values: Vec<LiteralValue> = match sf.args.get(1)? {
-            Expression::Tuple(TupleExpr { array }) => array
+            Expression::Array(ArrayExpr { array }) => array
                 .iter()
                 .map(|e| {
                     if let Expression::Literal(lit) = e {
@@ -169,7 +170,7 @@ impl MatchLanguageRewriterVisitor {
             Expression::ScalarFunction(sf) => match sf.function {
                 ScalarFunction::And => Self::rewrite_logical(MatchLanguageLogicalOp::And, sf.args),
                 ScalarFunction::Or => Self::rewrite_logical(MatchLanguageLogicalOp::Or, sf.args),
-                ScalarFunction::In | ScalarFunction::NotIn => Self::rewrite_in(sf),
+                ScalarFunction::In | ScalarFunction::NotIn => Self::rewrite_in(&sf),
                 _ => None,
             },
             // Note this relies on ConstantFolding to ensure that the a constant expression becomes

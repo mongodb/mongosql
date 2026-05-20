@@ -1,5 +1,4 @@
 use super::*;
-use crate::mir::TupleExpr;
 
 test_algebrize!(
     add_bin_op,
@@ -730,7 +729,7 @@ test_algebrize!(
                     field: "a".into(),
                     is_nullable: true,
                 }),
-                mir::Expression::Tuple(TupleExpr {
+                mir::Expression::Array(mir::ArrayExpr {
                     array: vec![
                         mir::Expression::Literal(mir::LiteralValue::Integer(1)),
                         mir::Expression::Literal(mir::LiteralValue::Integer(2)),
@@ -775,7 +774,7 @@ test_algebrize!(
                     field: "a".into(),
                     is_nullable: true,
                 }),
-                mir::Expression::Tuple(TupleExpr {
+                mir::Expression::Array(mir::ArrayExpr {
                     array: vec![
                         mir::Expression::Literal(mir::LiteralValue::Integer(1)),
                         mir::Expression::Literal(mir::LiteralValue::Integer(2)),
@@ -820,7 +819,7 @@ test_algebrize!(
                     field: "a".into(),
                     is_nullable: true,
                 }),
-                mir::Expression::Tuple(TupleExpr {
+                mir::Expression::Array(mir::ArrayExpr {
                     array: vec![mir::Expression::Literal(mir::LiteralValue::Boolean(true)),],
                 }),
             ],

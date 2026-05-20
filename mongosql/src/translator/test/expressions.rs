@@ -4350,7 +4350,7 @@ mod in_operator {
     // Test conversion
     use crate::mapping_registry::MqlReferenceType;
     use crate::mir::{
-        Expression, LiteralValue, ScalarFunction, ScalarFunctionApplication, TupleExpr,
+        ArrayExpr, Expression, LiteralValue, ScalarFunction, ScalarFunctionApplication,
     };
     use crate::util::mir_field_access;
     use crate::{air, mapping_registry::MqlMappingRegistryValue};
@@ -4362,7 +4362,7 @@ mod in_operator {
                 op: air::SqlOperator::In,
                 args: vec![
                     air::Expression::FieldRef("foo.x".to_string().into()),
-                    air::Expression::Tuple(vec!(
+                    air::Expression::Array(vec!(
                         air::Expression::Literal(air::LiteralValue::Integer(1)),
                         air::Expression::Literal(air::LiteralValue::Integer(2)),
                         air::Expression::Literal(air::LiteralValue::Integer(3))
@@ -4374,7 +4374,7 @@ mod in_operator {
             function: ScalarFunction::In,
             args: vec![
                 *mir_field_access("foo", "x", true),
-                Expression::Tuple(TupleExpr {
+                Expression::Array(ArrayExpr {
                     array: vec![
                         Expression::Literal(LiteralValue::Integer(1)),
                         Expression::Literal(LiteralValue::Integer(2)),
@@ -4401,7 +4401,7 @@ mod in_operator {
                 op: air::SqlOperator::In,
                 args: vec![
                     air::Expression::FieldRef("foo.a".to_string().into()),
-                    air::Expression::Tuple(vec![
+                    air::Expression::Array(vec![
                         air::Expression::Literal(air::LiteralValue::String("a".into())),
                         air::Expression::Literal(air::LiteralValue::String("b".into())),
                         air::Expression::Literal(air::LiteralValue::String("c".into())),
@@ -4413,7 +4413,7 @@ mod in_operator {
             function: ScalarFunction::In,
             args: vec![
                 *mir_field_access("foo", "a", false),
-                Expression::Tuple(TupleExpr {
+                Expression::Array(ArrayExpr {
                     array: vec![
                         Expression::Literal(LiteralValue::String("a".into())),
                         Expression::Literal(LiteralValue::String("b".into())),

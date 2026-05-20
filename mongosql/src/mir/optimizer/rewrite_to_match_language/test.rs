@@ -420,7 +420,7 @@ test_rewrite_to_match_language!(
         function: ScalarFunction::In,
         args: vec![
             *mir_field_access("foo", "int", true),
-            Expression::Tuple(TupleExpr {
+            Expression::Array(ArrayExpr {
                 array: vec![
                     Expression::Literal(LiteralValue::Integer(1)),
                     Expression::Literal(LiteralValue::Integer(2)),
@@ -449,7 +449,7 @@ test_rewrite_to_match_language!(
         function: ScalarFunction::NotIn,
         args: vec![
             *mir_field_access("foo", "int", true),
-            Expression::Tuple(TupleExpr {
+            Expression::Array(ArrayExpr {
                 array: vec![
                     Expression::Literal(LiteralValue::Integer(1)),
                     Expression::Literal(LiteralValue::Integer(2)),
@@ -467,7 +467,7 @@ test_rewrite_to_match_language_no_op!(
         function: ScalarFunction::In,
         args: vec![
             *mir_field_access("foo", "int", true),
-            Expression::Tuple(TupleExpr {
+            Expression::Array(ArrayExpr {
                 array: vec![
                     Expression::Literal(LiteralValue::Integer(1)),
                     *mir_field_access("foo", "int", true),
@@ -488,7 +488,7 @@ test_rewrite_to_match_language_no_op!(
                 args: vec![*mir_field_access("foo", "str", true)],
                 is_nullable: true,
             }),
-            Expression::Tuple(TupleExpr {
+            Expression::Array(ArrayExpr {
                 array: vec![
                     Expression::Literal(LiteralValue::Integer(1)),
                     Expression::Literal(LiteralValue::Integer(2)),

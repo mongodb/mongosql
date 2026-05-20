@@ -3494,7 +3494,7 @@ mod in_operator {
                     field: "a".into(),
                     is_nullable: true,
                 }),
-                Expression::Tuple(TupleExpr {
+                Expression::Array(ArrayExpr {
                     array: vec![
                         Expression::Literal(LiteralValue::Integer(1)),
                         Expression::Literal(LiteralValue::Integer(2)),
@@ -3521,7 +3521,7 @@ mod in_operator {
             function: ScalarFunction::NotIn,
             args: vec![
                 Expression::Literal(LiteralValue::Integer(1)),
-                Expression::Tuple(TupleExpr {
+                Expression::Array(ArrayExpr {
                     array: vec![
                         Expression::Literal(LiteralValue::Integer(1)),
                         Expression::Literal(LiteralValue::Integer(2)),

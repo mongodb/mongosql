@@ -1264,7 +1264,7 @@ test_algebrize!(
                     field: "b".into(),
                     is_nullable: true,
                 }),
-                mir::Expression::Tuple(mir::TupleExpr {
+                mir::Expression::Array(mir::ArrayExpr {
                     array: vec![
                         mir::Expression::Literal(mir::LiteralValue::Integer(1)),
                         mir::Expression::Literal(mir::LiteralValue::Integer(2)),
