@@ -26,12 +26,6 @@ pub enum Error<ServiceError: core::error::Error> {
     NoCollection(String),
     #[error("Initial schema for {0} is not valid")]
     InitialSchemaError(String),
-    #[error("Error when processing database pattern: {0}")]
-    PatternError(#[from] crate::collection::patterns::Error),
-    #[error(
-        "The `{0}` contains the following invalid pattern: `{1}`. All patterns must be in `<database_pattern>.<collection_pattern>` format"
-    )]
-    IncludeOrExcludeListContainsInvalidPatterns(String, String),
     #[error("{0}")]
     ChannelClosed(String),
 }

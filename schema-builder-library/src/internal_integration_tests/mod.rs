@@ -1,17 +1,5 @@
 #[cfg(feature = "integration")]
-#[cfg(test)]
-mod build_schema;
-
-#[cfg(feature = "integration")]
 mod consts;
-
-#[cfg(feature = "integration")]
-#[cfg(test)]
-mod derive_schema;
-
-#[cfg(feature = "integration")]
-#[cfg(test)]
-mod dry_run;
 
 #[cfg(feature = "integration")]
 #[cfg(test)]

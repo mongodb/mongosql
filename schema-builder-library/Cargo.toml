@@ -14,11 +14,9 @@ crate-type = ["cdylib", "rlib"]
 futures = { workspace = true }
 serde = { workspace = true }
 mongosql = { workspace = true }
-agg-ast = { workspace = true }
 schema_derivation = { workspace = true }
 thiserror = { workspace = true }
 lazy_static = { workspace = true }
-glob = { workspace = true }
 tracing = { workspace = true }
 bson.workspace = true
 trait-variant = { workspace = true }

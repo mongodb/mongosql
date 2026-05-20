@@ -1,19 +1,15 @@
 use std::sync::Arc;
 
 use bson::{Document, doc};
-use futures::{TryStreamExt as _, future};
+use futures::TryStreamExt as _;
 use mongosql::schema::Schema;
 use schema_derivation::schema_for_document;
 use tracing::{info, instrument, warn};
 
-pub(crate) mod initial_schema;
-
-use crate::context::ContextHandle;
 use crate::data_service::AggregateOptions;
-use crate::{DataService, partitioning::Partition};
 use crate::{
-    Error, Result, VIEW_SAMPLE_SIZE, data_service::CollectionInfo,
-    partitioning::PartitionedCollection,
+    DataService, Error, Result, VIEW_SAMPLE_SIZE, data_service::CollectionInfo,
+    partitioning::Partition,
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -25,91 +21,6 @@ pub struct SinglePartition {
 }
 
 pub const PARTITION_DOCS_PER_ITERATION: i64 = 20;
-
-/// A utility function for deriving the schema for a collection based on its partitions.
-///
-/// For each partition:
-///  1. If there is an initial schema
-///     The initial schema is used as the "seed" for the partition.
-///
-///  2. If there is no initial schema
-///     An aggregation operation is issued that sorts based on the partition key and limits the result set to
-///     20 documents. The schema for these documents is computed and "seeds" the schema for the
-///     partition.
-///
-/// The builder then enters a loop where it repeatedly issues query operations for documents that do
-/// not match the computed schema. The schema for each resulting document is calculated and merged
-/// with the existing schema, resulting in a new schema that meets all encountered documents so far.
-/// This operation repeats until there are no more results within the partition.
-///
-/// The results of each partition are unioned together to produce the schema of the entire
-/// collection.
-#[instrument(level = "trace", skip_all)]
-pub(crate) async fn derive_schema_for_partitions<S: DataService>(
-    ctx: ContextHandle<S>,
-    db: &str,
-    collection: &str,
-    initial_schema_doc: Option<Arc<Schema>>,
-    task_semaphore: std::sync::Arc<tokio::sync::Semaphore>,
-    partitioned_collection: PartitionedCollection,
-) -> Option<Schema> {
-    let partition_tasks = partitioned_collection
-        .partitions
-        .into_iter()
-        .enumerate()
-        .map(|(ix, partition)| {
-            let ctx = Arc::clone(&ctx);
-            let initial_schema_doc = initial_schema_doc.clone();
-            let task_semaphore = task_semaphore.clone();
-
-            let single_partition = SinglePartition {
-                partition,
-                partition_key: partitioned_collection.partition_key.clone(),
-                hint: partitioned_collection.hint.clone(),
-                partition_ix: ix,
-            };
-
-            async move {
-                // Acquire a permit from the semaphore to limit concurrency
-                #[allow(clippy::unwrap_used)]
-                let _permit = task_semaphore.acquire().await.unwrap();
-
-                // If we encounter an error when processing a partition,
-                // we effectively ignore it by saying the schema is Unsat.
-                // Note that for any schema s, Unsat.union(s) == s. Users
-                // can check their error notifications to see that schema
-                // building for this collection may be incomplete and can
-                // consider rerunning the builder if they wish.
-                derive_schema_for_partition(
-                    ctx.service(),
-                    db,
-                    collection,
-                    initial_schema_doc,
-                    single_partition,
-                )
-                .await
-                .inspect_err(|e| {
-                    tracing::warn!(
-                        db,
-                        collection,
-                        "failed to derive schema for partition {ix} with error: {e}"
-                    )
-                })
-                .unwrap_or(Schema::Unsat)
-            }
-        });
-
-    // Here, we await all partitions and then union them together to create the
-    // full collection schema. Note that we could union the partition schemas as
-    // they are produced for a marginal speedup, however that would require
-    // a mutable Schema value that is guarded by a lock. The overhead of locking
-    // and unioning per thread is likely equivalent to the more straightforward
-    // wait-and-then-union solution we have here.
-    future::join_all(partition_tasks)
-        .await
-        .into_iter()
-        .reduce(|full_coll_schema, part_schema| full_coll_schema.union(&part_schema))
-}
 
 /// A utility function for deriving the schema for a single partition of a collection.
 #[instrument(level = "trace", skip_all)]
