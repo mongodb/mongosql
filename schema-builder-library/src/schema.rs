@@ -7,9 +7,10 @@ use schema_derivation::schema_for_document;
 use tracing::{info, instrument, warn};
 
 use crate::data_service::AggregateOptions;
-use crate::{
-    DataService, Error, VIEW_SAMPLE_SIZE, data_service::CollectionInfo, partitioning::Partition,
-};
+use crate::{DataService, Error, data_service::CollectionInfo, partitioning::Partition};
+
+/// The amount of samples to fetch for view schema derivation
+const VIEW_SAMPLE_SIZE: i64 = 1000;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct SinglePartition {

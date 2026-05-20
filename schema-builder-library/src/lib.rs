@@ -18,8 +18,6 @@ pub use data_service::{JsDataService, WasmDataService};
 #[cfg(feature = "native-client")]
 pub mod client_util;
 
-mod consts;
-pub use consts::{DISALLOWED_DB_NAMES, VIEW_SAMPLE_SIZE};
 mod partitioning;
 pub use partitioning::{PartitionedCollection, get_partitions};
 mod errors;
