@@ -1,9 +1,10 @@
 use mongosql::schema::Schema;
 
 // DataService trait and implementations
-pub mod data_service;
+mod data_service;
 pub use data_service::{
-    CollectionInfo, CollectionOptions, CollectionType, DataService, TimeSeriesOptions,
+    Collection, CollectionInfo, DataService, LocalDataService, TimeSeriesOptions, TimeseriesInfo,
+    TimeseriesOptions, ViewInfo, ViewOptions,
 };
 
 #[cfg(all(feature = "native-client", feature = "wasm"))]

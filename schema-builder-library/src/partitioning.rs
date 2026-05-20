@@ -1,7 +1,9 @@
 pub(crate) use crate::partitioning::partition::{PARTITION_SIZE_IN_BYTES, Partition};
 use crate::{
     DataService, Error,
-    data_service::{AggregateOptions, CollectionInfo, CollectionType},
+    data_service::{
+        AggregateOptions, Collection, CollectionInfo, TimeseriesInfo, TimeseriesOptions, ViewInfo,
+    },
 };
 use bson::{Bson, Document, doc};
 use futures::{StreamExt as _, TryStreamExt as _};
@@ -31,36 +33,35 @@ pub struct PartitionedCollection {
 pub async fn get_partitions<S: DataService>(
     service: &S,
     db: &str,
-    collection_info: CollectionInfo,
+    collection: Collection,
 ) -> Result<PartitionedCollection, Error<S::Error>> {
-    let size_info = get_size_counts(service, db, &collection_info.name).await?;
+    let size_info = get_size_counts(service, db, &collection.name()).await?;
     let num_partitions = get_num_partitions(size_info.size, PARTITION_SIZE_IN_BYTES) as usize;
 
     // For timeseries collections, there is no `count` field reported, so we sample at a rate of
     // 1 per # of partitions. This is likely a much higher sample rate than for non-timeseries
     // collections, but it is our best effort for now to avoid running a full collection count.
-    let (sample_rate, partition_key, hint) = match collection_info.collection_type {
-        CollectionType::Timeseries => {
+    let (collection_name, sample_rate, partition_key, hint) = match collection {
+        Collection::Timeseries(TimeseriesInfo {
+            name,
+            options: TimeseriesOptions { timeseries },
+        }) => {
             let sample_rate = 1f64 / num_partitions as f64;
+            let partition_key = timeseries.time_field;
 
-            let timeseries_options = collection_info
-                .options
-                .timeseries
-                .ok_or_else(|| Error::NoTimeFieldSpecified(collection_info.name.clone()))?;
-
-            let partition_key = timeseries_options.time_field;
-
-            let hint = timeseries_options.meta_field.map(|meta_field| {
+            let hint = timeseries.meta_field.map(|meta_field| {
                 doc! { meta_field: 1, partition_key.as_str(): 1 }
             });
 
-            (sample_rate, partition_key, hint)
+            (name, sample_rate, partition_key, hint)
         }
-        CollectionType::Collection | CollectionType::View => {
-            let count = size_info.count.ok_or_else(|| {
-                Error::MissingCountFieldForCollection(collection_info.name.clone())
-            })?;
+        Collection::Collection(CollectionInfo { name })
+        | Collection::View(ViewInfo { name, .. }) => {
+            let count = size_info
+                .count
+                .ok_or_else(|| Error::MissingCountFieldForCollection(name.clone()))?;
             (
+                name,
                 num_partitions as f64 / count as f64 * 2.0,
                 "_id".to_string(),
                 Some(doc! {"_id": 1}),
@@ -69,7 +70,7 @@ pub async fn get_partitions<S: DataService>(
     };
 
     let (mut min_bound, max_bound) =
-        get_bounds(service, db, &collection_info.name, partition_key.as_str()).await?;
+        get_bounds(service, db, &collection_name, partition_key.as_str()).await?;
 
     // If the number of partitions is 1, no need to sample to determine partition boundaries. This
     // usually happens for very small collections.
@@ -98,7 +99,7 @@ pub async fn get_partitions<S: DataService>(
     let Ok(cursor) = service
         .aggregate(
             db,
-            &collection_info.name,
+            &collection_name,
             sample_pipeline,
             AggregateOptions {
                 key_hint: hint.clone(),
@@ -108,7 +109,7 @@ pub async fn get_partitions<S: DataService>(
         .inspect_err(|e| {
             tracing::warn!(
                 db,
-                collection = %collection_info.name,
+                collection = %collection_name,
                 "partition sampling failed; falling back to a single partition: {e}"
             )
         })

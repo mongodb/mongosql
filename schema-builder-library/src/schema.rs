@@ -6,8 +6,8 @@ use mongosql::schema::Schema;
 use schema_derivation::schema_for_document;
 use tracing::{info, instrument, warn};
 
-use crate::data_service::AggregateOptions;
-use crate::{DataService, Error, data_service::CollectionInfo, partitioning::Partition};
+use crate::data_service::{AggregateOptions, ViewInfo};
+use crate::{DataService, Error, partitioning::Partition};
 
 /// The amount of samples to fetch for view schema derivation
 const VIEW_SAMPLE_SIZE: i64 = 1000;
@@ -125,7 +125,7 @@ pub async fn derive_schema_for_partition<S: DataService>(
 pub async fn derive_schema_for_view<S: DataService>(
     service: &S,
     db: &str,
-    view: &CollectionInfo,
+    view: &ViewInfo,
 ) -> Option<Schema> {
     let pipeline = vec![doc! { "$sample": { "size": VIEW_SAMPLE_SIZE } }]
         .into_iter()

@@ -3,9 +3,10 @@ use futures::Stream;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
-use crate::data_service::{AggregateOptions, LocalDataService};
-
-use super::CollectionInfo;
+use crate::{
+    Collection,
+    data_service::{AggregateOptions, LocalDataService},
+};
 
 /// Error type for [`WasmDataService`] operations.
 #[derive(Debug, thiserror::Error)]
@@ -90,7 +91,7 @@ impl LocalDataService for WasmDataService {
             .map_err(|e| WasmDataServiceError::Deserialization(e.to_string()))
     }
 
-    async fn list_collections(&self, db_name: &str) -> Result<Vec<CollectionInfo>, Self::Error> {
+    async fn list_collections(&self, db_name: &str) -> Result<Vec<Collection>, Self::Error> {
         let js_result = self
             .js_service
             .list_collections(db_name)
