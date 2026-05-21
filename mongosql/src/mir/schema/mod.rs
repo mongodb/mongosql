@@ -25,9 +25,11 @@ use std::{
 };
 
 mod errors;
-pub use errors::Error;
 #[cfg(test)]
+use crate::mir::ScalarFunction::{In, NotIn};
+pub use errors::Error;
 pub(crate) use errors::ANY_SCHEMA_ADDENDUM;
+
 mod util;
 
 #[cfg(test)]
@@ -1490,6 +1492,69 @@ trait SqlFunction {
         ))
     }
 
+    /// Constructs and returns the schema for comparisons involving the `IN` operator. Validating
+    /// that the IN operator has valid arguments as well. Validations include:
+    ///
+    ///
+    fn get_in_operator_comparison_schema(
+        &self,
+        state: &SchemaInferenceState,
+        arg_schema: &[Schema],
+    ) -> Result<Schema, Error> {
+        // 1. Assert that the arg schema has exactly 2 arguments
+        if (arg_schema.len() != 2) {
+            return Err(Error::IncorrectArgumentCount {
+                name: self.as_str(),
+                required: 2,
+                found: arg_schema.len(),
+            });
+        }
+
+        // 2. In Operator LHS must be ANY and RHS must be an Array
+        let in_operator_lhs = &arg_schema[0];
+        let in_operator_rhs = &arg_schema[1];
+
+        if in_operator_lhs.satisfies(&Schema::Any) == Satisfaction::Not {
+            return Err(Error::SchemaChecking {
+                name: self.as_str(),
+                required: Schema::Any.clone().into(),
+                found: in_operator_lhs.clone().into(),
+            });
+        }
+
+        if in_operator_rhs.satisfies(&Schema::Array(Box::new(Schema::Any))) == Satisfaction::Not {
+            return Err(Error::SchemaChecking {
+                name: self.as_str(),
+                required: Schema::Array(Box::new(Schema::Any)).into(),
+                found: in_operator_rhs.clone().into(),
+            });
+        }
+
+        let array_element_schema: &Schema = match in_operator_rhs {
+            Schema::Array(element_schema) => element_schema.as_ref(),
+            _ => unreachable!(), // RHS should only be an array, and we throw above if it's not.  May need to consider reorganizing this?
+        };
+
+        let is_lhs_comparable_to_rhs =
+            state.check_comparable_with(in_operator_lhs, array_element_schema);
+        if (!is_lhs_comparable_to_rhs) {
+            return Err(Error::InvalidComparison(
+                self.as_str(),
+                Box::new(in_operator_lhs.clone()),
+                Box::new(array_element_schema.clone()),
+            ));
+        }
+
+        let ret_schema = self.propagate_fixed_null_arguments(
+            state,
+            arg_schema,
+            &[Schema::Any, Schema::Array(Box::new(Schema::Any))],
+            Schema::Atomic(Atomic::Boolean),
+        )?;
+
+        Ok(ret_schema)
+    }
+
     /// Returns the boolean and/or null schema for a valid comparison, or an error
     /// if the number of operands is not two or the comparison is not valid.
     fn get_comparison_schema(
@@ -1668,6 +1733,7 @@ impl ScalarFunction {
                     )?,
                 ]))
             }
+            In | NotIn => self.get_in_operator_comparison_schema(state, arg_schemas),
             // Boolean operators.
             Not => self.propagate_fixed_null_arguments(
                 state,
@@ -1770,12 +1836,6 @@ impl ScalarFunction {
                 Ok(Schema::Atomic(Atomic::Date))
             }
             MergeObjects => self.schema_check_merge_objects(state, arg_schemas),
-            In | NotIn => self.propagate_variadic_null_arguments(
-                state,
-                arg_schemas,
-                Schema::Any,
-                Schema::Atomic(Atomic::Boolean),
-            ),
         }
     }
 

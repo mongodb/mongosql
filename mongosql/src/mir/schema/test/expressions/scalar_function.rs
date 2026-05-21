@@ -3481,6 +3481,45 @@ mod in_operator {
     use super::*;
 
     test_schema!(
+        in_operator_requires_two_args,
+        expected_error_code = 1001,
+        expected = Err(mir_error::IncorrectArgumentCount {
+            name: "NotIn",
+            required: 2,
+            found: 1
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NotIn,
+            args: vec![Expression::Literal(LiteralValue::Integer(1))],
+            is_nullable: true,
+        }),
+    );
+
+    test_schema!(
+        in_operator_lhs_and_rhs_must_be_comparable,
+        expected_error_code = 1005,
+        expected = Err(mir_error::InvalidComparison(
+            "NotIn",
+            Schema::Atomic(Atomic::String).into(),
+            Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]).into()
+        )),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NotIn,
+            args: vec![
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Array(ArrayExpr {
+                    array: vec![
+                        Expression::Literal(LiteralValue::Integer(1)),
+                        Expression::Literal(LiteralValue::Integer(2)),
+                        Expression::Literal(LiteralValue::Integer(3)),
+                    ],
+                }),
+            ],
+            is_nullable: true,
+        }),
+    );
+
+    test_schema!(
         in_operator_schema_is_boolean,
         expected = Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
@@ -3506,7 +3545,7 @@ mod in_operator {
         }),
         schema_env = map! {
             ("foo", 1u16).into() => Schema::Document(Document {
-                keys: map! { "a".into() => Schema::Atomic(Atomic::String) },
+                keys: map! { "a".into() => Schema::Atomic(Atomic::Integer) },
                 required: set! {},
                 additional_properties: false,
                 ..Default::default()
