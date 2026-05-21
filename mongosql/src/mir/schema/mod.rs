@@ -1492,10 +1492,27 @@ trait SqlFunction {
         ))
     }
 
-    /// Constructs and returns the schema for comparisons involving the `IN` operator. Validating
-    /// that the IN operator has valid arguments as well. Validations include:
+    /// Returns the result schema for an `IN` operator comparison expression.
     ///
+    /// Validates that `arg_schema` contains exactly two elements, that the left-hand side
+    /// satisfies [`Schema::Any`], that the right-hand side satisfies
+    /// `Schema::Array(Any)`, and that the LHS type is comparable to the RHS array's
+    /// element type. On success, returns [`Schema::Atomic(Boolean)`], propagating
+    /// `Null` when any fixed-null argument is present.
     ///
+    /// # Errors
+    ///
+    /// - [`Error::IncorrectArgumentCount`] — `arg_schema` does not contain exactly 2 elements.
+    /// - [`Error::SchemaChecking`] — the LHS does not satisfy `Schema::Any`, or the RHS does
+    ///   not satisfy `Schema::Array(Any)`.
+    /// - [`Error::InvalidComparison`] — the LHS type is not comparable to the element type of
+    ///   the RHS array.
+    ///
+    /// # Panics
+    ///
+    /// Contains an `unreachable!()` branch for the non-array RHS match arm. This branch is
+    /// structurally unreachable: the preceding guard already returns
+    /// [`Error::SchemaChecking`] for any RHS that does not satisfy `Schema::Array(Any)`.
     fn get_in_operator_comparison_schema(
         &self,
         state: &SchemaInferenceState,
