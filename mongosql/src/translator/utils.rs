@@ -278,6 +278,8 @@ pub(crate) fn scalar_function_to_scalar_function_type(
             ScalarFunction::Substring => ScalarFunctionType::Mql(MqlOperator::SubstrCP),
             ScalarFunction::Lower => ScalarFunctionType::Mql(MqlOperator::ToLower),
             ScalarFunction::Upper => ScalarFunctionType::Mql(MqlOperator::ToUpper),
+            ScalarFunction::In => ScalarFunctionType::Mql(MqlOperator::In),
+            ScalarFunction::NotIn => ScalarFunctionType::Mql(MqlOperator::NotIn),
             _ => ScalarFunctionType::from(function),
         }
     }
@@ -376,6 +378,7 @@ impl From<mir::ScalarFunction> for ScalarFunctionType {
             // so both In and NotIn share a single consistent codegen path.
             // $nin is match-language-only and rejected by the server in $project; NotIn must
             // emit { "$not": [{ "$in": [...] }] } via SqlSemanticOperator codegen.
+            // We only translate to the SqlOperator In/Not In if the function is nullable
             In => ScalarFunctionType::Sql(SqlOperator::In),
             NotIn => ScalarFunctionType::Sql(SqlOperator::NotIn),
         }
