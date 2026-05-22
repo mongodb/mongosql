@@ -4356,7 +4356,7 @@ mod in_operator {
     use crate::{air, mapping_registry::MqlMappingRegistryValue};
 
     test_translate_expression!(
-        does_it_convert_correctly,
+        it_converts_to_mql_when_lhs_is_nullable,
         expected = Ok(air::Expression::SqlSemanticOperator(
             air::SqlSemanticOperator {
                 op: air::SqlOperator::In,

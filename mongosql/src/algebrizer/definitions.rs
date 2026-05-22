@@ -1409,7 +1409,11 @@ impl<'a> Algebrizer<'a> {
             ast::Expression::Like(l) => self.algebrize_like(l),
             ast::Expression::Tuple(a) => Ok(mir::Expression::Array(
                 a.into_iter()
-                    .map(|e| self.algebrize_expression(e, false))
+                    // Passes in_implicit_type_conversion_context to each element so that
+                    // algebrize_in_operands can drive ITC for all-StringConstructor Tuples
+                    // via its (false, true) arm. Reverting this to hardcode `false` would
+                    // silently break ITC for `field IN ('{"$date":"..."}', ...)`.
+                    .map(|e| self.algebrize_expression(e, in_implicit_type_conversion_context))
                     .collect::<Result<Vec<mir::Expression>>>()?
                     .into(),
             )),
@@ -1563,6 +1567,64 @@ impl<'a> Algebrizer<'a> {
             (l, r) => Ok((
                 self.algebrize_expression(l, false)?,
                 self.algebrize_expression(r, false)?,
+            )),
+        }
+    }
+
+    /// Algebrizes the operands of an `IN`/`NOT IN` expression with ITC awareness.
+    ///
+    /// Mirrors [`Self::algebrize_binary_comparison_operands`] but handles the fact that the RHS
+    /// is an [`ast::Expression::Tuple`] containing multiple elements rather than a single
+    /// expression. If exactly one side consists entirely of [`ast::Expression::StringConstructor`]
+    /// nodes, those strings are algebrized with `in_implicit_type_conversion_context = true`
+    /// so that extended-JSON strings (e.g. `'{"$date":"2020-01-01"}'`) are converted to the
+    /// corresponding BSON values. If both or neither side consists of string constructors,
+    /// both operands are algebrized with the flag set to `false`.
+    ///
+    /// # Errors
+    /// Returns an error if either operand fails to algebrize or if schema inference fails
+    /// on the non-literal side.
+    fn algebrize_in_operands(
+        &self,
+        left: ast::Expression,
+        right: ast::Expression,
+    ) -> Result<(mir::Expression, mir::Expression)> {
+        // 1. Check if all the elements of the right expression are StringConstructors.
+        let are_array_elements_all_string_constructors = match &right {
+            ast::Expression::Tuple(arr) => arr
+                .iter()
+                .all(|e| matches!(e, ast::Expression::StringConstructor(_))),
+            _ => false,
+        };
+
+        let is_left_a_string_constructor = matches!(left, ast::Expression::StringConstructor(_));
+
+        match (
+            is_left_a_string_constructor,
+            are_array_elements_all_string_constructors,
+        ) {
+            // Both sides are string constructors, no conversion needed
+            (true, true) => Ok((
+                self.algebrize_expression(left, false)?,
+                self.algebrize_expression(right, false)?,
+            )),
+            // LHS is a StringConstructor; RHS Tuple contains at least one non-string element.
+            // Algebrize the RHS to derive its schema, then ITC-convert the LHS accordingly.
+            (true, false) => {
+                let (literal, non_literal) =
+                    self.algebrize_itc_eligible_binary_comparison_operands(left, right)?;
+                Ok((literal, non_literal))
+            }
+            // LHS is not a string, RHS has elements that are all strings
+            // Do the reverse. We algebrize the non-literal LHS and use that to algebrize the RHS.
+            (false, true) => {
+                let (literal, non_literal) =
+                    self.algebrize_itc_eligible_binary_comparison_operands(right, left)?;
+                Ok((non_literal, literal))
+            }
+            (false, false) => Ok((
+                self.algebrize_expression(left, false)?,
+                self.algebrize_expression(right, false)?,
             )),
         }
     }
@@ -1749,11 +1811,7 @@ impl<'a> Algebrizer<'a> {
 
             Comparison(_) => self.algebrize_binary_comparison_operands(*b.left, *b.right)?,
 
-            In | NotIn => (
-                // 1. Check if the LHS and RHS of the expression are nullable or not.
-                self.algebrize_expression(*b.left, false)?,
-                self.algebrize_expression(*b.right, false)?,
-            ),
+            In | NotIn => self.algebrize_in_operands(*b.left, *b.right)?,
         };
 
         let mut cast_div_result: Option<mir::Type> = None;
