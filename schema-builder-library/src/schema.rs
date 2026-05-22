@@ -8,6 +8,7 @@ use tracing::{info, instrument, warn};
 
 use crate::data_service::AggregateOptions;
 use crate::{DataService, Error, data_service::CollectionInfo, partitioning::Partition};
+use crate::{PartitionedCollection, get_partitions};
 
 /// The amount of samples to fetch for view schema derivation
 const VIEW_SAMPLE_SIZE: i64 = 1000;
@@ -21,6 +22,58 @@ pub struct SinglePartition {
 }
 
 pub const PARTITION_DOCS_PER_ITERATION: i64 = 20;
+
+/// Derive a schema for an entire collection
+///
+/// Note: This breaks up the work into manageable partitions and operates over
+/// them in order. If you want to control the execution of these partitions,
+/// please refer to [derive_schema_for_partition].
+pub async fn derive_schema_for_collection<S: DataService>(
+    service: &S,
+    db: &str,
+    collection: &str,
+    initial_schema_doc: Option<Arc<Schema>>,
+) -> Result<Schema, Error<S::Error>> {
+    let collections = service
+        .list_collections(db)
+        .await
+        .map_err(Error::DataServiceError)?;
+    let collection_info = collections
+        .into_iter()
+        .find(|c| c.name == collection)
+        .ok_or_else(|| Error::NoCollection(collection.to_string()))?;
+
+    let PartitionedCollection {
+        partitions,
+        partition_key,
+        hint,
+    } = get_partitions(service, db, collection_info).await?;
+
+    // Note that we operate over all of the partitions linearly here. We could
+    // return a future that polls all partitions at the same time, but we figured
+    // that we can leave those sort of optimizations to the caller by exposing
+    // the `derive_schema_for_partition` directly.
+    let mut result = Schema::Unsat;
+    for (index, partition) in partitions.into_iter().enumerate() {
+        let schema = derive_schema_for_partition(
+            service,
+            db,
+            collection,
+            initial_schema_doc.clone(),
+            SinglePartition {
+                partition,
+                partition_key: partition_key.clone(),
+                hint: hint.clone(),
+                partition_ix: index,
+            },
+        )
+        .await?;
+
+        result = result.union(&schema);
+    }
+
+    Ok(result)
+}
 
 /// A utility function for deriving the schema for a single partition of a collection.
 #[instrument(level = "trace", skip_all)]

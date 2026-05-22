@@ -23,7 +23,10 @@ pub use partitioning::{PartitionedCollection, get_partitions};
 mod errors;
 mod schema;
 pub use errors::Error;
-pub use schema::{SinglePartition, derive_schema_for_partition, derive_schema_for_view};
+pub use schema::{
+    SinglePartition, derive_schema_for_collection, derive_schema_for_partition,
+    derive_schema_for_view,
+};
 
 /// Re-export of mongosql Schema type for convenience
 pub type MongoSqlSchema = Schema;
