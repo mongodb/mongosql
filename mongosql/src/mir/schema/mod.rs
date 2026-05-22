@@ -28,6 +28,7 @@ mod errors;
 #[cfg(test)]
 use crate::mir::ScalarFunction::{In, NotIn};
 pub use errors::Error;
+pub(crate) use errors::ANY_SCHEMA_ADDENDUM;
 
 mod util;
 
