@@ -4357,9 +4357,9 @@ mod in_operator {
 
     test_translate_expression!(
         it_converts_to_mql_when_lhs_is_nullable,
-        expected = Ok(air::Expression::SqlSemanticOperator(
-            air::SqlSemanticOperator {
-                op: air::SqlOperator::In,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::In,
                 args: vec![
                     air::Expression::FieldRef("foo.x".to_string().into()),
                     air::Expression::Array(vec!(
@@ -4396,9 +4396,9 @@ mod in_operator {
 
     test_translate_expression!(
         in_with_literal_strings,
-        expected = Ok(air::Expression::SqlSemanticOperator(
-            air::SqlSemanticOperator {
-                op: air::SqlOperator::In,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::In,
                 args: vec![
                     air::Expression::FieldRef("foo.a".to_string().into()),
                     air::Expression::Array(vec![

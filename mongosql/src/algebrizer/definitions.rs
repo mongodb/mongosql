@@ -327,22 +327,18 @@ impl<'a> Algebrizer<'a> {
         func: mir::ScalarFunction,
         args: &[mir::Expression],
     ) -> bool {
-        if !matches!(func, mir::ScalarFunction::In | mir::ScalarFunction::NotIn) {
-            panic!(
-                "In Expression nullability is only for In and NotIn Operator. Given {:?}",
-                func
-            );
-        }
+        assert!(
+            matches!(func, mir::ScalarFunction::In | mir::ScalarFunction::NotIn),
+            "In Expression nullability is only for In and NotIn Operator. Given {func:?}"
+        );
 
-        let lhs = args.get(0);
-        let is_lhs_is_nullable = lhs.map_or(false, |e| e.is_nullable());
+        let lhs = args.first();
+        let is_lhs_is_nullable = lhs.is_some_and(|e| e.is_nullable());
 
         let rhs = args.get(1);
-        let is_rhs_nullable = rhs.map_or(false, |e| {
-            match e {
-                mir::Expression::Array(arr) => arr.array.iter().any(|elem| elem.is_nullable()),
-                _ => e.is_nullable(), // For other types of expressions, we check their nullability directly.
-            }
+        let is_rhs_nullable = rhs.is_some_and(|e| match e {
+            mir::Expression::Array(arr) => arr.array.iter().any(|elem| elem.is_nullable()),
+            _ => e.is_nullable(), // For other types of expressions, we check their nullability directly.
         });
 
         is_lhs_is_nullable || is_rhs_nullable
@@ -1603,8 +1599,8 @@ impl<'a> Algebrizer<'a> {
             is_left_a_string_constructor,
             are_array_elements_all_string_constructors,
         ) {
-            // Both sides are string constructors, no conversion needed
-            (true, true) => Ok((
+            // Both sides are string constructors, or neither is — no conversion needed.
+            (true, true) | (false, false) => Ok((
                 self.algebrize_expression(left, false)?,
                 self.algebrize_expression(right, false)?,
             )),
@@ -1622,10 +1618,6 @@ impl<'a> Algebrizer<'a> {
                     self.algebrize_itc_eligible_binary_comparison_operands(right, left)?;
                 Ok((non_literal, literal))
             }
-            (false, false) => Ok((
-                self.algebrize_expression(left, false)?,
-                self.algebrize_expression(right, false)?,
-            )),
         }
     }
 
@@ -2513,7 +2505,15 @@ impl<'a> Algebrizer<'a> {
 }
 
 mod in_operator_nullability {
+    #[expect(
+        unused_imports,
+        reason = "glob brings Algebrizer, mir, Key etc. into test scope"
+    )]
     use super::*;
+    #[expect(
+        unused_imports,
+        reason = "ArrayExpr is used in test expressions without mir:: prefix"
+    )]
     use crate::mir::ArrayExpr;
 
     #[test]

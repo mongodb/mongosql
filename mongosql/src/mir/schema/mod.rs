@@ -1519,7 +1519,7 @@ trait SqlFunction {
         arg_schema: &[Schema],
     ) -> Result<Schema, Error> {
         // 1. Assert that the arg schema has exactly 2 arguments
-        if (arg_schema.len() != 2) {
+        if arg_schema.len() != 2 {
             return Err(Error::IncorrectArgumentCount {
                 name: self.as_str(),
                 required: 2,
@@ -1554,7 +1554,7 @@ trait SqlFunction {
 
         let is_lhs_comparable_to_rhs =
             state.check_comparable_with(in_operator_lhs, array_element_schema);
-        if (!is_lhs_comparable_to_rhs) {
+        if !is_lhs_comparable_to_rhs {
             return Err(Error::InvalidComparison(
                 self.as_str(),
                 Box::new(in_operator_lhs.clone()),
