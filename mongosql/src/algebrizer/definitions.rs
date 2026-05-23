@@ -1,3 +1,4 @@
+use crate::mir::ArrayExpr;
 use crate::{
     algebrizer::errors::Error,
     ast::{self, pretty_print::PrettyPrint},
@@ -1586,10 +1587,10 @@ impl<'a> Algebrizer<'a> {
         right: ast::Expression,
     ) -> Result<(mir::Expression, mir::Expression)> {
         // 1. Check if all the elements of the right expression are StringConstructors.
-        let are_array_elements_all_string_constructors = match &right {
+        let are_any_array_elements_string_constructors = match &right {
             ast::Expression::Tuple(arr) => arr
                 .iter()
-                .all(|e| matches!(e, ast::Expression::StringConstructor(_))),
+                .any(|e| matches!(e, ast::Expression::StringConstructor(_))),
             _ => false,
         };
 
@@ -1597,26 +1598,49 @@ impl<'a> Algebrizer<'a> {
 
         match (
             is_left_a_string_constructor,
-            are_array_elements_all_string_constructors,
+            are_any_array_elements_string_constructors,
         ) {
             // Both sides are string constructors, or neither is — no conversion needed.
             (true, true) | (false, false) => Ok((
                 self.algebrize_expression(left, false)?,
                 self.algebrize_expression(right, false)?,
             )),
-            // LHS is a StringConstructor; RHS Tuple contains at least one non-string element.
-            // Algebrize the RHS to derive its schema, then ITC-convert the LHS accordingly.
+            // LHS is a StringConstructor; RHS Tuple does not have any string constructors among its elements
             (true, false) => {
-                let (literal, non_literal) =
-                    self.algebrize_itc_eligible_binary_comparison_operands(left, right)?;
-                Ok((literal, non_literal))
+                Ok((
+                    // Because the left is a StringConstructor, we algebrize with ITC to convert it to the right value
+                    self.algebrize_expression(left, true)?,
+                    // Because none of the elements in the RHS are StringConstructors, we can safely algebrize the entire RHS with in_implicit_type_conversion_context set to false.
+                    self.algebrize_expression(right, false)?,
+                ))
             }
-            // LHS is not a string, RHS has elements that are all strings
-            // Do the reverse. We algebrize the non-literal LHS and use that to algebrize the RHS.
+            // LHS is not a string constructor, RHS has some elements that StringConstructors
+            // We algebrize the LHS with in_implicit_context false, and then algebrize each element in the RHS.
             (false, true) => {
-                let (literal, non_literal) =
-                    self.algebrize_itc_eligible_binary_comparison_operands(right, left)?;
-                Ok((non_literal, literal))
+                let rhs_algebrized_per_element = match right {
+                    ast::Expression::Tuple(elements) => {
+                        let mut algebrized_elements = Vec::new();
+                        for element in elements {
+                            let algebrized_element = match element {
+                                ast::Expression::StringConstructor(_) => {
+                                    self.algebrize_expression(element, true)?
+                                }
+                                _ => self.algebrize_expression(element, false)?,
+                            };
+
+                            algebrized_elements.push(algebrized_element);
+                        }
+                        algebrized_elements
+                    }
+                    _ => unreachable!(),
+                };
+
+                Ok((
+                    self.algebrize_expression(left, false)?,
+                    mir::Expression::Array(ArrayExpr {
+                        array: rhs_algebrized_per_element,
+                    }),
+                ))
             }
         }
     }

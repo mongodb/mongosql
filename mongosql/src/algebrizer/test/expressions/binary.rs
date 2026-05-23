@@ -1114,4 +1114,39 @@ mod in_operator {
             }),
         },
     );
+    // Case: LHS is a Literal Integer, RHS Tuple has a mix of Literal integers and
+    // StringConstructor ($numberInt) values. Only the StringConstructors are
+    // ITC-converted; plain integer literals pass through unchanged.
+    test_algebrize!(
+        in_operator_translates_rhs_on_per_element_basis,
+        method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::In,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(10)),
+                    mir::Expression::Array(mir::ArrayExpr {
+                        array: vec![
+                            mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                            mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                            mir::Expression::Literal(mir::LiteralValue::Integer(3)),
+                            mir::Expression::Literal(mir::LiteralValue::Integer(4)),
+                        ],
+                    }),
+                ],
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(10))),
+            op: ast::BinaryOp::In,
+            right: Box::new(ast::Expression::Tuple(vec![
+                ast::Expression::Literal(ast::Literal::Integer(1)),
+                ast::Expression::StringConstructor("{\"$numberInt\": \"2\"}".to_string()),
+                ast::Expression::Literal(ast::Literal::Integer(3)),
+                ast::Expression::StringConstructor("{\"$numberInt\": \"4\"}".to_string()),
+            ])),
+        }),
+    );
 }
