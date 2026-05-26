@@ -22,7 +22,7 @@ members = [
 ]
 
 [workspace.dependencies]
-mongodb = "3"
+mongodb = "3.7"
 thiserror = "2"
 serde_yaml = "0"
 serde = "1"
