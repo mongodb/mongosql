@@ -1,28 +1,14 @@
 use bson::doc;
 use futures::{Stream, TryStreamExt};
-use mongodb::{
-    Client, bson::Document, options::Hint, results::CollectionType as DriverCollectionType,
-};
+use mongodb::{Client, bson::Document, options::Hint};
 use tracing::warn;
 
 use crate::{client_util::DatabaseExt as _, data_service::AggregateOptions};
 
-use super::{CollectionInfo, CollectionType, DataService};
-
-impl TryFrom<DriverCollectionType> for CollectionType {
-    type Error = DriverCollectionType;
-
-    fn try_from(value: DriverCollectionType) -> std::result::Result<Self, Self::Error> {
-        match value {
-            DriverCollectionType::Collection => Ok(CollectionType::Collection),
-            DriverCollectionType::View => Ok(CollectionType::View),
-            DriverCollectionType::Timeseries => Ok(CollectionType::Timeseries),
-            other => Err(other),
-        }
-    }
-}
+use super::{Collection, DataService};
 
 /// [`DataService`] implementation backed by the Rust MongoDB driver.
+#[derive(Debug, Clone)]
 pub struct MongoDbDataService {
     client: Client,
 }
@@ -33,7 +19,6 @@ impl MongoDbDataService {
     }
 }
 
-#[async_trait::async_trait]
 impl DataService for MongoDbDataService {
     type Error = mongodb::error::Error;
 
@@ -41,7 +26,7 @@ impl DataService for MongoDbDataService {
         self.client.list_database_names().await
     }
 
-    async fn list_collections(&self, db_name: &str) -> Result<Vec<CollectionInfo>, Self::Error> {
+    async fn list_collections(&self, db_name: &str) -> Result<Vec<Collection>, Self::Error> {
         let db = self.client.database(db_name);
 
         // Note: Here we manually run the `listCollection` method rather than use the
