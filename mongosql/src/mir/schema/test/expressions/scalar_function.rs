@@ -3554,7 +3554,7 @@ mod in_operator {
     );
 
     test_schema!(
-        basic_in_operator_schema_is_boolean,
+        not_in_operator_schema_is_boolean,
         expected = Ok(Schema::Atomic(Atomic::Boolean)),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::NotIn,
@@ -3570,7 +3570,6 @@ mod in_operator {
             ],
             is_nullable: true,
         }),
-        schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
 
     // Verifies that a nullable array RHS — e.g. AnyOf([Array(T), Null]) — produces a
