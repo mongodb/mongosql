@@ -35,7 +35,7 @@ pub async fn get_partitions<S: DataService>(
     db: &str,
     collection: Collection,
 ) -> Result<PartitionedCollection, Error<S::Error>> {
-    let size_info = get_size_counts(service, db, &collection.name()).await?;
+    let size_info = get_size_counts(service, db, collection.name()).await?;
     let num_partitions = get_num_partitions(size_info.size, PARTITION_SIZE_IN_BYTES) as usize;
 
     // For timeseries collections, there is no `count` field reported, so we sample at a rate of
