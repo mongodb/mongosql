@@ -1064,6 +1064,8 @@ pub enum UntaggedOperatorName {
     SqlGt,
     #[serde(rename = "$sqlGte")]
     SqlGte,
+    #[serde(rename = "$sqlIn")]
+    SqlIn,
     #[serde(rename = "$sqlIndexOfCP")]
     SqlIndexOfCP,
     #[serde(rename = "$sqlIs")]

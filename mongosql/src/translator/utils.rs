@@ -279,7 +279,23 @@ pub(crate) fn scalar_function_to_scalar_function_type(
             ScalarFunction::Lower => ScalarFunctionType::Mql(MqlOperator::ToLower),
             ScalarFunction::Upper => ScalarFunctionType::Mql(MqlOperator::ToUpper),
             ScalarFunction::In => ScalarFunctionType::Mql(MqlOperator::In),
-            ScalarFunction::NotIn => ScalarFunctionType::Mql(MqlOperator::NotIn),
+            // `$nin` is a match-language-only operator; MongoDB rejects it inside aggregation
+            // expression contexts such as `$project` or `$match: {$expr: ...}`.
+            //
+            // For example, the query
+            //   SELECT * FROM foo WHERE 5 NOT IN (1,2,3) LIMIT 10
+            // would previously generate the invalid pipeline:
+            //   [
+            //     { "$match": { "$expr": { "$nin": [{"$literal":5}, [{"$literal":1},
+            //                                                         {"$literal":2},
+            //                                                         {"$literal":3}]] } } },
+            //     { "$project": { "foo": "$$ROOT", "_id": 0 } },
+            //   ]
+            //
+            // Routing through SqlOperator::NotIn causes the SQL null-semantics desugarer to
+            // rewrite it as Not(In(...)), which emits { "$not": [{ "$in": [...] }] } — valid
+            // in every MQL context.
+            ScalarFunction::NotIn => ScalarFunctionType::Sql(SqlOperator::NotIn),
             _ => ScalarFunctionType::from(function),
         }
     }

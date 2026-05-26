@@ -479,7 +479,7 @@ impl CachedSchema for Stage {
                             return Err(Error::CollectionNotFound(
                                 c.db.clone(),
                                 c.collection.clone(),
-                            ))
+                            ));
                         }
                     };
                 Ok(ResultSet {
@@ -1539,7 +1539,11 @@ trait SqlFunction {
             });
         }
 
-        if in_operator_rhs.satisfies(&Schema::Array(Box::new(Schema::Any))) == Satisfaction::Not {
+        // Reject any RHS that is not provably an array. Using `!= Must` rather than
+        // `== Not` ensures that nullable arrays — e.g. AnyOf([Array(T), Null]) —
+        // return Satisfaction::May and are caught here with a structured error instead
+        // of falling through to the match below and hitting unreachable!().
+        if in_operator_rhs.satisfies(&Schema::Array(Box::new(Schema::Any))) != Satisfaction::Must {
             return Err(Error::SchemaChecking {
                 name: self.as_str(),
                 required: Schema::Array(Box::new(Schema::Any)).into(),
@@ -1549,7 +1553,9 @@ trait SqlFunction {
 
         let array_element_schema: &Schema = match in_operator_rhs {
             Schema::Array(element_schema) => element_schema.as_ref(),
-            _ => unreachable!(), // RHS should only be an array, and we throw above if it's not.  May need to consider reorganizing this?
+            // Unreachable: the guard above already returns an error for any schema
+            // that is not definitely Schema::Array(_).
+            _ => unreachable!(),
         };
 
         let is_lhs_comparable_to_rhs =

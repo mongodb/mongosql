@@ -73,7 +73,9 @@ impl UserError for Error {
                 {
                     Some(message)
                 } else {
-                    let error_msg = format!("Incorrect argument type for `{name}`. Required: {simplified_required}. Found: {simplified_found}.");
+                    let error_msg = format!(
+                        "Incorrect argument type for `{name}`. Required: {simplified_required}. Found: {simplified_found}."
+                    );
                     let error_msg = Self::error_message_with_any_schema_addendum(
                         error_msg,
                         vec![simplified_found],
@@ -87,7 +89,9 @@ impl UserError for Error {
                 if let Some(message) = unsat_check(vec![simplified_schema.clone()]) {
                     Some(message)
                 } else {
-                    let error_msg = format!("Cannot perform `{agg}` aggregation over the type `{simplified_schema}` as it is not comparable to itself.");
+                    let error_msg = format!(
+                        "Cannot perform `{agg}` aggregation over the type `{simplified_schema}` as it is not comparable to itself."
+                    );
                     let error_msg = Self::error_message_with_any_schema_addendum(
                         error_msg,
                         vec![simplified_schema],
@@ -104,7 +108,9 @@ impl UserError for Error {
                 {
                     Some(message)
                 } else {
-                    let error_msg = format!("Invalid use of `{func}` due to incomparable types: `{simplified_s1}` cannot be compared to `{simplified_s2}`.");
+                    let error_msg = format!(
+                        "Invalid use of `{func}` due to incomparable types: `{simplified_s1}` cannot be compared to `{simplified_s2}`."
+                    );
                     let error_msg = Self::error_message_with_any_schema_addendum(
                         error_msg,
                         vec![simplified_s1, simplified_s2],
@@ -118,7 +124,9 @@ impl UserError for Error {
                     match suggestions {
                         Ok(suggested_fields) => {
                             if suggested_fields.is_empty() {
-                                Some(format!("Cannot access field `{field}` because it could not be found."))
+                                Some(format!(
+                                    "Cannot access field `{field}` because it could not be found."
+                                ))
                             } else {
                                 Some(format!(
                                     "Cannot access field `{field}` because it could not be found. Did you mean: {}",
@@ -130,7 +138,9 @@ impl UserError for Error {
                                 ))
                             }
                         }
-                        Err(e) => Some(format!("Cannot access field `{field}` because it could not be found. Internal error: {e}")),
+                        Err(e) => Some(format!(
+                            "Cannot access field `{field}` because it could not be found. Internal error: {e}"
+                        )),
                     }
                 } else {
                     Some(format!(
@@ -191,19 +201,51 @@ impl UserError for Error {
 
     fn technical_message(&self) -> String {
         match self {
-            Error::DatasourceNotFoundInSchemaEnv(datasource) => format!("datasource {datasource:?} not found in schema environment"),
-            Error::IncorrectArgumentCount {name, required, found} => format!("incorrect argument count for {name}: required {required}, found {found}"),
-            Error::SchemaChecking {name, required, found } => format!("schema checking failed for {name}: required {required:?}, found {found:?}"),
-            Error::AggregationArgumentMustBeSelfComparable(aggs, schema) => format!("cannot have {aggs:?} aggregations over the schema: {schema:?} as it is not comparable to itself"),
-            Error::InvalidComparison(func, s1, s2) => format!("invalid comparison for {func}: {s1:?} cannot be compared to {s2:?}"),
-            Error::CannotMergeObjects(s1, s2, sat) => format!("cannot merge objects {s1:?} and {s2:?} as they {sat:?} have overlapping keys"),
-            Error::AccessMissingField(field, _) => format!("cannot access field {field} because it does not exist"),
-            Error::InvalidSubqueryCardinality => "cardinality of the subquery's result set may be greater than 1".to_string(),
-            Error::SortKeyNotSelfComparable(pos, schema) => format!("sort key at position {pos} is not statically comparable to itself because it has the schema {schema:?}"),
-            Error::GroupKeyNotSelfComparable(pos, schema) => format!("group key at position {pos} is not statically comparable to itself because it has the schema {schema:?}"),
-            Error::UnwindIndexNameConflict(name) => format!("UNWIND INDEX name '{name}' conflicts with existing field name"),
-            Error::CollectionNotFound(database, coll) => format!("unknown collection '{coll}' in database '{database}'"),
-            Error::InvalidBinaryDataType => "Binary data with subtype 3 found in schema".to_string(),
+            Error::DatasourceNotFoundInSchemaEnv(datasource) => {
+                format!("datasource {datasource:?} not found in schema environment")
+            }
+            Error::IncorrectArgumentCount {
+                name,
+                required,
+                found,
+            } => format!("incorrect argument count for {name}: required {required}, found {found}"),
+            Error::SchemaChecking {
+                name,
+                required,
+                found,
+            } => {
+                format!("schema checking failed for {name}: required {required:?}, found {found:?}")
+            }
+            Error::AggregationArgumentMustBeSelfComparable(aggs, schema) => format!(
+                "cannot have {aggs:?} aggregations over the schema: {schema:?} as it is not comparable to itself"
+            ),
+            Error::InvalidComparison(func, s1, s2) => {
+                format!("invalid comparison for {func}: {s1:?} cannot be compared to {s2:?}")
+            }
+            Error::CannotMergeObjects(s1, s2, sat) => format!(
+                "cannot merge objects {s1:?} and {s2:?} as they {sat:?} have overlapping keys"
+            ),
+            Error::AccessMissingField(field, _) => {
+                format!("cannot access field {field} because it does not exist")
+            }
+            Error::InvalidSubqueryCardinality => {
+                "cardinality of the subquery's result set may be greater than 1".to_string()
+            }
+            Error::SortKeyNotSelfComparable(pos, schema) => format!(
+                "sort key at position {pos} is not statically comparable to itself because it has the schema {schema:?}"
+            ),
+            Error::GroupKeyNotSelfComparable(pos, schema) => format!(
+                "group key at position {pos} is not statically comparable to itself because it has the schema {schema:?}"
+            ),
+            Error::UnwindIndexNameConflict(name) => {
+                format!("UNWIND INDEX name '{name}' conflicts with existing field name")
+            }
+            Error::CollectionNotFound(database, coll) => {
+                format!("unknown collection '{coll}' in database '{database}'")
+            }
+            Error::InvalidBinaryDataType => {
+                "Binary data with subtype 3 found in schema".to_string()
+            }
         }
     }
 }

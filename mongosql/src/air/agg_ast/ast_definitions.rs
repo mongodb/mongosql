@@ -721,6 +721,7 @@ impl From<UntaggedOperator> for air::Expression {
             UntaggedOperatorName::SqlNot => sql_op!(air::SqlOperator::Not),
             UntaggedOperatorName::SqlAnd => sql_op!(air::SqlOperator::And),
             UntaggedOperatorName::SqlOr => sql_op!(air::SqlOperator::Or),
+            UntaggedOperatorName::SqlIn => sql_op!(air::SqlOperator::In),
             UntaggedOperatorName::SqlSlice => sql_op!(air::SqlOperator::Slice),
             UntaggedOperatorName::SqlSize => sql_op!(air::SqlOperator::Size),
             UntaggedOperatorName::SqlIndexOfCP => sql_op!(air::SqlOperator::IndexOfCP),

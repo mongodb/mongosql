@@ -4432,4 +4432,54 @@ mod in_operator {
             mr
         },
     );
+
+    // Verifies that ScalarFunction::NotIn with is_nullable=false routes through
+    // SqlSemanticOperator (not MqlSemanticOperator / `$nin`).
+    //
+    // The SQL query `SELECT * FROM foo WHERE 5 NOT IN (1,2,3) LIMIT 10` previously
+    // emitted the invalid pipeline below because the non-nullable path mapped NotIn
+    // to MqlOperator::NotIn which serializes to `$nin`:
+    //
+    //   [
+    //     { "$match": { "$expr": { "$nin": [{"$literal":5},
+    //                                        [{"$literal":1},
+    //                                         {"$literal":2},
+    //                                         {"$literal":3}]] } } },
+    //     { "$project": { "foo": "$ROOT", "_id": 0 } }
+    //   ]
+    //
+    // MongoDB rejects `$nin` inside aggregation expression contexts such as
+    // `$match: {$expr: ...}` and `$project`.  Routing through SqlOperator::NotIn
+    // causes the SQL null-semantics desugarer to rewrite it as Not(In(...)), which
+    // emits { "$not": [{ "$in": [...] }] } — valid in every MQL context.
+    test_translate_expression!(
+        not_in_with_non_nullable_literals,
+        expected = Ok(air::Expression::SqlSemanticOperator(
+            air::SqlSemanticOperator {
+                op: air::SqlOperator::NotIn,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(5)),
+                    air::Expression::Array(vec![
+                        air::Expression::Literal(air::LiteralValue::Integer(1)),
+                        air::Expression::Literal(air::LiteralValue::Integer(2)),
+                        air::Expression::Literal(air::LiteralValue::Integer(3)),
+                    ])
+                ],
+            }
+        )),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NotIn,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(5)),
+                Expression::Array(ArrayExpr {
+                    array: vec![
+                        Expression::Literal(LiteralValue::Integer(1)),
+                        Expression::Literal(LiteralValue::Integer(2)),
+                        Expression::Literal(LiteralValue::Integer(3)),
+                    ],
+                })
+            ],
+            is_nullable: false,
+        }),
+    );
 }

@@ -3572,4 +3572,52 @@ mod in_operator {
         }),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
+
+    // Verifies that a nullable array RHS — e.g. AnyOf([Array(T), Null]) — produces a
+    // structured SchemaChecking error rather than hitting the unreachable!() branch.
+    // Previously, satisfies(&Array(Any)) returned May for such a schema, which slipped
+    // past the `== Not` guard and then failed the inner match arm.
+    test_schema!(
+        in_operator_nullable_array_rhs_is_schema_error,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "NotIn",
+            required: Schema::Array(Box::new(Schema::Any)).into(),
+            // The field access on a non-required key adds Missing to the schema,
+            // producing AnyOf({Missing, AnyOf({Atomic(Null), Array(Any)})}).
+            found: Schema::AnyOf(set![
+                Schema::Missing,
+                Schema::AnyOf(set![
+                    Schema::Array(Box::new(Schema::Any)),
+                    Schema::Atomic(Atomic::Null)
+                ])
+            ])
+            .into(),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NotIn,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("foo", 1u16).into())),
+                    field: "arr".into(),
+                    is_nullable: true,
+                }),
+            ],
+            is_nullable: true,
+        }),
+        schema_env = map! {
+            ("foo", 1u16).into() => Schema::Document(Document {
+                keys: map! {
+                    "arr".into() => Schema::AnyOf(set![
+                        Schema::Array(Box::new(Schema::Any)),
+                        Schema::Atomic(Atomic::Null)
+                    ])
+                },
+                required: set! {},
+                additional_properties: false,
+                ..Default::default()
+            })
+        },
+    );
 }
