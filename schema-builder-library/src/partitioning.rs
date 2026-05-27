@@ -1,6 +1,6 @@
 pub(crate) use crate::partitioning::partition::{PARTITION_SIZE_IN_BYTES, Partition};
 use crate::{
-    DataService, Error, Result,
+    DataService, Error,
     data_service::{AggregateOptions, CollectionInfo, CollectionType},
 };
 use bson::{Bson, Document, doc};
@@ -28,11 +28,11 @@ pub struct PartitionedCollection {
 /// Note that the 100MB limit comes from the server, as noted in
 /// [$bucketAuto docs](https://www.mongodb.com/docs/manual/reference/operator/aggregation/bucketAuto/#-bucketauto-and-memory-restrictions).
 #[instrument(level = "trace", skip(service))]
-pub(crate) async fn get_partitions<S: DataService>(
+pub async fn get_partitions<S: DataService>(
     service: &S,
     db: &str,
     collection_info: CollectionInfo,
-) -> Result<PartitionedCollection, S::Error> {
+) -> Result<PartitionedCollection, Error<S::Error>> {
     let size_info = get_size_counts(service, db, &collection_info.name).await?;
     let num_partitions = get_num_partitions(size_info.size, PARTITION_SIZE_IN_BYTES) as usize;
 
@@ -167,7 +167,7 @@ pub(crate) async fn get_size_counts<S: DataService>(
     service: &S,
     db: &str,
     collection: &str,
-) -> Result<CollectionSizes, S::Error> {
+) -> Result<CollectionSizes, Error<S::Error>> {
     let cursor = service
         .aggregate(
             db,
@@ -227,7 +227,7 @@ pub(crate) async fn get_bounds<S: DataService>(
     db: &str,
     collection: &str,
     partition_key: &str,
-) -> Result<(Bson, Bson), S::Error> {
+) -> Result<(Bson, Bson), Error<S::Error>> {
     Ok((
         get_bound(service, db, collection, partition_key, 1).await?,
         get_bound(service, db, collection, partition_key, -1).await?,
@@ -243,7 +243,7 @@ async fn get_bound<S: DataService>(
     collection: &str,
     partition_key: &str,
     direction: i32,
-) -> Result<Bson, S::Error> {
+) -> Result<Bson, Error<S::Error>> {
     let pipeline = vec![
         doc! {"$sort": {partition_key: direction}},
         doc! {"$limit": 1},

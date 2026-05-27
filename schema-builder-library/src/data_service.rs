@@ -70,11 +70,8 @@ pub struct AggregateOptions {
 }
 
 /// Abstraction over database operations used by the schema builder.
-///
-/// On non-WASM targets `Send + Sync` is required; on WASM it is not.
-#[cfg_attr(not(feature = "wasm"), async_trait::async_trait)]
-#[cfg_attr(feature = "wasm", async_trait::async_trait(?Send))]
-pub trait DataService {
+#[trait_variant::make(DataService: Send)]
+pub trait LocalDataService {
     /// The error type returned by this service's operations.
     type Error: core::error::Error;
 

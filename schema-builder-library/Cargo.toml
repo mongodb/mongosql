@@ -14,14 +14,12 @@ crate-type = ["cdylib", "rlib"]
 futures = { workspace = true }
 serde = { workspace = true }
 mongosql = { workspace = true }
-agg-ast = { workspace = true }
 schema_derivation = { workspace = true }
 thiserror = { workspace = true }
 lazy_static = { workspace = true }
-glob = { workspace = true }
 tracing = { workspace = true }
 bson.workspace = true
-async-trait = { workspace = true }
+trait-variant = { workspace = true }
 
 # Optional dependencies enabled by features
 tokio = { version = "1", default-features = false, optional = true }
