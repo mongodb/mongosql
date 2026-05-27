@@ -332,13 +332,13 @@ impl NegativeNormalize<Expression> for Expression {
                     | UntaggedOperatorName::SqlToUpper => {
                         return wrap_in_null_or_missing_check!(self.clone());
                     }
-                    // the following can evalute to null, true, or false
+                    // the following can evaluate to null, true, or false
                     | UntaggedOperatorName::SqlAnd | UntaggedOperatorName::SqlOr
                     | UntaggedOperatorName::SqlBetween | UntaggedOperatorName::SqlEq
                     | UntaggedOperatorName::SqlGt | UntaggedOperatorName::SqlGte
                     | UntaggedOperatorName::SqlIs | UntaggedOperatorName::SqlLt
                     | UntaggedOperatorName::SqlLte | UntaggedOperatorName::SqlNe
-                    | UntaggedOperatorName::SqlNot => {
+                    | UntaggedOperatorName::SqlNot |  UntaggedOperatorName::SqlIn  => {
                         let null_check = wrap_in_null_or_missing_check!(self.clone());
                         let false_check = wrap_in_false_check!(self.clone());
                         (UntaggedOperatorName::Or, vec![null_check, false_check])
@@ -387,14 +387,6 @@ impl NegativeNormalize<Expression> for Expression {
                     | UntaggedOperatorName::SqlSlice | UntaggedOperatorName::SqlSplit => return Expression::Literal(LiteralValue::Boolean(false)),
                     // sampleRate is always truthy
                     UntaggedOperatorName::SampleRate => return Expression::Literal(LiteralValue::Boolean(false)),
-                    // SqlNot already handles the three-valued domain, so wrapping preserves
-                    // null semantics during schema derivation without needing to expand the IN logic.
-                    UntaggedOperatorName::SqlIn => {
-                        return Expression::UntaggedOperator(UntaggedOperator {
-                            op: UntaggedOperatorName::SqlNot,
-                            args: vec![self.clone()],
-                        });
-                    }
                 };
                 Expression::UntaggedOperator(UntaggedOperator { op, args })
             }

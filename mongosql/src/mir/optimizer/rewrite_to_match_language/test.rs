@@ -407,7 +407,7 @@ test_rewrite_to_match_language!(
     rewrite_in_operator_to_match_language,
     expected = match_filter_stage(MatchQuery::In(MatchLanguageIn {
         op: MatchLanguageInOp::In,
-        input: Some(mir_field_path("foo", vec!["int"])),
+        input: mir_field_path("foo", vec!["int"]),
         values: vec![
             LiteralValue::Integer(1),
             LiteralValue::Integer(2),
@@ -436,7 +436,7 @@ test_rewrite_to_match_language!(
     rewrite_not_in_operator_to_match_language,
     expected = match_filter_stage(MatchQuery::In(MatchLanguageIn {
         op: MatchLanguageInOp::NotIn,
-        input: Some(mir_field_path("foo", vec!["int"])),
+        input: mir_field_path("foo", vec!["int"]),
         values: vec![
             LiteralValue::Integer(1),
             LiteralValue::Integer(2),

@@ -35,13 +35,9 @@ impl MqlTranslator {
             mir::MatchLanguageInOp::NotIn => air::MatchLanguageInOp::NotIn,
         };
 
-        let expression = match in_op.input {
-            None => return Err(Error::InvalidMatchLanguageInputRef),
-            Some(fp) => match self.translate_field_path(fp)? {
-                None => return Err(Error::InvalidMatchLanguageInputRef),
-                Some(field_ref) => field_ref,
-            },
-        };
+        let expression = self
+            .translate_field_path(in_op.input)?
+            .ok_or(Error::InvalidMatchLanguageInputRef)?;
 
         let array_expression = in_op
             .values

@@ -1098,7 +1098,7 @@ pub enum MatchLanguageInOp {
 #[derive(PartialEq, Debug, Clone)]
 pub struct MatchLanguageIn {
     pub op: MatchLanguageInOp,
-    pub input: Option<FieldPath>,
+    pub input: FieldPath,
     pub values: Vec<LiteralValue>,
     pub cache: SchemaCache<Schema>,
 }

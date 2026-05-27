@@ -155,7 +155,7 @@ impl MatchLanguageRewriterVisitor {
 
         Some(MatchQuery::In(MatchLanguageIn {
             op,
-            input: Some(field_path),
+            input: field_path,
             values,
             cache: SchemaCache::new(),
         }))
