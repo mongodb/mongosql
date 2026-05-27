@@ -2,7 +2,7 @@
 mod test;
 
 use bson::{Bson, Document};
-use enum_iterator::IntoEnumIterator;
+use enum_iterator::Sequence;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
@@ -45,7 +45,7 @@ pub enum BsonType {
     Multiple(Vec<BsonTypeName>),
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, IntoEnumIterator, Copy, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Sequence, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum BsonTypeName {
     Object,

@@ -7,7 +7,7 @@ use crate::{
     schema::Schema::{AnyOf, Unsat},
     set,
 };
-use enum_iterator::IntoEnumIterator;
+use enum_iterator::{all, Sequence};
 use itertools::{Either, Itertools};
 use lazy_static::lazy_static;
 use std::collections::{HashMap, HashSet};
@@ -372,7 +372,7 @@ impl TryFrom<bson::Document> for Schema {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Copy, IntoEnumIterator)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Copy, Sequence)]
 pub enum Atomic {
     MinKey,
     Null,
@@ -776,7 +776,7 @@ impl TryFrom<Schema> for json_schema::Schema {
 lazy_static! {
     // The types represented by Schema::Any, unrolled into an AnyOf().
     pub static ref UNFOLDED_ANY: Schema = Schema::AnyOf(
-        Atomic::into_enum_iter() // All atomic schemas.
+        all::<Atomic>() // All atomic schemas.
             .map(Schema::Atomic)
             .chain(once(ANY_DOCUMENT.clone())) // Any document.
             .chain(once(ANY_ARRAY.clone())) // Any array.
@@ -1848,7 +1848,7 @@ impl TryFrom<json_schema::Schema> for Schema {
             } => {
                 let bson_type = bson_type.unwrap_or_else(|| {
                     json_schema::BsonType::Multiple(
-                        json_schema::BsonTypeName::into_enum_iter()
+                        all::<json_schema::BsonTypeName>()
                             .filter(|&t| t != json_schema::BsonTypeName::Undefined)
                             .collect(),
                     )
