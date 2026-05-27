@@ -9,7 +9,8 @@ macro_rules! test_get_partitions {
         #[tokio::test]
         $(#[ignore = $ignore])?
         async fn $test_name() {
-            use super::get_mdb_collection;
+            use super::create_mdb_service;
+            use crate::CollectionInfo;
             use crate::partitioning::{get_partitions, Partition};
 
             #[allow(unused)]
@@ -21,11 +22,15 @@ macro_rules! test_get_partitions {
                 UNIFORM_DB_NAME, UNITARY_COLL_NAME,
             };
 
-            let coll = get_mdb_collection($input_db, $input_coll).await;
+            let service = create_mdb_service().await;
+            let collection_info = CollectionInfo {
+                name: $input_coll.to_string(),
+                ..DEFAULT_COLLECTION_INFO.clone()
+            };
 
             let expected: Vec<Partition> = $expected.to_vec();
 
-            let actual_res = get_partitions(&coll, DEFAULT_COLLECTION_INFO.clone()).await;
+            let actual_res = get_partitions(&service, $input_db, collection_info).await;
             match actual_res {
                 Err(err) => assert!(false, "unexpected error: {err:?}"),
                 Ok(actual_partitioned_collection) => {
@@ -79,15 +84,16 @@ test_get_partitions!(
 #[cfg(feature = "integration")]
 #[tokio::test]
 async fn one_doc_collection() {
-    use super::get_mdb_collection;
+    use super::create_mdb_service;
     use crate::{errors::Error, partitioning::get_partitions};
     use test_utils::schema_builder_library_integration_test_consts::UNIFORM_DB_NAME;
 
-    let coll = get_mdb_collection(UNIFORM_DB_NAME, "empty").await;
+    let service = create_mdb_service().await;
 
-    let actual_res = get_partitions(&coll, DEFAULT_COLLECTION_INFO.clone()).await;
+    let actual_res =
+        get_partitions(&service, UNIFORM_DB_NAME, DEFAULT_COLLECTION_INFO.clone()).await;
     match actual_res {
-        Err(Error::NoCollectionStats(_)) => {} // expect the NoBounds errors
+        Err(Error::EmptyCollection(_)) => {} // expect the EmptyCollection error
         Err(err) => panic!("unexpected error: {err:?}"),
         Ok(actual) => panic!("expected error but got: {actual:?}"),
     }
@@ -96,15 +102,16 @@ async fn one_doc_collection() {
 #[cfg(feature = "integration")]
 #[tokio::test]
 async fn empty_collection() {
-    use super::get_mdb_collection;
+    use super::create_mdb_service;
     use crate::{errors::Error, partitioning::get_partitions};
     use test_utils::schema_builder_library_integration_test_consts::UNIFORM_DB_NAME;
 
-    let coll = get_mdb_collection(UNIFORM_DB_NAME, "empty").await;
+    let service = create_mdb_service().await;
 
-    let actual_res = get_partitions(&coll, DEFAULT_COLLECTION_INFO.clone()).await;
+    let actual_res =
+        get_partitions(&service, UNIFORM_DB_NAME, DEFAULT_COLLECTION_INFO.clone()).await;
     match actual_res {
-        Err(Error::NoCollectionStats(_)) => {} // expect the NoBounds errors
+        Err(Error::EmptyCollection(_)) => {} // expect the EmptyCollection error
         Err(err) => panic!("unexpected error: {err:?}"),
         Ok(actual) => panic!("expected error but got: {actual:?}"),
     }
