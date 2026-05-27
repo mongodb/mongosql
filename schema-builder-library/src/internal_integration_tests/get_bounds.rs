@@ -20,7 +20,13 @@ macro_rules! test_get_bounds {
 
             let service = create_mdb_service().await;
 
-            let actual_res = get_bounds(&service, $input_db, $input_coll, DEFAULT_PARTITION_KEY.as_str()).await;
+            let actual_res = get_bounds(
+                &service,
+                $input_db,
+                $input_coll,
+                DEFAULT_PARTITION_KEY.as_str(),
+            )
+            .await;
             match actual_res {
                 Err(err) => assert!(false, "unexpected error: {err:?}"),
                 Ok((actual_min, actual_max)) => {
@@ -80,8 +86,13 @@ async fn empty_collection() {
 
     let service = create_mdb_service().await;
 
-    let actual_res =
-        get_bounds(&service, UNIFORM_DB_NAME, "empty", DEFAULT_PARTITION_KEY.as_str()).await;
+    let actual_res = get_bounds(
+        &service,
+        UNIFORM_DB_NAME,
+        "empty",
+        DEFAULT_PARTITION_KEY.as_str(),
+    )
+    .await;
     match actual_res {
         Err(Error::NoBounds(_)) => {} // expect the NoBounds errors
         Err(err) => panic!("unexpected error: {err:?}"),
