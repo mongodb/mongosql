@@ -86,6 +86,7 @@ test_get_partitions!(
 async fn one_doc_collection() {
     use super::create_mdb_service;
     use crate::{errors::Error, partitioning::get_partitions};
+    use mongodb::error::{CommandError, ErrorKind};
     use test_utils::schema_builder_library_integration_test_consts::UNIFORM_DB_NAME;
 
     let service = create_mdb_service().await;
@@ -93,7 +94,10 @@ async fn one_doc_collection() {
     let actual_res =
         get_partitions(&service, UNIFORM_DB_NAME, DEFAULT_COLLECTION_INFO.clone()).await;
     match actual_res {
-        Err(Error::EmptyCollection(_)) => {} // expect the EmptyCollection error
+        Err(Error::DataServiceError(e)) => match *e.kind {
+            ErrorKind::Command(CommandError { code: 26, .. }) => {}
+            ref kind => panic!("unexpected DataService error kind: {kind:?}"),
+        },
         Err(err) => panic!("unexpected error: {err:?}"),
         Ok(actual) => panic!("expected error but got: {actual:?}"),
     }
@@ -104,6 +108,7 @@ async fn one_doc_collection() {
 async fn empty_collection() {
     use super::create_mdb_service;
     use crate::{errors::Error, partitioning::get_partitions};
+    use mongodb::error::{CommandError, ErrorKind};
     use test_utils::schema_builder_library_integration_test_consts::UNIFORM_DB_NAME;
 
     let service = create_mdb_service().await;
@@ -111,7 +116,10 @@ async fn empty_collection() {
     let actual_res =
         get_partitions(&service, UNIFORM_DB_NAME, DEFAULT_COLLECTION_INFO.clone()).await;
     match actual_res {
-        Err(Error::EmptyCollection(_)) => {} // expect the EmptyCollection error
+        Err(Error::DataServiceError(e)) => match *e.kind {
+            ErrorKind::Command(CommandError { code: 26, .. }) => {}
+            ref kind => panic!("unexpected DataService error kind: {kind:?}"),
+        },
         Err(err) => panic!("unexpected error: {err:?}"),
         Ok(actual) => panic!("expected error but got: {actual:?}"),
     }
