@@ -311,12 +311,12 @@ impl<'a> Algebrizer<'a> {
         func: mir::ScalarFunction,
         args: &[mir::Expression],
     ) -> bool {
-        // some functions can always be nullable regardless of argument nullablity,
-        // we check those first. If this function is not one of those, we set nullablity
-        // based off the arguments.
         if matches!(func, mir::ScalarFunction::In | mir::ScalarFunction::NotIn) {
             Self::determine_in_expression_nullability(func, args)
         } else {
+            // some functions can always be nullable regardless of argument nullablity,
+            // we check those first. If this function is not one of those, we set nullablity
+            // based off the arguments.
             func.is_always_nullable() || Self::args_are_nullable(args)
         }
     }
@@ -1572,8 +1572,8 @@ impl<'a> Algebrizer<'a> {
     ///
     /// Mirrors [`Self::algebrize_binary_comparison_operands`] but handles the fact that the RHS
     /// is an [`ast::Expression::Tuple`] containing multiple elements rather than a single
-    /// expression. If exactly one side consists entirely of [`ast::Expression::StringConstructor`]
-    /// nodes, those strings are algebrized with `in_implicit_type_conversion_context = true`
+    /// expression. If exactly any side contains a [`ast::Expression::StringConstructor`]
+    /// node, those strings are algebrized with `in_implicit_type_conversion_context = true`
     /// so that extended-JSON strings (e.g. `'{"$date":"2020-01-01"}'`) are converted to the
     /// corresponding BSON values. If both or neither side consists of string constructors,
     /// both operands are algebrized with the flag set to `false`.
@@ -2528,6 +2528,7 @@ impl<'a> Algebrizer<'a> {
     }
 }
 
+#[cfg(test)]
 mod in_operator_nullability {
     #[expect(
         unused_imports,

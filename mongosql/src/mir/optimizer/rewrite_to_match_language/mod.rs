@@ -1,5 +1,5 @@
-/// Optimizes IS and LIKE expressions such that they can be translated and
-/// codegenned using match language. If a Filter stage's condition contains
+/// Optimizes IS,LIKE, IN, and NOT IN expressions such that they can be translated and
+/// codegened using match language. If a Filter stage's condition contains
 /// only IS and/or LIKE expressions, or disjunctions or conjunctions with
 /// only IS and/or LIKE expressions, then the condition can be rewritten to
 /// match language (mir::MatchQuery) and the Filter stage replaced with a
@@ -122,17 +122,40 @@ impl MatchLanguageRewriterVisitor {
             })
     }
 
-    /// Rewrites `IN` and `NOT IN` scalar functions to native match language when the
-    /// left-hand side is a field access and every value in the list is a literal.
+    /// Rewrites an `IN` or `NOT IN` scalar function to a native [`MatchQuery::In`].
     ///
-    /// Any other shape (subqueries, field refs in the list, functions) falls through
-    /// to `None` so the expression stays in `ExprLanguage`.
+    /// Succeeds only when the expression has the shape `<field> IN (<literal>, …)`:
+    /// the left-hand side must be a plain field access convertible to a [`FieldPath`],
+    /// and every element on the right-hand side must be a [`LiteralValue`]. Any other
+    /// shape — subqueries, field references inside the list, computed expressions — falls
+    /// through to `None`, leaving the expression in `$expr` (aggregation) language.
+    ///
+    /// The distinction matters for query performance: the native `$in` / `$nin`
+    /// operators can exploit indexes, whereas `$expr` cannot.
+    ///
+    /// # Returns
+    ///
+    /// - `Some(MatchQuery::In { … })` when the expression matches the required shape.
+    /// - `None` when:
+    ///   - `sf.args[0]` is not a [`FieldAccess`], or cannot be converted to a [`FieldPath`].
+    ///   - `sf.args[1]` is not an [`ArrayExpr`].
+    ///   - Any element of the array is not a [`LiteralValue`].
+    ///   - `sf.function` is neither [`ScalarFunction::In`] nor [`ScalarFunction::NotIn`].
     fn rewrite_in(sf: &ScalarFunctionApplication) -> Option<MatchQuery> {
+        // The left-hand side must be a plain field reference (e.g. `age`, `user.city`).
+        // Anything more complex — a function call, a subquery, a literal — cannot be
+        // mapped to the FieldPath that MatchLanguageIn requires, so we bail early.
         let field_path: FieldPath = match sf.args.first()? {
             Expression::FieldAccess(fa) => fa.clone().try_into().ok()?,
             _ => return None,
         };
 
+        // Every value in the list must be a compile-time literal. We map each element
+        // to `Some(literal)` or `None`, then collect into `Option<Vec<_>>`: if even one
+        // element is `None` the entire collect() short-circuits to `None`, which the `?`
+        // propagates. This all-or-nothing behaviour is intentional — a mixed list (e.g.
+        // `age IN (18, min_age, 65)`) cannot use index-friendly match language and must
+        // stay in $expr.
         let values: Vec<LiteralValue> = match sf.args.get(1)? {
             Expression::Array(ArrayExpr { array }) => array
                 .iter()
@@ -147,6 +170,8 @@ impl MatchLanguageRewriterVisitor {
             _ => return None,
         };
 
+        // Map the SQL operator to its match-language counterpart. The wildcard arm is a
+        // defensive guard; callers should only pass In/NotIn to this function.
         let op = match sf.function {
             ScalarFunction::In => MatchLanguageInOp::In,
             ScalarFunction::NotIn => MatchLanguageInOp::NotIn,

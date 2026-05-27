@@ -3481,7 +3481,7 @@ mod in_operator {
     use super::*;
 
     test_schema!(
-        in_operator_requires_two_args,
+        not_in_operator_requires_two_args,
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "NotIn",
@@ -3496,7 +3496,7 @@ mod in_operator {
     );
 
     test_schema!(
-        in_operator_lhs_and_rhs_must_be_comparable,
+        not_in_operator_lhs_and_rhs_must_be_comparable,
         expected_error_code = 1005,
         expected = Err(mir_error::InvalidComparison(
             "NotIn",
@@ -3520,7 +3520,7 @@ mod in_operator {
     );
 
     test_schema!(
-        in_operator_schema_is_boolean,
+        not_in_operator_schema_is_boolean,
         expected = Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
@@ -3554,7 +3554,7 @@ mod in_operator {
     );
 
     test_schema!(
-        not_in_operator_schema_is_boolean,
+        not_in_operator_with_literals_schema_is_boolean,
         expected = Ok(Schema::Atomic(Atomic::Boolean)),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::NotIn,
@@ -3572,10 +3572,6 @@ mod in_operator {
         }),
     );
 
-    // Verifies that a nullable array RHS — e.g. AnyOf([Array(T), Null]) — produces a
-    // structured SchemaChecking error rather than hitting the unreachable!() branch.
-    // Previously, satisfies(&Array(Any)) returned May for such a schema, which slipped
-    // past the `== Not` guard and then failed the inner match arm.
     test_schema!(
         in_operator_nullable_array_rhs_is_schema_error,
         expected_error_code = 1002,

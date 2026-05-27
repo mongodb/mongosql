@@ -220,3 +220,18 @@ tests:
     current_db: index_usage_filter
     query: "SELECT * FROM non_nullable_fields WHERE a NOT IN (100, 250, 322)"
     expected_utilization: IX_SCAN
+
+  - description: in operator with field reference in list uses collection scan
+    current_db: index_usage_filter
+    query: "SELECT * FROM nullable_fields WHERE a IN (b, 250, 322)"
+    expected_utilization: COLL_SCAN
+
+  - description: not in operator with field reference in list uses collection scan
+    current_db: index_usage_filter
+    query: "SELECT * FROM nullable_fields WHERE a NOT IN (b, 250, 322)"
+    expected_utilization: COLL_SCAN
+
+  - description: in operator with computed expression in list uses collection scan
+    current_db: index_usage_filter
+    query: "SELECT * FROM nullable_fields WHERE a IN (b + 1, 100)"
+    expected_utilization: COLL_SCAN
