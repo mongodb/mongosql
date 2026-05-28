@@ -295,6 +295,7 @@ impl From<mir::ScalarFunction> for ScalarFunctionType {
             Neg => ScalarFunctionType::Sql(SqlOperator::Neg),
 
             // Arithmetic operators
+            // [TODO] Filler comment
             Add => ScalarFunctionType::Mql(MqlOperator::Add),
             Sub => ScalarFunctionType::Mql(MqlOperator::Subtract),
             Mul => ScalarFunctionType::Mql(MqlOperator::Multiply),
