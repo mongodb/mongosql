@@ -388,7 +388,7 @@ tasks:
     commands:
       - func: "bootstrap mongo-orchestration"
         vars:
-          MONGODB_VERSION: latest
+          MONGODB_VERSION: 8.3
           TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run data loader"
@@ -399,7 +399,7 @@ tasks:
         vars:
           description: run spec query tests
           cargo_test_flags: --features=query --package=e2e-tests
-          mongodb_version: latest
+          MONGODB_VERSION: 8.3
     
 
   - name: test-index-usage_latest-standalone
@@ -407,7 +407,7 @@ tasks:
     commands:
       - func: "bootstrap mongo-orchestration"
         vars:
-          MONGODB_VERSION: latest
+          MONGODB_VERSION: 8.3
           TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run data loader"
@@ -418,7 +418,7 @@ tasks:
         vars:
           description: run index usage tests
           cargo_test_flags: --features=index --package=e2e-tests
-          mongodb_version: latest
+          MONGODB_VERSION: 8.3
     
 
   - name: test-rust-e2e_latest-standalone
@@ -426,7 +426,7 @@ tasks:
     commands:
       - func: "bootstrap mongo-orchestration"
         vars:
-          MONGODB_VERSION: latest
+          MONGODB_VERSION: 8.3
           TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run data loader"
@@ -437,7 +437,7 @@ tasks:
         vars:
           description: run rust e2e tests
           cargo_test_flags: --features=e2e --package=e2e-tests
-          mongodb_version: latest
+          MONGODB_VERSION: 8.3
     
 
   - name: test-rust-errors_latest-standalone
@@ -445,7 +445,7 @@ tasks:
     commands:
       - func: "bootstrap mongo-orchestration"
         vars:
-          MONGODB_VERSION: latest
+          MONGODB_VERSION: 8.3
           TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run data loader"
@@ -456,7 +456,7 @@ tasks:
         vars:
           description: run rust error tests
           cargo_test_flags: --features=error --package=e2e-tests
-          mongodb_version: latest
+          MONGODB_VERSION: 8.3
     
 
   - name: test-schema-derivation_latest-standalone
@@ -464,7 +464,7 @@ tasks:
     commands:
       - func: "bootstrap mongo-orchestration"
         vars:
-          MONGODB_VERSION: latest
+          MONGODB_VERSION: 8.3
           TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run data loader"
@@ -475,5 +475,5 @@ tasks:
         vars:
           description: run schema derivation tests
           cargo_test_flags: --features=schema_derivation --package=e2e-tests
-          mongodb_version: latest
+          MONGODB_VERSION: 8.3
     
