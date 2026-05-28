@@ -295,8 +295,7 @@ pub(crate) fn scalar_function_to_scalar_function_type(
             // Routing through SqlOperator::NotIn causes the SQL null-semantics desugarer to
             // rewrite it as Not(In(...)), which emits { "$not": [{ "$in": [...] }] } — valid
             // in every MQL context.
-            // [TODO] Revert back to MQL operator after this to see if SQL fixes this issue:
-            ScalarFunction::NotIn => ScalarFunctionType::Sql(SqlOperator::NotIn),
+            ScalarFunction::NotIn => ScalarFunctionType::Mql(MqlOperator::NotIn),
             _ => ScalarFunctionType::from(function),
         }
     }

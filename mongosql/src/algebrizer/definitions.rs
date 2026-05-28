@@ -1883,7 +1883,6 @@ impl<'a> Algebrizer<'a> {
 
         let args = vec![left, right];
         let function = mir::ScalarFunction::try_from(b.op)?;
-        // TODO: if the operator is an IN or NOT IN expression we determine nullabillity if LHS or any element in RHS is nullable
         let is_nullable = Self::determine_scalar_function_nullability(function, &args);
 
         // here we don't use the new constructor because we're setting the
