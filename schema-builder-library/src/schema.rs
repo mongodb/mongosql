@@ -6,8 +6,8 @@ use mongosql::schema::Schema;
 use schema_derivation::schema_for_document;
 use tracing::{info, instrument, warn};
 
-use crate::data_service::AggregateOptions;
-use crate::{DataService, Error, data_service::CollectionInfo, partitioning::Partition};
+use crate::data_service::{AggregateOptions, LocalDataService};
+use crate::{Error, data_service::CollectionInfo, partitioning::Partition};
 use crate::{PartitionedCollection, get_partitions};
 
 /// The amount of samples to fetch for view schema derivation
@@ -28,7 +28,7 @@ pub const PARTITION_DOCS_PER_ITERATION: i64 = 20;
 /// Note: This breaks up the work into manageable partitions and operates over
 /// them in order. If you want to control the execution of these partitions,
 /// please refer to [derive_schema_for_partition].
-pub async fn derive_schema_for_collection<S: DataService>(
+pub async fn derive_schema_for_collection<S: LocalDataService>(
     service: &S,
     db: &str,
     collection: &str,
@@ -77,7 +77,7 @@ pub async fn derive_schema_for_collection<S: DataService>(
 
 /// A utility function for deriving the schema for a single partition of a collection.
 #[instrument(level = "trace", skip_all)]
-pub async fn derive_schema_for_partition<S: DataService>(
+pub async fn derive_schema_for_partition<S: LocalDataService>(
     service: &S,
     db: &str,
     collection: &str,
@@ -175,7 +175,7 @@ pub async fn derive_schema_for_partition<S: DataService>(
 /// against the viewOn collection to generate a schema for the view.
 /// It does this by first prepending $sample to the pipeline
 #[instrument(level = "trace", skip_all)]
-pub async fn derive_schema_for_view<S: DataService>(
+pub async fn derive_schema_for_view<S: LocalDataService>(
     service: &S,
     db: &str,
     view: &CollectionInfo,

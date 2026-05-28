@@ -1,6 +1,6 @@
 pub(crate) use crate::partitioning::partition::{PARTITION_SIZE_IN_BYTES, Partition};
 use crate::{
-    DataService, Error,
+    Error, LocalDataService,
     data_service::{AggregateOptions, CollectionInfo, CollectionType},
 };
 use bson::{Bson, Document, doc};
@@ -28,7 +28,7 @@ pub struct PartitionedCollection {
 /// Note that the 100MB limit comes from the server, as noted in
 /// [$bucketAuto docs](https://www.mongodb.com/docs/manual/reference/operator/aggregation/bucketAuto/#-bucketauto-and-memory-restrictions).
 #[instrument(level = "trace", skip(service))]
-pub async fn get_partitions<S: DataService>(
+pub async fn get_partitions<S: LocalDataService>(
     service: &S,
     db: &str,
     collection_info: CollectionInfo,
@@ -163,7 +163,7 @@ pub(crate) struct CollectionSizes {
 /// get_size_counts uses the $collStats aggregation stage to get size and count information for the
 /// argued collection.
 #[instrument(level = "trace", skip(service))]
-pub(crate) async fn get_size_counts<S: DataService>(
+pub(crate) async fn get_size_counts<S: LocalDataService>(
     service: &S,
     db: &str,
     collection: &str,
@@ -222,7 +222,7 @@ fn get_num_partitions(coll_size: i64, partition_size: i64) -> i64 {
 
 /// get_bounds determines the minimum and maximum values for the _id field in the argued collection.
 #[instrument(level = "trace", skip_all)]
-pub(crate) async fn get_bounds<S: DataService>(
+pub(crate) async fn get_bounds<S: LocalDataService>(
     service: &S,
     db: &str,
     collection: &str,
@@ -237,7 +237,7 @@ pub(crate) async fn get_bounds<S: DataService>(
 /// get_bound determines the minimum or maximum bound (depending on the direction) for the _id field
 /// in the provided collection.
 #[instrument(level = "trace", skip_all)]
-async fn get_bound<S: DataService>(
+async fn get_bound<S: LocalDataService>(
     service: &S,
     db: &str,
     collection: &str,
