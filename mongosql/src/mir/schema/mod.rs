@@ -28,7 +28,8 @@ mod errors;
 #[cfg(test)]
 use crate::mir::ScalarFunction::{In, NotIn};
 pub use errors::Error;
-#[warn(unused_imports)]
+#[allow(unused_imports)]
+// ANY_SCHEMA_ADDENDUM is used in tests
 pub(crate) use errors::ANY_SCHEMA_ADDENDUM;
 
 mod util;
