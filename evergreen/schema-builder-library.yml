@@ -28,6 +28,76 @@ functions:
         permissions: public-read
         content_type: application/wasm
         display_name: schema_builder_library-v${release_version}.wasm
+    # signature file
+    - command: s3.get
+      params:
+        <<: *evg_bucket_config
+        remote_file: mongosql-rs/artifacts/${version_id}/schema-builder-library/schema_builder_library.wasm.sig
+        local_file: mongosql-rs/release/schema-builder-library/schema_builder_library.wasm.sig
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/schema-builder-library/schema_builder_library.wasm.sig
+        remote_file: schema-builder-library/schema_builder_library-v${release_version}.wasm.sig
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+        display_name: schema_builder_library-v${release_version}.wasm.sig
+
+  "sign schema-builder-library":
+    - *assume_role_cmd
+    - command: s3.get
+      params:
+        <<: *evg_bucket_config
+        remote_file: mongosql-rs/artifacts/${version_id}/schema-builder-library/schema_builder_library.wasm
+        local_file: mongosql-rs/schema_builder_library.wasm
+    - command: shell.exec
+      type: system
+      retry_on_failure: true
+      params:
+        silent: true
+        script: |
+          docker login --username ${sql_engines_artifactory_username} --password ${sql_engines_artifactory_auth_token} ${release_tools_container_registry}
+    - command: shell.exec
+      type: system
+      params:
+        silent: true
+        env:
+          GRS_CONFIG_USER1_USERNAME: "${garasign_username}"
+          GRS_CONFIG_USER1_PASSWORD: "${garasign_password}"
+        working_dir: mongosql-rs
+        script: |
+          docker run \
+            -e GRS_CONFIG_USER1_USERNAME \
+            -e GRS_CONFIG_USER1_PASSWORD \
+            --rm \
+            -v $(pwd):$(pwd) -w $(pwd) \
+            ${garasign_gpg_image} \
+            /bin/bash -c "gpgloader && gpg --yes -v --armor -o schema_builder_library.wasm.sig --detach-sign schema_builder_library.wasm"
+    - command: shell.exec
+      type: system
+      params:
+        silent: false
+        env:
+          GRS_CONFIG_USER1_USERNAME: "${garasign_username}"
+          GRS_CONFIG_USER1_PASSWORD: "${garasign_password}"
+        working_dir: mongosql-rs
+        script: |
+          docker run \
+            -e GRS_CONFIG_USER1_USERNAME \
+            -e GRS_CONFIG_USER1_PASSWORD \
+            --rm \
+            -v $(pwd):$(pwd) -w $(pwd) \
+            ${garasign_gpg_image} \
+            /bin/bash -c "gpgloader && gpg --verify schema_builder_library.wasm.sig schema_builder_library.wasm"
+    - command: s3.put
+      params:
+        <<: *evg_bucket_config
+        local_file: mongosql-rs/schema_builder_library.wasm.sig
+        remote_file: mongosql-rs/artifacts/${version_id}/schema-builder-library/schema_builder_library.wasm.sig
+        permissions: public-read
+        content_type: application/octet-stream
 
   "trace schema-builder-library artifacts":
     - command: shell.exec
@@ -61,8 +131,18 @@ tasks:
     depends_on:
       - name: compile-schema-builder-library
         variant: "schema-builder-library"
+      - name: sign-schema-builder-library
+        variant: "schema-builder-library"
     commands:
       - func: "upload schema-builder-library release"
+
+  - name: sign-schema-builder-library
+    allowed_requesters: ["github_tag", "ad_hoc", "patch"]
+    depends_on:
+      - name: compile-schema-builder-library
+    commands:
+      - func: "sign schema-builder-library"
+        retry_on_failure: true
 
   - name: trace-schema-builder-library-artifacts
     git_tag_only: true
