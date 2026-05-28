@@ -26,7 +26,6 @@ use std::{
 
 mod errors;
 #[cfg(test)]
-use crate::mir::ScalarFunction::{In, NotIn};
 pub use errors::Error;
 #[allow(unused_imports)]
 // ANY_SCHEMA_ADDENDUM is used in tests

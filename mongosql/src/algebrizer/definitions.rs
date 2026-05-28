@@ -2530,53 +2530,40 @@ impl<'a> Algebrizer<'a> {
 
 #[cfg(test)]
 mod in_operator_nullability {
-    #[expect(
-        unused_imports,
-        reason = "glob brings Algebrizer, mir, Key etc. into test scope"
-    )]
+
     use super::*;
-    #[expect(
-        unused_imports,
-        reason = "ArrayExpr is used in test expressions without mir:: prefix"
-    )]
     use crate::mir::ArrayExpr;
 
     #[test]
     fn in_with_null_literal_lhs_is_nullable() {
-        assert_eq!(
-            true,
-            Algebrizer::determine_in_expression_nullability(
-                mir::ScalarFunction::In,
-                &[
-                    mir::Expression::Literal(mir::LiteralValue::Null),
-                    mir::Expression::Array(ArrayExpr {
-                        array: vec![
-                            mir::Expression::Literal(mir::LiteralValue::Integer(1)),
-                            mir::Expression::Literal(mir::LiteralValue::Integer(2)),
-                        ]
-                    }),
-                ],
-            )
-        );
+        assert!(Algebrizer::determine_in_expression_nullability(
+            mir::ScalarFunction::In,
+            &[
+                mir::Expression::Literal(mir::LiteralValue::Null),
+                mir::Expression::Array(ArrayExpr {
+                    array: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                    ]
+                }),
+            ],
+        ));
     }
 
     #[test]
     fn in_with_nullable_rhs_is_nullable() {
-        assert_eq!(
-            true,
-            Algebrizer::determine_in_expression_nullability(
-                mir::ScalarFunction::In,
-                &[
-                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
-                    mir::Expression::Array(ArrayExpr {
-                        array: vec![
-                            mir::Expression::Literal(mir::LiteralValue::Integer(1)),
-                            mir::Expression::Literal(mir::LiteralValue::Null),
-                        ]
-                    }),
-                ],
-            )
-        );
+        assert!(Algebrizer::determine_in_expression_nullability(
+            mir::ScalarFunction::In,
+            &[
+                mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                mir::Expression::Array(ArrayExpr {
+                    array: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                        mir::Expression::Literal(mir::LiteralValue::Null),
+                    ]
+                }),
+            ],
+        ));
     }
 
     #[test]
@@ -2600,31 +2587,28 @@ mod in_operator_nullability {
 
     #[test]
     fn in_with_nullable_field_access_is_nullable() {
-        assert_eq!(
-            true,
-            Algebrizer::determine_in_expression_nullability(
-                mir::ScalarFunction::In,
-                &[
-                    mir::Expression::FieldAccess(mir::FieldAccess {
-                        expr: Box::new(mir::Expression::Reference(
-                            Key {
-                                datasource: "ds".into(),
-                                scope: 0
-                            }
-                            .into()
-                        )),
-                        field: "field".to_string(),
-                        is_nullable: true,
-                    }),
-                    mir::Expression::Array(ArrayExpr {
-                        array: vec![
-                            mir::Expression::Literal(mir::LiteralValue::Integer(1)),
-                            mir::Expression::Literal(mir::LiteralValue::Integer(2)),
-                        ]
-                    }),
-                ],
-            )
-        );
+        assert!(Algebrizer::determine_in_expression_nullability(
+            mir::ScalarFunction::In,
+            &[
+                mir::Expression::FieldAccess(mir::FieldAccess {
+                    expr: Box::new(mir::Expression::Reference(
+                        Key {
+                            datasource: "ds".into(),
+                            scope: 0
+                        }
+                        .into()
+                    )),
+                    field: "field".to_string(),
+                    is_nullable: true,
+                }),
+                mir::Expression::Array(ArrayExpr {
+                    array: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                    ]
+                }),
+            ],
+        ));
     }
 }
 
