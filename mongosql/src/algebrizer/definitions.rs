@@ -2568,21 +2568,18 @@ mod in_operator_nullability {
 
     #[test]
     fn in_with_non_nullable_operands_is_non_nullable() {
-        assert_eq!(
-            false,
-            Algebrizer::determine_in_expression_nullability(
-                mir::ScalarFunction::In,
-                &[
-                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
-                    mir::Expression::Array(ArrayExpr {
-                        array: vec![
-                            mir::Expression::Literal(mir::LiteralValue::Integer(1)),
-                            mir::Expression::Literal(mir::LiteralValue::Integer(2)),
-                        ]
-                    }),
-                ],
-            )
-        );
+        assert!(!Algebrizer::determine_in_expression_nullability(
+            mir::ScalarFunction::In,
+            &[
+                mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                mir::Expression::Array(ArrayExpr {
+                    array: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                    ]
+                }),
+            ],
+        ));
     }
 
     #[test]
