@@ -38,6 +38,7 @@ include:
   # https://jira.mongodb.org/browse/DEVPROD-12779
   # - filename: evergreen/grpc.yml
   - filename: evergreen/mongosqltranslate.yml
+  - filename: evergreen/schema-builder-library.yml
   - filename: evergreen/suite-tasks.yml
   - filename: evergreen/configs/benchmark_util.yml
     module: sql-engines-common-test-infra

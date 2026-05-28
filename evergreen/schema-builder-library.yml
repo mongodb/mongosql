@@ -1,0 +1,162 @@
+variables:
+  - &assume_role_cmd
+    command: ec2.assume_role
+    params:
+      role_arn: ${assume_role_arn}
+      duration_seconds: 3600
+  - &evg_bucket_config
+    aws_key: ${AWS_ACCESS_KEY_ID}
+    aws_secret: ${AWS_SECRET_ACCESS_KEY}
+    aws_session_token: ${AWS_SESSION_TOKEN}
+    bucket: mciuploads
+
+functions:
+  "upload schema-builder-library release":
+    - *assume_role_cmd
+    - command: s3.get
+      params:
+        <<: *evg_bucket_config
+        remote_file: mongosql-rs/artifacts/${version_id}/schema-builder-library/schema_builder_library.wasm
+        local_file: mongosql-rs/release/schema-builder-library/schema_builder_library.wasm
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/schema-builder-library/schema_builder_library.wasm
+        remote_file: schema-builder-library/schema_builder_library-v${release_version}.wasm
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/wasm
+        display_name: schema_builder_library-v${release_version}.wasm
+
+  "trace schema-builder-library artifacts":
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          mkdir -p papertrail
+    - command: s3.get
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/papertrail/schema_builder_library-v${release_version}.wasm
+        remote_file: schema-builder-library/schema_builder_library-v${release_version}.wasm
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/wasm
+    - command: papertrail.trace
+      params:
+        work_dir: mongosql-rs
+        key_id: ${mongosql_papertrail_id}
+        secret_key: ${mongosql_papertrail_key}
+        product: schema-builder-library
+        version: ${release_version}
+        filenames:
+          - papertrail/*
+
+tasks:
+  - name: schema-builder-library-release
+    git_tag_only: true
+    depends_on:
+      - name: compile-schema-builder-library
+        variant: "schema-builder-library"
+    commands:
+      - func: "upload schema-builder-library release"
+
+  - name: trace-schema-builder-library-artifacts
+    git_tag_only: true
+    depends_on:
+      - name: schema-builder-library-release
+    commands:
+      - func: "trace schema-builder-library artifacts"
+
+  - name: schema-builder-library-sbom
+    commands:
+      - func: "install rust toolchain"
+      - func: "set and check packages version"
+        vars:
+          cargo_file: "schema-builder-library/Cargo.toml"
+          package_name: "schema-builder-library"
+      - func: "generate SBOM"
+        vars:
+          project_folder: "schema-builder-library"
+      - func: "scan SBOM"
+        vars:
+          project_folder: "schema-builder-library"
+      - func: "augment SBOM"
+        vars:
+          project_folder: "schema-builder-library"
+
+  - name: schema-builder-library-static-code-analysis
+    commands:
+      - func: "generate static code analysis"
+
+  - name: schema-builder-library-ssdlc-artifacts-release
+    run_on: ubuntu2204-small
+    git_tag_only: true
+    depends_on:
+      - name: "schema-builder-library-release"
+        variant: "schema-builder-library-release"
+      - name: "schema-builder-library-sbom"
+        variant: "schema-builder-library-code-quality-security"
+      - name: "schema-builder-library-static-code-analysis"
+        variant: "schema-builder-library-code-quality-security"
+    exec_timeout_secs: 300 # 5m
+    commands:
+      - func: "publish static code analysis"
+        vars:
+          project_folder: "schema-builder-library"
+      - func: "publish augmented SBOM"
+        vars:
+          project_folder: "schema-builder-library"
+      - func: "generate compliance report"
+        vars:
+          project_folder: "schema-builder-library"
+      - func: "publish compliance report"
+        vars:
+          project_folder: "schema-builder-library"
+
+  - name: schema-builder-library-ssdlc-artifacts-snapshot
+    run_on: ubuntu2204-small
+    allow_for_git_tag: false
+    depends_on:
+      - name: "schema-builder-library-sbom"
+        variant: "schema-builder-library-code-quality-security"
+      - name: "schema-builder-library-static-code-analysis"
+        variant: "schema-builder-library-code-quality-security"
+    exec_timeout_secs: 300 # 5m
+    commands:
+      - func: "publish static code analysis"
+        vars:
+          project_folder: "schema-builder-library"
+      - func: "publish augmented SBOM"
+        vars:
+          project_folder: "schema-builder-library"
+      - func: "generate compliance report"
+        vars:
+          project_folder: "schema-builder-library"
+      - func: "publish compliance report"
+        vars:
+          project_folder: "schema-builder-library"
+
+buildvariants:
+  - name: schema-builder-library-release
+    display_name: "Schema Builder Library Release"
+    run_on: [ubuntu2004-large]
+    modules:
+      - sql-engines-common-test-infra
+    tasks:
+      - name: schema-builder-library-release
+      - name: trace-schema-builder-library-artifacts
+      - name: schema-builder-library-ssdlc-artifacts-release
+
+  - name: schema-builder-library-code-quality-security
+    display_name: "Schema Builder Library Code Quality and Security"
+    run_on: [ubuntu2204-small]
+    modules:
+      - sql-engines-common-test-infra
+    tasks:
+      - name: schema-builder-library-sbom
+      - name: schema-builder-library-static-code-analysis
+      - name: schema-builder-library-ssdlc-artifacts-snapshot
