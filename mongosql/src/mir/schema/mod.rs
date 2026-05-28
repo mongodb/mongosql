@@ -25,10 +25,9 @@ use std::{
 };
 
 mod errors;
-#[cfg(test)]
 pub use errors::Error;
 #[allow(unused_imports)]
-// ANY_SCHEMA_ADDENDUM is used in tests
+// ANY_SCHEMA_ADDENDUM is used in tests.
 pub(crate) use errors::ANY_SCHEMA_ADDENDUM;
 
 mod util;
