@@ -16,8 +16,12 @@ const COLLECTION = "movies";
 function toEJSON(doc: Document): BsonDocument {
     // EJSON.serialize converts BSON types to their EJSON representation
     // e.g., ObjectId("...") -> { "$oid": "..." }
-    // Canonical (relaxed: false) preserves Int32 vs Int64 distinction
-    // across the wasm boundary; without it ints widen to Int64 in Rust.
+    //
+    // Note: We set relaxed to `false` here because we want to keep the types in
+    // their native BSON form since we are sending documents across the WASM
+    // boundary, which has no notion of JS types. Without this, the native JS
+    // types for numerical ints was being propagates instead, leading to aggregations
+    // referencing non-existant types.
     return EJSON.serialize(doc, { relaxed: false }) as BsonDocument;
 }
 
