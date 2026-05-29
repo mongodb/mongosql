@@ -9,31 +9,6 @@ const DB = "sample_mflix";
 const COLLECTION = "movies";
 
 /**
- * Fix any mention of a `long` to an `int`
- *
- * Not sure why long is being inserted using the node driver.
- * @param document The document with weird `long` types.
- * @returns The corrected document
- */
-function fixLong(document: Document): Document {
-    const toVisit = [document];
-
-    while (toVisit.length != 0) {
-        let next = toVisit.pop();
-
-        for (let key in next) {
-            if (key == "bsonType" && next[key] == "long") {
-                next[key] = "int";
-            } else if (next[key] instanceof Object) {
-                toVisit.push(next[key]);
-            }
-        }
-    }
-
-    return document;
-}
-
-/**
  * Convert native BSON documents to EJSON format for WASM.
  * This ensures BSON types like ObjectId, Date, etc. are properly serialized
  * as EJSON objects that can be deserialized by Rust's bson crate.
@@ -41,7 +16,9 @@ function fixLong(document: Document): Document {
 function toEJSON(doc: Document): BsonDocument {
     // EJSON.serialize converts BSON types to their EJSON representation
     // e.g., ObjectId("...") -> { "$oid": "..." }
-    return EJSON.serialize(doc) as BsonDocument;
+    // Canonical (relaxed: false) preserves Int32 vs Int64 distinction
+    // across the wasm boundary; without it ints widen to Int64 in Rust.
+    return EJSON.serialize(doc, { relaxed: false }) as BsonDocument;
 }
 
 /**
@@ -77,11 +54,7 @@ class MongoDataService implements SqlDataService {
     }
 
     async aggregate(dbName: string, collName: string, pipeline: BsonDocument[], options: Partial<AggregateOptions>): Promise<SqlCursor> {
-        // Note: Here we fix errant `long`s in the pipeline documents, which causes the
-        // schema manager library to have to process all records since types mismatch.
-        //
-        // See `fixLong` for more info
-        const nativePipeline = pipeline.map(fromEJSON).map(fixLong);
+        const nativePipeline = pipeline.map(fromEJSON);
         let cursor = this.client.db(dbName).collection(collName).aggregate(nativePipeline, options.keyHint ? { hint: options.keyHint as any } : {});
 
         return new Cursor(cursor);
@@ -104,12 +77,7 @@ class Cursor implements SqlCursor {
             return null;
         }
 
-        // Note: Here we fix errant `long`s in the data type, which causes the
-        // schema manager library to have to process all records since types
-        // mismatch.
-        //
-        // See `fixLong` for more info
-        return toEJSON(fixLong(next));
+        return toEJSON(next);
     }
 
 }
@@ -132,6 +100,8 @@ async function main() {
         console.log(`> Schema (took ${(end - start) / 1000}s):`, EJSON.stringify(schema, undefined, 2));
     } catch (e) {
         console.error("Schema derivation failed:", e);
+    } finally {
+        await client.close();
     }
 }
 
