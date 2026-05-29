@@ -51,10 +51,14 @@ export interface AggregateOptions {
  * database access to the schema builder.
  */
 export interface SqlDataService {
+    /** List all database names */
+    listDatabases(): Promise<string[]>;
     /** List all collections in a database */
     listCollections(dbName: string): Promise<CollectionInfo[]>;
     /** Execute an aggregation pipeline on a collection */
     aggregate(dbName: string, collName: string, pipeline: BsonDocument[], options: Partial<AggregateOptions>): Promise<SqlCursor>;
+    /** Execute a find query on a collection */
+    find(dbName: string, collName: string, filter: BsonDocument): Promise<SqlCursor>;
 }
 
 /**

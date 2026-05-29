@@ -46,6 +46,16 @@ class MongoDataService implements SqlDataService {
         this.client = client;
     }
 
+    async listDatabases(): Promise<string[]> {
+        // The result shape of calling the `listDatabases` command.
+        interface ListDbResult {
+            databases: [{ name: string }],
+        }
+
+        let dbs = await this.client.db("admin").command({ listDatabases: 1, nameOnly: true }) as ListDbResult;
+        return dbs.databases.map(db => db.name);
+    }
+
     async listCollections(dbName: string): Promise<any[]> {
         const cursor = this.client.db(dbName).listCollections();
         const results = [];
@@ -61,14 +71,21 @@ class MongoDataService implements SqlDataService {
         const nativePipeline = pipeline.map(fromEJSON);
         let cursor = this.client.db(dbName).collection(collName).aggregate(nativePipeline, options.keyHint ? { hint: options.keyHint as any } : {});
 
-        return new Cursor(cursor);
+        return new EJSONCursor(cursor);
+    }
+
+    async find(dbName: string, collName: string, filter: BsonDocument): Promise<SqlCursor> {
+        const nativeFilter = fromEJSON(filter);
+        let cursor = this.client.db(dbName).collection(collName).find(nativeFilter);
+
+        return new EJSONCursor(cursor);
     }
 }
 
 /**
  * Cursor over MongoSQL entries
  */
-class Cursor implements SqlCursor {
+class EJSONCursor implements SqlCursor {
     cursor: SqlCursor;
 
     constructor(cursor: SqlCursor) {

@@ -55,6 +55,9 @@ extern "C" {
     #[wasm_bindgen(typescript_type = "SqlCursor")]
     pub type JsCursor;
 
+    #[wasm_bindgen(method, js_name = "listDatabases", catch)]
+    async fn list_database_names(this: &JsDataService) -> Result<JsValue, JsValue>;
+
     #[wasm_bindgen(method, js_name = "listCollections", catch)]
     async fn list_collections(this: &JsDataService, db_name: &str) -> Result<JsValue, JsValue>;
 
@@ -65,6 +68,14 @@ extern "C" {
         coll_name: &str,
         pipeline: JsValue,
         options: JsValue,
+    ) -> Result<JsCursor, JsValue>;
+
+    #[wasm_bindgen(method, catch)]
+    async fn find(
+        this: &JsDataService,
+        db_name: &str,
+        coll_name: &str,
+        filter: JsValue,
     ) -> Result<JsCursor, JsValue>;
 
     #[wasm_bindgen(method, catch)]
@@ -86,7 +97,14 @@ impl LocalDataService for WasmDataService {
     type Error = WasmDataServiceError;
 
     async fn list_database_names(&self) -> Result<Vec<String>, Self::Error> {
-        panic!("should never be called");
+        let js_result = self
+            .js_service
+            .list_database_names()
+            .await
+            .map_err(|e| WasmDataServiceError::Query(format!("{e:?}")))?;
+
+        serde_wasm_bindgen::from_value(js_result)
+            .map_err(|e| WasmDataServiceError::Deserialization(e.to_string()))
     }
 
     async fn list_collections(&self, db_name: &str) -> Result<Vec<CollectionInfo>, Self::Error> {
@@ -144,8 +162,29 @@ impl LocalDataService for WasmDataService {
         coll_name: &str,
         filter: Document,
     ) -> Result<impl Stream<Item = Result<Document, Self::Error>>, Self::Error> {
-        panic!("should never be called");
+        let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
+        let filter_js = filter
+            .serialize(&serializer)
+            .map_err(|e| WasmDataServiceError::Serialization(e.to_string()))?;
 
-        Ok(futures::stream::once(async { todo!() }))
+        let js_cursor = self
+            .js_service
+            .find(db_name, coll_name, filter_js)
+            .await
+            .map_err(|e| WasmDataServiceError::Query(format!("{e:?}")))?;
+
+        Ok(futures::stream::try_unfold(
+            js_cursor,
+            |cursor| async move {
+                let next = cursor
+                    .next()
+                    .await
+                    .map_err(|e| WasmDataServiceError::Query(format!("{e:?}")))?;
+                let deserialized: Option<Document> = serde_wasm_bindgen::from_value(next)
+                    .map_err(|e| WasmDataServiceError::Deserialization(e.to_string()))?;
+
+                Ok(deserialized.map(|doc| (doc, cursor)))
+            },
+        ))
     }
 }
