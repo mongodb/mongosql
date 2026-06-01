@@ -1,17 +1,5 @@
 #[cfg(feature = "integration")]
-#[cfg(test)]
-mod build_schema;
-
-#[cfg(feature = "integration")]
 mod consts;
-
-#[cfg(feature = "integration")]
-#[cfg(test)]
-mod derive_schema;
-
-#[cfg(feature = "integration")]
-#[cfg(test)]
-mod dry_run;
 
 #[cfg(feature = "integration")]
 #[cfg(test)]
@@ -37,8 +25,6 @@ async fn create_mdb_client() -> mongodb::Client {
 
 #[cfg(feature = "integration")]
 #[cfg(test)]
-async fn get_mdb_collection(db: &str, coll: &str) -> mongodb::Collection<mongodb::bson::Document> {
-    let client = create_mdb_client().await;
-    let db = client.database(db);
-    db.collection::<mongodb::bson::Document>(coll)
+async fn create_mdb_service() -> crate::data_service::MongoDbDataService {
+    crate::data_service::MongoDbDataService::new(create_mdb_client().await)
 }

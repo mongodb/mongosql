@@ -1,5 +1,4 @@
-use crate::{Error, Result};
-use async_trait::async_trait;
+use crate::{DataService, MongoDbDataService};
 use mongodb::{
     Cursor, Database,
     bson::Document,
@@ -40,7 +39,10 @@ pub async fn load_password_auth(
 }
 
 /// Returns a client options with the optimal pool size set.
-pub async fn get_opts(uri: &str, resolver: Option<ResolverConfig>) -> Result<ClientOptions> {
+pub async fn get_opts(
+    uri: &str,
+    resolver: Option<ResolverConfig>,
+) -> Result<ClientOptions, <MongoDbDataService as DataService>::Error> {
     let mut opts = if let Some(resolver) = resolver {
         ClientOptions::parse(uri).resolver_config(resolver).await?
     } else {
@@ -74,37 +76,40 @@ pub async fn get_opts(uri: &str, resolver: Option<ResolverConfig>) -> Result<Cli
     Ok(opts)
 }
 
-#[async_trait]
+#[trait_variant::make(Send)]
 pub trait DatabaseExt {
-    async fn run_command_with_read_preference(&self, command: Document) -> Result<Document>;
+    async fn run_command_with_read_preference(
+        &self,
+        command: Document,
+    ) -> Result<Document, <MongoDbDataService as DataService>::Error>;
 
     async fn run_cursor_command_with_read_preference(
         &self,
         command: Document,
-    ) -> Result<Cursor<Document>>;
+    ) -> Result<Cursor<Document>, <MongoDbDataService as DataService>::Error>;
 }
 
-#[async_trait]
 impl DatabaseExt for Database {
-    async fn run_command_with_read_preference(&self, command: Document) -> Result<Document> {
+    async fn run_command_with_read_preference(
+        &self,
+        command: Document,
+    ) -> Result<Document, <MongoDbDataService as DataService>::Error> {
         let selection_criteria = get_selection_criteria();
 
         self.run_command(command)
             .selection_criteria(selection_criteria)
             .await
-            .map_err(Error::DriverError)
     }
 
     async fn run_cursor_command_with_read_preference(
         &self,
         command: Document,
-    ) -> Result<Cursor<Document>> {
+    ) -> Result<Cursor<Document>, <MongoDbDataService as DataService>::Error> {
         let selection_criteria = get_selection_criteria();
 
         self.run_cursor_command(command)
             .selection_criteria(selection_criteria)
             .await
-            .map_err(Error::DriverError)
     }
 }
 
