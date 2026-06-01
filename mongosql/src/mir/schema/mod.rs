@@ -26,8 +26,8 @@ use std::{
 
 mod errors;
 pub use errors::Error;
-#[allow(unused_imports)]
-// ANY_SCHEMA_ADDENDUM is used in tests.
+
+#[cfg(test)]
 pub(crate) use errors::ANY_SCHEMA_ADDENDUM;
 
 mod util;
@@ -1519,17 +1519,13 @@ trait SqlFunction {
         arg_schema: &[Schema],
     ) -> Result<Schema, Error> {
         // 1. Assert that the arg schema has exactly 2 arguments
-        if arg_schema.len() != 2 {
+        let [in_operator_lhs, in_operator_rhs] = arg_schema else {
             return Err(Error::IncorrectArgumentCount {
                 name: self.as_str(),
                 required: 2,
                 found: arg_schema.len(),
             });
-        }
-
-        // 2. In Operator LHS must be ANY and RHS must be an Array
-        let in_operator_lhs = &arg_schema[0];
-        let in_operator_rhs = &arg_schema[1];
+        };
 
         if in_operator_lhs.satisfies(&Schema::Any) == Satisfaction::Not {
             return Err(Error::SchemaChecking {

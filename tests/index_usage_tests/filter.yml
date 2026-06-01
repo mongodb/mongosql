@@ -204,18 +204,22 @@ tests:
     current_db: index_usage_filter
     query: "SELECT * FROM nullable_fields WHERE a > 100 AND b IN (SELECT b FROM non_nullable_fields WHERE a < 300)"
     expected_utilization: IX_SCAN
+
   - description: in operator uses the index
     current_db: index_usage_filter
     query: "SELECT * FROM nullable_fields WHERE a IN (100, 250, 322)"
     expected_utilization: IX_SCAN
+
   - description: not in operator uses the index
     current_db: index_usage_filter
     query: "SELECT * FROM nullable_fields WHERE a NOT IN (100, 250, 322)"
     expected_utilization: IX_SCAN
+
   - description : in operator on non nullable field uses the index
     current_db: index_usage_filter
     query: "SELECT * FROM non_nullable_fields WHERE a IN (100, 250, 322)"
     expected_utilization: IX_SCAN
+
   - description: not in operator on non nullable field uses the index
     current_db: index_usage_filter
     query: "SELECT * FROM non_nullable_fields WHERE a NOT IN (100, 250, 322)"

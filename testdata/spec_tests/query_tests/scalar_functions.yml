@@ -691,3 +691,34 @@ dataset:
           bsonType: "int"
         date1:
           bsonType: "date"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "in_expressions"
+      docs:
+        - { "_id": 0, "a": 1, "s": "hello", "n": 1 }
+        - { "_id": 1, "a": 2, "s": "world", "n": 2 }
+        - { "_id": 2, "a": 4, "s": "foo", "n": 4 }
+        - { "_id": 3, "a": null, "s": null, "n": null }
+        - { "_id": 4 }
+        - { "_id": 5, "n": { "$numberInt": "10" } }
+        - { "_id": 6, "n": { "$numberInt": "20" } }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+        s:
+          anyOf:
+            - bsonType: "string"
+            - bsonType: !!str "null"
+        n:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
