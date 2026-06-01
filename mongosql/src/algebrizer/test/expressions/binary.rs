@@ -754,7 +754,7 @@ mod in_operator {
         env = map! {
             ("foo", 1u16).into() => Schema::Document( Document {
                 keys: map! {
-                    "a".into() => Schema::Atomic(Atomic::String),
+                    "a".into() => Schema::Atomic(Atomic::Integer),
                 },
                 required: set!{},
                 additional_properties: false,
@@ -799,7 +799,7 @@ mod in_operator {
         env = map! {
             ("foo", 1u16).into() => Schema::Document( Document {
                 keys: map! {
-                    "a".into() => Schema::Atomic(Atomic::String),
+                    "a".into() => Schema::Atomic(Atomic::Integer),
                 },
                 required: set!{},
                 additional_properties: false,
@@ -838,7 +838,7 @@ mod in_operator {
         env = map! {
             ("foo", 1u16).into() => Schema::Document( Document {
                 keys: map! {
-                    "a".into() => Schema::Atomic(Atomic::String),
+                    "a".into() => Schema::Atomic(Atomic::Boolean),
                 },
                 required: set!{},
                 additional_properties: false,
@@ -849,49 +849,6 @@ mod in_operator {
 
     test_algebrize!(
         in_operator_converts_type_when_left_is_extended_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::In,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
-                    mir::Expression::Array(mir::ArrayExpr {
-                        array: vec![
-                            mir::Expression::Literal(mir::LiteralValue::Integer(1)),
-                            mir::Expression::Literal(mir::LiteralValue::Integer(2)),
-                            mir::Expression::Literal(mir::LiteralValue::Integer(3))
-                        ],
-                    }),
-                ],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::StringConstructor(
-                "{\"$numberInt\": \"1\"}".to_string()
-            )),
-            op: ast::BinaryOp::In,
-            right: Box::new(ast::Expression::Tuple(vec![
-                ast::Expression::Literal(ast::Literal::Integer(1)),
-                ast::Expression::Literal(ast::Literal::Integer(2)),
-                ast::Expression::Literal(ast::Literal::Integer(3))
-            ])),
-        }),
-        env = map! {
-            ("foo", 1u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Atomic(Atomic::Integer),
-                },
-                required: set!{},
-                additional_properties: false,
-                ..Default::default()
-            }),
-        },
-    );
-
-    test_algebrize!(
-        in_operator_enables_conversion_when_lhs_is_extended_json_and_rhs_is_tuple,
         method = algebrize_expression,
         in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(

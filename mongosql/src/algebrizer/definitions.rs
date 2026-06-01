@@ -312,7 +312,7 @@ impl<'a> Algebrizer<'a> {
         args: &[mir::Expression],
     ) -> bool {
         if matches!(func, mir::ScalarFunction::In | mir::ScalarFunction::NotIn) {
-            Self::determine_in_expression_nullability(func, args)
+            Self::determine_in_expression_nullability(args)
         } else {
             // some functions can always be nullable regardless of argument nullablity,
             // we check those first. If this function is not one of those, we set nullablity
@@ -324,15 +324,7 @@ impl<'a> Algebrizer<'a> {
     /// Determines if an IN / NOT IN function is nullable.
     /// An IN / NOT IN is nullable if the left-hand side is nullable, or if any elements
     /// of the right-hand side are nullable.
-    pub fn determine_in_expression_nullability(
-        func: mir::ScalarFunction,
-        args: &[mir::Expression],
-    ) -> bool {
-        assert!(
-            matches!(func, mir::ScalarFunction::In | mir::ScalarFunction::NotIn),
-            "In Expression nullability is only for In and NotIn Operator. Given {func:?}"
-        );
-
+    pub fn determine_in_expression_nullability(args: &[mir::Expression]) -> bool {
         let lhs = args.first();
         let is_lhs_is_nullable = lhs.is_some_and(|e| e.is_nullable());
 
@@ -2535,76 +2527,64 @@ mod in_operator_nullability {
 
     #[test]
     fn in_with_null_literal_lhs_is_nullable() {
-        assert!(Algebrizer::determine_in_expression_nullability(
-            mir::ScalarFunction::In,
-            &[
-                mir::Expression::Literal(mir::LiteralValue::Null),
-                mir::Expression::Array(ArrayExpr {
-                    array: vec![
-                        mir::Expression::Literal(mir::LiteralValue::Integer(1)),
-                        mir::Expression::Literal(mir::LiteralValue::Integer(2)),
-                    ]
-                }),
-            ],
-        ));
+        assert!(Algebrizer::determine_in_expression_nullability(&[
+            mir::Expression::Literal(mir::LiteralValue::Null),
+            mir::Expression::Array(ArrayExpr {
+                array: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                ]
+            }),
+        ],));
     }
 
     #[test]
     fn in_with_nullable_rhs_is_nullable() {
-        assert!(Algebrizer::determine_in_expression_nullability(
-            mir::ScalarFunction::In,
-            &[
-                mir::Expression::Literal(mir::LiteralValue::Integer(1)),
-                mir::Expression::Array(ArrayExpr {
-                    array: vec![
-                        mir::Expression::Literal(mir::LiteralValue::Integer(1)),
-                        mir::Expression::Literal(mir::LiteralValue::Null),
-                    ]
-                }),
-            ],
-        ));
+        assert!(Algebrizer::determine_in_expression_nullability(&[
+            mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+            mir::Expression::Array(ArrayExpr {
+                array: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Literal(mir::LiteralValue::Null),
+                ]
+            }),
+        ],));
     }
 
     #[test]
     fn in_with_non_nullable_operands_is_non_nullable() {
-        assert!(!Algebrizer::determine_in_expression_nullability(
-            mir::ScalarFunction::In,
-            &[
-                mir::Expression::Literal(mir::LiteralValue::Integer(1)),
-                mir::Expression::Array(ArrayExpr {
-                    array: vec![
-                        mir::Expression::Literal(mir::LiteralValue::Integer(1)),
-                        mir::Expression::Literal(mir::LiteralValue::Integer(2)),
-                    ]
-                }),
-            ],
-        ));
+        assert!(!Algebrizer::determine_in_expression_nullability(&[
+            mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+            mir::Expression::Array(ArrayExpr {
+                array: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                ]
+            }),
+        ],));
     }
 
     #[test]
     fn in_with_nullable_field_access_is_nullable() {
-        assert!(Algebrizer::determine_in_expression_nullability(
-            mir::ScalarFunction::In,
-            &[
-                mir::Expression::FieldAccess(mir::FieldAccess {
-                    expr: Box::new(mir::Expression::Reference(
-                        Key {
-                            datasource: "ds".into(),
-                            scope: 0
-                        }
-                        .into()
-                    )),
-                    field: "field".to_string(),
-                    is_nullable: true,
-                }),
-                mir::Expression::Array(ArrayExpr {
-                    array: vec![
-                        mir::Expression::Literal(mir::LiteralValue::Integer(1)),
-                        mir::Expression::Literal(mir::LiteralValue::Integer(2)),
-                    ]
-                }),
-            ],
-        ));
+        assert!(Algebrizer::determine_in_expression_nullability(&[
+            mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::Reference(
+                    Key {
+                        datasource: "ds".into(),
+                        scope: 0
+                    }
+                    .into()
+                )),
+                field: "field".to_string(),
+                is_nullable: true,
+            }),
+            mir::Expression::Array(ArrayExpr {
+                array: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                ]
+            }),
+        ],));
     }
 }
 
