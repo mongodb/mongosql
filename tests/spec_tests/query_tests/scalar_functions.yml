@@ -662,10 +662,10 @@ tests:
 
   - description: NOT IN operator with $numberInt encoded field correctness test
     current_db: spec_query_scalar_functions
-    query: "SELECT _id, n FROM in_expressions AS c WHERE n NOT IN (1, 2, 4, null)"
+    query: "SELECT _id, n FROM in_expressions WHERE n NOT IN (1, 2, 4, null)"
     result:
-      - { "_id": 5, "n": { "$numberInt": "10" } }
-      - { "_id": 6, "n": { "$numberInt": "20" } }
+      - { '': { "_id": 5, "n": { "$numberInt": "10" } } }
+      - { '': { "_id": 6, "n": { "$numberInt": "20" } } }
 
   - description: IN operator with plain integer n field correctness test
     current_db: spec_query_scalar_functions
