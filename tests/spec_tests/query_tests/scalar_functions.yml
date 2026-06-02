@@ -680,3 +680,11 @@ tests:
     result:
       - {'': {'n': { '$numberInt': '10' }}}
       - {'': {'n': { '$numberInt': '20' }}}
+
+  - description: IN operator with subquery correctness test
+    current_db: spec_query_scalar_functions
+    query: "SELECT _id, a, s FROM in_expressions AS c WHERE a IN (SELECT in_expressions.n FROM in_expressions WHERE in_expressions.n < 5)"
+    result:
+      - {'': {'_id': 0, 'a': 1, 's': 'hello'}}
+      - {'': {'_id': 1, 'a': 2, 's': 'world'}}
+      - {'': {'_id': 2, 'a': 4, 's': 'foo'}}
