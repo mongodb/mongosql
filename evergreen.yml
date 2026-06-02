@@ -1572,7 +1572,7 @@ buildvariants:
 
   - name: schema-builder-library
     display_name: "Schema Builder Library"
-    run_on: [rhel80-small]
+    run_on: [ubuntu2204-small]
     modules:
       - sql-engines-common-test-infra
     tasks:
