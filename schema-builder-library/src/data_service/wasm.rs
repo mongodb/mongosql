@@ -4,8 +4,9 @@ use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 use crate::{
+    CollectionType,
     data_service::{AggregateOptions, LocalDataService},
-    derive_schema_for_collection,
+    derive_schema_for_collection, derive_schema_for_view,
 };
 
 use super::CollectionInfo;
@@ -26,6 +27,9 @@ pub fn init() {
     console_error_panic_hook::set_once();
 }
 
+/// Generate a schema for a collection in the specified db.collection namespace
+///
+/// Note: This does not work on views. Refer to `process_view` for that.
 #[wasm_bindgen]
 pub async fn process_collection(
     service: JsDataService,
@@ -38,6 +42,43 @@ pub async fn process_collection(
     let as_bson = bson::Bson::try_from(result).map_err(|e| e.to_string())?;
 
     serde_wasm_bindgen::to_value(&as_bson).map_err(|e| e.to_string())
+}
+
+/// Generate a schema for a view in the specified db.view namespace
+///
+/// Note: This does not work on collections. Refer to `process_collection` for that.
+#[wasm_bindgen]
+pub async fn process_view(
+    service: JsDataService,
+    db: &str,
+    view: &str,
+) -> Result<Option<JsValue>, String> {
+    let service = WasmDataService::new(service);
+
+    // Get the info for the view, erroring out if the view does not exist or if
+    // it is not a view.
+    let info = service
+        .list_collections(db)
+        .await
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .find(|info| info.name == view)
+        .ok_or_else(|| format!("view does not exist: {view}"))?;
+    if info.collection_type != CollectionType::View {
+        return Err(format!(
+            "expected {view} to be a view, but was a {:?}",
+            info.collection_type
+        ));
+    }
+
+    let Some(schema) = derive_schema_for_view(&service, db, &info).await else {
+        return Ok(None);
+    };
+
+    let as_bson = bson::Bson::try_from(schema).map_err(|e| e.to_string())?;
+    let result = serde_wasm_bindgen::to_value(&as_bson).map_err(|e| e.to_string())?;
+
+    Ok(Some(result))
 }
 
 // Embed TypeScript interface definitions directly in the generated .d.ts file.
