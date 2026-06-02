@@ -1,5 +1,6 @@
 use crate::{
     air,
+    air::MatchLanguageIn,
     codegen::{MqlCodeGenerator, Result},
 };
 use bson::{bson, Bson};
@@ -33,6 +34,28 @@ impl MqlCodeGenerator {
             // this way to ensure efficient performance. Otherwise, such a query could result in a needless collection
             // scan.
             False => Ok(bson!({"_id": Bson::MinKey, "$expr": false})),
+            In(c) => self.codegen_match_elem_in(c),
+        }
+    }
+
+    fn codegen_match_elem_in(&self, args: MatchLanguageIn) -> Result<Bson> {
+        let field = self.codegen_field_ref_path_only(args.expression);
+
+        let values: Vec<Bson> = args
+            .array_expression
+            .into_iter()
+            .map(|lit| self.codegen_match_literal_value(lit))
+            .collect();
+
+        let op = bson!({ "$in": Bson::Array(values) });
+
+        match args.op {
+            air::MatchLanguageInOp::In => Ok(bson!({ field: op })),
+            air::MatchLanguageInOp::NotIn => Ok(bson!({
+                field: {
+                    "$not": op
+                }
+            })),
         }
     }
 

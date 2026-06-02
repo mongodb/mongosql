@@ -131,7 +131,6 @@ pub fn translate_sql(
     })
 }
 
-#[allow(clippy::result_large_err)]
 pub fn get_namespaces(
     current_db: &str,
     sql: &str,

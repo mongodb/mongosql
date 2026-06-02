@@ -213,3 +213,67 @@ mod match_constant_false {
         input = air::MatchQuery::False
     );
 }
+
+mod in_op {
+    test_codegen_match_query!(
+        in_single,
+        expected = Ok(bson!({"a": {"$in": [1]}})),
+        input = air::MatchQuery::In(air::MatchLanguageIn {
+            op: air::MatchLanguageInOp::In,
+            expression: air::FieldRef {
+                parent: None,
+                name: "a".to_string()
+            },
+            array_expression: vec![air::LiteralValue::Integer(1)],
+        })
+    );
+
+    test_codegen_match_query!(
+        in_multiple,
+        expected = Ok(bson!({"a": {"$in": [1, 2, 3]}})),
+        input = air::MatchQuery::In(air::MatchLanguageIn {
+            op: air::MatchLanguageInOp::In,
+            expression: air::FieldRef {
+                parent: None,
+                name: "a".to_string()
+            },
+            array_expression: vec![
+                air::LiteralValue::Integer(1),
+                air::LiteralValue::Integer(2),
+                air::LiteralValue::Integer(3),
+            ],
+        })
+    );
+
+    // NotIn must emit { "$not": { "$in": [...] } }, NOT "$nin", which is not supported in
+    // $match/$project expressions.
+    test_codegen_match_query!(
+        not_in_single,
+        expected = Ok(bson!({"a": {"$not": {"$in": [1]}}})),
+        input = air::MatchQuery::In(air::MatchLanguageIn {
+            op: air::MatchLanguageInOp::NotIn,
+            expression: air::FieldRef {
+                parent: None,
+                name: "a".to_string()
+            },
+            array_expression: vec![air::LiteralValue::Integer(1)],
+        })
+    );
+
+    test_codegen_match_query!(
+        not_in_multiple,
+        expected = Ok(bson!({"a": {"$not": {"$in": [1, 2, 3]}}})),
+        input = air::MatchQuery::In(air::MatchLanguageIn {
+            op: air::MatchLanguageInOp::NotIn,
+            expression: air::FieldRef {
+                parent: None,
+                name: "a".to_string()
+            },
+            array_expression: vec![
+                air::LiteralValue::Integer(1),
+                air::LiteralValue::Integer(2),
+                air::LiteralValue::Integer(3),
+            ],
+        })
+    );
+}

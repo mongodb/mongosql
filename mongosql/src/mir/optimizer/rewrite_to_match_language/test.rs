@@ -402,3 +402,99 @@ test_rewrite_to_match_language_no_op!(
         bson::Decimal128::from_str("1.0").unwrap()
     )))
 );
+
+test_rewrite_to_match_language!(
+    rewrite_in_operator_to_match_language,
+    expected = match_filter_stage(MatchQuery::In(MatchLanguageIn {
+        op: MatchLanguageInOp::In,
+        input: mir_field_path("foo", vec!["int"]),
+        values: vec![
+            LiteralValue::Integer(1),
+            LiteralValue::Integer(2),
+            LiteralValue::Integer(3),
+        ],
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
+        function: ScalarFunction::In,
+        args: vec![
+            *mir_field_access("foo", "int", true),
+            Expression::Array(ArrayExpr {
+                array: vec![
+                    Expression::Literal(LiteralValue::Integer(1)),
+                    Expression::Literal(LiteralValue::Integer(2)),
+                    Expression::Literal(LiteralValue::Integer(3)),
+                ],
+            })
+        ],
+        is_nullable: false,
+    }))
+);
+
+test_rewrite_to_match_language!(
+    rewrite_not_in_operator_to_match_language,
+    expected = match_filter_stage(MatchQuery::In(MatchLanguageIn {
+        op: MatchLanguageInOp::NotIn,
+        input: mir_field_path("foo", vec!["int"]),
+        values: vec![
+            LiteralValue::Integer(1),
+            LiteralValue::Integer(2),
+            LiteralValue::Integer(3),
+        ],
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
+        function: ScalarFunction::NotIn,
+        args: vec![
+            *mir_field_access("foo", "int", true),
+            Expression::Array(ArrayExpr {
+                array: vec![
+                    Expression::Literal(LiteralValue::Integer(1)),
+                    Expression::Literal(LiteralValue::Integer(2)),
+                    Expression::Literal(LiteralValue::Integer(3)),
+                ],
+            })
+        ],
+        is_nullable: false,
+    }))
+);
+
+test_rewrite_to_match_language_no_op!(
+    in_with_non_literal_value_in_tuple_stays_in_expr_language,
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
+        function: ScalarFunction::In,
+        args: vec![
+            *mir_field_access("foo", "int", true),
+            Expression::Array(ArrayExpr {
+                array: vec![
+                    Expression::Literal(LiteralValue::Integer(1)),
+                    *mir_field_access("foo", "int", true),
+                ],
+            })
+        ],
+        is_nullable: false,
+    }))
+);
+
+test_rewrite_to_match_language_no_op!(
+    in_with_non_field_access_lhs_stays_in_expr_language,
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
+        function: ScalarFunction::In,
+        args: vec![
+            Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Upper,
+                args: vec![*mir_field_access("foo", "str", true)],
+                is_nullable: true,
+            }),
+            Expression::Array(ArrayExpr {
+                array: vec![
+                    Expression::Literal(LiteralValue::Integer(1)),
+                    Expression::Literal(LiteralValue::Integer(2)),
+                ],
+            })
+        ],
+        is_nullable: false,
+    }))
+);

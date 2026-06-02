@@ -25,7 +25,31 @@ impl MqlTranslator {
             ElemMatch(em) => self.translate_elem_match(em),
             Comparison(c) => self.translate_match_comparison(c),
             False(_) => Ok(air::MatchQuery::False),
+            In(in_op) => self.translate_match_in_operator(in_op),
         }
+    }
+
+    fn translate_match_in_operator(&self, in_op: mir::MatchLanguageIn) -> Result<air::MatchQuery> {
+        let op = match in_op.op {
+            mir::MatchLanguageInOp::In => air::MatchLanguageInOp::In,
+            mir::MatchLanguageInOp::NotIn => air::MatchLanguageInOp::NotIn,
+        };
+
+        let expression = self
+            .translate_field_path(in_op.input)?
+            .ok_or(Error::InvalidMatchLanguageInputRef)?;
+
+        let array_expression = in_op
+            .values
+            .into_iter()
+            .map(|v| self.translate_literal_value(v))
+            .collect();
+
+        Ok(air::MatchQuery::In(air::MatchLanguageIn {
+            op,
+            expression,
+            array_expression,
+        }))
     }
 
     fn translate_match_logical(&self, l: mir::MatchLanguageLogical) -> Result<air::MatchQuery> {

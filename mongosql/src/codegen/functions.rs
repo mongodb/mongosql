@@ -84,12 +84,13 @@ impl MqlCodeGenerator {
             Not => "$not",
             And => "$and",
             Or => "$or",
+            In => "$in",
+            NotIn => "$nin",
 
             // Array scalar functions
             Slice => "$slice",
             Size => "$size",
             ElemAt => "$arrayElemAt",
-            In => "$in",
             First => "$first",
             Last => "$last",
             AllElementsTrue => "$allElementsTrue",

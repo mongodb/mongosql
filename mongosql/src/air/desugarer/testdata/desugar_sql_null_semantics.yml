@@ -934,3 +934,537 @@ tests:
               },
           },
       }
+
+  - name: "desugar $sqlIn"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlIn": ["$a", ["$b", "$c", "$d"]] } } }
+    expected:
+      - {
+        "$project":
+          {
+            "_id": 0,
+            "expr":
+              {
+                "$let":
+                  {
+                    "vars":
+                      {
+                        "desugared_sqlIn_input0": "$a",
+                        "desugared_sqlIn_input0_is_nullish": { "$lte": ["$a", { "$literal": null }] },
+                        "desugared_sqlIn_input1": ["$b", "$c", "$d"],
+                      },
+                    "in":
+                      {
+                        "$reduce":
+                          {
+                            "input":
+                              {
+                                "$map":
+                                  {
+                                    "input": "$$desugared_sqlIn_input1",
+                                    "in":
+                                      {
+                                        "$let":
+                                          {
+                                            "vars":
+                                              {
+                                                "desugared_this_is_nullish": { "$lte": ["$$this", { "$literal": null }] },
+                                              },
+                                            "in":
+                                              {
+                                                "$switch":
+                                                  {
+                                                    "branches":
+                                                      [
+                                                        {
+                                                          "case":
+                                                            {
+                                                              "$and":
+                                                                [
+                                                                  { "$not": ["$$desugared_sqlIn_input0_is_nullish"] },
+                                                                  { "$not": ["$$desugared_this_is_nullish"] },
+                                                                  { "$eq": ["$$desugared_sqlIn_input0", "$$this"] },
+                                                                ],
+                                                            },
+                                                          "then": { "$literal": true },
+                                                        },
+                                                        {
+                                                          "case":
+                                                            {
+                                                              "$or":
+                                                                [
+                                                                  "$$desugared_sqlIn_input0_is_nullish",
+                                                                  "$$desugared_this_is_nullish",
+                                                                ],
+                                                            },
+                                                          "then": { "$literal": null },
+                                                        },
+                                                      ],
+                                                    "default": { "$literal": false },
+                                                  },
+                                              },
+                                          },
+                                      },
+                                  },
+                              },
+                            "initialValue": { "$literal": false },
+                            "in":
+                              {
+                                "$cond":
+                                  [
+                                    { "$or": ["$$value", "$$this"] },
+                                    { "$literal": true },
+                                    {
+                                      "$cond":
+                                        [
+                                          {
+                                            "$or":
+                                              [
+                                                { "$lte": ["$$value", { "$literal": null }] },
+                                                { "$lte": ["$$this", { "$literal": null }] },
+                                              ],
+                                          },
+                                          { "$literal": null },
+                                          { "$literal": false },
+                                        ],
+                                    },
+                                  ],
+                              },
+                          },
+                      },
+                  },
+              },
+          },
+      }
+
+  - name: "desugar $sqlIn with variable LHS and literal integer RHS"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlIn": ["$a", [1, 2, 3]] } } }
+    expected:
+      - {
+        "$project":
+          {
+            "_id": 0,
+            "expr":
+              {
+                "$let":
+                  {
+                    "vars":
+                      {
+                        "desugared_sqlIn_input0": "$a",
+                        "desugared_sqlIn_input0_is_nullish": { "$lte": ["$a", { "$literal": null }] },
+                        "desugared_sqlIn_input1": [1, 2, 3],
+                      },
+                    "in":
+                      {
+                        "$reduce":
+                          {
+                            "input":
+                              {
+                                "$map":
+                                  {
+                                    "input": "$$desugared_sqlIn_input1",
+                                    "in":
+                                      {
+                                        "$let":
+                                          {
+                                            "vars":
+                                              {
+                                                "desugared_this_is_nullish": { "$lte": ["$$this", { "$literal": null }] },
+                                              },
+                                            "in":
+                                              {
+                                                "$switch":
+                                                  {
+                                                    "branches":
+                                                      [
+                                                        {
+                                                          "case":
+                                                            {
+                                                              "$and":
+                                                                [
+                                                                  { "$not": ["$$desugared_sqlIn_input0_is_nullish"] },
+                                                                  { "$not": ["$$desugared_this_is_nullish"] },
+                                                                  { "$eq": ["$$desugared_sqlIn_input0", "$$this"] },
+                                                                ],
+                                                            },
+                                                          "then": { "$literal": true },
+                                                        },
+                                                        {
+                                                          "case":
+                                                            {
+                                                              "$or":
+                                                                [
+                                                                  "$$desugared_sqlIn_input0_is_nullish",
+                                                                  "$$desugared_this_is_nullish",
+                                                                ],
+                                                            },
+                                                          "then": { "$literal": null },
+                                                        },
+                                                      ],
+                                                    "default": { "$literal": false },
+                                                  },
+                                              },
+                                          },
+                                      },
+                                  },
+                              },
+                            "initialValue": { "$literal": false },
+                            "in":
+                              {
+                                "$cond":
+                                  [
+                                    { "$or": ["$$value", "$$this"] },
+                                    { "$literal": true },
+                                    {
+                                      "$cond":
+                                        [
+                                          {
+                                            "$or":
+                                              [
+                                                { "$lte": ["$$value", { "$literal": null }] },
+                                                { "$lte": ["$$this", { "$literal": null }] },
+                                              ],
+                                          },
+                                          { "$literal": null },
+                                          { "$literal": false },
+                                        ],
+                                    },
+                                  ],
+                              },
+                          },
+                      },
+                  },
+              },
+          },
+      }
+
+  - name: "desugar $sqlIn with literal LHS and literal integer RHS"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlIn": [5, [1, 2, 3]] } } }
+    expected:
+      - {
+        "$project":
+          {
+            "_id": 0,
+            "expr":
+              {
+                "$let":
+                  {
+                    "vars":
+                      {
+                        "desugared_sqlIn_input0": 5,
+                        "desugared_sqlIn_input0_is_nullish": { "$lte": [5, { "$literal": null }] },
+                        "desugared_sqlIn_input1": [1, 2, 3],
+                      },
+                    "in":
+                      {
+                        "$reduce":
+                          {
+                            "input":
+                              {
+                                "$map":
+                                  {
+                                    "input": "$$desugared_sqlIn_input1",
+                                    "in":
+                                      {
+                                        "$let":
+                                          {
+                                            "vars":
+                                              {
+                                                "desugared_this_is_nullish": { "$lte": ["$$this", { "$literal": null }] },
+                                              },
+                                            "in":
+                                              {
+                                                "$switch":
+                                                  {
+                                                    "branches":
+                                                      [
+                                                        {
+                                                          "case":
+                                                            {
+                                                              "$and":
+                                                                [
+                                                                  { "$not": ["$$desugared_sqlIn_input0_is_nullish"] },
+                                                                  { "$not": ["$$desugared_this_is_nullish"] },
+                                                                  { "$eq": ["$$desugared_sqlIn_input0", "$$this"] },
+                                                                ],
+                                                            },
+                                                          "then": { "$literal": true },
+                                                        },
+                                                        {
+                                                          "case":
+                                                            {
+                                                              "$or":
+                                                                [
+                                                                  "$$desugared_sqlIn_input0_is_nullish",
+                                                                  "$$desugared_this_is_nullish",
+                                                                ],
+                                                            },
+                                                          "then": { "$literal": null },
+                                                        },
+                                                      ],
+                                                    "default": { "$literal": false },
+                                                  },
+                                              },
+                                          },
+                                      },
+                                  },
+                              },
+                            "initialValue": { "$literal": false },
+                            "in":
+                              {
+                                "$cond":
+                                  [
+                                    { "$or": ["$$value", "$$this"] },
+                                    { "$literal": true },
+                                    {
+                                      "$cond":
+                                        [
+                                          {
+                                            "$or":
+                                              [
+                                                { "$lte": ["$$value", { "$literal": null }] },
+                                                { "$lte": ["$$this", { "$literal": null }] },
+                                              ],
+                                          },
+                                          { "$literal": null },
+                                          { "$literal": false },
+                                        ],
+                                    },
+                                  ],
+                              },
+                          },
+                      },
+                  },
+              },
+          },
+      }
+
+  - name: "desugar $sqlIn with variable LHS and mixed literal/variable RHS"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlIn": ["$a", [1, "$b", 2]] } } }
+    expected:
+      - {
+        "$project":
+          {
+            "_id": 0,
+            "expr":
+              {
+                "$let":
+                  {
+                    "vars":
+                      {
+                        "desugared_sqlIn_input0": "$a",
+                        "desugared_sqlIn_input0_is_nullish": { "$lte": ["$a", { "$literal": null }] },
+                        "desugared_sqlIn_input1": [1, "$b", 2],
+                      },
+                    "in":
+                      {
+                        "$reduce":
+                          {
+                            "input":
+                              {
+                                "$map":
+                                  {
+                                    "input": "$$desugared_sqlIn_input1",
+                                    "in":
+                                      {
+                                        "$let":
+                                          {
+                                            "vars":
+                                              {
+                                                "desugared_this_is_nullish": { "$lte": ["$$this", { "$literal": null }] },
+                                              },
+                                            "in":
+                                              {
+                                                "$switch":
+                                                  {
+                                                    "branches":
+                                                      [
+                                                        {
+                                                          "case":
+                                                            {
+                                                              "$and":
+                                                                [
+                                                                  { "$not": ["$$desugared_sqlIn_input0_is_nullish"] },
+                                                                  { "$not": ["$$desugared_this_is_nullish"] },
+                                                                  { "$eq": ["$$desugared_sqlIn_input0", "$$this"] },
+                                                                ],
+                                                            },
+                                                          "then": { "$literal": true },
+                                                        },
+                                                        {
+                                                          "case":
+                                                            {
+                                                              "$or":
+                                                                [
+                                                                  "$$desugared_sqlIn_input0_is_nullish",
+                                                                  "$$desugared_this_is_nullish",
+                                                                ],
+                                                            },
+                                                          "then": { "$literal": null },
+                                                        },
+                                                      ],
+                                                    "default": { "$literal": false },
+                                                  },
+                                              },
+                                          },
+                                      },
+                                  },
+                              },
+                            "initialValue": { "$literal": false },
+                            "in":
+                              {
+                                "$cond":
+                                  [
+                                    { "$or": ["$$value", "$$this"] },
+                                    { "$literal": true },
+                                    {
+                                      "$cond":
+                                        [
+                                          {
+                                            "$or":
+                                              [
+                                                { "$lte": ["$$value", { "$literal": null }] },
+                                                { "$lte": ["$$this", { "$literal": null }] },
+                                              ],
+                                          },
+                                          { "$literal": null },
+                                          { "$literal": false },
+                                        ],
+                                    },
+                                  ],
+                              },
+                          },
+                      },
+                  },
+              },
+          },
+      }
+
+
+  - name: "desugar $sqlNot($sqlIn) with variable LHS and literal integer RHS"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlNot": [{ "$sqlIn": ["$a", [1, 2, 3]] }] } } }
+    expected:
+      - {
+        "$project":
+          {
+            "_id": 0,
+            "expr":
+              {
+                "$let":
+                  {
+                    "vars":
+                      {
+                        "desugared_sqlNot_input0":
+                          {
+                            "$let":
+                              {
+                                "vars":
+                                  {
+                                    "desugared_sqlIn_input0": "$a",
+                                    "desugared_sqlIn_input0_is_nullish": { "$lte": ["$a", { "$literal": null }] },
+                                    "desugared_sqlIn_input1": [1, 2, 3],
+                                  },
+                                "in":
+                                  {
+                                    "$reduce":
+                                      {
+                                        "input":
+                                          {
+                                            "$map":
+                                              {
+                                                "input": "$$desugared_sqlIn_input1",
+                                                "in":
+                                                  {
+                                                    "$let":
+                                                      {
+                                                        "vars":
+                                                          {
+                                                            "desugared_this_is_nullish": { "$lte": ["$$this", { "$literal": null }] },
+                                                          },
+                                                        "in":
+                                                          {
+                                                            "$switch":
+                                                              {
+                                                                "branches":
+                                                                  [
+                                                                    {
+                                                                      "case":
+                                                                        {
+                                                                          "$and":
+                                                                            [
+                                                                              { "$not": ["$$desugared_sqlIn_input0_is_nullish"] },
+                                                                              { "$not": ["$$desugared_this_is_nullish"] },
+                                                                              { "$eq": ["$$desugared_sqlIn_input0", "$$this"] },
+                                                                            ],
+                                                                        },
+                                                                      "then": { "$literal": true },
+                                                                    },
+                                                                    {
+                                                                      "case":
+                                                                        {
+                                                                          "$or":
+                                                                            [
+                                                                              "$$desugared_sqlIn_input0_is_nullish",
+                                                                              "$$desugared_this_is_nullish",
+                                                                            ],
+                                                                        },
+                                                                      "then": { "$literal": null },
+                                                                    },
+                                                                  ],
+                                                                "default": { "$literal": false },
+                                                              },
+                                                          },
+                                                      },
+                                                  },
+                                              },
+                                          },
+                                        "initialValue": { "$literal": false },
+                                        "in":
+                                          {
+                                            "$cond":
+                                              [
+                                                { "$or": ["$$value", "$$this"] },
+                                                { "$literal": true },
+                                                {
+                                                  "$cond":
+                                                    [
+                                                      {
+                                                        "$or":
+                                                          [
+                                                            { "$lte": ["$$value", { "$literal": null }] },
+                                                            { "$lte": ["$$this", { "$literal": null }] },
+                                                          ],
+                                                      },
+                                                      { "$literal": null },
+                                                      { "$literal": false },
+                                                    ],
+                                                },
+                                              ],
+                                          },
+                                      },
+                                  },
+                              },
+                          },
+                      },
+                    "in":
+                      {
+                        "$cond":
+                          [
+                            "$lte":
+                              [
+                                "$$desugared_sqlNot_input0",
+                                { "$literal": null },
+                              ],
+
+                            { "$literal": null },
+                            { "$not": ["$$desugared_sqlNot_input0"] },
+                          ],
+                      },
+                  },
+              },
+          },
+      }

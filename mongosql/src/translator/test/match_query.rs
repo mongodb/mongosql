@@ -389,3 +389,51 @@ mod match_path {
         assert_eq!(expected, actual);
     }
 }
+
+mod match_in_operator {
+    test_translate_match_query!(
+        translate_in_operator_happy_path,
+        expected = Ok(air::MatchQuery::In(air::MatchLanguageIn {
+            op: air::MatchLanguageInOp::In,
+            expression: "f.a".to_string().into(),
+            array_expression: vec![
+                air::LiteralValue::Integer(1),
+                air::LiteralValue::Integer(2),
+                air::LiteralValue::Integer(3),
+            ],
+        })),
+        input = mir::MatchQuery::In(mir::MatchLanguageIn {
+            op: mir::MatchLanguageInOp::In,
+            input: mir_field_input().unwrap(),
+            values: vec![
+                mir::LiteralValue::Integer(1),
+                mir::LiteralValue::Integer(2),
+                mir::LiteralValue::Integer(3),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
+
+    test_translate_match_query!(
+        translate_not_in_operator_happy_path,
+        expected = Ok(air::MatchQuery::In(air::MatchLanguageIn {
+            op: air::MatchLanguageInOp::NotIn,
+            expression: "f.a".to_string().into(),
+            array_expression: vec![
+                air::LiteralValue::Integer(1),
+                air::LiteralValue::Integer(2),
+                air::LiteralValue::Integer(3),
+            ],
+        })),
+        input = mir::MatchQuery::In(mir::MatchLanguageIn {
+            op: mir::MatchLanguageInOp::NotIn,
+            input: mir_field_input().unwrap(),
+            values: vec![
+                mir::LiteralValue::Integer(1),
+                mir::LiteralValue::Integer(2),
+                mir::LiteralValue::Integer(3),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
+}

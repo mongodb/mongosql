@@ -204,3 +204,58 @@ tests:
     current_db: index_usage_filter
     query: "SELECT * FROM nullable_fields WHERE a > 100 AND b IN (SELECT b FROM non_nullable_fields WHERE a < 300)"
     expected_utilization: IX_SCAN
+
+  - description: in operator uses the index
+    current_db: index_usage_filter
+    query: "SELECT * FROM nullable_fields WHERE a IN (100, 250, 322)"
+    expected_utilization: IX_SCAN
+
+  - description: not in operator uses the index
+    current_db: index_usage_filter
+    query: "SELECT * FROM nullable_fields WHERE a NOT IN (100, 250, 322)"
+    expected_utilization: IX_SCAN
+
+  - description : in operator on non nullable field uses the index
+    current_db: index_usage_filter
+    query: "SELECT * FROM non_nullable_fields WHERE a IN (100, 250, 322)"
+    expected_utilization: IX_SCAN
+
+  - description: not in operator on non nullable field uses the index
+    current_db: index_usage_filter
+    query: "SELECT * FROM non_nullable_fields WHERE a NOT IN (100, 250, 322)"
+    expected_utilization: IX_SCAN
+
+  - description: in operator with field reference in list uses collection scan
+    current_db: index_usage_filter
+    query: "SELECT * FROM nullable_fields WHERE a IN (b, 250, 322)"
+    expected_utilization: COLL_SCAN
+
+  - description: not in operator with field reference in list uses collection scan
+    current_db: index_usage_filter
+    query: "SELECT * FROM nullable_fields WHERE a NOT IN (b, 250, 322)"
+    expected_utilization: COLL_SCAN
+
+  - description: in operator with computed expression in list uses collection scan
+    current_db: index_usage_filter
+    query: "SELECT * FROM nullable_fields WHERE a IN (b + 1, 100)"
+    expected_utilization: COLL_SCAN
+
+  - description: not in operator with computed expression in list uses collection scan
+    current_db: index_usage_filter
+    query: "SELECT * FROM nullable_fields WHERE a NOT IN (b + 1, 100)"
+    expected_utilization: COLL_SCAN
+
+  - description: in operator with null in list uses the index
+    current_db: index_usage_filter
+    query: "SELECT * FROM nullable_fields WHERE a IN (100, null)"
+    expected_utilization: IX_SCAN
+
+  - description: not in operator with null in list uses the index
+    current_db: index_usage_filter
+    query: "SELECT * FROM nullable_fields WHERE a NOT IN (100, null)"
+    expected_utilization: IX_SCAN
+
+  - description: in operator with subquery uses collection scan
+    current_db: index_usage_filter
+    query: "SELECT * FROM nullable_fields WHERE b IN (SELECT b FROM non_nullable_fields WHERE a < 300)"
+    expected_utilization: COLL_SCAN

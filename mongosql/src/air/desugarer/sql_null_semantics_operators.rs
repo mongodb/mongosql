@@ -7,6 +7,7 @@ use crate::air::{
     Expression::*,
     LetVariable, LiteralValue, MqlOperator, MqlSemanticOperator,
     SqlOperator::*,
+    SwitchCase,
 };
 use crate::make_cond_expr;
 
@@ -46,6 +47,192 @@ impl SqlNullSemanticsOperatorsDesugarerVisitor {
                 args,
             }),
         }
+    }
+
+    /// Transforms SQL `x IN (a, b, c)` into MQL that correctly handles null semantics.
+    ///
+    /// SQL's IN operator has three-valued logic:
+    ///   - `true`  — LHS matches at least one non-null RHS element
+    ///   - `null`  — LHS is null, OR no non-null match was found but a null exists in RHS
+    ///   - `false` — LHS is non-null and does not match any element (all comparisons are non-null)
+    ///
+    /// The generated MQL structure is:
+    /// ```text
+    /// $let { lhs, lhs_is_null, rhs }
+    ///   $reduce(
+    ///     input: $map(rhs) → per-element true/null/false via $switch
+    ///     init:  false
+    ///     body:  SQL-OR accumulation (true > null > false)
+    ///   )
+    /// ```
+    fn desugar_sql_in(&mut self, sql_operator: air::SqlSemanticOperator) -> Expression {
+        const LHS_VAR: &str = "desugared_sqlIn_input0";
+        const LHS_NULL_VAR: &str = "desugared_sqlIn_input0_is_nullish";
+        const RHS_VAR: &str = "desugared_sqlIn_input1";
+        const THIS_NULL_VAR: &str = "desugared_this_is_nullish";
+
+        assert_eq!(
+            sql_operator.args.len(),
+            2,
+            "desugar_sql_in: expected exactly 2 args (lhs, rhs array), got {}",
+            sql_operator.args.len()
+        );
+        let mut args = sql_operator.args.into_iter();
+        let lhs = args.next().unwrap();
+        let rhs = args.next().unwrap();
+
+        // Pre-compute whether LHS is null using the original expression — not the $let variable
+        // for LHS — because sibling $let variables cannot reference each other in MQL; they are
+        // evaluated in parallel, not sequentially.
+        //
+        // Null detection trick: `$lte([x, null])` is true iff x is null or missing.
+        // This works because null/missing sort below all other BSON types in MQL's comparison
+        // order, so only a null/missing value satisfies `x <= null`.
+        let lhs_null_check = MqlSemanticOperator(air::MqlSemanticOperator {
+            op: MqlOperator::Lte,
+            args: vec![lhs.clone(), Literal(LiteralValue::Null)],
+        });
+
+        // Bind three variables for the duration of the expression:
+        //   - LHS value (evaluated once)
+        //   - LHS nullish flag (pre-computed to avoid re-evaluating the original expression)
+        //   - RHS array (evaluated once, iterated by $map)
+        let outer_vars = vec![
+            LetVariable {
+                name: LHS_VAR.into(),
+                expr: Box::new(lhs),
+            },
+            LetVariable {
+                name: LHS_NULL_VAR.into(),
+                expr: Box::new(lhs_null_check),
+            },
+            LetVariable {
+                name: RHS_VAR.into(),
+                expr: Box::new(rhs),
+            },
+        ];
+
+        // Per-element comparison: for each element in the RHS array (accessible as $$this
+        // inside $map), produce a three-valued result:
+        //   - true  — both LHS and the current RHS element are non-null and equal
+        //   - null  — either side is null (the comparison result is "unknown")
+        //   - false — both are non-null but unequal
+        //
+        // The inner $let binds the RHS element's nullish state so we don't recompute it
+        // across the two branches that reference it.
+        let this_null_check = MqlSemanticOperator(air::MqlSemanticOperator {
+            op: MqlOperator::Lte,
+            args: vec![Variable("this".into()), Literal(LiteralValue::Null)],
+        });
+
+        // Case 1 → true: both sides are non-null AND equal.
+        // Null guards come before $eq because MQL's $eq(null, null) returns true,
+        // which would incorrectly match two null values under SQL semantics.
+        let branch_true = SwitchCase {
+            case: Box::new(MqlSemanticOperator(air::MqlSemanticOperator {
+                op: MqlOperator::And,
+                args: vec![
+                    MqlSemanticOperator(air::MqlSemanticOperator {
+                        op: MqlOperator::Not,
+                        args: vec![Variable(LHS_NULL_VAR.into())],
+                    }),
+                    MqlSemanticOperator(air::MqlSemanticOperator {
+                        op: MqlOperator::Not,
+                        args: vec![Variable(THIS_NULL_VAR.into())],
+                    }),
+                    MqlSemanticOperator(air::MqlSemanticOperator {
+                        op: MqlOperator::Eq,
+                        args: vec![Variable(LHS_VAR.into()), Variable("this".into())],
+                    }),
+                ],
+            })),
+            then: Box::new(Literal(LiteralValue::Boolean(true))),
+        };
+
+        // Case 2 → null: at least one side is null, so equality is indeterminate.
+        // Only reached when branch_true didn't fire (no non-null match was found).
+        let branch_null = SwitchCase {
+            case: Box::new(MqlSemanticOperator(air::MqlSemanticOperator {
+                op: MqlOperator::Or,
+                args: vec![
+                    Variable(LHS_NULL_VAR.into()),
+                    Variable(THIS_NULL_VAR.into()),
+                ],
+            })),
+            then: Box::new(Literal(LiteralValue::Null)),
+        };
+
+        // Wrap the $switch in a $let that binds THIS_NULL_VAR once; both branch_true and
+        // branch_null reference it, so computing it here avoids evaluating $lte($$this, null) twice.
+        // Default branch (false) fires when both sides are non-null but unequal.
+        let per_elem_expr = Let(air::Let {
+            vars: vec![LetVariable {
+                name: THIS_NULL_VAR.into(),
+                expr: Box::new(this_null_check),
+            }],
+            inside: Box::new(Switch(air::Switch {
+                branches: vec![branch_true, branch_null],
+                default: Box::new(Literal(LiteralValue::Boolean(false))),
+            })),
+        });
+
+        // Apply per_elem_expr to every RHS element, producing an array of three-valued results,
+        // e.g. [true, null, false]. as_name: None means each element is accessible as $$this.
+        let map_expr = Map(air::Map {
+            input: Box::new(Variable(RHS_VAR.into())),
+            as_name: None,
+            inside: Box::new(per_elem_expr),
+        });
+
+        // Accumulate per-element results using SQL-OR semantics: true > null > false.
+        // Starting from false (the identity value), each element can only upgrade the result.
+        //
+        // Logic per step ($$value = accumulator, $$this = current mapped element):
+        //   if  $or([$$value, $$this]) is truthy → true   (a match was found)
+        //   elif either is null                  → null   (uncertainty preserved)
+        //   else                                 → false
+        //
+        // MQL's $or treats any non-false, non-null value as truthy, so a mapped result
+        // of `true` triggers the first branch; `null` and `false` fall through to the
+        // null check.
+        let acc_value = Variable("value".into());
+        let acc_this = Variable("this".into());
+
+        let null_cond = make_cond_expr!(
+            MqlSemanticOperator(air::MqlSemanticOperator {
+                op: MqlOperator::Or,
+                args: vec![
+                    MqlSemanticOperator(air::MqlSemanticOperator {
+                        op: MqlOperator::Lte,
+                        args: vec![acc_value.clone(), Literal(LiteralValue::Null)],
+                    }),
+                    MqlSemanticOperator(air::MqlSemanticOperator {
+                        op: MqlOperator::Lte,
+                        args: vec![acc_this.clone(), Literal(LiteralValue::Null)],
+                    }),
+                ],
+            }),
+            Literal(LiteralValue::Null),
+            Literal(LiteralValue::Boolean(false))
+        );
+
+        let reduce_body = make_cond_expr!(
+            MqlSemanticOperator(air::MqlSemanticOperator {
+                op: MqlOperator::Or,
+                args: vec![acc_value, acc_this],
+            }),
+            Literal(LiteralValue::Boolean(true)),
+            null_cond
+        );
+
+        Let(air::Let {
+            vars: outer_vars,
+            inside: Box::new(Reduce(air::Reduce {
+                input: Box::new(map_expr),
+                init_value: Box::new(Literal(LiteralValue::Boolean(false))),
+                inside: Box::new(reduce_body),
+            })),
+        })
     }
 
     fn desugar_sql_and(&mut self, sql_operator: air::SqlSemanticOperator) -> Expression {
@@ -186,6 +373,21 @@ impl Visitor for SqlNullSemanticsOperatorsDesugarerVisitor {
                 Or => self.desugar_sql_or(sql_operator),
                 Eq | IndexOfCP | Lt | Lte | Gt | Gte | Ne | Not | Size | StrLenBytes | StrLenCP
                 | SubstrCP | ToLower | ToUpper => self.desugar_sql_op(sql_operator),
+                In => self.desugar_sql_in(sql_operator),
+                NotIn => {
+                    // Rewrite as Not(In(...)) so each operator's null-semantics desugaring
+                    // fires independently: desugar_sql_in handles the IN, then desugar_sql_op
+                    // wraps the result in a null-aware $cond guard for NOT.
+                    // Using plain MqlOperator::Not here would give $not(null) = true, which
+                    // violates SQL three-valued logic (NOT NULL must remain NULL).
+                    return self.visit_expression(SqlSemanticOperator(air::SqlSemanticOperator {
+                        op: Not,
+                        args: vec![SqlSemanticOperator(air::SqlSemanticOperator {
+                            op: In,
+                            args: sql_operator.args,
+                        })],
+                    }));
+                }
                 _ => SqlSemanticOperator(sql_operator),
             },
             _ => node,

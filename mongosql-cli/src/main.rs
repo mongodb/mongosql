@@ -362,7 +362,7 @@ mod tests {
     #[test]
     fn empty_sql_file_returns_error() {
         let query: Option<String> = None;
-        let sql_file = Some(PathBuf::from("./test/empty_query.sql"));
+        let sql_file = Some(PathBuf::from("./test/empty_file.sql"));
 
         let parse_result = parse_query_from_args(query, sql_file);
         assert!(parse_result.is_err());

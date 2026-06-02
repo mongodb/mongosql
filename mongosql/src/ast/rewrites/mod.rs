@@ -8,7 +8,6 @@ pub use extended_unwind_rewrite::ExtendedUnwindRewritePass;
 mod select;
 pub use select::SelectRewritePass;
 pub mod tuples;
-pub use tuples::InTupleRewritePass;
 pub use tuples::SingleTupleRewritePass;
 mod from;
 pub use from::ImplicitFromRewritePass;
@@ -31,7 +30,6 @@ pub use with_query::WithQueryRewritePass;
 
 #[cfg(test)]
 mod test;
-
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Errors that can occur during rewrite passes
@@ -76,7 +74,6 @@ pub trait Pass {
 pub fn rewrite_query(query: ast::Query) -> Result<ast::Query> {
     let passes: Vec<&dyn Pass> = vec![
         &ExtendedUnwindRewritePass,
-        &InTupleRewritePass,
         &SingleTupleRewritePass,
         &GroupBySelectAliasRewritePass,
         &AddAliasRewritePass,

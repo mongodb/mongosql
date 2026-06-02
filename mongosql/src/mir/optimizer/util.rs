@@ -51,7 +51,7 @@ impl Visitor for ContainsSubqueryVisitor {
 /// a stage can be moved above another. If we did not include ancestors in this list, it would be
 /// possible to erroneously move a stage above another stage that defines the ancestor field.
 ///
-/// For example, for field path "foo.a.b.c" this function inserts "foo.a.b.c", "foo.a.b" and "foo.a"
+/// For example, for a field path "foo.a.b.c" this function inserts "foo.a.b.c", "foo.a.b" and "foo.a"
 /// assuming "foo" is the FieldPath "key" and ["a", "b", "c"] are the fields.
 pub(crate) fn insert_field_path_and_all_ancestors(
     field_uses: &mut HashSet<FieldPath>,

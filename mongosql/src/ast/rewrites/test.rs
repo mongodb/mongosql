@@ -400,97 +400,6 @@ mod aggregate {
     );
 }
 
-mod in_tuple {
-    use super::*;
-
-    test_rewrite!(
-        one_element_tuple,
-        pass = InTupleRewritePass,
-        expected = Ok("SELECT a = b"),
-        input = "SELECT a IN (b)",
-    );
-    test_rewrite!(
-        three_element_tuple,
-        pass = InTupleRewritePass,
-        expected = Ok("SELECT a = b OR a = c OR a = d"),
-        input = "SELECT a IN (b, c, d)",
-    );
-    test_rewrite!(
-        one_element_tuple_not_in,
-        pass = InTupleRewritePass,
-        expected = Ok("SELECT a <> b"),
-        input = "SELECT a NOT IN (b)",
-    );
-    test_rewrite!(
-        three_element_tuple_not_in,
-        pass = InTupleRewritePass,
-        expected = Ok("SELECT a <> b AND a <> c AND a <> d"),
-        input = "SELECT a NOT IN (b, c, d)",
-    );
-    test_rewrite!(
-        nested,
-        pass = InTupleRewritePass,
-        expected = Ok("SELECT a = (b = c)"),
-        input = "SELECT a IN (b IN (c))",
-    );
-    test_rewrite!(
-        one_element_tuple_no_simple_field_ref,
-        pass = InTupleRewritePass,
-        expected = Ok("SELECT SUM(a) IN (SELECT _1 FROM [{'_1': b}] AS _arr)"),
-        input = "SELECT SUM(a) IN (b)",
-    );
-    test_rewrite!(
-        one_element_tuple_not_in_no_simple_field_ref,
-        pass = InTupleRewritePass,
-        expected = Ok("SELECT SUM(a) NOT IN (SELECT _1 FROM [{'_1': b}] AS _arr)"),
-        input = "SELECT SUM(a) NOT IN (b)",
-    );
-    test_rewrite!(
-        three_element_tuple_no_simple_field_ref,
-        pass = InTupleRewritePass,
-        expected =
-            Ok("SELECT SUM(a) IN (SELECT _1 FROM [{'_1': b}, {'_1': c}, {'_1': d}] AS _arr)"),
-        input = "SELECT SUM(a) IN (b, c, d)",
-    );
-    test_rewrite!(
-        three_element_tuple_not_in_no_simple_field_ref,
-        pass = InTupleRewritePass,
-        expected =
-            Ok("SELECT SUM(a) NOT IN (SELECT _1 FROM [{'_1': b}, {'_1': c}, {'_1': d}] AS _arr)"),
-        input = "SELECT SUM(a) NOT IN (b, c, d)",
-    );
-    test_rewrite!(
-        nested_no_simple_field_ref,
-        pass = InTupleRewritePass,
-        expected = Ok("SELECT SUM(a) IN (SELECT _1 FROM [{'_1': SUM(b) IN (SELECT _1 FROM [{'_1': c}] AS _arr)}] AS _arr)"),
-        input = "SELECT SUM(a) IN (SUM(b) IN (c))",
-    );
-    test_rewrite!(
-        parenthesized_exprs_not_modified,
-        pass = InTupleRewritePass,
-        expected = Ok("SELECT (a + b) * c"),
-        input = "SELECT (a + b) * c",
-    );
-    test_rewrite!(
-        non_in_binary_op_not_modified,
-        pass = InTupleRewritePass,
-        expected = Ok("SELECT a + (b, c)"),
-        input = "SELECT a + (b, c)",
-    );
-    test_rewrite!(
-        right_side_not_tuple_not_modified,
-        pass = InTupleRewritePass,
-        expected = Ok("SELECT a IN b"),
-        input = "SELECT a IN b",
-    );
-    test_rewrite!(
-        position_in_argument_not_modified,
-        pass = InTupleRewritePass,
-        expected = Ok("SELECT POSITION(a IN (b))"),
-        input = "SELECT POSITION(a IN (b))",
-    );
-}
-
 mod select {
     use super::*;
 
@@ -777,6 +686,35 @@ mod single_tuple {
         pass = SingleTupleRewritePass,
         expected = Ok("SELECT * FROM (SELECT (a, b)) AS z"),
         input = "SELECT * FROM (SELECT (a, b)) AS z",
+    );
+    // The RHS of IN/NOT IN is semantically an array and must not be collapsed, even when
+    // it contains a single element.  Collapsing (true) → true would produce an invalid
+    // second argument for $in at codegen time.
+    test_rewrite!(
+        in_single_elem_tuple_rhs_preserved,
+        pass = SingleTupleRewritePass,
+        expected = Ok("SELECT * FROM foo WHERE a IN (true)"),
+        input = "SELECT * FROM foo WHERE a IN (true)",
+    );
+    test_rewrite!(
+        not_in_single_elem_tuple_rhs_preserved,
+        pass = SingleTupleRewritePass,
+        expected = Ok("SELECT * FROM foo WHERE a NOT IN (true)"),
+        input = "SELECT * FROM foo WHERE a NOT IN (true)",
+    );
+    // LHS single-element tuples should still be unwrapped.
+    test_rewrite!(
+        in_single_elem_tuple_lhs_unwrapped,
+        pass = SingleTupleRewritePass,
+        expected = Ok("SELECT * FROM foo WHERE a IN (1, 2)"),
+        input = "SELECT * FROM foo WHERE (a) IN (1, 2)",
+    );
+    // Nested single-element tuples inside an IN tuple's elements should still be collapsed.
+    test_rewrite!(
+        in_nested_tuple_inside_rhs_collapsed,
+        pass = SingleTupleRewritePass,
+        expected = Ok("SELECT * FROM foo WHERE a IN (1, 2)"),
+        input = "SELECT * FROM foo WHERE a IN ((1), (2))",
     );
 }
 

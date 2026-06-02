@@ -3476,3 +3476,143 @@ mod neg {
         )),
     );
 }
+
+mod in_operator {
+    use super::*;
+
+    test_schema!(
+        not_in_operator_requires_two_args,
+        expected_error_code = 1001,
+        expected = Err(mir_error::IncorrectArgumentCount {
+            name: "NotIn",
+            required: 2,
+            found: 1
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NotIn,
+            args: vec![Expression::Literal(LiteralValue::Integer(1))],
+            is_nullable: true,
+        }),
+    );
+
+    test_schema!(
+        not_in_operator_lhs_and_rhs_must_be_comparable,
+        expected_error_code = 1005,
+        expected = Err(mir_error::InvalidComparison(
+            "NotIn",
+            Schema::Atomic(Atomic::String).into(),
+            Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]).into()
+        )),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NotIn,
+            args: vec![
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Array(ArrayExpr {
+                    array: vec![
+                        Expression::Literal(LiteralValue::Integer(1)),
+                        Expression::Literal(LiteralValue::Integer(2)),
+                        Expression::Literal(LiteralValue::Integer(3)),
+                    ],
+                }),
+            ],
+            is_nullable: true,
+        }),
+    );
+
+    test_schema!(
+        not_in_operator_schema_is_boolean,
+        expected = Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Boolean),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NotIn,
+            args: vec![
+                Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("foo", 1u16).into())),
+                    field: "a".into(),
+                    is_nullable: true,
+                }),
+                Expression::Array(ArrayExpr {
+                    array: vec![
+                        Expression::Literal(LiteralValue::Integer(1)),
+                        Expression::Literal(LiteralValue::Integer(2)),
+                        Expression::Literal(LiteralValue::Integer(3)),
+                    ],
+                }),
+            ],
+            is_nullable: true,
+        }),
+        schema_env = map! {
+            ("foo", 1u16).into() => Schema::Document(Document {
+                keys: map! { "a".into() => Schema::Atomic(Atomic::Integer) },
+                required: set! {},
+                additional_properties: false,
+                ..Default::default()
+            })
+        },
+    );
+
+    test_schema!(
+        not_in_operator_with_literals_schema_is_boolean,
+        expected = Ok(Schema::Atomic(Atomic::Boolean)),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NotIn,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Array(ArrayExpr {
+                    array: vec![
+                        Expression::Literal(LiteralValue::Integer(1)),
+                        Expression::Literal(LiteralValue::Integer(2)),
+                        Expression::Literal(LiteralValue::Integer(3)),
+                    ],
+                }),
+            ],
+            is_nullable: true,
+        }),
+    );
+
+    test_schema!(
+        in_operator_nullable_array_rhs_is_schema_error,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "NotIn",
+            required: Schema::Array(Box::new(Schema::Any)).into(),
+            // The field access on a non-required key adds Missing to the schema,
+            // producing AnyOf({Missing, AnyOf({Atomic(Null), Array(Any)})}).
+            found: Schema::AnyOf(set![
+                Schema::Missing,
+                Schema::AnyOf(set![
+                    Schema::Array(Box::new(Schema::Any)),
+                    Schema::Atomic(Atomic::Null)
+                ])
+            ])
+            .into(),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NotIn,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("foo", 1u16).into())),
+                    field: "arr".into(),
+                    is_nullable: true,
+                }),
+            ],
+            is_nullable: true,
+        }),
+        schema_env = map! {
+            ("foo", 1u16).into() => Schema::Document(Document {
+                keys: map! {
+                    "arr".into() => Schema::AnyOf(set![
+                        Schema::Array(Box::new(Schema::Any)),
+                        Schema::Atomic(Atomic::Null)
+                    ])
+                },
+                required: set! {},
+                additional_properties: false,
+                ..Default::default()
+            })
+        },
+    );
+}

@@ -479,7 +479,6 @@ pub struct FieldAccess {
     pub is_nullable: bool,
 }
 
-
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum AggregationFunction {
     AddToArray,
@@ -554,6 +553,8 @@ pub enum ScalarFunction {
     // Array scalar functions
     Slice,
     Size,
+    In,
+    NotIn,
 
     // Numeric value scalar functions
     Position,
@@ -636,6 +637,7 @@ impl ScalarFunction {
             ScalarFunction::Floor => "Floor",
             ScalarFunction::Gt => "Gt",
             ScalarFunction::Gte => "Gte",
+            ScalarFunction::In => "In",
             ScalarFunction::Between => "Between",
             ScalarFunction::Log => "Log",
             ScalarFunction::Lower => "Lower",
@@ -646,6 +648,7 @@ impl ScalarFunction {
             ScalarFunction::Neq => "Neq",
             ScalarFunction::Neg => "Neg",
             ScalarFunction::Not => "Not",
+            ScalarFunction::NotIn => "NotIn",
             ScalarFunction::NullIf => "NullIf",
             ScalarFunction::OctetLength => "OctetLength",
             ScalarFunction::Or => "Or",
@@ -747,7 +750,9 @@ impl ScalarFunction {
             | ScalarFunction::RTrim
             | ScalarFunction::BTrim
             | ScalarFunction::Upper
-            | ScalarFunction::MergeObjects => false
+            | ScalarFunction::MergeObjects
+            | ScalarFunction::In
+            | ScalarFunction::NotIn => false
         }
     }
 }
@@ -900,7 +905,6 @@ pub enum SubqueryModifier {
     All,
 }
 
-
 #[derive(PartialEq, Debug, Clone)]
 pub enum MatchQuery {
     Logical(MatchLanguageLogical),
@@ -908,6 +912,7 @@ pub enum MatchQuery {
     Regex(MatchLanguageRegex),
     ElemMatch(ElemMatch),
     Comparison(MatchLanguageComparison),
+    In(MatchLanguageIn),
     // annoyingly, our cache system requires this
     False(MatchFalse),
 }
@@ -1083,6 +1088,21 @@ pub enum MatchLanguageComparisonOp {
     Gt,
     Gte,
 }
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum MatchLanguageInOp {
+    In,
+    NotIn,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct MatchLanguageIn {
+    pub op: MatchLanguageInOp,
+    pub input: FieldPath,
+    pub values: Vec<LiteralValue>,
+    pub cache: SchemaCache<Schema>,
+}
+
 
 impl From<crate::ast::UnaryOp> for ScalarFunction {
     fn from(op: crate::ast::UnaryOp) -> ScalarFunction {

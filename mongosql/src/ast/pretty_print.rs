@@ -128,6 +128,8 @@ pub enum Error {
     RightAssociativeSetQuery,
     #[error("JOINs cannot be right associative")]
     RightAssociativeJoin,
+    #[error("WITH queries must have at least one named CTE")]
+    EmptyWithQueryNamedQueries,
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -155,6 +157,9 @@ impl PrettyPrint for Query {
 
 impl PrettyPrint for WithQuery {
     fn pretty_print(&self) -> Result<String> {
+        if self.queries.is_empty() {
+            return Err(Error::EmptyWithQueryNamedQueries);
+        }
         Ok(format!(
             "WITH {} ({})",
             self.queries

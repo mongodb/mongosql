@@ -26,8 +26,10 @@ use std::{
 
 mod errors;
 pub use errors::Error;
+
 #[cfg(test)]
 pub(crate) use errors::ANY_SCHEMA_ADDENDUM;
+
 mod util;
 
 #[cfg(test)]
@@ -477,7 +479,7 @@ impl CachedSchema for Stage {
                             return Err(Error::CollectionNotFound(
                                 c.db.clone(),
                                 c.collection.clone(),
-                            ))
+                            ));
                         }
                     };
                 Ok(ResultSet {
@@ -1108,6 +1110,7 @@ impl Expression {
                 .cloned()
                 .ok_or_else(|| Error::DatasourceNotFoundInSchemaEnv(key.clone())),
             Expression::Array(ArrayExpr { array, .. }) => Expression::array_schema(state, array),
+
             Expression::Document(DocumentExpr { document, .. }) => {
                 Expression::document_schema(state, document)
             }
@@ -1489,6 +1492,88 @@ trait SqlFunction {
         ))
     }
 
+    /// Returns the result schema for an `IN` operator comparison expression.
+    ///
+    /// Validates that `arg_schema` contains exactly two elements, that the left-hand side
+    /// satisfies [`Schema::Any`], that the right-hand side satisfies
+    /// `Schema::Array(Any)`, and that the LHS type is comparable to the RHS array's
+    /// element type. On success, returns [`Schema::Atomic(Boolean)`], propagating
+    /// `Null` when any fixed-null argument is present.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::IncorrectArgumentCount`] — `arg_schema` does not contain exactly 2 elements.
+    /// - [`Error::SchemaChecking`] — the LHS does not satisfy `Schema::Any`, or the RHS does
+    ///   not satisfy `Schema::Array(Any)`.
+    /// - [`Error::InvalidComparison`] — the LHS type is not comparable to the element type of
+    ///   the RHS array.
+    ///
+    /// # Panics
+    ///
+    /// Contains an `unreachable!()` branch for the non-array RHS match arm. This branch is
+    /// structurally unreachable: the preceding guard already returns
+    /// [`Error::SchemaChecking`] for any RHS that does not satisfy `Schema::Array(Any)`.
+    fn get_in_operator_comparison_schema(
+        &self,
+        state: &SchemaInferenceState,
+        arg_schema: &[Schema],
+    ) -> Result<Schema, Error> {
+        // 1. Assert that the arg schema has exactly 2 arguments
+        let [in_operator_lhs, in_operator_rhs] = arg_schema else {
+            return Err(Error::IncorrectArgumentCount {
+                name: self.as_str(),
+                required: 2,
+                found: arg_schema.len(),
+            });
+        };
+
+        if in_operator_lhs.satisfies(&Schema::Any) == Satisfaction::Not {
+            return Err(Error::SchemaChecking {
+                name: self.as_str(),
+                required: Schema::Any.clone().into(),
+                found: in_operator_lhs.clone().into(),
+            });
+        }
+
+        // Reject any RHS that is not provably an array. Using `!= Must` rather than
+        // `== Not` ensures that nullable arrays — e.g. AnyOf([Array(T), Null]) —
+        // return Satisfaction::May and are caught here with a structured error instead
+        // of falling through to the match below and hitting unreachable!().
+        if in_operator_rhs.satisfies(&Schema::Array(Box::new(Schema::Any))) != Satisfaction::Must {
+            return Err(Error::SchemaChecking {
+                name: self.as_str(),
+                required: Schema::Array(Box::new(Schema::Any)).into(),
+                found: in_operator_rhs.clone().into(),
+            });
+        }
+
+        let array_element_schema: &Schema = match in_operator_rhs {
+            Schema::Array(element_schema) => element_schema.as_ref(),
+            // Unreachable: the guard above already returns an error for any schema
+            // that is not definitely Schema::Array(_).
+            _ => unreachable!(),
+        };
+
+        let is_lhs_comparable_to_rhs =
+            state.check_comparable_with(in_operator_lhs, array_element_schema);
+        if !is_lhs_comparable_to_rhs {
+            return Err(Error::InvalidComparison(
+                self.as_str(),
+                Box::new(in_operator_lhs.clone()),
+                Box::new(array_element_schema.clone()),
+            ));
+        }
+
+        let ret_schema = self.propagate_fixed_null_arguments(
+            state,
+            arg_schema,
+            &[Schema::Any, Schema::Array(Box::new(Schema::Any))],
+            Schema::Atomic(Atomic::Boolean),
+        )?;
+
+        Ok(ret_schema)
+    }
+
     /// Returns the boolean and/or null schema for a valid comparison, or an error
     /// if the number of operands is not two or the comparison is not valid.
     fn get_comparison_schema(
@@ -1667,6 +1752,7 @@ impl ScalarFunction {
                     )?,
                 ]))
             }
+            In | NotIn => self.get_in_operator_comparison_schema(state, arg_schemas),
             // Boolean operators.
             Not => self.propagate_fixed_null_arguments(
                 state,
@@ -2054,6 +2140,7 @@ impl CachedSchema for MatchQuery {
             MatchQuery::Regex(s) => &s.cache,
             MatchQuery::ElemMatch(s) => &s.cache,
             MatchQuery::Comparison(s) => &s.cache,
+            MatchQuery::In(s) => &s.cache,
             MatchQuery::False(f) => &f.cache,
         }
     }

@@ -274,6 +274,7 @@ pub enum MqlOperator {
     Size,
     ElemAt,
     In,
+    NotIn,
     First,
     Last,
     AllElementsTrue,
@@ -368,6 +369,8 @@ pub enum SqlOperator {
     // Array scalar functions
     Slice,
     Size,
+    In,
+    NotIn,
 
     // Numeric value scalar functions
     IndexOfCP,
@@ -521,7 +524,8 @@ pub struct UnsetField {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct FieldRef {
+pub struct
+    FieldRef {
     pub parent: Option<Box<FieldRef>>,
     pub name: String,
 }
@@ -720,6 +724,7 @@ pub enum MatchQuery {
     Regex(MatchLanguageRegex),
     ElemMatch(ElemMatch),
     Comparison(MatchLanguageComparison),
+    In(MatchLanguageIn),
     False,
 }
 
@@ -759,5 +764,21 @@ pub enum MatchLanguageComparisonOp {
     Gte,
 }
 
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum MatchLanguageInOp {
+    In,
+    NotIn,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+/// Match language `$in` / `$nin` operator applied to a field path.
+///
+/// Emits `{ <field>: { $in: [<values>] } }` for `In` and
+/// `{ <field>: { "$not": { "$in": [<values>] } } }` for `NotIn`.
+pub struct MatchLanguageIn {
+    pub op: MatchLanguageInOp,
+    pub expression: FieldRef,
+    pub array_expression: Vec<LiteralValue>,
+}
 
 } // end of generate_visitors! block

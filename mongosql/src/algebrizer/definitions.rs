@@ -1,3 +1,4 @@
+use crate::mir::ArrayExpr;
 use crate::{
     algebrizer::errors::Error,
     ast::{self, pretty_print::PrettyPrint},
@@ -46,9 +47,8 @@ impl TryFrom<ast::BinaryOp> for mir::ScalarFunction {
             ast::BinaryOp::Mul => mir::ScalarFunction::Mul,
             ast::BinaryOp::Or => mir::ScalarFunction::Or,
             ast::BinaryOp::Sub => mir::ScalarFunction::Sub,
-            ast::BinaryOp::In | ast::BinaryOp::NotIn => {
-                panic!("{0} cannot be algebrized", op.as_str())
-            }
+            ast::BinaryOp::In => mir::ScalarFunction::In,
+            ast::BinaryOp::NotIn => mir::ScalarFunction::NotIn,
         })
     }
 }
@@ -311,10 +311,30 @@ impl<'a> Algebrizer<'a> {
         func: mir::ScalarFunction,
         args: &[mir::Expression],
     ) -> bool {
-        // some functions can always be nullable regardless of argument nullablity,
-        // we check those first. If this function is not one of those, we set nullablity
-        // based off the arguments.
-        func.is_always_nullable() || Self::args_are_nullable(args)
+        if matches!(func, mir::ScalarFunction::In | mir::ScalarFunction::NotIn) {
+            Self::determine_in_expression_nullability(args)
+        } else {
+            // some functions can always be nullable regardless of argument nullablity,
+            // we check those first. If this function is not one of those, we set nullablity
+            // based off the arguments.
+            func.is_always_nullable() || Self::args_are_nullable(args)
+        }
+    }
+
+    /// Determines if an IN / NOT IN function is nullable.
+    /// An IN / NOT IN is nullable if the left-hand side is nullable, or if any elements
+    /// of the right-hand side are nullable.
+    pub fn determine_in_expression_nullability(args: &[mir::Expression]) -> bool {
+        let lhs = args.first();
+        let is_lhs_is_nullable = lhs.is_some_and(|e| e.is_nullable());
+
+        let rhs = args.get(1);
+        let is_rhs_nullable = rhs.is_some_and(|e| match e {
+            mir::Expression::Array(arr) => arr.array.iter().any(|elem| elem.is_nullable()),
+            _ => e.is_nullable(), // For other types of expressions, we check their nullability directly.
+        });
+
+        is_lhs_is_nullable || is_rhs_nullable
     }
 
     pub fn algebrize_query(&self, ast_node: ast::Query) -> Result<mir::Stage> {
@@ -1376,8 +1396,16 @@ impl<'a> Algebrizer<'a> {
             ast::Expression::TypeAssertion(t) => self.algebrize_type_assertion(t),
             ast::Expression::Is(i) => self.algebrize_is(i),
             ast::Expression::Like(l) => self.algebrize_like(l),
-            // Tuples should all be rewritten away.
-            ast::Expression::Tuple(_) => panic!("tuples cannot be algebrized"),
+            ast::Expression::Tuple(a) => Ok(mir::Expression::Array(
+                a.into_iter()
+                    // Passes in_implicit_type_conversion_context to each element so that
+                    // algebrize_in_operands can drive ITC for all-StringConstructor Tuples
+                    // via its (false, true) arm. Reverting this to hardcode `false` would
+                    // silently break ITC for `field IN ('{"$date":"..."}', ...)`.
+                    .map(|e| self.algebrize_expression(e, in_implicit_type_conversion_context))
+                    .collect::<Result<Vec<mir::Expression>>>()?
+                    .into(),
+            )),
             ast::Expression::Subquery(s) => self.algebrize_subquery(*s),
             ast::Expression::SubqueryComparison(s) => self.algebrize_subquery_comparison(s),
             ast::Expression::Exists(e) => self.algebrize_exists(*e),
@@ -1529,6 +1557,83 @@ impl<'a> Algebrizer<'a> {
                 self.algebrize_expression(l, false)?,
                 self.algebrize_expression(r, false)?,
             )),
+        }
+    }
+
+    /// Algebrizes the operands of an `IN`/`NOT IN` expression with ITC awareness.
+    ///
+    /// Mirrors [`Self::algebrize_binary_comparison_operands`] but handles the fact that the RHS
+    /// is an [`ast::Expression::Tuple`] containing multiple elements rather than a single
+    /// expression. If exactly any side contains a [`ast::Expression::StringConstructor`]
+    /// node, those strings are algebrized with `in_implicit_type_conversion_context = true`
+    /// so that extended-JSON strings (e.g. `'{"$date":"2020-01-01"}'`) are converted to the
+    /// corresponding BSON values. If both or neither side consists of string constructors,
+    /// both operands are algebrized with the flag set to `false`.
+    ///
+    /// # Errors
+    /// Returns an error if either operand fails to algebrize or if schema inference fails
+    /// on the non-literal side.
+    fn algebrize_in_operands(
+        &self,
+        left: ast::Expression,
+        right: ast::Expression,
+    ) -> Result<(mir::Expression, mir::Expression)> {
+        // 1. Check if all the elements of the right expression are StringConstructors.
+        let are_any_array_elements_string_constructors = match &right {
+            ast::Expression::Tuple(arr) => arr
+                .iter()
+                .any(|e| matches!(e, ast::Expression::StringConstructor(_))),
+            _ => false,
+        };
+
+        let is_left_a_string_constructor = matches!(left, ast::Expression::StringConstructor(_));
+
+        match (
+            is_left_a_string_constructor,
+            are_any_array_elements_string_constructors,
+        ) {
+            // Both sides are string constructors, or neither is — no conversion needed.
+            (true, true) | (false, false) => Ok((
+                self.algebrize_expression(left, false)?,
+                self.algebrize_expression(right, false)?,
+            )),
+            // LHS is a StringConstructor; RHS Tuple does not have any string constructors among its elements
+            (true, false) => {
+                Ok((
+                    // Because the left is a StringConstructor, we algebrize with ITC to convert it to the right value
+                    self.algebrize_expression(left, true)?,
+                    // Because none of the elements in the RHS are StringConstructors, we can safely algebrize the entire RHS with in_implicit_type_conversion_context set to false.
+                    self.algebrize_expression(right, false)?,
+                ))
+            }
+            // LHS is not a string constructor, RHS has some elements that StringConstructors
+            // We algebrize the LHS with in_implicit_context false, and then algebrize each element in the RHS.
+            (false, true) => {
+                let rhs_algebrized_per_element = match right {
+                    ast::Expression::Tuple(elements) => {
+                        let mut algebrized_elements = Vec::new();
+                        for element in elements {
+                            let algebrized_element = match element {
+                                ast::Expression::StringConstructor(_) => {
+                                    self.algebrize_expression(element, true)?
+                                }
+                                _ => self.algebrize_expression(element, false)?,
+                            };
+
+                            algebrized_elements.push(algebrized_element);
+                        }
+                        algebrized_elements
+                    }
+                    _ => unreachable!(),
+                };
+
+                Ok((
+                    self.algebrize_expression(left, false)?,
+                    mir::Expression::Array(ArrayExpr {
+                        array: rhs_algebrized_per_element,
+                    }),
+                ))
+            }
         }
     }
 
@@ -1714,8 +1819,7 @@ impl<'a> Algebrizer<'a> {
 
             Comparison(_) => self.algebrize_binary_comparison_operands(*b.left, *b.right)?,
 
-            // In and NotIn should have been rewritten during ast rewriting.
-            In | NotIn => panic!("'{}' cannot be algebrized", b.op.as_str()),
+            In | NotIn => self.algebrize_in_operands(*b.left, *b.right)?,
         };
 
         let mut cast_div_result: Option<mir::Type> = None;
@@ -2412,6 +2516,75 @@ impl<'a> Algebrizer<'a> {
             // Otherwise, check the next highest scope.
             current_scope -= 1;
         }
+    }
+}
+
+#[cfg(test)]
+mod in_operator_nullability {
+
+    use super::*;
+    use crate::mir::ArrayExpr;
+
+    #[test]
+    fn in_with_null_literal_lhs_is_nullable() {
+        assert!(Algebrizer::determine_in_expression_nullability(&[
+            mir::Expression::Literal(mir::LiteralValue::Null),
+            mir::Expression::Array(ArrayExpr {
+                array: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                ]
+            }),
+        ],));
+    }
+
+    #[test]
+    fn in_with_nullable_rhs_is_nullable() {
+        assert!(Algebrizer::determine_in_expression_nullability(&[
+            mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+            mir::Expression::Array(ArrayExpr {
+                array: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Literal(mir::LiteralValue::Null),
+                ]
+            }),
+        ],));
+    }
+
+    #[test]
+    fn in_with_non_nullable_operands_is_non_nullable() {
+        assert!(!Algebrizer::determine_in_expression_nullability(&[
+            mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+            mir::Expression::Array(ArrayExpr {
+                array: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                ]
+            }),
+        ],));
+    }
+
+    #[test]
+    fn in_with_nullable_field_access_is_nullable() {
+        assert!(Algebrizer::determine_in_expression_nullability(&[
+            mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::Reference(
+                    Key {
+                        datasource: "ds".into(),
+                        scope: 0
+                    }
+                    .into()
+                )),
+                field: "field".to_string(),
+                is_nullable: true,
+            }),
+            mir::Expression::Array(ArrayExpr {
+                array: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                ]
+            }),
+        ],));
     }
 }
 

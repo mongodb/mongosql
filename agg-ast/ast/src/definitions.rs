@@ -958,6 +958,8 @@ pub enum UntaggedOperatorName {
     IfNull,
     #[serde(rename = "$in")]
     In,
+    #[serde(rename = "$nin")]
+    NotIn,
     #[serde(rename = "$indexOfArray")]
     IndexOfArray,
     #[serde(rename = "$indexOfBytes")]
@@ -1062,6 +1064,8 @@ pub enum UntaggedOperatorName {
     SqlGt,
     #[serde(rename = "$sqlGte")]
     SqlGte,
+    #[serde(rename = "$sqlIn")]
+    SqlIn,
     #[serde(rename = "$sqlIndexOfCP")]
     SqlIndexOfCP,
     #[serde(rename = "$sqlIs")]
