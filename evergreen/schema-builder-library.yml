@@ -133,6 +133,10 @@ tasks:
         variant: "schema-builder-library"
       - name: sign-schema-builder-library
         variant: "schema-builder-library"
+      - name: schema-builder-library-sbom
+        variant: "schema-builder-library-code-quality-security"
+      - name: schema-builder-library-static-code-analysis
+        variant: "schema-builder-library-code-quality-security"
     commands:
       - func: "upload schema-builder-library release"
 
