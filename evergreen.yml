@@ -1070,6 +1070,10 @@ tasks:
     depends_on:
       - name: compile-schema-builder-library
     commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: 6.0
+          TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "get schema-builder-library testdata"
       - func: "decompress schema-builder-library testdata"
