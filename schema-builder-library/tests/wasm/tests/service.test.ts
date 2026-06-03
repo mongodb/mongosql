@@ -17,7 +17,9 @@ afterEach(async () => CLIENT.close());
 // Tests
 describe("service impl", () => {
     test("listing databases works", async () => {
-        expect(await SERVICE.listDatabases()).toMatchInlineSnapshot(`
+        let dbs = await SERVICE.listDatabases();
+
+        expect(dbs.sort()).toMatchInlineSnapshot(`
           [
             "admin",
             "config",
@@ -29,14 +31,17 @@ describe("service impl", () => {
     });
 
     test("listing collections works", async () => {
-        expect((await SERVICE.listCollections("uniform")).map(coll => coll.name)).toMatchInlineSnapshot(`
+        let collections = await SERVICE.listCollections("uniform");
+        let names = collections.map(coll => coll.name).sort();
+
+        expect(names).toMatchInlineSnapshot(`
           [
-            "small",
-            "large",
-            "unit",
-            "system.views",
             "__sql_schemas",
+            "large",
+            "small",
+            "system.views",
             "test_view",
+            "unit",
           ]
         `);
     })
