@@ -26,5 +26,5 @@ $ mv ../../pkg ./schema-builder-library/tests/wasm/dist
 ## Running tests
 
 ```sh
-$ npm test
+$ npm install && npm test
 ```
