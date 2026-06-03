@@ -34,7 +34,7 @@ describe("collection schema generation", () => {
         let aggregateSpy = vi.spyOn(SERVICE, "aggregate");
         expect(aggregateSpy).not.toHaveBeenCalled();
 
-        // Verify that we only ran the aggregation pipeline exactly 4 times:
+        // Verify that we only ran the aggregation pipeline exactly 5 times:
         // - Get the size of the collection
         // - Get the starting index
         // - Get the end index
