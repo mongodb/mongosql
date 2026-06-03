@@ -1625,6 +1625,6 @@ buildvariants:
       - sql-engines-common-test-infra
     tasks:
       - name: compile-schema-builder-library
-      - name: test-schema-builder-library
+      - name: test-schema-builder-library-wasm
       - name: sign-schema-builder-library
         run_on: ubuntu2204-large
