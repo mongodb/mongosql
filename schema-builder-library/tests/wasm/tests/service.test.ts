@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { MongoClient } from "mongodb";
 
 import { getCredentials, MongoDataService } from "./common.js";
@@ -17,7 +17,7 @@ afterEach(async () => CLIENT.close());
 // Tests
 describe("service impl", () => {
     test("listing databases works", async () => {
-        let dbs = await SERVICE.listDatabases();
+        const dbs = await SERVICE.listDatabases();
 
         expect(dbs.sort()).toMatchInlineSnapshot(`
           [
@@ -31,8 +31,13 @@ describe("service impl", () => {
     });
 
     test("listing collections works", async () => {
-        let collections = await SERVICE.listCollections("uniform");
-        let names = collections.map(coll => coll.name).sort();
+        // The return value from `listCollections`
+        interface CollectionResult {
+            name: string,
+        };
+
+        const collections = await SERVICE.listCollections("uniform") as CollectionResult[];
+        const names = collections.map(coll => coll.name).sort();
 
         expect(names).toMatchInlineSnapshot(`
           [

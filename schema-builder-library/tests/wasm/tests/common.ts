@@ -1,7 +1,7 @@
-import type { SqlDataService, SqlCursor, BsonDocument, AggregateOptions } from "schema-builder-library";
+import type { SqlDataService, SqlCursor, BsonDocument, AggregateOptions, CollectionInfo } from "schema-builder-library";
 
 import { EJSON, type Document } from "bson";
-import { type AggregationCursor, type FindCursor, MongoClient } from "mongodb";
+import { type AggregationCursor, type FindCursor, type Hint, MongoClient } from "mongodb";
 
 /**
  * Convert native BSON documents to EJSON format for WASM.
@@ -17,7 +17,7 @@ export function toEJSON(doc: Document): BsonDocument {
     // boundary, which has no notion of JS types. Without this, the native JS
     // types for numerical ints was being propagates instead, leading to aggregations
     // referencing non-existant types.
-    return EJSON.serialize(doc, { relaxed: false }) as BsonDocument;
+    return EJSON.serialize(doc, { relaxed: false });
 }
 
 /**
@@ -28,7 +28,7 @@ export function toEJSON(doc: Document): BsonDocument {
 export function fromEJSON(doc: BsonDocument): Document {
     // EJSON.deserialize converts EJSON representation back to BSON types
     // e.g., { "$oid": "..." } -> ObjectId("...")
-    return EJSON.deserialize(doc as Document) as Document;
+    return EJSON.deserialize(doc) as Document;
 }
 
 /**
@@ -47,30 +47,30 @@ export class MongoDataService implements SqlDataService {
             databases: [{ name: string }],
         }
 
-        let dbs = await this.client
+        const dbs = await this.client
             .db("admin")
             .command({ listDatabases: 1, nameOnly: true }) as ListDbResult;
         return dbs.databases.map(db => db.name);
     }
 
-    async listCollections(dbName: string): Promise<any[]> {
+    async listCollections(dbName: string): Promise<CollectionInfo[]> {
         const cursor = this.client.db(dbName).listCollections();
-        const results = [];
+        const results: CollectionInfo[] = [];
 
         for await (const collection of cursor) {
-            results.push(collection);
+            results.push(collection as CollectionInfo);
         }
 
         return results;
     }
 
-    async aggregate(dbName: string, collName: string, pipeline: BsonDocument[], options: Partial<AggregateOptions>): Promise<SqlCursor> {
+    aggregate(dbName: string, collName: string, pipeline: BsonDocument[], options: Partial<AggregateOptions>): Promise<SqlCursor> {
         const nativePipeline = pipeline.map(fromEJSON);
-        let cursor = this.client
+        const cursor = this.client
             .db(dbName)
             .collection(collName)
             .aggregate(nativePipeline, {
-                hint: options.keyHint as any,
+                hint: options.keyHint as Hint,
 
                 // ### SUPER IMPORTANT ###
                 // This flag ensures that the node driver doesn't randomly narrow long types into
@@ -79,14 +79,14 @@ export class MongoDataService implements SqlDataService {
                 promoteLongs: false,
             });
 
-        return new EJSONCursor(cursor);
+        return Promise.resolve(new EJSONCursor(cursor));
     }
 
-    async find(dbName: string, collName: string, filter: BsonDocument): Promise<SqlCursor> {
+    find(dbName: string, collName: string, filter: BsonDocument): Promise<SqlCursor> {
         const nativeFilter = fromEJSON(filter);
-        let cursor = this.client.db(dbName).collection(collName).find(nativeFilter);
+        const cursor = this.client.db(dbName).collection(collName).find(nativeFilter);
 
-        return new EJSONCursor(cursor);
+        return Promise.resolve(new EJSONCursor(cursor));
     }
 }
 
@@ -101,7 +101,7 @@ class EJSONCursor implements SqlCursor {
     }
 
     async next(): Promise<BsonDocument | null> {
-        let next = (await this.cursor.next()) as Document;
+        const next = (await this.cursor.next()) as Document | null;
         if (!next) {
             return null;
         }
@@ -128,6 +128,6 @@ export interface Credentials {
  */
 export function getCredentials(): Credentials {
     return {
-        URI: process.env["WASM_TEST_URI"] ?? "mongodb://localhost:27017",
+        URI: process.env.WASM_TEST_URI ?? "mongodb://localhost:27017",
     };
 }
