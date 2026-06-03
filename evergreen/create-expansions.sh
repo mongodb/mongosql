@@ -24,7 +24,7 @@ if [ "Windows_NT" = "$OS" ]; then
 fi
 export PATH="$GOROOT/bin:$PATH"
 if [[ "${triggered_by_git_tag}" != "" ]]; then
-    export release_version=$(echo ${triggered_by_git_tag} | sed -E 's/^(v|libv)//')
+    export release_version=$(echo ${triggered_by_git_tag} | sed -E 's/^(v|libv|sbl)//')
 else
     export release_version=snapshot
 fi
