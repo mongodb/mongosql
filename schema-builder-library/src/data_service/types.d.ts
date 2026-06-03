@@ -69,5 +69,5 @@ export interface SqlDataService {
  */
 export interface SqlCursor {
     /** Get the next element in this cursor. Return undefined to signal the end of the stream */
-    next(): Promise<BsonDocument | undefined>;
+    next(): Promise<BsonDocument | null>;
 }

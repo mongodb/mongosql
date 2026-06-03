@@ -1,0 +1,73 @@
+{
+  "additionalProperties": false,
+  "bsonType": "object",
+  "properties": {
+    "_id": {
+      "bsonType": "long",
+    },
+    "array_field": {
+      "bsonType": "array",
+      "items": {
+        "bsonType": "int",
+      },
+    },
+    "date_field": {
+      "bsonType": "date",
+    },
+    "document_field": {
+      "additionalProperties": false,
+      "bsonType": "object",
+      "properties": {
+        "sub_bool_field": {
+          "bsonType": "bool",
+        },
+        "sub_decimal_field": {
+          "bsonType": "decimal",
+        },
+        "sub_document_field": {
+          "additionalProperties": false,
+          "bsonType": "object",
+          "properties": {
+            "sub_sub_int_field": {
+              "bsonType": "int",
+            },
+          },
+          "required": [
+            "sub_sub_int_field",
+          ],
+        },
+      },
+      "required": [
+        "sub_bool_field",
+        "sub_decimal_field",
+        "sub_document_field",
+      ],
+    },
+    "double_field": {
+      "bsonType": "double",
+    },
+    "long_field": {
+      "bsonType": "long",
+    },
+    "oid_field": {
+      "bsonType": "objectId",
+    },
+    "string_field": {
+      "bsonType": "string",
+    },
+    "uuid_field": {
+      "bsonType": "binData",
+    },
+  },
+  "required": [
+    "_id",
+    "array_field",
+    "date_field",
+    "document_field",
+    "double_field",
+    "long_field",
+    "oid_field",
+    "string_field",
+    "uuid_field",
+  ],
+}

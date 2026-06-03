@@ -33,10 +33,6 @@ wasm-bindgen = { version = "0.2", optional = true }
 wasm-bindgen-futures = { version = "0.4.67", optional = true } # Note, this shouldn't be necessary. See: https://github.com/wasm-bindgen/wasm-bindgen/issues/5104#issuecomment-4223185700
 serde-wasm-bindgen = { version = "0.6", optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
-# three transitive getrandom majors need their wasm backend opted in; features unify per-major
-getrandom_02 = { package = "getrandom", version = "0.2", features = ["js"], optional = true }
-getrandom_03 = { package = "getrandom", version = "0.3", features = ["wasm_js"], optional = true }
-getrandom_04 = { package = "getrandom", version = "0.4", features = ["wasm_js"], optional = true }
 
 [dev-dependencies]
 tracing-test = "0.2"
@@ -50,9 +46,6 @@ wasm = [
     "dep:serde-wasm-bindgen",
     "dep:wasm-bindgen",
     "dep:wasm-bindgen-futures",
-    "dep:getrandom_02",
-    "dep:getrandom_03",
-    "dep:getrandom_04",
     "dep:tokio",
     "tokio/sync",
     "tokio/macros",
@@ -66,7 +59,4 @@ expect_used = "deny"
 [package.metadata.cargo-machete]
 ignored = [
     "wasm-bindgen-futures", # Note, this should be removed when the following is resolved: https://github.com/wasm-bindgen/wasm-bindgen/issues/5104#issuecomment-4223185700
-    "getrandom_02",
-    "getrandom_03",
-    "getrandom_04",
 ]

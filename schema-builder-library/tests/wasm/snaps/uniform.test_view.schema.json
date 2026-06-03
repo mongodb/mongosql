@@ -1,0 +1,20 @@
+{
+  "additionalProperties": false,
+  "bsonType": "object",
+  "properties": {
+    "_id": {
+      "bsonType": "long",
+    },
+    "array_field": {
+      "bsonType": "int",
+    },
+    "idx": {
+      "bsonType": "long",
+    },
+  },
+  "required": [
+    "_id",
+    "array_field",
+    "idx",
+  ],
+}
