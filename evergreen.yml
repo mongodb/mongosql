@@ -1067,6 +1067,8 @@ tasks:
       - func: "upload schema-builder-library wasm"
 
   - name: test-schema-builder-library-wasm
+    depends_on:
+      - name: compile-schema-builder-library
     commands:
       - func: "install rust toolchain"
       - func: "get schema-builder-library testdata"
