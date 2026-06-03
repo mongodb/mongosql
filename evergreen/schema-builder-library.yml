@@ -16,42 +16,42 @@ functions:
     - command: s3.get
       params:
         <<: *evg_bucket_config
-        remote_file: mongosql-rs/artifacts/${version_id}/schema-builder-library/schema_builder_library.wasm
-        local_file: mongosql-rs/release/schema-builder-library/schema_builder_library.wasm
+        remote_file: mongosql-rs/artifacts/${version_id}/schema-builder-library/schema-builder-library-nodejs.tgz
+        local_file: mongosql-rs/release/schema-builder-library/schema-builder-library-nodejs.tgz
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
-        local_file: mongosql-rs/release/schema-builder-library/schema_builder_library.wasm
-        remote_file: schema-builder-library/schema_builder_library-v${release_version}.wasm
+        local_file: mongosql-rs/release/schema-builder-library/schema-builder-library-nodejs.tgz
+        remote_file: schema-builder-library/schema-builder-library-nodejs-v${release_version}.tgz
         bucket: translators-connectors-releases
         permissions: public-read
-        content_type: application/wasm
-        display_name: schema_builder_library-v${release_version}.wasm
+        content_type: application/gzip
+        display_name: schema-builder-library-nodejs-v${release_version}.tgz
     # signature file
     - command: s3.get
       params:
         <<: *evg_bucket_config
-        remote_file: mongosql-rs/artifacts/${version_id}/schema-builder-library/schema_builder_library.wasm.sig
-        local_file: mongosql-rs/release/schema-builder-library/schema_builder_library.wasm.sig
+        remote_file: mongosql-rs/artifacts/${version_id}/schema-builder-library/schema-builder-library-nodejs.tgz.sig
+        local_file: mongosql-rs/release/schema-builder-library/schema-builder-library-nodejs.tgz.sig
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
-        local_file: mongosql-rs/release/schema-builder-library/schema_builder_library.wasm.sig
-        remote_file: schema-builder-library/schema_builder_library-v${release_version}.wasm.sig
+        local_file: mongosql-rs/release/schema-builder-library/schema-builder-library-nodejs.tgz.sig
+        remote_file: schema-builder-library/schema-builder-library-nodejs-v${release_version}.tgz.sig
         bucket: translators-connectors-releases
         permissions: public-read
         content_type: application/octet-stream
-        display_name: schema_builder_library-v${release_version}.wasm.sig
+        display_name: schema-builder-library-nodejs-v${release_version}.tgz.sig
 
   "sign schema-builder-library":
     - *assume_role_cmd
     - command: s3.get
       params:
         <<: *evg_bucket_config
-        remote_file: mongosql-rs/artifacts/${version_id}/schema-builder-library/schema_builder_library.wasm
-        local_file: mongosql-rs/schema_builder_library.wasm
+        remote_file: mongosql-rs/artifacts/${version_id}/schema-builder-library/schema-builder-library-nodejs.tgz
+        local_file: mongosql-rs/schema-builder-library-nodejs.tgz
     - command: shell.exec
       type: system
       retry_on_failure: true
@@ -74,7 +74,7 @@ functions:
             --rm \
             -v $(pwd):$(pwd) -w $(pwd) \
             ${garasign_gpg_image} \
-            /bin/bash -c "gpgloader && gpg --yes -v --armor -o schema_builder_library.wasm.sig --detach-sign schema_builder_library.wasm"
+            /bin/bash -c "gpgloader && gpg --yes -v --armor -o schema-builder-library-nodejs.tgz.sig --detach-sign schema-builder-library-nodejs.tgz"
     - command: shell.exec
       type: system
       params:
@@ -90,12 +90,12 @@ functions:
             --rm \
             -v $(pwd):$(pwd) -w $(pwd) \
             ${garasign_gpg_image} \
-            /bin/bash -c "gpgloader && gpg --verify schema_builder_library.wasm.sig schema_builder_library.wasm"
+            /bin/bash -c "gpgloader && gpg --verify schema-builder-library-nodejs.tgz.sig schema-builder-library-nodejs.tgz"
     - command: s3.put
       params:
         <<: *evg_bucket_config
-        local_file: mongosql-rs/schema_builder_library.wasm.sig
-        remote_file: mongosql-rs/artifacts/${version_id}/schema-builder-library/schema_builder_library.wasm.sig
+        local_file: mongosql-rs/schema-builder-library-nodejs.tgz.sig
+        remote_file: mongosql-rs/artifacts/${version_id}/schema-builder-library/schema-builder-library-nodejs.tgz.sig
         permissions: public-read
         content_type: application/octet-stream
 
@@ -110,11 +110,11 @@ functions:
       params:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
-        local_file: mongosql-rs/papertrail/schema_builder_library-v${release_version}.wasm
-        remote_file: schema-builder-library/schema_builder_library-v${release_version}.wasm
+        local_file: mongosql-rs/papertrail/schema-builder-library-nodejs-v${release_version}.tgz
+        remote_file: schema-builder-library/schema-builder-library-nodejs-v${release_version}.tgz
         bucket: translators-connectors-releases
         permissions: public-read
-        content_type: application/wasm
+        content_type: application/gzip
     - command: papertrail.trace
       params:
         work_dir: mongosql-rs
