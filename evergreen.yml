@@ -168,21 +168,20 @@ functions:
           curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
           wasm-pack build schema-builder-library \
             --release \
-            --target nodejs \
             --no-default-features \
             --features wasm
           wasm-pack pack schema-builder-library
           # normalize the tgz filename so the s3 path is stable across version bumps
           mv schema-builder-library/pkg/schema-builder-library-*.tgz \
-             schema-builder-library/pkg/schema-builder-library-nodejs.tgz
+             schema-builder-library/pkg/schema-builder-library.tgz
 
   "upload schema-builder-library wasm":
     - *assume_role_cmd
     - command: s3.put
       params:
         <<: *evg_bucket_config
-        local_file: mongosql-rs/schema-builder-library/pkg/schema-builder-library-nodejs.tgz
-        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/schema-builder-library-nodejs.tgz
+        local_file: mongosql-rs/schema-builder-library/pkg/schema-builder-library.tgz
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/schema-builder-library.tgz
         permissions: public-read
         content_type: application/gzip
 
