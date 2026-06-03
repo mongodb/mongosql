@@ -1,19 +1,14 @@
 import type { SqlDataService, SqlCursor, BsonDocument, AggregateOptions } from "schema-builder-library";
 
 import { EJSON, type Document } from "bson";
-import { MongoClient } from "mongodb";
-import { init, process_collection } from "schema-builder-library";
-
-const URI = "mongodb://localhost:27017";
-const DB = "sample_mflix";
-const COLLECTION = "movies";
+import { type AggregationCursor, type FindCursor, MongoClient } from "mongodb";
 
 /**
  * Convert native BSON documents to EJSON format for WASM.
  * This ensures BSON types like ObjectId, Date, etc. are properly serialized
  * as EJSON objects that can be deserialized by Rust's bson crate.
  */
-function toEJSON(doc: Document): BsonDocument {
+export function toEJSON(doc: Document): BsonDocument {
     // EJSON.serialize converts BSON types to their EJSON representation
     // e.g., ObjectId("...") -> { "$oid": "..." }
     //
@@ -30,7 +25,7 @@ function toEJSON(doc: Document): BsonDocument {
  * This ensures EJSON objects like { "$oid": "..." } are converted back
  * to native BSON types like ObjectId for the MongoDB driver.
  */
-function fromEJSON(doc: BsonDocument): Document {
+export function fromEJSON(doc: BsonDocument): Document {
     // EJSON.deserialize converts EJSON representation back to BSON types
     // e.g., { "$oid": "..." } -> ObjectId("...")
     return EJSON.deserialize(doc as Document) as Document;
@@ -39,7 +34,7 @@ function fromEJSON(doc: BsonDocument): Document {
 /**
  * MongoDB data service using the typescript MongoDB client
  */
-class MongoDataService implements SqlDataService {
+export class MongoDataService implements SqlDataService {
     client: MongoClient;
 
     constructor(client: MongoClient) {
@@ -52,7 +47,9 @@ class MongoDataService implements SqlDataService {
             databases: [{ name: string }],
         }
 
-        let dbs = await this.client.db("admin").command({ listDatabases: 1, nameOnly: true }) as ListDbResult;
+        let dbs = await this.client
+            .db("admin")
+            .command({ listDatabases: 1, nameOnly: true }) as ListDbResult;
         return dbs.databases.map(db => db.name);
     }
 
@@ -69,7 +66,18 @@ class MongoDataService implements SqlDataService {
 
     async aggregate(dbName: string, collName: string, pipeline: BsonDocument[], options: Partial<AggregateOptions>): Promise<SqlCursor> {
         const nativePipeline = pipeline.map(fromEJSON);
-        let cursor = this.client.db(dbName).collection(collName).aggregate(nativePipeline, options.keyHint ? { hint: options.keyHint as any } : {});
+        let cursor = this.client
+            .db(dbName)
+            .collection(collName)
+            .aggregate(nativePipeline, {
+                hint: options.keyHint as any,
+
+                // ### SUPER IMPORTANT ###
+                // This flag ensures that the node driver doesn't randomly narrow long types into
+                // integers. If this is set to the default of `true` aggregate pipelines which try
+                // to narrow the result set using a schema will never complete.
+                promoteLongs: false,
+            });
 
         return new EJSONCursor(cursor);
     }
@@ -86,44 +94,40 @@ class MongoDataService implements SqlDataService {
  * Cursor over MongoSQL entries
  */
 class EJSONCursor implements SqlCursor {
-    cursor: SqlCursor;
+    cursor: AggregationCursor | FindCursor;
 
     constructor(cursor: SqlCursor) {
         this.cursor = cursor;
     }
 
     async next(): Promise<BsonDocument | null> {
-        let next = await this.cursor.next();
-        if (next == null) {
+        let next = (await this.cursor.next()) as Document;
+        if (!next) {
             return null;
         }
 
         return toEJSON(next);
     }
-
 }
 
-async function main() {
-    init();
-
-    console.log("Connecting to client...");
-    let client = await new MongoClient(URI).connect();
-    console.log("> Connected");
-
-    let service = new MongoDataService(client);
-    try {
-        console.log(`Deriving schema for ${DB}.${COLLECTION}...`);
-
-        let start = new Date().getTime();
-        let schema = await process_collection(service, DB, COLLECTION);
-        let end = new Date().getTime();
-
-        console.log(`> Schema (took ${(end - start) / 1000}s):`, EJSON.stringify(schema, undefined, 2));
-    } catch (e) {
-        console.error("Schema derivation failed:", e);
-    } finally {
-        await client.close();
-    }
+/**
+ * Test Credentials
+ */
+export interface Credentials {
+    URI: string,
 }
 
-await main();
+/**
+ * Get the credentials for this test from the following environment variables:
+ *
+ * - WASM_TEST_URI: The URI, with connection information, to the MongoDB instance
+ *
+ * Note that this uses the following defaults if not overwritten:
+ *
+ * - mongodb://localhost:27017
+ */
+export function getCredentials(): Credentials {
+    return {
+        URI: process.env["WASM_TEST_URI"] ?? "mongodb://localhost:27017",
+    };
+}

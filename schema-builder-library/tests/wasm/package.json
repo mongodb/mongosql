@@ -7,13 +7,17 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
-    "run": "npm run build && node ./dist/index.js"
+    "test": "vitest"
   },
   "dependencies": {
+    "@types/node": "^25.9.1",
     "bson": "^7.2.0",
     "mongodb": "^7.2.0",
-    "schema-builder-library": "file:../../pkg",
+    "schema-builder-library": "file:./dist",
     "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "vite-plugin-wasm": "^3.6.0",
+    "vitest": "^4.1.8"
   }
 }
