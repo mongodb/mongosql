@@ -931,6 +931,41 @@ functions:
         permissions: public-read
         display_name: ${project_folder}-v${release_version}-compliance-report.md
 
+  # Test that the generate WASM pack of the schema-builder-library works against a
+  # NodeJS test suite
+  "test schema-builder-library wasm":
+    - *assume_role_cmd
+    - command: s3.get
+      params:
+        <<: *evg_bucket_config
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/schema-builder-library.tgz
+        local_file: mongosql-rs/schema-builder-library/tests/wasm/schema-builder-library.tgz
+        permissions: public-read
+        content_type: application/gzip
+    - command: archive.targz_extract
+      params:
+        path: mongosql-rs/schema-builder-library/tests/wasm/schema-builder-library.tgz
+        destination: mongosql-rs/schema-builder-library/tests/wasm/dist
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: mongosql-rs/schema-builder-library/tests/wasm
+        script: |
+          ${prepare_shell}
+
+          # Install NodeJS + NPM
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
+          \. "$HOME/.nvm/nvm.sh"
+          nvm install 26
+
+          # Fix the fact that the wasm-pack archive wraps the files in a top-level
+          # `package/` folder
+          mv ./dist/package/* ./dist
+
+          # Run the tests
+          npm install
+          npm test
+
 tasks:
   - name: gofmt
     commands:
@@ -1030,6 +1065,7 @@ tasks:
           package_name: "schema-builder-library"
       - func: "compile schema-builder-library"
       - func: "upload schema-builder-library wasm"
+      - func: "test schema-builder-library wasm"
 
   - name: release
     git_tag_only: true
