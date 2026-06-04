@@ -45,13 +45,13 @@ git tag -am v1.6.1 v1.6.1
 - **major**: backwards-breaking changes to the library API (Rust or WASM)
 - **minor**: new features
 - **patch**: bug fixes
-- **pre-release**: which pre-release version, for use before the first stable release of a major version
+
+At the moment, there are no pre-release (alpha, beta, rc, etc.) versions of `schema-builder-library`.
 
 Tags are prepended with `sbl` for `schema-builder-library` releases.
 
 ```sh
-# git tag -am sbl1.0.0-<prerelease>-<prerelease-version> sbl1.0.0-<prerelease>-<prerelease-version>
-git tag -am sbl1.0.0-alpha-1 sbl1.0.0-alpha-1
+git tag -am sbl1.2.3 sbl1.2.3
 ```
 
 ## Releasing
