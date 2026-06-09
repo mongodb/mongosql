@@ -1468,3 +1468,108 @@ tests:
               },
           },
       }
+
+  - name: "desugar $sqlOr in match context produces plain $or"
+    input:
+      - { "$match": { "$expr": { "$sqlOr": ["$a", "$b"] } } }
+    expected:
+      - { "$match": { "$expr": { "$or": ["$a", "$b"] } } }
+
+  - name: "desugar $sqlAnd in match context produces plain $and"
+    input:
+      - { "$match": { "$expr": { "$sqlAnd": ["$a", "$b"] } } }
+    expected:
+      - { "$match": { "$expr": { "$and": ["$a", "$b"] } } }
+
+  - name: "desugar $sqlNot in match context adds null guard"
+    input:
+      - { "$match": { "$expr": { "$sqlNot": ["$a"] } } }
+    expected:
+      - { "$match": { "$expr": { "$and": [{ "$gt": ["$a", { "$literal": null }] }, { "$not": ["$a"] }] } } }
+
+  - name: "desugar $sqlGt with field and literal in match context"
+    input:
+      - { "$match": { "$expr": { "$sqlGt": ["$a", 0] } } }
+    expected:
+      - { "$match": { "$expr": { "$and": [{ "$gt": ["$a", { "$literal": null }] }, { "$gt": ["$a", 0] }] } } }
+
+  - name: "desugar $sqlOr of comparisons in match context"
+    input:
+      - { "$match": { "$expr": { "$sqlOr": [{ "$sqlGt": ["$a", 0] }, { "$sqlGt": ["$b", 0] }] } } }
+    expected:
+      - {
+          "$match":
+            {
+              "$expr":
+                {
+                  "$or":
+                    [
+                      { "$and": [{ "$gt": ["$a", { "$literal": null }] }, { "$gt": ["$a", 0] }] },
+                      { "$and": [{ "$gt": ["$b", { "$literal": null }] }, { "$gt": ["$b", 0] }] },
+                    ],
+                },
+            },
+        }
+
+  - name: "desugar $sqlGt with field references on both sides adds null guards for each"
+    input:
+      - { "$match": { "$expr": { "$sqlGt": ["$a", "$b"] } } }
+    expected:
+      - {
+          "$match":
+            {
+              "$expr":
+                {
+                  "$and":
+                    [
+                      { "$gt": ["$a", { "$literal": null }] },
+                      { "$gt": ["$b", { "$literal": null }] },
+                      { "$gt": ["$a", "$b"] },
+                    ],
+                },
+            },
+        }
+
+  - name: "desugar $sqlOr of field-to-field comparisons in match context"
+    input:
+      - {
+          "$match":
+            {
+              "$expr":
+                {
+                  "$sqlOr":
+                    [
+                      { "$sqlGt": ["$a", "$b"] },
+                      { "$sqlGt": ["$c", "$d"] },
+                    ],
+                },
+            },
+        }
+    expected:
+      - {
+          "$match":
+            {
+              "$expr":
+                {
+                  "$or":
+                    [
+                      {
+                        "$and":
+                          [
+                            { "$gt": ["$a", { "$literal": null }] },
+                            { "$gt": ["$b", { "$literal": null }] },
+                            { "$gt": ["$a", "$b"] },
+                          ],
+                      },
+                      {
+                        "$and":
+                          [
+                            { "$gt": ["$c", { "$literal": null }] },
+                            { "$gt": ["$d", { "$literal": null }] },
+                            { "$gt": ["$c", "$d"] },
+                          ],
+                      },
+                    ],
+                },
+            },
+        }
