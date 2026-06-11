@@ -90,7 +90,7 @@ function loadTruthTables() {
 
 }
 
-function testOrOperatorIndexUtilization() {
+function testOrOperatorSemantics() {
     // MongoSQL Aggregation Pipeline for:"SELECT _id FROM truth_tables WHERE a OR b"
     const mongosql_aggregation_pipeline = [
         { "$match": { "$expr": { "$let": { "vars": { "desugared_sqlOr_input0": "$a", "desugared_sqlOr_input1": "$b" }, "in": { "$cond": [{ "$or": [{ "$eq": ["$$desugared_sqlOr_input0", { "$literal": true }] }, { "$eq": ["$$desugared_sqlOr_input1", { "$literal": true }] }] }, { "$literal": true }, { "$cond": [{ "$or": [{ "$lte": ["$$desugared_sqlOr_input0", { "$literal": null }] }, { "$lte": ["$$desugared_sqlOr_input1", { "$literal": null }] }] }, { "$literal": null }, { "$literal": false }] }] } } } } },
@@ -142,7 +142,7 @@ function testOrOperatorIndexUtilization() {
     }
 }
 
-function testAndOperatorIndexUtilization() {
+function testAndOperatorSemantics() {
     // MongoSQL Aggregation Pipeline for:"SELECT _id FROM truth_tables WHERE a AND b"
     const mongosql_aggregation_pipeline = [
         { "$match": { "$expr": { "$let": { "vars": { "desugared_sqlAnd_input0": "$a", "desugared_sqlAnd_input1": "$b" }, "in": { "$cond": [{ "$or": [{ "$eq": ["$$desugared_sqlAnd_input0", { "$literal": false }] }, { "$eq": ["$$desugared_sqlAnd_input1", { "$literal": false }] }] }, { "$literal": false }, { "$cond": [{ "$or": [{ "$lte": ["$$desugared_sqlAnd_input0", { "$literal": null }] }, { "$lte": ["$$desugared_sqlAnd_input1", { "$literal": null }] }] }, { "$literal": null }, { "$literal": true }] }] } } } } },
@@ -191,7 +191,7 @@ function testAndOperatorIndexUtilization() {
  * NOT operator: It seems like the existing query gets index utilization so not sure if we need to optimize anything?
  *
  * */
-function testNotOperatorIndexUtilization() {
+function testNotOperatorSemantics() {
     // MongoSQL Aggregation Pipeline for:"SELECT _id FROM not_truth_table WHERE NOT a"
     const mongosql_aggregation_pipeline = [
         {"$match": {"$expr": {"$and": [{"$gt": ["$a", {"$literal": null}]}, {"$not": ["$a"]}]}}},
@@ -236,5 +236,6 @@ function testNotOperatorIndexUtilization() {
 }
 
 loadTruthTables();
-testOrOperatorIndexUtilization();
-testAndOperatorIndexUtilization();
+testOrOperatorSemantics();
+testAndOperatorSemantics();
+testNotOperatorSemantics()
