@@ -3,6 +3,7 @@
 This document contains instructions for releasing various components of MongoSQL. At this time, those components are:
 1. `libmongosqltranslate` - used by the ODBC and JDBC drivers for on-prem and direct cluster querying.
 2. `libmongosql` - used by ADF.
+3. `schema-builder-library` - a Rust library, also distributed as a WASM package, for partitioning MongoDB collections and deriving their schemas.
 
 ## Versioning
 
@@ -36,6 +37,21 @@ Tags are prepended with `v` for `libmongosql` releases.
 
 ```sh
 git tag -am v1.6.1 v1.6.1
+```
+
+### Versioning `schema-builder-library`
+
+`schema-builder-library` uses the following guidelines to determine when each version component will be updated:
+- **major**: backwards-breaking changes to the library API (Rust or WASM)
+- **minor**: new features
+- **patch**: bug fixes
+
+At the moment, there are no pre-release (alpha, beta, rc, etc.) versions of `schema-builder-library`.
+
+Tags are prepended with `sbl` for `schema-builder-library` releases.
+
+```sh
+git tag -am sbl1.2.3 sbl1.2.3
 ```
 
 ## Releasing
