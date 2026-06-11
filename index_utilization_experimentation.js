@@ -8,6 +8,8 @@ use("index_utilization_experiment");
 function loadTruthTables() {
 
     db.truth_tables.drop();
+    db.not_truth_table.drop();
+
 
     db.truth_tables.insertMany([
         {_id: 0, a: true, b: true, a_and_b: true, a_or_b: true},
@@ -32,6 +34,19 @@ function loadTruthTables() {
     db.truth_tables.createIndex({b: 1});
     db.truth_tables.createIndex({a: 1, b: 1});
 
+    db.not_truth_table.insertMany([
+        {_id: 0, a: true, not_a: false},
+        {_id: 1, a: false, not_a: true},
+        {_id: 2, a: null, not_a: null},
+        {_id: 3, not_a: null},
+    ]);
+
+    db.not_truth_table.createIndex({a: 1});
+    db.not_truth_table.createIndex({not_a: 1});
+
+
+
+
 // ── __sql_schemas ─────────────────────────────────────────────────────────────
 // createCollection is required because the leading underscores prevent mongosh
 // from resolving db.__sql_schemas as a collection reference.
@@ -39,6 +54,7 @@ function loadTruthTables() {
     db.createCollection("__sql_schemas");
 
     db.getCollection("__sql_schemas").deleteOne({_id: "truth_tables"});
+    db.getCollection("__sql_schemas").deleteOne({_id: "not_truth_table"});
 
     db.getCollection("__sql_schemas").insertOne({
         _id: "truth_tables",
@@ -55,8 +71,23 @@ function loadTruthTables() {
             },
         },
     });
-
     print("Done — truth_tables loaded with 16 docs, 3 indexes, and schema registered.");
+
+    db.getCollection("__sql_schemas").insertOne({
+        _id: "not_truth_table",
+        schema: {
+            bsonType: "object",
+            required: ["_id", "a", "not_a"],
+            additionalProperties: false,
+            properties: {
+                _id: {bsonType: "int"},
+                a: {anyOf: [{bsonType: "bool"}, {bsonType: "null"}]},
+                not_a: {anyOf: [{bsonType: "bool"}, {bsonType: "null"}]},
+            },
+        },
+    });
+    print("Done — not truth table loaded with 4 docs, 1 indexes, and schema registered.");
+
 }
 
 function testOrOperatorIndexUtilization() {
@@ -147,6 +178,56 @@ function testAndOperatorIndexUtilization() {
 
     if (only_in_mongosql.size === 0 && only_in_proposed.size === 0) {
         print(`[And Operator Index Utilization] PASS: result sets match (${mongosql_ids.size} docs each). Proposed desugaring produces the same results as MongoSQL's desugaring for this query.`);
+    } else {
+        print(`FAIL: result sets differ`);
+        if (only_in_mongosql.size > 0) print(`  only in MongoSQL:  ${JSON.stringify([...only_in_mongosql])}`);
+        if (only_in_proposed.size > 0) print(`  only in proposed:  ${JSON.stringify([...only_in_proposed])}`);
+    }
+}
+
+
+/**
+ *
+ * NOT operator: It seems like the existing query gets index utilization so not sure if we need to optimize anything?
+ *
+ * */
+function testNotOperatorIndexUtilization() {
+    // MongoSQL Aggregation Pipeline for:"SELECT _id FROM not_truth_table WHERE NOT a"
+    const mongosql_aggregation_pipeline = [
+        {"$match": {"$expr": {"$and": [{"$gt": ["$a", {"$literal": null}]}, {"$not": ["$a"]}]}}},
+        {"$project": {"not_truth_table": "$$ROOT", "_id": 0}},
+        {"$project": {"__bot": {"_id": "$not_truth_table._id", "a": "$not_truth_table.a"}, "_id": 0}},
+        {
+            "$replaceWith": {
+                "$unsetField": {
+                    "field": "__bot",
+                    "input": {"$setField": {"field": "", "input": "$$ROOT", "value": "$__bot"}}
+                }
+            }
+        },
+    ];
+
+    const proposed_desugaring_aggregation_pipeline = [
+        {
+            $match: {
+                $expr: {
+                    $and: [
+                        {$gt: ["$a", null]},
+                        {$not: "$a"}
+                    ]
+                }
+            }
+        }
+    ];
+
+    const mongosql_ids = new Set(mongosql_aggregation_pipeline.map(doc => doc[""]._id));
+    const proposed_ids = new Set(proposed_desugaring_aggregation_pipeline.map(doc => doc._id));
+
+    const only_in_mongosql = mongosql_ids.difference(proposed_ids);
+    const only_in_proposed = proposed_ids.difference(mongosql_ids);
+
+    if (only_in_mongosql.size === 0 && only_in_proposed.size === 0) {
+        print(`[NOT Operator Index Utilization] PASS: result sets match (${mongosql_ids.size} docs each). Proposed desugaring produces the same results as MongoSQL's desugaring for this query.`);
     } else {
         print(`FAIL: result sets differ`);
         if (only_in_mongosql.size > 0) print(`  only in MongoSQL:  ${JSON.stringify([...only_in_mongosql])}`);
