@@ -383,6 +383,25 @@ tasks:
           mongodb_version: rapid
     
 
+  - name: test-spec-query_latest-standalone
+    tags: [latest, standalone]
+    commands:
+      - func: "bootstrap mongo-orchestration"
+        vars:
+          MONGODB_VERSION: latest
+          TOPOLOGY: server
+      - func: "install rust toolchain"
+      - func: "run data loader"
+        vars:
+          working_dir: ${common_test_infra_dir}
+          data_loader_args: "--mongod-uri mongodb://localhost:27017 -d ../testdata/spec_tests/query_tests"
+      - func: "run rust tests"
+        vars:
+          description: run spec query tests
+          cargo_test_flags: --features=query --package=e2e-tests
+          mongodb_version: latest
+    
+
   - name: test-index-usage_latest-standalone
     tags: [latest, standalone]
     commands:
