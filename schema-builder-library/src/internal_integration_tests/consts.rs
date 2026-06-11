@@ -127,7 +127,7 @@ lazy_static! {
     pub static ref LARGE_COLL_SIZE_IN_BYTES: i64 = *NUM_DOCS_IN_LARGE_COLLECTION * DATA_DOC_SIZE_IN_BYTES;
 
     pub static ref DEFAULT_PARTITION_KEY: String = "_id".to_string();
-    pub static ref DEFAULT_HINT: Option<mongodb::bson::Document> = Some(doc! {"_id": 1});
+    pub static ref DEFAULT_HINT: Option<mongodb::options::Hint> = Some(mongodb::options::Hint::Keys(doc! {"_id": 1}));
     pub static ref DEFAULT_COLLECTION_INFO: CollectionInfo = CollectionInfo {
         collection_type: CollectionType::Collection,
         name: "empty".to_string(),

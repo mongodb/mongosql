@@ -3,7 +3,7 @@ macro_rules! test_get_size_counts {
         #[cfg(feature = "integration")]
         #[tokio::test]
         async fn $test_name() {
-            use super::create_mdb_service;
+            use super::get_mdb_collection;
             #[allow(unused)]
             use test_utils::schema_builder_library_integration_test_consts::{
                 LARGE_COLL_NAME, LARGE_ID_MIN, NONUNIFORM_DB_NAME, SMALL_COLL_NAME, SMALL_ID_MIN,
@@ -15,8 +15,8 @@ macro_rules! test_get_size_counts {
                 internal_integration_tests::consts::{LARGE_COLL_SIZE_IN_BYTES, SMALL_COLL_SIZE_IN_BYTES, NUM_DOCS_IN_LARGE_COLLECTION, NUM_DOCS_IN_SMALL_COLLECTION}
             };
 
-            let service = create_mdb_service().await;
-            let actual_res = get_size_counts(&service, $input_db, $input_coll).await;
+            let coll = get_mdb_collection($input_db, $input_coll).await;
+            let actual_res = get_size_counts(&coll).await;
             match actual_res {
                 Err(err) => assert!(false, "unexpected error: {err:?}"),
                 Ok(actual_coll_sizes) => {
@@ -73,19 +73,15 @@ test_get_size_counts!(
 #[cfg(feature = "integration")]
 #[tokio::test]
 async fn empty_collection() {
-    use super::create_mdb_service;
+    use super::get_mdb_collection;
     use crate::{errors::Error, partitioning::get_size_counts};
-    use mongodb::error::{CommandError, ErrorKind};
     use test_utils::schema_builder_library_integration_test_consts::UNIFORM_DB_NAME;
 
-    let service = create_mdb_service().await;
+    let coll = get_mdb_collection(UNIFORM_DB_NAME, "empty").await;
 
-    let actual_res = get_size_counts(&service, UNIFORM_DB_NAME, "empty").await;
+    let actual_res = get_size_counts(&coll).await;
     match actual_res {
-        Err(Error::DataServiceError(e)) => match *e.kind {
-            ErrorKind::Command(CommandError { code: 26, .. }) => {}
-            ref kind => panic!("unexpected DataService error kind: {kind:?}"),
-        },
+        Err(Error::NoCollectionStats(_)) => {} // expect the NoCollectionStats errors
         Err(err) => panic!("unexpected error: {err:?}"),
         Ok(actual) => panic!("expected error but got: {actual:?}"),
     }

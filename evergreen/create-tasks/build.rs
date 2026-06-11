@@ -86,12 +86,6 @@ fn main() {
     for &version in VERSIONS.iter() {
         for &(topology_name, topology) in TOPOLOGIES.iter() {
             for &(test_name, test_data_path, description, flags) in TEST_TYPES.iter() {
-                // SERVER-127822: the "latest" tag currently hits a $sequentialCache
-                // assertion that fails spec-query. Skip until the upstream ticket is fixed.
-                if test_name == "spec-query" && version == "latest" {
-                    continue;
-                }
-
                 writeln!(
                     file,
                     "{}",
