@@ -6,7 +6,7 @@ use crate::air::{
     visitor::Visitor,
     Expression,
     Expression::*,
-    LetVariable, LiteralValue, MqlOperator, MqlSemanticOperator,
+    LetVariable, LiteralValue, Match, MqlOperator, MqlSemanticOperator, Project, ProjectItem,
     SqlOperator::*,
     Stage, SwitchCase,
 };
@@ -424,6 +424,23 @@ impl SqlNullSemanticsOperatorsDesugarerVisitor {
 }
 
 impl Visitor for SqlNullSemanticsOperatorsDesugarerVisitor {
+    fn visit_stage(&mut self, node: Stage) -> Stage {
+        match node {
+            Stage::Match(Match::ExprLanguage(air::ExprLanguage { source, expr })) => {
+                let source = Box::new(source.walk(self));
+                let expr = Box::new(match *expr {
+                    SqlSemanticOperator(op) => match op.op {
+                        Or => self.desugar_sql_or_in_match_context(op),
+                        // [TODO] Add in AND, NOT, and Binary Comparison arms
+                        _ => self.visit_expression(SqlSemanticOperator(op)),
+                    },
+                    other => self.visit_expression(other),
+                });
+                Stage::Match(Match::ExprLanguage(air::ExprLanguage { source, expr }))
+            }
+            other => other.walk(self),
+        }
+    }
     fn visit_expression(&mut self, node: Expression) -> Expression {
         let node = match node {
             SqlSemanticOperator(sql_operator) => match sql_operator.op {
@@ -473,7 +490,6 @@ mod tests {
                     parent: None,
                     name: "b".to_string(),
                 }),
-                air::Expression::Literal(air::LiteralValue::Boolean(true)),
             ],
         });
 
@@ -519,7 +535,6 @@ mod tests {
                             }),
                         ],
                     }),
-                    air::Expression::Literal(air::LiteralValue::Boolean(true)),
                 ],
             });
         let actual_transformed_expression = visitor.visit_expression(or_expression);
