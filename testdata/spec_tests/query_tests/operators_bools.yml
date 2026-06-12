@@ -54,3 +54,50 @@ dataset:
           anyOf:
             - bsonType: "bool"
             - bsonType: !!str "null"
+  - db: "spec_query_operators_bools"
+    collection:
+      name: "truth_tables"
+      docs:
+        - { "_id": 0, "a": true, "b": true , "a_and_b": true, "a_or_b": true }
+        - { "_id": 1, "a": true, "b": false, "a_and_b": false, "a_or_b": true }
+        - { "_id": 2, "a": true, "b": null, "a_and_b": null, "a_or_b": true }
+        - { "_id": 3, "a": true, "a_and_b": null, "a_or_b": true }
+        - { "_id": 4, "a": false, "b": true, "a_and_b": false, "a_or_b": true }
+        - { "_id": 5, "a": false, "b": false, "a_and_b": false, "a_or_b": false }
+        - { "_id": 6, "a": false, "b": null, "a_and_b": null, "a_or_b": null }
+        - { "_id": 7, "a": false, "a_and_b": false, "a_or_b": false }
+        - { "_id": 8, "a": null, "b": true, "a_and_b": null, "a_or_b": true }
+        - { "_id": 9, "a": null, "b": false, "a_and_b": null, "a_or_b": null }
+        - { "_id": 10, "a": null, "b": null, "a_and_b": null, "a_or_b": null }
+        - { "_id": 11, "a": null, "a_and_b": null, "a_or_b": null }
+        - { "_id": 12, "b": true, "a_and_b": true, "a_or_b": true }
+        - { "_id": 13, "b": false, "a_and_b": false, "a_or_b": false }
+        - { "_id": 14, "b": null, "a_and_b": null, "a_or_b": null }
+        - { "_id": 15, "a_and_b": null, "a_or_b": null }
+      indexes:
+        - { "key": { "a": 1 } }
+        - { "key": { "b": 1 } }
+        - { "key": { "a": 1, "b": 1 } }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a", "b" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: !!str "null"
+        b:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: !!str "null"
+        a_and_b:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: !!str "null"
+        a_or_b:
+          anyOf:
+            - bsonType: "bool"
+            - bsonType: !!str "null"

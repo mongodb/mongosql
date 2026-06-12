@@ -1,3 +1,4 @@
+use crate::air::Stage::{EquiJoin, Join};
 use crate::air::{
     self,
     desugarer::{Pass, Result},
@@ -7,9 +8,11 @@ use crate::air::{
     Expression::*,
     LetVariable, LiteralValue, MqlOperator, MqlSemanticOperator,
     SqlOperator::*,
-    SwitchCase,
+    Stage, SwitchCase,
 };
 use crate::make_cond_expr;
+use bson::binary::Vector;
+use std::env::args;
 
 /// Desugars any Sql operators that require Sql null semantics into their
 /// corresponding Mql operators wrapped in operations to null-check the
@@ -18,7 +21,25 @@ pub struct SqlNullSemanticsOperatorsDesugarerPass;
 
 impl Pass for SqlNullSemanticsOperatorsDesugarerPass {
     fn apply(&self, pipeline: air::Stage) -> Result<air::Stage> {
+        let is_in_match_context: bool = match pipeline {
+            air::Stage::Match(_) => true,
+            _ => false,
+        };
+
         Ok(pipeline.walk(&mut SqlNullSemanticsOperatorsDesugarerVisitor))
+    }
+}
+
+#[derive(Default)]
+struct SqlNullSemanticsMatchStageDesugarerVisitor;
+
+impl Visitor for SqlNullSemanticsMatchStageDesugarerVisitor {
+    fn visit_expression(&mut self, node: Expression) -> Expression {
+        // [TODO] Implement desugaring of SQL operators in $match stages, which is more complicated than
+        // desugaring them in other stages because we want to preserve the ability to use indexes for
+        // simple cases. This likely involves only desugaring SQL operators when they are used in a
+        // way that prevents index usage, e.g. by appearing inside an $or or being compared to a non-constant.
+        node
     }
 }
 
@@ -279,6 +300,43 @@ impl SqlNullSemanticsOperatorsDesugarerVisitor {
         })
     }
 
+    fn desugar_sql_or_in_match_context(
+        &mut self,
+        sql_operator: air::SqlSemanticOperator,
+    ) -> Expression {
+        // 1. For each field reference in the $or's arguments, update it to be a conjunction of itself and an explicit null check, e.g. `a` → `a AND a >= null`.
+        // This ensures that we'll get index usage because mongodb will know if the field is nullable or not.
+        let mut transformed_or_expression: Vec<Expression> = sql_operator
+            .args
+            .into_iter()
+            .map(|expr| match expr {
+                FieldRef(fieldRef) => {
+                    let null_check_expr = MqlSemanticOperator(air::MqlSemanticOperator {
+                        op: MqlOperator::Gte,
+                        args: vec![
+                            Variable(air::Variable {
+                                parent: None,
+                                name: fieldRef.name.clone(),
+                            }),
+                            Literal(LiteralValue::Null),
+                        ],
+                    });
+
+                    MqlSemanticOperator(air::MqlSemanticOperator {
+                        op: MqlOperator::And,
+                        args: vec![FieldRef(fieldRef), null_check_expr],
+                    })
+                }
+                _ => expr,
+            })
+            .collect();
+
+        MqlSemanticOperator(air::MqlSemanticOperator {
+            op: MqlOperator::Or,
+            args: transformed_or_expression,
+        })
+    }
+
     fn desugar_sql_or(&mut self, sql_operator: air::SqlSemanticOperator) -> Expression {
         let mut let_vars: Vec<LetVariable> = Vec::new();
 
@@ -370,7 +428,7 @@ impl Visitor for SqlNullSemanticsOperatorsDesugarerVisitor {
         let node = match node {
             SqlSemanticOperator(sql_operator) => match sql_operator.op {
                 And => self.desugar_sql_and(sql_operator),
-                Or => self.desugar_sql_or(sql_operator),
+                Or => self.desugar_sql_or_in_match_context(sql_operator),
                 Eq | IndexOfCP | Lt | Lte | Gt | Gte | Ne | Not | Size | StrLenBytes | StrLenCP
                 | SubstrCP | ToLower | ToUpper => self.desugar_sql_op(sql_operator),
                 In => self.desugar_sql_in(sql_operator),
@@ -393,5 +451,82 @@ impl Visitor for SqlNullSemanticsOperatorsDesugarerVisitor {
             _ => node,
         };
         node.walk(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::air;
+    use crate::air::visitor::Visitor;
+
+    #[test]
+    fn it_transforms_or_statement_to_conjunction_with_null_checks_for_field_refs() {
+        let mut visitor = super::SqlNullSemanticsOperatorsDesugarerVisitor::default();
+        let or_expression = air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
+            op: air::SqlOperator::Or,
+            args: vec![
+                air::Expression::FieldRef(air::FieldRef {
+                    parent: None,
+                    name: "a".to_string(),
+                }),
+                air::Expression::FieldRef(air::FieldRef {
+                    parent: None,
+                    name: "b".to_string(),
+                }),
+                air::Expression::Literal(air::LiteralValue::Boolean(true)),
+            ],
+        });
+
+        let expected_transformed_expression =
+            air::Expression::MqlSemanticOperator(air::MqlSemanticOperator {
+                op: air::MqlOperator::Or,
+                args: vec![
+                    air::Expression::MqlSemanticOperator(air::MqlSemanticOperator {
+                        op: air::MqlOperator::And,
+                        args: vec![
+                            air::Expression::FieldRef(air::FieldRef {
+                                parent: None,
+                                name: "a".to_string(),
+                            }),
+                            air::Expression::MqlSemanticOperator(air::MqlSemanticOperator {
+                                op: air::MqlOperator::Gte,
+                                args: vec![
+                                    air::Expression::Variable(air::Variable {
+                                        parent: None,
+                                        name: "a".to_string(),
+                                    }),
+                                    air::Expression::Literal(air::LiteralValue::Null),
+                                ],
+                            }),
+                        ],
+                    }),
+                    air::Expression::MqlSemanticOperator(air::MqlSemanticOperator {
+                        op: air::MqlOperator::And,
+                        args: vec![
+                            air::Expression::FieldRef(air::FieldRef {
+                                parent: None,
+                                name: "b".to_string(),
+                            }),
+                            air::Expression::MqlSemanticOperator(air::MqlSemanticOperator {
+                                op: air::MqlOperator::Gte,
+                                args: vec![
+                                    air::Expression::Variable(air::Variable {
+                                        parent: None,
+                                        name: "b".to_string(),
+                                    }),
+                                    air::Expression::Literal(air::LiteralValue::Null),
+                                ],
+                            }),
+                        ],
+                    }),
+                    air::Expression::Literal(air::LiteralValue::Boolean(true)),
+                ],
+            });
+        let actual_transformed_expression = visitor.visit_expression(or_expression);
+        assert_eq!(
+            expected_transformed_expression, actual_transformed_expression,
+            "{}",
+            "Transformation Test"
+        );
     }
 }
