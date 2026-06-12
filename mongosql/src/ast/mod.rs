@@ -8,3 +8,5 @@ pub use definitions::*;
 mod pretty_print_fuzz_test;
 #[cfg(test)]
 mod pretty_print_test;
+#[cfg(test)]
+mod semantic_fuzz_test;
