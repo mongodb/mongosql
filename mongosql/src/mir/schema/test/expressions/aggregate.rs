@@ -2,7 +2,8 @@ use crate::{
     map,
     mir::{schema::Error as mir_error, *},
     schema::{
-        Atomic, Document, Satisfaction, Schema, ANY_DOCUMENT_OR_NULLISH, EMPTY_DOCUMENT, NUMERIC_OR_NULLISH,
+        Atomic, Document, Satisfaction, Schema, ANY_DOCUMENT_OR_NULLISH, EMPTY_DOCUMENT,
+        NUMERIC_OR_NULLISH,
     },
     set, test_schema,
 };

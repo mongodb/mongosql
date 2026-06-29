@@ -1616,10 +1616,7 @@ trait SqlFunction {
                     .unwrap_or_else(|| EMPTY_DOCUMENT.clone()),
                 Schema::Document(d) => Schema::Document(d),
                 Schema::Any => Schema::Document(Document::any()),
-                Schema::Unsat
-                | Schema::Missing
-                | Schema::Atomic(_)
-                | Schema::Array(_) => {
+                Schema::Unsat | Schema::Missing | Schema::Atomic(_) | Schema::Array(_) => {
                     unreachable!()
                 }
             })
