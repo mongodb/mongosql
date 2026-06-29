@@ -26,6 +26,7 @@ impl MqlCodeGenerator {
         match q {
             Or(v) => self.codegen_match_logical_operator("$or", v),
             And(v) => self.codegen_match_logical_operator("$and", v),
+            Not(inner) => self.codegen_match_logical_operator("$not", vec![*inner]),
             Type(t) => self.codegen_match_type(t),
             Regex(r) => self.codegen_match_regex(r),
             ElemMatch(em) => self.codegen_match_elem_match(em),

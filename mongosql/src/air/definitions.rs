@@ -720,6 +720,7 @@ pub struct Reduce {
 pub enum MatchQuery {
     Or(Vec<MatchQuery>),
     And(Vec<MatchQuery>),
+    Not(Box<MatchQuery>),
     Type(MatchLanguageType),
     Regex(MatchLanguageRegex),
     ElemMatch(ElemMatch),

@@ -214,6 +214,51 @@ mod match_constant_false {
     );
 }
 
+mod not {
+    test_codegen_match_query!(
+        single_comparison,
+        expected = Ok(bson!({"$not": [{"age": {"$gt": 10}}]})),
+        input = air::MatchQuery::Not(Box::new(air::MatchQuery::Comparison(
+            air::MatchLanguageComparison {
+                function: air::MatchLanguageComparisonOp::Gt,
+                input: Some("age".to_string().into()),
+                arg: air::LiteralValue::Integer(10),
+            }
+        )))
+    );
+
+    test_codegen_match_query!(
+        not_and,
+        expected =
+            Ok(bson!({"$not": [{"$and": [{"age": {"$gt": 10}}, {"name": {"$eq": "Alice"}}]}]})),
+        input = air::MatchQuery::Not(Box::new(air::MatchQuery::And(vec![
+            air::MatchQuery::Comparison(air::MatchLanguageComparison {
+                function: air::MatchLanguageComparisonOp::Gt,
+                input: Some("age".to_string().into()),
+                arg: air::LiteralValue::Integer(10),
+            }),
+            air::MatchQuery::Comparison(air::MatchLanguageComparison {
+                function: air::MatchLanguageComparisonOp::Eq,
+                input: Some("name".to_string().into()),
+                arg: air::LiteralValue::String("Alice".to_string()),
+            }),
+        ])))
+    );
+
+    // Double negation is structurally valid; simplification is the optimizer's responsibility.
+    test_codegen_match_query!(
+        nested_not,
+        expected = Ok(bson!({"$not": [{"$not": [{"age": {"$gt": 10}}]}]})),
+        input = air::MatchQuery::Not(Box::new(air::MatchQuery::Not(Box::new(
+            air::MatchQuery::Comparison(air::MatchLanguageComparison {
+                function: air::MatchLanguageComparisonOp::Gt,
+                input: Some("age".to_string().into()),
+                arg: air::LiteralValue::Integer(10),
+            })
+        ))))
+    );
+}
+
 mod in_op {
     test_codegen_match_query!(
         in_single,
