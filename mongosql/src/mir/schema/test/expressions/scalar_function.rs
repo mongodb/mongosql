@@ -2,8 +2,8 @@ use crate::{
     map,
     mir::{schema::Error as mir_error, *},
     schema::{
-        Atomic, Document, Satisfaction, Schema, ANY_ARRAY, ANY_DOCUMENT, BOOLEAN_OR_NULLISH,
-        INTEGER_OR_NULLISH, NON_NULLISH, NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
+        Atomic, Document, Satisfaction, Schema, ANY_ARRAY, ANY_DOCUMENT, ANY_DOCUMENT_OR_NULLISH,
+        BOOLEAN_OR_NULLISH, INTEGER_OR_NULLISH, NON_NULLISH, NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
     },
     set, test_schema,
 };
@@ -2435,7 +2435,7 @@ mod merge_objects {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "MergeObjects",
-            required: ANY_DOCUMENT.clone().into(),
+            required: ANY_DOCUMENT_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::String).into(),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(

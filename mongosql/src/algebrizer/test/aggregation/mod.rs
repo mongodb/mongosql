@@ -1,10 +1,13 @@
 #[allow(unused_imports)]
 use crate::{
     ast, map, mir, multimap,
-    schema::{Atomic, Satisfaction, Schema, ANY_DOCUMENT, NUMERIC_OR_NULLISH},
+    schema::{
+        Atomic, Satisfaction, Schema, ANY_DOCUMENT, ANY_DOCUMENT_OR_NULLISH, NUMERIC_OR_NULLISH,
+    },
     test_algebrize, test_algebrize_expr_and_schema_check, unchecked_unique_linked_hash_map,
     usererror::UserError,
 };
+
 test_algebrize!(
     count_star,
     method = algebrize_aggregation,
@@ -497,7 +500,7 @@ test_algebrize_expr_and_schema_check!(
     method = algebrize_aggregation,
     expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
         name: "MergeDocuments",
-        required: ANY_DOCUMENT.clone().into(),
+        required: ANY_DOCUMENT_OR_NULLISH.clone().into(),
         found: Schema::Atomic(Atomic::String).into(),
     })),
     expected_error_code = 1002,
