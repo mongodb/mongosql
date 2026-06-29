@@ -284,6 +284,36 @@ mod first {
             Schema::Atomic(Atomic::Long),
         ])},
     );
+
+    test_schema!(
+        first_upconverts_nested_missing_to_null,
+        expected = Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+        ])),
+        input = AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::First,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+            arg_is_possibly_doc: Satisfaction::Not,
+        }),
+        schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Missing,
+        ])},
+    );
+
+    test_schema!(
+        first_pure_missing_is_null,
+        expected = Ok(Schema::Atomic(Atomic::Null)),
+        input = AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::First,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+            arg_is_possibly_doc: Satisfaction::Not,
+        }),
+        schema_env = map! {("bar", 0u16).into() => Schema::Missing},
+    );
 }
 
 mod last {
@@ -321,6 +351,36 @@ mod last {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long),
         ])},
+    );
+
+    test_schema!(
+        last_upconverts_nested_missing_to_null,
+        expected = Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+        ])),
+        input = AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Last,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+            arg_is_possibly_doc: Satisfaction::Not,
+        }),
+        schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Missing,
+        ])},
+    );
+
+    test_schema!(
+        last_upconverts_missing_to_null,
+        expected = Ok(Schema::Atomic(Atomic::Null)),
+        input = AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Last,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+            arg_is_possibly_doc: Satisfaction::Not,
+        }),
+        schema_env = map! {("bar", 0u16).into() => Schema::Missing},
     );
 }
 
@@ -375,6 +435,36 @@ mod max {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long),
         ])},
+    );
+
+    test_schema!(
+        max_upconverts_nested_missing_to_null,
+        expected = Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+        ])),
+        input = AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Max,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+            arg_is_possibly_doc: Satisfaction::Not,
+        }),
+        schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Missing,
+        ])},
+    );
+
+    test_schema!(
+        max_upconverts_missing_to_null,
+        expected = Ok(Schema::Atomic(Atomic::Null)),
+        input = AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Max,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+            arg_is_possibly_doc: Satisfaction::Not,
+        }),
+        schema_env = map! {("bar", 0u16).into() => Schema::Missing},
     );
 }
 
@@ -479,6 +569,36 @@ mod min {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long),
         ])},
+    );
+
+    test_schema!(
+        min_upconverts_nested_missing_to_null,
+        expected = Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+        ])),
+        input = AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Min,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+            arg_is_possibly_doc: Satisfaction::Not,
+        }),
+        schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Missing,
+        ])},
+    );
+
+    test_schema!(
+        min_upconverts_missing_to_null,
+        expected = Ok(Schema::Atomic(Atomic::Null)),
+        input = AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Min,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+            arg_is_possibly_doc: Satisfaction::Not,
+        }),
+        schema_env = map! {("bar", 0u16).into() => Schema::Missing},
     );
 }
 
