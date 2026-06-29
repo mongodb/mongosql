@@ -307,7 +307,7 @@ mod first {
     );
 
     test_schema!(
-        first_pure_missing_is_null,
+        first_upconverts_missing_to_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::First,
