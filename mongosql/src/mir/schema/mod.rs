@@ -924,7 +924,7 @@ impl AggregationFunction {
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Long)
             ]),
-            First | Last => arg_schema,
+            First | Last => arg_schema.upconvert_missing_to_null(),
             Min | Max => {
                 if !state.check_self_comparable(&arg_schema) {
                     return Err(Error::AggregationArgumentMustBeSelfComparable(
@@ -932,7 +932,7 @@ impl AggregationFunction {
                         arg_schema.into(),
                     ));
                 }
-                arg_schema
+                arg_schema.upconvert_missing_to_null()
             }
             MergeDocuments => {
                 self.schema_check_fixed_args(
