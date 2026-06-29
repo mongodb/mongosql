@@ -839,6 +839,11 @@ lazy_static! {
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
     ]);
+    pub static ref ANY_DOCUMENT_OR_NULLISH: Schema = Schema::AnyOf(set![
+        Schema::Document(Document::any()),
+        Schema::Atomic(Atomic::Null),
+        Schema::Missing,
+    ]);
     pub static ref BITS_APPLICABLE_OR_NULLISH: Schema = Schema::AnyOf(set![
         Schema::Atomic(Atomic::Integer),
         Schema::Atomic(Atomic::Long),

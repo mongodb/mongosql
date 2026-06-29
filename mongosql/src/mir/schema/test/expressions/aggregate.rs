@@ -1,7 +1,9 @@
 use crate::{
     map,
     mir::{schema::Error as mir_error, *},
-    schema::{Atomic, Document, Satisfaction, Schema, ANY_DOCUMENT, NUMERIC_OR_NULLISH},
+    schema::{
+        Atomic, Document, Satisfaction, Schema, ANY_DOCUMENT_OR_NULLISH, EMPTY_DOCUMENT, NUMERIC_OR_NULLISH,
+    },
     set, test_schema,
 };
 use std::sync::LazyLock;
@@ -476,7 +478,7 @@ mod merge_documents {
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "MergeDocuments",
-            required: ANY_DOCUMENT.clone().into(),
+            required: ANY_DOCUMENT_OR_NULLISH.clone().into(),
             found: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String),
@@ -515,6 +517,67 @@ mod merge_documents {
         additional_properties: true,
         ..Default::default()
         })},
+    );
+
+    test_schema!(
+        mergedocuments_on_any,
+        expected = Ok(Schema::Document(Document::any())),
+        input = AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::MergeDocuments,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+            arg_is_possibly_doc: Satisfaction::Not,
+        }),
+        schema_env = map! {("bar", 0u16).into() => Schema::Any},
+        schema_checking_mode = SchemaCheckingMode::Relaxed,
+    );
+
+    // In relaxed mode, it is acceptable for the argument's schema can to only
+    // MAYBE be a document. As in, it may be nullish or possibly not a document.
+    // $mergeObjects always produces a document, so the result must drop Missing
+    // and remain a Document rather than upconverting Missing to Null.
+    test_schema!(
+        mergedocuments_relaxed_drops_missing,
+        expected = Ok(EMPTY_DOCUMENT.clone()),
+        input = AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::MergeDocuments,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+            arg_is_possibly_doc: Satisfaction::Not,
+        }),
+        schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Document(Document {
+                keys: map!{"foo".into() => Schema::Atomic(Atomic::Integer)},
+                required: set!{},
+                additional_properties: true,
+                ..Default::default()
+            }),
+            Schema::Missing,
+        ])},
+        schema_checking_mode = SchemaCheckingMode::Relaxed,
+    );
+
+    // Likewise, a non-document atomic that only MAY be a document in
+    // relaxed mode must be dropped from the result, leaving a Document.
+    test_schema!(
+        mergedocuments_relaxed_drops_non_document,
+        expected = Ok(EMPTY_DOCUMENT.clone()),
+        input = AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::MergeDocuments,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+            arg_is_possibly_doc: Satisfaction::Not,
+        }),
+        schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Document(Document {
+                keys: map!{"foo".into() => Schema::Atomic(Atomic::Integer)},
+                required: set!{},
+                additional_properties: true,
+                ..Default::default()
+            }),
+        ])},
+        schema_checking_mode = SchemaCheckingMode::Relaxed,
     );
 }
 
