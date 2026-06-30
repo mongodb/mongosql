@@ -69,6 +69,6 @@ tests:
     result: "SELECT VALUE {'_1': REDUCE(`array`, '', value || this)} FROM foo AS foo"
 
   - description: Rewrite ARRAY_JOIN with non-empty separator to REDUCE
-    query: "SELECT ARRAY_JOIN(`array`, ",") FROM foo"
+    query: "SELECT ARRAY_JOIN(`array`, ',') FROM foo"
     skip_reason: "SQL-3298: Finish support for higher order functions"
     result: "SELECT VALUE {'_1': TRIM(LEADING ',' FROM REDUCE(`array`, '', value || ',' || this))} FROM foo AS foo"
