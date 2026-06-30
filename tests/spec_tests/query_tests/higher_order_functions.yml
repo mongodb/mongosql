@@ -1,0 +1,39 @@
+tests:
+  - description: MAP correctness test
+    current_db: spec_query_higher_order_functions
+    query: "SELECT VALUE { 'a': a, 'v': MAP(a, this + 1) } FROM `map` AS `map`"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result:
+      - {'': {"a": [], "v": [] } }
+      - {'': {"a": [1], "v": [2] } }
+      - {'': {"a": [1, 2, 3], "v": [2, 3, 4] } }
+      - {'': {"a": [1, null, 3], "v": [2, null, 4] } }
+      - {'': {"a": null, "v": null } }
+      - {'': {"v": null } }
+
+  - description: FILTER correctness test
+    current_db: spec_query_higher_order_functions
+    query: "SELECT VALUE { 'a': a, 'v': FILTER(a, this > 0) } FROM `filter` AS `filter`"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result:
+      - {'': {"a": [], "v": [] } }
+      - {'': {"a": [1], "v": [1] } }
+      - {'': {"a": [-1, 1, 2], "v": [1, 2] } }
+      - {'': {"a": [1, null, 3], "v": [1, 3] } }
+      - {'': {"a": null, "v": null } }
+      - {'': {"v": null } }
+
+  - description: REDUCE correctness test
+    current_db: spec_query_higher_order_functions
+    query: "SELECT VALUE { 'a': a, 'i': i, 'v': REDUCE(a, i, this + value) } FROM `reduce` AS `reduce`"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result:
+      - {'': {"a": [], "i": 0, "v": 0 } }
+      - {'': {"a": [1], "i": 0, "v": 1 } }
+      - {'': {"a": [1, 2, 3], "i": 0, "v": 6 } }
+      - {'': {"a": [1, 2, 3], "i": 5, "v": 11 } }
+      - {'': {"a": [1, null, 3], "i": 0, "v": null } }
+      - {'': {"a": null, "i": 0, "v": null } }
+      - {'': {"i": 0, "v": null } }
+      - {'': {"a": [1, 2, 3], "i": null, "v": null } }
+      - {'': {"a": [1, 2, 3], "v": null } }

@@ -1,0 +1,85 @@
+dataset:
+  - db: "spec_query_higher_order_functions"
+    collection:
+      name: "map"
+      docs:
+        - { "_id": 0, "a": [] }
+        - { "_id": 1, "a": [ 1 ] }
+        - { "_id": 2, "a": [ 1, 2, 3 ] }
+        - { "_id": 3, "a": [ 1, null, 3 ] }
+        - { "_id": 4, "a": null }
+        - { "_id": 5 }
+      schema:
+        bsonType: "object"
+        required: [ "_id" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          a:
+            anyOf:
+              - bsonType: "array"
+                items:
+                  anyOf:
+                    - bsonType: "int"
+                    - bsonType: !!str "null"
+              - bsonType: !!str "null"
+
+  - db: "spec_query_higher_order_functions"
+    collection:
+      name: "filter"
+      docs:
+        - { "_id": 0, "a": [] }
+        - { "_id": 1, "a": [ 1 ] }
+        - { "_id": 2, "a": [ -1, 1, 2 ] }
+        - { "_id": 3, "a": [ 1, null, 3 ] }
+        - { "_id": 4, "a": null }
+        - { "_id": 5 }
+      schema:
+        bsonType: "object"
+        required: [ "_id" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          a:
+            anyOf:
+              - bsonType: "array"
+                items:
+                  anyOf:
+                    - bsonType: "int"
+                    - bsonType: !!str "null"
+              - bsonType: !!str "null"
+
+  - db: "spec_query_higher_order_functions"
+    collection:
+      name: "reduce"
+      docs:
+        - { "_id": 0, "a": [], "i": 0 }
+        - { "_id": 1, "a": [ 1 ], "i": 0 }
+        - { "_id": 2, "a": [ 1, 2, 3 ], "i": 0 ] }
+        - { "_id": 3, "a": [ 1, 2, 3 ], "i": 5 ] }
+        - { "_id": 4, "a": [ 1, null, 3 ], "i": 0 }
+        - { "_id": 5, "a": null, "i": 0 }
+        - { "_id": 6, "i": 0 }
+        - { "_id": 7, "a": [ 1, 2, 3 ], "i": null }
+        - { "_id": 8, "a": [ 1, 2, 3 ] }
+      schema:
+        bsonType: "object"
+        required: [ "_id" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          a:
+            anyOf:
+              - bsonType: "array"
+                items:
+                  anyOf:
+                    - bsonType: "int"
+                    - bsonType: !!str "null"
+              - bsonType: !!str "null"
+          i:
+            anyOf:
+              - bsonType: "int"
+              - bsonType: !!str "null"
