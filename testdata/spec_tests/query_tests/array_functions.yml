@@ -80,7 +80,19 @@ dataset:
               - bsonType: "array"
                 items:
                   anyOf:
-                    - bsonType: "int"
+                    - bsonType: "object"
+                      required: [ "x" ]
+                      additionalProperties: false
+                      properties:
+                        x:
+                          bsonType: "object"
+                          required: []
+                          additionalProperties: false
+                          properties:
+                            y:
+                              anyOf:
+                                - bsonType: "int"
+                                - bsonType: !!str "null"
                     - bsonType: !!str "null"
               - bsonType: !!str "null"
 
