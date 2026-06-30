@@ -83,3 +83,36 @@ dataset:
             anyOf:
               - bsonType: "int"
               - bsonType: !!str "null"
+
+  - db: "spec_query_higher_order_functions"
+    collection:
+      name: "unambiguous"
+      docs:
+        - { "_id": 0, "a": [], "this": 100, "value": 1000 }
+        - { "_id": 1, "a": [ 1 ], "this": 100, "value": 1000 }
+        - { "_id": 2, "a": [ 1, 2, 3 ], "this": 100, "value": 1000 }
+        - { "_id": 3, "a": [ 1, 2, 3 ], "this": null, "value": 1000 }
+        - { "_id": 4, "a": [ 1, 2, 3 ], "value": 1000 }
+        - { "_id": 5, "a": [ 1, 2, 3 ], "this": 100, "value": null }
+        - { "_id": 6, "a": [ 1, 2, 3 ], "this": 100 }
+      schema:
+        bsonType: "object"
+        required: [ "_id", "a" ]
+        additionalProperties: false
+        properties:
+          _id:
+            bsonType: "int"
+          a:
+            bsonType: "array"
+            items:
+              anyOf:
+                - bsonType: "int"
+                - bsonType: !!str "null"
+          this:
+            anyOf:
+              - bsonType: "int"
+              - bsonType: !!str "null"
+          value:
+            anyOf:
+              - bsonType: "int"
+              - bsonType: !!str "null"
