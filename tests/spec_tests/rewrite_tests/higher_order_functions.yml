@@ -1,0 +1,15 @@
+tests:
+  - description: Rewrite MAP named function argument to use this
+    query: "SELECT MAP(`array`, LOWER) FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result: "SELECT VALUE {'_1': MAP(`array`, LOWER(this))} FROM foo AS foo"
+
+  - description: Rewrite FILTER named function argument to use this
+    query: "SELECT FILTER(`array`, NOT) FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result: "SELECT VALUE {'_1': FILTER(`array`, NOT this)} FROM foo AS foo"
+
+  - description: Rewrite REDUCE named function argument to use this and value
+    query: "SELECT REDUCE(`array`, 0, +) FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result: "SELECT VALUE {'_1': REDUCE(`array`, 0, this + value)} FROM foo AS foo"
