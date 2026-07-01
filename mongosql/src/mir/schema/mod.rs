@@ -1607,7 +1607,7 @@ trait SqlFunction {
         // union all AnyOf arg_schemas into union Document schemata
         arg_schemas
             .iter()
-            .filter(|s| state.check_satisfies(s, &ANY_DOCUMENT.clone()))
+            .filter(|s| state.check_satisfies(s, &ANY_DOCUMENT))
             .cloned()
             .map(|s| match s {
                 Schema::AnyOf(ao) => ao
