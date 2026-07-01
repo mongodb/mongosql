@@ -116,6 +116,29 @@ mod logical {
         );
     }
 
+    mod not {
+        test_translate_match_query!(
+            single,
+            expected = Ok(air::MatchQuery::Not(Box::new(air::MatchQuery::Comparison(
+                air::MatchLanguageComparison {
+                    function: air::MatchLanguageComparisonOp::Gt,
+                    input: air_field_input(),
+                    arg: air::LiteralValue::Integer(1),
+                }
+            )))),
+            input = mir::MatchQuery::Logical(mir::MatchLanguageLogical {
+                op: mir::MatchLanguageLogicalOp::Not,
+                args: vec![mir::MatchQuery::Comparison(mir::MatchLanguageComparison {
+                    function: mir::MatchLanguageComparisonOp::Gt,
+                    input: mir_field_input(),
+                    arg: mir::LiteralValue::Integer(1),
+                    cache: mir::schema::SchemaCache::new(),
+                })],
+                cache: mir::schema::SchemaCache::new(),
+            })
+        );
+    }
+
     mod and {
         test_translate_match_query!(
             empty,

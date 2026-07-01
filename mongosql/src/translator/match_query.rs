@@ -62,6 +62,13 @@ impl MqlTranslator {
         Ok(match l.op {
             mir::MatchLanguageLogicalOp::Or => air::MatchQuery::Or(args),
             mir::MatchLanguageLogicalOp::And => air::MatchQuery::And(args),
+            mir::MatchLanguageLogicalOp::Not => {
+                let inner = args
+                    .into_iter()
+                    .next()
+                    .expect("MatchLanguageLogicalOp::Not requires exactly one argument");
+                air::MatchQuery::Not(Box::new(inner))
+            }
         })
     }
 

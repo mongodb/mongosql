@@ -167,12 +167,13 @@ fn invalid_like_pat() -> Expression {
     })
 }
 
-fn comp_expr() -> Expression {
+fn invalid_expr() -> Expression {
+    // ScalarFunction::Add is not match-language rewritable
     Expression::ScalarFunction(ScalarFunctionApplication::new(
-        ScalarFunction::Lt,
+        ScalarFunction::Add,
         vec![
             *mir_field_access("foo", "int", true),
-            Expression::Literal(LiteralValue::Integer(10)),
+            Expression::Literal(LiteralValue::Integer(1)),
         ],
     ))
 }
@@ -212,9 +213,9 @@ test_rewrite_to_match_language_no_op!(
     filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
         function: ScalarFunction::And,
         args: vec![
-            valid_is(),   // rewritable
-            valid_like(), // rewritable
-            comp_expr(),  // not rewritable - invalid expression
+            valid_is(),     // rewritable
+            valid_like(),   // rewritable
+            invalid_expr(), // not rewritable - Add is not a match-language operator
         ],
         is_nullable: true,
     }))
@@ -236,9 +237,9 @@ test_rewrite_to_match_language_no_op!(
     filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
         function: ScalarFunction::Or,
         args: vec![
-            valid_is(),   // rewritable
-            valid_like(), // rewritable
-            comp_expr(),  // not rewritable - invalid expression
+            valid_is(),     // rewritable
+            valid_like(),   // rewritable
+            invalid_expr(), // not rewritable - Add is not a match-language operator
         ],
         is_nullable: true,
     }))
@@ -497,4 +498,115 @@ test_rewrite_to_match_language_no_op!(
         ],
         is_nullable: false,
     }))
+);
+
+// --- FieldAccess-as-boolean ---
+
+test_rewrite_to_match_language!(
+    rewrite_valid_field_access,
+    expected = match_filter_stage(MatchQuery::Comparison(MatchLanguageComparison {
+        function: MatchLanguageComparisonOp::Eq,
+        input: Some(mir_field_path("foo", vec!["str"])),
+        arg: LiteralValue::Boolean(true),
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(*mir_field_access("foo", "str", true))
+);
+
+// --- Comparison rewrites ---
+
+test_rewrite_to_match_language!(
+    rewrite_valid_comparison_lt,
+    expected = match_filter_stage(MatchQuery::Comparison(MatchLanguageComparison {
+        function: MatchLanguageComparisonOp::Lt,
+        input: Some(mir_field_path("foo", vec!["int"])),
+        arg: LiteralValue::Integer(10),
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Lt,
+        vec![
+            *mir_field_access("foo", "int", true),
+            Expression::Literal(LiteralValue::Integer(10)),
+        ],
+    )))
+);
+
+test_rewrite_to_match_language!(
+    rewrite_valid_comparison_eq,
+    expected = match_filter_stage(MatchQuery::Comparison(MatchLanguageComparison {
+        function: MatchLanguageComparisonOp::Eq,
+        input: Some(mir_field_path("foo", vec!["int"])),
+        arg: LiteralValue::Integer(5),
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Eq,
+        vec![
+            *mir_field_access("foo", "int", true),
+            Expression::Literal(LiteralValue::Integer(5)),
+        ],
+    )))
+);
+
+// --- NOT rewrites ---
+
+test_rewrite_to_match_language!(
+    rewrite_valid_not_is,
+    expected = match_filter_stage(MatchQuery::Logical(MatchLanguageLogical {
+        op: MatchLanguageLogicalOp::Not,
+        args: vec![valid_match_is()],
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Not,
+        vec![valid_is()],
+    )))
+);
+
+test_rewrite_to_match_language!(
+    rewrite_valid_not_like,
+    expected = match_filter_stage(MatchQuery::Logical(MatchLanguageLogical {
+        op: MatchLanguageLogicalOp::Not,
+        args: vec![valid_match_like()],
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Not,
+        vec![valid_like()],
+    )))
+);
+
+// NOT foo.str — inner FieldAccess rewrites to Eq(str, true), then wrapped in Not.
+test_rewrite_to_match_language!(
+    rewrite_valid_not_field,
+    expected = match_filter_stage(MatchQuery::Logical(MatchLanguageLogical {
+        op: MatchLanguageLogicalOp::Not,
+        args: vec![MatchQuery::Comparison(MatchLanguageComparison {
+            function: MatchLanguageComparisonOp::Eq,
+            input: Some(mir_field_path("foo", vec!["str"])),
+            arg: LiteralValue::Boolean(true),
+            cache: SchemaCache::new(),
+        })],
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Not,
+        vec![*mir_field_access("foo", "str", true)],
+    )))
+);
+
+// NOT with a non-rewritable inner expression stays as a Filter.
+test_rewrite_to_match_language_no_op!(
+    cannot_rewrite_not_if_inner_not_rewritable,
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Not,
+        vec![invalid_expr()],
+    )))
 );

@@ -36,9 +36,11 @@ static OPTIMIZERS: fn() -> Vec<Box<dyn Optimizer>> = || {
         Box::new(match_splitting::MatchSplittingOptimizer {}),
         Box::new(rewrite_to_match_language::MatchLanguageRewriter {}),
         Box::new(match_null_filtering::MatchNullFilteringOptimizer {}),
+        // NOTE: We probably need to update how we handle stage movement for the new match language changes. Namely that the match stages are too late in the pipeline. We want to push them up.
         Box::new(stage_movement::StageMovementOptimizer {}),
         Box::new(determine_join_semantics::JoinSemanticsOptimizer {}),
         Box::new(lower_joins::LowerJoinsOptimizer {}),
+        // NOTE: We may need to review this in context of our changes
         Box::new(prefilter_unwinds::PrefilterUnwindsOptimizer {}),
         Box::new(dead_code_elimination::DeadCodeEliminator {}),
     ]

@@ -1,0 +1,35 @@
+--- Query 1 ---
+SQL: SELECT * FROM UNWIND(arrays WITH PATH => v) WHERE v = 6
+DB:  index_usage_filter
+
+Pipeline:
+[
+    { "$match": { "v": { "$elemMatch": { "$eq": 6 } } } },
+    { "$project": { "arrays": "$$ROOT", "_id": 0 } },
+    { "$unwind": { "path": "$arrays.v" } },
+    { "$match": { "$expr": { "$eq": ["$arrays.v", { "$literal": 6 }] } } },
+]
+
+--- Query 2 ---
+SQL: SELECT * FROM FLATTEN(UNWIND(arrays WITH PATH => v)) WHERE _id = 1
+DB:  index_usage_filter
+
+Pipeline:
+[
+    { "$match": { "$expr": { "$eq": ["$_id", { "$literal": 1 }] } } },
+    { "$project": { "arrays": "$$ROOT", "_id": 0 } },
+    { "$unwind": { "path": "$arrays.v" } },
+    { "$project": { "arrays": { "_id": "$arrays._id", "v": "$arrays.v" }, "_id": 0 } },
+]
+
+--- Query 3 ---
+SQL: SELECT t1.* FROM (SELECT * FROM nullable_fields AS t1) AS t1 WHERE t1.a > 100
+DB:  index_usage_filter
+
+Pipeline:
+[
+    { "$match": { "$expr": { "$and": [{ "$gt": ["$a", { "$literal": null }] }, { "$gt": ["$a", { "$literal": 100 }] }] } } },
+    { "$project": { "t1": "$$ROOT", "_id": 0 } },
+    { "$project": { "t1": "$t1", "_id": 0 } },
+    { "$project": { "t1": "$t1", "_id": 0 } },
+]

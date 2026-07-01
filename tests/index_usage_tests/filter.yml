@@ -88,7 +88,7 @@ tests:
     current_db: index_usage_filter
     query: "SELECT * FROM non_nullable_fields WHERE a <> 100"
     # this one cannot utilize an index scan since there are no beneficial bounds to help with this
-    expected_utilization: COLL_SCAN
+    expected_utilization: IX_SCAN
 
   - description: simple column BETWEEN scalar filter uses index scan when fields are nullable
     current_db: index_usage_filter
@@ -146,7 +146,7 @@ tests:
   - description: OR compound filter uses index scan when fields are nullable
     current_db: index_usage_filter
     query: "SELECT * FROM nullable_fields WHERE a > 100 OR b > 3000"
-    expected_utilization: COLL_SCAN
+    expected_utilization: IX_SCAN
 
   - description: OR compound filter uses index scan when fields are non-nullable
     current_db: index_usage_filter

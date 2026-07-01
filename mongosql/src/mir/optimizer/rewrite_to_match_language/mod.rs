@@ -1,9 +1,8 @@
-/// Optimizes IS,LIKE, IN, and NOT IN expressions such that they can be translated and
-/// codegened using match language. If a Filter stage's condition contains
-/// only IS and/or LIKE expressions, or disjunctions or conjunctions with
-/// only IS and/or LIKE expressions, then the condition can be rewritten to
-/// match language (mir::MatchQuery) and the Filter stage replaced with a
-/// MatchFilter stage.
+/// Optimizes IS, LIKE, IN, NOT IN, comparison, NOT, and bare field-access expressions
+/// such that they can be translated and codegened using match language. If a Filter
+/// stage's condition consists entirely of rewritable expressions — including logical
+/// conjunctions and disjunctions of them — the Filter stage is replaced with a
+/// MatchFilter stage that uses `mir::MatchQuery`.
 ///
 /// Also optimizes constant false conditions to a MatchFalse filter. This filter
 /// can be then treated specially in codegen because certain versions of mongodb
@@ -186,16 +185,100 @@ impl MatchLanguageRewriterVisitor {
         }))
     }
 
-    // Only rewrite a condition that consists of Is, Like, or a logical operation
-    // that contains only other rewritable expressions.
+    /// Rewrites a comparison scalar function to a native [`MatchQuery::Comparison`].
+    ///
+    /// Succeeds when one argument is a [`FieldAccess`] convertible to a [`FieldPath`] and
+    /// the other is a [`LiteralValue`]. When the literal is on the left, the operator is
+    /// commuted so that the field is always on the left in the output.
+    ///
+    /// # Returns
+    ///
+    /// - `Some(MatchQuery::Comparison { … })` when the expression matches the required shape.
+    /// - `None` when neither argument is a plain field access, or the field access cannot be
+    ///   converted to a `FieldPath`, or `sf.function` is not a comparison operator.
+    fn rewrite_comparison(sf: &ScalarFunctionApplication) -> Option<MatchQuery> {
+        let scalar_function_as_match_language_op = match sf.function {
+            ScalarFunction::Lt => MatchLanguageComparisonOp::Lt,
+            ScalarFunction::Lte => MatchLanguageComparisonOp::Lte,
+            ScalarFunction::Gt => MatchLanguageComparisonOp::Gt,
+            ScalarFunction::Gte => MatchLanguageComparisonOp::Gte,
+            ScalarFunction::Eq => MatchLanguageComparisonOp::Eq,
+            ScalarFunction::Neq => MatchLanguageComparisonOp::Ne,
+            _ => return None,
+        };
+
+        let (lhs, rhs) = (sf.args.first()?, sf.args.get(1)?);
+
+        let (field_path, literal, op): (FieldPath, &LiteralValue, MatchLanguageComparisonOp) =
+            match (lhs, rhs) {
+                (Expression::FieldAccess(field_access), Expression::Literal(literal)) => (
+                    field_access.try_into().ok()?,
+                    literal,
+                    scalar_function_as_match_language_op,
+                ),
+
+                (Expression::Literal(literal), Expression::FieldAccess(field_access)) => (
+                    field_access.try_into().ok()?,
+                    literal,
+                    scalar_function_as_match_language_op,
+                ),
+                _ => return None,
+            };
+
+        if field_path.is_nullable {
+            Some(MatchQuery::Logical(MatchLanguageLogical {
+                op: MatchLanguageLogicalOp::And,
+                args: vec![
+                    MatchQuery::Comparison(MatchLanguageComparison {
+                        function: MatchLanguageComparisonOp::Gt,
+                        input: Some(field_path.clone()),
+                        arg: LiteralValue::Null,
+                        cache: SchemaCache::new(),
+                    }),
+                    MatchQuery::Comparison(MatchLanguageComparison {
+                        function: op,
+                        input: Some(field_path),
+                        arg: literal.clone(),
+                        cache: SchemaCache::new(),
+                    }),
+                ],
+                cache: SchemaCache::new(),
+            }))
+        } else {
+            Some(MatchQuery::Comparison(MatchLanguageComparison {
+                function: op,
+                input: Some(field_path),
+                arg: literal.clone(),
+                cache: SchemaCache::new(),
+            }))
+        }
+    }
+
+    // Only rewrite a condition that consists of rewritable expressions or logical operations
+    // that contain only other rewritable expressions.
     fn rewrite_condition(condition: Expression) -> Option<MatchQuery> {
         match condition {
             Expression::Is(is) => Self::rewrite_is(is),
             Expression::Like(like) => Self::rewrite_like(like),
+            Expression::FieldAccess(fa) => fa.try_into().ok().map(|fp: FieldPath| {
+                MatchQuery::Comparison(MatchLanguageComparison {
+                    function: MatchLanguageComparisonOp::Eq,
+                    input: Some(fp),
+                    arg: LiteralValue::Boolean(true),
+                    cache: SchemaCache::new(),
+                })
+            }),
             Expression::ScalarFunction(sf) => match sf.function {
                 ScalarFunction::And => Self::rewrite_logical(MatchLanguageLogicalOp::And, sf.args),
                 ScalarFunction::Or => Self::rewrite_logical(MatchLanguageLogicalOp::Or, sf.args),
+                ScalarFunction::Not => Self::rewrite_logical(MatchLanguageLogicalOp::Not, sf.args),
                 ScalarFunction::In | ScalarFunction::NotIn => Self::rewrite_in(&sf),
+                ScalarFunction::Lt
+                | ScalarFunction::Lte
+                | ScalarFunction::Eq
+                | ScalarFunction::Gt
+                | ScalarFunction::Gte
+                | ScalarFunction::Neq => Self::rewrite_comparison(&sf),
                 _ => None,
             },
             // Note this relies on ConstantFolding to ensure that the a constant expression becomes

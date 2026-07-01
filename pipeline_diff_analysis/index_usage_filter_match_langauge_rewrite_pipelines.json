@@ -1,0 +1,40 @@
+[
+  {
+    "description": "Unwound collection with filter on array field uses index",
+    "current_db": "index_usage_filter",
+    "sql": "SELECT * FROM UNWIND(arrays WITH PATH => v) WHERE v = 6",
+    "expected_utilization": "IX_SCAN",
+    "target_collection": "arrays",
+    "pipeline": [
+      { "$project": { "arrays": "$$ROOT", "_id": 0 } },
+      { "$unwind": { "path": "$arrays.v" } },
+      { "$match": { "arrays.v": { "$eq": 6 } } }
+    ]
+  },
+  {
+    "description": "Optimizer correctly runs to fixed point",
+    "current_db": "index_usage_filter",
+    "sql": "SELECT * FROM FLATTEN(UNWIND(arrays WITH PATH => v)) WHERE _id = 1",
+    "expected_utilization": "IX_SCAN",
+    "target_collection": "arrays",
+    "pipeline": [
+      { "$project": { "arrays": "$$ROOT", "_id": 0 } },
+      { "$unwind": { "path": "$arrays.v" } },
+      { "$match": { "arrays._id": { "$eq": 1 } } },
+      { "$project": { "arrays": { "_id": "$arrays._id", "v": "$arrays.v" }, "_id": 0 } }
+    ]
+  },
+  {
+    "description": "Filter can be pushed into derived table and utilize index",
+    "current_db": "index_usage_filter",
+    "sql": "SELECT t1.* FROM (SELECT * FROM nullable_fields AS t1) AS t1 WHERE t1.a > 100",
+    "expected_utilization": "IX_SCAN",
+    "target_collection": "nullable_fields",
+    "pipeline": [
+      { "$project": { "t1": "$$ROOT", "_id": 0 } },
+      { "$project": { "t1": "$t1", "_id": 0 } },
+      { "$match": { "$and": [{ "t1.a": { "$gt": null } }, { "t1.a": { "$gt": 100 } }] } },
+      { "$project": { "t1": "$t1", "_id": 0 } }
+    ]
+  }
+]
