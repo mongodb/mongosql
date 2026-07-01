@@ -76,16 +76,7 @@ impl MqlCodeGenerator {
                     _ => bson!({ "$not": { key: value } }),
                 }
             }
-            // Anything else. This covers two different situations:
-            // - A fieldless *multi*-key operator document, e.g. a $regex nested inside
-            //   $elemMatch (which has no field ref of its own) codegens to {"$regex": ..,
-            //   "$options": ..}; wrapping the whole thing correctly produces {"$not": {"$regex":
-            //   .., "$options": ..}} (see `fieldless_regex`).
-            // - A query that isn't a single field-scoped operator expression at all: $and/$or
-            //   (whose value is an array of conditions, see `not_and`/`not_or`) or the `False`
-            //   sentinel's {"_id": ..., "$expr": false} (see `constant_false`). These don't have
-            //   a single, fully-specified valid $match shape when negated, so wrapping the whole
-            //   document here is a safe placeholder.
+            // Fieldless operator, e.g. {"$gt": 10} -> {"$not": {"$gt": 10}}
             bson => bson!({ "$not": bson }),
         })
     }
