@@ -8,9 +8,9 @@ use crate::{
     },
     schema::{
         Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_ARRAY,
-        ANY_ARRAY_OR_NULLISH, ANY_DOCUMENT, BOOLEAN_OR_NULLISH, DATE_OR_NULLISH, EMPTY_DOCUMENT,
-        INTEGER_LONG_OR_NULLISH, INTEGER_OR_NULLISH, NULLISH, NUMERIC, NUMERIC_OR_NULLISH,
-        STRING_OR_NULLISH,
+        ANY_ARRAY_OR_NULLISH, ANY_DOCUMENT, ANY_DOCUMENT_OR_NULLISH, BOOLEAN_OR_NULLISH,
+        DATE_OR_NULLISH, EMPTY_DOCUMENT, INTEGER_LONG_OR_NULLISH, INTEGER_OR_NULLISH, NULLISH,
+        NUMERIC, NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
     },
     set,
     util::unique_linked_hash_map::UniqueLinkedHashMap,
@@ -924,7 +924,7 @@ impl AggregationFunction {
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Long)
             ]),
-            First | Last => arg_schema,
+            First | Last => arg_schema.upconvert_missing_to_null(),
             Min | Max => {
                 if !state.check_self_comparable(&arg_schema) {
                     return Err(Error::AggregationArgumentMustBeSelfComparable(
@@ -932,16 +932,9 @@ impl AggregationFunction {
                         arg_schema.into(),
                     ));
                 }
-                arg_schema
+                arg_schema.upconvert_missing_to_null()
             }
-            MergeDocuments => {
-                self.schema_check_fixed_args(
-                    state,
-                    from_ref(&arg_schema),
-                    from_ref(&ANY_DOCUMENT),
-                )?;
-                arg_schema
-            }
+            MergeDocuments => self.schema_check_merge_objects(state, from_ref(&arg_schema))?,
             Sum => self.get_arithmetic_schema(state, &[arg_schema])?,
         })
     }
@@ -1599,6 +1592,51 @@ trait SqlFunction {
         }
     }
 
+    /// Schema checks the arguments to a $mergeObjects-backed function (the
+    /// scalar MergeObjects and the aggregation MergeDocuments) and returns the
+    /// resulting Document schema. Since $mergeObjects ignores nullish operands
+    /// and returns the empty document when all operands are nullish, the result
+    /// is always a Document.
+    #[allow(clippy::manual_try_fold)]
+    fn schema_check_merge_objects(
+        &self,
+        state: &SchemaInferenceState,
+        arg_schemas: &[Schema],
+    ) -> Result<Schema, Error> {
+        self.schema_check_variadic_args(state, arg_schemas, ANY_DOCUMENT_OR_NULLISH.clone())?;
+        // union all AnyOf arg_schemas into union Document schemata
+        arg_schemas
+            .iter()
+            .filter(|s| state.check_satisfies(s, &ANY_DOCUMENT))
+            .cloned()
+            .map(|s| match s {
+                Schema::AnyOf(ao) => ao
+                    .into_iter()
+                    .reduce(Schema::document_union)
+                    .unwrap_or_else(|| EMPTY_DOCUMENT.clone()),
+                Schema::Document(d) => Schema::Document(d),
+                Schema::Any => Schema::Document(Document::any()),
+                Schema::Unsat | Schema::Missing | Schema::Atomic(_) | Schema::Array(_) => {
+                    unreachable!()
+                }
+            })
+            .fold(Ok(EMPTY_DOCUMENT.clone()), |acc, curr| {
+                let acc = acc?;
+                let sat = acc.has_overlapping_keys_with(&curr);
+                if sat != Satisfaction::Not {
+                    return Err(Error::CannotMergeObjects(acc.into(), curr.into(), sat));
+                }
+                if let (Schema::Document(mut d1), Schema::Document(d2)) = (acc, curr) {
+                    d1.keys.extend(d2.keys);
+                    d1.required.extend(d2.required);
+                    d1.additional_properties |= d2.additional_properties;
+                    Ok(Schema::Document(d1))
+                } else {
+                    unreachable!();
+                }
+            })
+    }
+
     /// as_str returns a static str representation for the SqlFunction.
     fn as_str(&self) -> &'static str;
 }
@@ -1856,48 +1894,6 @@ impl ScalarFunction {
             }
             MergeObjects => self.schema_check_merge_objects(state, arg_schemas),
         }
-    }
-
-    #[allow(clippy::manual_try_fold)]
-    fn schema_check_merge_objects(
-        &self,
-        state: &SchemaInferenceState,
-        arg_schemas: &[Schema],
-    ) -> Result<Schema, Error> {
-        self.schema_check_variadic_args(state, arg_schemas, ANY_DOCUMENT.clone())?;
-        // union all AnyOf arg_schemas into union Document schemata
-        arg_schemas
-            .iter()
-            .cloned()
-            .map(|s| match s {
-                Schema::AnyOf(ao) => ao
-                    .into_iter()
-                    .reduce(Schema::document_union)
-                    .unwrap_or_else(|| EMPTY_DOCUMENT.clone()),
-                Schema::Document(d) => Schema::Document(d),
-                Schema::Any
-                | Schema::Unsat
-                | Schema::Missing
-                | Schema::Atomic(_)
-                | Schema::Array(_) => {
-                    unreachable!()
-                }
-            })
-            .fold(Ok(EMPTY_DOCUMENT.clone()), |acc, curr| {
-                let acc = acc?;
-                let sat = acc.has_overlapping_keys_with(&curr);
-                if sat != Satisfaction::Not {
-                    return Err(Error::CannotMergeObjects(acc.into(), curr.into(), sat));
-                }
-                if let (Schema::Document(mut d1), Schema::Document(d2)) = (acc, curr) {
-                    d1.keys.extend(d2.keys);
-                    d1.required.extend(d2.required);
-                    d1.additional_properties |= d2.additional_properties;
-                    Ok(Schema::Document(d1))
-                } else {
-                    unreachable!();
-                }
-            })
     }
 
     /// Returns the string and/or null schema for the substring function.

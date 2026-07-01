@@ -57,13 +57,11 @@ tests:
 
   - description: MERGE_DOCUMENTS argument must be document
     query: "SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE MERGE_DOCUMENTS(arg1) AS merge"
-    skip_reason: "SQL-590: Support nullish document arguments"
     valid_types:
       - {"arg1": *document}
 
   - description: Distinct MERGE_DOCUMENTS argument must be document
     query: "SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE MERGE_DOCUMENTS(DISTINCT arg1) AS merge"
-    skip_reason: "SQL-590: Support nullish document arguments"
     valid_types:
       - {"arg1": *document}
 
