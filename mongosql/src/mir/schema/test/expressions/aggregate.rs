@@ -533,7 +533,7 @@ mod merge_documents {
         schema_checking_mode = SchemaCheckingMode::Relaxed,
     );
 
-    // In relaxed mode, it is acceptable for the argument's schema can to only
+    // In relaxed mode, it is acceptable for the argument's schema to only
     // MAYBE be a document. As in, it may be nullish or possibly not a document.
     // $mergeObjects always produces a document, so the result must drop Missing
     // and remain a Document rather than upconverting Missing to Null.
