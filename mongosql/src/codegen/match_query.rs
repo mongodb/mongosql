@@ -26,7 +26,7 @@ impl MqlCodeGenerator {
         match q {
             Or(v) => self.codegen_match_logical_operator("$or", v),
             And(v) => self.codegen_match_logical_operator("$and", v),
-            Not(inner) => self.codegen_match_logical_operator("$not", vec![*inner]),
+            Not(inner) => self.codegen_match_not(*inner),
             Type(t) => self.codegen_match_type(t),
             Regex(r) => self.codegen_match_regex(r),
             ElemMatch(em) => self.codegen_match_elem_match(em),
@@ -58,6 +58,36 @@ impl MqlCodeGenerator {
                 }
             })),
         }
+    }
+
+    /// Codegens `$not` scoped to a field's operator expression (mirroring how `NotIn` wraps
+    /// `$in`), since `$not` — unlike `$and`/`$or`/`$nor` — is not a valid top-level `$match`
+    /// boolean operator.
+    fn codegen_match_not(&self, inner: air::MatchQuery) -> Result<Bson> {
+        let inner = self.codegen_match_query(inner)?;
+        Ok(match inner {
+            // Field-scoped operator, e.g. {"age": {"$gt": 10}} -> {"age": {"$not": {"$gt": 10}}}
+            Bson::Document(doc) if doc.len() == 1 => {
+                let (key, value) = doc.into_iter().next().expect("checked len == 1");
+                match value {
+                    Bson::Document(_) => bson!({ key: { "$not": value } }),
+                    // Fieldless operator (e.g. a comparison nested inside $elemMatch, which has
+                    // no field ref of its own), e.g. {"$gt": 10} -> {"$not": {"$gt": 10}}
+                    _ => bson!({ "$not": { key: value } }),
+                }
+            }
+            // Anything else. This covers two different situations:
+            // - A fieldless *multi*-key operator document, e.g. a $regex nested inside
+            //   $elemMatch (which has no field ref of its own) codegens to {"$regex": ..,
+            //   "$options": ..}; wrapping the whole thing correctly produces {"$not": {"$regex":
+            //   .., "$options": ..}} (see `fieldless_regex`).
+            // - A query that isn't a single field-scoped operator expression at all: $and/$or
+            //   (whose value is an array of conditions, see `not_and`/`not_or`) or the `False`
+            //   sentinel's {"_id": ..., "$expr": false} (see `constant_false`). These don't have
+            //   a single, fully-specified valid $match shape when negated, so wrapping the whole
+            //   document here is a safe placeholder.
+            bson => bson!({ "$not": bson }),
+        })
     }
 
     fn codegen_match_logical_operator(
