@@ -267,7 +267,7 @@ mod not {
     test_codegen_match_query!(
         not_and,
         expected =
-            Ok(bson!({"$not": {"$and": [{"age": {"$gt": 10}}, {"name": {"$eq": "Alice"}}]}})),
+            Ok(bson!({"$nor": [{"$and": [{"age": {"$gt": 10}}, {"name": {"$eq": "Alice"}}]}]})),
         input = air::MatchQuery::Not(Box::new(air::MatchQuery::And(vec![
             air::MatchQuery::Comparison(air::MatchLanguageComparison {
                 function: air::MatchLanguageComparisonOp::Gt,
@@ -356,7 +356,7 @@ mod not {
     // not_and.
     test_codegen_match_query!(
         not_or,
-        expected = Ok(bson!({"$not": {"$or": [{"age": {"$gt": 10}}, {"name": {"$eq": "Alice"}}]}})),
+        expected = Ok(bson!({"$nor": [{"age": {"$gt": 10}}, {"name": {"$eq": "Alice"}}]})),
         input = air::MatchQuery::Not(Box::new(air::MatchQuery::Or(vec![
             air::MatchQuery::Comparison(air::MatchLanguageComparison {
                 function: air::MatchLanguageComparisonOp::Gt,

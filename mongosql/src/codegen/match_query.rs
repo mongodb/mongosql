@@ -63,22 +63,39 @@ impl MqlCodeGenerator {
     /// Codegens `$not` scoped to a field's operator expression (mirroring how `NotIn` wraps
     /// `$in`), since `$not` — unlike `$and`/`$or`/`$nor` — is not a valid top-level `$match`
     /// boolean operator.
+    /// For
     fn codegen_match_not(&self, inner: air::MatchQuery) -> Result<Bson> {
-        let inner = self.codegen_match_query(inner)?;
-        Ok(match inner {
-            // Field-scoped operator, e.g. {"age": {"$gt": 10}} -> {"age": {"$not": {"$gt": 10}}}
-            Bson::Document(doc) if doc.len() == 1 => {
-                let (key, value) = doc.into_iter().next().expect("checked len == 1");
-                match value {
-                    Bson::Document(_) => bson!({ key: { "$not": value } }),
-                    // Fieldless operator (e.g. a comparison nested inside $elemMatch, which has
-                    // no field ref of its own), e.g. {"$gt": 10} -> {"$not": {"$gt": 10}}
-                    _ => bson!({ "$not": { key: value } }),
-                }
+        match inner {
+            // $not is not allowed in top level expressions, so we use the $nor operator instead for $and, and $or.
+            // Output will look like
+            //
+            // $nor: [
+            //     { $and: [ ... ] }
+            // ]
+            //
+            // We can translate OR directly to $nor because it's the logical negation of OR.
+            air::MatchQuery::Or(v) => self.codegen_match_logical_operator("$nor", v),
+            air::MatchQuery::And(v) => {
+                self.codegen_match_logical_operator("$nor", vec![air::MatchQuery::And(v)])
             }
-            // Fieldless operator, e.g. {"$gt": 10} -> {"$not": {"$gt": 10}}
-            bson => bson!({ "$not": bson }),
-        })
+            _ => {
+                let inner_codegen = self.codegen_match_query(inner)?;
+                Ok(match inner_codegen {
+                    // Field-scoped operator, e.g. {"age": {"$gt": 10}} -> {"age": {"$not": {"$gt": 10}}}
+                    Bson::Document(doc) if doc.len() == 1 => {
+                        let (key, value) = doc.into_iter().next().expect("checked len == 1");
+                        match value {
+                            Bson::Document(_) => bson!({ key: { "$not": value } }),
+                            // Fieldless operator (e.g. a comparison nested inside $elemMatch, which has
+                            // no field ref of its own), e.g. {"$gt": 10} -> {"$not": {"$gt": 10}}
+                            _ => bson!({ "$not": { key: value } }),
+                        }
+                    }
+                    // Fieldless operator, e.g. {"$gt": 10} -> {"$not": {"$gt": 10}}
+                    bson => bson!({ "$not": bson }),
+                })
+            }
+        }
     }
 
     fn codegen_match_logical_operator(
