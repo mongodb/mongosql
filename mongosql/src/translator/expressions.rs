@@ -40,6 +40,8 @@ impl MqlTranslator {
                 self.translate_subquery_comparison(subquery_comparison)
             }
             mir::Expression::TypeAssertion(ta) => self.translate_expression(*ta.expr),
+            mir::Expression::HigherOrderFunction(_) => unimplemented!("SQL-3291"),
+            mir::Expression::Variable(_) => unimplemented!("SQL-3291"),
             mir::Expression::MqlIntrinsicFieldExistence(fa) => self.translate_field_existence(fa),
         }
     }
