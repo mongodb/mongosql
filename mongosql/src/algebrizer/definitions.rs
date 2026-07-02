@@ -1409,6 +1409,7 @@ impl<'a> Algebrizer<'a> {
             ast::Expression::Subquery(s) => self.algebrize_subquery(*s),
             ast::Expression::SubqueryComparison(s) => self.algebrize_subquery_comparison(s),
             ast::Expression::Exists(e) => self.algebrize_exists(*e),
+            ast::Expression::HigherOrderFunction(_) => unimplemented!("SQL-3293"),
         }
     }
 
