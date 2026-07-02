@@ -40,7 +40,8 @@ tests:
       - { '': { "v": null } }
 
   # ARRAY_REMOVE removes all instances of the specified element from the input array
-  # Note that the removal predicate uses SQL = semantics so NULL elements are removed since NULL = x is NULL.
+  # Note that the removal predicate does not use SQL null semantics, so NULL elements are retained
+  # if the second argument is not NULL itself.
   - description: ARRAY_REMOVE correctness test
     current_db: spec_query_array_functions
     query: "SELECT VALUE { 'a': a, 'v': ARRAY_REMOVE(a, 1) } FROM `array_default_numeric_data` AS `array_default_numeric_data`"
@@ -49,7 +50,19 @@ tests:
       - { '': { "a": [], "v": [] } }
       - { '': { "a": [1], "v": [] } }
       - { '': { "a": [1, 2, 3], "v": [2, 3] } }
-      - { '': { "a": [1, null, 3], "v": [3] } }
+      - { '': { "a": [1, null, 3], "v": [null, 3] } }
+      - { '': { "a": null, "v": null } }
+      - { '': { "v": null } }
+
+  - description: ARRAY_REMOVE remove NULL correctness test
+    current_db: spec_query_array_functions
+    query: "SELECT VALUE { 'a': a, 'v': ARRAY_REMOVE(a, NULL) } FROM `array_default_numeric_data` AS `array_default_numeric_data`"
+    skip_reason: "SQL-3297: Finish support for array functions"
+    result:
+      - { '': { "a": [], "v": [] } }
+      - { '': { "a": [1], "v": [1] } }
+      - { '': { "a": [1, 2, 3], "v": [1, 2, 3] } }
+      - { '': { "a": [1, null, 3], "v": [1, 3] } }
       - { '': { "a": null, "v": null } }
       - { '': { "v": null } }
 
