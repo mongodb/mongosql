@@ -67,6 +67,11 @@ impl MqlCodeGenerator {
             .into_iter()
             .map(|x| self.codegen_expression(x))
             .collect::<Result<Vec<_>>>()?;
+
+        if mql_op.op == air::MqlOperator::NotIn {
+            return Ok(bson::bson!({ "$not": [{ "$in": Bson::Array(ops) }] }))
+        }
+
         let operator = Self::to_mql_op(mql_op.op);
         Ok(bson::bson!({ operator: Bson::Array(ops) }))
     }
