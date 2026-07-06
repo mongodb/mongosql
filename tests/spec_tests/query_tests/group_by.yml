@@ -34,6 +34,14 @@ tests:
     should_compile: false
     algebrize_error: "group key at position 0 is not statically comparable to itself"
 
+  - description: Group keys are emitted under original datasource when SELECT * is used
+    query: "SELECT * FROM spec_query_group_by.bar AS bar GROUP BY a"
+    current_db: spec_query_group_by
+    result:
+      - { "bar": { "a": { "$numberInt": "1" } } }
+      - { "bar": { "a": { "$numberInt": "11" } } }
+      - { "bar": { "a": { "$numberInt": "111" } } }
+
   - description: GROUP BY keys may be table-qualified
     query: "SELECT * FROM spec_query_group_by.baz AS a GROUP by a.a.a AS a"
     current_db: spec_query_group_by
