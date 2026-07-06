@@ -2,7 +2,9 @@
 # spec, so these tests are in the e2e test suite instead of the spec test suite.
 # This feature is exhaustively unit tested, so this set of tests does not cover
 # all contexts where conversion happens. Instead, it covers end-to-end usage of
-# each supported BSON type encoded as extended JSON strings.
+# each supported BSON type encoded as extended JSON strings. It also covers the
+# IN and NOT IN operators since they apply implicit type conversion differently
+# than other operators.
 tests:
   - description: Strict extended JSON string not converted where string is expected
     current_db: e2e_ext_json
@@ -164,3 +166,35 @@ tests:
     query: "SELECT '{\"$dbPointer\": {\"$ref\": \"foo\", \"$id\": {\"$oid\": \"57e193d7a9cc81b4027498b5\"}}}'::!DBPOINTER AS dbp FROM [{}] as t"
     result:
       - { '': { 'dbp': { '$dbPointer': { '$ref': 'foo', '$id': { '$oid': '57e193d7a9cc81b4027498b5' } } } } }
+
+  - description: Extended JSON strings in RHS argument of IN operator converted when string is unexpected
+    current_db: e2e_ext_json
+    query: "SELECT n, n IN ('{\"$numberInt\": \"10\"}', '{\"$numberInt\": \"20\"}') AS v FROM in_expressions"
+    result:
+      - { '': { 'n': 1, 'v': false } }
+      - { '': { 'n': 10, 'v': true } }
+      - { '': { 'n': 20, 'v': true } }
+
+  - description: Extended JSON string as LHS of IN operator converted when string is unexpected
+    current_db: e2e_ext_json
+    query: "SELECT n, m, '{\"$numberInt\": \"10\"}' IN (n, m) AS v FROM in_expressions"
+    result:
+      - { '': { 'n': 1, 'm': 10, 'v': true } }
+      - { '': { 'n': 10, 'm': 20, 'v': true } }
+      - { '': { 'n': 20, 'm': 30, 'v': false } }
+
+  - description: Extended JSON strings in RHS argument of NOT IN operator converted when string is unexpected
+    current_db: e2e_ext_json
+    query: "SELECT n, n NOT IN ('{\"$numberInt\": \"10\"}', '{\"$numberInt\": \"20\"}') AS v FROM in_expressions"
+    result:
+      - { '': { 'n': 1, 'v': true } }
+      - { '': { 'n': 10, 'v': false } }
+      - { '': { 'n': 20, 'v': false } }
+
+  - description: Extended JSON string as LHS of NOT IN operator converted when string is unexpected
+    current_db: e2e_ext_json
+    query: "SELECT n, m, '{\"$numberInt\": \"10\"}' NOT IN (n, m) AS v FROM in_expressions"
+    result:
+      - { '': { 'n': 1, 'm': 10, 'v': false } }
+      - { '': { 'n': 10, 'm': 20, 'v': false } }
+      - { '': { 'n': 20, 'm': 30, 'v': true } }
