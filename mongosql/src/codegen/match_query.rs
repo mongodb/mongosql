@@ -63,7 +63,7 @@ impl MqlCodeGenerator {
     /// Codegens `$not` scoped to a field's operator expression (mirroring how `NotIn` wraps
     /// `$in`), since `$not` — unlike `$and`/`$or`/`$nor` — is not a valid top-level `$match`
     /// boolean operator.
-    /// For
+    /// $and and $or are translated to use $nor instead, since $not is not allowed in top level expressions.
     fn codegen_match_not(&self, inner: air::MatchQuery) -> Result<Bson> {
         match inner {
             // $not is not allowed in top level expressions, so we use the $nor operator instead for $and, and $or.
@@ -83,7 +83,10 @@ impl MqlCodeGenerator {
                 Ok(match inner_codegen {
                     // Field-scoped operator, e.g. {"age": {"$gt": 10}} -> {"age": {"$not": {"$gt": 10}}}
                     Bson::Document(doc) if doc.len() == 1 => {
-                        let (key, value) = doc.into_iter().next().expect("checked len == 1");
+                        let (key, value) = doc
+                            .into_iter()
+                            .next()
+                            .expect("Match document expected to have 1 key but had 0.");
                         match value {
                             Bson::Document(_) => bson!({ key: { "$not": value } }),
                             // Fieldless operator (e.g. a comparison nested inside $elemMatch, which has

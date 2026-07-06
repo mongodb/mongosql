@@ -252,12 +252,12 @@ mod not {
     );
 
     test_codegen_match_query!(
-        binary_comparison,
-        expected = Ok(bson!({"$not": {"$gt": 10}})),
+        negate_binary_comparison,
+        expected = Ok(bson!({"x": {"$not": {"$gt": 10}}})),
         input = air::MatchQuery::Not(Box::new(air::MatchQuery::Comparison(
             air::MatchLanguageComparison {
                 function: air::MatchLanguageComparisonOp::Gt,
-                input: None,
+                input: Some("x".to_string().into()),
                 arg: air::LiteralValue::Integer(10),
             }
         )))
