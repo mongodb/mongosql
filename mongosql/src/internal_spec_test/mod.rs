@@ -151,12 +151,12 @@ pub fn load_file_paths(dir: PathBuf) -> Result<Vec<String>, Error> {
 /// parse_rewrite_yaml deserializes the given YAML file into a RewriteYamlTest
 /// struct.
 pub fn parse_rewrite_yaml(path: &str) -> Result<RewriteYamlTest, Error> {
-    let mut f = fs::File::open(path).map_err(|e| Error::InvalidFile(format!("{e:?}")))?;
+    let mut f = fs::File::open(path).map_err(|e| Error::InvalidFile(format!("{path}: {e:?}")))?;
     let mut contents = String::new();
     f.read_to_string(&mut contents)
-        .map_err(|e| Error::CannotReadFileToString(format!("{e:?}")))?;
+        .map_err(|e| Error::CannotReadFileToString(format!("{path}: {e:?}")))?;
     let yaml: RewriteYamlTest = serde_yaml::from_str(&contents)
-        .map_err(|e| Error::CannotDeserializeYaml(format!("{e:?}")))?;
+        .map_err(|e| Error::CannotDeserializeYaml(format!("{path}: {e:?}")))?;
     Ok(yaml)
 }
 

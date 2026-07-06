@@ -1,0 +1,175 @@
+tests:
+  # ARRAY_CAST casts all elements of the input array to the provided target type
+  - description: ARRAY_CAST correctness test
+    current_db: spec_query_array_functions
+    query: "SELECT VALUE { 'a': a, 'v': ARRAY_CAST(a, STRING) } FROM `array_default_numeric_data` AS `array_default_numeric_data`"
+    skip_reason: "SQL-3297: Finish support for array functions"
+    result:
+      - { '': { "a": [], "v": [] } }
+      - { '': { "a": [1], "v": ["1"] } }
+      - { '': { "a": [1, 2, 3], "v": ["1", "2", "3"] } }
+      - { '': { "a": [1, null, 3], "v": ["1", null, "3"] } }
+      - { '': { "a": null, "v": null } }
+      - { '': { "v": null } }
+
+  # ARRAY_EXTRACT extracts the field at the provided path from all elements of the input array
+  - description: ARRAY_EXTRACT correctness test
+    current_db: spec_query_array_functions
+    query: "SELECT VALUE { 'a': a, 'v': ARRAY_EXTRACT(a, x.y) } FROM `array_extract` AS `array_extract`"
+    skip_reason: "SQL-3297: Finish support for array functions"
+    result:
+      - { '': { "a": [], "v": [] } }
+      - { '': { "a": [{ "x": { "y": 1 } }], "v": [1] } }
+      - { '': { "a": [{ "x": { "y": 1 } }, { "x": { "y": 2 } }, { "x": { "y": 3 } }], "v": [1, 2, 3] } }
+      - { '': { "a": [{ "x": { "y": 1 } }, null, { "x": { "y": 3 } }], "v": [1, null, 3] } }
+      - { '': { "a": [{ "x": { "y": 1 } }, { "x": { "y": null } }, { "x": { } }], "v": [1, null, null] } }
+      - { '': { "a": null, "v": null } }
+      - { '': { "v": null } }
+
+  # ARRAY_COMPACT removes all null and missing elements from the input array
+  - description: ARRAY_COMPACT correctness test
+    current_db: spec_query_array_functions
+    query: "SELECT VALUE { 'a': a, 'v': ARRAY_COMPACT(a) } FROM `array_default_numeric_data` AS `array_default_numeric_data`"
+    skip_reason: "SQL-3297: Finish support for array functions"
+    result:
+      - { '': { "a": [], "v": [] } }
+      - { '': { "a": [1], "v": [1] } }
+      - { '': { "a": [1, 2, 3], "v": [1, 2, 3] } }
+      - { '': { "a": [1, null, 3], "v": [1, 3] } }
+      - { '': { "a": null, "v": null } }
+      - { '': { "v": null } }
+
+  # ARRAY_REMOVE removes all instances of the specified element from the input array
+  # Note that the removal predicate does not use SQL null semantics, so NULL elements are retained
+  # if the second argument is not NULL itself.
+  - description: ARRAY_REMOVE correctness test
+    current_db: spec_query_array_functions
+    query: "SELECT VALUE { 'a': a, 'v': ARRAY_REMOVE(a, 1) } FROM `array_default_numeric_data` AS `array_default_numeric_data`"
+    skip_reason: "SQL-3297: Finish support for array functions"
+    result:
+      - { '': { "a": [], "v": [] } }
+      - { '': { "a": [1], "v": [] } }
+      - { '': { "a": [1, 2, 3], "v": [2, 3] } }
+      - { '': { "a": [1, null, 3], "v": [null, 3] } }
+      - { '': { "a": null, "v": null } }
+      - { '': { "v": null } }
+
+  - description: ARRAY_REMOVE remove NULL correctness test
+    current_db: spec_query_array_functions
+    query: "SELECT VALUE { 'a': a, 'v': ARRAY_REMOVE(a, NULL) } FROM `array_default_numeric_data` AS `array_default_numeric_data`"
+    skip_reason: "SQL-3297: Finish support for array functions"
+    result:
+      - { '': { "a": [], "v": [] } }
+      - { '': { "a": [1], "v": [1] } }
+      - { '': { "a": [1, 2, 3], "v": [1, 2, 3] } }
+      - { '': { "a": [1, null, 3], "v": [1, 3] } }
+      - { '': { "a": null, "v": null } }
+      - { '': { "v": null } }
+
+  # ARRAY_COUNT_IF counts the number of elements in the input array that satisfy the provided predicate
+  - description: ARRAY_COUNT_IF correctness test
+    current_db: spec_query_array_functions
+    query: "SELECT VALUE { 'a': a, 'v': ARRAY_COUNT_IF(a, this > 1) } FROM `array_default_numeric_data` AS `array_default_numeric_data`"
+    skip_reason: "SQL-3297: Finish support for array functions"
+    result:
+      - { '': { "a": [], "v": 0 } }
+      - { '': { "a": [1], "v": 0 } }
+      - { '': { "a": [1, 2, 3], "v": 2 } }
+      - { '': { "a": [1, null, 3], "v": 1 } }
+      - { '': { "a": null, "v": null } }
+      - { '': { "v": null } }
+
+  # ARRAY_SUM returns the sum of an array of numbers
+  - description: ARRAY_SUM correctness test
+    current_db: spec_query_array_functions
+    query: "SELECT VALUE { 'a': a, 'v': ARRAY_SUM(a) } FROM `array_default_numeric_data` AS `array_default_numeric_data`"
+    skip_reason: "SQL-3297: Finish support for array functions"
+    result:
+      - { '': { "a": [], "v": 0 } }
+      - { '': { "a": [1], "v": 1 } }
+      - { '': { "a": [1, 2, 3], "v": 6 } }
+      - { '': { "a": [1, null, 3], "v": null } }
+      - { '': { "a": null, "v": null } }
+      - { '': { "v": null } }
+
+  # ARRAY_PRODUCT returns the product of an array of numbers
+  - description: ARRAY_PRODUCT correctness test
+    current_db: spec_query_array_functions
+    query: "SELECT VALUE { 'a': a, 'v': ARRAY_PRODUCT(a) } FROM `array_default_numeric_data` AS `array_default_numeric_data`"
+    skip_reason: "SQL-3297: Finish support for array functions"
+    result:
+      - { '': { "a": [], "v": 1 } }
+      - { '': { "a": [1], "v": 1 } }
+      - { '': { "a": [1, 2, 3], "v": 6 } }
+      - { '': { "a": [1, null, 3], "v": null } }
+      - { '': { "a": null, "v": null } }
+      - { '': { "v": null } }
+
+  # ARRAY_AVG returns the average of an array of numbers
+  - description: ARRAY_AVG correctness test
+    current_db: spec_query_array_functions
+    query: "SELECT VALUE { 'a': a, 'v': ARRAY_AVG(a) } FROM `array_default_numeric_data` AS `array_default_numeric_data`"
+    skip_reason: "SQL-3297: Finish support for array functions"
+    result:
+      - { '': { "a": [], "v": null } }
+      - { '': { "a": [1], "v": 1 } }
+      - { '': { "a": [1, 2, 3], "v": 2 } }
+      - { '': { "a": [1, null, 3], "v": null } }
+      - { '': { "a": null, "v": null } }
+      - { '': { "v": null } }
+
+  # ARRAY_ALL returns the conjunction of an array of booleans
+  - description: ARRAY_ALL correctness test
+    current_db: spec_query_array_functions
+    query: "SELECT VALUE { 'a': a, 'v': ARRAY_ALL(a) } FROM `array_default_boolean_data` AS `array_default_boolean_data`"
+    skip_reason: "SQL-3297: Finish support for array functions"
+    result:
+      - { '': { "a": [], "v": true } }
+      - { '': { "a": [ true ], "v": true } }
+      - { '': { "a": [ false ], "v": false } }
+      - { '': { "a": [ true, true ], "v": true } }
+      - { '': { "a": [ true, false ], "v": false } }
+      - { '': { "a": [ true, null ], "v": null } }
+      - { '': { "a": [ false, false ], "v": false } }
+      - { '': { "a": [ false, null ], "v": false } }
+      - { '': { "a": [ null, null ], "v": null } }
+      - { '': { "a": [ true, null, false ], "v": false } }
+      - { '': { "a": null, "v": null } }
+      - { '': { "v": null } }
+
+  # ARRAY_ANY returns the disjunction of an array of booleans
+  - description: ARRAY_ANY correctness test
+    current_db: spec_query_array_functions
+    query: "SELECT VALUE { 'a': a, 'v': ARRAY_ANY(a) } FROM `array_default_boolean_data` AS `array_default_boolean_data`"
+    skip_reason: "SQL-3297: Finish support for array functions"
+    result:
+      - { '': { "a": [], "v": false } }
+      - { '': { "a": [ true ], "v": true } }
+      - { '': { "a": [ false ], "v": false } }
+      - { '': { "a": [ true, true ], "v": true } }
+      - { '': { "a": [ true, false ], "v": true } }
+      - { '': { "a": [ true, null ], "v": true } }
+      - { '': { "a": [ false, false ], "v": false } }
+      - { '': { "a": [ false, null ], "v": null } }
+      - { '': { "a": [ null, null ], "v": null } }
+      - { '': { "a": [ true, null, false ], "v": true } }
+      - { '': { "a": null, "v": null } }
+      - { '': { "v": null } }
+
+  # ARRAY_JOIN returns the concatenation of an array of strings
+  - description: ARRAY_JOIN correctness test
+    current_db: spec_query_array_functions
+    query: "SELECT VALUE { 'a': a, 'sep': sep, 'v': ARRAY_JOIN(a, sep) } FROM `array_join` AS `array_join`"
+    skip_reason: "SQL-3297: Finish support for array functions"
+    result:
+      - { '': { "a": [], "sep": "", "v": "" } }
+      - { '': { "a": [], "sep": ",", "v": "" } }
+      - { '': { "a": [ "a" ], "sep": "", "v": "a" } }
+      - { '': { "a": [ "a" ], "sep": ",", "v": "a" } }
+      - { '': { "a": [ "a", "b", "c" ], "sep": "", "v": "abc" } }
+      - { '': { "a": [ "a", "b", "c" ], "sep": ",", "v": "a,b,c" } }
+      - { '': { "a": [ "a", null, "c" ], "sep": "", "v": null } }
+      - { '': { "a": null, "sep": "", "v": null } }
+      - { '': { "sep": "", "v": null } }
+      - { '': { "a": [ "a", "b", "c" ], "sep": null, "v": null } }
+      - { '': { "a": [ "a", "b", "c" ], "v": null } }
