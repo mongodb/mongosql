@@ -898,22 +898,11 @@ impl<'a> Algebrizer<'a> {
                 }
 
                 let mut project_expression = UniqueLinkedHashMap::new();
-                let mut sub_schema_env = SchemaEnvironment::new();
-                sub_schema_env.insert(key.clone(), schema);
-                let path_algebrizer = Algebrizer::with_schema_env(
-                    self.current_db,
-                    sub_schema_env,
-                    self.catalog,
-                    self.scope_level,
-                    self.schema_checking_mode,
-                    self.allow_order_by_missing_columns,
-                    *self.clause_type.borrow(),
-                );
                 project_expression
                     .insert_many(field_paths_copy.into_iter().map(|path| {
                         (
                             path.join(separator),
-                            path_algebrizer.algebrize_flattened_field_path(key.clone(), path),
+                            Self::build_flattened_field_access(key.clone(), &path, &schema),
                         )
                     }))
                     .map_err(|e| Error::DuplicateDocumentKey(e.get_key_name()))?;
@@ -998,17 +987,30 @@ impl<'a> Algebrizer<'a> {
         (&path).try_into().map_err(|_| Error::InvalidUnwindPath)
     }
 
-    #[allow(clippy::only_used_in_recursion)] // false positive
-    pub fn algebrize_flattened_field_path(&self, key: Key, path: Vec<String>) -> mir::Expression {
-        match path.len() {
-            0 => mir::Expression::Reference(mir::ReferenceExpr { key }),
-            _ => self
-                .construct_field_access_expr(
-                    self.algebrize_flattened_field_path(key, path.split_last().unwrap().1.to_vec()),
-                    path.last().unwrap().to_string(),
-                )
-                .unwrap(),
+    // Construct the nested FieldAccess expression for a single flattened field path in
+    // O(path_depth) time. It tracks the current schema while traversing the path, computing
+    // is_nullable at each level directly from the sub-schema.
+    fn build_flattened_field_access(
+        key: Key,
+        path: &[String],
+        root_schema: &schema::Schema,
+    ) -> mir::Expression {
+        let mut expr = mir::Expression::Reference(mir::ReferenceExpr { key });
+        // Avoid cloning the (potentially huge) root schema: narrow from a borrow for the first
+        // field, then from the owned narrowed sub-schema for subsequent fields.
+        let mut current_schema: Option<schema::Schema> = None;
+        for field in path {
+            let accessee = current_schema.as_ref().unwrap_or(root_schema);
+            let next_schema = mir::Expression::get_field_schema(accessee, field);
+            let is_nullable = NULLISH.satisfies(&next_schema) != Satisfaction::Not;
+            current_schema = Some(next_schema);
+            expr = mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(expr),
+                field: field.clone(),
+                is_nullable,
+            });
         }
+        expr
     }
 
     pub fn algebrize_having_clause(
