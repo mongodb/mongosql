@@ -643,6 +643,9 @@ mod arbitrary {
                 20 => Self::StringConstructor(arbitrary_string(g)),
                 21 => Self::Tuple((1..4).map(|_| Self::arbitrary(nested_g)).collect()),
                 22 => Self::TypeAssertion(TypeAssertionExpr::arbitrary(nested_g)),
+                // TODO: SQL-3298: Replace `23 => TypeAssertion` with `23 => HigherOrderFunction`
+                23 => Self::TypeAssertion(TypeAssertionExpr::arbitrary(nested_g)),
+                // 23 => Self::HigherOrderFunction(HigherOrderFunctionExpr::arbitrary(nested_g)),
                 _ => panic!("missing Expression variant(s)"),
             }
         }
@@ -1213,6 +1216,51 @@ mod arbitrary {
                 21 => Self::Timestamp,
                 22 => Self::Undefined,
                 _ => panic!("missing Type variant(s)"),
+            }
+        }
+    }
+
+    impl Arbitrary for HigherOrderFunctionExpr {
+        fn arbitrary(g: &mut Gen) -> Self {
+            let rng = &(0..Self::VARIANT_COUNT).collect::<Vec<_>>();
+            match g.choose(rng).unwrap() {
+                0 => Self::Map(MapExpr {
+                    array: Box::new(Expression::arbitrary(g)),
+                    f: Box::new(FunctionArgument::arbitrary(g)),
+                }),
+                1 => Self::Filter(FilterExpr {
+                    array: Box::new(Expression::arbitrary(g)),
+                    f: Box::new(FunctionArgument::arbitrary(g)),
+                }),
+                2 => Self::Reduce(ReduceExpr {
+                    array: Box::new(Expression::arbitrary(g)),
+                    init_value: Box::new(Expression::arbitrary(g)),
+                    f: Box::new(FunctionArgument::arbitrary(g)),
+                }),
+                _ => panic!("missing HigherOrderFunction variant(s)"),
+            }
+        }
+    }
+
+    impl Arbitrary for FunctionArgument {
+        fn arbitrary(g: &mut Gen) -> Self {
+            let rng = &(0..Self::VARIANT_COUNT).collect::<Vec<_>>();
+            match g.choose(rng).unwrap() {
+                0 => Self::Expr(Expression::arbitrary(g)),
+                1 => Self::NamedFunction(NamedFunction::arbitrary(g)),
+                _ => panic!("missing FunctionArgument variant(s)"),
+            }
+        }
+    }
+
+    impl Arbitrary for NamedFunction {
+        fn arbitrary(g: &mut Gen) -> Self {
+            let rng = &(0..Self::VARIANT_COUNT).collect::<Vec<_>>();
+            match g.choose(rng).unwrap() {
+                0 => Self::UnaryOp(UnaryOp::arbitrary(g)),
+                1 => Self::BinaryOp(BinaryOp::arbitrary(g)),
+                2 => Self::Function(FunctionName::arbitrary(g)),
+                _ => panic!("missing NamedFunction variant(s)"),
             }
         }
     }

@@ -231,6 +231,7 @@ pub enum Expression {
     SqlDivide(SqlDivide),
     Trim(Trim),
     Map(Map),
+    Filter(Filter),
     Reduce(Reduce),
     Subquery(Subquery),
     SubqueryComparison(SubqueryComparison),
@@ -704,6 +705,13 @@ pub struct Trim {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Map {
+    pub input: Box<Expression>,
+    pub as_name: Option<String>,
+    pub inside: Box<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct Filter {
     pub input: Box<Expression>,
     pub as_name: Option<String>,
     pub inside: Box<Expression>,

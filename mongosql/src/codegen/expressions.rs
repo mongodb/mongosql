@@ -32,6 +32,7 @@ impl MqlCodeGenerator {
             SqlDivide(sd) => self.codegen_sql_divide(sd),
             Trim(trim) => self.codegen_trim(trim),
             Map(m) => self.codegen_map(m),
+            Filter(_) => unimplemented!("SQL-3290"),
             Reduce(r) => self.codegen_reduce(r),
             Subquery(s) => self.codegen_subquery_expr(s),
             SubqueryComparison(sc) => self.codegen_subquery_comparison(sc),

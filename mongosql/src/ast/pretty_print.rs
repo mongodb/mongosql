@@ -749,9 +749,21 @@ impl Expression {
             Access(a) => a.get_tier(),
             // formatting for all the following is handled specially and will never conditionally
             // wrap arguments in parentheses
-            Array(_) | Case(_) | Cast(_) | Document(_) | Exists(_) | Function(_) | Trim(_)
-            | DateFunction(_) | Extract(_) | Identifier(_) | Literal(_) | StringConstructor(_)
-            | Subquery(_) | Tuple(_) => Bottom,
+            Array(_)
+            | Case(_)
+            | Cast(_)
+            | Document(_)
+            | Exists(_)
+            | Function(_)
+            | Trim(_)
+            | DateFunction(_)
+            | Extract(_)
+            | Identifier(_)
+            | Literal(_)
+            | StringConstructor(_)
+            | Subquery(_)
+            | Tuple(_)
+            | HigherOrderFunction(_) => Bottom,
         }
     }
 }
@@ -817,6 +829,7 @@ impl PrettyPrint for Expression {
             Subquery(q) => Ok(format!("({})", q.pretty_print()?)),
             Exists(q) => Ok(format!("EXISTS({})", q.pretty_print()?)),
             SubqueryComparison(sc) => sc.pretty_print(),
+            HigherOrderFunction(hof) => hof.pretty_print(),
         }
     }
 }
@@ -1286,5 +1299,41 @@ impl PrettyPrint for ComparisonOp {
             ComparisonOp::Neq => "<>",
         }
         .to_string())
+    }
+}
+
+impl PrettyPrint for HigherOrderFunctionExpr {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
+            HigherOrderFunctionExpr::Map(m) => {
+                format!("MAP({}, {})", m.array.pretty_print()?, m.f.pretty_print()?)
+            }
+            HigherOrderFunctionExpr::Filter(f) => {
+                format!(
+                    "FILTER({}, {})",
+                    f.array.pretty_print()?,
+                    f.f.pretty_print()?
+                )
+            }
+            HigherOrderFunctionExpr::Reduce(r) => {
+                format!(
+                    "REDUCE({}, {}, {})",
+                    r.array.pretty_print()?,
+                    r.init_value.pretty_print()?,
+                    r.f.pretty_print()?
+                )
+            }
+        })
+    }
+}
+
+impl PrettyPrint for FunctionArgument {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
+            FunctionArgument::Expr(e) => e.pretty_print()?,
+            FunctionArgument::NamedFunction(NamedFunction::UnaryOp(u)) => u.pretty_print()?,
+            FunctionArgument::NamedFunction(NamedFunction::BinaryOp(b)) => b.pretty_print()?,
+            FunctionArgument::NamedFunction(NamedFunction::Function(f)) => f.pretty_print()?,
+        })
     }
 }
