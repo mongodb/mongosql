@@ -2,7 +2,7 @@ use crate::{
     map,
     mir::{
         binding_tuple::DatasourceName::Bottom,
-        schema::{Atomic, Document, Error as mir_error, SchemaCache},
+        schema::{Atomic, Document, Error as mir_error, errors::IncorrectArgCountPrecision, SchemaCache},
         ArraySource, Collection, Expression, FieldAccess, LiteralValue, Project, ScalarFunction,
         ScalarFunctionApplication, Stage, SubqueryComparison, SubqueryComparisonOp, SubqueryExpr,
         SubqueryModifier,
@@ -75,7 +75,7 @@ mod exists {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Div",
-            required: 2,
+            required: IncorrectArgCountPrecision::Exact(2),
             found: 3
         }),
         input = Expression::Exists(

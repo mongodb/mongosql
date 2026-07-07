@@ -1,6 +1,6 @@
 use crate::{
     map,
-    mir::{schema::Error as mir_error, *},
+    mir::{schema::Error as mir_error, schema::errors::IncorrectArgCountPrecision, *},
     schema::{
         Atomic, Document, Satisfaction, Schema, ANY_ARRAY, ANY_DOCUMENT, ANY_DOCUMENT_OR_NULLISH,
         BOOLEAN_OR_NULLISH, INTEGER_OR_NULLISH, NON_NULLISH, NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
@@ -125,7 +125,7 @@ mod and {
     use super::*;
 
     test_schema!(
-        and_first_arg_is_not_bool_is_error,
+        first_arg_is_not_bool_is_error,
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "And",
@@ -143,7 +143,7 @@ mod and {
     );
 
     test_schema!(
-        and_second_arg_is_not_bool_is_error,
+        second_arg_is_not_bool_is_error,
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "And",
@@ -161,7 +161,7 @@ mod and {
     );
 
     test_schema!(
-        and_must_be_bool,
+        must_be_bool,
         expected = Ok(Schema::Atomic(Atomic::Boolean)),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::And,
@@ -174,7 +174,7 @@ mod and {
     );
 
     test_schema!(
-        and_may_be_null,
+        may_be_null,
         expected = Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
@@ -190,7 +190,7 @@ mod and {
     );
 
     test_schema!(
-        and_may_be_missing,
+        may_be_missing,
         expected = Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
@@ -206,7 +206,7 @@ mod and {
     );
 
     test_schema!(
-        and_must_be_null,
+        must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::And,
@@ -216,6 +216,41 @@ mod and {
             ],
         )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+
+    test_schema!(
+        more_than_two_args,
+        expected = Ok(Schema::Atomic(Atomic::Boolean)),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::And,
+            vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Reference(("foo", 0u16).into()),
+                Expression::Literal(LiteralValue::Boolean(true))
+            ],
+        )),
+        schema_env = map! {
+            ("bar", 0u16).into() => Schema::Atomic(Atomic::Boolean),
+            ("foo", 0u16).into() => Schema::Atomic(Atomic::Boolean),
+        },
+    );
+
+    test_schema!(
+        must_have_at_least_two_args,
+        expected = Err(mir_error::IncorrectArgumentCount {
+            name: "And",
+            required: IncorrectArgCountPrecision::Minimum(2),
+            found: 1,
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::And,
+            vec![
+                Expression::Reference(("bar", 0u16).into()),
+            ],
+        )),
+        schema_env = map! {
+            ("bar", 0u16).into() => Schema::Atomic(Atomic::Boolean),
+        },
     );
 }
 
@@ -223,7 +258,7 @@ mod or {
     use super::*;
 
     test_schema!(
-        or_first_arg_is_not_bool_is_error,
+        first_arg_is_not_bool_is_error,
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Or",
@@ -241,7 +276,7 @@ mod or {
     );
 
     test_schema!(
-        or_second_arg_is_not_bool_is_error,
+        second_arg_is_not_bool_is_error,
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Or",
@@ -259,7 +294,7 @@ mod or {
     );
 
     test_schema!(
-        or_must_be_bool,
+        must_be_bool,
         expected = Ok(Schema::Atomic(Atomic::Boolean)),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Or,
@@ -272,7 +307,7 @@ mod or {
     );
 
     test_schema!(
-        or_may_be_null,
+        may_be_null,
         expected = Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
@@ -288,7 +323,7 @@ mod or {
     );
 
     test_schema!(
-        or_may_be_missing,
+        may_be_missing,
         expected = Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
@@ -304,7 +339,7 @@ mod or {
     );
 
     test_schema!(
-        or_must_be_null,
+        must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Or,
@@ -314,6 +349,41 @@ mod or {
             ],
         )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+
+    test_schema!(
+        more_than_two_args,
+        expected = Ok(Schema::Atomic(Atomic::Boolean)),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Or,
+            vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Reference(("foo", 0u16).into()),
+                Expression::Literal(LiteralValue::Boolean(true))
+            ],
+        )),
+        schema_env = map! {
+            ("bar", 0u16).into() => Schema::Atomic(Atomic::Boolean),
+            ("foo", 0u16).into() => Schema::Atomic(Atomic::Boolean),
+        },
+    );
+
+    test_schema!(
+        must_have_at_least_two_args,
+        expected = Err(mir_error::IncorrectArgumentCount {
+            name: "Or",
+            required: IncorrectArgCountPrecision::Minimum(2),
+            found: 1,
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Or,
+            vec![
+                Expression::Reference(("bar", 0u16).into()),
+            ],
+        )),
+        schema_env = map! {
+            ("bar", 0u16).into() => Schema::Atomic(Atomic::Boolean),
+        },
     );
 }
 
@@ -564,7 +634,7 @@ mod concat {
     use super::*;
 
     test_schema!(
-        concat_must_be_string,
+        must_be_string,
         expected = Ok(Schema::Atomic(Atomic::String)),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Concat,
@@ -577,7 +647,7 @@ mod concat {
     );
 
     test_schema!(
-        concat_may_be_null,
+        may_be_null,
         expected = Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
@@ -593,7 +663,7 @@ mod concat {
     );
 
     test_schema!(
-        concat_may_be_missing,
+        may_be_missing,
         expected = Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
@@ -609,7 +679,7 @@ mod concat {
     );
 
     test_schema!(
-        concat_must_be_null,
+        must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Concat,
@@ -619,6 +689,41 @@ mod concat {
             ],
         )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+
+    test_schema!(
+        more_than_two_args,
+        expected = Ok(Schema::Atomic(Atomic::String)),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Concat,
+            vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Reference(("foo", 0u16).into()),
+                Expression::Literal(LiteralValue::String("s".to_string()))
+            ],
+        )),
+        schema_env = map! {
+            ("bar", 0u16).into() => Schema::Atomic(Atomic::String),
+            ("foo", 0u16).into() => Schema::Atomic(Atomic::String),
+        },
+    );
+
+    test_schema!(
+        must_have_at_least_two_args,
+        expected = Err(mir_error::IncorrectArgumentCount {
+            name: "Concat",
+            required: IncorrectArgCountPrecision::Minimum(2),
+            found: 1,
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Concat,
+            vec![
+                Expression::Reference(("bar", 0u16).into()),
+            ],
+        )),
+        schema_env = map! {
+            ("bar", 0u16).into() => Schema::Atomic(Atomic::String),
+        },
     );
 }
 
@@ -974,24 +1079,6 @@ mod hour {
 
 mod arithmetic {
     use super::*;
-
-    test_schema!(
-        variadic_arg_arithmetic_no_args_returns_integer,
-        expected = Ok(Schema::Atomic(Atomic::Integer)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
-            ScalarFunction::Add,
-            vec![],
-        )),
-    );
-
-    test_schema!(
-        variadic_arg_arithmetic_one_arg_returns_that_type,
-        expected = Ok(Schema::Atomic(Atomic::Double)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
-            ScalarFunction::Mul,
-            vec![Expression::Literal(LiteralValue::Double(1.0))],
-        )),
-    );
 
     test_schema!(
         arithmetic_null_takes_priority,
@@ -1411,11 +1498,37 @@ mod arithmetic {
         use super::*;
 
         test_schema!(
+        variadic_add_must_have_at_least_two_args,
+        expected = Err(mir_error::IncorrectArgumentCount {
+            name: "Add",
+            required: IncorrectArgCountPrecision::Minimum(2),
+            found: 0,
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Add,
+            vec![],
+        )),
+    );
+
+        test_schema!(
+        variadic_mul_must_have_at_least_two_args,
+        expected = Err(mir_error::IncorrectArgumentCount {
+            name: "Mul",
+            required: IncorrectArgCountPrecision::Minimum(2),
+            found: 1,
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Mul,
+            vec![Expression::Literal(LiteralValue::Double(1.0))],
+        )),
+    );
+
+        test_schema!(
             sub_requires_exactly_two_args,
             expected_error_code = 1001,
             expected = Err(mir_error::IncorrectArgumentCount {
                 name: "Sub",
-                required: 2,
+                required: IncorrectArgCountPrecision::Exact(2),
                 found: 1
             }),
             input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1429,7 +1542,7 @@ mod arithmetic {
             expected_error_code = 1001,
             expected = Err(mir_error::IncorrectArgumentCount {
                 name: "Div",
-                required: 2,
+                required: IncorrectArgCountPrecision::Exact(2),
                 found: 3
             }),
             input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1530,7 +1643,7 @@ mod abs {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Abs",
-            required: 1,
+            required: IncorrectArgCountPrecision::Exact(1),
             found: 2
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1573,7 +1686,7 @@ mod ceil {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Ceil",
-            required: 1,
+            required: IncorrectArgCountPrecision::Exact(1),
             found: 2
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1616,7 +1729,7 @@ mod degrees {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Degrees",
-            required: 1,
+            required: IncorrectArgCountPrecision::Exact(1),
             found: 2
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1677,7 +1790,7 @@ mod floor {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Floor",
-            required: 1,
+            required: IncorrectArgCountPrecision::Exact(1),
             found: 2
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1720,7 +1833,7 @@ mod log {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Log",
-            required: 2,
+            required: IncorrectArgCountPrecision::Exact(2),
             found: 3
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1792,7 +1905,7 @@ mod mod_func {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Mod",
-            required: 2,
+            required: IncorrectArgCountPrecision::Exact(2),
             found: 3
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1864,7 +1977,7 @@ mod pow {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Pow",
-            required: 2,
+            required: IncorrectArgCountPrecision::Exact(2),
             found: 3
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1936,7 +2049,7 @@ mod round {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Round",
-            required: 2,
+            required: IncorrectArgCountPrecision::Exact(2),
             found: 3
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -2006,7 +2119,7 @@ mod cos {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Cos",
-            required: 1,
+            required: IncorrectArgCountPrecision::Exact(1),
             found: 2
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -2058,7 +2171,7 @@ mod sin {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Sin",
-            required: 1,
+            required: IncorrectArgCountPrecision::Exact(1),
             found: 2
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -2110,7 +2223,7 @@ mod tan {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Tan",
-            required: 1,
+            required: IncorrectArgCountPrecision::Exact(1),
             found: 2
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -2162,7 +2275,7 @@ mod radians {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Radians",
-            required: 1,
+            required: IncorrectArgCountPrecision::Exact(1),
             found: 2
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -2205,7 +2318,7 @@ mod sqrt {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Sqrt",
-            required: 1,
+            required: IncorrectArgCountPrecision::Exact(1),
             found: 2
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -2248,7 +2361,7 @@ mod comparison {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Lt",
-            required: 2,
+            required: IncorrectArgCountPrecision::Exact(2),
             found: 1
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -2323,7 +2436,7 @@ mod between {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Between",
-            required: 3,
+            required: IncorrectArgCountPrecision::Exact(3),
             found: 1
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -2670,7 +2783,7 @@ mod computed_field_access {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "ComputedFieldAccess",
-            required: 2,
+            required: IncorrectArgCountPrecision::Exact(2),
             found: 3
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -2786,7 +2899,7 @@ mod current_timestamp {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "CurrentTimestamp",
-            required: 0,
+            required: IncorrectArgCountPrecision::Exact(0),
             found: 1
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -2804,7 +2917,7 @@ mod nullif {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "NullIf",
-            required: 2,
+            required: IncorrectArgCountPrecision::Exact(2),
             found: 1,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -2955,7 +3068,7 @@ mod coalesce {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Coalesce",
-            required: 1,
+            required: IncorrectArgCountPrecision::Exact(1),
             found: 0,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -3078,7 +3191,7 @@ mod slice {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Slice",
-            required: 2,
+            required: IncorrectArgCountPrecision::Exact(2),
             found: 1,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -3093,7 +3206,7 @@ mod slice {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Slice",
-            required: 2,
+            required: IncorrectArgCountPrecision::Exact(2),
             found: 4,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -3250,7 +3363,7 @@ mod split {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Split",
-            required: 3,
+            required: IncorrectArgCountPrecision::Exact(3),
             found: 1,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
@@ -3345,7 +3458,7 @@ mod size {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Size",
-            required: 1,
+            required: IncorrectArgCountPrecision::Exact(1),
             found: 0,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -3415,7 +3528,7 @@ mod pos {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Pos",
-            required: 1,
+            required: IncorrectArgCountPrecision::Exact(1),
             found: 0
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -3464,7 +3577,7 @@ mod neg {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Neg",
-            required: 1,
+            required: IncorrectArgCountPrecision::Exact(1),
             found: 2
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -3485,7 +3598,7 @@ mod in_operator {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "NotIn",
-            required: 2,
+            required: IncorrectArgCountPrecision::Exact(2),
             found: 1
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
