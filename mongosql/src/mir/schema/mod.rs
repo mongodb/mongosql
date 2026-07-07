@@ -27,9 +27,9 @@ use std::{
 mod errors;
 pub use errors::Error;
 
+use crate::mir::schema::errors::IncorrectArgCountPrecision;
 #[cfg(test)]
 pub(crate) use errors::ANY_SCHEMA_ADDENDUM;
-use crate::mir::schema::errors::IncorrectArgCountPrecision;
 
 mod util;
 
@@ -1737,7 +1737,7 @@ impl ScalarFunction {
                     STRING_OR_NULLISH.clone(),
                     Schema::Atomic(Atomic::String),
                 )
-            },
+            }
             // Unary arithmetic operators.
             Pos | Neg | Abs | Ceil | Floor => {
                 self.ensure_arg_count(arg_schemas.len(), 1)?;
@@ -1749,7 +1749,7 @@ impl ScalarFunction {
                 // arguments.
                 self.ensure_minimum_arg_count(arg_schemas.len(), 2)?;
                 self.get_arithmetic_schema(state, arg_schemas)
-            },
+            }
             // Arithmetic operators with fixed (two) arguments.
             Sub | Div => {
                 self.ensure_arg_count(arg_schemas.len(), 2)?;
@@ -1834,7 +1834,7 @@ impl ScalarFunction {
                     BOOLEAN_OR_NULLISH.clone(),
                     Schema::Atomic(Atomic::Boolean),
                 )
-            },
+            }
             // Computed Field Access operator when the field is not known until runtime.
             ComputedFieldAccess => {
                 self.schema_check_fixed_args(

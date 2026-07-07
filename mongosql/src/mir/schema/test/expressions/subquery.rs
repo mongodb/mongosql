@@ -2,7 +2,9 @@ use crate::{
     map,
     mir::{
         binding_tuple::DatasourceName::Bottom,
-        schema::{Atomic, Document, Error as mir_error, errors::IncorrectArgCountPrecision, SchemaCache},
+        schema::{
+            errors::IncorrectArgCountPrecision, Atomic, Document, Error as mir_error, SchemaCache,
+        },
         ArraySource, Collection, Expression, FieldAccess, LiteralValue, Project, ScalarFunction,
         ScalarFunctionApplication, Stage, SubqueryComparison, SubqueryComparisonOp, SubqueryExpr,
         SubqueryModifier,

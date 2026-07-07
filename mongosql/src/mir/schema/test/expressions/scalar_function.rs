@@ -1,6 +1,6 @@
 use crate::{
     map,
-    mir::{schema::Error as mir_error, schema::errors::IncorrectArgCountPrecision, *},
+    mir::{schema::errors::IncorrectArgCountPrecision, schema::Error as mir_error, *},
     schema::{
         Atomic, Document, Satisfaction, Schema, ANY_ARRAY, ANY_DOCUMENT, ANY_DOCUMENT_OR_NULLISH,
         BOOLEAN_OR_NULLISH, INTEGER_OR_NULLISH, NON_NULLISH, NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
@@ -244,9 +244,7 @@ mod and {
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::And,
-            vec![
-                Expression::Reference(("bar", 0u16).into()),
-            ],
+            vec![Expression::Reference(("bar", 0u16).into()),],
         )),
         schema_env = map! {
             ("bar", 0u16).into() => Schema::Atomic(Atomic::Boolean),
@@ -377,9 +375,7 @@ mod or {
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Or,
-            vec![
-                Expression::Reference(("bar", 0u16).into()),
-            ],
+            vec![Expression::Reference(("bar", 0u16).into()),],
         )),
         schema_env = map! {
             ("bar", 0u16).into() => Schema::Atomic(Atomic::Boolean),
@@ -717,9 +713,7 @@ mod concat {
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Concat,
-            vec![
-                Expression::Reference(("bar", 0u16).into()),
-            ],
+            vec![Expression::Reference(("bar", 0u16).into()),],
         )),
         schema_env = map! {
             ("bar", 0u16).into() => Schema::Atomic(Atomic::String),
@@ -1498,30 +1492,30 @@ mod arithmetic {
         use super::*;
 
         test_schema!(
-        variadic_add_must_have_at_least_two_args,
-        expected = Err(mir_error::IncorrectArgumentCount {
-            name: "Add",
-            required: IncorrectArgCountPrecision::Minimum(2),
-            found: 0,
-        }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
-            ScalarFunction::Add,
-            vec![],
-        )),
-    );
+            variadic_add_must_have_at_least_two_args,
+            expected = Err(mir_error::IncorrectArgumentCount {
+                name: "Add",
+                required: IncorrectArgCountPrecision::Minimum(2),
+                found: 0,
+            }),
+            input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::Add,
+                vec![],
+            )),
+        );
 
         test_schema!(
-        variadic_mul_must_have_at_least_two_args,
-        expected = Err(mir_error::IncorrectArgumentCount {
-            name: "Mul",
-            required: IncorrectArgCountPrecision::Minimum(2),
-            found: 1,
-        }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
-            ScalarFunction::Mul,
-            vec![Expression::Literal(LiteralValue::Double(1.0))],
-        )),
-    );
+            variadic_mul_must_have_at_least_two_args,
+            expected = Err(mir_error::IncorrectArgumentCount {
+                name: "Mul",
+                required: IncorrectArgCountPrecision::Minimum(2),
+                found: 1,
+            }),
+            input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::Mul,
+                vec![Expression::Literal(LiteralValue::Double(1.0))],
+            )),
+        );
 
         test_schema!(
             sub_requires_exactly_two_args,
