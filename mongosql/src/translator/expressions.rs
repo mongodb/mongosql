@@ -41,7 +41,7 @@ impl MqlTranslator {
             }
             mir::Expression::TypeAssertion(ta) => self.translate_expression(*ta.expr),
             mir::Expression::HigherOrderFunction(hof) => self.translate_higher_order_function(hof),
-            mir::Expression::Variable(_) => unimplemented!("SQL-3291"),
+            mir::Expression::Variable(v) => self.translate_variable(v),
             mir::Expression::MqlIntrinsicFieldExistence(fa) => self.translate_field_existence(fa),
         }
     }
@@ -534,6 +534,10 @@ impl MqlTranslator {
             init_value: Box::new(self.translate_expression(*r.init_value)?),
             inside: Box::new(self.translate_expression(*r.f)?),
         }))
+    }
+
+    fn translate_variable(&self, v: mir::Variable) -> Result<air::Expression> {
+        Ok(air::Expression::Variable(v.name.into()))
     }
 
     /// A FieldExistence is a special node that represents an existence assertion in a Match
