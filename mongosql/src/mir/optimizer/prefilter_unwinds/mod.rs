@@ -63,6 +63,63 @@ impl Visitor for PrefilterUnwindsVisitor {
     fn visit_stage(&mut self, node: Stage) -> Stage {
         let node = node.walk(self);
         match node {
+            Stage::MqlIntrinsic(MqlStage::MatchFilter(f)) => {
+                // Unbox once so source/condition/cache can be moved out independently.
+                let MatchFilter {
+                    source,
+                    condition,
+                    cache,
+                } = *f;
+                match *source {
+                    // If the Unwind has already been pre-filtered, ignore it.
+                    Stage::Unwind(u) if !u.is_prefiltered => {
+                        let (field_uses, condition) = condition.field_uses();
+
+                        // Rebuild the MatchFilter over `source`, preserving cache.
+                        let rebuild = |source: Box<Stage>, condition: MatchQuery| {
+                            Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
+                                source,
+                                condition,
+                                cache: cache.clone(),
+                            })))
+                        };
+
+                        let Some(field_uses) = field_uses else {
+                            return rebuild(Box::new(Stage::Unwind(u)), condition);
+                        };
+                        if field_uses.len() != 1 {
+                            return rebuild(Box::new(Stage::Unwind(u)), condition);
+                        }
+
+                        let field_use = field_uses.into_iter().next().unwrap();
+                        let opaque_field_defines = u.opaque_field_defines();
+                        if !opaque_field_defines.contains(&field_use)
+                            || field_use.fields.first() == u.index.as_ref()
+                        {
+                            return rebuild(Box::new(Stage::Unwind(u)), condition);
+                        }
+
+                        let (new_source, changed) =
+                            generate_match_prefilter(field_use, u.source, &condition);
+                        self.changed |= changed;
+                        rebuild(
+                            Box::new(Stage::Unwind(Unwind {
+                                source: new_source,
+                                // Ensure that future runs of this optimizer
+                                // do not pre-filter this Unwind again.
+                                is_prefiltered: changed,
+                                ..u
+                            })),
+                            condition,
+                        )
+                    }
+                    other => Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
+                        source: Box::new(other),
+                        condition,
+                        cache,
+                    }))),
+                }
+            }
             Stage::Filter(f) => match *f.source {
                 // If the Unwind has already been pre-filtered, ignore it.
                 Stage::Unwind(u) if !u.is_prefiltered => {
@@ -119,6 +176,49 @@ impl Visitor for PrefilterUnwindsVisitor {
             },
             _ => node,
         }
+    }
+}
+
+// generate_match_prefilter returns the original source unchanged if it cannot
+// extract a useful comparison from the already-lowered match condition. Unlike
+// generate_prefilter (which reads an Expression), this handles the MatchQuery
+// conditions produced once rewrite_to_match_language has run.
+fn generate_match_prefilter(
+    field: FieldPath,
+    source: Box<Stage>,
+    condition: &MatchQuery,
+) -> (Box<Stage>, bool) {
+    let Some((function, lit)) = extract_comparison(condition) else {
+        return (source, false);
+    };
+    (
+        Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
+            source,
+            condition: generate_comparison_elem_match_query(function, field, lit),
+            cache: SchemaCache::new(),
+        })))
+        .into(),
+        true,
+    )
+}
+
+// Pulls (op, literal) out of a lowered match condition. Handles a bare comparison
+// and the nullable-guarded `And([{field: {$gt: null}}, cmp])` shape emitted by
+// rewrite_to_match_language, skipping the `$gt: null` existence guard.
+fn extract_comparison(condition: &MatchQuery) -> Option<(MatchLanguageComparisonOp, LiteralValue)> {
+    match condition {
+        MatchQuery::Comparison(c) => Some((c.function, c.arg.clone())),
+        MatchQuery::Logical(MatchLanguageLogical {
+            op: MatchLanguageLogicalOp::And,
+            args,
+            ..
+        }) => args.iter().find_map(|arg| match arg {
+            MatchQuery::Comparison(c) if c.arg != LiteralValue::Null => {
+                Some((c.function, c.arg.clone()))
+            }
+            _ => None,
+        }),
+        _ => None,
     }
 }
 

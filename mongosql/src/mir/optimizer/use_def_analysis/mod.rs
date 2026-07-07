@@ -37,8 +37,8 @@ use mongosql_datastructures::binding_tuple::BindingTuple;
 use crate::{
     mir::{
         binding_tuple::Key, optimizer::util::insert_field_path_and_all_ancestors, visitor::Visitor,
-        ExistsExpr, Expression, FieldAccess, FieldPath, Filter, Group, MatchFilter, MqlStage,
-        Project, ReferenceExpr, Sort, Stage, SubqueryComparison, SubqueryExpr, Unwind,
+        ExistsExpr, Expression, FieldAccess, FieldPath, Filter, Group, MatchFilter, MatchQuery,
+        MqlStage, Project, ReferenceExpr, Sort, Stage, SubqueryComparison, SubqueryExpr, Unwind,
     },
     util::unique_linked_hash_map::UniqueLinkedHashMap,
 };
@@ -502,6 +502,17 @@ impl Expression {
     pub fn field_uses(self) -> (Option<HashSet<FieldPath>>, Self) {
         let mut visitor = SingleStageFieldUseVisitor::default();
         let ret = visitor.visit_expression(self);
+        (visitor.field_uses, ret)
+    }
+}
+
+impl MatchQuery {
+    // Mirrors Expression::field_uses, but drives the shared SingleStageFieldUseVisitor from a
+    // match condition. The generated walk descends into every FieldPath (each comparison `input`,
+    // ElemMatch `input`, and Logical args), so visit_field_path collects them all.
+    pub fn field_uses(self) -> (Option<HashSet<FieldPath>>, Self) {
+        let mut visitor = SingleStageFieldUseVisitor::default();
+        let ret = visitor.visit_match_query(self);
         (visitor.field_uses, ret)
     }
 }
