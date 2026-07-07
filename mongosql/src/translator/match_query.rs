@@ -65,7 +65,7 @@ impl MqlTranslator {
             mir::MatchLanguageLogicalOp::Not => air::MatchQuery::Not(Box::new(
                 args.into_iter()
                     .next()
-                    .expect("NOT is unary by rewriter invariant"),
+                    .expect("NOT expects a single argument."),
             )),
         })
     }
