@@ -519,7 +519,7 @@ test_rewrite_to_match_language!(
         op: MatchLanguageLogicalOp::Not,
         args: vec![MatchQuery::Comparison(MatchLanguageComparison {
             function: MatchLanguageComparisonOp::Eq,
-            input: Some(mir_field_path("foo", vec!["int"])),
+            input: Some(mir_field_path("foo", vec!["bool"])),
             arg: LiteralValue::Boolean(true),
             cache: SchemaCache::new(),
         })],
