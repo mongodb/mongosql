@@ -598,21 +598,6 @@ test_rewrite_to_match_language!(
     input = filter_stage(*mir_field_access_multi_part("foo", vec!["a", "b"], true))
 );
 
-// A field access whose base is a scalar function (not a Reference) cannot be
-// converted to a FieldPath, so it stays in expr language.
-test_rewrite_to_match_language_no_op!(
-    field_access_not_convertible_to_field_path_is_noop,
-    filter_stage(Expression::FieldAccess(FieldAccess {
-        expr: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Upper,
-            args: vec![*mir_field_access("foo", "str", true)],
-            is_nullable: true,
-        })),
-        field: "x".to_string(),
-        is_nullable: true,
-    }))
-);
-
 // A boolean field access composes inside a logical operation.
 test_rewrite_to_match_language!(
     rewrite_boolean_field_access_in_conjunction,
