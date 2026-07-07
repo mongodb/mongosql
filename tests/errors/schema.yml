@@ -1,9 +1,16 @@
 tests:
-  - description: Error 1001 IncorrectArgumentCount
+  - description: Error 1001 IncorrectArgumentCount with Exact requirement
     query: "SELECT ROUND(a,1,5) FROM foo"
     current_db: errors_schema
     should_compile: false
-    algebrize_error: 'Error 1001: incorrect argument count for Round: required 2, found 3'
+    algebrize_error: 'Error 1001: incorrect argument count for Round: required exactly 2, found 3'
+
+  - description: Error 1001 IncorrectArgumentCount with Minimum requirement
+    query: "SELECT MAP(a, +) FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    current_db: errors_schema
+    should_compile: false
+    algebrize_error: 'Error 1001: incorrect argument count for Add: required at least 2, found 1'
 
   - description: Error 1002 SchemaChecking
     query: "SELECT ROUND(c,5) FROM foo"
