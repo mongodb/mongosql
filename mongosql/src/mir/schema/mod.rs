@@ -3,7 +3,10 @@ use crate::{
     map,
     mir::{
         binding_tuple,
-        schema::util::{lift_array_schemas, set_field_schema},
+        schema::{
+            errors::IncorrectArgCountPrecision,
+            util::{lift_array_schemas, set_field_schema},
+        },
         *,
     },
     schema::{
@@ -27,7 +30,6 @@ use std::{
 mod errors;
 pub use errors::Error;
 
-use crate::mir::schema::errors::IncorrectArgCountPrecision;
 #[cfg(test)]
 pub(crate) use errors::ANY_SCHEMA_ADDENDUM;
 
@@ -1438,9 +1440,6 @@ trait SqlFunction {
     ///
     /// Since the argument count can vary, the required schema is a single
     /// value that's compared against each of the arguments.
-    ///
-    /// The minimum_args parameter specifies the minimum number of arguments
-    /// that are required for this variadic function.
     fn schema_check_variadic_args(
         &self,
         state: &SchemaInferenceState,
