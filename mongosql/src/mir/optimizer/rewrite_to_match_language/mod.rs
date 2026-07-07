@@ -192,10 +192,24 @@ impl MatchLanguageRewriterVisitor {
         match condition {
             Expression::Is(is) => Self::rewrite_is(is),
             Expression::Like(like) => Self::rewrite_like(like),
+            Expression::FieldAccess(fa) => fa.try_into().ok().map(|fp: FieldPath| {
+                MatchQuery::Comparison(MatchLanguageComparison {
+                    function: MatchLanguageComparisonOp::Eq,
+                    input: Some(fp),
+                    arg: LiteralValue::Boolean(true),
+                    cache: SchemaCache::new(),
+                })
+            }),
             Expression::ScalarFunction(sf) => match sf.function {
                 ScalarFunction::And => Self::rewrite_logical(MatchLanguageLogicalOp::And, sf.args),
                 ScalarFunction::Or => Self::rewrite_logical(MatchLanguageLogicalOp::Or, sf.args),
                 ScalarFunction::In | ScalarFunction::NotIn => Self::rewrite_in(&sf),
+                // NOT is unary; only rewrite when it has exactly one operand,
+                // otherwise leave it in $expr language rather than emit a
+                // Logical{Not} we can't faithfully translate.
+                ScalarFunction::Not if sf.args.len() == 1 => {
+                    Self::rewrite_logical(MatchLanguageLogicalOp::Not, sf.args)
+                }
                 _ => None,
             },
             // Note this relies on ConstantFolding to ensure that the a constant expression becomes

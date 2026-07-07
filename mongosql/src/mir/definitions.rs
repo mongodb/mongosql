@@ -1047,6 +1047,7 @@ pub struct MatchLanguageLogical {
 pub enum MatchLanguageLogicalOp {
     Or,
     And,
+    Not,
 }
 
 #[derive(PartialEq, Debug, Clone)]
