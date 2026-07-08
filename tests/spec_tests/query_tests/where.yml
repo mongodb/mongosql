@@ -40,3 +40,16 @@ tests:
     result:
       - {'items': {'_id': 0, 'foo_bar': 2}}
       - {'items': {'_id': 4, 'foo_bar': 2}}
+
+  - description: WHERE with BOOLEAN field access
+    query: "SELECT * FROM [{'is_active': true, 'id': 1}, {'is_active': true, 'id': 2}, {'is_active': false, 'id': 3}] AS arr WHERE is_active"
+    current_db: test
+    result:
+      - {'arr': {'is_active': true, 'id': 1}}
+      - {'arr': {'is_active': true, 'id': 2}}
+
+  - description: WHERE with NEGATED BOOLEAN field access
+    query: "SELECT * FROM [{'is_active': true, 'id': 1}, {'is_active': true, 'id': 2}, {'is_active': false, 'id': 3}] AS arr WHERE NOT is_active"
+    current_db: test
+    result:
+      - { 'arr': { 'is_active': false, 'id': 3 } }

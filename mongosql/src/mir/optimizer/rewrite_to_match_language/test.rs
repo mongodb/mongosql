@@ -10,7 +10,7 @@ use crate::{
     },
     schema::{Atomic, Document, Schema, SchemaEnvironment},
     set, unchecked_unique_linked_hash_map,
-    util::{mir_collection, mir_field_access, mir_field_path},
+    util::{mir_collection, mir_field_access, mir_field_access_multi_part, mir_field_path},
     SchemaCheckingMode,
 };
 use agg_ast::definitions::Namespace;
@@ -172,7 +172,7 @@ fn comp_expr() -> Expression {
         ScalarFunction::Lt,
         vec![
             *mir_field_access("foo", "int", true),
-            Expression::Literal(LiteralValue::Integer(10)),
+            *mir_field_access("bar", "int", true),
         ],
     ))
 }
@@ -497,4 +497,145 @@ test_rewrite_to_match_language_no_op!(
         ],
         is_nullable: false,
     }))
+);
+
+test_rewrite_to_match_language!(
+    rewrite_boolean_field_access_to_equal_comparison,
+    expected = match_filter_stage(MatchQuery::Comparison(MatchLanguageComparison {
+        function: MatchLanguageComparisonOp::Eq,
+        input: Some(mir_field_path("is_active", vec!["bool"])),
+        arg: LiteralValue::Boolean(true),
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(*mir_field_access("is_active", "bool", true))
+);
+
+// NOT over a rewritable leaf (a bare boolean field access). This also pins the
+// expected unary shape of NOT: exactly one arg in, exactly one arg out.
+test_rewrite_to_match_language!(
+    rewrite_not_over_field_access,
+    expected = match_filter_stage(MatchQuery::Logical(MatchLanguageLogical {
+        op: MatchLanguageLogicalOp::Not,
+        args: vec![MatchQuery::Comparison(MatchLanguageComparison {
+            function: MatchLanguageComparisonOp::Eq,
+            input: Some(mir_field_path("foo", vec!["bool"])),
+            arg: LiteralValue::Boolean(true),
+            cache: SchemaCache::new(),
+        })],
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Not,
+        vec![*mir_field_access("foo", "bool", true)],
+    )))
+);
+
+// NOT wrapping a nested logical operation.
+test_rewrite_to_match_language!(
+    rewrite_not_over_conjunction,
+    expected = match_filter_stage(MatchQuery::Logical(MatchLanguageLogical {
+        op: MatchLanguageLogicalOp::Not,
+        args: vec![MatchQuery::Logical(MatchLanguageLogical {
+            op: MatchLanguageLogicalOp::And,
+            args: vec![valid_match_like(), valid_match_is()],
+            cache: SchemaCache::new(),
+        })],
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Not,
+        vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::And,
+            vec![valid_like(), valid_is()],
+        ))],
+    )))
+);
+
+// Double negation exercises the recursion in rewrite_condition.
+test_rewrite_to_match_language!(
+    rewrite_nested_not,
+    expected = match_filter_stage(MatchQuery::Logical(MatchLanguageLogical {
+        op: MatchLanguageLogicalOp::Not,
+        args: vec![MatchQuery::Logical(MatchLanguageLogical {
+            op: MatchLanguageLogicalOp::Not,
+            args: vec![valid_match_is()],
+            cache: SchemaCache::new(),
+        })],
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Not,
+        vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Not,
+            vec![valid_is()],
+        ))],
+    )))
+);
+
+// The inner comparison is not rewritable, so the whole NOT stays in expr language.
+test_rewrite_to_match_language_no_op!(
+    cannot_rewrite_not_over_comparison,
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Not,
+        vec![comp_expr()],
+    )))
+);
+
+// A multi-hop boolean field access rewrites to an equality against `true`.
+test_rewrite_to_match_language!(
+    rewrite_multipart_boolean_field_access,
+    expected = match_filter_stage(MatchQuery::Comparison(MatchLanguageComparison {
+        function: MatchLanguageComparisonOp::Eq,
+        input: Some(mir_field_path("foo", vec!["a", "b"])),
+        arg: LiteralValue::Boolean(true),
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(*mir_field_access_multi_part("foo", vec!["a", "b"], true))
+);
+
+// A boolean field access composes inside a logical operation.
+test_rewrite_to_match_language!(
+    rewrite_boolean_field_access_in_conjunction,
+    expected = match_filter_stage(MatchQuery::Logical(MatchLanguageLogical {
+        op: MatchLanguageLogicalOp::And,
+        args: vec![
+            MatchQuery::Comparison(MatchLanguageComparison {
+                function: MatchLanguageComparisonOp::Eq,
+                input: Some(mir_field_path("foo", vec!["int"])),
+                arg: LiteralValue::Boolean(true),
+                cache: SchemaCache::new(),
+            }),
+            valid_match_is(),
+        ],
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::And,
+        vec![*mir_field_access("foo", "int", true), valid_is()],
+    )))
+);
+
+// NOT is unary; a zero-arg NOT fails the arity guard and stays in expr language.
+test_rewrite_to_match_language_no_op!(
+    cannot_rewrite_not_with_zero_args,
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Not,
+        vec![],
+    )))
+);
+
+// NOT is unary; a multi-arg NOT fails the arity guard and stays in expr language
+// rather than silently dropping the extra operand.
+test_rewrite_to_match_language_no_op!(
+    cannot_rewrite_not_with_multiple_args,
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Not,
+        vec![valid_is(), valid_like()],
+    )))
 );
