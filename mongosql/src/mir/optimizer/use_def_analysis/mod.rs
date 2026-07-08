@@ -412,6 +412,14 @@ struct SubstituteVisitor {
     theta: HashMap<Key, Expression>,
     // Substitution can fail when trying to substitute a FieldPath
     failed: bool,
+    // When true, a FieldPath whose key is absent from theta is left unchanged (a no-op success)
+    // rather than failing. This mirrors how `visit_expression` treats an unbound `Reference`, and
+    // lets a MatchFilter bubble past stages with an empty theta (Unwind, Derived) the way an
+    // `$expr` Filter already does. It is left false for Sort, whose substitution must keep failing
+    // on a missing key: that failure is what prevents a Sort from reordering past a Filter or
+    // MatchFilter (which would otherwise loop forever, since `is_filter_filter_only_change` does
+    // not exempt Sort swaps).
+    noop_on_missing_key: bool,
 }
 
 impl Visitor for SubstituteVisitor {
@@ -428,7 +436,18 @@ impl Visitor for SubstituteVisitor {
     }
 
     fn visit_field_path(&mut self, mut node: FieldPath) -> FieldPath {
-        if let Some(rep) = self.theta.get(&node.key) {
+        let Some(rep) = self.theta.get(&node.key) else {
+            // The path's key is not defined (renamed) by this source. For a MatchFilter
+            // (noop_on_missing_key), substitution is a no-op: leave the path unchanged,
+            // mirroring `visit_expression`'s handling of an unbound `Reference`, so it can
+            // bubble past empty-theta stages (Unwind, Derived). For a Sort, this must fail
+            // (see the field docs) to prevent reordering loops with Filter/MatchFilter.
+            if !self.noop_on_missing_key {
+                self.failed = true;
+            }
+            return node;
+        };
+        {
             if self.failed {
                 return node;
             }
@@ -528,6 +547,7 @@ impl Project {
         let mut visitor = SubstituteVisitor {
             theta,
             failed: false,
+            noop_on_missing_key: false,
         };
         let mut subbed_keys = BindingTuple::default();
         let mut failed = false;
@@ -561,6 +581,7 @@ impl Group {
         let mut visitor = SubstituteVisitor {
             theta,
             failed: false,
+            noop_on_missing_key: false,
         };
         let cloned_keys = self.keys.clone();
         let mut subbed_keys = Vec::new();
@@ -607,6 +628,7 @@ impl Stage {
         let mut visitor = SubstituteVisitor {
             theta,
             failed: false,
+            noop_on_missing_key: false,
         };
         // We only implement substitute for Stages we intend to move for which substitution makes
         // sense: Filter, Group, and Sort. Substitution is unneeded for Limit and Offset.
@@ -625,6 +647,11 @@ impl Stage {
                 Ok(Stage::Filter(f))
             }
             Stage::MqlIntrinsic(MqlStage::MatchFilter(mut f)) => {
+                // A MatchFilter's field references are unaffected by a source that does not
+                // rename their key, so treat a missing key as a no-op (like an `$expr` Filter)
+                // rather than a substitution failure. This lets it bubble past empty-theta
+                // stages such as Unwind and Derived.
+                visitor.noop_on_missing_key = true;
                 let subbed = visitor.visit_match_query(f.condition.clone());
                 if visitor.failed {
                     return Err(Box::new(Stage::MqlIntrinsic(MqlStage::MatchFilter(f))));

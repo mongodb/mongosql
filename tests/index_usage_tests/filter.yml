@@ -84,9 +84,11 @@ tests:
     expected_index_bounds:
       - { "a": [ "(null, MaxKey]" ] }
 
-  - description: simple column NE scalar filter uses collection scan when fields are non-nullable
+  - description: simple column NE scalar filter uses index scan when fields are non-nullable
     current_db: index_usage_filter
     query: "SELECT * FROM non_nullable_fields WHERE a <> 100"
+    # Rewriting `<>` to native match language ({a: {$ne: 100}}) lets the server use an
+    # index scan (bounds (null, MaxKey]) instead of a $expr COLL_SCAN.
     expected_utilization: IX_SCAN
 
   - description: simple column BETWEEN scalar filter uses index scan when fields are nullable

@@ -650,6 +650,11 @@ impl StageMovementVisitor<'_> {
                     | Stage::Array(_)
                     | Stage::Sort(_)
                     | Stage::Group(_)
+                    // A Sort must not move above an Unwind: unwinding multiplies rows, so
+                    // sorting before the unwind does not preserve the post-unwind ordering.
+                    // (Previously this was prevented only incidentally by substitution failing
+                    // on the empty theta of an Unwind; that now succeeds, so guard explicitly.)
+                    | Stage::Unwind(_)
                     | Stage::MqlIntrinsic(MqlStage::LateralJoin(_))
             ),
             Stage::Filter(ref n) => matches!(&*n.source, Stage::Collection(_) | Stage::Array(_)),

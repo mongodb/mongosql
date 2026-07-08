@@ -2493,3 +2493,83 @@ test_move_stage!(
         cache: SchemaCache::new(),
     }),
 );
+
+test_move_stage!(
+    move_match_filter_above_unwind_when_field_not_opaque,
+    expected = Stage::Unwind(Unwind {
+        source: Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
+            source: mir_collection("foo", "bar"),
+            condition: MatchQuery::Comparison(MatchLanguageComparison {
+                function: MatchLanguageComparisonOp::Eq,
+                input: Some(mir_field_path("bar", vec!["z"])),
+                arg: LiteralValue::Integer(1),
+                cache: SchemaCache::new(),
+            }),
+            cache: SchemaCache::new(),
+        })))
+        .into(),
+        path: mir_field_path("bar", vec!["y"]),
+        index: None,
+        outer: false,
+        cache: SchemaCache::new(),
+        is_prefiltered: false,
+    }),
+    expected_changed = true,
+    input = Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
+        source: Stage::Unwind(Unwind {
+            source: mir_collection("foo", "bar"),
+            path: mir_field_path("bar", vec!["y"]),
+            index: None,
+            outer: false,
+            cache: SchemaCache::new(),
+            is_prefiltered: false,
+        })
+        .into(),
+        condition: MatchQuery::Comparison(MatchLanguageComparison {
+            function: MatchLanguageComparisonOp::Eq,
+            input: Some(mir_field_path("bar", vec!["z"])),
+            arg: LiteralValue::Integer(1),
+            cache: SchemaCache::new(),
+        }),
+        cache: SchemaCache::new(),
+    }))),
+);
+
+test_move_stage_no_op!(
+    match_filter_does_not_move_above_unwind_when_field_is_opaque,
+    Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
+        source: Stage::Unwind(Unwind {
+            source: mir_collection("foo", "bar"),
+            path: mir_field_path("bar", vec!["y"]),
+            index: None,
+            outer: false,
+            cache: SchemaCache::new(),
+            is_prefiltered: false,
+        })
+        .into(),
+        condition: MatchQuery::Comparison(MatchLanguageComparison {
+            function: MatchLanguageComparisonOp::Eq,
+            input: Some(mir_field_path("bar", vec!["y"])),
+            arg: LiteralValue::Integer(1),
+            cache: SchemaCache::new(),
+        }),
+        cache: SchemaCache::new(),
+    })))
+);
+
+test_move_stage_no_op!(
+    sort_does_not_move_above_unwind,
+    Stage::Sort(Sort {
+        source: Stage::Unwind(Unwind {
+            source: mir_collection("foo", "bar"),
+            path: mir_field_path("bar", vec!["y"]),
+            index: None,
+            outer: false,
+            cache: SchemaCache::new(),
+            is_prefiltered: false,
+        })
+        .into(),
+        specs: vec![SortSpecification::Asc(mir_field_path("bar", vec!["z"]))],
+        cache: SchemaCache::new(),
+    })
+);
