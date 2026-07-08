@@ -1763,6 +1763,10 @@ impl Schema {
             .cartesian_product(other_set.iter().cloned())
             .collect()
     }
+
+    pub fn get_array_item_schema(&self) -> Option<Self> {
+        unimplemented!()
+    }
 }
 
 impl From<Type> for Schema {
