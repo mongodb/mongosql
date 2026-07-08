@@ -1765,7 +1765,22 @@ impl Schema {
     }
 
     pub fn get_array_item_schema(&self) -> Option<Self> {
-        unimplemented!()
+        match self {
+            // If the schema is an array, return the item schema
+            Schema::Array(item_schema) => Some(item_schema.as_ref().clone()),
+            // Return an AnyOf of the item schemas of any Array elements of the AnyOf
+            AnyOf(ao) => ao.iter().fold(None, |acc, s| match s.get_array_item_schema() {
+                None => acc,
+                Some(schema) => match acc {
+                    None => Some(schema),
+                    Some(acc) => Some(acc.union(&schema)),
+                },
+            }),
+            // Any could be an Array<Any>, so we return Any
+            Schema::Any => Some(Schema::Any),
+            // These are never Arrays, so they return None
+            Unsat | Schema::Missing | Schema::Atomic(_) | Schema::Document(_) => None,
+        }
     }
 }
 
