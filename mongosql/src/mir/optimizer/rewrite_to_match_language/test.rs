@@ -172,7 +172,7 @@ fn comp_expr() -> Expression {
         ScalarFunction::Lt,
         vec![
             *mir_field_access("foo", "int", true),
-            Expression::Literal(LiteralValue::Integer(10)),
+            *mir_field_access("bar", "int", true),
         ],
     ))
 }
