@@ -1971,7 +1971,7 @@ impl ScalarFunction {
         if arg_schemas.is_empty() {
             return Err(Error::IncorrectArgumentCount {
                 name: self.as_str(),
-                required: IncorrectArgCountPrecision::Exact(1),
+                required: IncorrectArgCountPrecision::Minimum(1),
                 found: 0,
             });
         }

@@ -3062,7 +3062,7 @@ mod coalesce {
         expected_error_code = 1001,
         expected = Err(mir_error::IncorrectArgumentCount {
             name: "Coalesce",
-            required: IncorrectArgCountPrecision::Exact(1),
+            required: IncorrectArgCountPrecision::Minimum(1),
             found: 0,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
