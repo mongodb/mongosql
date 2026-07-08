@@ -17,7 +17,7 @@ pub enum Error {
     DatasourceNotFoundInSchemaEnv(binding_tuple::Key),
     IncorrectArgumentCount {
         name: &'static str,
-        required: usize,
+        required: IncorrectArgCountPrecision,
         found: usize,
     },
     SchemaChecking {
@@ -35,6 +35,21 @@ pub enum Error {
     GroupKeyNotSelfComparable(usize, Box<Schema>),
     UnwindIndexNameConflict(String),
     CollectionNotFound(String, String),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum IncorrectArgCountPrecision {
+    Exact(usize),
+    Minimum(usize),
+}
+
+impl std::fmt::Display for IncorrectArgCountPrecision {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            IncorrectArgCountPrecision::Exact(n) => write!(f, "exactly {n}"),
+            IncorrectArgCountPrecision::Minimum(n) => write!(f, "at least {n}"),
+        }
+    }
 }
 
 impl UserError for Error {

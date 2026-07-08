@@ -3,7 +3,10 @@ use crate::{
     map,
     mir::{
         binding_tuple,
-        schema::util::{lift_array_schemas, set_field_schema},
+        schema::{
+            errors::IncorrectArgCountPrecision,
+            util::{lift_array_schemas, set_field_schema},
+        },
         *,
     },
     schema::{
@@ -1383,7 +1386,18 @@ trait SqlFunction {
         if found != required {
             return Err(Error::IncorrectArgumentCount {
                 name: self.as_str(),
-                required,
+                required: IncorrectArgCountPrecision::Exact(required),
+                found,
+            });
+        }
+        Ok(())
+    }
+
+    fn ensure_minimum_arg_count(&self, found: usize, required: usize) -> Result<(), Error> {
+        if found < required {
+            return Err(Error::IncorrectArgumentCount {
+                name: self.as_str(),
+                required: IncorrectArgCountPrecision::Minimum(required),
                 found,
             });
         }
@@ -1517,7 +1531,7 @@ trait SqlFunction {
         let [in_operator_lhs, in_operator_rhs] = arg_schema else {
             return Err(Error::IncorrectArgumentCount {
                 name: self.as_str(),
-                required: 2,
+                required: IncorrectArgCountPrecision::Exact(2),
                 found: arg_schema.len(),
             });
         };
@@ -1713,19 +1727,28 @@ impl ScalarFunction {
         use ScalarFunction::*;
         match self {
             // String operators.
-            Concat => self.propagate_fixed_null_arguments(
-                state,
-                arg_schemas,
-                &[STRING_OR_NULLISH.clone(), STRING_OR_NULLISH.clone()],
-                Schema::Atomic(Atomic::String),
-            ),
+            Concat => {
+                // Concat is a variadic operator, but we require it have at least two arguments.
+                self.ensure_minimum_arg_count(arg_schemas.len(), 2)?;
+                self.propagate_variadic_null_arguments(
+                    state,
+                    arg_schemas,
+                    STRING_OR_NULLISH.clone(),
+                    Schema::Atomic(Atomic::String),
+                )
+            }
             // Unary arithmetic operators.
             Pos | Neg | Abs | Ceil | Floor => {
                 self.ensure_arg_count(arg_schemas.len(), 1)?;
                 self.get_arithmetic_schema(state, arg_schemas)
             }
             // Arithmetic operators with variadic arguments.
-            Add | Mul => self.get_arithmetic_schema(state, arg_schemas),
+            Add | Mul => {
+                // Add and Mul are variadic operators, but we require them to have at least two
+                // arguments.
+                self.ensure_minimum_arg_count(arg_schemas.len(), 2)?;
+                self.get_arithmetic_schema(state, arg_schemas)
+            }
             // Arithmetic operators with fixed (two) arguments.
             Sub | Div => {
                 self.ensure_arg_count(arg_schemas.len(), 2)?;
@@ -1800,12 +1823,17 @@ impl ScalarFunction {
                 from_ref(&BOOLEAN_OR_NULLISH),
                 Schema::Atomic(Atomic::Boolean),
             ),
-            And | Or => self.propagate_variadic_null_arguments(
-                state,
-                arg_schemas,
-                BOOLEAN_OR_NULLISH.clone(),
-                Schema::Atomic(Atomic::Boolean),
-            ),
+            And | Or => {
+                // And and Or are variadic operators, but we require them to have at least two
+                // arguments.
+                self.ensure_minimum_arg_count(arg_schemas.len(), 2)?;
+                self.propagate_variadic_null_arguments(
+                    state,
+                    arg_schemas,
+                    BOOLEAN_OR_NULLISH.clone(),
+                    Schema::Atomic(Atomic::Boolean),
+                )
+            }
             // Computed Field Access operator when the field is not known until runtime.
             ComputedFieldAccess => {
                 self.schema_check_fixed_args(
@@ -1943,7 +1971,7 @@ impl ScalarFunction {
         if arg_schemas.is_empty() {
             return Err(Error::IncorrectArgumentCount {
                 name: self.as_str(),
-                required: 1,
+                required: IncorrectArgCountPrecision::Minimum(1),
                 found: 0,
             });
         }
