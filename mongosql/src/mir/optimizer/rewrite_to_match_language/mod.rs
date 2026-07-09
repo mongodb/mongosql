@@ -285,18 +285,7 @@ impl MatchLanguageRewriterVisitor {
             return Some(comparison);
         }
 
-        let null_guard = MatchQuery::Comparison(MatchLanguageComparison {
-            function: MatchLanguageComparisonOp::Gt,
-            input: Some(field_path),
-            arg: LiteralValue::Null,
-            cache: SchemaCache::new(),
-        });
-
-        Some(MatchQuery::Logical(MatchLanguageLogical {
-            op: MatchLanguageLogicalOp::And,
-            args: vec![null_guard, comparison],
-            cache: SchemaCache::new(),
-        }))
+        Some(comparison)
     }
 
     // Only rewrite a condition that consists of Is, Like, or a logical operation

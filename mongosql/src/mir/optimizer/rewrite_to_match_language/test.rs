@@ -215,9 +215,9 @@ test_rewrite_to_match_language_no_op!(
     filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
         function: ScalarFunction::And,
         args: vec![
-            valid_is(),   // rewritable
-            valid_like(), // rewritable
-            invalid_expr(),  // not rewritable - invalid expression
+            valid_is(),     // rewritable
+            valid_like(),   // rewritable
+            invalid_expr(), // not rewritable - invalid expression
         ],
         is_nullable: true,
     }))
@@ -239,9 +239,9 @@ test_rewrite_to_match_language_no_op!(
     filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
         function: ScalarFunction::Or,
         args: vec![
-            valid_is(),   // rewritable
-            valid_like(), // rewritable
-            invalid_expr(),  // not rewritable - invalid expression
+            valid_is(),     // rewritable
+            valid_like(),   // rewritable
+            invalid_expr(), // not rewritable - invalid expression
         ],
         is_nullable: true,
     }))
@@ -668,65 +668,46 @@ fn match_comparison(function: MatchLanguageComparisonOp) -> MatchQuery {
     })
 }
 
-// The `{foo.int: {$gt: null}}` existence guard added for nullable fields.
-fn null_guard() -> MatchQuery {
-    MatchQuery::Comparison(MatchLanguageComparison {
-        function: MatchLanguageComparisonOp::Gt,
-        input: Some(mir_field_path("foo", vec!["int"])),
-        arg: LiteralValue::Null,
-        cache: SchemaCache::new(),
-    })
-}
-
-// A nullable comparison is guarded: `{$and: [{field: {$gt: null}}, {field: {op: 10}}]}`.
-fn guarded_comparison(function: MatchLanguageComparisonOp) -> MatchQuery {
-    MatchQuery::Logical(MatchLanguageLogical {
-        op: MatchLanguageLogicalOp::And,
-        args: vec![null_guard(), match_comparison(function)],
-        cache: SchemaCache::new(),
-    })
-}
-
 // Over a nullable field, every comparison is wrapped in the null guard so that
 // null/missing documents are excluded, matching SQL three-valued semantics.
 test_rewrite_to_match_language!(
     rewrite_gt_over_nullable_field,
-    expected = match_filter_stage(guarded_comparison(MatchLanguageComparisonOp::Gt)),
+    expected = match_filter_stage(match_comparison(MatchLanguageComparisonOp::Gt)),
     expected_changed = true,
     input = filter_stage(comparison(ScalarFunction::Gt, true))
 );
 
 test_rewrite_to_match_language!(
     rewrite_gte_over_nullable_field,
-    expected = match_filter_stage(guarded_comparison(MatchLanguageComparisonOp::Gte)),
+    expected = match_filter_stage(match_comparison(MatchLanguageComparisonOp::Gte)),
     expected_changed = true,
     input = filter_stage(comparison(ScalarFunction::Gte, true))
 );
 
 test_rewrite_to_match_language!(
     rewrite_eq_over_nullable_field,
-    expected = match_filter_stage(guarded_comparison(MatchLanguageComparisonOp::Eq)),
+    expected = match_filter_stage(match_comparison(MatchLanguageComparisonOp::Eq)),
     expected_changed = true,
     input = filter_stage(comparison(ScalarFunction::Eq, true))
 );
 
 test_rewrite_to_match_language!(
     rewrite_lt_over_nullable_field,
-    expected = match_filter_stage(guarded_comparison(MatchLanguageComparisonOp::Lt)),
+    expected = match_filter_stage(match_comparison(MatchLanguageComparisonOp::Lt)),
     expected_changed = true,
     input = filter_stage(comparison(ScalarFunction::Lt, true))
 );
 
 test_rewrite_to_match_language!(
     rewrite_lte_over_nullable_field,
-    expected = match_filter_stage(guarded_comparison(MatchLanguageComparisonOp::Lte)),
+    expected = match_filter_stage(match_comparison(MatchLanguageComparisonOp::Lte)),
     expected_changed = true,
     input = filter_stage(comparison(ScalarFunction::Lte, true))
 );
 
 test_rewrite_to_match_language!(
     rewrite_neq_over_nullable_field,
-    expected = match_filter_stage(guarded_comparison(MatchLanguageComparisonOp::Ne)),
+    expected = match_filter_stage(match_comparison(MatchLanguageComparisonOp::Ne)),
     expected_changed = true,
     input = filter_stage(comparison(ScalarFunction::Neq, true))
 );
@@ -751,7 +732,7 @@ test_rewrite_to_match_language!(
 // side: `10 < foo.int` becomes `foo.int > 10` (guarded because the field is nullable).
 test_rewrite_to_match_language!(
     rewrite_comparison_commutes_literal_on_left,
-    expected = match_filter_stage(guarded_comparison(MatchLanguageComparisonOp::Gt)),
+    expected = match_filter_stage(match_comparison(MatchLanguageComparisonOp::Gt)),
     expected_changed = true,
     input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
         ScalarFunction::Lt,
@@ -768,8 +749,8 @@ test_rewrite_to_match_language!(
     expected = match_filter_stage(MatchQuery::Logical(MatchLanguageLogical {
         op: MatchLanguageLogicalOp::And,
         args: vec![
-            guarded_comparison(MatchLanguageComparisonOp::Gt),
-            guarded_comparison(MatchLanguageComparisonOp::Lt),
+            match_comparison(MatchLanguageComparisonOp::Gt),
+            match_comparison(MatchLanguageComparisonOp::Lt),
         ],
         cache: SchemaCache::new(),
     })),
@@ -789,8 +770,8 @@ test_rewrite_to_match_language!(
     expected = match_filter_stage(MatchQuery::Logical(MatchLanguageLogical {
         op: MatchLanguageLogicalOp::Or,
         args: vec![
-            guarded_comparison(MatchLanguageComparisonOp::Gt),
-            guarded_comparison(MatchLanguageComparisonOp::Lt),
+            match_comparison(MatchLanguageComparisonOp::Gt),
+            match_comparison(MatchLanguageComparisonOp::Lt),
         ],
         cache: SchemaCache::new(),
     })),
@@ -809,7 +790,7 @@ test_rewrite_to_match_language!(
     rewrite_not_over_comparison,
     expected = match_filter_stage(MatchQuery::Logical(MatchLanguageLogical {
         op: MatchLanguageLogicalOp::Not,
-        args: vec![guarded_comparison(MatchLanguageComparisonOp::Gte)],
+        args: vec![match_comparison(MatchLanguageComparisonOp::Gte)],
         cache: SchemaCache::new(),
     })),
     expected_changed = true,
