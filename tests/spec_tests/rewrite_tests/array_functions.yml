@@ -1,0 +1,74 @@
+tests:
+  #################################
+  ########### MAP Tests ###########
+  #################################
+  - description: Rewrite ARRAY_CAST to MAP
+    query: "SELECT ARRAY_CAST(`array`, STRING) FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result: "SELECT VALUE {'_1': MAP(`array`, CAST(this AS STRING))} FROM foo AS foo"
+
+  - description: Rewrite ARRAY_EXTRACT to MAP
+    query: "SELECT ARRAY_EXTRACT(`array`, a.b.c) FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result: "SELECT VALUE {'_1': MAP(`array`, this.a.b.c)} FROM foo AS foo"
+
+  #################################
+  ######### FILTER Tests ##########
+  #################################
+  - description: Rewrite ARRAY_COMPACT to FILTER
+    query: "SELECT ARRAY_COMPACT(`array`) FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result: "SELECT VALUE {'_1': FILTER(`array`, this IS NOT NULL)} FROM foo AS foo"
+
+  - description: Rewrite ARRAY_REMOVE to FILTER
+    query: "SELECT ARRAY_REMOVE(`array`, x) FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result: "SELECT VALUE {'_1': FILTER(`array`, this <> x)} FROM foo AS foo"
+
+  - description: Rewrite ARRAY_COUNT_IF to FILTER
+    query: "SELECT ARRAY_COUNT_IF(`array`, this > y) FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result: "SELECT VALUE {'_1': SIZE(FILTER(`array`, this > y))} FROM foo AS foo"
+
+  #################################
+  ######### REDUCE Tests ##########
+  #################################
+  - description: Rewrite ARRAY_SUM to REDUCE
+    query: "SELECT ARRAY_SUM(`array`) FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result: "SELECT VALUE {'_1': REDUCE(`array`, 0, this + value)} FROM foo AS foo"
+
+  - description: Rewrite ARRAY_PRODUCT to REDUCE
+    query: "SELECT ARRAY_PRODUCT(`array`) FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result: "SELECT VALUE {'_1': REDUCE(`array`, 1, this * value)} FROM foo AS foo"
+
+  - description: Rewrite ARRAY_AVG to REDUCE
+    query: "SELECT ARRAY_AVG(`array`) FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result: "SELECT VALUE {'_1': REDUCE(`array`, 0, this + value) / SIZE(`array`)} FROM foo AS foo"
+
+  - description: Rewrite ARRAY_ALL to REDUCE
+    query: "SELECT ARRAY_ALL(`array`) FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result: "SELECT VALUE {'_1': REDUCE(`array`, TRUE, value AND this)} FROM foo AS foo"
+
+  - description: Rewrite ARRAY_ANY to REDUCE
+    query: "SELECT ARRAY_ANY(`array`) FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result: "SELECT VALUE {'_1': REDUCE(`array`, FALSE, value OR this)} FROM foo AS foo"
+
+  - description: Rewrite ARRAY_JOIN without separator to REDUCE
+    query: "SELECT ARRAY_JOIN(`array`) FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result: "SELECT VALUE {'_1': REDUCE(`array`, '', value || this)} FROM foo AS foo"
+
+  - description: Rewrite ARRAY_JOIN with empty separator to REDUCE
+    query: "SELECT ARRAY_JOIN(`array`, '') FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result: "SELECT VALUE {'_1': REDUCE(`array`, '', value || this)} FROM foo AS foo"
+
+  - description: Rewrite ARRAY_JOIN with non-empty separator to REDUCE
+    query: "SELECT ARRAY_JOIN(`array`, ',') FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    result: "SELECT VALUE {'_1': TRIM(LEADING ',' FROM REDUCE(`array`, '', value || ',' || this))} FROM foo AS foo"

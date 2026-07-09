@@ -1,0 +1,37 @@
+variables:
+  any: &any ["ARRAY", "BINDATA", "BOOL", "BSON_DATE", "BSON_TIMESTAMP", "DBPOINTER", "DECIMAL", "DOCUMENT", "DOUBLE", "INT", "JAVASCRIPT", "JAVASCRIPTWITHSCOPE", "LONG", "MAXKEY", "MINKEY", "NULL", "OBJECTID", "REGEX", "STRING", "SYMBOL", "UNDEFINED"]
+
+tests:
+  # For MAP, the first operand must be an array (and may be null or missing). The second operand
+  # can be any type. In general, these type constraint tests do not enforce the rules of the "this"
+  # and/or "value" variables. For MAP, "this" references are constrained to the inner type of the
+  # array schema of the first argument.
+  - description: MAP operand type constraints
+    query: "SELECT MAP(arg1, arg2) FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    valid_types:
+      - { "arg1": ["ARRAY", "NULL"], "arg2": *any }
+
+  # For FILTER, the first operand must be an array (and may be null or missing). The second operand
+  # must be a boolean (and may be null). In general, these type constraint tests do not enforce the
+  # rules of the "this" and/or "value" variables. For FILTER, "this" references are constrained to
+  # the inner type of the array schema of the first argument.
+  - description: FILTER operand type constraints
+    query: "SELECT FILTER(arg1, arg2) FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    valid_types:
+      - { "arg1": ["ARRAY", "NULL"], "arg2": ["BOOL", "NULL"] }
+
+  # For REDUCE, the first operand must be an array (and may be null or missing). The second operand
+  # can be any type, and the third operand can also be any type. In general, these type constraint
+  # tests do not enforce the rules of the "this" and/or "value" variables. For REDUCE, "this"
+  # references are constrained to the inner type of the array schema of the first argument. Also,
+  # "value" references are constrained to the type of the second argument or the output of the third
+  # argument. The schema of the second argument can be the same as, a subset of, a superset of, or
+  # distinct from the schema of the third argument. As long as the union of the two schemas does not
+  # result in "value" violating any schema constraints of its appearances, the expression is valid.
+  - description: REDUCE operand type constraints
+    query: "SELECT REDUCE(arg1, arg2, arg3) FROM foo"
+    skip_reason: "SQL-3298: Finish support for higher order functions"
+    valid_types:
+      - { "arg1": ["ARRAY", "NULL"], "arg2": *any, "arg3": *any }

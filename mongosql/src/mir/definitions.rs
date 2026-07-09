@@ -262,6 +262,8 @@ pub enum Expression {
     Subquery(SubqueryExpr),
     SubqueryComparison(SubqueryComparison),
     TypeAssertion(TypeAssertionExpr),
+    HigherOrderFunction(HigherOrderFunctionApplication),
+    Variable(Variable),
 
     // Special variants that only exists for optimization purposes;
     // these do not represent actual MongoSql constructs.
@@ -289,6 +291,10 @@ impl Expression {
             Expression::Subquery(x) => x.is_nullable,
             Expression::SubqueryComparison(x) => x.is_nullable,
             Expression::TypeAssertion(x) => x.expr.is_nullable(),
+            Expression::HigherOrderFunction(HigherOrderFunctionApplication::Map(x)) => x.is_nullable,
+            Expression::HigherOrderFunction(HigherOrderFunctionApplication::Filter(x)) => x.is_nullable,
+            Expression::HigherOrderFunction(HigherOrderFunctionApplication::Reduce(x)) => x.is_nullable,
+            Expression::Variable(x) => x.is_nullable,
         }
     }
 
@@ -301,6 +307,10 @@ impl Expression {
             Expression::SearchedCase(x) => x.is_nullable = value,
             Expression::SimpleCase(x) => x.is_nullable = value,
             Expression::SubqueryComparison(x) => x.is_nullable = value,
+            Expression::HigherOrderFunction(HigherOrderFunctionApplication::Map(x)) => x.is_nullable = value,
+            Expression::HigherOrderFunction(HigherOrderFunctionApplication::Filter(x)) => x.is_nullable = value,
+            Expression::HigherOrderFunction(HigherOrderFunctionApplication::Reduce(x)) => x.is_nullable = value,
+            Expression::Variable(x) => x.is_nullable = value,
             Expression::Array(_) => (),
             Expression::Document(_) => (),
             Expression::Exists(_) => (),
@@ -903,6 +913,45 @@ pub enum SubqueryComparisonOp {
 pub enum SubqueryModifier {
     Any,
     All,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum HigherOrderFunctionApplication {
+    Map(MapExpr),
+    Filter(FilterExpr),
+    Reduce(ReduceExpr),
+}
+
+#[derive(PartialEq, Debug, Clone, new)]
+pub struct MapExpr {
+    pub array: Box<Expression>,
+    pub f: Box<Expression>,
+    #[new(value = "true")]
+    pub is_nullable: bool,
+}
+
+#[derive(PartialEq, Debug, Clone, new)]
+pub struct FilterExpr {
+    pub array: Box<Expression>,
+    pub f: Box<Expression>,
+    #[new(value = "true")]
+    pub is_nullable: bool,
+}
+
+#[derive(PartialEq, Debug, Clone, new)]
+pub struct ReduceExpr {
+    pub array: Box<Expression>,
+    pub init_value: Box<Expression>,
+    pub f: Box<Expression>,
+    #[new(value = "true")]
+    pub is_nullable: bool,
+}
+
+#[derive(PartialEq, Debug, Clone, new)]
+pub struct Variable {
+    pub name: String,
+    #[new(value = "true")]
+    pub is_nullable: bool,
 }
 
 #[derive(PartialEq, Debug, Clone)]

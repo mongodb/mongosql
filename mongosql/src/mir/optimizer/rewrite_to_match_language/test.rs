@@ -175,7 +175,7 @@ fn invalid_expr() -> Expression {
         ScalarFunction::Add,
         vec![
             *mir_field_access("foo", "int", true),
-            Expression::Literal(LiteralValue::Integer(10)),
+            *mir_field_access("bar", "int", true),
         ],
     ))
 }
@@ -215,9 +215,9 @@ test_rewrite_to_match_language_no_op!(
     filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
         function: ScalarFunction::And,
         args: vec![
-            valid_is(),     // rewritable
-            valid_like(),   // rewritable
-            invalid_expr(), // not rewritable - invalid expression
+            valid_is(),   // rewritable
+            valid_like(), // rewritable
+            invalid_expr(),  // not rewritable - invalid expression
         ],
         is_nullable: true,
     }))
@@ -239,9 +239,9 @@ test_rewrite_to_match_language_no_op!(
     filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
         function: ScalarFunction::Or,
         args: vec![
-            valid_is(),     // rewritable
-            valid_like(),   // rewritable
-            invalid_expr(), // not rewritable - invalid expression
+            valid_is(),   // rewritable
+            valid_like(), // rewritable
+            invalid_expr(),  // not rewritable - invalid expression
         ],
         is_nullable: true,
     }))

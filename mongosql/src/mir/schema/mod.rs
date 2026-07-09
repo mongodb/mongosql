@@ -1153,6 +1153,8 @@ impl Expression {
                     Satisfaction::Must => Ok(Schema::Atomic(Atomic::Null)),
                 }
             }
+            Expression::HigherOrderFunction(_) => unimplemented!("SQL-3292"),
+            Expression::Variable(_) => unimplemented!("SQL-3292"),
             Expression::MqlIntrinsicFieldExistence(_) => Ok(Schema::Atomic(Atomic::Boolean)),
         }
     }

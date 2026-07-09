@@ -1003,6 +1003,8 @@ impl Visitor for ConstantFoldExprVisitor<'_> {
             Expression::SubqueryComparison(_) => (e, false),
             Expression::Subquery(_) => (e, false),
             Expression::TypeAssertion(_) => (e, false),
+            Expression::HigherOrderFunction(_) => (e, false),
+            Expression::Variable(_) => (e, false),
             Expression::MqlIntrinsicFieldExistence(f) => {
                 // Patrick: we clone in case somehow the field access is mutated into a non-field access by
                 // fold_field_access_expr. This would imply a bug in our code generation, *I

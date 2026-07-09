@@ -1244,3 +1244,44 @@ mod precedence_tests {
         );
     }
 }
+
+// TODO: unskip as part of SQL-3298
+// mod higher_order_function {
+//     use super::*;
+//
+//     expression_printer_test!(
+//         map_with_expr_arg,
+//         expected = "MAP(a, this + 1)",
+//         input = "MAP(a, this+1)"
+//     );
+//
+//     expression_printer_test!(
+//         map_with_named_function_arg,
+//         expected = "MAP(a, LOWER)",
+//         input = "MAP(a, LOWER)"
+//     );
+//
+//     expression_printer_test!(
+//         filter_with_expr_arg,
+//         expected = "FILTER(a, this = 1)",
+//         input = "FILTER(a, this=1)"
+//     );
+//
+//     expression_printer_test!(
+//         filter_with_named_function_arg,
+//         expected = "FILTER(a, NOT)",
+//         input = "FILTER(a, NOT)"
+//     );
+//
+//     expression_printer_test!(
+//         reduce_with_expr_arg,
+//         expected = "REDUCE(a, 0, this + value)",
+//         input = "REDUCE(a, 0, this+value)"
+//     );
+//
+//     expression_printer_test!(
+//         reduce_with_named_function_arg,
+//         expected = "REDUCE(a, 1, *)",
+//         input = "REDUCE(a, 1, *)"
+//     );
+// }
