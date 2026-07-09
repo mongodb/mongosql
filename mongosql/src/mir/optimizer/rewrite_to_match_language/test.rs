@@ -843,3 +843,87 @@ test_rewrite_to_match_language_no_op!(
         ],
     )))
 );
+
+// -------------------------------------------------------------------------
+// Delimited identifiers containing `$` and `.`
+// -------------------------------------------------------------------------
+
+// A delimited identifier like `$a.b` is a single field whose name literally
+// contains a `$` and a `.`. The FieldAccess -> FieldPath conversion must
+// preserve it as one path component (not split on `.`, not drop the `$a`).
+#[test]
+fn field_access_with_dollar_and_dot_converts_to_single_component_path() {
+    let fa = match *mir_field_access("foo", "$a.b", true) {
+        Expression::FieldAccess(fa) => fa,
+        _ => unreachable!(),
+    };
+    let fp: FieldPath = fa.try_into().unwrap();
+    assert_eq!(fp, mir_field_path("foo", vec!["$a.b"]));
+    // Assert on `fields` directly: FieldPath's PartialEq ignores is_nullable
+    // and we want the component boundary to be explicit here.
+    assert_eq!(fp.fields, vec!["$a.b".to_string()]);
+}
+
+// A field whose name starts with `$` and contains `.` (the delimited SQL
+// identifier `$a.b`) cannot be addressed by native match language, so the
+// comparison stays in $expr where the $getField translation handles it.
+test_rewrite_to_match_language_no_op!(
+    cannot_rewrite_comparison_over_dollar_dot_field,
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Eq,
+        vec![
+            *mir_field_access("foo", "$a.b", true),
+            Expression::Literal(LiteralValue::Integer(4)),
+        ],
+    )))
+);
+
+// A field name containing an interior `.` reads as a nested path in native
+// match language, so it must stay in $expr.
+test_rewrite_to_match_language_no_op!(
+    cannot_rewrite_comparison_over_dotted_field,
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Eq,
+        vec![
+            *mir_field_access("foo", "a.b", true),
+            Expression::Literal(LiteralValue::Integer(4)),
+        ],
+    )))
+);
+
+// An empty field name cannot be addressed natively, so it stays in $expr.
+test_rewrite_to_match_language_no_op!(
+    cannot_rewrite_comparison_over_empty_field,
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Eq,
+        vec![
+            *mir_field_access("foo", "", true),
+            Expression::Literal(LiteralValue::Integer(4)),
+        ],
+    )))
+);
+
+// The guard also applies to IS: a `$`/`.` field leaves IS in $expr.
+test_rewrite_to_match_language_no_op!(
+    cannot_rewrite_is_over_dollar_dot_field,
+    filter_stage(Expression::Is(IsExpr {
+        expr: mir_field_access("foo", "$a.b", true),
+        target_type: TypeOrMissing::Type(Type::String),
+    }))
+);
+
+// The guard applies to a non-leaf component too: only the nested `$c.d` part
+// is un-addressable, but that is enough to keep the whole IN in $expr.
+test_rewrite_to_match_language_no_op!(
+    cannot_rewrite_in_when_nested_component_is_not_addressable,
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
+        function: ScalarFunction::In,
+        args: vec![
+            *mir_field_access_multi_part("foo", vec!["a", "$c.d"], true),
+            Expression::Array(ArrayExpr {
+                array: vec![Expression::Literal(LiteralValue::Integer(1))],
+            }),
+        ],
+        is_nullable: false,
+    }))
+);

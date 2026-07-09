@@ -62,10 +62,48 @@ struct MatchLanguageRewriterVisitor {
 }
 
 impl MatchLanguageRewriterVisitor {
+    /// Returns `true` if every component of `field_path` can be addressed by
+    /// native match language (find syntax), and `false` otherwise.
+    ///
+    /// Native match language addresses a field by using its name — possibly
+    /// dotted — as a document key, e.g. `{"a.b": {"$eq": 4}}` targets the field
+    /// `b` nested under `a`. It has no
+    /// `$getField` escape hatch, so a field whose *name* literally contains a
+    /// `.`, starts with `$`, or is the empty string cannot be expressed: the
+    /// `.` is interpreted as a path separator, and a leading `$` is parsed as an
+    /// operator.
+    ///
+    /// For example, the delimited SQL identifier `` `$a.b` `` (a single field
+    /// literally named `$a.b`) would rewrite to the match stage:
+    ///
+    /// ```json
+    /// { "$match": { "$a.b": { "$eq": 4 } } }
+    /// ```
+    ///
+    /// which MongoDB rejects at execution time:
+    ///
+    /// ```text
+    /// MongoServerError[BadValue]: unknown top level operator: $a.b. If you
+    /// have a field name that starts with a '$' symbol, consider using
+    /// $getField or $setField.
+    /// ```
+    ///
+    /// When this returns `false`, the expression is left to be translated to
+    /// `$expr` language so the existing `$getField`-based translation handles
+    /// the field correctly.
+    fn is_match_addressable(field_path: &FieldPath) -> bool {
+        field_path
+            .fields
+            .iter()
+            .all(|f| !(f.contains('.') || f.starts_with('$') || f.is_empty()))
+    }
+
     fn rewrite_is(is: IsExpr) -> Option<MatchQuery> {
         match *is.expr {
             Expression::FieldAccess(fa) => fa
                 .try_into()
+                .ok()
+                .filter(Self::is_match_addressable)
                 .map(|mp: FieldPath| {
                     if is.target_type == TypeOrMissing::Type(Type::Null) {
                         MatchQuery::Comparison(MatchLanguageComparison {
@@ -81,15 +119,14 @@ impl MatchLanguageRewriterVisitor {
                             cache: SchemaCache::new(),
                         })
                     }
-                })
-                .ok(),
+                }),
             _ => None,
         }
     }
 
     fn rewrite_like(like: LikeExpr) -> Option<MatchQuery> {
         let match_path = match *like.expr {
-            Expression::FieldAccess(fa) => fa.try_into().ok(),
+            Expression::FieldAccess(fa) => fa.try_into().ok().filter(Self::is_match_addressable),
             _ => return None,
         };
 
@@ -147,7 +184,11 @@ impl MatchLanguageRewriterVisitor {
         // Anything more complex — a function call, a subquery, a literal — cannot be
         // mapped to the FieldPath that MatchLanguageIn requires, so we bail early.
         let field_path: FieldPath = match sf.args.first()? {
-            Expression::FieldAccess(fa) => fa.clone().try_into().ok()?,
+            Expression::FieldAccess(fa) => fa
+                .clone()
+                .try_into()
+                .ok()
+                .filter(Self::is_match_addressable)?,
             _ => return None,
         };
 
@@ -272,6 +313,12 @@ impl MatchLanguageRewriterVisitor {
             _ => return None,
         };
 
+        // Native match language cannot address a field whose name contains a
+        // `.`, starts with `$`, or is empty; such fields must stay in $expr.
+        if !Self::is_match_addressable(&field_path) {
+            return None;
+        }
+
         let op = if needs_commute { Self::commute(op) } else { op };
 
         let comparison = MatchQuery::Comparison(MatchLanguageComparison {
@@ -294,14 +341,18 @@ impl MatchLanguageRewriterVisitor {
         match condition {
             Expression::Is(is) => Self::rewrite_is(is),
             Expression::Like(like) => Self::rewrite_like(like),
-            Expression::FieldAccess(fa) => fa.try_into().ok().map(|fp: FieldPath| {
-                MatchQuery::Comparison(MatchLanguageComparison {
-                    function: MatchLanguageComparisonOp::Eq,
-                    input: Some(fp),
-                    arg: LiteralValue::Boolean(true),
-                    cache: SchemaCache::new(),
-                })
-            }),
+            Expression::FieldAccess(fa) => fa
+                .try_into()
+                .ok()
+                .filter(Self::is_match_addressable)
+                .map(|fp: FieldPath| {
+                    MatchQuery::Comparison(MatchLanguageComparison {
+                        function: MatchLanguageComparisonOp::Eq,
+                        input: Some(fp),
+                        arg: LiteralValue::Boolean(true),
+                        cache: SchemaCache::new(),
+                    })
+                }),
             Expression::ScalarFunction(sf) => match sf.function {
                 ScalarFunction::And => Self::rewrite_logical(MatchLanguageLogicalOp::And, sf.args),
                 ScalarFunction::Or => Self::rewrite_logical(MatchLanguageLogicalOp::Or, sf.args),
