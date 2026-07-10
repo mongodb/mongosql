@@ -6,7 +6,7 @@ use crate::{
 };
 
 test_schema!(
-    field_access_accessee_cannot_be_document,
+    field_access_accessee_must_be_document,
     expected_error_code = 1002,
     expected = Err(mir_error::SchemaChecking {
         name: "FieldAccess",
