@@ -660,26 +660,12 @@ tests:
       - {'': {'a': 1, 's': 'hello'}}
       - {'': {'a': 2, 's': 'world'}}
 
-  - description: NOT IN operator with $numberInt encoded field correctness test
-    current_db: spec_query_scalar_functions
-    query: "SELECT _id, n FROM in_expressions WHERE n NOT IN (1, 2, 4, null)"
-    result:
-      - { '': { "_id": 5, "n": { "$numberInt": "10" } } }
-      - { '': { "_id": 6, "n": { "$numberInt": "20" } } }
-
   - description: IN operator with plain integer n field correctness test
     current_db: spec_query_scalar_functions
     query: "SELECT a, s, n FROM in_expressions AS c WHERE n IN (1, 2)"
     result:
       - {'': {'a': 1, 's': 'hello', 'n': 1}}
       - {'': {'a': 2, 's': 'world', 'n': 2}}
-
-  - description: IN operator with $numberInt encoded field correctness test
-    current_db: spec_query_scalar_functions
-    query: "SELECT n FROM in_expressions AS c WHERE n IN (10, 20)"
-    result:
-      - {'': {'n': { '$numberInt': '10' }}}
-      - {'': {'n': { '$numberInt': '20' }}}
 
   - description: IN operator with subquery correctness test
     current_db: spec_query_scalar_functions

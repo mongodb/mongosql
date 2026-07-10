@@ -1021,7 +1021,9 @@ mod mql_semantic_operator {
 
     test_codegen_expression!(
         not_in_op,
-        expected = Ok(bson!({ "$nin": [{ "$literal": 1}, [{ "$literal": 1 }, { "$literal": 2 }]]})),
+        expected = Ok(
+            bson!({ "$not": [{ "$in": [{ "$literal": 1}, [{ "$literal": 1 }, { "$literal": 2 }]]}]})
+        ),
         input = MqlSemanticOperator(MqlSemanticOperator {
             op: NotIn,
             args: vec![

@@ -44,3 +44,22 @@ dataset:
           bsonType: 'date'
         symbol:
           bsonType: 'symbol'
+
+  - db: "e2e_ext_json"
+    collection:
+      name: "in_expressions"
+      docs:
+        - { '_id': 0, n: 1, m: 10 }
+        - { '_id': 1, n: 10, m: 20 }
+        - { '_id': 2, n: 20, m: 30 }
+    schema:
+      bsonType: "object"
+      required: [ '_id', 'n', 'm' ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        n:
+          bsonType: "int"
+        m:
+          bsonType: "int"
