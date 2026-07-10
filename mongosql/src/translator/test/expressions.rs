@@ -4600,3 +4600,63 @@ mod in_operator {
         },
     );
 }
+
+mod higher_order_function {
+    use crate::{air, mir};
+
+    test_translate_expression!(
+        map,
+        expected = Ok(air::Expression::Map(air::Map {
+            input: Box::new(air::Expression::Array(vec![])),
+            as_name: None,
+            inside: Box::new(air::Expression::Literal(air::LiteralValue::Integer(12))),
+        })),
+        input = mir::Expression::HigherOrderFunction(mir::HigherOrderFunctionApplication::Map(
+            mir::MapExpr::new(
+                Box::new(mir::Expression::Array(mir::ArrayExpr { array: vec![] })),
+                Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(12))),
+            )
+        )),
+    );
+
+    test_translate_expression!(
+        filter,
+        expected = Ok(air::Expression::Filter(air::Filter {
+            input: Box::new(air::Expression::Array(vec![])),
+            as_name: None,
+            inside: Box::new(air::Expression::Literal(air::LiteralValue::Boolean(true))),
+        })),
+        input = mir::Expression::HigherOrderFunction(mir::HigherOrderFunctionApplication::Filter(
+            mir::FilterExpr::new(
+                Box::new(mir::Expression::Array(mir::ArrayExpr { array: vec![] })),
+                Box::new(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
+            )
+        )),
+    );
+
+    test_translate_expression!(
+        reduce,
+        expected = Ok(air::Expression::Reduce(air::Reduce {
+            input: Box::new(air::Expression::Array(vec![])),
+            init_value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
+            inside: Box::new(air::Expression::Literal(air::LiteralValue::Integer(2))),
+        })),
+        input = mir::Expression::HigherOrderFunction(mir::HigherOrderFunctionApplication::Reduce(
+            mir::ReduceExpr::new(
+                Box::new(mir::Expression::Array(mir::ArrayExpr { array: vec![] })),
+                Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(1))),
+                Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(2))),
+            )
+        )),
+    );
+}
+
+mod variable {
+    use crate::{air, mir};
+
+    test_translate_expression!(
+        simple,
+        expected = Ok(air::Expression::Variable("this".to_string().into())),
+        input = mir::Expression::Variable(mir::Variable::new("this".to_string())),
+    );
+}

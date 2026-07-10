@@ -40,8 +40,8 @@ impl MqlTranslator {
                 self.translate_subquery_comparison(subquery_comparison)
             }
             mir::Expression::TypeAssertion(ta) => self.translate_expression(*ta.expr),
-            mir::Expression::HigherOrderFunction(_) => unimplemented!("SQL-3291"),
-            mir::Expression::Variable(_) => unimplemented!("SQL-3291"),
+            mir::Expression::HigherOrderFunction(hof) => self.translate_higher_order_function(hof),
+            mir::Expression::Variable(v) => self.translate_variable(v),
             mir::Expression::MqlIntrinsicFieldExistence(fa) => self.translate_field_existence(fa),
         }
     }
@@ -499,6 +499,45 @@ impl MqlTranslator {
                 subquery: Box::new(subquery),
             },
         ))
+    }
+
+    fn translate_higher_order_function(
+        &self,
+        higher_order_function: mir::HigherOrderFunctionApplication,
+    ) -> Result<air::Expression> {
+        match higher_order_function {
+            mir::HigherOrderFunctionApplication::Map(m) => self.translate_map(m),
+            mir::HigherOrderFunctionApplication::Filter(f) => self.translate_filter_expr(f),
+            mir::HigherOrderFunctionApplication::Reduce(r) => self.translate_reduce(r),
+        }
+    }
+
+    fn translate_map(&self, m: mir::MapExpr) -> Result<air::Expression> {
+        Ok(air::Expression::Map(air::Map {
+            input: Box::new(self.translate_expression(*m.array)?),
+            as_name: None,
+            inside: Box::new(self.translate_expression(*m.f)?),
+        }))
+    }
+
+    fn translate_filter_expr(&self, f: mir::FilterExpr) -> Result<air::Expression> {
+        Ok(air::Expression::Filter(air::Filter {
+            input: Box::new(self.translate_expression(*f.array)?),
+            as_name: None,
+            inside: Box::new(self.translate_expression(*f.f)?),
+        }))
+    }
+
+    fn translate_reduce(&self, r: mir::ReduceExpr) -> Result<air::Expression> {
+        Ok(air::Expression::Reduce(air::Reduce {
+            input: Box::new(self.translate_expression(*r.array)?),
+            init_value: Box::new(self.translate_expression(*r.init_value)?),
+            inside: Box::new(self.translate_expression(*r.f)?),
+        }))
+    }
+
+    fn translate_variable(&self, v: mir::Variable) -> Result<air::Expression> {
+        Ok(air::Expression::Variable(v.name.into()))
     }
 
     /// A FieldExistence is a special node that represents an existence assertion in a Match
