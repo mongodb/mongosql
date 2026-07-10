@@ -2032,6 +2032,35 @@ mod map {
     );
 }
 
+mod filter {
+    use crate::air::{Expression::*, Filter, LiteralValue};
+    use bson::bson;
+
+    test_codegen_expression!(
+        without_as,
+        expected = Ok(
+            bson!({ "$filter": {"input": {"$literal": "input"}, "cond": {"$literal": "inside"}}})
+        ),
+        input = Filter(Filter {
+            input: Box::new(Literal(LiteralValue::String("input".to_string()))),
+            as_name: None,
+            inside: Box::new(Literal(LiteralValue::String("inside".to_string()))),
+        })
+    );
+
+    test_codegen_expression!(
+        with_as,
+        expected = Ok(
+            bson!({ "$filter": {"input": {"$literal": "input"}, "cond": {"$literal": "inside"}, "as": "x"}})
+        ),
+        input = Filter(Filter {
+            input: Box::new(Literal(LiteralValue::String("input".to_string()))),
+            as_name: Some("x".to_string()),
+            inside: Box::new(Literal(LiteralValue::String("inside".to_string()))),
+        })
+    );
+}
+
 mod reduce {
     use crate::air::{Expression::*, LiteralValue, Reduce};
     use bson::bson;
