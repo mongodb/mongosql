@@ -35,6 +35,24 @@ pub enum Error {
     GroupKeyNotSelfComparable(usize, Box<Schema>),
     UnwindIndexNameConflict(String),
     CollectionNotFound(String, String),
+    // HigherOrderFunctionWrapper is used to wrap errors that occur in the context of a higher order
+    // function's function argument. For example, MAP(["a", "b"], this + 1) is invalid because the
+    // function argument is invalid (`this` has string schema, but `+` expects a numeric schema).
+    // This wrapper includes extra context indicating the surrounding higher order function and the
+    // root cause of the problem in the function argument. In this example, the root cause is the
+    // use of the `this` variable.
+    HigherOrderFunctionWrapper {
+        name: &'static str,
+        cause: HigherOrderFunctionErrorCause,
+        error: Box<Error>,
+    },
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum HigherOrderFunctionErrorCause {
+    InvalidAccumulatedValue,
+    InvalidInitialValue,
+    InvalidThisUsage,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -68,6 +86,7 @@ impl UserError for Error {
             Error::UnwindIndexNameConflict(_) => 1014,
             Error::CollectionNotFound(_, _) => 1016,
             Error::InvalidBinaryDataType => 1019,
+            Error::HigherOrderFunctionWrapper { .. } => 1020,
         }
     }
 
@@ -211,6 +230,17 @@ impl UserError for Error {
             Error::UnwindIndexNameConflict(_) => None,
             Error::CollectionNotFound(_, _) => None,
             Error::InvalidBinaryDataType => None,
+            Error::HigherOrderFunctionWrapper { name, cause, error } => {
+                let cause_message = match cause {
+                    HigherOrderFunctionErrorCause::InvalidAccumulatedValue => "Invalid usage of variable `value` because of the result of the accumulator function. Recall that usages of the `value` variable must be satisfied by the both the schema of the initial value and the schema of the result of the accumulator function.",
+                    HigherOrderFunctionErrorCause::InvalidInitialValue => "Invalid usage of the variable `value` because of the initial value. Recall that usages of the `value` variable must be satisfied by the both the schema of the initial value and the schema of the result of the accumulator function.",
+                    HigherOrderFunctionErrorCause::InvalidThisUsage => "Invalid usage of variable `this`. Recall that usages of the `this` variable must be satisfied by the schema of the elements of the array.",
+                };
+                let sub_error_message = error
+                    .user_message()
+                    .unwrap_or_else(|| error.technical_message());
+                Some(format!("Invalid function argument for `{name}`: {cause_message}. Sub-Error Code {}: {}", error.code(), sub_error_message))
+            }
         }
     }
 
@@ -261,6 +291,10 @@ impl UserError for Error {
             Error::InvalidBinaryDataType => {
                 "Binary data with subtype 3 found in schema".to_string()
             }
+            // Pass through the underlying error's message. HigherOrderFunctionWrapper implements
+            // user_message() so there will always be user-readable context wrapped around the
+            // underlying error's message.
+            Error::HigherOrderFunctionWrapper { error, .. } => error.technical_message(),
         }
     }
 }
