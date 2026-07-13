@@ -8,10 +8,14 @@ use mongosql::{
 };
 use pprof::criterion::{Output, PProfProfiler};
 
-// load our massive catalog
+// load our massive catalog. Resolve the path relative to the crate root (CARGO_MANIFEST_DIR)
+// rather than the current working directory so the bench works regardless of where it is run.
 lazy_static! {
-    static ref CATALOG: Catalog =
-        load_catalog("./src/catalog/catalogs/sample_analytics.json").unwrap();
+    static ref CATALOG: Catalog = load_catalog(&format!(
+        "{}/src/config_loader/catalogs/sample_analytics.json",
+        env!("CARGO_MANIFEST_DIR")
+    ))
+    .unwrap();
 }
 
 fn translate(sql: &str) -> Translation {
