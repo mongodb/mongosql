@@ -1181,8 +1181,8 @@ impl Expression {
                     Satisfaction::Must => Ok(Schema::Atomic(Atomic::Null)),
                 }
             }
-            Expression::HigherOrderFunction(_) => unimplemented!("SQL-3292"),
-            Expression::Variable(_) => unimplemented!("SQL-3292"),
+            Expression::HigherOrderFunction(hof) => hof.schema(state),
+            Expression::Variable(v) => v.schema(state),
             Expression::MqlIntrinsicFieldExistence(_) => Ok(Schema::Atomic(Atomic::Boolean)),
         }
     }
@@ -1700,6 +1700,16 @@ impl SqlFunction for DateFunction {
     }
 }
 
+impl SqlFunction for HigherOrderFunctionApplication {
+    fn as_str(&self) -> &'static str {
+        match self {
+            HigherOrderFunctionApplication::Map(_) => "Map",
+            HigherOrderFunctionApplication::Filter(_) => "Filter",
+            HigherOrderFunctionApplication::Reduce(_) => "Reduce",
+        }
+    }
+}
+
 impl DateFunction {
     pub fn schema(
         &self,
@@ -2082,6 +2092,67 @@ impl CastExpr {
             on_null_schema,
             on_error_schema,
         ]))
+    }
+}
+
+impl HigherOrderFunctionApplication {
+    pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+        match self {
+            HigherOrderFunctionApplication::Map(expr) => {
+                // The first argument must satisfy ANY_ARRAY_OR_NULLISH.
+                let array_schema = expr.array.schema(state)?;
+                if !state.check_satisfies(&array_schema, &ANY_ARRAY_OR_NULLISH) {
+                    return Err(Error::SchemaChecking {
+                        name: "Map",
+                        required: ANY_ARRAY_OR_NULLISH.clone().into(),
+                        found: array_schema.into(),
+                    });
+                }
+
+                let Some(array_item_schema) = array_schema.get_array_item_schema() else {
+                    // At this point, we know the schema satisfies ANY_ARRAY_OR_NULLISH. In STRICT
+                    // mode, that means the schema must be exactly NULLISH if there is no array item
+                    // schema. In RELAXED mode, technically there may be other non-array/non-nullish
+                    // schemas, but those would cause runtime errors. Therefore, we can just return
+                    // Null as the expression schema at this point since we know the `array` arg is
+                    // never an array.
+                    return Ok(Schema::Atomic(Atomic::Null));
+                };
+
+                // Add the array item schema to the SchemaInferenceState as a variable using the
+                // name `this`.
+                let state_with_this_variable = state.with_variable("this", array_item_schema);
+
+                // Get the schema of the function argument using the updated state with the variable
+                // binding.
+                let func_schema = expr.f.schema(&state_with_this_variable)?;
+
+                // The output schema is an Array of the function argument's output schema. It may
+                // be null based on the array argument's nullability.
+                return Ok(self.propagate_null_arguments_helper(
+                    array_schema.satisfies(&NULLISH),
+                    Schema::Array(Box::new(func_schema)),
+                ));
+            }
+            HigherOrderFunctionApplication::Filter(expr) => todo!(),
+            HigherOrderFunctionApplication::Reduce(expr) => todo!(),
+        }
+    }
+}
+
+impl Variable {
+    pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+        // TODO: figure out better way to propagate context of which variable causes the failure
+        //       The problem is we just return the schema of the variable, so it is the call sites
+        //       that need to determine if that's the problem. They will always treat Variable like
+        //       a normal expression, so if it is the one to cause a failure we'll need to check at
+        //       each call site "was this a variable? if so, which one?"
+        //     IDEA: return Result<Schema, (Expression, Error)> from the Expression::schema api
+        //           that way callers can wrap the error with more context
+        match state.get_variable_schema(&self.name) {
+            Some(schema) => Ok(schema.clone()),
+            None => Err(Error::NoSuchVariable(self.name.clone())),
+        }
     }
 }
 
