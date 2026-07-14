@@ -1,7 +1,10 @@
 use crate::{
     map,
     mir::{
-        schema::{errors::HigherOrderFunctionErrorCause, Error as mir_error},
+        schema::{
+            errors::HigherOrderFunctionErrorCause, errors::IncorrectArgCountPrecision,
+            Error as mir_error,
+        },
         *,
     },
     schema::{Atomic, Schema, ANY_ARRAY_OR_NULLISH, BOOLEAN_OR_NULLISH, NUMERIC_OR_NULLISH},
@@ -116,7 +119,7 @@ mod map {
             cause: HigherOrderFunctionErrorCause::InvalidFunctionArgument,
             error: Box::new(mir_error::IncorrectArgumentCount {
                 name: "Mul",
-                required: 2,
+                required: IncorrectArgCountPrecision::Minimum(2),
                 found: 1,
             })
         }),
@@ -282,7 +285,7 @@ mod filter {
             cause: HigherOrderFunctionErrorCause::InvalidFunctionArgument,
             error: Box::new(mir_error::IncorrectArgumentCount {
                 name: "Gt",
-                required: 2,
+                required: IncorrectArgCountPrecision::Exact(2),
                 found: 1,
             })
         }),
