@@ -46,6 +46,7 @@ pub enum Error {
         cause: HigherOrderFunctionErrorCause,
         error: Box<Error>,
     },
+    NoSuchVariable(String),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -53,6 +54,7 @@ pub enum HigherOrderFunctionErrorCause {
     InvalidAccumulatedValue,
     InvalidInitialValue,
     InvalidThisUsage,
+    InvalidFunctionArgument,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -87,6 +89,7 @@ impl UserError for Error {
             Error::CollectionNotFound(_, _) => 1016,
             Error::InvalidBinaryDataType => 1019,
             Error::HigherOrderFunctionWrapper { .. } => 1020,
+            Error::NoSuchVariable { .. } => 1021,
         }
     }
 
@@ -235,12 +238,14 @@ impl UserError for Error {
                     HigherOrderFunctionErrorCause::InvalidAccumulatedValue => "Invalid usage of variable `value` because of the result of the accumulator function. Recall that usages of the `value` variable must be satisfied by the both the schema of the initial value and the schema of the result of the accumulator function.",
                     HigherOrderFunctionErrorCause::InvalidInitialValue => "Invalid usage of the variable `value` because of the initial value. Recall that usages of the `value` variable must be satisfied by the both the schema of the initial value and the schema of the result of the accumulator function.",
                     HigherOrderFunctionErrorCause::InvalidThisUsage => "Invalid usage of variable `this`. Recall that usages of the `this` variable must be satisfied by the schema of the elements of the array.",
+                    HigherOrderFunctionErrorCause::InvalidFunctionArgument => "Ensure the function argument is semantically valid. It must have the correct number of arguments and the arguments must have the correct type.",
                 };
                 let sub_error_message = error
                     .user_message()
                     .unwrap_or_else(|| error.technical_message());
                 Some(format!("Invalid function argument for `{name}`: {cause_message}. Sub-Error Code {}: {}", error.code(), sub_error_message))
             }
+            Error::NoSuchVariable(name) => Some(format!("Variable `{name}` does not exist.")),
         }
     }
 
@@ -295,6 +300,7 @@ impl UserError for Error {
             // user_message() so there will always be user-readable context wrapped around the
             // underlying error's message.
             Error::HigherOrderFunctionWrapper { error, .. } => error.technical_message(),
+            Error::NoSuchVariable(name) => format!("variable with name `{name}` not found in schema inference state"),
         }
     }
 }

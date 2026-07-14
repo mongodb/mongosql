@@ -103,6 +103,35 @@ mod map {
             is_nullable: false,
         })),
     );
+
+    // This situation may arise as a result of syntactic rewriting. For example, a user may write
+    // `SELECT MAP([1], *) FROM foo` which would be rewritten to `SELECT MAP([1], this *) FROM foo`
+    // which is invalid because `*` requires two arguments at minimum.
+    // MAP([1], this *) => error
+    test_schema!(
+        invalid_when_function_arg_has_incorrect_arg_count,
+        expected_error_code = 1020,
+        expected = Err(mir_error::HigherOrderFunctionWrapper {
+            name: "Map",
+            cause: HigherOrderFunctionErrorCause::InvalidFunctionArgument,
+            error: Box::new(mir_error::IncorrectArgumentCount {
+                name: "Mul",
+                required: 2,
+                found: 1,
+            })
+        }),
+        input = Expression::HigherOrderFunction(HigherOrderFunctionApplication::Map(MapExpr {
+            array: Box::new(Expression::Array(ArrayExpr {
+                array: vec![Expression::Literal(LiteralValue::Integer(1))]
+            })),
+            f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Mul,
+                args: vec![Expression::Variable(Variable::new("this".to_string())),],
+                is_nullable: false,
+            })),
+            is_nullable: false,
+        })),
+    );
 }
 
 mod filter {
@@ -234,6 +263,37 @@ mod filter {
                         Expression::Variable(Variable::new("this".to_string())),
                         Expression::Literal(LiteralValue::Integer(1)),
                     ],
+                    is_nullable: false,
+                })),
+                is_nullable: false,
+            })),
+    );
+
+    // This situation may arise as a result of syntactic rewriting. For example, a user may write
+    // `SELECT FILTER([1], >) FROM foo` which would be rewritten to
+    // `SELECT FILTER([1], this >) FROM foo`
+    // which is invalid because `>` requires two arguments.
+    // FILTER([1], this >) => error
+    test_schema!(
+        invalid_when_function_arg_has_incorrect_arg_count,
+        expected_error_code = 1020,
+        expected = Err(mir_error::HigherOrderFunctionWrapper {
+            name: "Filter",
+            cause: HigherOrderFunctionErrorCause::InvalidFunctionArgument,
+            error: Box::new(mir_error::IncorrectArgumentCount {
+                name: "Gt",
+                required: 2,
+                found: 1,
+            })
+        }),
+        input =
+            Expression::HigherOrderFunction(HigherOrderFunctionApplication::Filter(FilterExpr {
+                array: Box::new(Expression::Array(ArrayExpr {
+                    array: vec![Expression::Literal(LiteralValue::Integer(1))]
+                })),
+                f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
+                    function: ScalarFunction::Gt,
+                    args: vec![Expression::Variable(Variable::new("this".to_string())),],
                     is_nullable: false,
                 })),
                 is_nullable: false,
