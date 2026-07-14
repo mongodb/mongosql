@@ -1,5 +1,6 @@
 use crate::{
     catalog::Catalog,
+    map,
     mir::{
         optimizer::{lower_joins::LowerJoinsOptimizer, Optimizer},
         schema::{SchemaCache, SchemaCheckingMode, SchemaInferenceState},
@@ -22,6 +23,7 @@ macro_rules! test_lower_joins {
                 0u16,
                 SchemaEnvironment::default(),
                 &cat,
+                map! {},
                 SchemaCheckingMode::Relaxed,
             );
 

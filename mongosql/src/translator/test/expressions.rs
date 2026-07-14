@@ -27,7 +27,7 @@ macro_rules! test_translate_expression_with_schema_info {
     ($func_name:ident, expected = $expected:expr, input = $input:expr, $(mapping_registry = $mapping_registry:expr,)? $(catalog = $catalog:expr,)? $(schema_env = $schema_env:expr,)?) => {
         #[test]
         fn $func_name() {
-            use crate::{translator, mapping_registry::MqlMappingRegistry, options::SqlOptions, catalog::Catalog, mir::schema::{SchemaCheckingMode, SchemaInferenceState}, schema::SchemaEnvironment};
+            use crate::{translator, map, mapping_registry::MqlMappingRegistry, options::SqlOptions, catalog::Catalog, mir::schema::{SchemaCheckingMode, SchemaInferenceState}, schema::SchemaEnvironment};
 
             // force the input
             let input = $input;
@@ -43,7 +43,7 @@ macro_rules! test_translate_expression_with_schema_info {
             let mut schema_env = SchemaEnvironment::default();
             $(schema_env = $schema_env;)?
 
-            let schema_inference_state = SchemaInferenceState::new(0u16, schema_env, &catalog, SchemaCheckingMode::default());
+            let schema_inference_state = SchemaInferenceState::new(0u16, schema_env, &catalog, map! {}, SchemaCheckingMode::default());
             let _ = input.schema(&schema_inference_state).unwrap();
             let translator = translator::MqlTranslator{
                 mapping_registry,
@@ -3993,7 +3993,7 @@ mod subquery {
 
 mod subquery_comparison {
     use crate::{
-        air, map,
+        air,
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
         mir::{self, binding_tuple::DatasourceName::Bottom, schema::SchemaCache},
         schema::{Atomic, Document, Schema, ANY_DOCUMENT},

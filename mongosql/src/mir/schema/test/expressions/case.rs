@@ -1,4 +1,5 @@
 use crate::{
+    map,
     mir::{schema::Error as mir_error, *},
     schema::{Atomic, Schema},
     set, test_schema,

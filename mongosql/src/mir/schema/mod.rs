@@ -131,6 +131,7 @@ pub struct SchemaInferenceState<'a> {
     pub scope_level: u16,
     pub env: SchemaEnvironment,
     pub catalog: &'a Catalog,
+    pub variables: BTreeMap<String, Schema>,
     pub schema_checking_mode: SchemaCheckingMode,
 }
 
@@ -140,6 +141,7 @@ impl<'a> SchemaInferenceState<'a> {
             0u16,
             SchemaEnvironment::default(),
             catalog,
+            map! {},
             SchemaCheckingMode::default(),
         )
     }
@@ -148,12 +150,14 @@ impl<'a> SchemaInferenceState<'a> {
         scope_level: u16,
         env: SchemaEnvironment,
         catalog: &'a Catalog,
+        variables: BTreeMap<String, Schema>,
         schema_checking_mode: SchemaCheckingMode,
     ) -> SchemaInferenceState<'a> {
         SchemaInferenceState {
             scope_level,
             env,
             catalog,
+            variables,
             schema_checking_mode,
         }
     }
@@ -163,8 +167,25 @@ impl<'a> SchemaInferenceState<'a> {
             env: env.with_merged_mappings(self.env.clone()),
             catalog: self.catalog,
             scope_level: self.scope_level,
+            variables: self.variables.clone(),
             schema_checking_mode: self.schema_checking_mode,
         }
+    }
+
+    pub fn with_variable(&self, name: &str, schema: Schema) -> SchemaInferenceState<'_> {
+        let mut variables = self.variables.clone();
+        variables.insert(name.to_string(), schema);
+        SchemaInferenceState {
+            env: self.env.clone(),
+            catalog: self.catalog,
+            scope_level: self.scope_level,
+            variables,
+            schema_checking_mode: self.schema_checking_mode,
+        }
+    }
+
+    pub fn get_variable_schema(&self, name: &str) -> Option<&Schema> {
+        self.variables.get(name)
     }
 
     pub fn subquery_state(&self) -> SchemaInferenceState<'_> {
@@ -172,6 +193,7 @@ impl<'a> SchemaInferenceState<'a> {
             scope_level: self.scope_level + 1,
             env: self.env.clone(),
             catalog: self.catalog,
+            variables: self.variables.clone(),
             schema_checking_mode: self.schema_checking_mode,
         }
     }
@@ -586,6 +608,7 @@ impl CachedSchema for Stage {
                 scope_level: state.scope_level + 1,
                 env: state.env.clone(),
                 catalog: state.catalog,
+                variables: state.variables.clone(),
                 schema_checking_mode: state.schema_checking_mode,
             }),
             Stage::Unwind(u) => {
@@ -594,6 +617,7 @@ impl CachedSchema for Stage {
                     state.scope_level,
                     source_result_set.schema_env.clone(),
                     state.catalog,
+                    state.variables.clone(),
                     state.schema_checking_mode,
                 );
 
@@ -958,6 +982,7 @@ impl SubqueryExpr {
             scope_level: state.scope_level + 1,
             env: result_set.schema_env,
             catalog: state.catalog,
+            variables: state.variables.clone(),
             schema_checking_mode: state.schema_checking_mode,
         })?;
         Ok((schema, min_size, max_size))

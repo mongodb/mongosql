@@ -117,6 +117,7 @@ macro_rules! test_move_stage {
                     0,
                     SchemaEnvironment::new(),
                     &*CATALOG,
+                    map! {},
                     SchemaCheckingMode::Relaxed,
                 ),
             );

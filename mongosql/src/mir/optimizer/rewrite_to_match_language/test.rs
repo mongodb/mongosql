@@ -42,6 +42,7 @@ macro_rules! test_rewrite_to_match_language {
                 0u16,
                 SchemaEnvironment::default(),
                 &*CATALOG,
+                map! {},
                 SchemaCheckingMode::Relaxed,
             );
 

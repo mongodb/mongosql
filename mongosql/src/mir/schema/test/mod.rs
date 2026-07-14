@@ -89,7 +89,9 @@ macro_rules! test_schema {
             let mut schema_checking_mode = SchemaCheckingMode::Strict;
             $(schema_checking_mode = $schema_checking_mode;)?
 
-            let state = SchemaInferenceState::new(0u16, schema_env, &catalog, schema_checking_mode);
+            let variables = map! {};
+
+            let state = SchemaInferenceState::new(0u16, schema_env, &catalog, variables, schema_checking_mode);
             let actual = input.schema(&state);
 
             $(assert!(matches!(actual, $expected_pat));)?
