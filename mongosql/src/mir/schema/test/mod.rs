@@ -267,3 +267,244 @@ mod max_numeric {
         input2 = Schema::Atomic(Atomic::Integer)
     );
 }
+
+mod collect_variable_uses {
+    use std::collections::HashSet;
+
+    use crate::{
+        mir::{
+            schema::util::collect_variable_uses, Expression, FilterExpr,
+            HigherOrderFunctionApplication, LiteralValue, MapExpr, ReduceExpr, ScalarFunction,
+            ScalarFunctionApplication, Variable,
+        },
+        set,
+    };
+
+    macro_rules! test_collect_variable_uses {
+        ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+            #[test]
+            fn $func_name() {
+                let expected: HashSet<String> = $expected;
+                let actual = collect_variable_uses(&$input);
+                assert_eq!(expected, actual);
+            }
+        };
+    }
+
+    test_collect_variable_uses!(
+        map_uses_no_variables,
+        expected = set! {},
+        input = HigherOrderFunctionApplication::Map(MapExpr {
+            array: Box::new(Expression::Literal(LiteralValue::Null)),
+            f: Box::new(Expression::Literal(LiteralValue::Null)),
+            is_nullable: true,
+        })
+    );
+
+    test_collect_variable_uses!(
+        map_uses_one_variable,
+        expected = set! {"this".to_string()},
+        input = HigherOrderFunctionApplication::Map(MapExpr {
+            array: Box::new(Expression::Literal(LiteralValue::Null)),
+            f: Box::new(Expression::Variable(Variable {
+                name: "this".to_string(),
+                is_nullable: false,
+            })),
+            is_nullable: true,
+        })
+    );
+
+    test_collect_variable_uses!(
+        map_uses_multiple_variables,
+        expected = set! {"one".to_string(), "two".to_string()},
+        input = HigherOrderFunctionApplication::Map(MapExpr {
+            array: Box::new(Expression::Literal(LiteralValue::Null)),
+            f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Add,
+                args: vec![
+                    Expression::Variable(Variable {
+                        name: "one".to_string(),
+                        is_nullable: false,
+                    }),
+                    Expression::Variable(Variable {
+                        name: "two".to_string(),
+                        is_nullable: false,
+                    }),
+                    Expression::Variable(Variable {
+                        name: "one".to_string(),
+                        is_nullable: false,
+                    }),
+                ],
+                is_nullable: true,
+            })),
+            is_nullable: true,
+        })
+    );
+
+    test_collect_variable_uses!(
+        map_does_not_use_variables_nested_in_other_hofs,
+        expected = set! {"this".to_string()},
+        input = HigherOrderFunctionApplication::Map(MapExpr {
+            array: Box::new(Expression::Literal(LiteralValue::Null)),
+            f: Box::new(Expression::HigherOrderFunction(
+                HigherOrderFunctionApplication::Reduce(ReduceExpr {
+                    array: Box::new(Expression::Variable(Variable {
+                        name: "this".to_string(),
+                        is_nullable: false,
+                    })),
+                    init_value: Box::new(Expression::Literal(LiteralValue::Null)),
+                    f: Box::new(Expression::Variable(Variable {
+                        name: "do not use".to_string(),
+                        is_nullable: false,
+                    })),
+                    is_nullable: true,
+                })
+            )),
+            is_nullable: true,
+        })
+    );
+
+    test_collect_variable_uses!(
+        filter_uses_no_variables,
+        expected = set! {},
+        input = HigherOrderFunctionApplication::Filter(FilterExpr {
+            array: Box::new(Expression::Literal(LiteralValue::Null)),
+            f: Box::new(Expression::Literal(LiteralValue::Null)),
+            is_nullable: true,
+        })
+    );
+
+    test_collect_variable_uses!(
+        filter_uses_one_variable,
+        expected = set! {"this".to_string()},
+        input = HigherOrderFunctionApplication::Filter(FilterExpr {
+            array: Box::new(Expression::Literal(LiteralValue::Null)),
+            f: Box::new(Expression::Variable(Variable {
+                name: "this".to_string(),
+                is_nullable: false,
+            })),
+            is_nullable: true,
+        })
+    );
+
+    test_collect_variable_uses!(
+        filter_uses_multiple_variables,
+        expected = set! {"one".to_string(), "two".to_string()},
+        input = HigherOrderFunctionApplication::Filter(FilterExpr {
+            array: Box::new(Expression::Literal(LiteralValue::Null)),
+            f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Add,
+                args: vec![
+                    Expression::Variable(Variable {
+                        name: "one".to_string(),
+                        is_nullable: false,
+                    }),
+                    Expression::Variable(Variable {
+                        name: "two".to_string(),
+                        is_nullable: false,
+                    }),
+                    Expression::Variable(Variable {
+                        name: "one".to_string(),
+                        is_nullable: false,
+                    }),
+                ],
+                is_nullable: true,
+            })),
+            is_nullable: true,
+        })
+    );
+
+    test_collect_variable_uses!(
+        filter_does_not_use_variables_nested_in_other_hofs,
+        expected = set! {"this".to_string()},
+        input = HigherOrderFunctionApplication::Filter(FilterExpr {
+            array: Box::new(Expression::Literal(LiteralValue::Null)),
+            f: Box::new(Expression::HigherOrderFunction(
+                HigherOrderFunctionApplication::Map(MapExpr {
+                    array: Box::new(Expression::Variable(Variable {
+                        name: "this".to_string(),
+                        is_nullable: false,
+                    })),
+                    f: Box::new(Expression::Variable(Variable {
+                        name: "do not use".to_string(),
+                        is_nullable: false,
+                    })),
+                    is_nullable: true,
+                })
+            )),
+            is_nullable: true,
+        })
+    );
+
+    test_collect_variable_uses!(
+        reduce_uses_no_variables,
+        expected = set! {},
+        input = HigherOrderFunctionApplication::Reduce(ReduceExpr {
+            array: Box::new(Expression::Literal(LiteralValue::Null)),
+            init_value: Box::new(Expression::Literal(LiteralValue::Null)),
+            f: Box::new(Expression::Literal(LiteralValue::Null)),
+            is_nullable: true,
+        })
+    );
+
+    test_collect_variable_uses!(
+        reduce_uses_one_variable,
+        expected = set! {"this".to_string()},
+        input = HigherOrderFunctionApplication::Reduce(ReduceExpr {
+            array: Box::new(Expression::Literal(LiteralValue::Null)),
+            init_value: Box::new(Expression::Literal(LiteralValue::Null)),
+            f: Box::new(Expression::Variable(Variable {
+                name: "this".to_string(),
+                is_nullable: false,
+            })),
+            is_nullable: true,
+        })
+    );
+
+    test_collect_variable_uses!(
+        reduce_uses_multiple_variables,
+        expected = set! {"this".to_string(), "value".to_string()},
+        input = HigherOrderFunctionApplication::Reduce(ReduceExpr {
+            array: Box::new(Expression::Literal(LiteralValue::Null)),
+            init_value: Box::new(Expression::Literal(LiteralValue::Null)),
+            f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Add,
+                args: vec![
+                    Expression::Variable(Variable {
+                        name: "this".to_string(),
+                        is_nullable: false,
+                    }),
+                    Expression::Variable(Variable {
+                        name: "value".to_string(),
+                        is_nullable: false,
+                    }),
+                ],
+                is_nullable: true,
+            })),
+            is_nullable: true,
+        })
+    );
+
+    test_collect_variable_uses!(
+        reduce_does_not_use_variables_nested_in_other_hofs,
+        expected = set! {"this".to_string()},
+        input = HigherOrderFunctionApplication::Reduce(ReduceExpr {
+            array: Box::new(Expression::Literal(LiteralValue::Null)),
+            init_value: Box::new(Expression::Literal(LiteralValue::Null)),
+            f: Box::new(Expression::HigherOrderFunction(
+                HigherOrderFunctionApplication::Filter(FilterExpr {
+                    array: Box::new(Expression::Variable(Variable {
+                        name: "this".to_string(),
+                        is_nullable: false,
+                    })),
+                    f: Box::new(Expression::Variable(Variable {
+                        name: "do not use".to_string(),
+                        is_nullable: false,
+                    })),
+                    is_nullable: true,
+                })
+            )),
+            is_nullable: true,
+        })
+    );
+}

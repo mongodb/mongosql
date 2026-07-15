@@ -1,7 +1,8 @@
 use crate::{
-    mir::*,
+    mir::{visitor_ref::VisitorRef, *},
     schema::{Document, Satisfaction, Schema, NULLISH},
 };
+use std::collections::HashSet;
 
 impl FieldAccess {
     /// If this FieldAccess is "pure", then return the scope of its root
@@ -142,5 +143,72 @@ pub fn set_field_schema(
                 ..Default::default()
             })
         }
+    }
+}
+
+/// collect_variable_uses collects the names of all variables used in the function argument of the
+/// provided HigherOrderFunctionApplication.
+///
+/// Examples:
+/// - MAP(array, this + 1) => { "this" }
+/// - MAP(array, 3) => { }
+/// - FILTER(array, this = this) => { "this" }
+/// - REDUCE(array, 0, this + value) => { "this", "value" }
+/// - REDUCE(array, 0, 1 + value) => { "value" }
+pub(crate) fn collect_variable_uses(expr: &HigherOrderFunctionApplication) -> HashSet<String> {
+    let mut visitor = VariablesUsesVisitor::default();
+    match expr {
+        HigherOrderFunctionApplication::Map(e) => visitor.visit_expression(e.f.as_ref()),
+        HigherOrderFunctionApplication::Filter(e) => visitor.visit_expression(e.f.as_ref()),
+        HigherOrderFunctionApplication::Reduce(e) => visitor.visit_expression(e.f.as_ref()),
+    }
+    visitor.variables
+}
+
+#[derive(Default)]
+struct VariablesUsesVisitor {
+    variables: HashSet<String>,
+}
+
+impl VisitorRef for VariablesUsesVisitor {
+    // When visiting a nested HigherOrderFunctionApplication, we must be careful not to walk its
+    // function argument since its variable uses would shadow the variables of the function argument
+    // of the HigherOrderFunctionApplication the top-level VariableUsesVisitor is visiting.
+    //
+    // For example, consider collecting the variable uses of the MAP expression:
+    //     MAP([1, 2, 3], REDUCE([this, this], this, this + value))
+    //
+    // The function argument of the top-level MAP is:
+    //     REDUCE([this, this], this, this + value)
+    //
+    // In this case, the output should just be the set { "this" }. We know this because the variable
+    // "this" is used in the first two arguments to REDUCE: in the array argument, [this, this], and
+    // as the initial value argument, this. In that scope, those uses of "this" must be associated
+    // with the top-level MAP.
+    //
+    // An incorrect implementation may return the set { "this", "value" } because the variable
+    // "value" also shows up as a descendant of the function argument of the MAP. Particularly, it
+    // appears in the function argument of the REDUCE. However, in that scope, those uses of "this"
+    // and "value" must be associated with the REDUCE, not the top-level MAP. In general, variables
+    // used in the function argument of a HigherOrderFunctionApplication must be associated with the
+    // closest scoped HigherOrderFunctionApplication. This is a consequence of the implementation
+    // at this time, which does not support custom-naming of variable arguments in higher order
+    // functions and therefore forces nested higher order functions to shadow the "this" and "value"
+    // variables.
+    fn visit_higher_order_function_application(&mut self, node: &HigherOrderFunctionApplication) {
+        match node {
+            HigherOrderFunctionApplication::Map(m) => m.array.walk_ref(self),
+            HigherOrderFunctionApplication::Filter(f) => {
+                f.array.walk_ref(self);
+            }
+            HigherOrderFunctionApplication::Reduce(r) => {
+                r.array.walk_ref(self);
+                r.init_value.walk_ref(self);
+            }
+        }
+    }
+
+    fn visit_variable(&mut self, node: &Variable) {
+        self.variables.insert(node.name.clone());
     }
 }
