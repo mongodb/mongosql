@@ -1071,9 +1071,9 @@ impl Expression {
     }
 
     fn array_schema(state: &SchemaInferenceState, a: &[Expression]) -> Result<Schema, Error> {
-        Ok(Schema::Array(Box::new(Expression::array_items_schema(
-            a, state,
-        )?)))
+        let items_schema = Expression::array_items_schema(a, state)?;
+        let items_schema_simplified = Schema::simplify(&items_schema);
+        Ok(Schema::Array(Box::new(items_schema_simplified)))
     }
 
     /// For array literals, we return Array(Unsat) (isomorphic with Array(AnyOf([])) for an empty array.

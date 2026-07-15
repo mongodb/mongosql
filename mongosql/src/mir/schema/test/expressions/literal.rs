@@ -72,25 +72,20 @@ mod array {
     use super::*;
 
     test_schema!(
-        array_literal_empty,
-        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set![])))),
+        empty,
+        expected = Ok(Schema::Array(Box::new(Schema::Unsat))),
         input = Expression::Array(vec![].into()),
     );
 
     test_schema!(
-        array_literal_null,
-        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set![
-            Schema::Atomic(Atomic::Null)
-        ])))),
+        with_single_atomic_item_results_in_array_of_atomic,
+        expected = Ok(Schema::Array(Box::new(Schema::Atomic(Atomic::Null)))),
         input = Expression::Array(vec![Expression::Literal(LiteralValue::Null)].into()),
     );
 
     test_schema!(
-        array_literal_two_nulls,
-        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set![
-            Schema::Atomic(Atomic::Null),
-            Schema::Atomic(Atomic::Null),
-        ])))),
+        with_multiple_atomic_items_results_in_array_of_atomic,
+        expected = Ok(Schema::Array(Box::new(Schema::Atomic(Atomic::Null)))),
         input = Expression::Array(
             vec![
                 Expression::Literal(LiteralValue::Null),
@@ -101,90 +96,60 @@ mod array {
     );
 
     test_schema!(
-        array_literal_missing_to_null,
-        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set![
-            Schema::Atomic(Atomic::Null),
-        ])))),
+        missing_items_upconverted_to_null,
+        expected = Ok(Schema::Array(Box::new(Schema::Atomic(Atomic::Null)))),
         input = Expression::Array(vec![Expression::Reference(("a", 0u16).into()),].into()),
         schema_env = map! {("a", 0u16).into() => Schema::Missing,},
     );
 
     test_schema!(
-        array_literal_with_nested_document_missing_preserved,
-        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set![
-            Schema::Document(Document {
-                keys: map! {
+        document_item_with_possibly_missing_field_preserved,
+        expected = Ok(Schema::Array(Box::new(Schema::Document(Document {
+            keys: map! {
                 "bar".into() => Schema::Atomic(Atomic::String),
-                    },
-                required: set! {"bar".into()},
-                additional_properties: false,
-                ..Default::default()
-            })
-        ])))),
-        input = Expression::Array(
-            vec![Expression::Document(
-                unchecked_unique_linked_hash_map! {
-                    "foo".into() => Expression::Reference(("a", 0u16).into()),
-                    "bar".into() => Expression::Reference(("b", 0u16).into()),
-                }
-                .into()
-            ),]
-            .into()
-        ),
+            },
+            required: set! {},
+            additional_properties: false,
+            ..Default::default()
+        })))),
+        input = Expression::Array(vec![Expression::Reference(("doc", 0u16).into())].into()),
         schema_env = map! {
-            ("a", 0u16).into() => Schema::Missing,
-            ("b", 0u16).into() => Schema::Atomic(Atomic::String),
-        },
-    );
-
-    test_schema!(
-        array_literal_any_of_any_of_missing_to_null,
-        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set![
-            Schema::Document(Document {
-                keys: map! {"b".into() =>
-                    Schema::AnyOf(set![
-                        Schema::AnyOf(set![
-                            Schema::Missing,
-                            Schema::Atomic(Atomic::Integer)
-                        ]),
-                        Schema::Atomic(Atomic::Double),
-                    ]),
+            ("doc", 0u16).into() => Schema::Document(Document {
+                keys: map! {
+                    "bar".into() => Schema::Atomic(Atomic::String),
                 },
                 required: set! {},
                 additional_properties: false,
                 ..Default::default()
-                })
-        ])))),
-        input = Expression::Array(vec![Expression::Document(
-            unchecked_unique_linked_hash_map! {"b".into() => Expression::Reference(("a", 0u16).into())}.into())].into()),
-        schema_env = map! {("a", 0u16).into() =>
-        Schema::AnyOf(set![
-            Schema::AnyOf(set![
-                Schema::Missing,
-                Schema::Atomic(Atomic::Integer)
-            ]),
-            Schema::Atomic(Atomic::Double),
-        ]),},
+            }),
+        },
     );
 
     test_schema!(
-        array_of_array_of_literal_any_of_any_of_missing_to_null,
+        with_unsimplified_nested_any_of_items_results_in_array_of_simplified_schema,
         expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set![
-            Schema::Array(Box::new(Schema::AnyOf(set![Schema::AnyOf(set![
-                Schema::AnyOf(set![
-                    Schema::Atomic(Atomic::Null),
-                    Schema::Atomic(Atomic::Integer)
-                ]),
-                Schema::Atomic(Atomic::Double)
-            ])]))),
-            Schema::Array(Box::new(Schema::AnyOf(set![Schema::AnyOf(set![
-                Schema::AnyOf(set![
-                    Schema::Atomic(Atomic::Null),
-                    Schema::Atomic(Atomic::Integer)
-                ]),
-                Schema::Atomic(Atomic::Double)
-            ])])))
+            Schema::Atomic(Atomic::Null),
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Double),
         ])))),
+        input = Expression::Array(vec![Expression::Reference(("a", 0u16).into())].into()),
+        schema_env = map! {
+            ("a", 0u16).into() => Schema::AnyOf(set![
+                Schema::AnyOf(set![Schema::Missing, Schema::Atomic(Atomic::Integer)]),
+                Schema::Atomic(Atomic::Double),
+            ]),
+        },
+    );
+
+    test_schema!(
+        nested_arrays,
+        expected = Ok(Schema::Array(Box::new(Schema::Array(Box::new(
+            Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Null),
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Double),
+            ])
+        ))))),
         input = Expression::Array(
             vec![
                 Expression::Array(vec![Expression::Reference(("a", 0u16).into()),].into()),
@@ -192,21 +157,17 @@ mod array {
             ]
             .into()
         ),
-        schema_env = map! {("a", 0u16).into() =>
-        Schema::AnyOf(set![
-            Schema::AnyOf(set![
-                Schema::Missing,
-                Schema::Atomic(Atomic::Integer)
+        schema_env = map! {
+            ("a", 0u16).into() => Schema::AnyOf(set![
+                Schema::AnyOf(set![Schema::Missing, Schema::Atomic(Atomic::Integer)]),
+                Schema::Atomic(Atomic::Double),
             ]),
-            Schema::Atomic(Atomic::Double),
-        ]),},
+        },
     );
 
     test_schema!(
-        array_literal_null_or_string,
+        with_polymorphic_items,
         expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set![
-            Schema::Atomic(Atomic::Null),
-            Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null),
             Schema::Atomic(Atomic::String),
         ])))),
