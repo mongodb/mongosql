@@ -4,7 +4,7 @@ use crate::{
     mir::{
         binding_tuple,
         schema::{
-            errors::IncorrectArgCountPrecision,
+            errors::{HigherOrderFunctionErrorCause, IncorrectArgCountPrecision},
             util::{lift_array_schemas, set_field_schema},
         },
         *,
@@ -30,6 +30,7 @@ use std::{
 mod errors;
 pub use errors::Error;
 
+use crate::mir::schema::util::collect_variable_uses;
 #[cfg(test)]
 pub(crate) use errors::ANY_SCHEMA_ADDENDUM;
 
@@ -2121,11 +2122,27 @@ impl HigherOrderFunctionApplication {
 
                 // Add the array item schema to the SchemaInferenceState as a variable using the
                 // name `this`.
-                let state_with_this_variable = state.with_variable("this", array_item_schema);
+                let state_with_this_variable =
+                    state.with_variable("this", array_item_schema.clone());
 
                 // Get the schema of the function argument using the updated state with the variable
                 // binding.
-                let func_schema = expr.f.schema(&state_with_this_variable)?;
+                let func_schema = expr.f.schema(&state_with_this_variable).map_err(|e| {
+                    let variable_causes = collect_variable_uses(self)
+                        .iter()
+                        .filter_map(|name| {
+                            if name == "this" {
+                                Some((
+                                    HigherOrderFunctionErrorCause::InvalidThisUsage,
+                                    array_item_schema.clone(),
+                                ))
+                            } else {
+                                None
+                            }
+                        })
+                        .collect();
+                    self.wrap_error_in_context(e, variable_causes)
+                })?;
 
                 // The output schema is an Array of the function argument's output schema. It may
                 // be null based on the array argument's nullability.
@@ -2136,19 +2153,64 @@ impl HigherOrderFunctionApplication {
             }
             HigherOrderFunctionApplication::Filter(expr) => todo!(),
             HigherOrderFunctionApplication::Reduce(expr) => todo!(),
+            // todo: for reduce: schema check f with init_val schema, then again with result schema (without init_val)
+            //      - result is combo of init_val and result schemas for each schema check
+        }
+    }
+
+    fn wrap_error_in_context(
+        &self,
+        error: Error,
+        variable_causes: Vec<(HigherOrderFunctionErrorCause, Schema)>,
+    ) -> Error {
+        match error {
+            Error::SchemaChecking { ref found, .. } => {
+                // If there was a SchemaChecking error, then it may be one of the variables used in
+                // the function expression. The caller provided the list of variables used in this
+                // function and their schema, so if one of those matches the "found" schema, then we
+                // will assume that is the cause of the error.
+                // map(['a'], this + 1)
+                let cause = variable_causes
+                    .iter()
+                    .find_map(|(cause, schema)| {
+                        if **found == *schema {
+                            Some(*cause)
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or(HigherOrderFunctionErrorCause::InvalidFunctionArgument);
+
+                Error::HigherOrderFunctionWrapper {
+                    name: self.as_str(),
+                    cause,
+                    error: Box::new(error),
+                }
+            }
+            Error::InvalidComparison(_, s1, s2) => todo!(),
+            Error::DatasourceNotFoundInSchemaEnv(_)
+            | Error::IncorrectArgumentCount { .. }
+            | Error::InvalidBinaryDataType
+            | Error::AggregationArgumentMustBeSelfComparable(_, _)
+            | Error::CannotMergeObjects(_, _, _)
+            | Error::AccessMissingField(_, _)
+            | Error::InvalidSubqueryCardinality
+            | Error::SortKeyNotSelfComparable(_, _)
+            | Error::GroupKeyNotSelfComparable(_, _)
+            | Error::UnwindIndexNameConflict(_)
+            | Error::CollectionNotFound(_, _)
+            | Error::HigherOrderFunctionWrapper { .. }
+            | Error::NoSuchVariable(_) => Error::HigherOrderFunctionWrapper {
+                name: self.as_str(),
+                cause: HigherOrderFunctionErrorCause::InvalidFunctionArgument,
+                error: Box::new(error),
+            },
         }
     }
 }
 
 impl Variable {
     pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
-        // TODO: figure out better way to propagate context of which variable causes the failure
-        //       The problem is we just return the schema of the variable, so it is the call sites
-        //       that need to determine if that's the problem. They will always treat Variable like
-        //       a normal expression, so if it is the one to cause a failure we'll need to check at
-        //       each call site "was this a variable? if so, which one?"
-        //     IDEA: return Result<Schema, (Expression, Error)> from the Expression::schema api
-        //           that way callers can wrap the error with more context
         match state.get_variable_schema(&self.name) {
             Some(schema) => Ok(schema.clone()),
             None => Err(Error::NoSuchVariable(self.name.clone())),
