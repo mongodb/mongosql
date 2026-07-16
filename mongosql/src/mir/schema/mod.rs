@@ -1120,6 +1120,17 @@ impl Expression {
             ..Default::default()
         }))
     }
+
+    /// as_var_cause returns the name of the variable if this Expression is a Variable. This method
+    /// should be used when returning an error with a `var_cause` field, if an expression is
+    /// identified as the "cause" of an error. If the expression is a Variable, this method returns
+    /// the name of the variable. Otherwise, it returns None.
+    fn as_var_cause(&self) -> Option<String> {
+        match self {
+            Expression::Variable(v) => Some(v.name.clone()),
+            _ => None,
+        }
+    }
 }
 
 impl Expression {
@@ -1165,7 +1176,7 @@ impl Expression {
                         name: "Like",
                         required: STRING_OR_NULLISH.clone().into(),
                         found: expr_schema.into(),
-                        var_cause: None,
+                        var_cause: l.expr.as_var_cause(),
                     });
                 }
                 let pattern_schema = l.pattern.schema(state)?;
@@ -1174,7 +1185,7 @@ impl Expression {
                         name: "Like",
                         required: STRING_OR_NULLISH.clone().into(),
                         found: pattern_schema.into(),
-                        var_cause: None,
+                        var_cause: l.pattern.as_var_cause(),
                     });
                 }
                 match expr_schema
@@ -1234,7 +1245,7 @@ impl FieldAccess {
                 name: "FieldAccess",
                 required: ANY_DOCUMENT.clone().into(),
                 found: accessee_schema.into(),
-                var_cause: None,
+                var_cause: self.expr.as_var_cause(),
             });
         }
         if accessee_schema.contains_field(&self.field) == Satisfaction::Not {
@@ -1271,6 +1282,7 @@ impl FieldPath {
                     name: "FieldPath",
                     required: ANY_DOCUMENT.clone().into(),
                     found: cur_schema.into(),
+                    // a FieldPath cannot be a Variable in the current implementation of mir.
                     var_cause: None,
                 });
             }
@@ -2123,7 +2135,7 @@ impl HigherOrderFunctionApplication {
                         name: "Map",
                         required: ANY_ARRAY_OR_NULLISH.clone().into(),
                         found: array_schema.into(),
-                        var_cause: None,
+                        var_cause: expr.array.as_var_cause(),
                     });
                 }
 
@@ -2228,14 +2240,14 @@ trait SchemaCheckCaseExpr {
         state: &SchemaInferenceState,
         when_branches: &[WhenBranch],
         else_branch: &Expression,
-        check_when_schema: &dyn Fn(&Schema) -> Result<(), Error>,
+        check_when_schema: &dyn Fn(&Expression) -> Result<(), Error>,
     ) -> Result<Schema, Error> {
         // Check each WHEN condition/operand and collect each THEN result in the output.
         let mut schemas = when_branches
             .iter()
             .map(|wb| {
                 Ok({
-                    check_when_schema(&wb.when.schema(state)?)?;
+                    check_when_schema(&wb.when)?;
                     wb.then.schema(state)?
                 })
             })
@@ -2251,13 +2263,14 @@ trait SchemaCheckCaseExpr {
 impl SchemaCheckCaseExpr for SearchedCaseExpr {
     fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
         // All WHEN conditions for a SearchedCaseExpr must be boolean or nullish.
-        let check_when_schema = &|when_schema: &Schema| {
-            if !state.check_satisfies(when_schema, &BOOLEAN_OR_NULLISH) {
+        let check_when_schema = &|when_expr: &Expression| {
+            let when_schema = when_expr.schema(state)?;
+            if !state.check_satisfies(&when_schema, &BOOLEAN_OR_NULLISH) {
                 return Err(Error::SchemaChecking {
                     name: "SearchedCase",
                     required: BOOLEAN_OR_NULLISH.clone().into(),
                     found: when_schema.clone().into(),
-                    var_cause: None,
+                    var_cause: when_expr.as_var_cause(),
                 });
             }
             Ok(())
@@ -2276,13 +2289,18 @@ impl SchemaCheckCaseExpr for SimpleCaseExpr {
     fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
         // The case operand for a SimpleCaseExpr must be comparable with all WHEN operands.
         let case_operand_schema = self.expr.schema(state)?;
-        let check_when_schema = &|when_schema: &Schema| {
-            if !state.check_comparable_with(&case_operand_schema, when_schema) {
+        let check_when_schema = &|when_expr: &Expression| {
+            let when_schema = when_expr.schema(state)?;
+            if !state.check_comparable_with(&case_operand_schema, &when_schema) {
                 return Err(Error::InvalidComparison {
                     name: "SimpleCase",
                     left: case_operand_schema.clone().into(),
                     right: when_schema.clone().into(),
-                    var_cause: None,
+                    // In case both are Variables, arbitrarily prefer the left to the right.
+                    var_cause: self
+                        .expr
+                        .as_var_cause()
+                        .or_else(|| when_expr.as_var_cause()),
                 });
             }
             Ok(())
@@ -2310,7 +2328,7 @@ impl TypeAssertionExpr {
                 name: "::!",
                 required: target_schema.into(),
                 found: expr_schema.into(),
-                var_cause: None,
+                var_cause: self.expr.as_var_cause(),
             });
         }
 
