@@ -109,6 +109,41 @@ mod map {
         })),
     );
 
+    // MAP(['a'], [this, string_field + 1]) => error
+    test_schema!(
+        do_not_incorrectly_blame_variable_usage_when_variable_is_valid_but_function_is_still_valid,
+        expected_error_code = 1020,
+        expected = Err(mir_error::HigherOrderFunctionWrapper {
+            name: "Map",
+            cause: HigherOrderFunctionErrorCause::InvalidFunctionArgument,
+            error: Box::new(mir_error::SchemaChecking {
+                name: "Add",
+                required: NUMERIC_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::String).into(),
+                var_cause: None,
+            })
+        }),
+        input = Expression::HigherOrderFunction(HigherOrderFunctionApplication::Map(MapExpr {
+            array: Box::new(Expression::Array(ArrayExpr {
+                array: vec![Expression::Literal(LiteralValue::String("a".to_string()))]
+            })),
+            f: Box::new(Expression::Array(ArrayExpr {
+                array: vec![
+                    Expression::Variable(Variable::new("this".to_string())),
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Add,
+                        args: vec![
+                            Expression::Literal(LiteralValue::String("a".to_string())),
+                            Expression::Literal(LiteralValue::Integer(1)),
+                        ],
+                        is_nullable: false,
+                    }),
+                ],
+            })),
+            is_nullable: false,
+        })),
+    );
+
     // This situation may arise as a result of syntactic rewriting. For example, a user may write
     // `SELECT MAP([1], *) FROM foo` which would be rewritten to `SELECT MAP([1], this *) FROM foo`
     // which is invalid because `*` requires two arguments at minimum.

@@ -21,6 +21,27 @@ test_schema!(
 );
 
 test_schema!(
+    field_access_accessee_must_be_document_with_var_cause,
+    expected_error_code = 1002,
+    expected = Err(mir_error::SchemaChecking {
+        name: "FieldAccess",
+        required: crate::schema::ANY_DOCUMENT.clone().into(),
+        found: Schema::Atomic(Atomic::Long).into(),
+        var_cause: Some("this".to_string()),
+    }),
+    input = Expression::FieldAccess(FieldAccess::new(
+        Box::new(Expression::Variable(Variable {
+            name: "this".to_string(),
+            is_nullable: false,
+        })),
+        "foo".to_string(),
+    )),
+    variables = map! {
+        "this".to_string() => Schema::Atomic(Atomic::Long)
+    },
+);
+
+test_schema!(
     field_access_field_must_not_exist_not_in_document,
     expected_error_code = 1007,
     expected = Err(mir_error::AccessMissingField(

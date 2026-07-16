@@ -23,6 +23,29 @@ test_schema!(
 );
 
 test_schema!(
+    like_first_arg_not_string_or_nullish_is_error_with_var_cause,
+    expected_error_code = 1002,
+    expected = Err(mir_error::SchemaChecking {
+        name: "Like",
+        required: STRING_OR_NULLISH.clone().into(),
+        found: NUMERIC_OR_NULLISH.clone().into(),
+        var_cause: Some("this".to_string()),
+    }),
+    input = Expression::Like(LikeExpr {
+        expr: Expression::Variable(Variable {
+            name: "this".to_string(),
+            is_nullable: true,
+        })
+        .into(),
+        pattern: Expression::Literal(LiteralValue::String("hello".into())).into(),
+        escape: None,
+    }),
+    variables = map! {
+        "this".to_string() => NUMERIC_OR_NULLISH.clone(),
+    },
+);
+
+test_schema!(
     like_second_arg_not_string_or_nullish_is_error,
     expected_error_code = 1002,
     expected = Err(mir_error::SchemaChecking {
@@ -37,6 +60,29 @@ test_schema!(
         escape: None,
     }),
     schema_env = map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
+);
+
+test_schema!(
+    like_second_arg_not_string_or_nullish_is_error_with_var_cause,
+    expected_error_code = 1002,
+    expected = Err(mir_error::SchemaChecking {
+        name: "Like",
+        required: STRING_OR_NULLISH.clone().into(),
+        found: NUMERIC_OR_NULLISH.clone().into(),
+        var_cause: Some("this".to_string()),
+    }),
+    input = Expression::Like(LikeExpr {
+        expr: Expression::Literal(LiteralValue::String("hello".into())).into(),
+        pattern: Expression::Variable(Variable {
+            name: "this".to_string(),
+            is_nullable: true
+        })
+        .into(),
+        escape: None,
+    }),
+    variables = map! {
+        "this".to_string() => NUMERIC_OR_NULLISH.clone(),
+    },
 );
 
 test_schema!(

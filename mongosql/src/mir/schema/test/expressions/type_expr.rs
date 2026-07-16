@@ -182,4 +182,25 @@ mod type_assert {
             target_type: Type::String,
         }),
     );
+
+    test_schema!(
+        assert_expr_to_impossible_type_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "::!",
+            required: Schema::Atomic(Atomic::String).into(),
+            found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: Some("value".to_string()),
+        }),
+        input = Expression::TypeAssertion(TypeAssertionExpr {
+            expr: Box::new(Expression::Variable(Variable {
+                name: "value".to_string(),
+                is_nullable: false
+            })),
+            target_type: Type::String,
+        }),
+        variables = map! {
+            "value".to_string() => Schema::Atomic(Atomic::Integer),
+        },
+    );
 }
