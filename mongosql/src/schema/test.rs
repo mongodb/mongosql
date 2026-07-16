@@ -3995,11 +3995,7 @@ mod get_array_item_schema {
         };
     }
 
-    test_get_array_item_schema!(
-        unsat_returns_none,
-        expected = None,
-        input = Schema::Unsat,
-    );
+    test_get_array_item_schema!(unsat_returns_none, expected = None, input = Schema::Unsat,);
 
     test_get_array_item_schema!(
         missing_returns_none,
@@ -4040,18 +4036,35 @@ mod get_array_item_schema {
     test_get_array_item_schema!(
         any_of_without_array_returns_none,
         expected = None,
-        input = Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)]),
+        input = Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ]),
     );
 
     test_get_array_item_schema!(
         any_of_with_only_one_array_returns_that_item_schema,
         expected = Some(Schema::Atomic(Atomic::String)),
-        input = Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Array(Box::new(Schema::Atomic(Atomic::String)))]),
+        input = Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Array(Box::new(Schema::Atomic(Atomic::String)))
+        ]),
     );
 
     test_get_array_item_schema!(
         any_of_with_multiple_array_schemas_returns_union_of_item_schemas,
-        expected = Some(Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long), Schema::Atomic(Atomic::String)])),
-        input = Schema::AnyOf(set![Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))), Schema::Array(Box::new(Schema::Atomic(Atomic::String))), Schema::Array(Box::new(Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long)])))]),
+        expected = Some(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::String)
+        ])),
+        input = Schema::AnyOf(set![
+            Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
+            Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
+            Schema::Array(Box::new(Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long)
+            ])))
+        ]),
     );
 }
