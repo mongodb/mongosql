@@ -85,7 +85,7 @@ mod map {
         expected_error_code = 1020,
         expected = Err(mir_error::HigherOrderFunctionWrapper {
             name: "Map",
-            cause: HigherOrderFunctionErrorCause::InvalidThisUsage,
+            cause: HigherOrderFunctionErrorCause::ThisUsage,
             error: Box::new(mir_error::SchemaChecking {
                 name: "Add",
                 required: NUMERIC_OR_NULLISH.clone().into(),
@@ -115,7 +115,7 @@ mod map {
         expected_error_code = 1020,
         expected = Err(mir_error::HigherOrderFunctionWrapper {
             name: "Map",
-            cause: HigherOrderFunctionErrorCause::InvalidFunctionArgument,
+            cause: HigherOrderFunctionErrorCause::FunctionArgument,
             error: Box::new(mir_error::SchemaChecking {
                 name: "Add",
                 required: NUMERIC_OR_NULLISH.clone().into(),
@@ -153,7 +153,7 @@ mod map {
         expected_error_code = 1020,
         expected = Err(mir_error::HigherOrderFunctionWrapper {
             name: "Map",
-            cause: HigherOrderFunctionErrorCause::InvalidFunctionArgument,
+            cause: HigherOrderFunctionErrorCause::FunctionArgument,
             error: Box::new(mir_error::IncorrectArgumentCount {
                 name: "Mul",
                 required: IncorrectArgCountPrecision::Minimum(2),
@@ -287,7 +287,7 @@ mod filter {
         expected_error_code = 1020,
         expected = Err(mir_error::HigherOrderFunctionWrapper {
             name: "Filter",
-            cause: HigherOrderFunctionErrorCause::InvalidThisUsage,
+            cause: HigherOrderFunctionErrorCause::ThisUsage,
             error: Box::new(mir_error::InvalidComparison {
                 name: "Gt",
                 left: Schema::Atomic(Atomic::String).into(),
@@ -322,7 +322,7 @@ mod filter {
         expected_error_code = 1020,
         expected = Err(mir_error::HigherOrderFunctionWrapper {
             name: "Filter",
-            cause: HigherOrderFunctionErrorCause::InvalidFunctionArgument,
+            cause: HigherOrderFunctionErrorCause::FunctionArgument,
             error: Box::new(mir_error::IncorrectArgumentCount {
                 name: "Gt",
                 required: IncorrectArgCountPrecision::Exact(2),
@@ -389,7 +389,7 @@ mod reduce {
         expected_error_code = 1020,
         expected = Err(mir_error::HigherOrderFunctionWrapper {
             name: "Reduce",
-            cause: HigherOrderFunctionErrorCause::InvalidInitialValue,
+            cause: HigherOrderFunctionErrorCause::InitialValue,
             error: Box::new(mir_error::SchemaChecking {
                 name: "Add",
                 required: NUMERIC_OR_NULLISH.clone().into(),
@@ -631,7 +631,7 @@ mod reduce {
         expected_error_code = 1020,
         expected = Err(mir_error::HigherOrderFunctionWrapper {
             name: "Reduce",
-            cause: HigherOrderFunctionErrorCause::InvalidThisUsage,
+            cause: HigherOrderFunctionErrorCause::ThisUsage,
             error: Box::new(mir_error::SchemaChecking {
                 name: "Add",
                 required: NUMERIC_OR_NULLISH.clone().into(),
@@ -663,7 +663,7 @@ mod reduce {
         expected_error_code = 1020,
         expected = Err(mir_error::HigherOrderFunctionWrapper {
             name: "Reduce",
-            cause: HigherOrderFunctionErrorCause::InvalidInitialValueUsage,
+            cause: HigherOrderFunctionErrorCause::InitialValueUsage,
             error: Box::new(mir_error::SchemaChecking {
                 name: "Add",
                 required: NUMERIC_OR_NULLISH.clone().into(),
@@ -695,7 +695,7 @@ mod reduce {
         expected_error_code = 1020,
         expected = Err(mir_error::HigherOrderFunctionWrapper {
             name: "Reduce",
-            cause: HigherOrderFunctionErrorCause::InvalidAccumulatedValueUsage,
+            cause: HigherOrderFunctionErrorCause::AccumulatedValueUsage,
             error: Box::new(mir_error::InvalidComparison {
                 name: "SimpleCase",
                 left: Schema::Atomic(Atomic::Integer).into(),

@@ -2215,11 +2215,9 @@ trait HigherOrderFunction: SqlFunction {
                 var_cause: Some(ref var_cause),
                 ..
             } => match var_cause.as_str() {
-                "this" => HigherOrderFunctionErrorCause::InvalidThisUsage,
-                "value" => {
-                    value_cause.unwrap_or(HigherOrderFunctionErrorCause::InvalidFunctionArgument)
-                }
-                _ => HigherOrderFunctionErrorCause::InvalidFunctionArgument,
+                "this" => HigherOrderFunctionErrorCause::ThisUsage,
+                "value" => value_cause.unwrap_or(HigherOrderFunctionErrorCause::FunctionArgument),
+                _ => HigherOrderFunctionErrorCause::FunctionArgument,
             },
             // Otherwise, we use the generic cause `InvalidFunctionArgument`.
             Error::SchemaChecking { .. }
@@ -2236,7 +2234,7 @@ trait HigherOrderFunction: SqlFunction {
             | Error::UnwindIndexNameConflict(_)
             | Error::CollectionNotFound(_, _)
             | Error::HigherOrderFunctionWrapper { .. }
-            | Error::NoSuchVariable(_) => HigherOrderFunctionErrorCause::InvalidFunctionArgument,
+            | Error::NoSuchVariable(_) => HigherOrderFunctionErrorCause::FunctionArgument,
         };
 
         Error::HigherOrderFunctionWrapper {
@@ -2401,7 +2399,7 @@ impl HigherOrderFunction for ReduceExpr {
                 .schema(state)
                 .map_err(|e| Error::HigherOrderFunctionWrapper {
                     name: self.as_str(),
-                    cause: HigherOrderFunctionErrorCause::InvalidInitialValue,
+                    cause: HigherOrderFunctionErrorCause::InitialValue,
                     error: Box::new(e),
                 })?;
 
@@ -2424,7 +2422,7 @@ impl HigherOrderFunction for ReduceExpr {
             .map_err(|e| {
                 self.wrap_error_in_context(
                     e,
-                    Some(HigherOrderFunctionErrorCause::InvalidInitialValueUsage),
+                    Some(HigherOrderFunctionErrorCause::InitialValueUsage),
                 )
             })?;
 
@@ -2441,7 +2439,7 @@ impl HigherOrderFunction for ReduceExpr {
             .map_err(|e| {
                 self.wrap_error_in_context(
                     e,
-                    Some(HigherOrderFunctionErrorCause::InvalidAccumulatedValueUsage),
+                    Some(HigherOrderFunctionErrorCause::AccumulatedValueUsage),
                 )
             })?;
 
