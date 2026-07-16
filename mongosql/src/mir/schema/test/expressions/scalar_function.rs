@@ -18,6 +18,7 @@ mod substring {
             name: "Substring",
             required: STRING_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Substring,
@@ -36,6 +37,7 @@ mod substring {
             name: "Substring",
             required: INTEGER_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Substring,
@@ -54,6 +56,7 @@ mod substring {
             name: "Substring",
             required: INTEGER_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Substring,
@@ -131,6 +134,7 @@ mod and {
             name: "And",
             required: BOOLEAN_OR_NULLISH.clone().into(),
             found: NUMERIC_OR_NULLISH.clone().into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::And,
@@ -149,6 +153,7 @@ mod and {
             name: "And",
             required: BOOLEAN_OR_NULLISH.clone().into(),
             found: NUMERIC_OR_NULLISH.clone().into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::And,
@@ -262,6 +267,7 @@ mod or {
             name: "Or",
             required: BOOLEAN_OR_NULLISH.clone().into(),
             found: NUMERIC_OR_NULLISH.clone().into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Or,
@@ -280,6 +286,7 @@ mod or {
             name: "Or",
             required: BOOLEAN_OR_NULLISH.clone().into(),
             found: NUMERIC_OR_NULLISH.clone().into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Or,
@@ -393,6 +400,7 @@ mod not {
             name: "Not",
             required: BOOLEAN_OR_NULLISH.clone().into(),
             found: NUMERIC_OR_NULLISH.clone().into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Not,
@@ -1473,6 +1481,7 @@ mod arithmetic {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Add,
@@ -1564,6 +1573,7 @@ mod arithmetic {
                 ])
                 .into(),
                 found: Schema::Atomic(Atomic::String).into(),
+                var_cause: None,
             }),
             input = Expression::ScalarFunction(ScalarFunctionApplication::new(
                 ScalarFunction::Sub,
@@ -1589,6 +1599,7 @@ mod arithmetic {
                 ])
                 .into(),
                 found: Schema::Atomic(Atomic::Boolean).into(),
+                var_cause: None,
             }),
             input = Expression::ScalarFunction(ScalarFunctionApplication::new(
                 ScalarFunction::Div,
@@ -1614,6 +1625,7 @@ mod arithmetic {
                 ])
                 .into(),
                 found: Schema::Atomic(Atomic::Boolean).into(),
+                var_cause: None,
             }),
             input = Expression::ScalarFunction(ScalarFunctionApplication::new(
                 ScalarFunction::Add,
@@ -1664,6 +1676,7 @@ mod abs {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Abs,
@@ -1707,6 +1720,7 @@ mod ceil {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Ceil,
@@ -1750,6 +1764,7 @@ mod degrees {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Degrees,
@@ -1811,6 +1826,7 @@ mod floor {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Floor,
@@ -1855,6 +1871,7 @@ mod log {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Log,
@@ -1880,6 +1897,7 @@ mod log {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Log,
@@ -1927,6 +1945,7 @@ mod mod_func {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Mod,
@@ -1952,6 +1971,7 @@ mod mod_func {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Mod,
@@ -1999,6 +2019,7 @@ mod pow {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Pow,
@@ -2024,6 +2045,7 @@ mod pow {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Pow,
@@ -2071,6 +2093,7 @@ mod round {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Round,
@@ -2094,6 +2117,7 @@ mod round {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Round,
@@ -2140,6 +2164,7 @@ mod cos {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Cos,
@@ -2192,6 +2217,7 @@ mod sin {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Sin,
@@ -2244,6 +2270,7 @@ mod tan {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Tan,
@@ -2296,6 +2323,7 @@ mod radians {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Radians,
@@ -2339,6 +2367,7 @@ mod sqrt {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Sqrt,
@@ -2367,11 +2396,12 @@ mod comparison {
     test_schema!(
         comp_op_requires_a_valid_comparison,
         expected_error_code = 1005,
-        expected = Err(mir_error::InvalidComparison(
-            "Lte",
-            Schema::Atomic(Atomic::Integer).into(),
-            Schema::Atomic(Atomic::String).into(),
-        )),
+        expected = Err(mir_error::InvalidComparison {
+            name: "Lte",
+            left: Schema::Atomic(Atomic::Integer).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
+        }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Lte,
             vec![
@@ -2442,11 +2472,12 @@ mod between {
     test_schema!(
         between_requires_a_valid_comparison_between_first_and_second_args,
         expected_error_code = 1005,
-        expected = Err(mir_error::InvalidComparison(
-            "Between",
-            Schema::Atomic(Atomic::Integer).into(),
-            Schema::Atomic(Atomic::String).into(),
-        )),
+        expected = Err(mir_error::InvalidComparison {
+            name: "Between",
+            left: Schema::Atomic(Atomic::Integer).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
+        }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Between,
             vec![
@@ -2460,11 +2491,12 @@ mod between {
     test_schema!(
         between_requires_a_valid_comparison_between_first_and_third_args,
         expected_error_code = 1005,
-        expected = Err(mir_error::InvalidComparison(
-            "Between",
-            Schema::Atomic(Atomic::Integer).into(),
-            Schema::Atomic(Atomic::String).into(),
-        )),
+        expected = Err(mir_error::InvalidComparison {
+            name: "Between",
+            left: Schema::Atomic(Atomic::Integer).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
+        }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Between,
             vec![
@@ -2544,6 +2576,7 @@ mod merge_objects {
             name: "MergeObjects",
             required: ANY_DOCUMENT_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::MergeObjects,
@@ -2797,6 +2830,7 @@ mod computed_field_access {
             name: "ComputedFieldAccess",
             required: ANY_DOCUMENT.clone().into(),
             found: Schema::Atomic(Atomic::Long).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::ComputedFieldAccess,
@@ -2814,6 +2848,7 @@ mod computed_field_access {
             name: "ComputedFieldAccess",
             required: ANY_DOCUMENT.clone().into(),
             found: Schema::AnyOf(set![ANY_DOCUMENT.clone(), Schema::Missing]).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::ComputedFieldAccess,
@@ -2832,6 +2867,7 @@ mod computed_field_access {
             name: "ComputedFieldAccess",
             required: Schema::Atomic(Atomic::String).into(),
             found: Schema::Atomic(Atomic::Long).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::ComputedFieldAccess,
@@ -2850,6 +2886,7 @@ mod computed_field_access {
             name: "ComputedFieldAccess",
             required: Schema::Atomic(Atomic::String).into(),
             found: Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing]).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::ComputedFieldAccess,
@@ -2923,11 +2960,12 @@ mod nullif {
     test_schema!(
         nullif_cannot_compare_numeric_with_non_numeric,
         expected_error_code = 1005,
-        expected = Err(mir_error::InvalidComparison(
-            "NullIf",
-            Schema::Atomic(Atomic::Integer).into(),
-            Schema::Atomic(Atomic::String).into(),
-        )),
+        expected = Err(mir_error::InvalidComparison {
+            name: "NullIf",
+            left: Schema::Atomic(Atomic::Integer).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
+        }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::NullIf,
             vec![
@@ -2940,11 +2978,12 @@ mod nullif {
     test_schema!(
         nullif_types_must_be_identical_if_non_numeric,
         expected_error_code = 1005,
-        expected = Err(mir_error::InvalidComparison(
-            "NullIf",
-            Schema::Atomic(Atomic::Boolean).into(),
-            Schema::Atomic(Atomic::String).into(),
-        )),
+        expected = Err(mir_error::InvalidComparison {
+            name: "NullIf",
+            left: Schema::Atomic(Atomic::Boolean).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
+        }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::NullIf,
             vec![
@@ -2957,19 +2996,20 @@ mod nullif {
     test_schema!(
         nullif_args_cannot_be_potentially_comparable,
         expected_error_code = 1005,
-        expected = Err(mir_error::InvalidComparison(
-            "NullIf",
-            Schema::AnyOf(set![
+        expected = Err(mir_error::InvalidComparison {
+            name: "NullIf",
+            left: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String)
             ])
             .into(),
-            Schema::AnyOf(set![
+            right: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String)
             ])
             .into(),
-        )),
+            var_cause: None,
+        }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::NullIf,
             vec![
@@ -3222,6 +3262,7 @@ mod slice {
             name: "Slice",
             required: ANY_ARRAY.clone().into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Slice,
@@ -3244,6 +3285,7 @@ mod slice {
             ])
             .into(),
             found: Schema::Atomic(Atomic::Long).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Slice,
@@ -3262,6 +3304,7 @@ mod slice {
             name: "Slice",
             required: ANY_ARRAY.clone().into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Slice,
@@ -3285,6 +3328,7 @@ mod slice {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Slice,
@@ -3309,6 +3353,7 @@ mod slice {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Slice,
@@ -3376,6 +3421,7 @@ mod split {
             name: "Split",
             required: STRING_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Split,
@@ -3395,6 +3441,7 @@ mod split {
             name: "Split",
             required: STRING_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Split,
@@ -3414,6 +3461,7 @@ mod split {
             name: "Split",
             required: INTEGER_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Split,
@@ -3473,6 +3521,7 @@ mod size {
             ])
             .into(),
             found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Size,
@@ -3542,6 +3591,7 @@ mod pos {
                 Schema::Atomic(Atomic::String),
             ])
             .into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Pos,
@@ -3605,11 +3655,12 @@ mod in_operator {
     test_schema!(
         not_in_operator_lhs_and_rhs_must_be_comparable,
         expected_error_code = 1005,
-        expected = Err(mir_error::InvalidComparison(
-            "NotIn",
-            Schema::Atomic(Atomic::String).into(),
-            Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]).into()
-        )),
+        expected = Err(mir_error::InvalidComparison {
+            name: "NotIn",
+            left: Schema::Atomic(Atomic::String).into(),
+            right: Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]).into(),
+            var_cause: None,
+        }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::NotIn,
             args: vec![
@@ -3695,6 +3746,7 @@ mod in_operator {
                 ])
             ])
             .into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::NotIn,

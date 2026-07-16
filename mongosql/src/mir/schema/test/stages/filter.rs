@@ -73,6 +73,7 @@ test_schema!(
         ])
         .into(),
         found: Schema::Atomic(Atomic::Integer).into(),
+        var_cause: None,
     }),
     input = Stage::Filter(Filter {
         source: Box::new(test_source()),
@@ -96,6 +97,7 @@ test_schema!(
         ])
         .into(),
         found: Schema::Any.into(),
+        var_cause: None,
     }),
     input = Stage::Filter(Filter {
         source: Box::new(test_source()),

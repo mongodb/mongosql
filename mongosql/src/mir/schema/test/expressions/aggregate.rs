@@ -70,6 +70,7 @@ mod avg {
                 Schema::Atomic(Atomic::String),
             ])
             .into(),
+            var_cause: None,
         }),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Avg,
@@ -205,7 +206,6 @@ mod avg {
 
 mod count {
     use super::*;
-    // todo: use AnyOf to force non-self-comparability
 
     test_schema!(
         distinct_count_args_must_be_comparable,
@@ -485,6 +485,7 @@ mod merge_documents {
                 Schema::Atomic(Atomic::String),
             ])
             .into(),
+            var_cause: None,
         }),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::MergeDocuments,
@@ -696,6 +697,7 @@ mod stddev_pop {
                 Schema::Atomic(Atomic::String),
             ])
             .into(),
+            var_cause: None,
         }),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::StddevPop,
@@ -787,6 +789,7 @@ mod stddev_samp {
                 Schema::Atomic(Atomic::String),
             ])
             .into(),
+            var_cause: None,
         }),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::StddevSamp,
@@ -878,6 +881,7 @@ mod sum {
                 Schema::Atomic(Atomic::String),
             ])
             .into(),
+            var_cause: None,
         }),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Sum,

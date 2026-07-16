@@ -12,6 +12,7 @@ test_schema!(
         name: "FieldAccess",
         required: crate::schema::ANY_DOCUMENT.clone().into(),
         found: Schema::Atomic(Atomic::Long).into(),
+        var_cause: None,
     }),
     input = Expression::FieldAccess(FieldAccess::new(
         Box::new(Expression::Literal(LiteralValue::Long(1))),

@@ -25,6 +25,7 @@ test_algebrize_expr_and_schema_check!(
         name: "Neg",
         required: NUMERIC_OR_NULLISH.clone().into(),
         found: Schema::Atomic(Atomic::Boolean).into(),
+        var_cause: None,
     })),
     expected_error_code = 1002,
     input = ast::Expression::Unary(ast::UnaryExpr {
@@ -58,6 +59,7 @@ test_algebrize_expr_and_schema_check!(
         name: "Pos",
         required: NUMERIC_OR_NULLISH.clone().into(),
         found: Schema::Atomic(Atomic::Boolean).into(),
+        var_cause: None,
     })),
     expected_error_code = 1002,
     input = ast::Expression::Unary(ast::UnaryExpr {

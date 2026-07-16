@@ -20,6 +20,7 @@ mod searched {
             ])
             .into(),
             found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
         }),
         input = Expression::SearchedCase(SearchedCaseExpr {
             when_branch: vec![WhenBranch {
@@ -74,11 +75,12 @@ mod simple {
     test_schema!(
         simple_case_when_branch_operand_must_be_comparable_with_case_operand,
         expected_error_code = 1005,
-        expected = Err(mir_error::InvalidComparison(
-            "SimpleCase",
-            Schema::Atomic(Atomic::String).into(),
-            Schema::Atomic(Atomic::Integer).into(),
-        )),
+        expected = Err(mir_error::InvalidComparison {
+            name: "SimpleCase",
+            left: Schema::Atomic(Atomic::String).into(),
+            right: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
+        }),
         input = Expression::SimpleCase(SimpleCaseExpr {
             expr: Box::new(Expression::Literal(LiteralValue::String("abc".to_string()))),
             when_branch: vec![WhenBranch {

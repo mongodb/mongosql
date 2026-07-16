@@ -175,6 +175,7 @@ mod type_assert {
             name: "::!",
             required: Schema::Atomic(Atomic::String).into(),
             found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
         }),
         input = Expression::TypeAssertion(TypeAssertionExpr {
             expr: Box::new(Expression::Literal(LiteralValue::Integer(1))),

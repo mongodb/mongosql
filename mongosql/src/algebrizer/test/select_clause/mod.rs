@@ -191,6 +191,7 @@ test_algebrize!(
             name: "project datasource",
             required: ANY_DOCUMENT.clone().into(),
             found: crate::schema::Schema::Atomic(crate::schema::Atomic::String).into(),
+            var_cause: None,
         }
     )),
     expected_error_code = 1002,

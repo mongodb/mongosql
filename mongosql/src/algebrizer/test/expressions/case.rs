@@ -60,6 +60,7 @@ test_algebrize_expr_and_schema_check!(
         name: "SearchedCase",
         required: BOOLEAN_OR_NULLISH.clone().into(),
         found: Schema::Atomic(Atomic::String).into(),
+        var_cause: None,
     })),
     expected_error_code = 1002,
     input = ast::Expression::Case(ast::CaseExpr {
@@ -179,11 +180,12 @@ test_algebrize_expr_and_schema_check!(
     method = algebrize_expression,
     in_implicit_type_conversion_context = false,
     expected = Err(Error::SchemaChecking(
-        mir::schema::Error::InvalidComparison(
-            "SimpleCase",
-            Schema::Atomic(Atomic::Integer).into(),
-            Schema::Atomic(Atomic::String).into(),
-        )
+        mir::schema::Error::InvalidComparison {
+            name: "SimpleCase",
+            left: Schema::Atomic(Atomic::Integer).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
+        }
     )),
     expected_error_code = 1005,
     input = ast::Expression::Case(ast::CaseExpr {

@@ -35,6 +35,7 @@ mod map {
             name: "Map",
             required: ANY_ARRAY_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
         }),
         input = Expression::HigherOrderFunction(HigherOrderFunctionApplication::Map(MapExpr {
             array: Box::new(Expression::Literal(LiteralValue::Integer(1))),
@@ -89,6 +90,7 @@ mod map {
                 name: "Add",
                 required: NUMERIC_OR_NULLISH.clone().into(),
                 found: Schema::Atomic(Atomic::String).into(),
+                var_cause: Some("this".to_string()),
             })
         }),
         input = Expression::HigherOrderFunction(HigherOrderFunctionApplication::Map(MapExpr {
@@ -162,6 +164,7 @@ mod filter {
             name: "Filter",
             required: ANY_ARRAY_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
         }),
         input =
             Expression::HigherOrderFunction(HigherOrderFunctionApplication::Filter(FilterExpr {
@@ -195,6 +198,7 @@ mod filter {
             name: "Filter",
             required: BOOLEAN_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
         }),
         input =
             Expression::HigherOrderFunction(HigherOrderFunctionApplication::Filter(FilterExpr {
@@ -249,11 +253,12 @@ mod filter {
         expected = Err(mir_error::HigherOrderFunctionWrapper {
             name: "Filter",
             cause: HigherOrderFunctionErrorCause::InvalidThisUsage,
-            error: Box::new(mir_error::InvalidComparison(
-                "Gt",
-                Schema::Atomic(Atomic::String).into(),
-                NUMERIC_OR_NULLISH.clone().into(),
-            ))
+            error: Box::new(mir_error::InvalidComparison {
+                name: "Gt",
+                left: Schema::Atomic(Atomic::String).into(),
+                right: NUMERIC_OR_NULLISH.clone().into(),
+                var_cause: Some("this".to_string()),
+            }),
         }),
         input =
             Expression::HigherOrderFunction(HigherOrderFunctionApplication::Filter(FilterExpr {
@@ -315,6 +320,7 @@ mod reduce {
             name: "Reduce",
             required: ANY_ARRAY_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
         }),
         input =
             Expression::HigherOrderFunction(HigherOrderFunctionApplication::Reduce(ReduceExpr {
@@ -562,6 +568,7 @@ mod reduce {
                 name: "Add",
                 required: NUMERIC_OR_NULLISH.clone().into(),
                 found: Schema::Atomic(Atomic::String).into(),
+                var_cause: Some("this".to_string()),
             })
         }),
         input =
@@ -593,6 +600,7 @@ mod reduce {
                 name: "Add",
                 required: NUMERIC_OR_NULLISH.clone().into(),
                 found: Schema::Atomic(Atomic::String).into(),
+                var_cause: Some("value".to_string()),
             })
         }),
         input =
@@ -620,11 +628,12 @@ mod reduce {
         expected = Err(mir_error::HigherOrderFunctionWrapper {
             name: "Reduce",
             cause: HigherOrderFunctionErrorCause::InvalidAccumulatedValue,
-            error: Box::new(mir_error::InvalidComparison(
-                "SimpleCase",
-                Schema::Atomic(Atomic::Integer).into(),
-                Schema::Atomic(Atomic::String).into(),
-            ))
+            error: Box::new(mir_error::InvalidComparison {
+                name: "SimpleCase",
+                left: Schema::Atomic(Atomic::Integer).into(),
+                right: Schema::Atomic(Atomic::String).into(),
+                var_cause: Some("value".to_string()),
+            }),
         }),
         input =
             Expression::HigherOrderFunction(HigherOrderFunctionApplication::Reduce(ReduceExpr {

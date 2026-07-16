@@ -12,6 +12,7 @@ test_schema!(
         name: "Like",
         required: STRING_OR_NULLISH.clone().into(),
         found: NUMERIC_OR_NULLISH.clone().into(),
+        var_cause: None,
     }),
     input = Expression::Like(LikeExpr {
         expr: Expression::Reference(("bar", 0u16).into()).into(),
@@ -28,6 +29,7 @@ test_schema!(
         name: "Like",
         required: STRING_OR_NULLISH.clone().into(),
         found: NUMERIC_OR_NULLISH.clone().into(),
+        var_cause: None,
     }),
     input = Expression::Like(LikeExpr {
         expr: Expression::Literal(LiteralValue::String("hello".into())).into(),

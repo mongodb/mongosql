@@ -394,11 +394,12 @@ mod subquery_comparison {
     test_schema!(
         incomparable_argument_and_output_expr,
         expected_error_code = 1005,
-        expected = Err(mir_error::InvalidComparison(
-            "subquery comparison",
-            Schema::Atomic(Atomic::String).into(),
-            Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]).into(),
-        )),
+        expected = Err(mir_error::InvalidComparison {
+            name: "subquery comparison",
+            left: Schema::Atomic(Atomic::String).into(),
+            right: Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]).into(),
+            var_cause: None,
+        }),
         input = Expression::SubqueryComparison(SubqueryComparison {
             operator: SubqueryComparisonOp::Eq,
             modifier: SubqueryModifier::All,

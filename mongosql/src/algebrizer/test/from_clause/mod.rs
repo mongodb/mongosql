@@ -184,6 +184,7 @@ test_algebrize!(
         name: "array datasource items",
         required: ANY_DOCUMENT.clone().into(),
         found: Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]).into(),
+        var_cause: None,
     })),
     expected_error_code = 1002,
     input = Some(ast::Datasource::Array(ast::ArraySource {
@@ -198,6 +199,7 @@ test_algebrize!(
         name: "array datasource items",
         required: ANY_DOCUMENT.clone().into(),
         found: Schema::AnyOf(set![Schema::Atomic(Atomic::Null)]).into(),
+        var_cause: None,
     })),
     expected_error_code = 1002,
     input = Some(ast::Datasource::Array(ast::ArraySource {

@@ -285,6 +285,7 @@ impl CachedSchema for Stage {
                         name: "filter condition",
                         required: BOOLEAN_OR_NULLISH.clone().into(),
                         found: cond_schema.into(),
+                        var_cause: None,
                     });
                 }
 
@@ -308,6 +309,7 @@ impl CachedSchema for Stage {
                                     name: "project datasource",
                                     required: ANY_DOCUMENT.clone().into(),
                                     found: s.into(),
+                                    var_cause: None,
                                 })
                             } else {
                                 Ok((k.clone(), s))
@@ -531,6 +533,7 @@ impl CachedSchema for Stage {
                         name: "array datasource items",
                         required: ANY_DOCUMENT.clone().into(),
                         found: array_items_schema.into(),
+                        var_cause: None,
                     })
                 }
             }
@@ -547,6 +550,7 @@ impl CachedSchema for Stage {
                             name: "join condition",
                             required: BOOLEAN_OR_NULLISH.clone().into(),
                             found: cond_schema.into(),
+                            var_cause: None,
                         });
                     }
                 };
@@ -773,11 +777,12 @@ impl CachedSchema for Stage {
                 let foreign_field_schema = j.foreign_field.schema(&state)?;
 
                 if !state.check_comparable_with(&local_field_schema, &foreign_field_schema) {
-                    return Err(Error::InvalidComparison(
-                        "equijoin comparison",
-                        local_field_schema.into(),
-                        foreign_field_schema.into(),
-                    ));
+                    return Err(Error::InvalidComparison {
+                        name: "equijoin comparison",
+                        left: local_field_schema.into(),
+                        right: foreign_field_schema.into(),
+                        var_cause: None,
+                    });
                 }
 
                 match j.join_type {
@@ -866,6 +871,7 @@ impl CachedSchema for Stage {
                         name: "match filter condition",
                         required: BOOLEAN_OR_NULLISH.clone().into(),
                         found: cond_schema.into(),
+                        var_cause: None,
                     });
                 }
 
@@ -1160,6 +1166,7 @@ impl Expression {
                         name: "Like",
                         required: STRING_OR_NULLISH.clone().into(),
                         found: expr_schema.into(),
+                        var_cause: None,
                     });
                 }
                 let pattern_schema = l.pattern.schema(state)?;
@@ -1168,6 +1175,7 @@ impl Expression {
                         name: "Like",
                         required: STRING_OR_NULLISH.clone().into(),
                         found: pattern_schema.into(),
+                        var_cause: None,
                     });
                 }
                 match expr_schema
@@ -1227,6 +1235,7 @@ impl FieldAccess {
                 name: "FieldAccess",
                 required: ANY_DOCUMENT.clone().into(),
                 found: accessee_schema.into(),
+                var_cause: None,
             });
         }
         if accessee_schema.contains_field(&self.field) == Satisfaction::Not {
@@ -1263,6 +1272,7 @@ impl FieldPath {
                     name: "FieldPath",
                     required: ANY_DOCUMENT.clone().into(),
                     found: cur_schema.into(),
+                    var_cause: None,
                 });
             }
             if cur_schema.contains_field(field) == Satisfaction::Not {
@@ -1451,6 +1461,7 @@ trait SqlFunction {
                     name: self.as_str(),
                     required: required_schemas[i].clone().into(),
                     found: arg.clone().into(),
+                    var_cause: None,
                 });
             }
             let sat = arg.satisfies(&NULLISH);
@@ -1567,6 +1578,7 @@ trait SqlFunction {
                 name: self.as_str(),
                 required: Schema::Any.clone().into(),
                 found: in_operator_lhs.clone().into(),
+                var_cause: None,
             });
         }
 
@@ -1579,6 +1591,7 @@ trait SqlFunction {
                 name: self.as_str(),
                 required: Schema::Array(Box::new(Schema::Any)).into(),
                 found: in_operator_rhs.clone().into(),
+                var_cause: None,
             });
         }
 
@@ -1592,11 +1605,12 @@ trait SqlFunction {
         let is_lhs_comparable_to_rhs =
             state.check_comparable_with(in_operator_lhs, array_element_schema);
         if !is_lhs_comparable_to_rhs {
-            return Err(Error::InvalidComparison(
-                self.as_str(),
-                Box::new(in_operator_lhs.clone()),
-                Box::new(array_element_schema.clone()),
-            ));
+            return Err(Error::InvalidComparison {
+                name: self.as_str(),
+                left: Box::new(in_operator_lhs.clone()),
+                right: Box::new(array_element_schema.clone()),
+                var_cause: None,
+            });
         }
 
         let ret_schema = self.propagate_fixed_null_arguments(
@@ -1626,11 +1640,12 @@ trait SqlFunction {
         if state.check_comparable_with(&arg_schemas[0], &arg_schemas[1]) {
             Ok(ret_schema)
         } else {
-            Err(Error::InvalidComparison(
-                self.as_str(),
-                arg_schemas[0].clone().into(),
-                arg_schemas[1].clone().into(),
-            ))
+            Err(Error::InvalidComparison {
+                name: self.as_str(),
+                left: arg_schemas[0].clone().into(),
+                right: arg_schemas[1].clone().into(),
+                var_cause: None,
+            })
         }
     }
 
@@ -1798,12 +1813,14 @@ impl ScalarFunction {
                         name: Round.as_str(),
                         required: NUMERIC_OR_NULLISH.clone().into(),
                         found: arg_schemas[0].clone().into(),
+                        var_cause: None,
                     })
                 } else if arg_schemas[1].satisfies(&INTEGER_LONG_OR_NULLISH) != Satisfaction::Must {
                     Err(Error::SchemaChecking {
                         name: Round.as_str(),
                         required: INTEGER_LONG_OR_NULLISH.clone().into(),
                         found: arg_schemas[1].clone().into(),
+                        var_cause: None,
                     })
                 } else {
                     Ok(arg_schemas[0].clone())
@@ -2107,6 +2124,7 @@ impl HigherOrderFunctionApplication {
                         name: "Map",
                         required: ANY_ARRAY_OR_NULLISH.clone().into(),
                         found: array_schema.into(),
+                        var_cause: None,
                     });
                 }
 
@@ -2187,7 +2205,7 @@ impl HigherOrderFunctionApplication {
                     error: Box::new(error),
                 }
             }
-            Error::InvalidComparison(_, s1, s2) => todo!(),
+            Error::InvalidComparison { .. } => todo!(),
             Error::DatasourceNotFoundInSchemaEnv(_)
             | Error::IncorrectArgumentCount { .. }
             | Error::InvalidBinaryDataType
@@ -2256,6 +2274,7 @@ impl SchemaCheckCaseExpr for SearchedCaseExpr {
                     name: "SearchedCase",
                     required: BOOLEAN_OR_NULLISH.clone().into(),
                     found: when_schema.clone().into(),
+                    var_cause: None,
                 });
             }
             Ok(())
@@ -2276,11 +2295,12 @@ impl SchemaCheckCaseExpr for SimpleCaseExpr {
         let case_operand_schema = self.expr.schema(state)?;
         let check_when_schema = &|when_schema: &Schema| {
             if !state.check_comparable_with(&case_operand_schema, when_schema) {
-                return Err(Error::InvalidComparison(
-                    "SimpleCase",
-                    case_operand_schema.clone().into(),
-                    when_schema.clone().into(),
-                ));
+                return Err(Error::InvalidComparison {
+                    name: "SimpleCase",
+                    left: case_operand_schema.clone().into(),
+                    right: when_schema.clone().into(),
+                    var_cause: None,
+                });
             }
             Ok(())
         };
@@ -2307,6 +2327,7 @@ impl TypeAssertionExpr {
                 name: "::!",
                 required: target_schema.into(),
                 found: expr_schema.into(),
+                var_cause: None,
             });
         }
 

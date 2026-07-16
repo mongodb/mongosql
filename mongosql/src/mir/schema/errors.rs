@@ -24,10 +24,16 @@ pub enum Error {
         name: &'static str,
         required: Box<Schema>,
         found: Box<Schema>,
+        var_cause: Option<String>,
     },
     InvalidBinaryDataType,
     AggregationArgumentMustBeSelfComparable(String, Box<Schema>),
-    InvalidComparison(&'static str, Box<Schema>, Box<Schema>),
+    InvalidComparison {
+        name: &'static str,
+        left: Box<Schema>,
+        right: Box<Schema>,
+        var_cause: Option<String>,
+    },
     CannotMergeObjects(Box<Schema>, Box<Schema>, Satisfaction),
     AccessMissingField(String, Option<Vec<String>>),
     InvalidSubqueryCardinality,
@@ -79,7 +85,7 @@ impl UserError for Error {
             Error::IncorrectArgumentCount { .. } => 1001,
             Error::SchemaChecking { .. } => 1002,
             Error::AggregationArgumentMustBeSelfComparable(_, _) => 1003,
-            Error::InvalidComparison(_, _, _) => 1005,
+            Error::InvalidComparison { .. } => 1005,
             Error::CannotMergeObjects(_, _, _) => 1006,
             Error::AccessMissingField(_, _) => 1007,
             Error::InvalidSubqueryCardinality => 1008,
@@ -101,6 +107,7 @@ impl UserError for Error {
                 name,
                 required,
                 found,
+                ..
             } => {
                 let simplified_required = Schema::simplify(required);
                 let simplified_found = Schema::simplify(found);
@@ -136,9 +143,11 @@ impl UserError for Error {
                     Some(error_msg)
                 }
             }
-            Error::InvalidComparison(func, s1, s2) => {
-                let simplified_s1 = Schema::simplify(s1);
-                let simplified_s2 = Schema::simplify(s2);
+            Error::InvalidComparison {
+                name, left, right, ..
+            } => {
+                let simplified_s1 = Schema::simplify(left);
+                let simplified_s2 = Schema::simplify(right);
 
                 if let Some(message) =
                     unsat_check(vec![simplified_s1.clone(), simplified_s2.clone()])
@@ -146,7 +155,7 @@ impl UserError for Error {
                     Some(message)
                 } else {
                     let error_msg = format!(
-                        "Invalid use of `{func}` due to incomparable types: `{simplified_s1}` cannot be compared to `{simplified_s2}`."
+                        "Invalid use of `{name}` due to incomparable types: `{simplified_s1}` cannot be compared to `{simplified_s2}`."
                     );
                     let error_msg = Self::error_message_with_any_schema_addendum(
                         error_msg,
@@ -263,14 +272,15 @@ impl UserError for Error {
                 name,
                 required,
                 found,
+                ..
             } => {
                 format!("schema checking failed for {name}: required {required:?}, found {found:?}")
             }
             Error::AggregationArgumentMustBeSelfComparable(aggs, schema) => format!(
                 "cannot have {aggs:?} aggregations over the schema: {schema:?} as it is not comparable to itself"
             ),
-            Error::InvalidComparison(func, s1, s2) => {
-                format!("invalid comparison for {func}: {s1:?} cannot be compared to {s2:?}")
+            Error::InvalidComparison { name, left, right, .. } => {
+                format!("invalid comparison for {name}: {left:?} cannot be compared to {right:?}")
             }
             Error::CannotMergeObjects(s1, s2, sat) => format!(
                 "cannot merge objects {s1:?} and {s2:?} as they {sat:?} have overlapping keys"

@@ -30,8 +30,9 @@ mod schema_checking {
         operation_needs_nullable_numeric_type,
         input = Error::SchemaChecking{
             name: "Add",
-            required:  NUMERIC_OR_NULLISH.clone().into(),
-            found:  Schema::Atomic(Atomic::String).into(),
+            required: NUMERIC_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         },
         expected = "Incorrect argument type for `Add`. Required: nullable numeric type. Found: string."
     }
@@ -40,8 +41,9 @@ mod schema_checking {
         operation_needs_nullable_string_type,
         input = Error::SchemaChecking{
             name: "Concat",
-            required:  STRING_OR_NULLISH.clone().into(),
-            found:  Schema::Atomic(Atomic::Integer).into(),
+            required: STRING_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
         },
         expected = "Incorrect argument type for `Concat`. Required: nullable string. Found: int."
     }
@@ -50,8 +52,9 @@ mod schema_checking {
         operation_needs_nullable_boolean_type,
         input = Error::SchemaChecking{
             name: "SearchedCase",
-            required:  BOOLEAN_OR_NULLISH.clone().into(),
-            found:  Schema::Atomic(Atomic::String).into(),
+            required: BOOLEAN_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         },
         expected = "Incorrect argument type for `SearchedCase`. Required: nullable boolean. Found: string."
     }
@@ -60,8 +63,9 @@ mod schema_checking {
         operation_needs_nullable_date_type,
         input = Error::SchemaChecking{
             name: "Second",
-            required:  DATE_OR_NULLISH.clone().into(),
-            found:  Schema::Atomic(Atomic::Integer).into(),
+            required: DATE_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
         },
         expected = "Incorrect argument type for `Second`. Required: nullable date. Found: int."
     }
@@ -70,8 +74,9 @@ mod schema_checking {
         operation_uses_any_schema,
         input = Error::SchemaChecking{
             name: "Add",
-            required:  NUMERIC_OR_NULLISH.clone().into(),
-            found:  Schema::Any.into(),
+            required: NUMERIC_OR_NULLISH.clone().into(),
+            found: Schema::Any.into(),
+            var_cause: None,
         },
         expected = "Incorrect argument type for `Add`. Required: nullable numeric type. Found: any type. An `any type` schema may indicate that schema is not set for the relevant collection or field. Please verify that the schema is set as expected."
     }
@@ -80,8 +85,9 @@ mod schema_checking {
         array_datasource_has_wrong_type,
         input = Error::SchemaChecking{
             name: "array datasource items",
-            required:  ANY_DOCUMENT.clone().into(),
-            found:  Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]).into(),
+            required: ANY_DOCUMENT.clone().into(),
+            found: Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]).into(),
+            var_cause: None,
         },
         expected = "Incorrect argument type for `array datasource items`. Required: object type. Found: int."
     }
@@ -199,31 +205,34 @@ mod invalid_comparison {
 
     test_user_error_messages! {
         invalid_comparison,
-        input = Error::InvalidComparison(
-            "Lte",
-            Schema::Atomic(Atomic::Integer).into(),
-            Schema::Atomic(Atomic::String).into(),
-        ),
+        input = Error::InvalidComparison {
+            name: "Lte",
+            left: Schema::Atomic(Atomic::Integer).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
+        },
         expected = "Invalid use of `Lte` due to incomparable types: `int` cannot be compared to `string`."
     }
 
     test_user_error_messages! {
         invalid_comparison_one_any,
-        input = Error::InvalidComparison(
-            "Lte",
-            Schema::Atomic(Atomic::Integer).into(),
-            Schema::Any.into(),
-        ),
+        input = Error::InvalidComparison {
+            name: "Lte",
+            left: Schema::Atomic(Atomic::Integer).into(),
+            right: Schema::Any.into(),
+            var_cause: None,
+        },
         expected = format!("Invalid use of `Lte` due to incomparable types: `int` cannot be compared to `any type`. {ANY_SCHEMA_ADDENDUM}")
     }
 
     test_user_error_messages! {
         invalid_comparison_both_any,
-        input = Error::InvalidComparison(
-            "Lte",
-            Schema::Any.into(),
-            Schema::Any.into(),
-        ),
+        input = Error::InvalidComparison {
+            name: "Lte",
+            left: Schema::Any.into(),
+            right: Schema::Any.into(),
+            var_cause: None,
+        },
         expected = format!("Invalid use of `Lte` due to incomparable types: `any type` cannot be compared to `any type`. {ANY_SCHEMA_ADDENDUM}")
     }
 }
