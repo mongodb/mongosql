@@ -3,7 +3,7 @@ use crate::{
     mir::{
         schema::{
             errors::HigherOrderFunctionErrorCause, errors::IncorrectArgCountPrecision,
-            Error as mir_error,
+            Error as mir_error, THIS_VARIABLE, VALUE_VARIABLE,
         },
         *,
     },
@@ -70,7 +70,7 @@ mod map {
             f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Add,
                 args: vec![
-                    Expression::Variable(Variable::new("this".to_string())),
+                    Expression::Variable(Variable::new(THIS_VARIABLE.to_string())),
                     Expression::Literal(LiteralValue::Integer(1)),
                 ],
                 is_nullable: false,
@@ -90,7 +90,7 @@ mod map {
                 name: "Add",
                 required: NUMERIC_OR_NULLISH.clone().into(),
                 found: Schema::Atomic(Atomic::String).into(),
-                var_cause: Some("this".to_string()),
+                var_cause: Some(THIS_VARIABLE.to_string()),
             })
         }),
         input = Expression::HigherOrderFunction(HigherOrderFunctionApplication::Map(MapExpr {
@@ -100,7 +100,7 @@ mod map {
             f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Add,
                 args: vec![
-                    Expression::Variable(Variable::new("this".to_string())),
+                    Expression::Variable(Variable::new(THIS_VARIABLE.to_string())),
                     Expression::Literal(LiteralValue::Integer(1)),
                 ],
                 is_nullable: false,
@@ -129,7 +129,7 @@ mod map {
             })),
             f: Box::new(Expression::Array(ArrayExpr {
                 array: vec![
-                    Expression::Variable(Variable::new("this".to_string())),
+                    Expression::Variable(Variable::new(THIS_VARIABLE.to_string())),
                     Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Add,
                         args: vec![
@@ -166,7 +166,9 @@ mod map {
             })),
             f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Mul,
-                args: vec![Expression::Variable(Variable::new("this".to_string())),],
+                args: vec![Expression::Variable(Variable::new(
+                    THIS_VARIABLE.to_string()
+                )),],
                 is_nullable: false,
             })),
             is_nullable: false,
@@ -272,7 +274,7 @@ mod filter {
                 f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::Gt,
                     args: vec![
-                        Expression::Variable(Variable::new("this".to_string())),
+                        Expression::Variable(Variable::new(THIS_VARIABLE.to_string())),
                         Expression::Literal(LiteralValue::Integer(1)),
                     ],
                     is_nullable: false,
@@ -292,7 +294,7 @@ mod filter {
                 name: "Gt",
                 left: Schema::Atomic(Atomic::String).into(),
                 right: Schema::Atomic(Atomic::Integer).into(),
-                var_cause: Some("this".to_string()),
+                var_cause: Some(THIS_VARIABLE.to_string()),
             }),
         }),
         input =
@@ -303,7 +305,7 @@ mod filter {
                 f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::Gt,
                     args: vec![
-                        Expression::Variable(Variable::new("this".to_string())),
+                        Expression::Variable(Variable::new(THIS_VARIABLE.to_string())),
                         Expression::Literal(LiteralValue::Integer(1)),
                     ],
                     is_nullable: false,
@@ -336,7 +338,9 @@ mod filter {
                 })),
                 f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::Gt,
-                    args: vec![Expression::Variable(Variable::new("this".to_string())),],
+                    args: vec![Expression::Variable(Variable::new(
+                        THIS_VARIABLE.to_string()
+                    )),],
                     is_nullable: false,
                 })),
                 is_nullable: false,
@@ -503,10 +507,10 @@ mod reduce {
                     f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Add,
                         args: vec![
-                            Expression::Variable(Variable::new("this".to_string())),
+                            Expression::Variable(Variable::new(THIS_VARIABLE.to_string())),
                             Expression::Cast(CastExpr {
                                 expr: Box::new(Expression::Variable(Variable::new(
-                                    "value".to_string()
+                                    VALUE_VARIABLE.to_string()
                                 ))),
                                 to: Type::Int32,
                                 on_null: Box::new(Expression::Literal(LiteralValue::Integer(0))),
@@ -552,10 +556,10 @@ mod reduce {
                     f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Add,
                         args: vec![
-                            Expression::Variable(Variable::new("this".to_string())),
+                            Expression::Variable(Variable::new(THIS_VARIABLE.to_string())),
                             Expression::Cast(CastExpr {
                                 expr: Box::new(Expression::Variable(Variable::new(
-                                    "value".to_string()
+                                    VALUE_VARIABLE.to_string()
                                 ))),
                                 to: Type::Int32,
                                 on_null: Box::new(Expression::Literal(LiteralValue::Null)),
@@ -594,7 +598,7 @@ mod reduce {
                 f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::Add,
                     args: vec![
-                        Expression::Variable(Variable::new("this".to_string())),
+                        Expression::Variable(Variable::new(THIS_VARIABLE.to_string())),
                         Expression::Literal(LiteralValue::Integer(1)),
                     ],
                     is_nullable: false,
@@ -616,7 +620,7 @@ mod reduce {
                 f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::Add,
                     args: vec![
-                        Expression::Variable(Variable::new("value".to_string())),
+                        Expression::Variable(Variable::new(VALUE_VARIABLE.to_string())),
                         Expression::Literal(LiteralValue::Integer(1)),
                     ],
                     is_nullable: false,
@@ -636,7 +640,7 @@ mod reduce {
                 name: "Add",
                 required: NUMERIC_OR_NULLISH.clone().into(),
                 found: Schema::Atomic(Atomic::String).into(),
-                var_cause: Some("this".to_string()),
+                var_cause: Some(THIS_VARIABLE.to_string()),
             })
         }),
         input =
@@ -648,7 +652,7 @@ mod reduce {
                 f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::Add,
                     args: vec![
-                        Expression::Variable(Variable::new("this".to_string())),
+                        Expression::Variable(Variable::new(THIS_VARIABLE.to_string())),
                         Expression::Literal(LiteralValue::Integer(1)),
                     ],
                     is_nullable: false,
@@ -668,7 +672,7 @@ mod reduce {
                 name: "Add",
                 required: NUMERIC_OR_NULLISH.clone().into(),
                 found: Schema::Atomic(Atomic::String).into(),
-                var_cause: Some("value".to_string()),
+                var_cause: Some(VALUE_VARIABLE.to_string()),
             })
         }),
         input =
@@ -680,7 +684,7 @@ mod reduce {
                 f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::Add,
                     args: vec![
-                        Expression::Variable(Variable::new("value".to_string())),
+                        Expression::Variable(Variable::new(VALUE_VARIABLE.to_string())),
                         Expression::Literal(LiteralValue::Integer(1)),
                     ],
                     is_nullable: false,
@@ -700,7 +704,7 @@ mod reduce {
                 name: "SimpleCase",
                 left: Schema::Atomic(Atomic::Integer).into(),
                 right: Schema::Atomic(Atomic::String).into(),
-                var_cause: Some("value".to_string()),
+                var_cause: Some(VALUE_VARIABLE.to_string()),
             }),
         }),
         input =
@@ -710,7 +714,9 @@ mod reduce {
                 })),
                 init_value: Box::new(Expression::Literal(LiteralValue::String("a".to_string()))),
                 f: Box::new(Expression::SimpleCase(SimpleCaseExpr {
-                    expr: Box::new(Expression::Variable(Variable::new("value".to_string()))),
+                    expr: Box::new(Expression::Variable(Variable::new(
+                        VALUE_VARIABLE.to_string()
+                    ))),
                     when_branch: vec![WhenBranch {
                         when: Box::new(Expression::Literal(LiteralValue::String("a".to_string()))),
                         then: Box::new(Expression::Literal(LiteralValue::Integer(1))),

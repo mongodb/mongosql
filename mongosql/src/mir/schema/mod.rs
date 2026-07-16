@@ -38,6 +38,11 @@ mod util;
 #[cfg(test)]
 mod test;
 
+/// Variable name for the current array element in higher-order functions
+pub const THIS_VARIABLE: &str = "this";
+/// Variable name for the accumulated value in REDUCE
+pub const VALUE_VARIABLE: &str = "value";
+
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 struct SchemaCacheContents<T: Clone> {
     result: T,
@@ -131,7 +136,7 @@ pub struct SchemaInferenceState<'a> {
     pub scope_level: u16,
     pub env: SchemaEnvironment,
     pub catalog: &'a Catalog,
-    pub variables: BTreeMap<String, Schema>,
+    pub variables: BTreeMap<&'static str, Schema>,
     pub schema_checking_mode: SchemaCheckingMode,
 }
 
@@ -150,7 +155,7 @@ impl<'a> SchemaInferenceState<'a> {
         scope_level: u16,
         env: SchemaEnvironment,
         catalog: &'a Catalog,
-        variables: BTreeMap<String, Schema>,
+        variables: BTreeMap<&'static str, Schema>,
         schema_checking_mode: SchemaCheckingMode,
     ) -> SchemaInferenceState<'a> {
         SchemaInferenceState {
@@ -176,7 +181,7 @@ impl<'a> SchemaInferenceState<'a> {
     /// with the same name.
     pub fn with_variables(
         &self,
-        new_variables: &mut BTreeMap<String, Schema>,
+        new_variables: &mut BTreeMap<&'static str, Schema>,
     ) -> SchemaInferenceState<'_> {
         let mut variables = self.variables.clone();
         variables.append(new_variables);
@@ -2215,8 +2220,10 @@ trait HigherOrderFunction: SqlFunction {
                 var_cause: Some(ref var_cause),
                 ..
             } => match var_cause.as_str() {
-                "this" => HigherOrderFunctionErrorCause::ThisUsage,
-                "value" => value_cause.unwrap_or(HigherOrderFunctionErrorCause::FunctionArgument),
+                THIS_VARIABLE => HigherOrderFunctionErrorCause::ThisUsage,
+                VALUE_VARIABLE => {
+                    value_cause.unwrap_or(HigherOrderFunctionErrorCause::FunctionArgument)
+                }
                 _ => HigherOrderFunctionErrorCause::FunctionArgument,
             },
             // Otherwise, we use the generic cause `InvalidFunctionArgument`.
@@ -2287,7 +2294,7 @@ impl HigherOrderFunction for MapExpr {
         // Add the array item schema to the SchemaInferenceState as a variable using the
         // name `this`.
         let state_with_this_variable = state.with_variables(&mut map! {
-            "this".to_string() => array_item_schema.clone()
+            THIS_VARIABLE => array_item_schema.clone()
         });
 
         // Get the schema of the function argument using the updated state with the variable
@@ -2338,7 +2345,7 @@ impl HigherOrderFunction for FilterExpr {
         // Add the array item schema to the SchemaInferenceState as a variable using the
         // name `this`.
         let state_with_this_variable = state.with_variables(&mut map! {
-            "this".to_string() => array_item_schema.clone()
+            THIS_VARIABLE => array_item_schema.clone()
         });
 
         // Get the schema of the function argument using the updated state with the variable
@@ -2412,8 +2419,8 @@ impl HigherOrderFunction for ReduceExpr {
         // `value` variable. Start by adding the array item schema to the SchemaInferenceState as a
         // variable using the name `this`, and add the initial value schema using the name `value`
         let state_with_this_and_init_value = state.with_variables(&mut map! {
-            "this".to_string() => array_item_schema.clone(),
-            "value".to_string() => init_value_schema.clone(),
+            THIS_VARIABLE => array_item_schema.clone(),
+            VALUE_VARIABLE => init_value_schema.clone(),
         });
 
         let func_schema = self
@@ -2430,7 +2437,7 @@ impl HigherOrderFunction for ReduceExpr {
         // the `value` variable. Start by overwriting the `value` variable in the state.
         let state_with_this_and_result_value =
             state_with_this_and_init_value.with_variables(&mut map! {
-                "value".to_string() => func_schema.clone(),
+                VALUE_VARIABLE => func_schema.clone(),
             });
 
         let func_schema = self

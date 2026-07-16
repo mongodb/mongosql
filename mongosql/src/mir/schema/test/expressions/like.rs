@@ -41,7 +41,7 @@ test_schema!(
         escape: None,
     }),
     variables = map! {
-        "this".to_string() => NUMERIC_OR_NULLISH.clone(),
+        "this" => NUMERIC_OR_NULLISH.clone(),
     },
 );
 
@@ -81,7 +81,7 @@ test_schema!(
         escape: None,
     }),
     variables = map! {
-        "this".to_string() => NUMERIC_OR_NULLISH.clone(),
+        "this" => NUMERIC_OR_NULLISH.clone(),
     },
 );
 

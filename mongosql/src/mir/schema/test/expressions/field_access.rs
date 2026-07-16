@@ -37,7 +37,7 @@ test_schema!(
         "foo".to_string(),
     )),
     variables = map! {
-        "this".to_string() => Schema::Atomic(Atomic::Long)
+        "this" => Schema::Atomic(Atomic::Long)
     },
 );
 

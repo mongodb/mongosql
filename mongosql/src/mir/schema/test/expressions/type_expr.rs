@@ -200,7 +200,7 @@ mod type_assert {
             target_type: Type::String,
         }),
         variables = map! {
-            "value".to_string() => Schema::Atomic(Atomic::Integer),
+            "value" => Schema::Atomic(Atomic::Integer),
         },
     );
 }

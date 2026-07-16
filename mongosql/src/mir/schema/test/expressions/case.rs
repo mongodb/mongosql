@@ -60,7 +60,7 @@ mod searched {
             is_nullable: false,
         }),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::Integer),
+            "this" => Schema::Atomic(Atomic::Integer),
         },
     );
 
@@ -147,7 +147,7 @@ mod simple {
             is_nullable: false,
         }),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::Integer),
+            "this" => Schema::Atomic(Atomic::Integer),
         },
     );
 

@@ -51,7 +51,7 @@ mod substring {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::Integer),
+            "this" => Schema::Atomic(Atomic::Integer),
         },
     );
 
@@ -95,7 +95,7 @@ mod substring {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 
@@ -139,7 +139,7 @@ mod substring {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 
@@ -241,7 +241,7 @@ mod and {
             ],
         )),
         variables = map! {
-            "this".to_string() => NUMERIC_OR_NULLISH.clone(),
+            "this" => NUMERIC_OR_NULLISH.clone(),
         },
     );
 
@@ -284,7 +284,7 @@ mod and {
             ],
         )),
         variables = map! {
-            "this".to_string() => NUMERIC_OR_NULLISH.clone(),
+            "this" => NUMERIC_OR_NULLISH.clone(),
         },
     );
 
@@ -422,7 +422,7 @@ mod or {
             ],
         )),
         variables = map! {
-            "this".to_string() => NUMERIC_OR_NULLISH.clone(),
+            "this" => NUMERIC_OR_NULLISH.clone(),
         },
     );
 
@@ -465,7 +465,7 @@ mod or {
             ],
         )),
         variables = map! {
-            "this".to_string() => NUMERIC_OR_NULLISH.clone(),
+            "this" => NUMERIC_OR_NULLISH.clone(),
         },
     );
 
@@ -597,7 +597,7 @@ mod not {
             })],
         )),
         variables = map! {
-            "this".to_string() => NUMERIC_OR_NULLISH.clone(),
+            "this" => NUMERIC_OR_NULLISH.clone(),
         },
     );
 
@@ -1859,7 +1859,7 @@ mod arithmetic {
                 ],
             )),
             variables = map! {
-                "this".to_string() => Schema::Atomic(Atomic::String),
+                "this" => Schema::Atomic(Atomic::String),
             },
         );
 
@@ -1892,7 +1892,7 @@ mod arithmetic {
                 ],
             )),
             variables = map! {
-                "this".to_string() => Schema::Atomic(Atomic::String),
+                "this" => Schema::Atomic(Atomic::String),
             },
         );
     }
@@ -1966,7 +1966,7 @@ mod abs {
             })],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 }
@@ -2039,7 +2039,7 @@ mod ceil {
             })],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 }
@@ -2112,7 +2112,7 @@ mod degrees {
             })],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 
@@ -2203,7 +2203,7 @@ mod floor {
             })],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 }
@@ -2283,7 +2283,7 @@ mod log {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 
@@ -2341,7 +2341,7 @@ mod log {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 }
@@ -2421,7 +2421,7 @@ mod mod_func {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 
@@ -2479,7 +2479,7 @@ mod mod_func {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 }
@@ -2559,7 +2559,7 @@ mod pow {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 
@@ -2617,7 +2617,7 @@ mod pow {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 }
@@ -2697,7 +2697,7 @@ mod round {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 
@@ -2751,7 +2751,7 @@ mod round {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 }
@@ -2824,7 +2824,7 @@ mod cos {
             })],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 
@@ -2906,7 +2906,7 @@ mod sin {
             })],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 
@@ -2988,7 +2988,7 @@ mod tan {
             })],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 
@@ -3070,7 +3070,7 @@ mod radians {
             })],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 }
@@ -3143,7 +3143,7 @@ mod sqrt {
             })],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 }
@@ -3203,7 +3203,7 @@ mod comparison {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::Integer),
+            "this" => Schema::Atomic(Atomic::Integer),
         },
     );
 
@@ -3227,7 +3227,7 @@ mod comparison {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::Integer),
+            "this" => Schema::Atomic(Atomic::Integer),
         },
     );
 
@@ -3254,8 +3254,8 @@ mod comparison {
             ],
         )),
         variables = map! {
-            "value".to_string() => Schema::Atomic(Atomic::String),
-            "this".to_string() => Schema::Atomic(Atomic::Integer),
+            "value" => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::Integer),
         },
     );
 
@@ -3357,7 +3357,7 @@ mod between {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::Integer),
+            "this" => Schema::Atomic(Atomic::Integer),
         },
     );
 
@@ -3382,7 +3382,7 @@ mod between {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 
@@ -3426,7 +3426,7 @@ mod between {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::Integer),
+            "this" => Schema::Atomic(Atomic::Integer),
         },
     );
 
@@ -3451,7 +3451,7 @@ mod between {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 
@@ -3549,7 +3549,7 @@ mod merge_objects {
             })],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 
@@ -3849,7 +3849,7 @@ mod computed_field_access {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::Integer),
+            "this" => Schema::Atomic(Atomic::Integer),
         },
     );
 
@@ -3913,7 +3913,7 @@ mod computed_field_access {
         )),
         schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::Long),
+            "this" => Schema::Atomic(Atomic::Long),
         },
     );
 
@@ -4061,7 +4061,7 @@ mod nullif {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::Boolean),
+            "this" => Schema::Atomic(Atomic::Boolean),
         },
     );
 
@@ -4085,7 +4085,7 @@ mod nullif {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::Boolean),
+            "this" => Schema::Atomic(Atomic::Boolean),
         },
     );
 
@@ -4358,7 +4358,7 @@ mod slice {
             ],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 
@@ -4412,7 +4412,7 @@ mod slice {
         )),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::Long),
+            "this" => Schema::Atomic(Atomic::Long),
         },
     );
 
@@ -4512,7 +4512,7 @@ mod slice {
         )),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 
@@ -4606,7 +4606,7 @@ mod split {
             is_nullable: true,
         }),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::Integer),
+            "this" => Schema::Atomic(Atomic::Integer),
         },
     );
 
@@ -4652,7 +4652,7 @@ mod split {
             is_nullable: true,
         }),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::Integer),
+            "this" => Schema::Atomic(Atomic::Integer),
         },
     );
 
@@ -4698,7 +4698,7 @@ mod split {
             is_nullable: true,
         }),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 
@@ -4779,7 +4779,7 @@ mod size {
             })],
         )),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::Integer),
+            "this" => Schema::Atomic(Atomic::Integer),
         },
     );
 
@@ -4878,7 +4878,7 @@ mod pos {
             })],
         )),
         variables = map! {
-            "this".to_string() => Schema::AnyOf(set![
+            "this" => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String),
             ]),
@@ -4936,7 +4936,7 @@ mod neg {
             })],
         )),
         variables = map! {
-            "this".to_string() => Schema::AnyOf(set![
+            "this" => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String),
             ]),
@@ -5014,7 +5014,7 @@ mod in_operator {
             is_nullable: true,
         }),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 

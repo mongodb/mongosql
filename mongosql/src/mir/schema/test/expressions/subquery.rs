@@ -461,7 +461,7 @@ mod subquery_comparison {
             is_nullable: true,
         }),
         variables = map! {
-            "this".to_string() => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::String),
         },
     );
 }
