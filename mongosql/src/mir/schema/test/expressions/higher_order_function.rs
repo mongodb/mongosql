@@ -661,7 +661,7 @@ mod reduce {
             })),
     );
 
-    // REDUCE([1], 'a', this + 1) => error
+    // REDUCE([1], 'a', value + 1) => error
     test_schema!(
         invalid_when_value_variable_usage_is_violated_by_schema_of_second_arg,
         expected_error_code = 1020,
