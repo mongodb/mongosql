@@ -2728,10 +2728,8 @@ mod constant_folding {
         Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::Cast(CastExpr {
-                expr: Expression::Literal(LiteralValue::String(
-                    "2014-01-56T08:15:39.736Z".into()
-                ))
-                .into(),
+                expr: Expression::Literal(LiteralValue::String("2014-01-56T08:15:39.736Z".into()))
+                    .into(),
                 to: Type::Datetime,
                 on_null: Expression::Literal(LiteralValue::Null).into(),
                 on_error: Expression::Literal(LiteralValue::Null).into(),
