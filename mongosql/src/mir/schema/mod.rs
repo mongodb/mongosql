@@ -30,7 +30,6 @@ use std::{
 mod errors;
 pub use errors::Error;
 
-use crate::mir::schema::util::collect_variable_uses;
 #[cfg(test)]
 pub(crate) use errors::ANY_SCHEMA_ADDENDUM;
 
@@ -2146,20 +2145,7 @@ impl HigherOrderFunctionApplication {
                 // Get the schema of the function argument using the updated state with the variable
                 // binding.
                 let func_schema = expr.f.schema(&state_with_this_variable).map_err(|e| {
-                    let variable_causes = collect_variable_uses(self)
-                        .iter()
-                        .filter_map(|name| {
-                            if name == "this" {
-                                Some((
-                                    HigherOrderFunctionErrorCause::InvalidThisUsage,
-                                    array_item_schema.clone(),
-                                ))
-                            } else {
-                                None
-                            }
-                        })
-                        .collect();
-                    self.wrap_error_in_context(e, variable_causes)
+                    self.wrap_error_in_context(e, HigherOrderFunctionErrorCause::InvalidThisUsage)
                 })?;
 
                 // The output schema is an Array of the function argument's output schema. It may
@@ -2179,34 +2165,31 @@ impl HigherOrderFunctionApplication {
     fn wrap_error_in_context(
         &self,
         error: Error,
-        variable_causes: Vec<(HigherOrderFunctionErrorCause, Schema)>,
+        value_cause: HigherOrderFunctionErrorCause,
     ) -> Error {
         match error {
-            Error::SchemaChecking { ref found, .. } => {
-                // If there was a SchemaChecking error, then it may be one of the variables used in
-                // the function expression. The caller provided the list of variables used in this
-                // function and their schema, so if one of those matches the "found" schema, then we
-                // will assume that is the cause of the error.
-                // map(['a'], this + 1)
-                let cause = variable_causes
-                    .iter()
-                    .find_map(|(cause, schema)| {
-                        if **found == *schema {
-                            Some(*cause)
-                        } else {
-                            None
-                        }
-                    })
-                    .unwrap_or(HigherOrderFunctionErrorCause::InvalidFunctionArgument);
-
+            Error::InvalidComparison {
+                var_cause: Some(ref var_cause),
+                ..
+            }
+            | Error::SchemaChecking {
+                var_cause: Some(ref var_cause),
+                ..
+            } => {
+                let cause = match var_cause.as_str() {
+                    "this" => HigherOrderFunctionErrorCause::InvalidThisUsage,
+                    "value" => value_cause,
+                    _ => HigherOrderFunctionErrorCause::InvalidFunctionArgument,
+                };
                 Error::HigherOrderFunctionWrapper {
                     name: self.as_str(),
                     cause,
                     error: Box::new(error),
                 }
             }
-            Error::InvalidComparison { .. } => todo!(),
-            Error::DatasourceNotFoundInSchemaEnv(_)
+            Error::SchemaChecking { .. }
+            | Error::InvalidComparison { .. }
+            | Error::DatasourceNotFoundInSchemaEnv(_)
             | Error::IncorrectArgumentCount { .. }
             | Error::InvalidBinaryDataType
             | Error::AggregationArgumentMustBeSelfComparable(_, _)
