@@ -291,7 +291,7 @@ mod filter {
             error: Box::new(mir_error::InvalidComparison {
                 name: "Gt",
                 left: Schema::Atomic(Atomic::String).into(),
-                right: NUMERIC_OR_NULLISH.clone().into(),
+                right: Schema::Atomic(Atomic::Integer).into(),
                 var_cause: Some("this".to_string()),
             }),
         }),

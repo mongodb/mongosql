@@ -2195,7 +2195,7 @@ trait HigherOrderFunction: SqlFunction {
     fn wrap_error_in_context(
         &self,
         error: Error,
-        value_cause: HigherOrderFunctionErrorCause,
+        value_cause: Option<HigherOrderFunctionErrorCause>,
     ) -> Error {
         let cause = match error {
             // The only relevant errors that include a var_cause are SchemaChecking and
@@ -2211,7 +2211,9 @@ trait HigherOrderFunction: SqlFunction {
                 ..
             } => match var_cause.as_str() {
                 "this" => HigherOrderFunctionErrorCause::InvalidThisUsage,
-                "value" => value_cause,
+                "value" => {
+                    value_cause.unwrap_or(HigherOrderFunctionErrorCause::InvalidFunctionArgument)
+                }
                 _ => HigherOrderFunctionErrorCause::InvalidFunctionArgument,
             },
             // Otherwise, we use the generic cause `InvalidFunctionArgument`.
@@ -2244,7 +2246,7 @@ impl HigherOrderFunctionApplication {
     pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
         match self {
             HigherOrderFunctionApplication::Map(expr) => expr.schema(state),
-            HigherOrderFunctionApplication::Filter(expr) => todo!(),
+            HigherOrderFunctionApplication::Filter(expr) => expr.schema(state),
             HigherOrderFunctionApplication::Reduce(expr) => todo!(),
             // todo: for reduce: schema check f with init_val schema, then again with result schema (without init_val)
             //      - result is combo of init_val and result schemas for each schema check
@@ -2264,7 +2266,7 @@ impl HigherOrderFunction for MapExpr {
         let array_schema = self.array.schema(state)?;
         if !state.check_satisfies(&array_schema, &ANY_ARRAY_OR_NULLISH) {
             return Err(Error::SchemaChecking {
-                name: "Map",
+                name: self.as_str(),
                 required: ANY_ARRAY_OR_NULLISH.clone().into(),
                 found: array_schema.into(),
                 var_cause: self.array.as_var_cause(),
@@ -2287,16 +2289,72 @@ impl HigherOrderFunction for MapExpr {
 
         // Get the schema of the function argument using the updated state with the variable
         // binding.
-        let func_schema = self.f.schema(&state_with_this_variable).map_err(|e| {
-            self.wrap_error_in_context(e, HigherOrderFunctionErrorCause::InvalidThisUsage)
-        })?;
+        let func_schema = self
+            .f
+            .schema(&state_with_this_variable)
+            .map_err(|e| self.wrap_error_in_context(e, None))?;
 
         // The output schema is an Array of the function argument's output schema. It may
         // be null based on the array argument's nullability.
-        return Ok(self.propagate_null_arguments_helper(
+        Ok(self.propagate_null_arguments_helper(
             array_schema.satisfies(&NULLISH),
             Schema::Array(Box::new(func_schema)),
-        ));
+        ))
+    }
+}
+
+impl SqlFunction for FilterExpr {
+    fn as_str(&self) -> &'static str {
+        "Filter"
+    }
+}
+
+impl HigherOrderFunction for FilterExpr {
+    fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+        // The first argument must satisfy ANY_ARRAY_OR_NULLISH.
+        let array_schema = self.array.schema(state)?;
+        if !state.check_satisfies(&array_schema, &ANY_ARRAY_OR_NULLISH) {
+            return Err(Error::SchemaChecking {
+                name: self.as_str(),
+                required: ANY_ARRAY_OR_NULLISH.clone().into(),
+                found: array_schema.into(),
+                var_cause: self.array.as_var_cause(),
+            });
+        }
+
+        let Some(array_item_schema) = array_schema.get_array_item_schema() else {
+            // At this point, we know the schema satisfies ANY_ARRAY_OR_NULLISH. In STRICT
+            // mode, that means the schema must be exactly NULLISH if there is no array item
+            // schema. In RELAXED mode, technically there may be other non-array/non-nullish
+            // schemas, but those would cause runtime errors. Therefore, we can just return
+            // Null as the expression schema at this point since we know the `array` arg is
+            // never an array.
+            return Ok(Schema::Atomic(Atomic::Null));
+        };
+
+        // Add the array item schema to the SchemaInferenceState as a variable using the
+        // name `this`.
+        let state_with_this_variable = state.with_variable("this", array_item_schema.clone());
+
+        // Get the schema of the function argument using the updated state with the variable
+        // binding.
+        let func_schema = self
+            .f
+            .schema(&state_with_this_variable)
+            .map_err(|e| self.wrap_error_in_context(e, None))?;
+
+        // The function argument must satisfy BOOLEAN_OR_NULLISH.
+        if !state.check_satisfies(&func_schema, &BOOLEAN_OR_NULLISH) {
+            return Err(Error::SchemaChecking {
+                name: self.as_str(),
+                required: BOOLEAN_OR_NULLISH.clone().into(),
+                found: func_schema.into(),
+                var_cause: self.f.as_var_cause(),
+            });
+        }
+
+        // The output schema is the same as the array argument schema.
+        Ok(array_schema.upconvert_missing_to_null())
     }
 }
 
