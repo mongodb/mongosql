@@ -57,8 +57,9 @@ pub enum Error {
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum HigherOrderFunctionErrorCause {
-    InvalidAccumulatedValue,
     InvalidInitialValue,
+    InvalidAccumulatedValueUsage,
+    InvalidInitialValueUsage,
     InvalidThisUsage,
     InvalidFunctionArgument,
 }
@@ -243,16 +244,21 @@ impl UserError for Error {
             Error::CollectionNotFound(_, _) => None,
             Error::InvalidBinaryDataType => None,
             Error::HigherOrderFunctionWrapper { name, cause, error } => {
-                let cause_message = match cause {
-                    HigherOrderFunctionErrorCause::InvalidAccumulatedValue => "Invalid usage of variable `value` because of the result of the accumulator function. Recall that usages of the `value` variable must be satisfied by the both the schema of the initial value and the schema of the result of the accumulator function.",
-                    HigherOrderFunctionErrorCause::InvalidInitialValue => "Invalid usage of the variable `value` because of the initial value. Recall that usages of the `value` variable must be satisfied by the both the schema of the initial value and the schema of the result of the accumulator function.",
-                    HigherOrderFunctionErrorCause::InvalidThisUsage => "Invalid usage of variable `this`. Recall that usages of the `this` variable must be satisfied by the schema of the elements of the array.",
-                    HigherOrderFunctionErrorCause::InvalidFunctionArgument => "Ensure the function argument is semantically valid. It must have the correct number of arguments and the arguments must have the correct type.",
+                let (cause_desc, cause_message) = match cause {
+                    HigherOrderFunctionErrorCause::InvalidInitialValue => ("initial value", "The initial value must be semantically valid but was not."),
+                    HigherOrderFunctionErrorCause::InvalidAccumulatedValueUsage => ("function argument", "Invalid usage of variable `value` because of the result of the accumulator function. Recall that usages of the `value` variable must be satisfied by the both the schema of the initial value and the schema of the result of the accumulator function."),
+                    HigherOrderFunctionErrorCause::InvalidInitialValueUsage => ("function argument", "Invalid usage of the variable `value` because of the initial value. Recall that usages of the `value` variable must be satisfied by the both the schema of the initial value and the schema of the result of the accumulator function."),
+                    HigherOrderFunctionErrorCause::InvalidThisUsage => ("function argument", "Invalid usage of variable `this`. Recall that usages of the `this` variable must be satisfied by the schema of the elements of the array."),
+                    HigherOrderFunctionErrorCause::InvalidFunctionArgument => ("function argument", "Ensure the function argument is semantically valid. It must have the correct number of arguments and the arguments must have the correct type."),
                 };
                 let sub_error_message = error
                     .user_message()
                     .unwrap_or_else(|| error.technical_message());
-                Some(format!("Invalid function argument for `{name}`: {cause_message}. Sub-Error Code {}: {}", error.code(), sub_error_message))
+                Some(format!(
+                    "Invalid {cause_desc} for `{name}`: {cause_message}. Sub-Error Code {}: {}",
+                    error.code(),
+                    sub_error_message
+                ))
             }
             Error::NoSuchVariable(name) => Some(format!("Variable `{name}` does not exist.")),
         }

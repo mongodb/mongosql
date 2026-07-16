@@ -172,9 +172,14 @@ impl<'a> SchemaInferenceState<'a> {
         }
     }
 
-    pub fn with_variable(&self, name: &str, schema: Schema) -> SchemaInferenceState<'_> {
+    /// Appends the provided `new_variables` to `self.variables`, replacing any existing variables
+    /// with the same name.
+    pub fn with_variables(
+        &self,
+        new_variables: &mut BTreeMap<String, Schema>,
+    ) -> SchemaInferenceState<'_> {
         let mut variables = self.variables.clone();
-        variables.insert(name.to_string(), schema);
+        variables.append(new_variables);
         SchemaInferenceState {
             env: self.env.clone(),
             catalog: self.catalog,
@@ -2247,9 +2252,7 @@ impl HigherOrderFunctionApplication {
         match self {
             HigherOrderFunctionApplication::Map(expr) => expr.schema(state),
             HigherOrderFunctionApplication::Filter(expr) => expr.schema(state),
-            HigherOrderFunctionApplication::Reduce(expr) => todo!(),
-            // todo: for reduce: schema check f with init_val schema, then again with result schema (without init_val)
-            //      - result is combo of init_val and result schemas for each schema check
+            HigherOrderFunctionApplication::Reduce(expr) => expr.schema(state),
         }
     }
 }
@@ -2285,7 +2288,9 @@ impl HigherOrderFunction for MapExpr {
 
         // Add the array item schema to the SchemaInferenceState as a variable using the
         // name `this`.
-        let state_with_this_variable = state.with_variable("this", array_item_schema.clone());
+        let state_with_this_variable = state.with_variables(&mut map! {
+            "this".to_string() => array_item_schema.clone()
+        });
 
         // Get the schema of the function argument using the updated state with the variable
         // binding.
@@ -2334,7 +2339,9 @@ impl HigherOrderFunction for FilterExpr {
 
         // Add the array item schema to the SchemaInferenceState as a variable using the
         // name `this`.
-        let state_with_this_variable = state.with_variable("this", array_item_schema.clone());
+        let state_with_this_variable = state.with_variables(&mut map! {
+            "this".to_string() => array_item_schema.clone()
+        });
 
         // Get the schema of the function argument using the updated state with the variable
         // binding.
@@ -2355,6 +2362,93 @@ impl HigherOrderFunction for FilterExpr {
 
         // The output schema is the same as the array argument schema.
         Ok(array_schema.upconvert_missing_to_null())
+    }
+}
+
+impl SqlFunction for ReduceExpr {
+    fn as_str(&self) -> &'static str {
+        "Reduce"
+    }
+}
+
+impl HigherOrderFunction for ReduceExpr {
+    fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+        // The first argument must satisfy ANY_ARRAY_OR_NULLISH.
+        let array_schema = self.array.schema(state)?;
+        if !state.check_satisfies(&array_schema, &ANY_ARRAY_OR_NULLISH) {
+            return Err(Error::SchemaChecking {
+                name: self.as_str(),
+                required: ANY_ARRAY_OR_NULLISH.clone().into(),
+                found: array_schema.into(),
+                var_cause: self.array.as_var_cause(),
+            });
+        }
+
+        let Some(array_item_schema) = array_schema.get_array_item_schema() else {
+            // At this point, we know the schema satisfies ANY_ARRAY_OR_NULLISH. In STRICT
+            // mode, that means the schema must be exactly NULLISH if there is no array item
+            // schema. In RELAXED mode, technically there may be other non-array/non-nullish
+            // schemas, but those would cause runtime errors. Therefore, we can just return
+            // Null as the expression schema at this point since we know the `array` arg is
+            // never an array.
+            return Ok(Schema::Atomic(Atomic::Null));
+        };
+
+        // Get the initial value schema. If it is invalid, indicate that an invalid initial value
+        // expression was provided.
+        let init_value_schema =
+            self.init_value
+                .schema(state)
+                .map_err(|e| Error::HigherOrderFunctionWrapper {
+                    name: self.as_str(),
+                    cause: HigherOrderFunctionErrorCause::InvalidInitialValue,
+                    error: Box::new(e),
+                })?;
+
+        // We need to schema check the function argument twice. First, we check it with the initial
+        // value schema, and then we check it with its own result schema. We cannot possibly do this
+        // one time since we cannot know the accumulated result schema without providing an initial
+        // schema for the `value` variable.
+
+        // First, check the schema of the function argument using the initial value schema for the
+        // `value` variable. Start by adding the array item schema to the SchemaInferenceState as a
+        // variable using the name `this`, and add the initial value schema using the name `value`
+        let state_with_this_and_init_value = state.with_variables(&mut map! {
+            "this".to_string() => array_item_schema.clone(),
+            "value".to_string() => init_value_schema.clone(),
+        });
+
+        let func_schema = self
+            .f
+            .schema(&state_with_this_and_init_value)
+            .map_err(|e| {
+                self.wrap_error_in_context(
+                    e,
+                    Some(HigherOrderFunctionErrorCause::InvalidInitialValueUsage),
+                )
+            })?;
+
+        // Next, check the schema of the function argument using the accumulated result schema for
+        // the `value` variable. Start by overwriting the `value` variable in the state.
+        let state_with_this_and_result_value =
+            state_with_this_and_init_value.with_variables(&mut map! {
+                "value".to_string() => func_schema.clone(),
+            });
+
+        let func_schema = self
+            .f
+            .schema(&state_with_this_and_result_value)
+            .map_err(|e| {
+                self.wrap_error_in_context(
+                    e,
+                    Some(HigherOrderFunctionErrorCause::InvalidAccumulatedValueUsage),
+                )
+            })?;
+
+        // The output schema is a union of the initial value schema and the function result schema.
+        // It may be null based on the array argument's nullability.
+        let output_schema = init_value_schema.union(&func_schema);
+        Ok(self.propagate_null_arguments_helper(array_schema.satisfies(&NULLISH), output_schema))
     }
 }
 
@@ -2392,7 +2486,11 @@ trait SchemaCheckCaseExpr {
         // The resulting schema for a case expression is AnyOf the THEN results
         // from each when_branch, along with the ELSE branch result.
         schemas.insert(else_branch.schema(state)?);
-        Ok(Schema::AnyOf(schemas))
+        if schemas.len() == 1 {
+            Ok(schemas.into_iter().next().unwrap())
+        } else {
+            Ok(Schema::AnyOf(schemas))
+        }
     }
 }
 

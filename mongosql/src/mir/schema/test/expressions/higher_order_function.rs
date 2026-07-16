@@ -383,6 +383,38 @@ mod reduce {
         schema_env = map! {("foo", 0u16).into() => ANY_ARRAY_OR_NULLISH.clone()},
     );
 
+    // REDUCE([1], 'a' + 1, 1) => error
+    test_schema!(
+        second_arg_must_be_valid,
+        expected_error_code = 1020,
+        expected = Err(mir_error::HigherOrderFunctionWrapper {
+            name: "Reduce",
+            cause: HigherOrderFunctionErrorCause::InvalidInitialValue,
+            error: Box::new(mir_error::SchemaChecking {
+                name: "Add",
+                required: NUMERIC_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::String).into(),
+                var_cause: None,
+            })
+        }),
+        input =
+            Expression::HigherOrderFunction(HigherOrderFunctionApplication::Reduce(ReduceExpr {
+                array: Box::new(Expression::Array(ArrayExpr {
+                    array: vec![Expression::Literal(LiteralValue::Integer(1))]
+                })),
+                init_value: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
+                    function: ScalarFunction::Add,
+                    args: vec![
+                        Expression::Literal(LiteralValue::String("a".to_string())),
+                        Expression::Literal(LiteralValue::Integer(1)),
+                    ],
+                    is_nullable: false,
+                })),
+                f: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                is_nullable: false,
+            })),
+    );
+
     // In general, the result schema of a Reduce is the union of the second and third arguments'
     // schemas. The following cases may all be valid:
     //  - second and third args have same schema
@@ -507,6 +539,7 @@ mod reduce {
         test_schema!(
             union_of_second_and_third_arg_when_second_arg_is_distinct_from_third_arg,
             expected = Ok(Schema::AnyOf(set! {
+                Schema::Atomic(Atomic::Null),
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String),
             })),
@@ -630,7 +663,7 @@ mod reduce {
         expected_error_code = 1020,
         expected = Err(mir_error::HigherOrderFunctionWrapper {
             name: "Reduce",
-            cause: HigherOrderFunctionErrorCause::InvalidInitialValue,
+            cause: HigherOrderFunctionErrorCause::InvalidInitialValueUsage,
             error: Box::new(mir_error::SchemaChecking {
                 name: "Add",
                 required: NUMERIC_OR_NULLISH.clone().into(),
@@ -662,7 +695,7 @@ mod reduce {
         expected_error_code = 1020,
         expected = Err(mir_error::HigherOrderFunctionWrapper {
             name: "Reduce",
-            cause: HigherOrderFunctionErrorCause::InvalidAccumulatedValue,
+            cause: HigherOrderFunctionErrorCause::InvalidAccumulatedValueUsage,
             error: Box::new(mir_error::InvalidComparison {
                 name: "SimpleCase",
                 left: Schema::Atomic(Atomic::Integer).into(),

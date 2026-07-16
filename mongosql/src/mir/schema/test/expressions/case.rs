@@ -66,7 +66,7 @@ mod searched {
 
     test_schema!(
         searched_case_with_no_when_branch_uses_else_branch,
-        expected = Ok(Schema::AnyOf(set![Schema::Atomic(Atomic::Long)])),
+        expected = Ok(Schema::Atomic(Atomic::Long)),
         input = Expression::SearchedCase(SearchedCaseExpr {
             when_branch: vec![],
             else_branch: Box::new(Expression::Literal(LiteralValue::Long(1))),
@@ -153,7 +153,7 @@ mod simple {
 
     test_schema!(
         simple_case_with_no_when_branch_uses_else_branch,
-        expected = Ok(Schema::AnyOf(set![Schema::Atomic(Atomic::Long)])),
+        expected = Ok(Schema::Atomic(Atomic::Long)),
         input = Expression::SimpleCase(SimpleCaseExpr {
             expr: Box::new(Expression::Literal(LiteralValue::Integer(1))),
             when_branch: vec![],
