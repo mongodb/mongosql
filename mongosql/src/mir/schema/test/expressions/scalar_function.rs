@@ -125,7 +125,7 @@ mod substring {
             name: "Substring",
             required: INTEGER_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::String).into(),
-            var_cause: None,
+            var_cause: Some("this".to_string()),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Substring,
@@ -2193,7 +2193,7 @@ mod floor {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
-            var_cause: None,
+            var_cause: Some("this".to_string()),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Floor,
@@ -4968,7 +4968,7 @@ mod in_operator {
         expected = Err(mir_error::InvalidComparison {
             name: "NotIn",
             left: Schema::Atomic(Atomic::String).into(),
-            right: Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]).into(),
+            right: Schema::Atomic(Atomic::Integer).into(),
             var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
@@ -4993,7 +4993,7 @@ mod in_operator {
         expected = Err(mir_error::InvalidComparison {
             name: "NotIn",
             left: Schema::Atomic(Atomic::String).into(),
-            right: Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]).into(),
+            right: Schema::Atomic(Atomic::Integer).into(),
             var_cause: Some("this".to_string()),
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {

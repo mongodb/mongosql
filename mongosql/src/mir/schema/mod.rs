@@ -906,7 +906,7 @@ impl AggregationFunctionApplication {
                 arg_schema.into(),
             ));
         }
-        self.function.schema(state, arg_schema)
+        self.function.schema(state, (&self.arg, arg_schema))
     }
 }
 
@@ -914,12 +914,12 @@ impl AggregationFunction {
     pub fn schema(
         &self,
         state: &SchemaInferenceState,
-        arg_schema: Schema,
+        arg_schema: (&Expression, Schema),
     ) -> Result<Schema, Error> {
         use crate::mir::AggregationFunction::*;
         use Satisfaction::*;
         Ok(match self {
-            AddToArray => Schema::Array(Box::new(arg_schema)),
+            AddToArray => Schema::Array(Box::new(arg_schema.1)),
             Avg | StddevPop | StddevSamp => {
                 self.schema_check_fixed_args(
                     state,
@@ -930,8 +930,8 @@ impl AggregationFunction {
                 // because they never return Long or Integer results, even for Long
                 // or Integer inputs.
                 let get_numeric_schema = || match (
-                    arg_schema.satisfies(&Schema::Atomic(Atomic::Decimal)),
-                    arg_schema.satisfies(&Schema::AnyOf(set![
+                    arg_schema.1.satisfies(&Schema::Atomic(Atomic::Decimal)),
+                    arg_schema.1.satisfies(&Schema::AnyOf(set![
                         Schema::Atomic(Atomic::Integer),
                         Schema::Atomic(Atomic::Double),
                         Schema::Atomic(Atomic::Long),
@@ -945,7 +945,7 @@ impl AggregationFunction {
                     ]),
                     _ => Schema::Atomic(Atomic::Double),
                 };
-                match arg_schema.satisfies(&NULLISH) {
+                match arg_schema.1.satisfies(&NULLISH) {
                     Satisfaction::Not => get_numeric_schema(),
                     Satisfaction::Must => Schema::Atomic(Atomic::Null),
                     Satisfaction::May => {
@@ -957,15 +957,15 @@ impl AggregationFunction {
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Long)
             ]),
-            First | Last => arg_schema.upconvert_missing_to_null(),
+            First | Last => arg_schema.1.upconvert_missing_to_null(),
             Min | Max => {
-                if !state.check_self_comparable(&arg_schema) {
+                if !state.check_self_comparable(&arg_schema.1) {
                     return Err(Error::AggregationArgumentMustBeSelfComparable(
                         self.as_str().to_string(),
-                        arg_schema.into(),
+                        arg_schema.1.into(),
                     ));
                 }
-                arg_schema.upconvert_missing_to_null()
+                arg_schema.1.upconvert_missing_to_null()
             }
             MergeDocuments => self.schema_check_merge_objects(state, from_ref(&arg_schema))?,
             Sum => self.get_arithmetic_schema(state, &[arg_schema])?,
@@ -1024,7 +1024,21 @@ impl SubqueryComparison {
     pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
         let argument_schema = self.argument.schema(state)?;
         let (subquery_schema, _, _) = self.subquery_expr.schema_helper(state)?;
-        self.get_comparison_schema(state, &[argument_schema, subquery_schema])
+        self.get_comparison_schema(
+            state,
+            &[
+                (&self.argument, argument_schema),
+                (
+                    // The SubqueryExpr of a SubqueryComparison will never be a Variable expr. The
+                    // real SubqueryExpr may be arbitrarily large. The `&Expression` that is passed
+                    // in the arg_schemas slice is only used to check if an offending Expression is
+                    // a Variable. Since that is never the case for the subquery argument of a
+                    // SubqueryComparison, we just pass in a dummy Literal here.
+                    &Expression::Literal(LiteralValue::Boolean(true)),
+                    subquery_schema,
+                ),
+            ],
+        )
     }
 }
 
@@ -1303,7 +1317,7 @@ impl DateFunctionApplication {
         let args = self
             .args
             .iter()
-            .map(|x| x.schema(state))
+            .map(|x| x.schema(state).map(|s| (x, s)))
             .collect::<Result<Vec<_>, _>>()?;
         self.function.schema(state, &args)
     }
@@ -1314,7 +1328,7 @@ impl ScalarFunctionApplication {
         let args = self
             .args
             .iter()
-            .map(|x| x.schema(state))
+            .map(|x| x.schema(state).map(|s| (x, s)))
             .collect::<Result<Vec<_>, _>>()?;
         self.function.schema(state, &args)
     }
@@ -1394,13 +1408,14 @@ trait SqlFunction {
     fn get_arithmetic_schema(
         &self,
         state: &SchemaInferenceState,
-        arg_schemas: &[Schema],
+        arg_schemas: &[(&Expression, Schema)],
     ) -> Result<Schema, Error> {
         use schema::{Atomic::*, Schema::*};
 
-        fn get_arithmetic_schema_aux(schemas: &[Schema]) -> Result<Schema, Error> {
+        fn get_arithmetic_schema_aux(schemas: &[(&Expression, Schema)]) -> Result<Schema, Error> {
             let schemas_collected: BTreeSet<_> = schemas
                 .iter()
+                .map(|(_, s)| s)
                 .map(Schema::simplify)
                 // Remove Missing and Null from the schemas since the inclusion of Null
                 // in the output is handled by schema_check_variadic_args below.
@@ -1461,21 +1476,21 @@ trait SqlFunction {
     fn schema_check_fixed_args(
         &self,
         state: &SchemaInferenceState,
-        arg_schemas: &[Schema],
+        arg_schemas: &[(&Expression, Schema)],
         required_schemas: &[Schema],
     ) -> Result<Satisfaction, Error> {
         self.ensure_arg_count(arg_schemas.len(), required_schemas.len())?;
         let mut total_null_sat = Satisfaction::Not;
-        for (i, arg) in arg_schemas.iter().enumerate() {
-            if !state.check_satisfies(arg, &required_schemas[i]) {
+        for (i, (arg, arg_schema)) in arg_schemas.iter().enumerate() {
+            if !state.check_satisfies(arg_schema, &required_schemas[i]) {
                 return Err(Error::SchemaChecking {
                     name: self.as_str(),
                     required: required_schemas[i].clone().into(),
-                    found: arg.clone().into(),
-                    var_cause: None,
+                    found: arg_schema.clone().into(),
+                    var_cause: arg.as_var_cause(),
                 });
             }
-            let sat = arg.satisfies(&NULLISH);
+            let sat = arg_schema.satisfies(&NULLISH);
             if sat > total_null_sat {
                 total_null_sat = sat;
             }
@@ -1491,7 +1506,7 @@ trait SqlFunction {
     fn schema_check_variadic_args(
         &self,
         state: &SchemaInferenceState,
-        arg_schemas: &[Schema],
+        arg_schemas: &[(&Expression, Schema)],
         required_schema: Schema,
     ) -> Result<Satisfaction, Error> {
         self.schema_check_fixed_args(
@@ -1523,7 +1538,7 @@ trait SqlFunction {
     fn propagate_fixed_null_arguments(
         &self,
         state: &SchemaInferenceState,
-        arg_schemas: &[Schema],
+        arg_schemas: &[(&Expression, Schema)],
         required_schemas: &[Schema],
         base_return_schema: Schema,
     ) -> Result<Schema, Error> {
@@ -1539,7 +1554,7 @@ trait SqlFunction {
     fn propagate_variadic_null_arguments(
         &self,
         state: &SchemaInferenceState,
-        arg_schemas: &[Schema],
+        arg_schemas: &[(&Expression, Schema)],
         required_schema: Schema,
         base_return_schema: Schema,
     ) -> Result<Schema, Error> {
@@ -1573,10 +1588,12 @@ trait SqlFunction {
     fn get_in_operator_comparison_schema(
         &self,
         state: &SchemaInferenceState,
-        arg_schema: &[Schema],
+        arg_schema: &[(&Expression, Schema)],
     ) -> Result<Schema, Error> {
         // 1. Assert that the arg schema has exactly 2 arguments
-        let [in_operator_lhs, in_operator_rhs] = arg_schema else {
+        let [(in_operator_lhs, in_operator_lhs_schema), (in_operator_rhs, in_operator_rhs_schema)] =
+            arg_schema
+        else {
             return Err(Error::IncorrectArgumentCount {
                 name: self.as_str(),
                 required: IncorrectArgCountPrecision::Exact(2),
@@ -1584,12 +1601,12 @@ trait SqlFunction {
             });
         };
 
-        if in_operator_lhs.satisfies(&Schema::Any) == Satisfaction::Not {
+        if in_operator_lhs_schema.satisfies(&Schema::Any) == Satisfaction::Not {
             return Err(Error::SchemaChecking {
                 name: self.as_str(),
                 required: Schema::Any.clone().into(),
-                found: in_operator_lhs.clone().into(),
-                var_cause: None,
+                found: in_operator_lhs_schema.clone().into(),
+                var_cause: in_operator_lhs.as_var_cause(),
             });
         }
 
@@ -1597,16 +1614,18 @@ trait SqlFunction {
         // `== Not` ensures that nullable arrays — e.g. AnyOf([Array(T), Null]) —
         // return Satisfaction::May and are caught here with a structured error instead
         // of falling through to the match below and hitting unreachable!().
-        if in_operator_rhs.satisfies(&Schema::Array(Box::new(Schema::Any))) != Satisfaction::Must {
+        if in_operator_rhs_schema.satisfies(&Schema::Array(Box::new(Schema::Any)))
+            != Satisfaction::Must
+        {
             return Err(Error::SchemaChecking {
                 name: self.as_str(),
                 required: Schema::Array(Box::new(Schema::Any)).into(),
-                found: in_operator_rhs.clone().into(),
-                var_cause: None,
+                found: in_operator_rhs_schema.clone().into(),
+                var_cause: in_operator_rhs.as_var_cause(),
             });
         }
 
-        let array_element_schema: &Schema = match in_operator_rhs {
+        let array_element_schema: &Schema = match in_operator_rhs_schema {
             Schema::Array(element_schema) => element_schema.as_ref(),
             // Unreachable: the guard above already returns an error for any schema
             // that is not definitely Schema::Array(_).
@@ -1614,13 +1633,16 @@ trait SqlFunction {
         };
 
         let is_lhs_comparable_to_rhs =
-            state.check_comparable_with(in_operator_lhs, array_element_schema);
+            state.check_comparable_with(in_operator_lhs_schema, array_element_schema);
         if !is_lhs_comparable_to_rhs {
             return Err(Error::InvalidComparison {
                 name: self.as_str(),
-                left: Box::new(in_operator_lhs.clone()),
+                left: Box::new(in_operator_lhs_schema.clone()),
                 right: Box::new(array_element_schema.clone()),
-                var_cause: None,
+                // In the case that both are variables, arbitrarily prefer the left to the right.
+                var_cause: in_operator_lhs
+                    .as_var_cause()
+                    .or_else(|| in_operator_rhs.as_var_cause()),
             });
         }
 
@@ -1639,7 +1661,7 @@ trait SqlFunction {
     fn get_comparison_schema(
         &self,
         state: &SchemaInferenceState,
-        arg_schemas: &[Schema],
+        arg_schemas: &[(&Expression, Schema)],
     ) -> Result<Schema, Error> {
         let ret_schema = self.propagate_fixed_null_arguments(
             state,
@@ -1648,14 +1670,18 @@ trait SqlFunction {
             Schema::Atomic(Atomic::Boolean),
         )?;
 
-        if state.check_comparable_with(&arg_schemas[0], &arg_schemas[1]) {
+        if state.check_comparable_with(&arg_schemas[0].1, &arg_schemas[1].1) {
             Ok(ret_schema)
         } else {
             Err(Error::InvalidComparison {
                 name: self.as_str(),
-                left: arg_schemas[0].clone().into(),
-                right: arg_schemas[1].clone().into(),
-                var_cause: None,
+                left: arg_schemas[0].1.clone().into(),
+                right: arg_schemas[1].1.clone().into(),
+                // In case both are Variables, arbitrarily prefer the left to the right.
+                var_cause: arg_schemas[0]
+                    .0
+                    .as_var_cause()
+                    .or_else(|| arg_schemas[1].0.as_var_cause()),
             })
         }
     }
@@ -1669,15 +1695,15 @@ trait SqlFunction {
     fn schema_check_merge_objects(
         &self,
         state: &SchemaInferenceState,
-        arg_schemas: &[Schema],
+        arg_schemas: &[(&Expression, Schema)],
     ) -> Result<Schema, Error> {
         self.schema_check_variadic_args(state, arg_schemas, ANY_DOCUMENT_OR_NULLISH.clone())?;
         // union all AnyOf arg_schemas into union Document schemata
         arg_schemas
             .iter()
-            .filter(|s| state.check_satisfies(s, &ANY_DOCUMENT))
+            .filter(|(_, s)| state.check_satisfies(s, &ANY_DOCUMENT))
             .cloned()
-            .map(|s| match s {
+            .map(|(_, s)| match s {
                 Schema::AnyOf(ao) => ao
                     .into_iter()
                     .reduce(Schema::document_union)
@@ -1741,7 +1767,7 @@ impl DateFunction {
     pub fn schema(
         &self,
         state: &SchemaInferenceState,
-        arg_schemas: &[Schema],
+        arg_schemas: &[(&Expression, Schema)],
     ) -> Result<Schema, Error> {
         use DateFunction::*;
         match self {
@@ -1784,7 +1810,7 @@ impl ScalarFunction {
     pub fn schema(
         &self,
         state: &SchemaInferenceState,
-        arg_schemas: &[Schema],
+        arg_schemas: &[(&Expression, Schema)],
     ) -> Result<Schema, Error> {
         use ScalarFunction::*;
         match self {
@@ -1819,22 +1845,23 @@ impl ScalarFunction {
 
             Round => {
                 self.ensure_arg_count(arg_schemas.len(), 2)?;
-                if arg_schemas[0].satisfies(&NUMERIC_OR_NULLISH) != Satisfaction::Must {
+                if arg_schemas[0].1.satisfies(&NUMERIC_OR_NULLISH) != Satisfaction::Must {
                     Err(Error::SchemaChecking {
                         name: Round.as_str(),
                         required: NUMERIC_OR_NULLISH.clone().into(),
-                        found: arg_schemas[0].clone().into(),
-                        var_cause: None,
+                        found: arg_schemas[0].1.clone().into(),
+                        var_cause: arg_schemas[0].0.as_var_cause(),
                     })
-                } else if arg_schemas[1].satisfies(&INTEGER_LONG_OR_NULLISH) != Satisfaction::Must {
+                } else if arg_schemas[1].1.satisfies(&INTEGER_LONG_OR_NULLISH) != Satisfaction::Must
+                {
                     Err(Error::SchemaChecking {
                         name: Round.as_str(),
                         required: INTEGER_LONG_OR_NULLISH.clone().into(),
-                        found: arg_schemas[1].clone().into(),
-                        var_cause: None,
+                        found: arg_schemas[1].1.clone().into(),
+                        var_cause: arg_schemas[1].0.as_var_cause(),
                     })
                 } else {
-                    Ok(arg_schemas[0].clone())
+                    Ok(arg_schemas[0].1.clone())
                 }
             }
 
@@ -1842,8 +1869,17 @@ impl ScalarFunction {
                 self.ensure_arg_count(arg_schemas.len(), 1)?;
                 self.get_arithmetic_schema(
                     state,
-                    // default the schema to Double in case the actual arg schema is INT or LONG
-                    &[arg_schemas[0].clone(), Schema::Atomic(Atomic::Double)],
+                    &[
+                        arg_schemas[0].clone(),
+                        // default the schema to Double in case the actual arg schema is INT or LONG
+                        (
+                            // We use a dummy value here since the `&Expression` is only ever used
+                            // to check if an offending expression is a Variable. Since we add this
+                            // arg schema manually to force the result to Double, we use a dummy.
+                            &Expression::Literal(LiteralValue::Double(1.0)),
+                            Schema::Atomic(Atomic::Double),
+                        ),
+                    ],
                 )
             }
 
@@ -1855,7 +1891,13 @@ impl ScalarFunction {
                         arg_schemas[0].clone(),
                         arg_schemas[1].clone(),
                         // default the schema to Double in case the actual arg schema is INT or LONG
-                        Schema::Atomic(Atomic::Double),
+                        (
+                            // We use a dummy value here since the `&Expression` is only ever used
+                            // to check if an offending expression is a Variable. Since we add this
+                            // arg schema manually to force the result to Double, we use a dummy.
+                            &Expression::Literal(LiteralValue::Double(1.0)),
+                            Schema::Atomic(Atomic::Double),
+                        ),
                     ],
                 )
             }
@@ -1888,7 +1930,7 @@ impl ScalarFunction {
                 Schema::Atomic(Atomic::Boolean),
             ),
             And | Or => {
-                // And and Or are variadic operators, but we require them to have at least two
+                // `And` and `Or` are variadic operators, but we require them to have at least two
                 // arguments.
                 self.ensure_minimum_arg_count(arg_schemas.len(), 2)?;
                 self.propagate_variadic_null_arguments(
@@ -1911,7 +1953,7 @@ impl ScalarFunction {
             NullIf => {
                 self.get_comparison_schema(state, arg_schemas)?;
                 Ok(Schema::AnyOf(set![
-                    arg_schemas[0].clone().upconvert_missing_to_null(),
+                    arg_schemas[0].1.clone().upconvert_missing_to_null(),
                     Schema::Atomic(Atomic::Null),
                 ]))
             }
@@ -2002,7 +2044,7 @@ impl ScalarFunction {
     fn get_substring_schema(
         &self,
         state: &SchemaInferenceState,
-        arg_schemas: &[Schema],
+        arg_schemas: &[(&Expression, Schema)],
     ) -> Result<Schema, Error> {
         Ok(self.propagate_null_arguments_helper(
             self.schema_check_fixed_args(
@@ -2030,7 +2072,7 @@ impl ScalarFunction {
     /// If there is a certainly non-nullish argument, then the result schema will be the set of
     /// all non-nullish schema possibilities for the arguments up to and including the first
     /// certainly non-nullish argument. Otherwise, all argument schemas (including `NULL`) are possible.
-    fn get_coalesce_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
+    fn get_coalesce_schema(&self, arg_schemas: &[(&Expression, Schema)]) -> Result<Schema, Error> {
         // Coalesce requires at least one argument.
         if arg_schemas.is_empty() {
             return Err(Error::IncorrectArgumentCount {
@@ -2043,13 +2085,21 @@ impl ScalarFunction {
         let schema = if let Some(idx) = arg_schemas
             .iter()
             // Search for a certainly non-null argument.
-            .position(|s| s.satisfies(&NULLISH.clone()) == Satisfaction::Not)
+            .position(|(_, s)| s.satisfies(&NULLISH.clone()) == Satisfaction::Not)
         {
             // If one exists, only consider schemas up to and including it and remove nullish schemas
             // as a possibility.
-            Schema::AnyOf(arg_schemas.iter().take(idx + 1).cloned().collect()).subtract_nullish()
+            Schema::AnyOf(
+                arg_schemas
+                    .iter()
+                    .take(idx + 1)
+                    .map(|(_, s)| s)
+                    .cloned()
+                    .collect(),
+            )
+            .subtract_nullish()
         } else {
-            Schema::AnyOf(arg_schemas.iter().cloned().collect())
+            Schema::AnyOf(arg_schemas.iter().map(|(_, s)| s).cloned().collect())
         };
         let schema = Schema::simplify(&schema.upconvert_missing_to_null());
         Ok(schema)
@@ -2067,7 +2117,7 @@ impl ScalarFunction {
     fn get_slice_schema(
         &self,
         state: &SchemaInferenceState,
-        arg_schemas: &[Schema],
+        arg_schemas: &[(&Expression, Schema)],
     ) -> Result<Schema, Error> {
         Ok(self.propagate_null_arguments_helper(
             self.schema_check_fixed_args(
