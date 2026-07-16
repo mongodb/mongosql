@@ -6,7 +6,7 @@ use crate::{
 };
 
 test_schema!(
-    like_first_arg_not_string_or_nullish_is_error,
+    first_arg_not_string_or_nullish_is_error,
     expected_error_code = 1002,
     expected = Err(mir_error::SchemaChecking {
         name: "Like",
@@ -23,7 +23,7 @@ test_schema!(
 );
 
 test_schema!(
-    like_first_arg_not_string_or_nullish_is_error_with_var_cause,
+    first_arg_not_string_or_nullish_is_error_with_var_cause,
     expected_error_code = 1002,
     expected = Err(mir_error::SchemaChecking {
         name: "Like",
@@ -46,7 +46,7 @@ test_schema!(
 );
 
 test_schema!(
-    like_second_arg_not_string_or_nullish_is_error,
+    second_arg_not_string_or_nullish_is_error,
     expected_error_code = 1002,
     expected = Err(mir_error::SchemaChecking {
         name: "Like",
@@ -63,7 +63,7 @@ test_schema!(
 );
 
 test_schema!(
-    like_second_arg_not_string_or_nullish_is_error_with_var_cause,
+    second_arg_not_string_or_nullish_is_error_with_var_cause,
     expected_error_code = 1002,
     expected = Err(mir_error::SchemaChecking {
         name: "Like",
@@ -86,7 +86,7 @@ test_schema!(
 );
 
 test_schema!(
-    like_must_be_string,
+    must_be_string,
     expected = Ok(Schema::Atomic(Atomic::Boolean)),
     input = Expression::Like(LikeExpr {
         expr: Expression::Reference(("bar", 0u16).into()).into(),
@@ -97,7 +97,7 @@ test_schema!(
 );
 
 test_schema!(
-    like_may_be_null,
+    may_be_null,
     expected = Ok(Schema::AnyOf(set![
         Schema::Atomic(Atomic::Boolean),
         Schema::Atomic(Atomic::Null)
@@ -111,7 +111,7 @@ test_schema!(
 );
 
 test_schema!(
-    like_may_be_missing,
+    may_be_missing,
     expected = Ok(Schema::AnyOf(set![
         Schema::Atomic(Atomic::Boolean),
         Schema::Atomic(Atomic::Null)
@@ -125,7 +125,7 @@ test_schema!(
 );
 
 test_schema!(
-    like_must_be_null,
+    must_be_null,
     expected = Ok(Schema::Atomic(Atomic::Null)),
     input = Expression::Like(LikeExpr {
         expr: Expression::Reference(("bar", 0u16).into()).into(),
