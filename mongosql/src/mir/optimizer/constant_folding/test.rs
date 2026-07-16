@@ -40,6 +40,26 @@ mod constant_folding {
         mir::{binding_tuple::DatasourceName::Bottom, definitions::*, schema::SchemaCache},
         unchecked_unique_linked_hash_map,
     };
+    use chrono::Utc;
+    use lazy_static::lazy_static;
+    use std::str::FromStr;
+
+    lazy_static! {
+        static ref OID: bson::oid::ObjectId =
+            bson::oid::ObjectId::parse_str("507f1f77bcf86cd799439011").unwrap();
+        static ref DATE_WITH_MS: bson::DateTime = {
+            let chrono_dt: chrono::DateTime<Utc> = "2014-01-01T08:15:39.736Z".parse().unwrap();
+            chrono_dt.into()
+        };
+        static ref DATE_WITHOUT_MS: bson::DateTime = {
+            let chrono_dt: chrono::DateTime<Utc> = "2014-01-01T08:15:39Z".parse().unwrap();
+            chrono_dt.into()
+        };
+        static ref INT_DEC: bson::Decimal128 = bson::Decimal128::from_str("3").unwrap();
+        static ref DOUBLE_DEC: bson::Decimal128 =
+            bson::Decimal128::from_str(&format!("{}", std::f64::consts::PI)).unwrap();
+        static ref STRING_DEC: bson::Decimal128 = bson::Decimal128::from_str("3.14159265").unwrap();
+    }
 
     fn test_source() -> Stage {
         Stage::Collection(Collection {
@@ -2605,6 +2625,290 @@ mod constant_folding {
                 on_null: Expression::Literal(LiteralValue::String("null".into())).into(),
                 on_error: Expression::Literal(LiteralValue::String("error".into())).into(),
                 is_nullable: false,
+            })],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_constant_fold!(
+        cast_valid_string_to_date_with_milliseconds,
+        expected = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![
+                Expression::Literal(LiteralValue::DateTime(*DATE_WITH_MS)),
+                Expression::Literal(LiteralValue::DateTime(*DATE_WITH_MS)),
+                Expression::Literal(LiteralValue::DateTime(*DATE_WITH_MS)),
+            ],
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![
+                Expression::Cast(CastExpr {
+                    expr: Expression::Literal(LiteralValue::String(
+                        "2014-01-01T08:15:39.736Z".into()
+                    ))
+                    .into(),
+                    to: Type::Datetime,
+                    on_null: Expression::Literal(LiteralValue::Null).into(),
+                    on_error: Expression::Literal(LiteralValue::Null).into(),
+                    is_nullable: true,
+                }),
+                Expression::Cast(CastExpr {
+                    expr: Expression::Literal(LiteralValue::String(
+                        "2014-01-01 08:15:39.736Z".into()
+                    ))
+                    .into(),
+                    to: Type::Datetime,
+                    on_null: Expression::Literal(LiteralValue::Null).into(),
+                    on_error: Expression::Literal(LiteralValue::Null).into(),
+                    is_nullable: true,
+                }),
+                Expression::Cast(CastExpr {
+                    expr: Expression::Literal(LiteralValue::String(
+                        "2014-01-01 08:15:39.736".into()
+                    ))
+                    .into(),
+                    to: Type::Datetime,
+                    on_null: Expression::Literal(LiteralValue::Null).into(),
+                    on_error: Expression::Literal(LiteralValue::Null).into(),
+                    is_nullable: true,
+                }),
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_constant_fold!(
+        cast_valid_string_to_date_without_milliseconds,
+        expected = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![
+                Expression::Literal(LiteralValue::DateTime(*DATE_WITHOUT_MS)),
+                Expression::Literal(LiteralValue::DateTime(*DATE_WITHOUT_MS)),
+                Expression::Literal(LiteralValue::DateTime(*DATE_WITHOUT_MS)),
+            ],
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![
+                Expression::Cast(CastExpr {
+                    expr: Expression::Literal(LiteralValue::String("2014-01-01T08:15:39Z".into()))
+                        .into(),
+                    to: Type::Datetime,
+                    on_null: Expression::Literal(LiteralValue::Null).into(),
+                    on_error: Expression::Literal(LiteralValue::Null).into(),
+                    is_nullable: true,
+                }),
+                Expression::Cast(CastExpr {
+                    expr: Expression::Literal(LiteralValue::String("2014-01-01 08:15:39Z".into()))
+                        .into(),
+                    to: Type::Datetime,
+                    on_null: Expression::Literal(LiteralValue::Null).into(),
+                    on_error: Expression::Literal(LiteralValue::Null).into(),
+                    is_nullable: true,
+                }),
+                Expression::Cast(CastExpr {
+                    expr: Expression::Literal(LiteralValue::String("2014-01-01 08:15:39".into()))
+                        .into(),
+                    to: Type::Datetime,
+                    on_null: Expression::Literal(LiteralValue::Null).into(),
+                    on_error: Expression::Literal(LiteralValue::Null).into(),
+                    is_nullable: true,
+                }),
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    // An unparseable date string cannot be folded and is left as a Cast, to be
+    // evaluated at runtime by MongoDB.
+    test_constant_fold_no_op!(
+        cast_invalid_string_to_date,
+        Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Cast(CastExpr {
+                expr: Expression::Literal(LiteralValue::String(
+                    "2014-01-56T08:15:39.736Z".into()
+                ))
+                .into(),
+                to: Type::Datetime,
+                on_null: Expression::Literal(LiteralValue::Null).into(),
+                on_error: Expression::Literal(LiteralValue::Null).into(),
+                is_nullable: true,
+            })],
+            cache: SchemaCache::new(),
+        })
+    );
+    test_constant_fold!(
+        cast_valid_string_to_oid,
+        expected = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Literal(LiteralValue::ObjectId(*OID))],
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Cast(CastExpr {
+                expr: Expression::Literal(LiteralValue::String("507f1f77bcf86cd799439011".into()))
+                    .into(),
+                to: Type::ObjectId,
+                on_null: Expression::Literal(LiteralValue::Null).into(),
+                on_error: Expression::Literal(LiteralValue::Null).into(),
+                is_nullable: true,
+            })],
+            cache: SchemaCache::new(),
+        }),
+    );
+    // A string that cannot be parsed as an ObjectId statically fails, so the cast
+    // folds to its on_error branch (here, Null).
+    test_constant_fold!(
+        cast_invalid_string_to_oid,
+        expected = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Literal(LiteralValue::Null)],
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Cast(CastExpr {
+                expr: Expression::Literal(LiteralValue::String("57f1f77bcf86cd799439011".into()))
+                    .into(),
+                to: Type::ObjectId,
+                on_null: Expression::Literal(LiteralValue::Null).into(),
+                on_error: Expression::Literal(LiteralValue::Null).into(),
+                is_nullable: true,
+            })],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_constant_fold!(
+        cast_valid_string_to_decimal128,
+        expected = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Literal(LiteralValue::Decimal128(*STRING_DEC))],
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Cast(CastExpr {
+                expr: Expression::Literal(LiteralValue::String("3.14159265".into())).into(),
+                to: Type::Decimal128,
+                on_null: Expression::Literal(LiteralValue::Null).into(),
+                on_error: Expression::Literal(LiteralValue::Null).into(),
+                is_nullable: true,
+            })],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_constant_fold!(
+        cast_valid_nested_string_cast_to_decimal128,
+        expected = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Literal(LiteralValue::Decimal128(*STRING_DEC))],
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Cast(CastExpr {
+                expr: Expression::Cast(CastExpr {
+                    expr: Expression::Literal(LiteralValue::String("3.14159265".into())).into(),
+                    to: Type::String,
+                    on_null: Expression::Literal(LiteralValue::Null).into(),
+                    on_error: Expression::Literal(LiteralValue::Null).into(),
+                    is_nullable: true,
+                })
+                .into(),
+                to: Type::Decimal128,
+                on_null: Expression::Literal(LiteralValue::Null).into(),
+                on_error: Expression::Literal(LiteralValue::Null).into(),
+                is_nullable: true,
+            })],
+            cache: SchemaCache::new(),
+        }),
+    );
+    // A string that cannot be parsed as a Decimal128 statically fails, so the cast
+    // folds to its on_error branch (here, Null).
+    test_constant_fold!(
+        cast_invalid_string_to_decimal128,
+        expected = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Literal(LiteralValue::Null)],
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Cast(CastExpr {
+                expr: Expression::Literal(LiteralValue::String("hello".into())).into(),
+                to: Type::Decimal128,
+                on_null: Expression::Literal(LiteralValue::Null).into(),
+                on_error: Expression::Literal(LiteralValue::Null).into(),
+                is_nullable: true,
+            })],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_constant_fold!(
+        cast_double_to_decimal128,
+        expected = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Literal(LiteralValue::Decimal128(*DOUBLE_DEC))],
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Cast(CastExpr {
+                expr: Expression::Literal(LiteralValue::Double(std::f64::consts::PI)).into(),
+                to: Type::Decimal128,
+                on_null: Expression::Literal(LiteralValue::Null).into(),
+                on_error: Expression::Literal(LiteralValue::Null).into(),
+                is_nullable: true,
+            })],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_constant_fold!(
+        cast_int_to_decimal128,
+        expected = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Literal(LiteralValue::Decimal128(*INT_DEC))],
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Cast(CastExpr {
+                expr: Expression::Literal(LiteralValue::Integer(3)).into(),
+                to: Type::Decimal128,
+                on_null: Expression::Literal(LiteralValue::Null).into(),
+                on_error: Expression::Literal(LiteralValue::Null).into(),
+                is_nullable: true,
+            })],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_constant_fold!(
+        cast_long_to_decimal128,
+        expected = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Literal(LiteralValue::Decimal128(*INT_DEC))],
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Cast(CastExpr {
+                expr: Expression::Literal(LiteralValue::Long(3)).into(),
+                to: Type::Decimal128,
+                on_null: Expression::Literal(LiteralValue::Null).into(),
+                on_error: Expression::Literal(LiteralValue::Null).into(),
+                is_nullable: true,
             })],
             cache: SchemaCache::new(),
         }),
