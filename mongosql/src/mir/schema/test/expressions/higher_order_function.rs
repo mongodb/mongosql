@@ -44,6 +44,29 @@ mod map {
         })),
     );
 
+    // MAP(non_array_var, 1) => error
+    test_schema!(
+        first_arg_must_be_array_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Map",
+            required: ANY_ARRAY_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: Some(THIS_VARIABLE.to_string()),
+        }),
+        input = Expression::HigherOrderFunction(HigherOrderFunctionApplication::Map(MapExpr {
+            array: Box::new(Expression::Variable(Variable {
+                name: THIS_VARIABLE.to_string(),
+                is_nullable: false,
+            })),
+            f: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+            is_nullable: false,
+        })),
+        variables = map! {
+            THIS_VARIABLE => Schema::Atomic(Atomic::Integer),
+        },
+    );
+
     // MAP(array_or_null_or_missing_field, 1) => [1, ...] or null
     test_schema!(
         first_arg_may_be_nullish_array,
@@ -174,6 +197,46 @@ mod map {
             is_nullable: false,
         })),
     );
+
+    // MAP([[1], [2], [3]], MAP(this, this + 1)) => [[2], [3], [4]]
+    test_schema!(
+        nested_uses_of_this_shadow_outer_uses_in_context_of_nested_function_argument,
+        expected = Ok(Schema::Array(Box::new(Schema::Array(Box::new(
+            Schema::Atomic(Atomic::Integer)
+        ))))),
+        input = Expression::HigherOrderFunction(HigherOrderFunctionApplication::Map(MapExpr {
+            array: Box::new(Expression::Array(ArrayExpr {
+                array: vec![
+                    Expression::Array(ArrayExpr {
+                        array: vec![Expression::Literal(LiteralValue::Integer(1))]
+                    }),
+                    Expression::Array(ArrayExpr {
+                        array: vec![Expression::Literal(LiteralValue::Integer(2))]
+                    }),
+                    Expression::Array(ArrayExpr {
+                        array: vec![Expression::Literal(LiteralValue::Integer(3))]
+                    }),
+                ]
+            })),
+            f: Box::new(Expression::HigherOrderFunction(
+                HigherOrderFunctionApplication::Map(MapExpr {
+                    array: Box::new(Expression::Variable(Variable::new(
+                        THIS_VARIABLE.to_string()
+                    ))),
+                    f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Add,
+                        args: vec![
+                            Expression::Variable(Variable::new(THIS_VARIABLE.to_string())),
+                            Expression::Literal(LiteralValue::Integer(1)),
+                        ],
+                        is_nullable: false,
+                    })),
+                    is_nullable: false,
+                })
+            )),
+            is_nullable: false,
+        })),
+    );
 }
 
 mod filter {
@@ -211,6 +274,30 @@ mod filter {
             })),
     );
 
+    // FILTER(non_array_var, true) => error
+    test_schema!(
+        first_arg_must_be_array_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Filter",
+            required: ANY_ARRAY_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: Some(THIS_VARIABLE.to_string()),
+        }),
+        input =
+            Expression::HigherOrderFunction(HigherOrderFunctionApplication::Filter(FilterExpr {
+                array: Box::new(Expression::Variable(Variable {
+                    name: THIS_VARIABLE.to_string(),
+                    is_nullable: false,
+                })),
+                f: Box::new(Expression::Literal(LiteralValue::Boolean(true))),
+                is_nullable: false,
+            })),
+        variables = map! {
+            THIS_VARIABLE => Schema::Atomic(Atomic::Integer),
+        },
+    );
+
     // FILTER(array_or_null_or_missing_field, true) => [...] or null
     test_schema!(
         first_arg_may_be_nullish_array,
@@ -243,6 +330,29 @@ mod filter {
                     array: vec![Expression::Literal(LiteralValue::Integer(1))]
                 })),
                 f: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                is_nullable: false,
+            })),
+    );
+
+    // FILTER([1], this) => error
+    test_schema!(
+        second_arg_must_be_boolean_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Filter",
+            required: BOOLEAN_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: Some(THIS_VARIABLE.to_string()),
+        }),
+        input =
+            Expression::HigherOrderFunction(HigherOrderFunctionApplication::Filter(FilterExpr {
+                array: Box::new(Expression::Array(ArrayExpr {
+                    array: vec![Expression::Literal(LiteralValue::Integer(1))]
+                })),
+                f: Box::new(Expression::Variable(Variable {
+                    name: THIS_VARIABLE.to_string(),
+                    is_nullable: false,
+                })),
                 is_nullable: false,
             })),
     );
@@ -346,6 +456,46 @@ mod filter {
                 is_nullable: false,
             })),
     );
+
+    // MAP([[1], [2], [3]], FILTER(this, this > 1)) => [[], [2], [3]]
+    test_schema!(
+        nested_uses_of_this_shadow_outer_uses_in_context_of_nested_function_argument,
+        expected = Ok(Schema::Array(Box::new(Schema::Array(Box::new(
+            Schema::Atomic(Atomic::Integer)
+        ))))),
+        input = Expression::HigherOrderFunction(HigherOrderFunctionApplication::Map(MapExpr {
+            array: Box::new(Expression::Array(ArrayExpr {
+                array: vec![
+                    Expression::Array(ArrayExpr {
+                        array: vec![Expression::Literal(LiteralValue::Integer(1))]
+                    }),
+                    Expression::Array(ArrayExpr {
+                        array: vec![Expression::Literal(LiteralValue::Integer(2))]
+                    }),
+                    Expression::Array(ArrayExpr {
+                        array: vec![Expression::Literal(LiteralValue::Integer(3))]
+                    }),
+                ]
+            })),
+            f: Box::new(Expression::HigherOrderFunction(
+                HigherOrderFunctionApplication::Filter(FilterExpr {
+                    array: Box::new(Expression::Variable(Variable::new(
+                        THIS_VARIABLE.to_string()
+                    ))),
+                    f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Gt,
+                        args: vec![
+                            Expression::Variable(Variable::new(THIS_VARIABLE.to_string())),
+                            Expression::Literal(LiteralValue::Integer(1)),
+                        ],
+                        is_nullable: false,
+                    })),
+                    is_nullable: false,
+                })
+            )),
+            is_nullable: false,
+        })),
+    );
 }
 
 mod reduce {
@@ -368,6 +518,31 @@ mod reduce {
                 f: Box::new(Expression::Literal(LiteralValue::Integer(1))),
                 is_nullable: false,
             })),
+    );
+
+    // REDUCE(non_array_var, 1, 1) => error
+    test_schema!(
+        first_arg_must_be_array_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Reduce",
+            required: ANY_ARRAY_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: Some(THIS_VARIABLE.to_string()),
+        }),
+        input =
+            Expression::HigherOrderFunction(HigherOrderFunctionApplication::Reduce(ReduceExpr {
+                array: Box::new(Expression::Variable(Variable {
+                    name: THIS_VARIABLE.to_string(),
+                    is_nullable: false,
+                })),
+                init_value: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                f: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                is_nullable: false,
+            })),
+        variables = map! {
+            THIS_VARIABLE => Schema::Atomic(Atomic::Integer),
+        },
     );
 
     // REDUCE(array_or_null_or_missing_field, 1, 1) => 1 or null
@@ -417,6 +592,44 @@ mod reduce {
                 f: Box::new(Expression::Literal(LiteralValue::Integer(1))),
                 is_nullable: false,
             })),
+    );
+
+    // REDUCE([1], non_int_var + 1, 1) => error
+    test_schema!(
+        second_arg_must_be_valid_with_var_cause,
+        expected_error_code = 1020,
+        expected = Err(mir_error::HigherOrderFunctionWrapper {
+            name: "Reduce",
+            cause: HigherOrderFunctionErrorCause::InitialValue,
+            error: Box::new(mir_error::SchemaChecking {
+                name: "Add",
+                required: NUMERIC_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::String).into(),
+                var_cause: Some(THIS_VARIABLE.to_string()),
+            })
+        }),
+        input =
+            Expression::HigherOrderFunction(HigherOrderFunctionApplication::Reduce(ReduceExpr {
+                array: Box::new(Expression::Array(ArrayExpr {
+                    array: vec![Expression::Literal(LiteralValue::Integer(1))]
+                })),
+                init_value: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
+                    function: ScalarFunction::Add,
+                    args: vec![
+                        Expression::Variable(Variable {
+                            name: THIS_VARIABLE.to_string(),
+                            is_nullable: false,
+                        }),
+                        Expression::Literal(LiteralValue::Integer(1)),
+                    ],
+                    is_nullable: false,
+                })),
+                f: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                is_nullable: false,
+            })),
+        variables = map! {
+            THIS_VARIABLE => Schema::Atomic(Atomic::String),
+        },
     );
 
     // In general, the result schema of a Reduce is the union of the second and third arguments'
@@ -723,6 +936,124 @@ mod reduce {
                         is_nullable: false,
                     }],
                     else_branch: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                    is_nullable: false,
+                })),
+                is_nullable: false,
+            })),
+    );
+
+    // REDUCE([[1]], 0, REDUCE(this, 0, this + 1)) => 2
+    test_schema!(
+        nested_uses_of_this_shadow_outer_uses_in_context_of_nested_function_argument,
+        expected = Ok(Schema::Atomic(Atomic::Integer)),
+        input =
+            Expression::HigherOrderFunction(HigherOrderFunctionApplication::Reduce(ReduceExpr {
+                array: Box::new(Expression::Array(ArrayExpr {
+                    array: vec![Expression::Array(ArrayExpr {
+                        array: vec![Expression::Literal(LiteralValue::Integer(1))]
+                    }),]
+                })),
+                init_value: Box::new(Expression::Literal(LiteralValue::Integer(0))),
+                f: Box::new(Expression::HigherOrderFunction(
+                    HigherOrderFunctionApplication::Reduce(ReduceExpr {
+                        array: Box::new(Expression::Variable(Variable::new(
+                            THIS_VARIABLE.to_string()
+                        ))),
+                        init_value: Box::new(Expression::Literal(LiteralValue::Integer(0))),
+                        f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
+                            function: ScalarFunction::Add,
+                            args: vec![
+                                Expression::Variable(Variable::new(THIS_VARIABLE.to_string())),
+                                Expression::Literal(LiteralValue::Integer(1)),
+                            ],
+                            is_nullable: false,
+                        })),
+                        is_nullable: false,
+                    })
+                )),
+                is_nullable: false,
+            })),
+    );
+
+    // REDUCE([1], [2], [REDUCE(value, 0, value + 1)]) => [1]
+    test_schema!(
+        nested_uses_of_value_shadow_outer_uses_in_context_of_nested_function_argument,
+        expected = Ok(Schema::Array(Box::new(Schema::Atomic(Atomic::Integer)))),
+        input =
+            Expression::HigherOrderFunction(HigherOrderFunctionApplication::Reduce(ReduceExpr {
+                array: Box::new(Expression::Array(ArrayExpr {
+                    array: vec![Expression::Literal(LiteralValue::Integer(1))]
+                })),
+                init_value: Box::new(Expression::Array(ArrayExpr {
+                    array: vec![Expression::Literal(LiteralValue::Integer(2))]
+                })),
+                f: Box::new(Expression::Array(ArrayExpr {
+                    array: vec![Expression::HigherOrderFunction(
+                        HigherOrderFunctionApplication::Reduce(ReduceExpr {
+                            array: Box::new(Expression::Variable(Variable {
+                                name: VALUE_VARIABLE.to_string(),
+                                is_nullable: false,
+                            })),
+                            init_value: Box::new(Expression::Literal(LiteralValue::Integer(0))),
+                            f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
+                                function: ScalarFunction::Add,
+                                args: vec![
+                                    Expression::Variable(Variable::new(VALUE_VARIABLE.to_string())),
+                                    Expression::Literal(LiteralValue::Integer(1)),
+                                ],
+                                is_nullable: false,
+                            })),
+                            is_nullable: false,
+                        })
+                    )]
+                })),
+                is_nullable: false,
+            })),
+    );
+
+    // In this test, we use a `CAST` to force the uses of `value` to be valid. The purpose of the
+    // test is to use a nested higher order function that does not redefine `value` to ensure that
+    // the outer `value` is used. Of course, the result of `MAP` or `FILTER` (the other higher order
+    // functions that do not define `value`) are Array<...> so the `CAST` is required to make the
+    // `REDUCE` valid.
+    // REDUCE([[1]], 2, CAST(MAP(this, this + value) AS INTEGER, 0 ON NULL, 0 ON ERROR)) => 0
+    test_schema!(
+        nested_uses_of_value_do_not_shadow_outer_uses_in_context_of_higher_order_function_that_does_not_redefine_value,
+        expected = Ok(Schema::Atomic(Atomic::Integer)),
+        input =
+            Expression::HigherOrderFunction(HigherOrderFunctionApplication::Reduce(ReduceExpr {
+                array: Box::new(Expression::Array(ArrayExpr {
+                    array: vec![Expression::Array(ArrayExpr {
+                        array: vec![Expression::Literal(LiteralValue::Integer(1))]
+                    }),]
+                })),
+                init_value: Box::new(Expression::Literal(LiteralValue::Integer(2))),
+                f: Box::new(Expression::Cast(CastExpr {
+                    expr: Box::new(Expression::HigherOrderFunction(
+                        HigherOrderFunctionApplication::Map(MapExpr {
+                            array: Box::new(Expression::Variable(Variable::new(
+                                THIS_VARIABLE.to_string()
+                            ))),
+                            f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication {
+                                function: ScalarFunction::Add,
+                                args: vec![
+                                    Expression::Variable(Variable {
+                                        name: THIS_VARIABLE.to_string(),
+                                        is_nullable: false,
+                                    }),
+                                    Expression::Variable(Variable {
+                                        name: VALUE_VARIABLE.to_string(),
+                                        is_nullable: false,
+                                    }),
+                                ],
+                                is_nullable: false,
+                            })),
+                            is_nullable: false,
+                        })
+                    )),
+                    to: Type::Int32,
+                    on_null: Box::new(Expression::Literal(LiteralValue::Integer(0))),
+                    on_error: Box::new(Expression::Literal(LiteralValue::Integer(0))),
                     is_nullable: false,
                 })),
                 is_nullable: false,
