@@ -9,7 +9,10 @@ use crate::{
     mir::{definitions::*, schema::SchemaInferenceState, visitor::Visitor},
     schema::{Atomic, Satisfaction, Schema, NULLISH},
 };
+use bson::{oid::ObjectId, Decimal128};
+use chrono::Utc;
 use lazy_static::lazy_static;
+use std::str::FromStr;
 
 #[derive(Clone)]
 pub(crate) struct ConstantFoldExprVisitor<'a> {
@@ -816,9 +819,94 @@ impl ConstantFoldExprVisitor<'_> {
         }
     }
 
+    // Attempts to fold a Cast whose input is a constant literal into a literal of
+    // the target type.
+    //
+    // None means no conversion could occur (fall through to schema-based folding).
+    // Some(Err(())) means there was an opportunity for conversion but it statically
+    // fails; since it would also fail at runtime, we fold to the Cast's on_error.
+    // Some(Ok(_)) means we successfully converted a literal.
+    fn convert_literal(l: &LiteralValue, to: Type) -> Option<Result<Expression, ()>> {
+        match l {
+            LiteralValue::String(s) => Self::convert_string_literal(s, to),
+            LiteralValue::Integer(i) => Self::convert_numerical_literal(*i, to),
+            LiteralValue::Long(l) => Self::convert_numerical_literal(*l, to),
+            LiteralValue::Double(d) => Self::convert_numerical_literal(*d, to),
+            _ => None,
+        }
+    }
+
+    fn convert_string_literal(s: &str, to: Type) -> Option<Result<Expression, ()>> {
+        match to {
+            // We'll handle the no-op convert too. But we are not handling every possible case.
+            // This is mostly used to easily test that we are properly recursing, but could offer
+            // some benefit.
+            Type::String => Some(Ok(Expression::Literal(LiteralValue::String(s.to_string())))),
+            Type::Datetime => {
+                // format YYYY-MM-DD(T| )HH:mm:SS(.ms)?Z?, where `?` denotes optional
+                let chrono_dt: Option<chrono::DateTime<Utc>> = if s.ends_with('Z') {
+                    s.parse().ok()
+                } else {
+                    let mut s = s.to_string();
+                    s.push('Z');
+                    s.parse().ok()
+                };
+                // We cannot guarantee our format here supports everything that MongoDB supports,
+                // so we instead fall back to the original cast expression when our attempt to
+                // create a Date fails, and allow MongoDB to succeed or fail as it will.
+                chrono_dt.map(|chrono_dt| {
+                    Ok(Expression::Literal(LiteralValue::DateTime(
+                        chrono_dt.into(),
+                    )))
+                })
+            }
+            Type::Decimal128 => {
+                let dec = Decimal128::from_str(s).ok();
+                match dec {
+                    Some(dec) => Some(Ok(Expression::Literal(LiteralValue::Decimal128(dec)))),
+                    None => Some(Err(())),
+                }
+            }
+            Type::ObjectId => {
+                let oid = ObjectId::parse_str(s).ok();
+                match oid {
+                    Some(oid) => Some(Ok(Expression::Literal(LiteralValue::ObjectId(oid)))),
+                    None => Some(Err(())),
+                }
+            }
+            _ => None,
+        }
+    }
+
+    fn convert_numerical_literal<T: std::fmt::Display>(
+        i: T,
+        to: Type,
+    ) -> Option<Result<Expression, ()>> {
+        match to {
+            Type::Decimal128 => {
+                let dec = Decimal128::from_str(&format!("{i}")).ok();
+                match dec {
+                    Some(dec) => Some(Ok(Expression::Literal(LiteralValue::Decimal128(dec)))),
+                    None => Some(Err(())),
+                }
+            }
+            _ => None,
+        }
+    }
+
     // Constant folds the cast expression
     fn fold_cast_expr(&mut self, cast_expr: CastExpr) -> (Expression, bool) {
         use crate::schema::{ANY_ARRAY, ANY_DOCUMENT};
+        // If the input is a constant literal, attempt to fold the cast into a
+        // literal of the target type. A static conversion failure folds to the
+        // Cast's on_error, matching runtime CAST semantics.
+        if let Expression::Literal(ref l) = *cast_expr.expr {
+            match Self::convert_literal(l, cast_expr.to) {
+                Some(Ok(folded)) => return (folded, true),
+                Some(Err(())) => return (*cast_expr.on_error, true),
+                None => {}
+            }
+        }
         let schema = cast_expr.expr.schema(self.state);
         if schema.is_err() {
             return (Expression::Cast(cast_expr), false);
