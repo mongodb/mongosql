@@ -2226,7 +2226,7 @@ trait HigherOrderFunction: SqlFunction {
                 }
                 _ => HigherOrderFunctionErrorCause::FunctionArgument,
             },
-            // Otherwise, we use the generic cause `InvalidFunctionArgument`.
+            // Otherwise, we use the generic cause `FunctionArgument`.
             Error::SchemaChecking { .. }
             | Error::InvalidComparison { .. }
             | Error::DatasourceNotFoundInSchemaEnv(_)
