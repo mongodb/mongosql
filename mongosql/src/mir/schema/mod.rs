@@ -2198,7 +2198,7 @@ trait HigherOrderFunction: SqlFunction {
     /// `HigherOrderFunctionErrorCause` type for the full set of possible causes.
     ///
     /// Callers of this method should provide the specific `value_cause` that best describes the
-    /// cause of the error. The two options are `InvalidInitialValue` and `InvalidAccumulatedValue`.
+    /// cause of the error. The two options are `InitialValueUsage` and `AccumulatedValueUsage`.
     /// For example, if the error occurred because the `value` variable was schema-checked with the
     /// initial value schema, the `value_cause` should be `InvalidInitialValue`. Otherwise it should
     /// be `InvalidAccumulatedValue`.
