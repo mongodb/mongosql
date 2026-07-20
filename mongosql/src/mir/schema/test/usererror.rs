@@ -312,3 +312,93 @@ mod access_missing_field {
         expected = "Cannot access field `foo` because it could not be found. Internal error: Unexpected edit distance of 0 found with input: foo and expected: [\"foo\", \"foof\", \"fo\"]"
     }
 }
+
+mod higher_order_function_wrapper {
+    use crate::{
+        mir::schema::{
+            errors::{HigherOrderFunctionErrorCause, IncorrectArgCountPrecision},
+            VALUE_VARIABLE,
+        },
+        schema::{Atomic, Schema, NUMERIC_OR_NULLISH},
+    };
+
+    test_user_error_messages! {
+        initial_value_cause,
+        input = Error::HigherOrderFunctionWrapper {
+            name: "Reduce",
+            cause: HigherOrderFunctionErrorCause::InitialValue,
+            error: Box::new(Error::SchemaChecking {
+                name: "Add",
+                required: NUMERIC_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::String).into(),
+                var_cause: None,
+            }),
+        },
+        expected = "Invalid initial value for `Reduce`: The initial value must be semantically valid but was not. Sub-Error Code 1002: Incorrect argument type for `Add`. Required: nullable numeric type. Found: string."
+    }
+
+    test_user_error_messages! {
+        accumulated_value_usage_cause,
+        input = Error::HigherOrderFunctionWrapper {
+            name: "Reduce",
+            cause: HigherOrderFunctionErrorCause::AccumulatedValueUsage,
+            error: Box::new(Error::SchemaChecking {
+                name: "Add",
+                required: NUMERIC_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::String).into(),
+                var_cause: Some(VALUE_VARIABLE.to_string()),
+            }),
+        },
+        expected = "Invalid function argument for `Reduce`: Invalid usage of variable `value` because of the result of the accumulator function. Recall that usages of the `value` variable must be satisfied by the both the schema of the initial value and the schema of the result of the accumulator function. Sub-Error Code 1002: Incorrect argument type for `Add`. Required: nullable numeric type. Found: string."
+    }
+
+    test_user_error_messages! {
+        initial_value_usage_cause,
+        input = Error::HigherOrderFunctionWrapper {
+            name: "Reduce",
+            cause: HigherOrderFunctionErrorCause::InitialValueUsage,
+            error: Box::new(Error::SchemaChecking {
+                name: "Add",
+                required: NUMERIC_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::String).into(),
+                var_cause: Some(VALUE_VARIABLE.to_string()),
+            }),
+        },
+        expected = "Invalid function argument for `Reduce`: Invalid usage of variable `value` because of the initial value. Recall that usages of the `value` variable must be satisfied by the both the schema of the initial value and the schema of the result of the accumulator function. Sub-Error Code 1002: Incorrect argument type for `Add`. Required: nullable numeric type. Found: string."
+    }
+
+    test_user_error_messages! {
+        this_usage_cause,
+        input = Error::HigherOrderFunctionWrapper {
+            name: "Map",
+            cause: HigherOrderFunctionErrorCause::ThisUsage,
+            error: Box::new(Error::SchemaChecking {
+                name: "Add",
+                required: NUMERIC_OR_NULLISH.clone().into(),
+                found: Schema::Atomic(Atomic::String).into(),
+                var_cause: Some(VALUE_VARIABLE.to_string()),
+            }),
+        },
+        expected = "Invalid function argument for `Map`: Invalid usage of variable `this`. Recall that usages of the `this` variable must be satisfied by the schema of the elements of the array. Sub-Error Code 1002: Incorrect argument type for `Add`. Required: nullable numeric type. Found: string."
+    }
+
+    test_user_error_messages! {
+        function_argument_cause,
+        input = Error::HigherOrderFunctionWrapper {
+            name: "Filter",
+            cause: HigherOrderFunctionErrorCause::FunctionArgument,
+            error: Box::new(Error::IncorrectArgumentCount {
+                name: "Gt",
+                required: IncorrectArgCountPrecision::Exact(2),
+                found: 1,
+            }),
+        },
+        expected = "Invalid function argument for `Filter`: Ensure the function argument is semantically valid. It must have the correct number of arguments and the arguments must have the correct type. Sub-Error Code 1001: incorrect argument count for Gt: required exactly 2, found 1"
+    }
+}
+
+test_user_error_messages!(
+    no_such_variable,
+    input = Error::NoSuchVariable("x".to_string()),
+    expected = "Variable `x` does not exist."
+);
