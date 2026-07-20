@@ -2201,7 +2201,7 @@ trait HigherOrderFunction: SqlFunction {
     /// cause of the error. The two options are `InitialValueUsage` and `AccumulatedValueUsage`.
     /// For example, if the error occurred because the `value` variable was schema-checked with the
     /// initial value schema, the `value_cause` should be `InitialValueUsage`. Otherwise it should
-    /// be `InvalidAccumulatedValue`.
+    /// be `AccumulatedValueUsage`.
     fn wrap_error_in_context(
         &self,
         error: Error,
