@@ -2194,7 +2194,7 @@ trait HigherOrderFunction: SqlFunction {
     /// Not only do the wrappers indicate that the error occurred within the context of a higher
     /// order function, but they also provide additional information about the specific cause of
     /// the error. For example, in the case of `MAP(['a'], this + 1)`, the error will be wrapped
-    /// in a `HigherOrderFunctionWrapper` with the cause `InvalidThisUsage`. See the
+    /// in a `HigherOrderFunctionWrapper` with the cause `ThisUsage`. See the
     /// `HigherOrderFunctionErrorCause` type for the full set of possible causes.
     ///
     /// Callers of this method should provide the specific `value_cause` that best describes the
