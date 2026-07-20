@@ -168,9 +168,12 @@ fn invalid_like_pat() -> Expression {
     })
 }
 
-fn comp_expr() -> Expression {
+// A scalar function that cannot be rewritten to match language (arithmetic, not
+// a comparison/logical/is/like/in). Used to verify that logical operations and
+// NOT stay in $expr language when they contain a non-rewritable element.
+fn invalid_expr() -> Expression {
     Expression::ScalarFunction(ScalarFunctionApplication::new(
-        ScalarFunction::Lt,
+        ScalarFunction::Add,
         vec![
             *mir_field_access("foo", "int", true),
             *mir_field_access("bar", "int", true),
@@ -213,9 +216,9 @@ test_rewrite_to_match_language_no_op!(
     filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
         function: ScalarFunction::And,
         args: vec![
-            valid_is(),   // rewritable
-            valid_like(), // rewritable
-            comp_expr(),  // not rewritable - invalid expression
+            valid_is(),     // rewritable
+            valid_like(),   // rewritable
+            invalid_expr(), // not rewritable - invalid expression
         ],
         is_nullable: true,
     }))
@@ -237,9 +240,9 @@ test_rewrite_to_match_language_no_op!(
     filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
         function: ScalarFunction::Or,
         args: vec![
-            valid_is(),   // rewritable
-            valid_like(), // rewritable
-            comp_expr(),  // not rewritable - invalid expression
+            valid_is(),     // rewritable
+            valid_like(),   // rewritable
+            invalid_expr(), // not rewritable - invalid expression
         ],
         is_nullable: true,
     }))
@@ -577,12 +580,12 @@ test_rewrite_to_match_language!(
     )))
 );
 
-// The inner comparison is not rewritable, so the whole NOT stays in expr language.
+// The inner expression is not rewritable, so the whole NOT stays in expr language.
 test_rewrite_to_match_language_no_op!(
-    cannot_rewrite_not_over_comparison,
+    cannot_rewrite_not_over_invalid_expr,
     filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
         ScalarFunction::Not,
-        vec![comp_expr()],
+        vec![invalid_expr()],
     )))
 );
 
@@ -639,4 +642,289 @@ test_rewrite_to_match_language_no_op!(
         ScalarFunction::Not,
         vec![valid_is(), valid_like()],
     )))
+);
+
+// -------------------------------------------------------------------------
+// Binary comparison operators
+// -------------------------------------------------------------------------
+
+// A binary comparison `<field> <op> <literal>`.
+fn comparison(function: ScalarFunction, field_nullable: bool) -> Expression {
+    Expression::ScalarFunction(ScalarFunctionApplication::new(
+        function,
+        vec![
+            *mir_field_access("foo", "int", field_nullable),
+            Expression::Literal(LiteralValue::Integer(10)),
+        ],
+    ))
+}
+
+// A bare native comparison `{foo.int: {<op>: 10}}`.
+fn match_comparison(function: MatchLanguageComparisonOp) -> MatchQuery {
+    MatchQuery::Comparison(MatchLanguageComparison {
+        function,
+        input: Some(mir_field_path("foo", vec!["int"])),
+        arg: LiteralValue::Integer(10),
+        cache: SchemaCache::new(),
+    })
+}
+
+// Over a nullable field, every comparison is wrapped in the null guard so that
+// null/missing documents are excluded, matching SQL three-valued semantics.
+test_rewrite_to_match_language!(
+    rewrite_gt_over_nullable_field,
+    expected = match_filter_stage(match_comparison(MatchLanguageComparisonOp::Gt)),
+    expected_changed = true,
+    input = filter_stage(comparison(ScalarFunction::Gt, true))
+);
+
+test_rewrite_to_match_language!(
+    rewrite_gte_over_nullable_field,
+    expected = match_filter_stage(match_comparison(MatchLanguageComparisonOp::Gte)),
+    expected_changed = true,
+    input = filter_stage(comparison(ScalarFunction::Gte, true))
+);
+
+test_rewrite_to_match_language!(
+    rewrite_eq_over_nullable_field,
+    expected = match_filter_stage(match_comparison(MatchLanguageComparisonOp::Eq)),
+    expected_changed = true,
+    input = filter_stage(comparison(ScalarFunction::Eq, true))
+);
+
+test_rewrite_to_match_language!(
+    rewrite_lt_over_nullable_field,
+    expected = match_filter_stage(match_comparison(MatchLanguageComparisonOp::Lt)),
+    expected_changed = true,
+    input = filter_stage(comparison(ScalarFunction::Lt, true))
+);
+
+test_rewrite_to_match_language!(
+    rewrite_lte_over_nullable_field,
+    expected = match_filter_stage(match_comparison(MatchLanguageComparisonOp::Lte)),
+    expected_changed = true,
+    input = filter_stage(comparison(ScalarFunction::Lte, true))
+);
+
+test_rewrite_to_match_language!(
+    rewrite_neq_over_nullable_field,
+    expected = match_filter_stage(match_comparison(MatchLanguageComparisonOp::Ne)),
+    expected_changed = true,
+    input = filter_stage(comparison(ScalarFunction::Neq, true))
+);
+
+// Over a non-nullable field, schema guarantees the value can never be
+// null/missing, so no guard is emitted.
+test_rewrite_to_match_language!(
+    rewrite_gt_over_non_nullable_field_is_unguarded,
+    expected = match_filter_stage(match_comparison(MatchLanguageComparisonOp::Gt)),
+    expected_changed = true,
+    input = filter_stage(comparison(ScalarFunction::Gt, false))
+);
+
+test_rewrite_to_match_language!(
+    rewrite_lt_over_non_nullable_field_is_unguarded,
+    expected = match_filter_stage(match_comparison(MatchLanguageComparisonOp::Lt)),
+    expected_changed = true,
+    input = filter_stage(comparison(ScalarFunction::Lt, false))
+);
+
+// Literal on the left commutes the operator so the field ends up on the input
+// side: `10 < foo.int` becomes `foo.int > 10` (guarded because the field is nullable).
+test_rewrite_to_match_language!(
+    rewrite_comparison_commutes_literal_on_left,
+    expected = match_filter_stage(match_comparison(MatchLanguageComparisonOp::Gt)),
+    expected_changed = true,
+    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Lt,
+        vec![
+            Expression::Literal(LiteralValue::Integer(10)),
+            *mir_field_access("foo", "int", true),
+        ],
+    )))
+);
+
+// Conjunction of two comparisons (`x > 10 AND y > 20`), each guarded per-branch.
+test_rewrite_to_match_language!(
+    rewrite_conjunction_of_comparisons,
+    expected = match_filter_stage(MatchQuery::Logical(MatchLanguageLogical {
+        op: MatchLanguageLogicalOp::And,
+        args: vec![
+            match_comparison(MatchLanguageComparisonOp::Gt),
+            match_comparison(MatchLanguageComparisonOp::Lt),
+        ],
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::And,
+        vec![
+            comparison(ScalarFunction::Gt, true),
+            comparison(ScalarFunction::Lt, true),
+        ],
+    )))
+);
+
+// Disjunction of two comparisons (`x > 10 OR y < 10`).
+test_rewrite_to_match_language!(
+    rewrite_disjunction_of_comparisons,
+    expected = match_filter_stage(MatchQuery::Logical(MatchLanguageLogical {
+        op: MatchLanguageLogicalOp::Or,
+        args: vec![
+            match_comparison(MatchLanguageComparisonOp::Gt),
+            match_comparison(MatchLanguageComparisonOp::Lt),
+        ],
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Or,
+        vec![
+            comparison(ScalarFunction::Gt, true),
+            comparison(ScalarFunction::Lt, true),
+        ],
+    )))
+);
+
+// NOT over a comparison now rewrites (comparisons are rewritable leaves).
+test_rewrite_to_match_language!(
+    rewrite_not_over_comparison,
+    expected = match_filter_stage(MatchQuery::Logical(MatchLanguageLogical {
+        op: MatchLanguageLogicalOp::Not,
+        args: vec![match_comparison(MatchLanguageComparisonOp::Gte)],
+        cache: SchemaCache::new(),
+    })),
+    expected_changed = true,
+    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Not,
+        vec![comparison(ScalarFunction::Gte, true)],
+    )))
+);
+
+// A comparison whose non-literal side is a computed expression (not a plain
+// field access) cannot map to native match language and stays in $expr.
+test_rewrite_to_match_language_no_op!(
+    cannot_rewrite_comparison_with_computed_side,
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Gt,
+        vec![
+            Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::Add,
+                vec![
+                    *mir_field_access("foo", "int", true),
+                    Expression::Literal(LiteralValue::Integer(1)),
+                ],
+            )),
+            Expression::Literal(LiteralValue::Integer(10)),
+        ],
+    )))
+);
+
+// A comparison between two field accesses cannot use native match language.
+test_rewrite_to_match_language_no_op!(
+    cannot_rewrite_comparison_between_two_fields,
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Gt,
+        vec![
+            *mir_field_access("foo", "int", true),
+            *mir_field_access("foo", "str", true),
+        ],
+    )))
+);
+
+// `Between` is not one of the six rewritable comparison operators.
+test_rewrite_to_match_language_no_op!(
+    cannot_rewrite_between,
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Between,
+        vec![
+            *mir_field_access("foo", "int", true),
+            Expression::Literal(LiteralValue::Integer(1)),
+            Expression::Literal(LiteralValue::Integer(10)),
+        ],
+    )))
+);
+
+// -------------------------------------------------------------------------
+// Delimited identifiers containing `$` and `.`
+// -------------------------------------------------------------------------
+
+// A delimited identifier like `$a.b` is a single field whose name literally
+// contains a `$` and a `.`. The FieldAccess -> FieldPath conversion must
+// preserve it as one path component (not split on `.`, not drop the `$a`).
+#[test]
+fn field_access_with_dollar_and_dot_converts_to_single_component_path() {
+    let fa = match *mir_field_access("foo", "$a.b", true) {
+        Expression::FieldAccess(fa) => fa,
+        _ => unreachable!(),
+    };
+    let fp: FieldPath = fa.try_into().unwrap();
+    assert_eq!(fp, mir_field_path("foo", vec!["$a.b"]));
+    // Assert on `fields` directly: FieldPath's PartialEq ignores is_nullable
+    // and we want the component boundary to be explicit here.
+    assert_eq!(fp.fields, vec!["$a.b".to_string()]);
+}
+
+// A field whose name starts with `$` and contains `.` (the delimited SQL
+// identifier `$a.b`) cannot be addressed by native match language, so the
+// comparison stays in $expr where the $getField translation handles it.
+test_rewrite_to_match_language_no_op!(
+    cannot_rewrite_comparison_over_dollar_dot_field,
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Eq,
+        vec![
+            *mir_field_access("foo", "$a.b", true),
+            Expression::Literal(LiteralValue::Integer(4)),
+        ],
+    )))
+);
+
+// A field name containing an interior `.` reads as a nested path in native
+// match language, so it must stay in $expr.
+test_rewrite_to_match_language_no_op!(
+    cannot_rewrite_comparison_over_dotted_field,
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Eq,
+        vec![
+            *mir_field_access("foo", "a.b", true),
+            Expression::Literal(LiteralValue::Integer(4)),
+        ],
+    )))
+);
+
+// An empty field name cannot be addressed natively, so it stays in $expr.
+test_rewrite_to_match_language_no_op!(
+    cannot_rewrite_comparison_over_empty_field,
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Eq,
+        vec![
+            *mir_field_access("foo", "", true),
+            Expression::Literal(LiteralValue::Integer(4)),
+        ],
+    )))
+);
+
+// The guard also applies to IS: a `$`/`.` field leaves IS in $expr.
+test_rewrite_to_match_language_no_op!(
+    cannot_rewrite_is_over_dollar_dot_field,
+    filter_stage(Expression::Is(IsExpr {
+        expr: mir_field_access("foo", "$a.b", true),
+        target_type: TypeOrMissing::Type(Type::String),
+    }))
+);
+
+// The guard applies to a non-leaf component too: only the nested `$c.d` part
+// is un-addressable, but that is enough to keep the whole IN in $expr.
+test_rewrite_to_match_language_no_op!(
+    cannot_rewrite_in_when_nested_component_is_not_addressable,
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
+        function: ScalarFunction::In,
+        args: vec![
+            *mir_field_access_multi_part("foo", vec!["a", "$c.d"], true),
+            Expression::Array(ArrayExpr {
+                array: vec![Expression::Literal(LiteralValue::Integer(1))],
+            }),
+        ],
+        is_nullable: false,
+    }))
 );

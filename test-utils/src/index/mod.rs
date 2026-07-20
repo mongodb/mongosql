@@ -259,13 +259,20 @@ impl InputStage {
 }
 
 /// as_index_utilization converts an ExecutionStage.stage type into an
-/// IndexUtilization value. Only COLLSCAN and IXSCAN are valid.
+/// IndexUtilization value.
+///
+/// `IXSCAN`, `IDHACK`, and the `EXPRESS_*` family all read through an index, so
+/// they map to `IxScan`. `IDHACK` is the server's fast path for a sole `_id`
+/// equality predicate, and `EXPRESS_IXSCAN` (MongoDB 8.0+) is the equivalent
+/// fast path for other single-field index lookups; both use an index.
 #[allow(clippy::result_large_err)]
 pub fn as_index_utilization(stage_type: String) -> Result<IndexUtilization, Error> {
     match stage_type.as_str() {
         "COLLSCAN" => Ok(IndexUtilization::CollScan),
         "DISTINCT_SCAN" => Ok(IndexUtilization::DistinctScan),
-        "IXSCAN" => Ok(IndexUtilization::IxScan),
+        "IXSCAN" | "IDHACK" | "EXPRESS_IXSCAN" | "EXPRESS_CLUSTERED_IXSCAN" => {
+            Ok(IndexUtilization::IxScan)
+        }
         _ => Err(Error::InvalidRootStage(stage_type)),
     }
 }

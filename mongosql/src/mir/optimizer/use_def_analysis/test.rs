@@ -871,6 +871,10 @@ mod substitute {
     );
 
     test_substitute!(
+        // Sort substitution fails when theta does not define the sort key. This failure is
+        // load-bearing: it is what prevents a Sort from reordering past a Filter/MatchFilter
+        // (an empty-theta swap) which would otherwise loop forever. (A MatchFilter, by
+        // contrast, treats a missing key as a no-op — see `noop_on_missing_key`.)
         sort_fails_missing_key,
         expected = None,
         stage = Stage::Sort(Sort {
@@ -885,6 +889,40 @@ mod substitute {
             Key::named("z",0) => mir::Expression::Document(unchecked_unique_linked_hash_map! {
                 "a".to_string() => *mir_field_access("y", "a", true),
                 "b".to_string() => *mir_field_access("y", "b", true),
+            }.into()),
+        },
+    );
+
+    test_substitute!(
+        // A MatchFilter whose key is absent from theta is a no-op success (the condition is
+        // returned unchanged), unlike Sort which fails. This is what lets a MatchFilter bubble
+        // past an empty-theta stage (Unwind, Derived) like an `$expr` Filter.
+        match_filter_missing_key_is_noop,
+        expected = Some(Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(
+            MatchFilter {
+                source: mir_collection("foo", "bar"),
+                condition: MatchQuery::Comparison(MatchLanguageComparison {
+                    function: MatchLanguageComparisonOp::Eq,
+                    input: Some(mir_field_path("x", vec!["a"])),
+                    arg: mir::LiteralValue::Integer(1),
+                    cache: SchemaCache::new(),
+                }),
+                cache: SchemaCache::new(),
+            }
+        )))),
+        stage = Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
+            source: mir_collection("foo", "bar"),
+            condition: MatchQuery::Comparison(MatchLanguageComparison {
+                function: MatchLanguageComparisonOp::Eq,
+                input: Some(mir_field_path("x", vec!["a"])),
+                arg: mir::LiteralValue::Integer(1),
+                cache: SchemaCache::new(),
+            }),
+            cache: SchemaCache::new(),
+        }))),
+        theta = map! {
+            Key::named("z",0) => mir::Expression::Document(unchecked_unique_linked_hash_map! {
+                "a".to_string() => *mir_field_access("y", "a", true),
             }.into()),
         },
     );
