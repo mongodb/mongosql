@@ -134,7 +134,7 @@ mod map {
 
     // MAP(['a'], [this, string_field + 1]) => error
     test_schema!(
-        do_not_incorrectly_blame_variable_usage_when_variable_is_valid_but_function_is_still_valid,
+        do_not_incorrectly_blame_variable_usage_when_variable_is_valid_but_function_is_still_invalid,
         expected_error_code = 1020,
         expected = Err(mir_error::HigherOrderFunctionWrapper {
             name: "Map",
