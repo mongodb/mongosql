@@ -265,7 +265,7 @@ impl UserError for Error {
                     .user_message()
                     .unwrap_or_else(|| error.technical_message());
                 Some(format!(
-                    "Invalid {cause_desc} for `{name}`: {cause_message}. Sub-Error Code {}: {}",
+                    "Invalid {cause_desc} for `{name}`: {cause_message} Sub-Error Code {}: {}",
                     error.code(),
                     sub_error_message
                 ))
