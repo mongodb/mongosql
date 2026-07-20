@@ -141,6 +141,7 @@ test_algebrize_expr_and_schema_check!(
         name: "Sum",
         required: NUMERIC_OR_NULLISH.clone().into(),
         found: Schema::Atomic(Atomic::String).into(),
+        var_cause: None,
     })),
     expected_error_code = 1002,
     input = ast::FunctionExpr {
@@ -196,6 +197,7 @@ test_algebrize_expr_and_schema_check!(
         name: "Avg",
         required: NUMERIC_OR_NULLISH.clone().into(),
         found: Schema::Atomic(Atomic::String).into(),
+        var_cause: None,
     })),
     expected_error_code = 1002,
     input = ast::FunctionExpr {
@@ -250,6 +252,7 @@ test_algebrize_expr_and_schema_check!(
         name: "StddevPop",
         required: NUMERIC_OR_NULLISH.clone().into(),
         found: Schema::Atomic(Atomic::String).into(),
+        var_cause: None,
     })),
     expected_error_code = 1002,
     input = ast::FunctionExpr {
@@ -304,6 +307,7 @@ test_algebrize_expr_and_schema_check!(
         name: "StddevSamp",
         required: NUMERIC_OR_NULLISH.clone().into(),
         found: Schema::Atomic(Atomic::String).into(),
+        var_cause: None,
     })),
     expected_error_code = 1002,
     input = ast::FunctionExpr {
@@ -502,6 +506,7 @@ test_algebrize_expr_and_schema_check!(
         name: "MergeDocuments",
         required: ANY_DOCUMENT_OR_NULLISH.clone().into(),
         found: Schema::Atomic(Atomic::String).into(),
+        var_cause: None,
     })),
     expected_error_code = 1002,
     input = ast::FunctionExpr {

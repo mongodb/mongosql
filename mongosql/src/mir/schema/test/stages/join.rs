@@ -86,11 +86,12 @@ mod equijoin {
     test_schema!(
         equijoin_fields_not_comparable,
         expected_error_code = 1005,
-        expected = Err(schema::Error::InvalidComparison(
-            "equijoin comparison",
-            Schema::AnyOf(set![Schema::Atomic(Atomic::Integer),]).into(),
-            Schema::Atomic(Atomic::String).into(),
-        )),
+        expected = Err(schema::Error::InvalidComparison {
+            name: "equijoin comparison",
+            left: Schema::AnyOf(set![Schema::Atomic(Atomic::Integer),]).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
+        }),
         input = Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: Box::new(Stage::Array(ArraySource {
@@ -380,6 +381,7 @@ mod standard {
             name: "join condition",
             required: BOOLEAN_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
         }),
         input = Stage::Join(Join {
             join_type: JoinType::Left,

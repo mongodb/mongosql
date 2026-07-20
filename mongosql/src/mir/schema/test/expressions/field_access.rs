@@ -6,12 +6,13 @@ use crate::{
 };
 
 test_schema!(
-    field_access_accessee_cannot_be_document,
+    accessee_must_be_document,
     expected_error_code = 1002,
     expected = Err(mir_error::SchemaChecking {
         name: "FieldAccess",
         required: crate::schema::ANY_DOCUMENT.clone().into(),
         found: Schema::Atomic(Atomic::Long).into(),
+        var_cause: None,
     }),
     input = Expression::FieldAccess(FieldAccess::new(
         Box::new(Expression::Literal(LiteralValue::Long(1))),
@@ -20,7 +21,28 @@ test_schema!(
 );
 
 test_schema!(
-    field_access_field_must_not_exist_not_in_document,
+    accessee_must_be_document_with_var_cause,
+    expected_error_code = 1002,
+    expected = Err(mir_error::SchemaChecking {
+        name: "FieldAccess",
+        required: crate::schema::ANY_DOCUMENT.clone().into(),
+        found: Schema::Atomic(Atomic::Long).into(),
+        var_cause: Some("this".to_string()),
+    }),
+    input = Expression::FieldAccess(FieldAccess::new(
+        Box::new(Expression::Variable(Variable {
+            name: "this".to_string(),
+            is_nullable: false,
+        })),
+        "foo".to_string(),
+    )),
+    variables = map! {
+        "this" => Schema::Atomic(Atomic::Long)
+    },
+);
+
+test_schema!(
+    field_must_not_exist_not_in_document,
     expected_error_code = 1007,
     expected = Err(mir_error::AccessMissingField(
         "foo".to_string(),
@@ -41,7 +63,7 @@ test_schema!(
 );
 
 test_schema!(
-    field_access_field_may_exist,
+    field_may_exist,
     expected = Ok(Schema::Any),
     input = Expression::FieldAccess(FieldAccess::new(
         Box::new(Expression::Reference(("bar", 0u16).into())),
@@ -58,7 +80,7 @@ test_schema!(
 );
 
 test_schema!(
-    field_access_field_must_exist,
+    field_must_exist,
     expected = Ok(Schema::Atomic(Atomic::String)),
     input = Expression::FieldAccess(FieldAccess::new(
         Box::new(Expression::Reference(("bar", 0u16).into())),
@@ -75,7 +97,7 @@ test_schema!(
 );
 
 test_schema!(
-    field_access_field_must_any_of,
+    field_must_any_of,
     expected = Ok(Schema::AnyOf(
         set! {Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Integer)}
     )),
@@ -105,7 +127,7 @@ test_schema!(
 );
 
 test_schema!(
-    field_access_field_must_any_of_with_missing,
+    field_must_any_of_with_missing,
     expected = Ok(Schema::AnyOf(
         set! {Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Integer), Schema::Missing}
     )),

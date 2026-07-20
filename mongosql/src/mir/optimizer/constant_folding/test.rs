@@ -5,6 +5,7 @@ mod constant_folding {
             fn $func_name() {
                 use crate::{
                     catalog::Catalog,
+                    map,
                     mir::{
                         optimizer::constant_folding::ConstantFoldingOptimizer,
                         schema::{SchemaCheckingMode, SchemaInferenceState},
@@ -20,6 +21,7 @@ mod constant_folding {
                         0,
                         SchemaEnvironment::default(),
                         &Catalog::default(),
+                        map! {},
                         SchemaCheckingMode::Relaxed,
                     ),
                 );
@@ -36,7 +38,6 @@ mod constant_folding {
     }
 
     use crate::{
-        map,
         mir::{binding_tuple::DatasourceName::Bottom, definitions::*, schema::SchemaCache},
         unchecked_unique_linked_hash_map,
     };
@@ -221,6 +222,7 @@ mod constant_folding {
     fn null_or_null_is_null() {
         use crate::{
             catalog::Catalog,
+            map,
             mir::{
                 optimizer::constant_folding::ConstantFoldingOptimizer,
                 schema::{SchemaCheckingMode, SchemaInferenceState},
@@ -249,6 +251,7 @@ mod constant_folding {
                 0,
                 SchemaEnvironment::default(),
                 &Catalog::default(),
+                map! {},
                 SchemaCheckingMode::Relaxed,
             ),
         );

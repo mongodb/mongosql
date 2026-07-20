@@ -71,6 +71,7 @@ test_algebrize_expr_and_schema_check!(
         name: "BTrim",
         required: STRING_OR_NULLISH.clone().into(),
         found: Schema::Atomic(Atomic::Integer).into(),
+        var_cause: None,
     })),
     expected_error_code = 1002,
     input = ast::Expression::Trim(ast::TrimExpr {
@@ -88,6 +89,7 @@ test_algebrize_expr_and_schema_check!(
         name: "BTrim",
         required: STRING_OR_NULLISH.clone().into(),
         found: Schema::Atomic(Atomic::Integer).into(),
+        var_cause: None,
     })),
     expected_error_code = 1002,
     input = ast::Expression::Trim(ast::TrimExpr {

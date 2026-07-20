@@ -113,6 +113,7 @@ mod array {
                 Schema::Atomic(Atomic::Double),
             ])
             .into(),
+            var_cause: None,
         }),
         input = Stage::Array(ArraySource {
             array: vec![

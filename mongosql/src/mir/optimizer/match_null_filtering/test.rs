@@ -24,6 +24,7 @@ macro_rules! test_match_null_filtering {
                 0u16,
                 crate::schema::SchemaEnvironment::default(),
                 &catalog,
+                map! {},
                 SchemaCheckingMode::Relaxed,
             );
 

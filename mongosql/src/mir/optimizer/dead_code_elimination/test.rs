@@ -40,6 +40,7 @@ macro_rules! test_dead_code_elimination {
                 0u16,
                 SchemaEnvironment::default(),
                 &*CATALOG,
+                map! {},
                 SchemaCheckingMode::Relaxed,
             );
 

@@ -69,7 +69,7 @@ lazy_static! {
 
 #[macro_export]
 macro_rules! test_schema {
-    ($func_name:ident, $(expected_error_code = $expected_error_code:literal,)? $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? input = $input:expr, $(schema_env = $schema_env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
+    ($func_name:ident, $(expected_error_code = $expected_error_code:literal,)? $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? input = $input:expr, $(schema_env = $schema_env:expr,)? $(catalog = $catalog:expr,)? $(variables = $variables:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
         #[test]
         fn $func_name() {
             #[allow(unused_imports, clippy::redundant_pattern_matching)]
@@ -89,7 +89,11 @@ macro_rules! test_schema {
             let mut schema_checking_mode = SchemaCheckingMode::Strict;
             $(schema_checking_mode = $schema_checking_mode;)?
 
-            let state = SchemaInferenceState::new(0u16, schema_env, &catalog, schema_checking_mode);
+            #[allow(unused_mut, unused_assignments)]
+            let mut variables = map! {};
+            $(variables = $variables;)?
+
+            let state = SchemaInferenceState::new(0u16, schema_env, &catalog, variables, schema_checking_mode);
             let actual = input.schema(&state);
 
             $(assert!(matches!(actual, $expected_pat));)?

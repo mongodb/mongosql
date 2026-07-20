@@ -18,6 +18,7 @@ mod substring {
             name: "Substring",
             required: STRING_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Substring,
@@ -30,12 +31,38 @@ mod substring {
     );
 
     test_schema!(
+        substring_requires_string_for_first_arg_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Substring",
+            required: STRING_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Substring,
+            vec![
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Literal(LiteralValue::Integer(3))
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::Integer),
+        },
+    );
+
+    test_schema!(
         substring_requires_integer_for_second_arg,
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Substring",
             required: INTEGER_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Substring,
@@ -48,12 +75,38 @@ mod substring {
     );
 
     test_schema!(
+        substring_requires_integer_for_second_arg_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Substring",
+            required: INTEGER_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Substring,
+            vec![
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Literal(LiteralValue::Integer(1))
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
+    );
+
+    test_schema!(
         substring_requires_integer_for_third_arg,
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Substring",
             required: INTEGER_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Substring,
@@ -63,6 +116,31 @@ mod substring {
                 Expression::Literal(LiteralValue::String("def".to_string()))
             ],
         )),
+    );
+
+    test_schema!(
+        substring_requires_integer_for_third_arg_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Substring",
+            required: INTEGER_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Substring,
+            vec![
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 
     test_schema!(
@@ -131,6 +209,7 @@ mod and {
             name: "And",
             required: BOOLEAN_OR_NULLISH.clone().into(),
             found: NUMERIC_OR_NULLISH.clone().into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::And,
@@ -143,12 +222,37 @@ mod and {
     );
 
     test_schema!(
+        first_arg_is_not_bool_is_error_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "And",
+            required: BOOLEAN_OR_NULLISH.clone().into(),
+            found: NUMERIC_OR_NULLISH.clone().into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::And,
+            vec![
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Literal(LiteralValue::Boolean(true)),
+            ],
+        )),
+        variables = map! {
+            "this" => NUMERIC_OR_NULLISH.clone(),
+        },
+    );
+
+    test_schema!(
         second_arg_is_not_bool_is_error,
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "And",
             required: BOOLEAN_OR_NULLISH.clone().into(),
             found: NUMERIC_OR_NULLISH.clone().into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::And,
@@ -158,6 +262,30 @@ mod and {
             ],
         )),
         schema_env = map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
+    );
+
+    test_schema!(
+        second_arg_is_not_bool_is_error_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "And",
+            required: BOOLEAN_OR_NULLISH.clone().into(),
+            found: NUMERIC_OR_NULLISH.clone().into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::And,
+            vec![
+                Expression::Literal(LiteralValue::Boolean(true)),
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+            ],
+        )),
+        variables = map! {
+            "this" => NUMERIC_OR_NULLISH.clone(),
+        },
     );
 
     test_schema!(
@@ -262,6 +390,7 @@ mod or {
             name: "Or",
             required: BOOLEAN_OR_NULLISH.clone().into(),
             found: NUMERIC_OR_NULLISH.clone().into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Or,
@@ -274,12 +403,37 @@ mod or {
     );
 
     test_schema!(
+        first_arg_is_not_bool_is_error_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Or",
+            required: BOOLEAN_OR_NULLISH.clone().into(),
+            found: NUMERIC_OR_NULLISH.clone().into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Or,
+            vec![
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Literal(LiteralValue::Boolean(true))
+            ],
+        )),
+        variables = map! {
+            "this" => NUMERIC_OR_NULLISH.clone(),
+        },
+    );
+
+    test_schema!(
         second_arg_is_not_bool_is_error,
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Or",
             required: BOOLEAN_OR_NULLISH.clone().into(),
             found: NUMERIC_OR_NULLISH.clone().into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Or,
@@ -289,6 +443,30 @@ mod or {
             ],
         )),
         schema_env = map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
+    );
+
+    test_schema!(
+        second_arg_is_not_bool_is_error_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Or",
+            required: BOOLEAN_OR_NULLISH.clone().into(),
+            found: NUMERIC_OR_NULLISH.clone().into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Or,
+            vec![
+                Expression::Literal(LiteralValue::Boolean(true)),
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+            ],
+        )),
+        variables = map! {
+            "this" => NUMERIC_OR_NULLISH.clone(),
+        },
     );
 
     test_schema!(
@@ -393,12 +571,34 @@ mod not {
             name: "Not",
             required: BOOLEAN_OR_NULLISH.clone().into(),
             found: NUMERIC_OR_NULLISH.clone().into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Not,
             vec![Expression::Reference(("bar", 0u16).into()),],
         )),
         schema_env = map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
+    );
+
+    test_schema!(
+        not_arg_is_not_bool_is_error_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Not",
+            required: BOOLEAN_OR_NULLISH.clone().into(),
+            found: NUMERIC_OR_NULLISH.clone().into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Not,
+            vec![Expression::Variable(Variable {
+                name: "this".to_string(),
+                is_nullable: false,
+            })],
+        )),
+        variables = map! {
+            "this" => NUMERIC_OR_NULLISH.clone(),
+        },
     );
 
     test_schema!(
@@ -1473,6 +1673,7 @@ mod arithmetic {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Add,
@@ -1564,6 +1765,7 @@ mod arithmetic {
                 ])
                 .into(),
                 found: Schema::Atomic(Atomic::String).into(),
+                var_cause: None,
             }),
             input = Expression::ScalarFunction(ScalarFunctionApplication::new(
                 ScalarFunction::Sub,
@@ -1589,6 +1791,7 @@ mod arithmetic {
                 ])
                 .into(),
                 found: Schema::Atomic(Atomic::Boolean).into(),
+                var_cause: None,
             }),
             input = Expression::ScalarFunction(ScalarFunctionApplication::new(
                 ScalarFunction::Div,
@@ -1614,6 +1817,7 @@ mod arithmetic {
                 ])
                 .into(),
                 found: Schema::Atomic(Atomic::Boolean).into(),
+                var_cause: None,
             }),
             input = Expression::ScalarFunction(ScalarFunctionApplication::new(
                 ScalarFunction::Add,
@@ -1625,6 +1829,71 @@ mod arithmetic {
                     Expression::Literal(LiteralValue::Integer(4)),
                 ],
             )),
+        );
+
+        test_schema!(
+            fixed_arg_arithmetic_all_args_must_be_numbers_with_var_caus,
+            expected_error_code = 1002,
+            expected = Err(mir_error::SchemaChecking {
+                name: "Sub",
+                required: Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal),
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Missing
+                ])
+                .into(),
+                found: Schema::Atomic(Atomic::String).into(),
+                var_cause: Some("this".to_string()),
+            }),
+            input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::Sub,
+                vec![
+                    Expression::Literal(LiteralValue::Integer(1)),
+                    Expression::Variable(Variable {
+                        name: "this".to_string(),
+                        is_nullable: false,
+                    }),
+                ],
+            )),
+            variables = map! {
+                "this" => Schema::Atomic(Atomic::String),
+            },
+        );
+
+        test_schema!(
+            variadic_arg_arithmetic_all_args_must_be_numbers_with_var_caus,
+            expected_error_code = 1002,
+            expected = Err(mir_error::SchemaChecking {
+                name: "Add",
+                required: Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Long),
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Decimal),
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Missing
+                ])
+                .into(),
+                found: Schema::Atomic(Atomic::String).into(),
+                var_cause: Some("this".to_string()),
+            }),
+            input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::Add,
+                vec![
+                    Expression::Literal(LiteralValue::Integer(1)),
+                    Expression::Variable(Variable {
+                        name: "this".to_string(),
+                        is_nullable: false,
+                    }),
+                    Expression::Literal(LiteralValue::Integer(3)),
+                ],
+            )),
+            variables = map! {
+                "this" => Schema::Atomic(Atomic::String),
+            },
         );
     }
 }
@@ -1664,11 +1933,41 @@ mod abs {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Abs,
             vec![Expression::Literal(LiteralValue::String("abc".to_string()))],
         )),
+    );
+
+    test_schema!(
+        abs_arg_must_be_number_or_nullish_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Abs",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Abs,
+            vec![Expression::Variable(Variable {
+                name: "this".to_string(),
+                is_nullable: false,
+            })],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 }
 
@@ -1707,11 +2006,41 @@ mod ceil {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Ceil,
             vec![Expression::Literal(LiteralValue::String("abc".to_string()))],
         )),
+    );
+
+    test_schema!(
+        ceil_arg_must_be_number_or_nullish_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Ceil",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Ceil,
+            vec![Expression::Variable(Variable {
+                name: "this".to_string(),
+                is_nullable: false,
+            })],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 }
 
@@ -1750,11 +2079,41 @@ mod degrees {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Degrees,
             vec![Expression::Literal(LiteralValue::String("abc".to_string()))],
         )),
+    );
+
+    test_schema!(
+        degrees_arg_must_be_number_or_nullish_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Degrees",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Degrees,
+            vec![Expression::Variable(Variable {
+                name: "this".to_string(),
+                is_nullable: false,
+            })],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 
     test_schema!(
@@ -1811,11 +2170,41 @@ mod floor {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Floor,
             vec![Expression::Literal(LiteralValue::String("abc".to_string()))],
         )),
+    );
+
+    test_schema!(
+        floor_arg_must_be_number_or_nullish_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Floor",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Floor,
+            vec![Expression::Variable(Variable {
+                name: "this".to_string(),
+                is_nullable: false,
+            })],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 }
 
@@ -1855,6 +2244,7 @@ mod log {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Log,
@@ -1863,6 +2253,38 @@ mod log {
                 Expression::Literal(LiteralValue::Integer(2)),
             ],
         )),
+    );
+
+    test_schema!(
+        log_first_arg_must_be_number_or_nullish_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Log",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Log,
+            vec![
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Literal(LiteralValue::Integer(2)),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 
     test_schema!(
@@ -1880,6 +2302,7 @@ mod log {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Log,
@@ -1888,6 +2311,38 @@ mod log {
                 Expression::Literal(LiteralValue::String("abc".to_string())),
             ],
         )),
+    );
+
+    test_schema!(
+        log_second_arg_must_be_number_or_nullish_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Log",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Log,
+            vec![
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 }
 
@@ -1927,6 +2382,7 @@ mod mod_func {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Mod,
@@ -1935,6 +2391,38 @@ mod mod_func {
                 Expression::Literal(LiteralValue::Integer(2)),
             ],
         )),
+    );
+
+    test_schema!(
+        mod_first_arg_must_be_number_or_nullish_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Mod",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Mod,
+            vec![
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Literal(LiteralValue::Integer(2)),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 
     test_schema!(
@@ -1952,6 +2440,7 @@ mod mod_func {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Mod,
@@ -1960,6 +2449,38 @@ mod mod_func {
                 Expression::Literal(LiteralValue::String("abc".to_string())),
             ],
         )),
+    );
+
+    test_schema!(
+        mod_second_arg_must_be_number_or_nullish_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Mod",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Mod,
+            vec![
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 }
 
@@ -1999,6 +2520,7 @@ mod pow {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Pow,
@@ -2007,6 +2529,38 @@ mod pow {
                 Expression::Literal(LiteralValue::Integer(2)),
             ],
         )),
+    );
+
+    test_schema!(
+        pow_first_arg_must_be_number_or_nullish_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Pow",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Pow,
+            vec![
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Literal(LiteralValue::Integer(2)),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 
     test_schema!(
@@ -2024,6 +2578,7 @@ mod pow {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Pow,
@@ -2032,6 +2587,38 @@ mod pow {
                 Expression::Literal(LiteralValue::String("abc".to_string())),
             ],
         )),
+    );
+
+    test_schema!(
+        pow_second_arg_must_be_number_or_nullish_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Pow",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Pow,
+            vec![
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 }
 
@@ -2071,6 +2658,7 @@ mod round {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Round,
@@ -2079,6 +2667,38 @@ mod round {
                 Expression::Literal(LiteralValue::Integer(2)),
             ],
         )),
+    );
+
+    test_schema!(
+        round_first_arg_must_be_number_or_nullish_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Round",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Round,
+            vec![
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Literal(LiteralValue::Integer(2)),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 
     test_schema!(
@@ -2094,6 +2714,7 @@ mod round {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Round,
@@ -2102,6 +2723,36 @@ mod round {
                 Expression::Literal(LiteralValue::String("abc".to_string())),
             ],
         )),
+    );
+
+    test_schema!(
+        round_second_arg_must_be_integral_or_nullish_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Round",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Round,
+            vec![
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 }
 
@@ -2140,11 +2791,41 @@ mod cos {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Cos,
             vec![Expression::Literal(LiteralValue::String("abc".to_string()))],
         )),
+    );
+
+    test_schema!(
+        cos_arg_must_be_number_or_nullish_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Cos",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Cos,
+            vec![Expression::Variable(Variable {
+                name: "this".to_string(),
+                is_nullable: false,
+            })],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 
     test_schema!(
@@ -2192,11 +2873,41 @@ mod sin {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Sin,
             vec![Expression::Literal(LiteralValue::String("abc".to_string()))],
         )),
+    );
+
+    test_schema!(
+        sin_arg_must_be_number_or_nullish_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Sin",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Sin,
+            vec![Expression::Variable(Variable {
+                name: "this".to_string(),
+                is_nullable: false,
+            })],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 
     test_schema!(
@@ -2244,11 +2955,41 @@ mod tan {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Tan,
             vec![Expression::Literal(LiteralValue::String("abc".to_string()))],
         )),
+    );
+
+    test_schema!(
+        tan_arg_must_be_number_or_nullish_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Tan",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Tan,
+            vec![Expression::Variable(Variable {
+                name: "this".to_string(),
+                is_nullable: false,
+            })],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 
     test_schema!(
@@ -2296,11 +3037,41 @@ mod radians {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Radians,
             vec![Expression::Literal(LiteralValue::String("abc".to_string()))],
         )),
+    );
+
+    test_schema!(
+        radians_arg_must_be_number_or_nullish_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Radians",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Radians,
+            vec![Expression::Variable(Variable {
+                name: "this".to_string(),
+                is_nullable: false,
+            })],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 }
 
@@ -2339,11 +3110,41 @@ mod sqrt {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Sqrt,
             vec![Expression::Literal(LiteralValue::String("abc".to_string()))],
         )),
+    );
+
+    test_schema!(
+        sqrt_arg_must_be_number_or_nullish_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Sqrt",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Sqrt,
+            vec![Expression::Variable(Variable {
+                name: "this".to_string(),
+                is_nullable: false,
+            })],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 }
 
@@ -2367,11 +3168,12 @@ mod comparison {
     test_schema!(
         comp_op_requires_a_valid_comparison,
         expected_error_code = 1005,
-        expected = Err(mir_error::InvalidComparison(
-            "Lte",
-            Schema::Atomic(Atomic::Integer).into(),
-            Schema::Atomic(Atomic::String).into(),
-        )),
+        expected = Err(mir_error::InvalidComparison {
+            name: "Lte",
+            left: Schema::Atomic(Atomic::Integer).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
+        }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Lte,
             vec![
@@ -2379,6 +3181,82 @@ mod comparison {
                 Expression::Literal(LiteralValue::String("abc".to_string()))
             ],
         )),
+    );
+
+    test_schema!(
+        comp_op_requires_a_valid_comparison_with_var_cause_left,
+        expected_error_code = 1005,
+        expected = Err(mir_error::InvalidComparison {
+            name: "Lte",
+            left: Schema::Atomic(Atomic::Integer).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Lte,
+            vec![
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::Integer),
+        },
+    );
+
+    test_schema!(
+        comp_op_requires_a_valid_comparison_with_var_cause_right,
+        expected_error_code = 1005,
+        expected = Err(mir_error::InvalidComparison {
+            name: "Lte",
+            left: Schema::Atomic(Atomic::String).into(),
+            right: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Lte,
+            vec![
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::Integer),
+        },
+    );
+
+    test_schema!(
+        comp_op_requires_a_valid_comparison_with_var_cause_both_sides_defaults_to_left,
+        expected_error_code = 1005,
+        expected = Err(mir_error::InvalidComparison {
+            name: "Lte",
+            left: Schema::Atomic(Atomic::String).into(),
+            right: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: Some("value".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Lte,
+            vec![
+                Expression::Variable(Variable {
+                    name: "value".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+            ],
+        )),
+        variables = map! {
+            "value" => Schema::Atomic(Atomic::String),
+            "this" => Schema::Atomic(Atomic::Integer),
+        },
     );
 
     test_schema!(
@@ -2442,11 +3320,12 @@ mod between {
     test_schema!(
         between_requires_a_valid_comparison_between_first_and_second_args,
         expected_error_code = 1005,
-        expected = Err(mir_error::InvalidComparison(
-            "Between",
-            Schema::Atomic(Atomic::Integer).into(),
-            Schema::Atomic(Atomic::String).into(),
-        )),
+        expected = Err(mir_error::InvalidComparison {
+            name: "Between",
+            left: Schema::Atomic(Atomic::Integer).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
+        }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Between,
             vec![
@@ -2458,13 +3337,64 @@ mod between {
     );
 
     test_schema!(
+        between_requires_a_valid_comparison_between_first_and_second_args_with_var_cause_left,
+        expected_error_code = 1005,
+        expected = Err(mir_error::InvalidComparison {
+            name: "Between",
+            left: Schema::Atomic(Atomic::Integer).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Between,
+            vec![
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Literal(LiteralValue::Integer(2)),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::Integer),
+        },
+    );
+
+    test_schema!(
+        between_requires_a_valid_comparison_between_first_and_second_args_with_var_cause_right,
+        expected_error_code = 1005,
+        expected = Err(mir_error::InvalidComparison {
+            name: "Between",
+            left: Schema::Atomic(Atomic::Integer).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Between,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Literal(LiteralValue::Integer(2)),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
+    );
+
+    test_schema!(
         between_requires_a_valid_comparison_between_first_and_third_args,
         expected_error_code = 1005,
-        expected = Err(mir_error::InvalidComparison(
-            "Between",
-            Schema::Atomic(Atomic::Integer).into(),
-            Schema::Atomic(Atomic::String).into(),
-        )),
+        expected = Err(mir_error::InvalidComparison {
+            name: "Between",
+            left: Schema::Atomic(Atomic::Integer).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
+        }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Between,
             vec![
@@ -2473,6 +3403,56 @@ mod between {
                 Expression::Literal(LiteralValue::String("abc".to_string())),
             ],
         )),
+    );
+
+    test_schema!(
+        between_requires_a_valid_comparison_between_first_and_third_args_with_var_cause_left,
+        expected_error_code = 1005,
+        expected = Err(mir_error::InvalidComparison {
+            name: "Between",
+            left: Schema::Atomic(Atomic::Integer).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Between,
+            vec![
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::Integer),
+        },
+    );
+
+    test_schema!(
+        between_requires_a_valid_comparison_between_first_and_third_args_with_var_cause_right,
+        expected_error_code = 1005,
+        expected = Err(mir_error::InvalidComparison {
+            name: "Between",
+            left: Schema::Atomic(Atomic::Integer).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Between,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 
     test_schema!(
@@ -2544,11 +3524,33 @@ mod merge_objects {
             name: "MergeObjects",
             required: ANY_DOCUMENT_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::MergeObjects,
             vec![Expression::Literal(LiteralValue::String("abc".to_string())),],
         )),
+    );
+
+    test_schema!(
+        merge_objects_args_must_be_documents_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "MergeObjects",
+            required: ANY_DOCUMENT_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::MergeObjects,
+            vec![Expression::Variable(Variable {
+                name: "this".to_string(),
+                is_nullable: false,
+            })],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 
     test_schema!(
@@ -2797,6 +3799,7 @@ mod computed_field_access {
             name: "ComputedFieldAccess",
             required: ANY_DOCUMENT.clone().into(),
             found: Schema::Atomic(Atomic::Long).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::ComputedFieldAccess,
@@ -2814,6 +3817,7 @@ mod computed_field_access {
             name: "ComputedFieldAccess",
             required: ANY_DOCUMENT.clone().into(),
             found: Schema::AnyOf(set![ANY_DOCUMENT.clone(), Schema::Missing]).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::ComputedFieldAccess,
@@ -2826,12 +3830,37 @@ mod computed_field_access {
     );
 
     test_schema!(
+        computed_field_access_first_arg_invalid_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "ComputedFieldAccess",
+            required: ANY_DOCUMENT.clone().into(),
+            found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::ComputedFieldAccess,
+            vec![
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Literal(LiteralValue::String("field".to_string())),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::Integer),
+        },
+    );
+
+    test_schema!(
         computed_field_access_second_arg_must_not_be_string,
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "ComputedFieldAccess",
             required: Schema::Atomic(Atomic::String).into(),
             found: Schema::Atomic(Atomic::Long).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::ComputedFieldAccess,
@@ -2850,6 +3879,7 @@ mod computed_field_access {
             name: "ComputedFieldAccess",
             required: Schema::Atomic(Atomic::String).into(),
             found: Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing]).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::ComputedFieldAccess,
@@ -2860,6 +3890,31 @@ mod computed_field_access {
         )),
         schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone(),
         ("baz", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
+    );
+
+    test_schema!(
+        computed_field_access_second_arg_invalid_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "ComputedFieldAccess",
+            required: Schema::Atomic(Atomic::String).into(),
+            found: Schema::Atomic(Atomic::Long).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::ComputedFieldAccess,
+            vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+            ],
+        )),
+        schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::Long),
+        },
     );
 
     test_schema!(
@@ -2923,11 +3978,12 @@ mod nullif {
     test_schema!(
         nullif_cannot_compare_numeric_with_non_numeric,
         expected_error_code = 1005,
-        expected = Err(mir_error::InvalidComparison(
-            "NullIf",
-            Schema::Atomic(Atomic::Integer).into(),
-            Schema::Atomic(Atomic::String).into(),
-        )),
+        expected = Err(mir_error::InvalidComparison {
+            name: "NullIf",
+            left: Schema::Atomic(Atomic::Integer).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
+        }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::NullIf,
             vec![
@@ -2940,11 +3996,12 @@ mod nullif {
     test_schema!(
         nullif_types_must_be_identical_if_non_numeric,
         expected_error_code = 1005,
-        expected = Err(mir_error::InvalidComparison(
-            "NullIf",
-            Schema::Atomic(Atomic::Boolean).into(),
-            Schema::Atomic(Atomic::String).into(),
-        )),
+        expected = Err(mir_error::InvalidComparison {
+            name: "NullIf",
+            left: Schema::Atomic(Atomic::Boolean).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
+        }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::NullIf,
             vec![
@@ -2957,19 +4014,20 @@ mod nullif {
     test_schema!(
         nullif_args_cannot_be_potentially_comparable,
         expected_error_code = 1005,
-        expected = Err(mir_error::InvalidComparison(
-            "NullIf",
-            Schema::AnyOf(set![
+        expected = Err(mir_error::InvalidComparison {
+            name: "NullIf",
+            left: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String)
             ])
             .into(),
-            Schema::AnyOf(set![
+            right: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String)
             ])
             .into(),
-        )),
+            var_cause: None,
+        }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::NullIf,
             vec![
@@ -2980,6 +4038,54 @@ mod nullif {
         schema_env = map! {
             ("foo", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)]),
             ("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)])
+        },
+    );
+
+    test_schema!(
+        nullif_invalid_comparison_with_var_cause_left,
+        expected_error_code = 1005,
+        expected = Err(mir_error::InvalidComparison {
+            name: "NullIf",
+            left: Schema::Atomic(Atomic::Boolean).into(),
+            right: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::NullIf,
+            vec![
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::Boolean),
+        },
+    );
+
+    test_schema!(
+        nullif_invalid_comparison_with_var_cause_right,
+        expected_error_code = 1005,
+        expected = Err(mir_error::InvalidComparison {
+            name: "NullIf",
+            left: Schema::Atomic(Atomic::String).into(),
+            right: Schema::Atomic(Atomic::Boolean).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::NullIf,
+            vec![
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::Boolean),
         },
     );
 
@@ -3222,6 +4328,7 @@ mod slice {
             name: "Slice",
             required: ANY_ARRAY.clone().into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Slice,
@@ -3230,6 +4337,29 @@ mod slice {
                 Expression::Literal(LiteralValue::Integer(1)),
             ],
         )),
+    );
+    test_schema!(
+        slice_with_two_args_requires_an_array_for_the_first_arg_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Slice",
+            required: ANY_ARRAY.clone().into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Slice,
+            vec![
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Literal(LiteralValue::Integer(1)),
+            ],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 
     test_schema!(
@@ -3244,6 +4374,7 @@ mod slice {
             ])
             .into(),
             found: Schema::Atomic(Atomic::Long).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Slice,
@@ -3256,12 +4387,43 @@ mod slice {
     );
 
     test_schema!(
+        slice_with_two_args_requires_an_integer_for_the_second_arg_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Slice",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::Long).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Slice,
+            vec![
+                Expression::Reference(("array", 0u16).into()),
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+            ],
+        )),
+        schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::Long),
+        },
+    );
+
+    test_schema!(
         slice_with_three_args_requires_an_array_for_the_first_arg,
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Slice",
             required: ANY_ARRAY.clone().into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Slice,
@@ -3285,6 +4447,7 @@ mod slice {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Slice,
@@ -3309,6 +4472,7 @@ mod slice {
             ])
             .into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Slice,
@@ -3319,6 +4483,37 @@ mod slice {
             ],
         )),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
+    );
+
+    test_schema!(
+        slice_with_three_args_requires_an_integer_for_the_third_arg_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Slice",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Slice,
+            vec![
+                Expression::Reference(("array", 0u16).into()),
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+            ],
+        )),
+        schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 
     test_schema!(
@@ -3376,6 +4571,7 @@ mod split {
             name: "Split",
             required: STRING_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Split,
@@ -3389,12 +4585,39 @@ mod split {
     );
 
     test_schema!(
+        split_requires_string_or_nullish_for_first_arg_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Split",
+            required: STRING_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Split,
+            args: vec![
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Literal(LiteralValue::String("-".to_string())),
+                Expression::Literal(LiteralValue::Integer(1)),
+            ],
+            is_nullable: true,
+        }),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::Integer),
+        },
+    );
+
+    test_schema!(
         split_requires_string_or_nullish_for_second_arg,
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Split",
             required: STRING_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Split,
@@ -3408,12 +4631,39 @@ mod split {
     );
 
     test_schema!(
+        split_requires_string_or_nullish_for_second_arg_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Split",
+            required: STRING_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Split,
+            args: vec![
+                Expression::Literal(LiteralValue::String("a-b-c".to_string())),
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Literal(LiteralValue::Integer(1)),
+            ],
+            is_nullable: true,
+        }),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::Integer),
+        },
+    );
+
+    test_schema!(
         split_requires_integer_or_nullish_for_third_arg,
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {
             name: "Split",
             required: INTEGER_OR_NULLISH.clone().into(),
             found: Schema::Atomic(Atomic::String).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Split,
@@ -3424,6 +4674,32 @@ mod split {
             ],
             is_nullable: true,
         }),
+    );
+
+    test_schema!(
+        split_requires_integer_or_nullish_for_third_arg_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Split",
+            required: INTEGER_OR_NULLISH.clone().into(),
+            found: Schema::Atomic(Atomic::String).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Split,
+            args: vec![
+                Expression::Literal(LiteralValue::String("a-b-c".to_string())),
+                Expression::Literal(LiteralValue::String("-".to_string())),
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+            ],
+            is_nullable: true,
+        }),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 
     test_schema!(
@@ -3473,11 +4749,38 @@ mod size {
             ])
             .into(),
             found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Size,
             vec![Expression::Literal(LiteralValue::Integer(1))],
         )),
+    );
+
+    test_schema!(
+        size_requires_array_arg_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Size",
+            required: Schema::AnyOf(set![
+                ANY_ARRAY.clone(),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing,
+            ])
+            .into(),
+            found: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Size,
+            vec![Expression::Variable(Variable {
+                name: "this".to_string(),
+                is_nullable: false,
+            })],
+        )),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::Integer),
+        },
     );
 
     test_schema!(
@@ -3542,6 +4845,7 @@ mod pos {
                 Schema::Atomic(Atomic::String),
             ])
             .into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Pos,
@@ -3552,6 +4856,34 @@ mod pos {
             Schema::Atomic(Atomic::String),
         ])},
     );
+
+    test_schema!(
+        invalid_arg_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Pos",
+            required: NUMERIC_OR_NULLISH.clone().into(),
+            found: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Pos,
+            vec![Expression::Variable(Variable {
+                name: "this".to_string(),
+                is_nullable: false,
+            })],
+        )),
+        variables = map! {
+            "this" => Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::String),
+            ]),
+        },
+    );
 }
 
 mod neg {
@@ -3561,7 +4893,7 @@ mod neg {
         unary_neg,
         expected = Ok(Schema::Atomic(Atomic::Double)),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
-            ScalarFunction::Pos,
+            ScalarFunction::Neg,
             vec![Expression::Literal(LiteralValue::Double(1.0))],
         )),
     );
@@ -3581,6 +4913,34 @@ mod neg {
                 Expression::Literal(LiteralValue::Integer(2))
             ],
         )),
+    );
+
+    test_schema!(
+        invalid_arg_with_var_cause,
+        expected_error_code = 1002,
+        expected = Err(mir_error::SchemaChecking {
+            name: "Neg",
+            required: NUMERIC_OR_NULLISH.clone().into(),
+            found: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::String),
+            ])
+            .into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Neg,
+            vec![Expression::Variable(Variable {
+                name: "this".to_string(),
+                is_nullable: false,
+            })],
+        )),
+        variables = map! {
+            "this" => Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::String),
+            ]),
+        },
     );
 }
 
@@ -3605,11 +4965,12 @@ mod in_operator {
     test_schema!(
         not_in_operator_lhs_and_rhs_must_be_comparable,
         expected_error_code = 1005,
-        expected = Err(mir_error::InvalidComparison(
-            "NotIn",
-            Schema::Atomic(Atomic::String).into(),
-            Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]).into()
-        )),
+        expected = Err(mir_error::InvalidComparison {
+            name: "NotIn",
+            left: Schema::Atomic(Atomic::String).into(),
+            right: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: None,
+        }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::NotIn,
             args: vec![
@@ -3624,6 +4985,37 @@ mod in_operator {
             ],
             is_nullable: true,
         }),
+    );
+
+    test_schema!(
+        not_in_operator_lhs_and_rhs_must_be_comparable_with_var_cause_left,
+        expected_error_code = 1005,
+        expected = Err(mir_error::InvalidComparison {
+            name: "NotIn",
+            left: Schema::Atomic(Atomic::String).into(),
+            right: Schema::Atomic(Atomic::Integer).into(),
+            var_cause: Some("this".to_string()),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NotIn,
+            args: vec![
+                Expression::Variable(Variable {
+                    name: "this".to_string(),
+                    is_nullable: false,
+                }),
+                Expression::Array(ArrayExpr {
+                    array: vec![
+                        Expression::Literal(LiteralValue::Integer(1)),
+                        Expression::Literal(LiteralValue::Integer(2)),
+                        Expression::Literal(LiteralValue::Integer(3)),
+                    ],
+                }),
+            ],
+            is_nullable: true,
+        }),
+        variables = map! {
+            "this" => Schema::Atomic(Atomic::String),
+        },
     );
 
     test_schema!(
@@ -3695,6 +5087,7 @@ mod in_operator {
                 ])
             ])
             .into(),
+            var_cause: None,
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::NotIn,

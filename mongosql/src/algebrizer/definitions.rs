@@ -285,6 +285,7 @@ impl<'a> Algebrizer<'a> {
             catalog: self.catalog,
             scope_level: self.scope_level,
             schema_checking_mode: self.schema_checking_mode,
+            variables: map! {},
         }
     }
 

@@ -29,6 +29,7 @@ test_algebrize_expr_and_schema_check!(
         name: "Add",
         required: NUMERIC_OR_NULLISH.clone().into(),
         found: Schema::Atomic(Atomic::String).into(),
+        var_cause: None,
     })),
     expected_error_code = 1002,
     input = ast::Expression::Binary(ast::BinaryExpr {
@@ -67,6 +68,7 @@ test_algebrize_expr_and_schema_check!(
         name: "Sub",
         required: NUMERIC_OR_NULLISH.clone().into(),
         found: Schema::Atomic(Atomic::String).into(),
+        var_cause: None,
     })),
     expected_error_code = 1002,
     input = ast::Expression::Binary(ast::BinaryExpr {
@@ -187,6 +189,7 @@ test_algebrize_expr_and_schema_check!(
         name: "Div",
         required: NUMERIC_OR_NULLISH.clone().into(),
         found: Schema::Atomic(Atomic::String).into(),
+        var_cause: None,
     })),
     expected_error_code = 1002,
     input = ast::Expression::Binary(ast::BinaryExpr {
@@ -225,6 +228,7 @@ test_algebrize_expr_and_schema_check!(
         name: "Mul",
         required: NUMERIC_OR_NULLISH.clone().into(),
         found: Schema::Atomic(Atomic::String).into(),
+        var_cause: None,
     })),
     expected_error_code = 1002,
     input = ast::Expression::Binary(ast::BinaryExpr {
@@ -263,6 +267,7 @@ test_algebrize_expr_and_schema_check!(
         name: "Concat",
         required: STRING_OR_NULLISH.clone().into(),
         found: Schema::Atomic(Atomic::Integer).into(),
+        var_cause: None,
     })),
     expected_error_code = 1002,
     input = ast::Expression::Binary(ast::BinaryExpr {

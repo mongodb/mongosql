@@ -305,6 +305,7 @@ test_algebrize_expr_and_schema_check!(
         name: "Second",
         required: DATE_OR_NULLISH.clone().into(),
         found: Schema::Atomic(Atomic::Integer).into(),
+        var_cause: None,
     })),
     expected_error_code = 1002,
     input = ast::Expression::Extract(ast::ExtractExpr {

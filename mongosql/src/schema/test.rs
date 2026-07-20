@@ -3613,7 +3613,7 @@ mod intersection {
     };
 
     macro_rules! test_intersection {
-        ($func_name:ident, expected = $expected:expr, left_schema = $left_schema:expr $(,)?, right_schema = $right_schema:expr $(,)?) => {
+        ($func_name:ident, expected = $expected:expr, left_schema = $left_schema:expr, right_schema = $right_schema:expr $(,)?) => {
             #[test]
             fn $func_name() {
                 assert_eq!($expected, $left_schema.intersection($right_schema));
@@ -3977,5 +3977,94 @@ mod cartesian_product {
         },
         schema = Atomic(Atomic::Integer),
         other = Any,
+    );
+}
+
+mod get_array_item_schema {
+    use crate::{
+        schema::{Atomic, Document, Schema},
+        set,
+    };
+
+    macro_rules! test_get_array_item_schema {
+        ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
+            #[test]
+            fn $func_name() {
+                assert_eq!($expected, $input.get_array_item_schema());
+            }
+        };
+    }
+
+    test_get_array_item_schema!(unsat_returns_none, expected = None, input = Schema::Unsat,);
+
+    test_get_array_item_schema!(
+        missing_returns_none,
+        expected = None,
+        input = Schema::Missing,
+    );
+
+    test_get_array_item_schema!(
+        atomic_returns_none,
+        expected = None,
+        input = Schema::Atomic(Atomic::Integer),
+    );
+
+    test_get_array_item_schema!(
+        document_returns_none,
+        expected = None,
+        input = Schema::Document(Document::any()),
+    );
+
+    test_get_array_item_schema!(
+        array_returns_item_schema,
+        expected = Some(Schema::Atomic(Atomic::Integer)),
+        input = Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
+    );
+
+    test_get_array_item_schema!(
+        any_returns_any,
+        expected = Some(Schema::Any),
+        input = Schema::Any,
+    );
+
+    test_get_array_item_schema!(
+        empty_any_of_returns_none,
+        expected = None,
+        input = Schema::AnyOf(set![]),
+    );
+
+    test_get_array_item_schema!(
+        any_of_without_array_returns_none,
+        expected = None,
+        input = Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        ]),
+    );
+
+    test_get_array_item_schema!(
+        any_of_with_only_one_array_returns_that_item_schema,
+        expected = Some(Schema::Atomic(Atomic::String)),
+        input = Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Array(Box::new(Schema::Atomic(Atomic::String)))
+        ]),
+    );
+
+    test_get_array_item_schema!(
+        any_of_with_multiple_array_schemas_returns_union_of_item_schemas,
+        expected = Some(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::String)
+        ])),
+        input = Schema::AnyOf(set![
+            Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
+            Schema::Array(Box::new(Schema::Atomic(Atomic::String))),
+            Schema::Array(Box::new(Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long)
+            ])))
+        ]),
     );
 }

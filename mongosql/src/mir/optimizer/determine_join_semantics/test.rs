@@ -56,6 +56,7 @@ macro_rules! test_determine_join_semantics {
                 0u16,
                 SchemaEnvironment::default(),
                 &*CATALOG,
+                map! {},
                 SchemaCheckingMode::Relaxed,
             );
 
@@ -66,6 +67,7 @@ macro_rules! test_determine_join_semantics {
                 0u16,
                 res.schema_env,
                 &*CATALOG,
+                map! {},
                 SchemaCheckingMode::Relaxed,
             );
 

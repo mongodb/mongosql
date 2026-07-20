@@ -24,10 +24,16 @@ pub enum Error {
         name: &'static str,
         required: Box<Schema>,
         found: Box<Schema>,
+        var_cause: Option<String>,
     },
     InvalidBinaryDataType,
     AggregationArgumentMustBeSelfComparable(String, Box<Schema>),
-    InvalidComparison(&'static str, Box<Schema>, Box<Schema>),
+    InvalidComparison {
+        name: &'static str,
+        left: Box<Schema>,
+        right: Box<Schema>,
+        var_cause: Option<String>,
+    },
     CannotMergeObjects(Box<Schema>, Box<Schema>, Satisfaction),
     AccessMissingField(String, Option<Vec<String>>),
     InvalidSubqueryCardinality,
@@ -35,6 +41,37 @@ pub enum Error {
     GroupKeyNotSelfComparable(usize, Box<Schema>),
     UnwindIndexNameConflict(String),
     CollectionNotFound(String, String),
+    // HigherOrderFunctionWrapper is used to wrap errors that occur in the context of a higher order
+    // function's function argument. For example, MAP(["a", "b"], this + 1) is invalid because the
+    // function argument is invalid (`this` has string schema, but `+` expects a numeric schema).
+    // This wrapper includes extra context indicating the surrounding higher order function and the
+    // root cause of the problem in the function argument. In this example, the root cause is the
+    // use of the `this` variable.
+    HigherOrderFunctionWrapper {
+        name: &'static str,
+        cause: HigherOrderFunctionErrorCause,
+        error: Box<Error>,
+    },
+    NoSuchVariable(String),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum HigherOrderFunctionErrorCause {
+    // The initial value provided to the higher order function is semantically invalid.
+    InitialValue,
+
+    // The schema of the accumulated value causes uses of the `value` variable to be invalid.
+    AccumulatedValueUsage,
+
+    // The schema of the initial value causes uses of the `value` variable to be invalid.
+    InitialValueUsage,
+
+    // The schema of the array items causes uses of the `this` variable to be invalid.
+    ThisUsage,
+
+    // The function argument for a higher order function is semantically invalid for a reason other
+    // than variable usage.
+    FunctionArgument,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -59,7 +96,7 @@ impl UserError for Error {
             Error::IncorrectArgumentCount { .. } => 1001,
             Error::SchemaChecking { .. } => 1002,
             Error::AggregationArgumentMustBeSelfComparable(_, _) => 1003,
-            Error::InvalidComparison(_, _, _) => 1005,
+            Error::InvalidComparison { .. } => 1005,
             Error::CannotMergeObjects(_, _, _) => 1006,
             Error::AccessMissingField(_, _) => 1007,
             Error::InvalidSubqueryCardinality => 1008,
@@ -68,6 +105,8 @@ impl UserError for Error {
             Error::UnwindIndexNameConflict(_) => 1014,
             Error::CollectionNotFound(_, _) => 1016,
             Error::InvalidBinaryDataType => 1019,
+            Error::HigherOrderFunctionWrapper { .. } => 1020,
+            Error::NoSuchVariable { .. } => 1021,
         }
     }
 
@@ -79,6 +118,7 @@ impl UserError for Error {
                 name,
                 required,
                 found,
+                ..
             } => {
                 let simplified_required = Schema::simplify(required);
                 let simplified_found = Schema::simplify(found);
@@ -114,9 +154,11 @@ impl UserError for Error {
                     Some(error_msg)
                 }
             }
-            Error::InvalidComparison(func, s1, s2) => {
-                let simplified_s1 = Schema::simplify(s1);
-                let simplified_s2 = Schema::simplify(s2);
+            Error::InvalidComparison {
+                name, left, right, ..
+            } => {
+                let simplified_s1 = Schema::simplify(left);
+                let simplified_s2 = Schema::simplify(right);
 
                 if let Some(message) =
                     unsat_check(vec![simplified_s1.clone(), simplified_s2.clone()])
@@ -124,7 +166,7 @@ impl UserError for Error {
                     Some(message)
                 } else {
                     let error_msg = format!(
-                        "Invalid use of `{func}` due to incomparable types: `{simplified_s1}` cannot be compared to `{simplified_s2}`."
+                        "Invalid use of `{name}` due to incomparable types: `{simplified_s1}` cannot be compared to `{simplified_s2}`."
                     );
                     let error_msg = Self::error_message_with_any_schema_addendum(
                         error_msg,
@@ -211,6 +253,24 @@ impl UserError for Error {
             Error::UnwindIndexNameConflict(_) => None,
             Error::CollectionNotFound(_, _) => None,
             Error::InvalidBinaryDataType => None,
+            Error::HigherOrderFunctionWrapper { name, cause, error } => {
+                let (cause_desc, cause_message) = match cause {
+                    HigherOrderFunctionErrorCause::InitialValue => ("initial value", "The initial value must be semantically valid but was not."),
+                    HigherOrderFunctionErrorCause::AccumulatedValueUsage => ("function argument", "Invalid usage of variable `value` because of the result of the accumulator function. Recall that usages of the `value` variable must be satisfied by the both the schema of the initial value and the schema of the result of the accumulator function."),
+                    HigherOrderFunctionErrorCause::InitialValueUsage => ("function argument", "Invalid usage of variable `value` because of the initial value. Recall that usages of the `value` variable must be satisfied by the both the schema of the initial value and the schema of the result of the accumulator function."),
+                    HigherOrderFunctionErrorCause::ThisUsage => ("function argument", "Invalid usage of variable `this`. Recall that usages of the `this` variable must be satisfied by the schema of the elements of the array."),
+                    HigherOrderFunctionErrorCause::FunctionArgument => ("function argument", "Ensure the function argument is semantically valid. It must have the correct number of arguments and the arguments must have the correct type."),
+                };
+                let sub_error_message = error
+                    .user_message()
+                    .unwrap_or_else(|| error.technical_message());
+                Some(format!(
+                    "Invalid {cause_desc} for `{name}`: {cause_message} Sub-Error Code {}: {}",
+                    error.code(),
+                    sub_error_message
+                ))
+            }
+            Error::NoSuchVariable(name) => Some(format!("Variable `{name}` does not exist.")),
         }
     }
 
@@ -228,14 +288,15 @@ impl UserError for Error {
                 name,
                 required,
                 found,
+                ..
             } => {
                 format!("schema checking failed for {name}: required {required:?}, found {found:?}")
             }
             Error::AggregationArgumentMustBeSelfComparable(aggs, schema) => format!(
                 "cannot have {aggs:?} aggregations over the schema: {schema:?} as it is not comparable to itself"
             ),
-            Error::InvalidComparison(func, s1, s2) => {
-                format!("invalid comparison for {func}: {s1:?} cannot be compared to {s2:?}")
+            Error::InvalidComparison { name, left, right, .. } => {
+                format!("invalid comparison for {name}: {left:?} cannot be compared to {right:?}")
             }
             Error::CannotMergeObjects(s1, s2, sat) => format!(
                 "cannot merge objects {s1:?} and {s2:?} as they {sat:?} have overlapping keys"
@@ -261,6 +322,11 @@ impl UserError for Error {
             Error::InvalidBinaryDataType => {
                 "Binary data with subtype 3 found in schema".to_string()
             }
+            // Pass through the underlying error's message. HigherOrderFunctionWrapper implements
+            // user_message() so there will always be user-readable context wrapped around the
+            // underlying error's message.
+            Error::HigherOrderFunctionWrapper { error, .. } => error.technical_message(),
+            Error::NoSuchVariable(name) => format!("variable with name `{name}` not found in schema inference state"),
         }
     }
 }

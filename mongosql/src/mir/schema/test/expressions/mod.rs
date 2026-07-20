@@ -1,6 +1,7 @@
 mod aggregate; // mir::Aggregate
 mod case; // mir::Expression::{SearchedCase, SimpleCase}
 mod field_access; // mir::Expression::{FieldAccess, Reference (implicit)}
+mod higher_order_function; // mir::Expression::HigherOrderFunction
 mod like; // mir::Expression::Like
 mod literal; // mir::Expression::{Array, Document, Literal}
 mod scalar_function; // mir::Expression::ScalarFunction
