@@ -73,8 +73,62 @@ lazy_static! {
                 additional_properties: false,
                 ..Default::default()
                 }
-        )
+        ),
+        // Two aliases of the `nation` collection, used to model a self-join whose WHERE clause
+        // references both correlated aliases (see
+        // match_filter_over_lateral_inner_join_does_not_move_if_both_datasources_are_used).
+        ("tpch", "n1").into() => nation_schema(),
+        ("tpch", "n2").into() => nation_schema(),
     });
+}
+
+// A minimal `nation` schema exposing the `n_name` string field.
+fn nation_schema() -> Schema {
+    Schema::Document(schema::Document {
+        keys: map! {
+            "n_name".to_string() => Schema::Atomic(schema::Atomic::String),
+        },
+        required: set! {"n_name".to_string()},
+        additional_properties: false,
+        ..Default::default()
+    })
+}
+
+// The native match-language condition for the WHERE clause
+//     (n1.n_name = 'UNITED STATES' AND n2.n_name = 'JAPAN')
+//  OR (n1.n_name = 'JAPAN' AND n2.n_name = 'UNITED STATES')
+// referencing the `n1` and `n2` nation aliases.
+fn nation_names_match_condition() -> crate::mir::MatchQuery {
+    use crate::mir::{
+        schema::SchemaCache, LiteralValue, MatchLanguageComparison, MatchLanguageComparisonOp,
+        MatchLanguageLogical, MatchLanguageLogicalOp, MatchQuery,
+    };
+    use crate::util::mir_field_path;
+
+    let name_eq = |alias: &str, value: &str| {
+        MatchQuery::Comparison(MatchLanguageComparison {
+            function: MatchLanguageComparisonOp::Eq,
+            input: Some(mir_field_path(alias, vec!["n_name"])),
+            arg: LiteralValue::String(value.to_string()),
+            cache: SchemaCache::new(),
+        })
+    };
+    let and = |args: Vec<MatchQuery>| {
+        MatchQuery::Logical(MatchLanguageLogical {
+            op: MatchLanguageLogicalOp::And,
+            args,
+            cache: SchemaCache::new(),
+        })
+    };
+
+    MatchQuery::Logical(MatchLanguageLogical {
+        op: MatchLanguageLogicalOp::Or,
+        args: vec![
+            and(vec![name_eq("n1", "UNITED STATES"), name_eq("n2", "JAPAN")]),
+            and(vec![name_eq("n1", "JAPAN"), name_eq("n2", "UNITED STATES")]),
+        ],
+        cache: SchemaCache::new(),
+    })
 }
 
 macro_rules! test_move_stage {
@@ -1872,63 +1926,46 @@ test_move_stage!(
     }))),
 );
 
+// A MatchFilter whose condition references datasources from BOTH the source (LHS) and subquery
+// (RHS) of a LateralJoin must NOT be moved into the subquery. Doing so would turn the LHS field
+// references into correlated `$$`-variables, which native match language ($match find syntax)
+// cannot express -- they would fail translation with Error::InvalidMatchLanguageInputRef. The
+// MatchFilter must stay above the join, where every datasource is a plain field reference. (A
+// regular $expr Filter *can* move into the subquery, since correlated variables are valid in
+// $expr; see move_filter_into_lateral_inner_join_subquery_if_both_datasources_are_used above.)
+//
+// This models the following query, whose WHERE conjunct references both `nation` aliases (`n1` on
+// the LHS, `n2` on the RHS of the join) and is rewritten to native match language because every
+// leaf is a `<field> = <literal>` comparison:
+//
+//     SELECT ...
+//     FROM lineitem, nation n1, nation n2
+//     WHERE (n1.n_name = 'UNITED STATES' AND n2.n_name = 'JAPAN')
+//        OR (n1.n_name = 'JAPAN' AND n2.n_name = 'UNITED STATES')
+//
+// Because `n1` and `n2` sit on opposite sides of the LateralJoin, the MatchFilter stays put rather
+// than pushing `n1` into the subquery as a `$$`-variable.
 test_move_stage!(
-    move_match_filter_into_lateral_inner_join_subquery_if_both_datasources_are_used,
-    expected = Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
-        join_type: JoinType::Inner,
-        source: mir_collection("foo", "bar"),
-        subquery: Box::new(Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(
-            MatchFilter {
-                source: mir_collection("foo", "bar2"),
-                condition: MatchQuery::Logical(MatchLanguageLogical {
-                    op: MatchLanguageLogicalOp::And,
-                    args: vec![
-                        MatchQuery::Comparison(MatchLanguageComparison {
-                            function: MatchLanguageComparisonOp::Gt,
-                            input: Some(mir_field_path("bar2", vec!["x", "a", "b"])),
-                            arg: LiteralValue::Integer(24),
-                            cache: SchemaCache::new(),
-                        }),
-                        MatchQuery::Comparison(MatchLanguageComparison {
-                            function: MatchLanguageComparisonOp::Gt,
-                            input: Some(mir_field_path("bar", vec!["y"])),
-                            arg: LiteralValue::Integer(25),
-                            cache: SchemaCache::new(),
-                        }),
-                    ],
-                    cache: SchemaCache::new(),
-                }),
-                cache: SchemaCache::new(),
-            }
-        )))),
+    match_filter_over_lateral_inner_join_does_not_move_if_both_datasources_are_used,
+    expected = Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
+        source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
+            join_type: JoinType::Inner,
+            source: mir_collection("tpch", "n1"),
+            subquery: mir_collection("tpch", "n2"),
+            cache: SchemaCache::new(),
+        }))),
+        condition: nation_names_match_condition(),
         cache: SchemaCache::new(),
-    })),
-    expected_changed = true,
+    }))),
+    expected_changed = false,
     input = Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
         source: Box::new(Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
             join_type: JoinType::Inner,
-            source: mir_collection("foo", "bar"),
-            subquery: mir_collection("foo", "bar2"),
+            source: mir_collection("tpch", "n1"),
+            subquery: mir_collection("tpch", "n2"),
             cache: SchemaCache::new(),
         }))),
-        condition: MatchQuery::Logical(MatchLanguageLogical {
-            op: MatchLanguageLogicalOp::And,
-            args: vec![
-                MatchQuery::Comparison(MatchLanguageComparison {
-                    function: MatchLanguageComparisonOp::Gt,
-                    input: Some(mir_field_path("bar2", vec!["x", "a", "b"])),
-                    arg: LiteralValue::Integer(24),
-                    cache: SchemaCache::new(),
-                }),
-                MatchQuery::Comparison(MatchLanguageComparison {
-                    function: MatchLanguageComparisonOp::Gt,
-                    input: Some(mir_field_path("bar", vec!["y"])),
-                    arg: LiteralValue::Integer(25),
-                    cache: SchemaCache::new(),
-                }),
-            ],
-            cache: SchemaCache::new(),
-        }),
+        condition: nation_names_match_condition(),
         cache: SchemaCache::new(),
     }))),
 );

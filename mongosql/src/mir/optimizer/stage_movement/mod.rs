@@ -480,6 +480,31 @@ impl StageMovementVisitor<'_> {
         }
     }
 
+    /// Attempts to move a `Filter`, `Sort`, or `MatchFilter` stage up the pipeline,
+    /// as high as it can legally go.
+    ///
+    /// The name refers to the definer/user relationship this method reasons about: the
+    /// stage feeding `node` (its source) *defines* fields and datasources, while `node`
+    /// *uses* them. A stage may only bubble up past its source when doing so preserves
+    /// query semantics, which broadly means `node` must not depend on anything the source
+    /// defines and the move must not cross a boundary that would change results (for
+    /// example, a `Sort` above another `Sort`, or a `Filter` merged into the RHS of a
+    /// `LEFT JOIN`).
+    ///
+    /// Movement is delegated to `bubble_up` (single-source sources) or `dual_source`
+    /// (`Join`, `Set`, `EquiJoin`, `LateralJoin`). As a special case, a `Filter` that
+    /// cannot move above a `Join` may instead be folded into the join's `ON` condition.
+    ///
+    /// # Returns
+    /// A `(Stage, bool)` tuple:
+    /// - `Stage` is the resulting node. If a move (or fold) happened this is the rewritten
+    ///   subtree with the stage relocated; otherwise it is the original `node`, returned
+    ///   unchanged (some branches take `node` by value and hand it back).
+    /// - `bool` is `true` iff this call actually relocated or folded the stage. Note this is
+    ///   the *raw* movement signal: a `true` here still includes Filter-above-Filter swaps.
+    ///   The caller reconciles that against `is_filter_filter_only_change` (see
+    ///   `move_stages`) so that a pure Filter-Filter reorder is not reported as a real
+    ///   change, which would otherwise loop the optimizer indefinitely.
     fn handle_def_user(&mut self, node: Stage) -> (Stage, bool) {
         use crate::mir::schema::CachedSchema;
         // We cannot move above a terminal node because they do not have a source, we also cannot
@@ -590,6 +615,26 @@ impl StageMovementVisitor<'_> {
                         if right_schema.has_datasource(u) {
                             return (node, false);
                         }
+                    }
+                }
+
+                // Native match language ($match find syntax) cannot reference correlated `let`
+                // variables. If a MatchFilter that uses datasources from BOTH the source (LHS) and
+                // subquery (RHS) were moved into the subquery, its LHS field references would
+                // become correlated `$$`-variables, which native match cannot express (they would
+                // fail translation with Error::InvalidMatchLanguageInputRef). Keep such a
+                // MatchFilter above the join, where every datasource is a plain field reference. A
+                // regular $expr Filter is unaffected: correlated variables are valid in $expr.
+                if matches!(node, Stage::MqlIntrinsic(MqlStage::MatchFilter(_))) {
+                    let left_schema = n.source.schema(self.schema_state).unwrap();
+                    let uses_left = datasource_uses
+                        .iter()
+                        .any(|u| left_schema.has_datasource(u));
+                    let uses_right = datasource_uses
+                        .iter()
+                        .any(|u| right_schema.has_datasource(u));
+                    if uses_left && uses_right {
+                        return (node, false);
                     }
                 }
 
