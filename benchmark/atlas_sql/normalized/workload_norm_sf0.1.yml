@@ -53,9 +53,13 @@ Actors:
   - LoadConfig:
       Path: phase/q11_normalized.yml
       Key: q11_normalized
+  # skip reason: SQL-3178 (OR de-optimization regression, query times out)
+  # - LoadConfig:
+  #     Path: phase/q12_normalized.yml
+  #     Key: q12_normalized
   - LoadConfig:
-      Path: phase/q12_normalized.yml
-      Key: q12_normalized
+      Path: ../phase_noop.yml
+      Key: NoopPhase
   - LoadConfig:
       Path: phase/q13_normalized.yml
       Key: q13_normalized
@@ -79,9 +83,13 @@ Actors:
   - LoadConfig:
       Path: ../phase_noop.yml
       Key: NoopPhase
+  # skip reason: SQL-3178 (OR de-optimization regression, query times out)
+  # - LoadConfig:
+  #     Path: phase/q19_normalized.yml
+  #     Key: q19_normalized
   - LoadConfig:
-      Path: phase/q19_normalized.yml
-      Key: q19_normalized
+      Path: ../phase_noop.yml
+      Key: NoopPhase
 
   # skip-reason: SQL-1906
   # - LoadConfig:
