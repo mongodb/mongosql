@@ -4451,7 +4451,7 @@ mod cast {
             expected = Stage::Array(ArraySource {
                 alias: "".into(),
                 array: vec![Expression::Literal(LiteralValue::Decimal128(
-                    bson::Decimal128::from_str("0.0").unwrap()
+                    bson::Decimal128::from_str("0").unwrap()
                 ))],
                 cache: SchemaCache::new(),
             }),
@@ -4474,7 +4474,7 @@ mod cast {
             expected = Stage::Array(ArraySource {
                 alias: "".into(),
                 array: vec![Expression::Literal(LiteralValue::Decimal128(
-                    bson::Decimal128::from_str("1.0").unwrap()
+                    bson::Decimal128::from_str("1").unwrap()
                 ))],
                 cache: SchemaCache::new(),
             }),

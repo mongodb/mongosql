@@ -834,6 +834,7 @@ impl ConstantFoldExprVisitor<'_> {
         match to {
             Type::Boolean => Self::convert_to_boolean(l),
             Type::Int32 => Self::convert_to_int(l),
+            Type::Decimal128 => Self::convert_to_decimal(l),
             _ => None,
         }
     }
@@ -979,6 +980,55 @@ impl ConstantFoldExprVisitor<'_> {
         }
     }
 
+    fn convert_to_decimal(l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        let str_to_convert = match l {
+            // Null literal values are handled directly by the `fold_cast_expr` method. Here, we
+            // return None to indicate folding did not happen, but still could in `fold_cast_expr`.
+            LiteralValue::Null => return None,
+
+            // False converts to 0, true converts to 1.
+            LiteralValue::Boolean(false) => "0",
+            LiteralValue::Boolean(true) => "1",
+
+            // Numeric types convert to decimal without loss of precision.
+            LiteralValue::Integer(v) => &format!("{v}"),
+            LiteralValue::Long(v) => &format!("{v}"),
+            LiteralValue::Double(v) => &format!("{v}"),
+
+            // Decimal128s are trivially converted to themselves.
+            LiteralValue::Decimal128(v) => {
+                return Some(Ok(Expression::Literal(LiteralValue::Decimal128(*v))))
+            }
+
+            // Strings may be converted to decimal128 if they represent numeric values in range of
+            // decimal128. If they are non-numeric or are out of range, conversion fails.
+            LiteralValue::String(v) => v,
+
+            // Dates may be converted to decimal128 by converting the number of milliseconds since
+            // the epoch that corresponds to the date value to decimal128.
+            LiteralValue::DateTime(v) => &format!("{}", v.timestamp_millis()),
+
+            // These types are not supported for conversion to decimal128.
+            LiteralValue::Binary(_)
+            | LiteralValue::JavaScriptCode(_)
+            | LiteralValue::JavaScriptCodeWithScope(_)
+            | LiteralValue::MaxKey
+            | LiteralValue::MinKey
+            | LiteralValue::ObjectId(_)
+            | LiteralValue::RegularExpression(_)
+            | LiteralValue::Timestamp(_)
+            | LiteralValue::DbPointer(_)
+            | LiteralValue::Symbol(_)
+            | LiteralValue::Undefined => return None,
+        };
+
+        Some(
+            Decimal128::from_str(str_to_convert)
+                .map(|dec| Expression::Literal(LiteralValue::Decimal128(dec)))
+                .map_err(|_| ()),
+        )
+    }
+
     fn convert_string_literal(s: &str, to: Type) -> Option<Result<Expression, ()>> {
         match to {
             // We'll handle the no-op convert too. But we are not handling every possible case.
@@ -1014,22 +1064,6 @@ impl ConstantFoldExprVisitor<'_> {
                 let oid = ObjectId::parse_str(s).ok();
                 match oid {
                     Some(oid) => Some(Ok(Expression::Literal(LiteralValue::ObjectId(oid)))),
-                    None => Some(Err(())),
-                }
-            }
-            _ => None,
-        }
-    }
-
-    fn convert_numerical_literal<T: std::fmt::Display>(
-        i: T,
-        to: Type,
-    ) -> Option<Result<Expression, ()>> {
-        match to {
-            Type::Decimal128 => {
-                let dec = Decimal128::from_str(&format!("{i}")).ok();
-                match dec {
-                    Some(dec) => Some(Ok(Expression::Literal(LiteralValue::Decimal128(dec)))),
                     None => Some(Err(())),
                 }
             }
