@@ -3134,7 +3134,7 @@ mod cast {
         }),
     );
 
-    // Regardless of target type, casting from an exactly nullish literal folds to the on_null
+    // Regardless of target type, casting from an exactly nullish expr folds to the on_null
     // branch
     test_constant_fold!(
         from_exactly_nullish_expr,
