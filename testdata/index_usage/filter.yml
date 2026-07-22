@@ -129,3 +129,24 @@ dataset:
           bsonType: "array"
           items:
             bsonType: "int"
+
+  - db: "index_usage_filter"
+    collection:
+      name: "dates"
+      docs:
+        - { "_id": 1, "d": { "$date": "2026-06-28T03:05:30Z" } }
+        - { "_id": 2, "d": { "$date": "2025-08-16T05:35:30Z" } }
+        - { "_id": 3, "d": { "$date": "2027-07-01T12:00:00Z" } }
+        - { "_id": 4, "d": { "$date": "2026-07-01T00:00:01Z" } }
+        - { "_id": 5, "d": { "$date": "2026-10-15T12:12:12Z" } }
+      indexes:
+        - { "key": { "d": 1 } }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "d" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        d:
+          bsonType: "date"
