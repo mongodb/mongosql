@@ -60,6 +60,10 @@ lazy_static! {
         let chrono_dt: chrono::DateTime<Utc> = "2014-01-01T08:15:39Z".parse().unwrap();
         chrono_dt.into()
     };
+    static ref DATE_WITH_TZ_OFFSET: bson::DateTime = {
+        let chrono_dt: chrono::DateTime<Utc> = "2018-03-03T12:00:00+0500".parse().unwrap();
+        chrono_dt.into()
+    };
     static ref DATE_WITHOUT_TIME: bson::DateTime = {
         let chrono_dt: chrono::DateTime<Utc> = "2014-01-01T00:00:00Z".parse().unwrap();
         chrono_dt.into()
@@ -5866,11 +5870,50 @@ mod cast {
         );
 
         test_constant_fold!(
+            from_string_with_date_with_timezone_offset,
+            expected = Stage::Array(ArraySource {
+                alias: "".into(),
+                array: vec![
+                    Expression::Literal(LiteralValue::DateTime(*DATE_WITH_TZ_OFFSET)),
+                    Expression::Literal(LiteralValue::DateTime(*DATE_WITH_TZ_OFFSET)),
+                ],
+                cache: SchemaCache::new(),
+            }),
+            expected_changed = true,
+            input = Stage::Array(ArraySource {
+                alias: "".into(),
+                array: vec![
+                    Expression::Cast(CastExpr {
+                        expr: Expression::Literal(LiteralValue::String(
+                            "2018-03-03T12:00:00+0500".into()
+                        ))
+                        .into(),
+                        to: Type::Datetime,
+                        on_null: Expression::Literal(LiteralValue::Null).into(),
+                        on_error: Expression::Literal(LiteralValue::Null).into(),
+                        is_nullable: true,
+                    }),
+                    Expression::Cast(CastExpr {
+                        expr: Expression::Literal(LiteralValue::String(
+                            "2018-03-03 12:00:00+0500".into()
+                        ))
+                        .into(),
+                        to: Type::Datetime,
+                        on_null: Expression::Literal(LiteralValue::Null).into(),
+                        on_error: Expression::Literal(LiteralValue::Null).into(),
+                        is_nullable: true,
+                    }),
+                ],
+                cache: SchemaCache::new(),
+            }),
+        );
+
+        test_constant_fold!(
             from_string_with_date_without_time,
             expected = Stage::Array(ArraySource {
                 alias: "".into(),
                 array: vec![Expression::Literal(LiteralValue::DateTime(
-                    *DATE_WITHOUT_MS
+                    *DATE_WITHOUT_TIME
                 ))],
                 cache: SchemaCache::new(),
             }),

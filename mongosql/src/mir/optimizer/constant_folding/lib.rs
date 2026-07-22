@@ -1201,8 +1201,116 @@ impl ConstantFoldExprVisitor<'_> {
         }
     }
 
-    fn convert_to_datetime(_l: &LiteralValue) -> Option<Result<Expression, ()>> {
-        todo!()
+    fn convert_to_datetime(l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        match l {
+            // Null literal values are handled directly by the `fold_cast_expr` method. Here, we
+            // return None to indicate folding did not happen, but still could in `fold_cast_expr`.
+            LiteralValue::Null => None,
+
+            // Datetimes are trivially converted to themselves.
+            LiteralValue::DateTime(v) => Some(Ok(Expression::Literal(LiteralValue::DateTime(*v)))),
+
+            // Numbers may be converted to datetime by converting to long and then to datetime.
+            // Numbers that are out of range of i64 result in an error.
+            LiteralValue::Long(v) => Some(Ok(Expression::Literal(LiteralValue::DateTime(
+                bson::DateTime::from_millis(*v),
+            )))),
+            LiteralValue::Double(v) => {
+                // MongoDB truncates when converting a double to a date.
+                let truncated = v.trunc();
+                if truncated.is_finite()
+                    && truncated >= i64::MIN as f64
+                    && truncated <= i64::MAX as f64
+                {
+                    Some(Ok(Expression::Literal(LiteralValue::DateTime(
+                        bson::DateTime::from_millis(truncated as i64),
+                    ))))
+                } else {
+                    Some(Err(()))
+                }
+            }
+            LiteralValue::Decimal128(v) => {
+                // MongoDB truncates when converting a decimal to a date.
+                // Since we cannot operate on Decimal128 values directly, we convert to string and
+                // truncate by taking only the part before the decimal point.
+                let s = v.to_string();
+                let truncated = s.split('.').next().unwrap_or(&s);
+                Some(
+                    i64::from_str(&truncated)
+                        .map(|i| {
+                            Expression::Literal(LiteralValue::DateTime(
+                                bson::DateTime::from_millis(i),
+                            ))
+                        })
+                        .map_err(|_| ()),
+                )
+            }
+
+            // ObjectIds may be converted to datetime by getting the timestamp from the ObjectId.
+            LiteralValue::ObjectId(v) => Some(Ok(Expression::Literal(LiteralValue::DateTime(
+                v.timestamp(),
+            )))),
+
+            // Strings can be converted into the dates that correspond to the date string.
+            // Valid formats that MongoDB supports are:
+            //   - "2018-03-03"
+            //   - "2018-03-03T12:00:00Z"
+            //   - "2018-03-03T12:00:00+0500"
+            LiteralValue::String(v) => {
+                // Check if string ends with timezone offset: +HHMM or -HHMM
+                let has_timezone_offset = v.len() >= 5 && {
+                    let last_5 = &v[v.len() - 5..];
+                    let bytes = last_5.as_bytes();
+                    (bytes[0] == b'+' || bytes[0] == b'-')
+                        && bytes[1..].iter().all(|b| b.is_ascii_digit())
+                };
+
+                // If it ends with 'Z' or '+/-HHMM', we can attempt to parse it directly. That is,
+                // if it matches the format YYYY-MM-DD(T| )HH:mm:SS((.ms)?Z|(+|-)HHMM)?, where `?`
+                // denotes optional.
+                let chrono_dt: Option<chrono::DateTime<Utc>> =
+                    if v.ends_with('Z') || has_timezone_offset {
+                        v.parse().ok()
+                    } else if v.len() == 10 {
+                        // If it does not end with 'Z' or '+/-HHMM' and is length 10, we assume it
+                        // is in YYYY-MM-DD format. We append the T00:00:00Z time to the string so
+                        // that we can attempt to parse it into a chrono::DateTime<Utc>.
+                        let mut s = v.to_string();
+                        s.push_str("T00:00:00Z");
+                        s.parse().ok()
+                    } else {
+                        // If it does not end with 'Z' or '+/-HHMM' and is not length 10, we assume
+                        // it is in YYYY-MM-DD(T| )HH:mm:SS(.ms)? format. We append the 'Z' to the
+                        // string so we can attempt to parse it into a chrono::DateTime<Utc>.
+                        let mut s = v.to_string();
+                        s.push('Z');
+                        s.parse().ok()
+                    };
+
+                // We cannot guarantee our format here supports everything that MongoDB supports,
+                // so we instead fall back to the original cast expression when our attempt to
+                // create a Date fails, and allow MongoDB to succeed or fail as it will.
+                chrono_dt.map(|chrono_dt| {
+                    Ok(Expression::Literal(LiteralValue::DateTime(
+                        chrono_dt.into(),
+                    )))
+                })
+            }
+
+            // These types are not supported for conversion to int.
+            LiteralValue::Boolean(_)
+            | LiteralValue::Binary(_)
+            | LiteralValue::Integer(_)
+            | LiteralValue::JavaScriptCode(_)
+            | LiteralValue::JavaScriptCodeWithScope(_)
+            | LiteralValue::MaxKey
+            | LiteralValue::MinKey
+            | LiteralValue::RegularExpression(_)
+            | LiteralValue::Timestamp(_)
+            | LiteralValue::DbPointer(_)
+            | LiteralValue::Symbol(_)
+            | LiteralValue::Undefined => None,
+        }
     }
 
     fn convert_to_object_id(_l: &LiteralValue) -> Option<Result<Expression, ()>> {
