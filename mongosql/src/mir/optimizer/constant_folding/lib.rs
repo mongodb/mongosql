@@ -1112,7 +1112,7 @@ impl ConstantFoldExprVisitor<'_> {
                 v.timestamp_millis() as f64,
             )))),
 
-            // These types are not supported for conversion to int.
+            // These types are not supported for conversion to double.
             LiteralValue::Binary(_)
             | LiteralValue::JavaScriptCode(_)
             | LiteralValue::JavaScriptCodeWithScope(_)
@@ -1186,7 +1186,7 @@ impl ConstantFoldExprVisitor<'_> {
                 v.timestamp_millis(),
             )))),
 
-            // These types are not supported for conversion to int.
+            // These types are not supported for conversion to long.
             LiteralValue::Binary(_)
             | LiteralValue::JavaScriptCode(_)
             | LiteralValue::JavaScriptCodeWithScope(_)
@@ -1297,7 +1297,7 @@ impl ConstantFoldExprVisitor<'_> {
                 })
             }
 
-            // These types are not supported for conversion to int.
+            // These types are not supported for conversion to datetime.
             LiteralValue::Boolean(_)
             | LiteralValue::Binary(_)
             | LiteralValue::Integer(_)
@@ -1313,8 +1313,40 @@ impl ConstantFoldExprVisitor<'_> {
         }
     }
 
-    fn convert_to_object_id(_l: &LiteralValue) -> Option<Result<Expression, ()>> {
-        todo!()
+    fn convert_to_object_id(l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        match l {
+            // Null literal values are handled directly by the `fold_cast_expr` method. Here, we
+            // return None to indicate folding did not happen, but still could in `fold_cast_expr`.
+            LiteralValue::Null => None,
+
+            // ObjectIds are trivially converted to themselves.
+            LiteralValue::ObjectId(v) => Some(Ok(Expression::Literal(LiteralValue::ObjectId(*v)))),
+
+            // Strings that are encoded as valid ObjectIds may be converted to ObjectIds.
+            LiteralValue::String(v) => Some(
+                ObjectId::parse_str(v)
+                    .map(|oid| Expression::Literal(LiteralValue::ObjectId(oid)))
+                    .map_err(|_| ()),
+            ),
+
+            // These types are not supported for conversion to ObjectId.
+            LiteralValue::Boolean(_)
+            | LiteralValue::Integer(_)
+            | LiteralValue::Long(_)
+            | LiteralValue::Double(_)
+            | LiteralValue::RegularExpression(_)
+            | LiteralValue::JavaScriptCode(_)
+            | LiteralValue::JavaScriptCodeWithScope(_)
+            | LiteralValue::Timestamp(_)
+            | LiteralValue::Binary(_)
+            | LiteralValue::DateTime(_)
+            | LiteralValue::Symbol(_)
+            | LiteralValue::Decimal128(_)
+            | LiteralValue::Undefined
+            | LiteralValue::MaxKey
+            | LiteralValue::MinKey
+            | LiteralValue::DbPointer(_) => None,
+        }
     }
 
     fn convert_to_string(_l: &LiteralValue) -> Option<Result<Expression, ()>> {
