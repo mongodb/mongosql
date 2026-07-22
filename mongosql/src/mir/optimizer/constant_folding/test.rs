@@ -5171,7 +5171,7 @@ mod cast {
                 cache: SchemaCache::new(),
             }),
             schema_env = map! {
-                ("bar", 0u16).into() => Schema::Atomic(Atomic::Integer),
+                ("bar", 0u16).into() => Schema::Atomic(Atomic::Long),
             },
         );
 
@@ -5421,7 +5421,7 @@ mod cast {
             input = Stage::Array(ArraySource {
                 alias: "".into(),
                 array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Double(i64::MAX as f64 + 1.0)).into(),
+                    expr: Expression::Literal(LiteralValue::Double(f64::MAX)).into(),
                     to: Type::Int64,
                     on_null: Expression::Literal(LiteralValue::Null).into(),
                     on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
@@ -5444,7 +5444,7 @@ mod cast {
             input = Stage::Array(ArraySource {
                 alias: "".into(),
                 array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Double(i64::MIN as f64 - 1.0)).into(),
+                    expr: Expression::Literal(LiteralValue::Double(f64::MIN)).into(),
                     to: Type::Int64,
                     on_null: Expression::Literal(LiteralValue::Null).into(),
                     on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
@@ -5654,7 +5654,7 @@ mod cast {
                         1522039108044
                     )))
                     .into(),
-                    to: Type::Double,
+                    to: Type::Int64,
                     on_null: Expression::Literal(LiteralValue::Null).into(),
                     on_error: Expression::Literal(LiteralValue::Null).into(),
                     is_nullable: true,

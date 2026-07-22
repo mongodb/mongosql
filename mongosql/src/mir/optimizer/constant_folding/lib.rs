@@ -836,7 +836,7 @@ impl ConstantFoldExprVisitor<'_> {
             Type::Int32 => Self::convert_to_int(l),
             Type::Decimal128 => Self::convert_to_decimal(l),
             Type::Double => Self::convert_to_double(l),
-            Type::Int64 => Self::convert_to_int(l),
+            Type::Int64 => Self::convert_to_long(l),
             Type::Datetime => Self::convert_to_datetime(l),
             Type::ObjectId => Self::convert_to_object_id(l),
             Type::String => Self::convert_to_string(l),
@@ -1127,8 +1127,78 @@ impl ConstantFoldExprVisitor<'_> {
         }
     }
 
-    fn convert_to_long(_l: &LiteralValue) -> Option<Result<Expression, ()>> {
-        todo!()
+    fn convert_to_long(l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        match l {
+            // Null literal values are handled directly by the `fold_cast_expr` method. Here, we
+            // return None to indicate folding did not happen, but still could in `fold_cast_expr`.
+            LiteralValue::Null => None,
+
+            // False converts to 0, true converts to 1.
+            LiteralValue::Boolean(false) => Some(Ok(Expression::Literal(LiteralValue::Long(0)))),
+            LiteralValue::Boolean(true) => Some(Ok(Expression::Literal(LiteralValue::Long(1)))),
+
+            // Longs are trivially converted to themselves.
+            LiteralValue::Long(v) => Some(Ok(Expression::Literal(LiteralValue::Long(*v)))),
+
+            // Other numeric types may be converted to long if they are in range.
+            LiteralValue::Integer(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::Long(*v as i64))))
+            }
+            LiteralValue::Double(v) => {
+                // MongoDB truncates when converting a double to a long.
+                let truncated = v.trunc();
+                if truncated.is_finite()
+                    && truncated >= i64::MIN as f64
+                    && truncated <= i64::MAX as f64
+                {
+                    Some(Ok(Expression::Literal(LiteralValue::Long(
+                        truncated as i64,
+                    ))))
+                } else {
+                    Some(Err(()))
+                }
+            }
+            LiteralValue::Decimal128(v) => {
+                // MongoDB truncates when converting a decimal to a long.
+                // Since we cannot operate on Decimal128 values directly, we convert to string and
+                // truncate by taking only the part before the decimal point.
+                let s = v.to_string();
+                let truncated = s.split('.').next().unwrap_or(&s);
+                Some(
+                    i64::from_str(&truncated)
+                        .map(|i| Expression::Literal(LiteralValue::Long(i)))
+                        .map_err(|_| ()),
+                )
+            }
+
+            // Strings may be converted to long if they represent integral numeric values in range
+            // of i64. If they are non-numeric, contain floating point values, or are out of range,
+            // conversion fails.
+            LiteralValue::String(v) => Some(
+                i64::from_str(v)
+                    .map(|i| Expression::Literal(LiteralValue::Long(i)))
+                    .map_err(|_| ()),
+            ),
+
+            // Dates may be converted to long by getting the number of milliseconds since the
+            // epoch that corresponds to the date, which is already a long.
+            LiteralValue::DateTime(v) => Some(Ok(Expression::Literal(LiteralValue::Long(
+                v.timestamp_millis(),
+            )))),
+
+            // These types are not supported for conversion to int.
+            LiteralValue::Binary(_)
+            | LiteralValue::JavaScriptCode(_)
+            | LiteralValue::JavaScriptCodeWithScope(_)
+            | LiteralValue::MaxKey
+            | LiteralValue::MinKey
+            | LiteralValue::ObjectId(_)
+            | LiteralValue::RegularExpression(_)
+            | LiteralValue::Timestamp(_)
+            | LiteralValue::DbPointer(_)
+            | LiteralValue::Symbol(_)
+            | LiteralValue::Undefined => None,
+        }
     }
 
     fn convert_to_datetime(_l: &LiteralValue) -> Option<Result<Expression, ()>> {
