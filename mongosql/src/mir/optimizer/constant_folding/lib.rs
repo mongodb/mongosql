@@ -1349,49 +1349,52 @@ impl ConstantFoldExprVisitor<'_> {
         }
     }
 
-    fn convert_to_string(_l: &LiteralValue) -> Option<Result<Expression, ()>> {
-        todo!()
-    }
+    fn convert_to_string(l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        match l {
+            // Null literal values are handled directly by the `fold_cast_expr` method. Here, we
+            // return None to indicate folding did not happen, but still could in `fold_cast_expr`.
+            LiteralValue::Null => None,
 
-    fn convert_string_literal(s: &str, to: Type) -> Option<Result<Expression, ()>> {
-        match to {
-            // We'll handle the no-op convert too. But we are not handling every possible case.
-            // This is mostly used to easily test that we are properly recursing, but could offer
-            // some benefit.
-            Type::String => Some(Ok(Expression::Literal(LiteralValue::String(s.to_string())))),
-            Type::Datetime => {
-                // format YYYY-MM-DD(T| )HH:mm:SS(.ms)?Z?, where `?` denotes optional
-                let chrono_dt: Option<chrono::DateTime<Utc>> = if s.ends_with('Z') {
-                    s.parse().ok()
-                } else {
-                    let mut s = s.to_string();
-                    s.push('Z');
-                    s.parse().ok()
-                };
-                // We cannot guarantee our format here supports everything that MongoDB supports,
-                // so we instead fall back to the original cast expression when our attempt to
-                // create a Date fails, and allow MongoDB to succeed or fail as it will.
-                chrono_dt.map(|chrono_dt| {
-                    Ok(Expression::Literal(LiteralValue::DateTime(
-                        chrono_dt.into(),
-                    )))
-                })
+            // Strings are trivially converted to themselves.
+            LiteralValue::String(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::String(v.clone()))))
             }
-            Type::Decimal128 => {
-                let dec = Decimal128::from_str(s).ok();
-                match dec {
-                    Some(dec) => Some(Ok(Expression::Literal(LiteralValue::Decimal128(dec)))),
-                    None => Some(Err(())),
-                }
+
+            // A subset of types is supported by MongoDB pre-8.3, so we constrain ourselves to those
+            // types here.
+            LiteralValue::Boolean(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::String(v.to_string()))))
             }
-            Type::ObjectId => {
-                let oid = ObjectId::parse_str(s).ok();
-                match oid {
-                    Some(oid) => Some(Ok(Expression::Literal(LiteralValue::ObjectId(oid)))),
-                    None => Some(Err(())),
-                }
+            LiteralValue::Integer(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::String(v.to_string()))))
             }
-            _ => None,
+            LiteralValue::Long(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::String(v.to_string()))))
+            }
+            LiteralValue::Double(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::String(v.to_string()))))
+            }
+            LiteralValue::Decimal128(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::String(v.to_string()))))
+            }
+            LiteralValue::ObjectId(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::String(v.to_string()))))
+            }
+            LiteralValue::DateTime(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::String(v.to_string()))))
+            }
+
+            // These types are not supported for conversion to string.
+            LiteralValue::RegularExpression(_)
+            | LiteralValue::JavaScriptCode(_)
+            | LiteralValue::JavaScriptCodeWithScope(_)
+            | LiteralValue::Timestamp(_)
+            | LiteralValue::Binary(_)
+            | LiteralValue::Symbol(_)
+            | LiteralValue::Undefined
+            | LiteralValue::MaxKey
+            | LiteralValue::MinKey
+            | LiteralValue::DbPointer(_) => None,
         }
     }
 
