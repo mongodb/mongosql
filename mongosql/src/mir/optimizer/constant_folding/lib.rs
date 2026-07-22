@@ -833,16 +833,9 @@ impl ConstantFoldExprVisitor<'_> {
     fn convert_literal(l: &LiteralValue, to: Type) -> Option<Result<Expression, ()>> {
         match to {
             Type::Boolean => Self::convert_to_boolean(l),
+            Type::Int32 => Self::convert_to_int(l),
             _ => None,
         }
-
-        // match l {
-        //     LiteralValue::String(s) => Self::convert_string_literal(s, to),
-        //     LiteralValue::Integer(i) => Self::convert_numerical_literal(*i, to),
-        //     LiteralValue::Long(l) => Self::convert_numerical_literal(*l, to),
-        //     LiteralValue::Double(d) => Self::convert_numerical_literal(*d, to),
-        //     _ => None,
-        // }
     }
 
     /// Attempts to fold a Cast whose input is a literal Array into a literal of
@@ -876,7 +869,7 @@ impl ConstantFoldExprVisitor<'_> {
     fn convert_to_boolean(l: &LiteralValue) -> Option<Result<Expression, ()>> {
         match l {
             // Null literal values are handled directly by the `fold_cast_expr` method. Here, we
-            // return None to indicate folding did not happen but could by other means.
+            // return None to indicate folding did not happen, but still could in `fold_cast_expr`.
             LiteralValue::Null => None,
 
             // Booleans are trivially converted to themselves.
@@ -912,6 +905,77 @@ impl ConstantFoldExprVisitor<'_> {
             // These types are deprecated and their convert-to-bool behavior is no longer documented
             // by MongoDB. Therefore, we do not attempt to fold them.
             LiteralValue::DbPointer(_) | LiteralValue::Symbol(_) | LiteralValue::Undefined => None,
+        }
+    }
+
+    fn convert_to_int(l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        match l {
+            // Null literal values are handled directly by the `fold_cast_expr` method. Here, we
+            // return None to indicate folding did not happen, but still could in `fold_cast_expr`.
+            LiteralValue::Null => None,
+
+            // False converts to 0, true converts to 1.
+            LiteralValue::Boolean(false) => Some(Ok(Expression::Literal(LiteralValue::Integer(0)))),
+            LiteralValue::Boolean(true) => Some(Ok(Expression::Literal(LiteralValue::Integer(1)))),
+
+            // Integers are trivially converted to themselves.
+            LiteralValue::Integer(v) => Some(Ok(Expression::Literal(LiteralValue::Integer(*v)))),
+
+            // Other numeric types may be converted to int if they are in range.
+            LiteralValue::Long(v) => Some(
+                i32::try_from(*v)
+                    .map(|i| Expression::Literal(LiteralValue::Integer(i)))
+                    .map_err(|_| ()),
+            ),
+            LiteralValue::Double(v) => {
+                // MongoDB truncates when converting a double to an int.
+                let truncated = v.trunc();
+                if truncated.is_finite()
+                    && truncated >= i32::MIN as f64
+                    && truncated <= i32::MAX as f64
+                {
+                    Some(Ok(Expression::Literal(LiteralValue::Integer(
+                        truncated as i32,
+                    ))))
+                } else {
+                    Some(Err(()))
+                }
+            }
+            LiteralValue::Decimal128(v) => {
+                // MongoDB truncates when converting a decimal to an int.
+                // Since we cannot operate on Decimal128 values directly, we convert to string and
+                // truncate by taking only the part before the decimal point.
+                let s = v.to_string();
+                let truncated = s.split('.').next().unwrap_or(&s);
+                Some(
+                    i32::from_str(&truncated)
+                        .map(|i| Expression::Literal(LiteralValue::Integer(i)))
+                        .map_err(|_| ()),
+                )
+            }
+
+            // Strings may be converted to int if they represent integral numeric values in range of
+            // int32. If they are non-numeric, contain floating point values, or are out of range,
+            // conversion fails.
+            LiteralValue::String(v) => Some(
+                i32::from_str(v)
+                    .map(|i| Expression::Literal(LiteralValue::Integer(i)))
+                    .map_err(|_| ()),
+            ),
+
+            // These types are not supported for conversion to int.
+            LiteralValue::Binary(_)
+            | LiteralValue::DateTime(_)
+            | LiteralValue::JavaScriptCode(_)
+            | LiteralValue::JavaScriptCodeWithScope(_)
+            | LiteralValue::MaxKey
+            | LiteralValue::MinKey
+            | LiteralValue::ObjectId(_)
+            | LiteralValue::RegularExpression(_)
+            | LiteralValue::Timestamp(_)
+            | LiteralValue::DbPointer(_)
+            | LiteralValue::Symbol(_)
+            | LiteralValue::Undefined => None,
         }
     }
 
