@@ -966,7 +966,7 @@ impl ConstantFoldExprVisitor<'_> {
                 let s = v.to_string();
                 let truncated = s.split('.').next().unwrap_or(&s);
                 Some(
-                    i32::from_str(&truncated)
+                    i32::from_str(truncated)
                         .map(|i| Expression::Literal(LiteralValue::Integer(i)))
                         .map_err(|_| ()),
                 )
@@ -1165,7 +1165,7 @@ impl ConstantFoldExprVisitor<'_> {
                 let s = v.to_string();
                 let truncated = s.split('.').next().unwrap_or(&s);
                 Some(
-                    i64::from_str(&truncated)
+                    i64::from_str(truncated)
                         .map(|i| Expression::Literal(LiteralValue::Long(i)))
                         .map_err(|_| ()),
                 )
@@ -1236,7 +1236,7 @@ impl ConstantFoldExprVisitor<'_> {
                 let s = v.to_string();
                 let truncated = s.split('.').next().unwrap_or(&s);
                 Some(
-                    i64::from_str(&truncated)
+                    i64::from_str(truncated)
                         .map(|i| {
                             Expression::Literal(LiteralValue::DateTime(
                                 bson::DateTime::from_millis(i),
