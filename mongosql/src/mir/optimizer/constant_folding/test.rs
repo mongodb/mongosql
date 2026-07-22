@@ -4783,7 +4783,7 @@ mod cast {
                 alias: "".into(),
                 array: vec![Expression::Cast(CastExpr {
                     expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str(format!("{}1", f64::MAX).as_str()).unwrap()
+                        bson::Decimal128::from_str(format!("1{}", f64::MAX).as_str()).unwrap()
                     ))
                     .into(),
                     to: Type::Double,
@@ -4809,10 +4809,13 @@ mod cast {
                 alias: "".into(),
                 array: vec![Expression::Cast(CastExpr {
                     expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str(format!("{}1", f64::MIN).as_str()).unwrap()
+                        bson::Decimal128::from_str(
+                            format!("{}", f64::MIN).replacen('1', "2", 1).as_str()
+                        )
+                        .unwrap()
                     ))
                     .into(),
-                    to: Type::Int32,
+                    to: Type::Double,
                     on_null: Expression::Literal(LiteralValue::Null).into(),
                     on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
                     is_nullable: true,
@@ -4863,6 +4866,50 @@ mod cast {
             }),
         );
 
+        // MongoDB loses precision when converting from sufficiently large long values to double.
+        test_constant_fold!(
+            from_long_max_i64_literal,
+            expected = Stage::Array(ArraySource {
+                alias: "".into(),
+                array: vec![Expression::Literal(LiteralValue::Double(i64::MAX as f64))],
+                cache: SchemaCache::new(),
+            }),
+            expected_changed = true,
+            input = Stage::Array(ArraySource {
+                alias: "".into(),
+                array: vec![Expression::Cast(CastExpr {
+                    expr: Expression::Literal(LiteralValue::Long(i64::MAX)).into(),
+                    to: Type::Double,
+                    on_null: Expression::Literal(LiteralValue::Null).into(),
+                    on_error: Expression::Literal(LiteralValue::Null).into(),
+                    is_nullable: true,
+                })],
+                cache: SchemaCache::new(),
+            }),
+        );
+
+        // MongoDB loses precision when converting from sufficiently large long values to double.
+        test_constant_fold!(
+            from_long_min_i64_literal,
+            expected = Stage::Array(ArraySource {
+                alias: "".into(),
+                array: vec![Expression::Literal(LiteralValue::Double(i64::MIN as f64))],
+                cache: SchemaCache::new(),
+            }),
+            expected_changed = true,
+            input = Stage::Array(ArraySource {
+                alias: "".into(),
+                array: vec![Expression::Cast(CastExpr {
+                    expr: Expression::Literal(LiteralValue::Long(i64::MIN)).into(),
+                    to: Type::Double,
+                    on_null: Expression::Literal(LiteralValue::Null).into(),
+                    on_error: Expression::Literal(LiteralValue::Null).into(),
+                    is_nullable: true,
+                })],
+                cache: SchemaCache::new(),
+            }),
+        );
+
         test_constant_fold!(
             from_string_literal,
             expected = Stage::Array(ArraySource {
@@ -4875,6 +4922,151 @@ mod cast {
                 alias: "".into(),
                 array: vec![Expression::Cast(CastExpr {
                     expr: Expression::Literal(LiteralValue::String("-5.5".to_string())).into(),
+                    to: Type::Double,
+                    on_null: Expression::Literal(LiteralValue::Null).into(),
+                    on_error: Expression::Literal(LiteralValue::Null).into(),
+                    is_nullable: true,
+                })],
+                cache: SchemaCache::new(),
+            }),
+        );
+
+        test_constant_fold!(
+            from_string_greater_than_max_f64_literal,
+            expected = Stage::Array(ArraySource {
+                alias: "".into(),
+                array: vec![Expression::Literal(LiteralValue::String(
+                    "error".to_string()
+                ))],
+                cache: SchemaCache::new(),
+            }),
+            expected_changed = true,
+            input = Stage::Array(ArraySource {
+                alias: "".into(),
+                array: vec![Expression::Cast(CastExpr {
+                    expr: Expression::Literal(LiteralValue::String(format!("1{}", f64::MAX)))
+                        .into(),
+                    to: Type::Double,
+                    on_null: Expression::Literal(LiteralValue::Null).into(),
+                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
+                    is_nullable: true,
+                })],
+                cache: SchemaCache::new(),
+            }),
+        );
+
+        test_constant_fold!(
+            from_string_less_than_min_f64_literal,
+            expected = Stage::Array(ArraySource {
+                alias: "".into(),
+                array: vec![Expression::Literal(LiteralValue::String(
+                    "error".to_string()
+                ))],
+                cache: SchemaCache::new(),
+            }),
+            expected_changed = true,
+            input = Stage::Array(ArraySource {
+                alias: "".into(),
+                array: vec![Expression::Cast(CastExpr {
+                    expr: Expression::Literal(LiteralValue::String(
+                        format!("{}", f64::MIN).replacen('1', "2", 1)
+                    ))
+                    .into(),
+                    to: Type::Double,
+                    on_null: Expression::Literal(LiteralValue::Null).into(),
+                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
+                    is_nullable: true,
+                })],
+                cache: SchemaCache::new(),
+            }),
+        );
+
+        // f64::NAN does not equal f64::NAN, so we can't use test_constant_fold! conveniently.
+        // Instead, we manually implement this test and assert that the value is folded to a
+        // LiteralValue::Double(f64::NAN).
+        #[test]
+        fn from_string_nan_literal() {
+            use crate::{
+                catalog::Catalog,
+                map,
+                mir::{
+                    optimizer::constant_folding::ConstantFoldingOptimizer,
+                    schema::{SchemaCheckingMode, SchemaInferenceState},
+                },
+                schema::SchemaEnvironment,
+            };
+            let input = Stage::Array(ArraySource {
+                alias: "".into(),
+                array: vec![Expression::Cast(CastExpr {
+                    expr: Expression::Literal(LiteralValue::String("NaN".to_string())).into(),
+                    to: Type::Double,
+                    on_null: Expression::Literal(LiteralValue::Null).into(),
+                    on_error: Expression::Literal(LiteralValue::Null).into(),
+                    is_nullable: true,
+                })],
+                cache: SchemaCache::new(),
+            });
+
+            let (actual, actual_changed) = ConstantFoldingOptimizer::fold_constants(
+                input,
+                &SchemaInferenceState::new(
+                    0,
+                    SchemaEnvironment::default(),
+                    &Catalog::default(),
+                    map! {},
+                    SchemaCheckingMode::Relaxed,
+                ),
+            );
+            // We should have constant-folded
+            assert!(actual_changed);
+
+            let Stage::Array(ArraySource {
+                alias: _,
+                array,
+                cache: _,
+            }) = actual
+            else {
+                panic!("Expected ArraySource, got {:?}", actual);
+            };
+            let [Expression::Literal(LiteralValue::Double(folded_val))] = array.as_slice() else {
+                panic!("Expected single Literal in array, got {:?}", array);
+            };
+            assert!(folded_val.is_nan());
+        }
+
+        test_constant_fold!(
+            from_string_inf_literal,
+            expected = Stage::Array(ArraySource {
+                alias: "".into(),
+                array: vec![Expression::Literal(LiteralValue::Double(f64::INFINITY))],
+                cache: SchemaCache::new(),
+            }),
+            expected_changed = true,
+            input = Stage::Array(ArraySource {
+                alias: "".into(),
+                array: vec![Expression::Cast(CastExpr {
+                    expr: Expression::Literal(LiteralValue::String("inf".to_string())).into(),
+                    to: Type::Double,
+                    on_null: Expression::Literal(LiteralValue::Null).into(),
+                    on_error: Expression::Literal(LiteralValue::Null).into(),
+                    is_nullable: true,
+                })],
+                cache: SchemaCache::new(),
+            }),
+        );
+
+        test_constant_fold!(
+            from_string_neg_inf_literal,
+            expected = Stage::Array(ArraySource {
+                alias: "".into(),
+                array: vec![Expression::Literal(LiteralValue::Double(f64::NEG_INFINITY))],
+                cache: SchemaCache::new(),
+            }),
+            expected_changed = true,
+            input = Stage::Array(ArraySource {
+                alias: "".into(),
+                array: vec![Expression::Cast(CastExpr {
+                    expr: Expression::Literal(LiteralValue::String("-inf".to_string())).into(),
                     to: Type::Double,
                     on_null: Expression::Literal(LiteralValue::Null).into(),
                     on_error: Expression::Literal(LiteralValue::Null).into(),

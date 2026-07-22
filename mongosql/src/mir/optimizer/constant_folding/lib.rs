@@ -835,7 +835,24 @@ impl ConstantFoldExprVisitor<'_> {
             Type::Boolean => Self::convert_to_boolean(l),
             Type::Int32 => Self::convert_to_int(l),
             Type::Decimal128 => Self::convert_to_decimal(l),
-            _ => None,
+            Type::Double => Self::convert_to_double(l),
+            Type::Int64 => Self::convert_to_int(l),
+            Type::Datetime => Self::convert_to_datetime(l),
+            Type::ObjectId => Self::convert_to_object_id(l),
+            Type::String => Self::convert_to_string(l),
+            Type::Array
+            | Type::Document
+            | Type::BinData
+            | Type::DbPointer
+            | Type::Javascript
+            | Type::JavascriptWithScope
+            | Type::MaxKey
+            | Type::MinKey
+            | Type::Null
+            | Type::RegularExpression
+            | Type::Symbol
+            | Type::Timestamp
+            | Type::Undefined => None,
         }
     }
 
@@ -1027,6 +1044,103 @@ impl ConstantFoldExprVisitor<'_> {
                 .map(|dec| Expression::Literal(LiteralValue::Decimal128(dec)))
                 .map_err(|_| ()),
         )
+    }
+
+    fn convert_to_double(l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        match l {
+            // Null literal values are handled directly by the `fold_cast_expr` method. Here, we
+            // return None to indicate folding did not happen, but still could in `fold_cast_expr`.
+            LiteralValue::Null => None,
+
+            // False converts to 0, true converts to 1.
+            LiteralValue::Boolean(false) => {
+                Some(Ok(Expression::Literal(LiteralValue::Double(0.0))))
+            }
+            LiteralValue::Boolean(true) => Some(Ok(Expression::Literal(LiteralValue::Double(1.0)))),
+
+            // Doubles are trivially converted to themselves.
+            LiteralValue::Double(v) => Some(Ok(Expression::Literal(LiteralValue::Double(*v)))),
+
+            // Other numeric types may be converted to double if they are in range.
+            LiteralValue::Integer(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::Double(*v as f64))))
+            }
+            LiteralValue::Long(v) => {
+                // MongoDB's conversion of long to double can result in loss of precision, so we do
+                // the same by using Rust's `as f64` operation which also loses precision.
+                Some(Ok(Expression::Literal(LiteralValue::Double(*v as f64))))
+            }
+            LiteralValue::Decimal128(v) => {
+                // Since we cannot operate on Decimal128 values directly, we convert to string and
+                // parse as f64. When parsing an f64 value from a string, if the value exceeds the
+                // range of f64, the parse will result in f64::Inf or f64::NegInf. We check if the
+                // parsed value is finite and return an Err otherwise.
+                let s = v.to_string();
+                match f64::from_str(&s) {
+                    Ok(f) if f.is_finite() => {
+                        Some(Ok(Expression::Literal(LiteralValue::Double(f))))
+                    }
+                    _ => Some(Err(())),
+                }
+            }
+
+            // Strings may be converted to double if they represent numeric values in range. If they
+            // are non-numeric or are out of range conversion fails.
+            LiteralValue::String(v) => {
+                match v.to_ascii_lowercase().as_str() {
+                    // We manually check for "nan", "inf", and "-inf" since numbers that exceed the
+                    // bounds of f64 will be parsed into f64::Inf or f64::NegInf, which is not how
+                    // MongoDB behaves. By manually checking these 3 special values, we can still
+                    // leverage f64::from_str/f64::is_finite for values that are in-range.
+                    "nan" => Some(Ok(Expression::Literal(LiteralValue::Double(f64::NAN)))),
+                    "inf" => Some(Ok(Expression::Literal(LiteralValue::Double(f64::INFINITY)))),
+                    "-inf" => Some(Ok(Expression::Literal(LiteralValue::Double(
+                        f64::NEG_INFINITY,
+                    )))),
+                    v => match f64::from_str(v) {
+                        Ok(f) if f.is_finite() => {
+                            Some(Ok(Expression::Literal(LiteralValue::Double(f))))
+                        }
+                        _ => Some(Err(())),
+                    },
+                }
+            }
+
+            // Dates may be converted to double by converting the number of milliseconds since the
+            // epoch that corresponds to the date value to double.
+            LiteralValue::DateTime(v) => Some(Ok(Expression::Literal(LiteralValue::Double(
+                v.timestamp_millis() as f64,
+            )))),
+
+            // These types are not supported for conversion to int.
+            LiteralValue::Binary(_)
+            | LiteralValue::JavaScriptCode(_)
+            | LiteralValue::JavaScriptCodeWithScope(_)
+            | LiteralValue::MaxKey
+            | LiteralValue::MinKey
+            | LiteralValue::ObjectId(_)
+            | LiteralValue::RegularExpression(_)
+            | LiteralValue::Timestamp(_)
+            | LiteralValue::DbPointer(_)
+            | LiteralValue::Symbol(_)
+            | LiteralValue::Undefined => None,
+        }
+    }
+
+    fn convert_to_long(_l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        todo!()
+    }
+
+    fn convert_to_datetime(_l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        todo!()
+    }
+
+    fn convert_to_object_id(_l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        todo!()
+    }
+
+    fn convert_to_string(_l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        todo!()
     }
 
     fn convert_string_literal(s: &str, to: Type) -> Option<Result<Expression, ()>> {
