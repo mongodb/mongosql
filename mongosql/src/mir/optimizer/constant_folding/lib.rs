@@ -819,20 +819,99 @@ impl ConstantFoldExprVisitor<'_> {
         }
     }
 
-    // Attempts to fold a Cast whose input is a constant literal into a literal of
-    // the target type.
-    //
-    // None means no conversion could occur (fall through to schema-based folding).
-    // Some(Err(())) means there was an opportunity for conversion but it statically
-    // fails; since it would also fail at runtime, we fold to the Cast's on_error.
-    // Some(Ok(_)) means we successfully converted a literal.
+    /// Attempts to fold a Cast whose input is a constant literal into a literal
+    /// of the target type.
+    ///
+    /// None means no conversion could occur (fall through to schema-based
+    /// folding).
+    ///
+    /// Some(Err(())) means there was an opportunity for conversion, but it
+    /// statically fails; since it would also fail at runtime, we fold to the
+    /// Cast's on_error.
+    ///
+    /// Some(Ok(_)) means we successfully converted a literal.
     fn convert_literal(l: &LiteralValue, to: Type) -> Option<Result<Expression, ()>> {
-        match l {
-            LiteralValue::String(s) => Self::convert_string_literal(s, to),
-            LiteralValue::Integer(i) => Self::convert_numerical_literal(*i, to),
-            LiteralValue::Long(l) => Self::convert_numerical_literal(*l, to),
-            LiteralValue::Double(d) => Self::convert_numerical_literal(*d, to),
+        match to {
+            Type::Boolean => Self::convert_to_boolean(l),
             _ => None,
+        }
+
+        // match l {
+        //     LiteralValue::String(s) => Self::convert_string_literal(s, to),
+        //     LiteralValue::Integer(i) => Self::convert_numerical_literal(*i, to),
+        //     LiteralValue::Long(l) => Self::convert_numerical_literal(*l, to),
+        //     LiteralValue::Double(d) => Self::convert_numerical_literal(*d, to),
+        //     _ => None,
+        // }
+    }
+
+    /// Attempts to fold a Cast whose input is a literal Array into a literal of
+    /// the target type. Pre-8.3 server versions only support converting arrays
+    /// to boolean (unconditionally `true`). In the future, we may expand this
+    /// method to support post-8.3 conversions.
+    ///
+    /// This function does not do array-to-array conversion as that is done more
+    /// efficiently directly in `fold_cast_expr`.
+    fn convert_literal_array(_: &ArrayExpr, to: Type) -> Option<Result<Expression, ()>> {
+        match to {
+            Type::Boolean => Some(Ok(Expression::Literal(LiteralValue::Boolean(true)))),
+            _ => None,
+        }
+    }
+
+    /// Attempts to fold a Cast whose input is a literal Document into a
+    /// literal of the target type. Pre-8.3 server versions only support
+    /// converting documents to boolean (unconditionally `true`). In the
+    /// future, we may expand this method to support post-8.3 conversions.
+    ///
+    /// This function does not do document-to-document conversion as that
+    /// is done more efficiently directly in `fold_cast_expr`.
+    fn convert_literal_document(_: &DocumentExpr, to: Type) -> Option<Result<Expression, ()>> {
+        match to {
+            Type::Boolean => Some(Ok(Expression::Literal(LiteralValue::Boolean(true)))),
+            _ => None,
+        }
+    }
+
+    fn convert_to_boolean(l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        match l {
+            // Null literal values are handled directly by the `fold_cast_expr` method. Here, we
+            // return None to indicate folding did not happen but could by other means.
+            LiteralValue::Null => None,
+
+            // Booleans are trivially converted to themselves.
+            LiteralValue::Boolean(v) => Some(Ok(Expression::Literal(LiteralValue::Boolean(*v)))),
+
+            // Numeric types are converted to true if non-zero, false otherwise.
+            LiteralValue::Integer(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::Boolean(*v != 0))))
+            }
+            LiteralValue::Long(v) => Some(Ok(Expression::Literal(LiteralValue::Boolean(*v != 0)))),
+            LiteralValue::Double(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::Boolean(*v != 0.0))))
+            }
+            LiteralValue::Decimal128(v) => Some(Ok(Expression::Literal(LiteralValue::Boolean(
+                v.ne(&DECIMAL_ZERO),
+            )))),
+
+            // These types are explicitly supported by MongoDB's `$convert` expression. They all
+            // unconditionally convert to true.
+            LiteralValue::Binary(_)
+            | LiteralValue::DateTime(_)
+            | LiteralValue::JavaScriptCode(_)
+            | LiteralValue::JavaScriptCodeWithScope(_)
+            | LiteralValue::MaxKey
+            | LiteralValue::MinKey
+            | LiteralValue::ObjectId(_)
+            | LiteralValue::RegularExpression(_)
+            | LiteralValue::String(_)
+            | LiteralValue::Timestamp(_) => {
+                Some(Ok(Expression::Literal(LiteralValue::Boolean(true))))
+            }
+
+            // These types are deprecated and their convert-to-bool behavior is no longer documented
+            // by MongoDB. Therefore, we do not attempt to fold them.
+            LiteralValue::DbPointer(_) | LiteralValue::Symbol(_) | LiteralValue::Undefined => None,
         }
     }
 
@@ -897,22 +976,28 @@ impl ConstantFoldExprVisitor<'_> {
     // Constant folds the cast expression
     fn fold_cast_expr(&mut self, cast_expr: CastExpr) -> (Expression, bool) {
         use crate::schema::{ANY_ARRAY, ANY_DOCUMENT};
+
         // If the input is a constant literal, attempt to fold the cast into a
         // literal of the target type. A static conversion failure folds to the
         // Cast's on_error, matching runtime CAST semantics.
-        if let Expression::Literal(ref l) = *cast_expr.expr {
-            match Self::convert_literal(l, cast_expr.to) {
-                Some(Ok(folded)) => return (folded, true),
-                Some(Err(())) => return (*cast_expr.on_error, true),
-                None => {}
-            }
+        let conversion_result = match cast_expr.expr.as_ref() {
+            Expression::Literal(ref l) => Self::convert_literal(l, cast_expr.to),
+            Expression::Array(ref a) => Self::convert_literal_array(a, cast_expr.to),
+            Expression::Document(ref d) => Self::convert_literal_document(d, cast_expr.to),
+            _ => None,
+        };
+
+        match conversion_result {
+            Some(Ok(folded)) => return (folded, true),
+            Some(Err(())) => return (*cast_expr.on_error, true),
+            None => {}
         }
+
         let schema = cast_expr.expr.schema(self.state);
-        if schema.is_err() {
+        let Ok(schema) = schema else {
             return (Expression::Cast(cast_expr), false);
-        }
+        };
         let target_schema = Schema::from(cast_expr.to);
-        let schema = schema.unwrap();
         let sat = schema.satisfies(&target_schema);
         if self.schema_is_exactly_nullish(schema) {
             (*cast_expr.on_null, true)
