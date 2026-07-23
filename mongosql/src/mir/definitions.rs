@@ -380,7 +380,7 @@ pub enum LiteralValue {
     DbPointer(bson::DbPointer),
 }
 
-static DECIMAL_ZERO: LazyLock<bson::Decimal128> = LazyLock::new(|| "0.0".parse().unwrap());
+pub(crate) static DECIMAL_ZERO: LazyLock<bson::Decimal128> = LazyLock::new(|| "0.0".parse().unwrap());
 impl LiteralValue {
     pub fn is_falsy(&self) -> bool {
         match self {

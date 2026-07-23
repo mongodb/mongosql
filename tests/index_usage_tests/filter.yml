@@ -259,3 +259,8 @@ tests:
     current_db: index_usage_filter
     query: "SELECT * FROM nullable_fields WHERE b IN (SELECT b FROM non_nullable_fields WHERE a < 300)"
     expected_utilization: COLL_SCAN
+
+  - description: CAST literal date using Tableau Date format to datetime uses index
+    current_db: index_usage_filter
+    query: "SELECT * FROM dates WHERE d >= CAST('2026-07-01' AS BSON_DATE)"
+    expected_utilization: IX_SCAN

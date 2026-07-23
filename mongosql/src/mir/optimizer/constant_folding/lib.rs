@@ -819,38 +819,474 @@ impl ConstantFoldExprVisitor<'_> {
         }
     }
 
-    // Attempts to fold a Cast whose input is a constant literal into a literal of
-    // the target type.
-    //
-    // None means no conversion could occur (fall through to schema-based folding).
-    // Some(Err(())) means there was an opportunity for conversion but it statically
-    // fails; since it would also fail at runtime, we fold to the Cast's on_error.
-    // Some(Ok(_)) means we successfully converted a literal.
+    /// Attempts to fold a Cast whose input is a constant literal into a literal
+    /// of the target type.
+    ///
+    /// None means no conversion could occur (fall through to schema-based
+    /// folding).
+    ///
+    /// Some(Err(())) means there was an opportunity for conversion, but it
+    /// statically fails; since it would also fail at runtime, we fold to the
+    /// Cast's on_error.
+    ///
+    /// Some(Ok(_)) means we successfully converted a literal.
     fn convert_literal(l: &LiteralValue, to: Type) -> Option<Result<Expression, ()>> {
-        match l {
-            LiteralValue::String(s) => Self::convert_string_literal(s, to),
-            LiteralValue::Integer(i) => Self::convert_numerical_literal(*i, to),
-            LiteralValue::Long(l) => Self::convert_numerical_literal(*l, to),
-            LiteralValue::Double(d) => Self::convert_numerical_literal(*d, to),
+        match to {
+            Type::Boolean => Self::convert_to_boolean(l),
+            Type::Int32 => Self::convert_to_int(l),
+            Type::Decimal128 => Self::convert_to_decimal(l),
+            Type::Double => Self::convert_to_double(l),
+            Type::Int64 => Self::convert_to_long(l),
+            Type::Datetime => Self::convert_to_datetime(l),
+            Type::ObjectId => Self::convert_to_object_id(l),
+            Type::String => Self::convert_to_string(l),
+            Type::Array
+            | Type::Document
+            | Type::BinData
+            | Type::DbPointer
+            | Type::Javascript
+            | Type::JavascriptWithScope
+            | Type::MaxKey
+            | Type::MinKey
+            | Type::Null
+            | Type::RegularExpression
+            | Type::Symbol
+            | Type::Timestamp
+            | Type::Undefined => None,
+        }
+    }
+
+    /// Attempts to fold a Cast whose input is a literal Array into a literal of
+    /// the target type. Pre-8.3 server versions only support converting arrays
+    /// to boolean (unconditionally `true`). In the future, we may expand this
+    /// method to support post-8.3 conversions.
+    ///
+    /// This function does not do array-to-array conversion as that is done more
+    /// efficiently directly in `fold_cast_expr`.
+    fn convert_literal_array(_: &ArrayExpr, to: Type) -> Option<Result<Expression, ()>> {
+        match to {
+            Type::Boolean => Some(Ok(Expression::Literal(LiteralValue::Boolean(true)))),
             _ => None,
         }
     }
 
-    fn convert_string_literal(s: &str, to: Type) -> Option<Result<Expression, ()>> {
+    /// Attempts to fold a Cast whose input is a literal Document into a
+    /// literal of the target type. Pre-8.3 server versions only support
+    /// converting documents to boolean (unconditionally `true`). In the
+    /// future, we may expand this method to support post-8.3 conversions.
+    ///
+    /// This function does not do document-to-document conversion as that
+    /// is done more efficiently directly in `fold_cast_expr`.
+    fn convert_literal_document(_: &DocumentExpr, to: Type) -> Option<Result<Expression, ()>> {
         match to {
-            // We'll handle the no-op convert too. But we are not handling every possible case.
-            // This is mostly used to easily test that we are properly recursing, but could offer
-            // some benefit.
-            Type::String => Some(Ok(Expression::Literal(LiteralValue::String(s.to_string())))),
-            Type::Datetime => {
-                // format YYYY-MM-DD(T| )HH:mm:SS(.ms)?Z?, where `?` denotes optional
-                let chrono_dt: Option<chrono::DateTime<Utc>> = if s.ends_with('Z') {
-                    s.parse().ok()
+            Type::Boolean => Some(Ok(Expression::Literal(LiteralValue::Boolean(true)))),
+            _ => None,
+        }
+    }
+
+    fn convert_to_boolean(l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        match l {
+            // Null literal values are handled directly by the `fold_cast_expr` method. Here, we
+            // return None to indicate folding did not happen, but still could in `fold_cast_expr`.
+            LiteralValue::Null => None,
+
+            // Booleans are trivially converted to themselves.
+            LiteralValue::Boolean(v) => Some(Ok(Expression::Literal(LiteralValue::Boolean(*v)))),
+
+            // Numeric types are converted to true if non-zero, false otherwise.
+            LiteralValue::Integer(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::Boolean(*v != 0))))
+            }
+            LiteralValue::Long(v) => Some(Ok(Expression::Literal(LiteralValue::Boolean(*v != 0)))),
+            LiteralValue::Double(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::Boolean(*v != 0.0))))
+            }
+            LiteralValue::Decimal128(v) => Some(Ok(Expression::Literal(LiteralValue::Boolean(
+                v.ne(&DECIMAL_ZERO),
+            )))),
+
+            // These types are explicitly supported by MongoDB's `$convert` expression. They all
+            // unconditionally convert to true.
+            LiteralValue::Binary(_)
+            | LiteralValue::DateTime(_)
+            | LiteralValue::JavaScriptCode(_)
+            | LiteralValue::JavaScriptCodeWithScope(_)
+            | LiteralValue::MaxKey
+            | LiteralValue::MinKey
+            | LiteralValue::ObjectId(_)
+            | LiteralValue::RegularExpression(_)
+            | LiteralValue::String(_)
+            | LiteralValue::Timestamp(_) => {
+                Some(Ok(Expression::Literal(LiteralValue::Boolean(true))))
+            }
+
+            // These types are deprecated and their convert-to-bool behavior is no longer documented
+            // by MongoDB. Therefore, we do not attempt to fold them.
+            LiteralValue::DbPointer(_) | LiteralValue::Symbol(_) | LiteralValue::Undefined => None,
+        }
+    }
+
+    fn convert_to_int(l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        match l {
+            // Null literal values are handled directly by the `fold_cast_expr` method. Here, we
+            // return None to indicate folding did not happen, but still could in `fold_cast_expr`.
+            LiteralValue::Null => None,
+
+            // False converts to 0, true converts to 1.
+            LiteralValue::Boolean(false) => Some(Ok(Expression::Literal(LiteralValue::Integer(0)))),
+            LiteralValue::Boolean(true) => Some(Ok(Expression::Literal(LiteralValue::Integer(1)))),
+
+            // Integers are trivially converted to themselves.
+            LiteralValue::Integer(v) => Some(Ok(Expression::Literal(LiteralValue::Integer(*v)))),
+
+            // Other numeric types may be converted to int if they are in range.
+            LiteralValue::Long(v) => Some(
+                i32::try_from(*v)
+                    .map(|i| Expression::Literal(LiteralValue::Integer(i)))
+                    .map_err(|_| ()),
+            ),
+            LiteralValue::Double(v) => {
+                // MongoDB truncates when converting a double to an int.
+                let truncated = v.trunc();
+                if truncated.is_finite()
+                    && truncated >= i32::MIN as f64
+                    && truncated <= i32::MAX as f64
+                {
+                    Some(Ok(Expression::Literal(LiteralValue::Integer(
+                        truncated as i32,
+                    ))))
                 } else {
-                    let mut s = s.to_string();
-                    s.push('Z');
-                    s.parse().ok()
+                    Some(Err(()))
+                }
+            }
+            LiteralValue::Decimal128(v) => {
+                // MongoDB truncates when converting a decimal to an int.
+                // Since we cannot operate on Decimal128 values directly, we convert to string and
+                // truncate by taking only the part before the decimal point.
+                let s = v.to_string();
+                let truncated = s.split('.').next().unwrap_or(&s);
+                Some(
+                    i32::from_str(truncated)
+                        .map(|i| Expression::Literal(LiteralValue::Integer(i)))
+                        .map_err(|_| ()),
+                )
+            }
+
+            // Strings may be converted to int if they represent integral numeric values in range of
+            // int32. If they are non-numeric, contain floating point values, or are out of range,
+            // conversion fails.
+            LiteralValue::String(v) => Some(
+                i32::from_str(v)
+                    .map(|i| Expression::Literal(LiteralValue::Integer(i)))
+                    .map_err(|_| ()),
+            ),
+
+            // These types are not supported for conversion to int.
+            LiteralValue::Binary(_)
+            | LiteralValue::DateTime(_)
+            | LiteralValue::JavaScriptCode(_)
+            | LiteralValue::JavaScriptCodeWithScope(_)
+            | LiteralValue::MaxKey
+            | LiteralValue::MinKey
+            | LiteralValue::ObjectId(_)
+            | LiteralValue::RegularExpression(_)
+            | LiteralValue::Timestamp(_)
+            | LiteralValue::DbPointer(_)
+            | LiteralValue::Symbol(_)
+            | LiteralValue::Undefined => None,
+        }
+    }
+
+    fn convert_to_decimal(l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        let str_to_convert = match l {
+            // Null literal values are handled directly by the `fold_cast_expr` method. Here, we
+            // return None to indicate folding did not happen, but still could in `fold_cast_expr`.
+            LiteralValue::Null => return None,
+
+            // False converts to 0, true converts to 1.
+            LiteralValue::Boolean(false) => "0",
+            LiteralValue::Boolean(true) => "1",
+
+            // Numeric types convert to decimal without loss of precision.
+            LiteralValue::Integer(v) => &format!("{v}"),
+            LiteralValue::Long(v) => &format!("{v}"),
+            LiteralValue::Double(v) => &format!("{v}"),
+
+            // Decimal128s are trivially converted to themselves.
+            LiteralValue::Decimal128(v) => {
+                return Some(Ok(Expression::Literal(LiteralValue::Decimal128(*v))))
+            }
+
+            // Strings may be converted to decimal128 if they represent numeric values in range of
+            // decimal128. If they are non-numeric or are out of range, conversion fails.
+            LiteralValue::String(v) => v,
+
+            // Dates may be converted to decimal128 by converting the number of milliseconds since
+            // the epoch that corresponds to the date value to decimal128.
+            LiteralValue::DateTime(v) => &format!("{}", v.timestamp_millis()),
+
+            // These types are not supported for conversion to decimal128.
+            LiteralValue::Binary(_)
+            | LiteralValue::JavaScriptCode(_)
+            | LiteralValue::JavaScriptCodeWithScope(_)
+            | LiteralValue::MaxKey
+            | LiteralValue::MinKey
+            | LiteralValue::ObjectId(_)
+            | LiteralValue::RegularExpression(_)
+            | LiteralValue::Timestamp(_)
+            | LiteralValue::DbPointer(_)
+            | LiteralValue::Symbol(_)
+            | LiteralValue::Undefined => return None,
+        };
+
+        Some(
+            Decimal128::from_str(str_to_convert)
+                .map(|dec| Expression::Literal(LiteralValue::Decimal128(dec)))
+                .map_err(|_| ()),
+        )
+    }
+
+    fn convert_to_double(l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        match l {
+            // Null literal values are handled directly by the `fold_cast_expr` method. Here, we
+            // return None to indicate folding did not happen, but still could in `fold_cast_expr`.
+            LiteralValue::Null => None,
+
+            // False converts to 0, true converts to 1.
+            LiteralValue::Boolean(false) => {
+                Some(Ok(Expression::Literal(LiteralValue::Double(0.0))))
+            }
+            LiteralValue::Boolean(true) => Some(Ok(Expression::Literal(LiteralValue::Double(1.0)))),
+
+            // Doubles are trivially converted to themselves.
+            LiteralValue::Double(v) => Some(Ok(Expression::Literal(LiteralValue::Double(*v)))),
+
+            // Other numeric types may be converted to double if they are in range.
+            LiteralValue::Integer(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::Double(*v as f64))))
+            }
+            LiteralValue::Long(v) => {
+                // MongoDB's conversion of long to double can result in loss of precision, so we do
+                // the same by using Rust's `as f64` operation which also loses precision.
+                Some(Ok(Expression::Literal(LiteralValue::Double(*v as f64))))
+            }
+            LiteralValue::Decimal128(v) => {
+                // Since we cannot operate on Decimal128 values directly, we convert to string and
+                // parse as f64. When parsing an f64 value from a string, if the value exceeds the
+                // range of f64, the parse will result in f64::Inf or f64::NegInf. We check if the
+                // parsed value is finite and return an Err otherwise.
+                let s = v.to_string();
+                match f64::from_str(&s) {
+                    Ok(f) if f.is_finite() => {
+                        Some(Ok(Expression::Literal(LiteralValue::Double(f))))
+                    }
+                    _ => Some(Err(())),
+                }
+            }
+
+            // Strings may be converted to double if they represent numeric values in range. If they
+            // are non-numeric or are out of range conversion fails.
+            LiteralValue::String(v) => {
+                match v.to_ascii_lowercase().as_str() {
+                    // We manually check for "nan", "inf", and "-inf" since numbers that exceed the
+                    // bounds of f64 will be parsed into f64::Inf or f64::NegInf, which is not how
+                    // MongoDB behaves. By manually checking these 3 special values, we can still
+                    // leverage f64::from_str/f64::is_finite for values that are in-range.
+                    "nan" => Some(Ok(Expression::Literal(LiteralValue::Double(f64::NAN)))),
+                    "inf" => Some(Ok(Expression::Literal(LiteralValue::Double(f64::INFINITY)))),
+                    "-inf" => Some(Ok(Expression::Literal(LiteralValue::Double(
+                        f64::NEG_INFINITY,
+                    )))),
+                    v => match f64::from_str(v) {
+                        Ok(f) if f.is_finite() => {
+                            Some(Ok(Expression::Literal(LiteralValue::Double(f))))
+                        }
+                        _ => Some(Err(())),
+                    },
+                }
+            }
+
+            // Dates may be converted to double by converting the number of milliseconds since the
+            // epoch that corresponds to the date value to double.
+            LiteralValue::DateTime(v) => Some(Ok(Expression::Literal(LiteralValue::Double(
+                v.timestamp_millis() as f64,
+            )))),
+
+            // These types are not supported for conversion to double.
+            LiteralValue::Binary(_)
+            | LiteralValue::JavaScriptCode(_)
+            | LiteralValue::JavaScriptCodeWithScope(_)
+            | LiteralValue::MaxKey
+            | LiteralValue::MinKey
+            | LiteralValue::ObjectId(_)
+            | LiteralValue::RegularExpression(_)
+            | LiteralValue::Timestamp(_)
+            | LiteralValue::DbPointer(_)
+            | LiteralValue::Symbol(_)
+            | LiteralValue::Undefined => None,
+        }
+    }
+
+    fn convert_to_long(l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        match l {
+            // Null literal values are handled directly by the `fold_cast_expr` method. Here, we
+            // return None to indicate folding did not happen, but still could in `fold_cast_expr`.
+            LiteralValue::Null => None,
+
+            // False converts to 0, true converts to 1.
+            LiteralValue::Boolean(false) => Some(Ok(Expression::Literal(LiteralValue::Long(0)))),
+            LiteralValue::Boolean(true) => Some(Ok(Expression::Literal(LiteralValue::Long(1)))),
+
+            // Longs are trivially converted to themselves.
+            LiteralValue::Long(v) => Some(Ok(Expression::Literal(LiteralValue::Long(*v)))),
+
+            // Other numeric types may be converted to long if they are in range.
+            LiteralValue::Integer(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::Long(*v as i64))))
+            }
+            LiteralValue::Double(v) => {
+                // MongoDB truncates when converting a double to a long.
+                let truncated = v.trunc();
+                if truncated.is_finite()
+                    && truncated >= i64::MIN as f64
+                    && truncated <= i64::MAX as f64
+                {
+                    Some(Ok(Expression::Literal(LiteralValue::Long(
+                        truncated as i64,
+                    ))))
+                } else {
+                    Some(Err(()))
+                }
+            }
+            LiteralValue::Decimal128(v) => {
+                // MongoDB truncates when converting a decimal to a long.
+                // Since we cannot operate on Decimal128 values directly, we convert to string and
+                // truncate by taking only the part before the decimal point.
+                let s = v.to_string();
+                let truncated = s.split('.').next().unwrap_or(&s);
+                Some(
+                    i64::from_str(truncated)
+                        .map(|i| Expression::Literal(LiteralValue::Long(i)))
+                        .map_err(|_| ()),
+                )
+            }
+
+            // Strings may be converted to long if they represent integral numeric values in range
+            // of i64. If they are non-numeric, contain floating point values, or are out of range,
+            // conversion fails.
+            LiteralValue::String(v) => Some(
+                i64::from_str(v)
+                    .map(|i| Expression::Literal(LiteralValue::Long(i)))
+                    .map_err(|_| ()),
+            ),
+
+            // Dates may be converted to long by getting the number of milliseconds since the
+            // epoch that corresponds to the date, which is already a long.
+            LiteralValue::DateTime(v) => Some(Ok(Expression::Literal(LiteralValue::Long(
+                v.timestamp_millis(),
+            )))),
+
+            // These types are not supported for conversion to long.
+            LiteralValue::Binary(_)
+            | LiteralValue::JavaScriptCode(_)
+            | LiteralValue::JavaScriptCodeWithScope(_)
+            | LiteralValue::MaxKey
+            | LiteralValue::MinKey
+            | LiteralValue::ObjectId(_)
+            | LiteralValue::RegularExpression(_)
+            | LiteralValue::Timestamp(_)
+            | LiteralValue::DbPointer(_)
+            | LiteralValue::Symbol(_)
+            | LiteralValue::Undefined => None,
+        }
+    }
+
+    fn convert_to_datetime(l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        match l {
+            // Null literal values are handled directly by the `fold_cast_expr` method. Here, we
+            // return None to indicate folding did not happen, but still could in `fold_cast_expr`.
+            LiteralValue::Null => None,
+
+            // Datetimes are trivially converted to themselves.
+            LiteralValue::DateTime(v) => Some(Ok(Expression::Literal(LiteralValue::DateTime(*v)))),
+
+            // Numbers may be converted to datetime by converting to long and then to datetime.
+            // Numbers that are out of range of i64 result in an error.
+            LiteralValue::Long(v) => Some(Ok(Expression::Literal(LiteralValue::DateTime(
+                bson::DateTime::from_millis(*v),
+            )))),
+            LiteralValue::Double(v) => {
+                // MongoDB truncates when converting a double to a date.
+                let truncated = v.trunc();
+                if truncated.is_finite()
+                    && truncated >= i64::MIN as f64
+                    && truncated <= i64::MAX as f64
+                {
+                    Some(Ok(Expression::Literal(LiteralValue::DateTime(
+                        bson::DateTime::from_millis(truncated as i64),
+                    ))))
+                } else {
+                    Some(Err(()))
+                }
+            }
+            LiteralValue::Decimal128(v) => {
+                // MongoDB truncates when converting a decimal to a date.
+                // Since we cannot operate on Decimal128 values directly, we convert to string and
+                // truncate by taking only the part before the decimal point.
+                let s = v.to_string();
+                let truncated = s.split('.').next().unwrap_or(&s);
+                Some(
+                    i64::from_str(truncated)
+                        .map(|i| {
+                            Expression::Literal(LiteralValue::DateTime(
+                                bson::DateTime::from_millis(i),
+                            ))
+                        })
+                        .map_err(|_| ()),
+                )
+            }
+
+            // ObjectIds may be converted to datetime by getting the timestamp from the ObjectId.
+            LiteralValue::ObjectId(v) => Some(Ok(Expression::Literal(LiteralValue::DateTime(
+                v.timestamp(),
+            )))),
+
+            // Strings can be converted into the dates that correspond to the date string.
+            // Valid formats that MongoDB supports are:
+            //   - "2018-03-03"
+            //   - "2018-03-03T12:00:00Z"
+            //   - "2018-03-03T12:00:00+0500"
+            LiteralValue::String(v) => {
+                // Check if string ends with timezone offset: +HHMM or -HHMM
+                let has_timezone_offset = v.len() >= 5 && {
+                    let last_5 = &v[v.len() - 5..];
+                    let bytes = last_5.as_bytes();
+                    (bytes[0] == b'+' || bytes[0] == b'-')
+                        && bytes[1..].iter().all(|b| b.is_ascii_digit())
                 };
+
+                // If it ends with 'Z' or '+/-HHMM', we can attempt to parse it directly. That is,
+                // if it matches the format YYYY-MM-DD(T| )HH:mm:SS((.ms)?Z|(+|-)HHMM)?, where `?`
+                // denotes optional.
+                let chrono_dt: Option<chrono::DateTime<Utc>> =
+                    if v.ends_with('Z') || has_timezone_offset {
+                        v.parse().ok()
+                    } else if v.len() == 10 {
+                        // If it does not end with 'Z' or '+/-HHMM' and is length 10, we assume it
+                        // is in YYYY-MM-DD format. We append the T00:00:00Z time to the string so
+                        // that we can attempt to parse it into a chrono::DateTime<Utc>.
+                        let mut s = v.to_string();
+                        s.push_str("T00:00:00Z");
+                        s.parse().ok()
+                    } else {
+                        // If it does not end with 'Z' or '+/-HHMM' and is not length 10, we assume
+                        // it is in YYYY-MM-DD(T| )HH:mm:SS(.ms)? format. We append the 'Z' to the
+                        // string so we can attempt to parse it into a chrono::DateTime<Utc>.
+                        let mut s = v.to_string();
+                        s.push('Z');
+                        s.parse().ok()
+                    };
+
                 // We cannot guarantee our format here supports everything that MongoDB supports,
                 // so we instead fall back to the original cast expression when our attempt to
                 // create a Date fails, and allow MongoDB to succeed or fail as it will.
@@ -860,59 +1296,133 @@ impl ConstantFoldExprVisitor<'_> {
                     )))
                 })
             }
-            Type::Decimal128 => {
-                let dec = Decimal128::from_str(s).ok();
-                match dec {
-                    Some(dec) => Some(Ok(Expression::Literal(LiteralValue::Decimal128(dec)))),
-                    None => Some(Err(())),
-                }
-            }
-            Type::ObjectId => {
-                let oid = ObjectId::parse_str(s).ok();
-                match oid {
-                    Some(oid) => Some(Ok(Expression::Literal(LiteralValue::ObjectId(oid)))),
-                    None => Some(Err(())),
-                }
-            }
-            _ => None,
+
+            // These types are not supported for conversion to datetime.
+            LiteralValue::Boolean(_)
+            | LiteralValue::Binary(_)
+            | LiteralValue::Integer(_)
+            | LiteralValue::JavaScriptCode(_)
+            | LiteralValue::JavaScriptCodeWithScope(_)
+            | LiteralValue::MaxKey
+            | LiteralValue::MinKey
+            | LiteralValue::RegularExpression(_)
+            | LiteralValue::Timestamp(_)
+            | LiteralValue::DbPointer(_)
+            | LiteralValue::Symbol(_)
+            | LiteralValue::Undefined => None,
         }
     }
 
-    fn convert_numerical_literal<T: std::fmt::Display>(
-        i: T,
-        to: Type,
-    ) -> Option<Result<Expression, ()>> {
-        match to {
-            Type::Decimal128 => {
-                let dec = Decimal128::from_str(&format!("{i}")).ok();
-                match dec {
-                    Some(dec) => Some(Ok(Expression::Literal(LiteralValue::Decimal128(dec)))),
-                    None => Some(Err(())),
-                }
+    fn convert_to_object_id(l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        match l {
+            // Null literal values are handled directly by the `fold_cast_expr` method. Here, we
+            // return None to indicate folding did not happen, but still could in `fold_cast_expr`.
+            LiteralValue::Null => None,
+
+            // ObjectIds are trivially converted to themselves.
+            LiteralValue::ObjectId(v) => Some(Ok(Expression::Literal(LiteralValue::ObjectId(*v)))),
+
+            // Strings that are encoded as valid ObjectIds may be converted to ObjectIds.
+            LiteralValue::String(v) => Some(
+                ObjectId::parse_str(v)
+                    .map(|oid| Expression::Literal(LiteralValue::ObjectId(oid)))
+                    .map_err(|_| ()),
+            ),
+
+            // These types are not supported for conversion to ObjectId.
+            LiteralValue::Boolean(_)
+            | LiteralValue::Integer(_)
+            | LiteralValue::Long(_)
+            | LiteralValue::Double(_)
+            | LiteralValue::RegularExpression(_)
+            | LiteralValue::JavaScriptCode(_)
+            | LiteralValue::JavaScriptCodeWithScope(_)
+            | LiteralValue::Timestamp(_)
+            | LiteralValue::Binary(_)
+            | LiteralValue::DateTime(_)
+            | LiteralValue::Symbol(_)
+            | LiteralValue::Decimal128(_)
+            | LiteralValue::Undefined
+            | LiteralValue::MaxKey
+            | LiteralValue::MinKey
+            | LiteralValue::DbPointer(_) => None,
+        }
+    }
+
+    fn convert_to_string(l: &LiteralValue) -> Option<Result<Expression, ()>> {
+        match l {
+            // Null literal values are handled directly by the `fold_cast_expr` method. Here, we
+            // return None to indicate folding did not happen, but still could in `fold_cast_expr`.
+            LiteralValue::Null => None,
+
+            // Strings are trivially converted to themselves.
+            LiteralValue::String(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::String(v.clone()))))
             }
-            _ => None,
+
+            // A subset of types is supported by MongoDB pre-8.3, so we constrain ourselves to those
+            // types here.
+            LiteralValue::Boolean(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::String(v.to_string()))))
+            }
+            LiteralValue::Integer(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::String(v.to_string()))))
+            }
+            LiteralValue::Long(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::String(v.to_string()))))
+            }
+            LiteralValue::Double(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::String(v.to_string()))))
+            }
+            LiteralValue::Decimal128(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::String(v.to_string()))))
+            }
+            LiteralValue::ObjectId(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::String(v.to_string()))))
+            }
+            LiteralValue::DateTime(v) => {
+                Some(Ok(Expression::Literal(LiteralValue::String(v.to_string()))))
+            }
+
+            // These types are not supported for conversion to string.
+            LiteralValue::RegularExpression(_)
+            | LiteralValue::JavaScriptCode(_)
+            | LiteralValue::JavaScriptCodeWithScope(_)
+            | LiteralValue::Timestamp(_)
+            | LiteralValue::Binary(_)
+            | LiteralValue::Symbol(_)
+            | LiteralValue::Undefined
+            | LiteralValue::MaxKey
+            | LiteralValue::MinKey
+            | LiteralValue::DbPointer(_) => None,
         }
     }
 
     // Constant folds the cast expression
     fn fold_cast_expr(&mut self, cast_expr: CastExpr) -> (Expression, bool) {
         use crate::schema::{ANY_ARRAY, ANY_DOCUMENT};
+
         // If the input is a constant literal, attempt to fold the cast into a
         // literal of the target type. A static conversion failure folds to the
         // Cast's on_error, matching runtime CAST semantics.
-        if let Expression::Literal(ref l) = *cast_expr.expr {
-            match Self::convert_literal(l, cast_expr.to) {
-                Some(Ok(folded)) => return (folded, true),
-                Some(Err(())) => return (*cast_expr.on_error, true),
-                None => {}
-            }
+        let conversion_result = match cast_expr.expr.as_ref() {
+            Expression::Literal(ref l) => Self::convert_literal(l, cast_expr.to),
+            Expression::Array(ref a) => Self::convert_literal_array(a, cast_expr.to),
+            Expression::Document(ref d) => Self::convert_literal_document(d, cast_expr.to),
+            _ => None,
+        };
+
+        match conversion_result {
+            Some(Ok(folded)) => return (folded, true),
+            Some(Err(())) => return (*cast_expr.on_error, true),
+            None => {}
         }
+
         let schema = cast_expr.expr.schema(self.state);
-        if schema.is_err() {
+        let Ok(schema) = schema else {
             return (Expression::Cast(cast_expr), false);
-        }
+        };
         let target_schema = Schema::from(cast_expr.to);
-        let schema = schema.unwrap();
         let sat = schema.satisfies(&target_schema);
         if self.schema_is_exactly_nullish(schema) {
             (*cast_expr.on_null, true)
