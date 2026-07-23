@@ -27,9 +27,12 @@ mod scalar_functions;
 use scalar_functions::ScalarFunctionsRewritePass;
 mod with_query;
 pub use with_query::WithQueryRewritePass;
+mod higher_order_functions;
+pub use higher_order_functions::HigherOrderFunctionsRewritePass;
 
 #[cfg(test)]
 mod test;
+
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Errors that can occur during rewrite passes
@@ -84,6 +87,7 @@ pub fn rewrite_query(query: ast::Query) -> Result<ast::Query> {
         &TableSubqueryRewritePass,
         &OptionalParameterRewritePass,
         &NotComparisonRewritePass,
+        &HigherOrderFunctionsRewritePass,
         &ScalarFunctionsRewritePass,
         // WithQueryRewritePass can introduce duplicated queries, so it should be the last pass so
         // any rewrites that apply in the WithQuery queries are applied only once.
